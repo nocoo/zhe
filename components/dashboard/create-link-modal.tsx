@@ -1,9 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { createLink } from '@/actions/links';
 import type { Link } from '@/lib/db/schema';
 
@@ -42,30 +50,20 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
     }
   };
 
-  if (!isOpen) {
-    return (
-      <Button onClick={() => setIsOpen(true)}>
-        <Plus className="w-4 h-4 mr-2" />
-        Create Link
-      </Button>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h2 className="text-lg font-semibold">Create New Link</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsOpen(false)}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          新建链接
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>创建短链接</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Mode tabs */}
           <div className="flex gap-2">
             <button
@@ -73,31 +71,30 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
               onClick={() => setMode('simple')}
               className={`flex-1 py-2 text-sm rounded-md transition-colors ${
                 mode === 'simple'
-                  ? 'bg-white text-black'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
-              Simple
+              简单模式
             </button>
             <button
               type="button"
               onClick={() => setMode('custom')}
               className={`flex-1 py-2 text-sm rounded-md transition-colors ${
                 mode === 'custom'
-                  ? 'bg-white text-black'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
-              Custom Slug
+              自定义 slug
             </button>
           </div>
 
           {/* URL input */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Destination URL
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="url">原始链接</Label>
             <Input
+              id="url"
               type="url"
               placeholder="https://example.com/very-long-url"
               value={url}
@@ -108,15 +105,14 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
 
           {/* Custom slug input */}
           {mode === 'custom' && (
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Custom Slug
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="slug">自定义 slug</Label>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500 text-sm">
+                <span className="text-muted-foreground text-sm">
                   {siteUrl.replace(/^https?:\/\//, '')}/
                 </span>
                 <Input
+                  id="slug"
                   type="text"
                   placeholder="my-custom-link"
                   value={customSlug}
@@ -131,7 +127,7 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
 
           {/* Error message */}
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           {/* Submit button */}
@@ -143,14 +139,14 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating...
+                创建中...
               </>
             ) : (
-              'Create Link'
+              '创建链接'
             )}
           </Button>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
