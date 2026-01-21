@@ -4,8 +4,8 @@ import {
   getAnalyticsByLinkId,
   getAnalyticsStats,
   createLink,
-  clearMockStorage,
 } from '@/lib/db';
+import { clearMockStorage } from '../mocks/db-storage';
 
 describe('Analytics DB Operations', () => {
   beforeEach(() => {

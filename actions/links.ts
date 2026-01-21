@@ -178,8 +178,12 @@ export async function getAnalyticsStats(linkId: number): Promise<ActionResult<An
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Note: We should verify the link belongs to this user
-    // For now, we'll fetch the stats directly
+    // Verify the link belongs to this user
+    const userLinks = await getLinksByUserId(userId);
+    if (!userLinks.some((l) => l.id === linkId)) {
+      return { success: false, error: 'Link not found or access denied' };
+    }
+
     const stats = await dbGetAnalyticsStats(linkId);
     return { success: true, data: stats };
   } catch (error) {

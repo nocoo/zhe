@@ -1,15 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { D1Adapter } from '@/lib/auth-adapter';
-
-// Check if D1 is configured
-const isD1Configured = () => {
-  return (
-    process.env.CLOUDFLARE_ACCOUNT_ID &&
-    process.env.CLOUDFLARE_D1_DATABASE_ID &&
-    process.env.CLOUDFLARE_API_TOKEN
-  );
-};
+import { isD1Configured } from '@/lib/db/d1-client';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: isD1Configured() ? D1Adapter() : undefined,

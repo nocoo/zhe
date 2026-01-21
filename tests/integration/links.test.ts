@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createLink, getLinks, deleteLink, updateLink } from '@/actions/links';
-import { clearMockStorage } from '@/lib/db';
+import { clearMockStorage } from '../mocks/db-storage';
 
 // Mock auth to return a test user
 vi.mock('@/auth', () => ({
