@@ -56,25 +56,28 @@ export default auth(async (request) => {
       return NextResponse.rewrite(new URL('/not-found', request.url));
     }
 
-    // Record click analytics asynchronously (fire-and-forget)
+    // Record click analytics (await to ensure it completes before redirect)
     const metadata = extractClickMetadata(request.headers);
     const recordClickUrl = new URL('/api/record-click', request.url);
 
-    fetch(recordClickUrl.toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        linkId: data.id,
-        device: metadata.device,
-        browser: metadata.browser,
-        os: metadata.os,
-        country: metadata.country,
-        city: metadata.city,
-        referer: metadata.referer,
-      }),
-    }).catch((err) => {
+    try {
+      await fetch(recordClickUrl.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkId: data.id,
+          device: metadata.device,
+          browser: metadata.browser,
+          os: metadata.os,
+          country: metadata.country,
+          city: metadata.city,
+          referer: metadata.referer,
+        }),
+      });
+    } catch (err) {
+      // Don't block redirect if analytics fails
       console.error('Failed to record click:', err);
-    });
+    }
 
     // Redirect to original URL
     return NextResponse.redirect(data.originalUrl, { status: 307 });
