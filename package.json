@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate:logos": "./scripts/generate-logos.sh"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
