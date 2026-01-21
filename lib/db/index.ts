@@ -4,7 +4,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, NewLink, Analytics, NewAnalytics } from './schema';
+import type { Link, NewLink, Analytics, NewAnalytics, Folder } from './schema';
 
 // ============================================
 // Type Conversion Helpers
@@ -34,6 +34,15 @@ function rowToAnalytics(row: Record<string, unknown>): Analytics {
     browser: row.browser as string | null,
     os: row.os as string | null,
     referer: row.referer as string | null,
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+function rowToFolder(row: Record<string, unknown>): Folder {
+  return {
+    id: row.id as string,
+    userId: row.user_id as string,
+    name: row.name as string,
     createdAt: new Date(row.created_at as number),
   };
 }
