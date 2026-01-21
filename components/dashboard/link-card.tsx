@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Copy, ExternalLink, Trash2, Check, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatNumber, copyToClipboard } from '@/lib/utils';
-import { deleteLink } from '@/actions/links';
+import { deleteLink, getAnalyticsStats } from '@/actions/links';
 import type { Link } from '@/lib/db/schema';
 
 interface AnalyticsStats {
@@ -19,15 +19,36 @@ interface LinkCardProps {
   link: Link;
   siteUrl: string;
   onDelete: (id: number) => void;
-  analyticsStats?: AnalyticsStats | null;
 }
 
-export function LinkCard({ link, siteUrl, onDelete, analyticsStats }: LinkCardProps) {
+export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
 
   const shortUrl = `${siteUrl}/${link.slug}`;
+
+  const handleToggleAnalytics = async () => {
+    const newShowState = !showAnalytics;
+    setShowAnalytics(newShowState);
+
+    // Load analytics if expanding and not already loaded
+    if (newShowState && !analyticsStats && !isLoadingAnalytics) {
+      setIsLoadingAnalytics(true);
+      try {
+        const result = await getAnalyticsStats(link.id);
+        if (result.success && result.data) {
+          setAnalyticsStats(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      } finally {
+        setIsLoadingAnalytics(false);
+      }
+    }
+  };
 
   const handleCopy = async () => {
     const success = await copyToClipboard(shortUrl);
@@ -84,7 +105,7 @@ export function LinkCard({ link, siteUrl, onDelete, analyticsStats }: LinkCardPr
           {/* Meta info */}
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
             <button 
-              onClick={() => setShowAnalytics(!showAnalytics)}
+              onClick={handleToggleAnalytics}
               className="flex items-center gap-1 hover:text-gray-400 transition-colors"
             >
               <BarChart3 className="w-3 h-3" />
@@ -231,9 +252,15 @@ export function LinkCard({ link, siteUrl, onDelete, analyticsStats }: LinkCardPr
         </div>
       )}
 
-      {showAnalytics && !analyticsStats && (
+      {showAnalytics && !analyticsStats && !isLoadingAnalytics && (
         <div className="mt-4 pt-4 border-t border-gray-800 text-center text-gray-500 text-sm">
           No analytics data available yet
+        </div>
+      )}
+
+      {showAnalytics && isLoadingAnalytics && (
+        <div className="mt-4 pt-4 border-t border-gray-800 text-center text-gray-500 text-sm">
+          Loading analytics...
         </div>
       )}
     </div>
