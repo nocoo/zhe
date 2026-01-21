@@ -30,12 +30,13 @@ describe('isLinkExpired', () => {
   });
 
   it('returns false for link without expiration', () => {
-    const link = { slug: 'test', originalUrl: 'https://test.com' };
+    const link = { id: 100, slug: 'test', originalUrl: 'https://test.com' };
     expect(isLinkExpired(link)).toBe(false);
   });
 
   it('returns false for link with future expiration', () => {
     const link = {
+      id: 101,
       slug: 'test',
       originalUrl: 'https://test.com',
       expiresAt: new Date('2030-01-01'),
@@ -45,6 +46,7 @@ describe('isLinkExpired', () => {
 
   it('returns true for link with past expiration', () => {
     const link = {
+      id: 102,
       slug: 'test',
       originalUrl: 'https://test.com',
       expiresAt: new Date('2020-01-01'),

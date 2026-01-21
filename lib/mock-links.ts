@@ -4,6 +4,7 @@
  */
 
 export interface MockLink {
+  id: number;
   slug: string;
   originalUrl: string;
   expiresAt?: Date;
@@ -12,14 +13,17 @@ export interface MockLink {
 // Mock data for testing redirection
 export const MOCK_LINKS: MockLink[] = [
   {
+    id: 1,
     slug: 'github',
     originalUrl: 'https://github.com',
   },
   {
+    id: 2,
     slug: 'google',
     originalUrl: 'https://google.com',
   },
   {
+    id: 3,
     slug: 'expired',
     originalUrl: 'https://example.com',
     expiresAt: new Date('2020-01-01'), // Already expired

@@ -1,21 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, ExternalLink, Trash2, Check } from 'lucide-react';
+import { Copy, ExternalLink, Trash2, Check, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatNumber, copyToClipboard } from '@/lib/utils';
 import { deleteLink } from '@/actions/links';
 import type { Link } from '@/lib/db/schema';
 
+interface AnalyticsStats {
+  totalClicks: number;
+  uniqueCountries: string[];
+  deviceBreakdown: Record<string, number>;
+  browserBreakdown: Record<string, number>;
+  osBreakdown: Record<string, number>;
+}
+
 interface LinkCardProps {
   link: Link;
   siteUrl: string;
   onDelete: (id: number) => void;
+  analyticsStats?: AnalyticsStats | null;
 }
 
-export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
+export function LinkCard({ link, siteUrl, onDelete, analyticsStats }: LinkCardProps) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const shortUrl = `${siteUrl}/${link.slug}`;
 
@@ -73,7 +83,18 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
 
           {/* Meta info */}
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-            <span>{formatNumber(link.clicks ?? 0)} clicks</span>
+            <button 
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              className="flex items-center gap-1 hover:text-gray-400 transition-colors"
+            >
+              <BarChart3 className="w-3 h-3" />
+              <span>{formatNumber(link.clicks ?? 0)} clicks</span>
+              {showAnalytics ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </button>
             <span>{formatDate(link.createdAt)}</span>
             {link.expiresAt && (
               <span className="text-yellow-600">
@@ -118,6 +139,103 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
           </Button>
         </div>
       </div>
+
+      {/* Analytics Panel */}
+      {showAnalytics && analyticsStats && (
+        <div className="mt-4 pt-4 border-t border-gray-800">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            {/* Countries */}
+            <div>
+              <h4 className="text-gray-500 text-xs uppercase tracking-wide mb-2">Countries</h4>
+              {analyticsStats.uniqueCountries.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {analyticsStats.uniqueCountries.slice(0, 5).map((country) => (
+                    <span
+                      key={country}
+                      className="bg-gray-800 px-2 py-0.5 rounded text-gray-300 text-xs"
+                    >
+                      {country}
+                    </span>
+                  ))}
+                  {analyticsStats.uniqueCountries.length > 5 && (
+                    <span className="text-gray-500 text-xs">
+                      +{analyticsStats.uniqueCountries.length - 5} more
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-gray-600 text-xs">No data</span>
+              )}
+            </div>
+
+            {/* Devices */}
+            <div>
+              <h4 className="text-gray-500 text-xs uppercase tracking-wide mb-2">Devices</h4>
+              {Object.keys(analyticsStats.deviceBreakdown).length > 0 ? (
+                <div className="space-y-1">
+                  {Object.entries(analyticsStats.deviceBreakdown)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([device, count]) => (
+                      <div key={device} className="flex justify-between text-xs">
+                        <span className="text-gray-400 capitalize">{device}</span>
+                        <span className="text-gray-500">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <span className="text-gray-600 text-xs">No data</span>
+              )}
+            </div>
+
+            {/* Browsers */}
+            <div>
+              <h4 className="text-gray-500 text-xs uppercase tracking-wide mb-2">Browsers</h4>
+              {Object.keys(analyticsStats.browserBreakdown).length > 0 ? (
+                <div className="space-y-1">
+                  {Object.entries(analyticsStats.browserBreakdown)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([browser, count]) => (
+                      <div key={browser} className="flex justify-between text-xs">
+                        <span className="text-gray-400">{browser}</span>
+                        <span className="text-gray-500">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <span className="text-gray-600 text-xs">No data</span>
+              )}
+            </div>
+
+            {/* OS */}
+            <div>
+              <h4 className="text-gray-500 text-xs uppercase tracking-wide mb-2">Operating Systems</h4>
+              {Object.keys(analyticsStats.osBreakdown).length > 0 ? (
+                <div className="space-y-1">
+                  {Object.entries(analyticsStats.osBreakdown)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([os, count]) => (
+                      <div key={os} className="flex justify-between text-xs">
+                        <span className="text-gray-400">{os}</span>
+                        <span className="text-gray-500">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <span className="text-gray-600 text-xs">No data</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAnalytics && !analyticsStats && (
+        <div className="mt-4 pt-4 border-t border-gray-800 text-center text-gray-500 text-sm">
+          No analytics data available yet
+        </div>
+      )}
     </div>
   );
 }

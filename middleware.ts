@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { getMockLink, isLinkExpired } from '@/lib/mock-links';
+import { extractClickMetadata } from '@/lib/analytics';
 
 export default auth((request) => {
   const { pathname } = request.nextUrl;
@@ -41,8 +42,27 @@ export default auth((request) => {
     return NextResponse.rewrite(new URL('/not-found', request.url));
   }
 
-  // TODO: Record click analytics asynchronously
-  // waitUntil(recordClick(link.id, request));
+  // Record click analytics asynchronously (fire-and-forget)
+  const metadata = extractClickMetadata(request.headers);
+  const recordClickUrl = new URL('/api/record-click', request.url);
+  
+  // Use fetch to record the click asynchronously
+  // We don't await this - it's fire-and-forget
+  fetch(recordClickUrl.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      linkId: link.id,
+      device: metadata.device,
+      browser: metadata.browser,
+      os: metadata.os,
+      country: metadata.country,
+      city: metadata.city,
+      referer: metadata.referer,
+    }),
+  }).catch((err) => {
+    console.error('Failed to record click:', err);
+  });
 
   // Redirect to original URL
   return NextResponse.redirect(link.originalUrl, { status: 307 });
