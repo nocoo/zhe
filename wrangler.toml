@@ -1,0 +1,7 @@
+name = "zhe"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "zhe-db"
+database_id = "2ec5605c-613a-4c3a-a815-1ff7776bf6ab"
