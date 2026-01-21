@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { extractClickMetadata } from '@/lib/analytics';
@@ -13,7 +13,7 @@ interface LookupResponse {
   error?: string;
 }
 
-export default auth(async (request) => {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   // Skip root path
@@ -28,7 +28,8 @@ export default auth(async (request) => {
   if (isReservedPath(slug)) {
     // Check auth for dashboard
     if (pathname.startsWith('/dashboard')) {
-      if (!request.auth?.user) {
+      const session = await auth();
+      if (!session?.user) {
         const loginUrl = new URL('/login', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
@@ -56,12 +57,13 @@ export default auth(async (request) => {
       return NextResponse.rewrite(new URL('/not-found', request.url));
     }
 
-    // Record click analytics (await to ensure it completes before redirect)
+    // Record click analytics using waitUntil for non-blocking execution
     const metadata = extractClickMetadata(request.headers);
     const recordClickUrl = new URL('/api/record-click', request.url);
 
-    try {
-      await fetch(recordClickUrl.toString(), {
+    // Use waitUntil to record analytics after response is sent (zero latency)
+    event.waitUntil(
+      fetch(recordClickUrl.toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,19 +75,18 @@ export default auth(async (request) => {
           city: metadata.city,
           referer: metadata.referer,
         }),
-      });
-    } catch (err) {
-      // Don't block redirect if analytics fails
-      console.error('Failed to record click:', err);
-    }
+      }).catch((err) => {
+        console.error('Failed to record click:', err);
+      })
+    );
 
-    // Redirect to original URL
+    // Redirect to original URL immediately (no waiting for analytics)
     return NextResponse.redirect(data.originalUrl, { status: 307 });
   } catch (error) {
     console.error('Middleware lookup error:', error);
     return NextResponse.rewrite(new URL('/not-found', request.url));
   }
-});
+}
 
 export const config = {
   matcher: [
