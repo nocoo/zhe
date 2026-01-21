@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     if (pathname.startsWith('/dashboard')) {
       const session = await auth();
       if (!session?.user) {
-        const loginUrl = new URL('/login', request.url);
+        const loginUrl = new URL('/', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
       }
