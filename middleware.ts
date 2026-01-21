@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
-import { getMockLink, isLinkExpired } from '@/lib/mock-links';
 import { extractClickMetadata } from '@/lib/analytics';
 
-export default auth((request) => {
+interface LookupResponse {
+  found: boolean;
+  id?: number;
+  originalUrl?: string;
+  slug?: string;
+  expired?: boolean;
+  error?: string;
+}
+
+export default auth(async (request) => {
   const { pathname } = request.nextUrl;
 
   // Skip root path
@@ -29,43 +37,51 @@ export default auth((request) => {
     return NextResponse.next();
   }
 
-  // Look up the short link
-  const link = getMockLink(slug);
+  // Look up the short link via API (to query D1 database)
+  try {
+    const lookupUrl = new URL('/api/lookup', request.url);
+    lookupUrl.searchParams.set('slug', slug);
 
-  // Not found
-  if (!link) {
+    const lookupResponse = await fetch(lookupUrl.toString(), {
+      headers: {
+        // Forward cookies for any auth context if needed
+        cookie: request.headers.get('cookie') || '',
+      },
+    });
+
+    const data: LookupResponse = await lookupResponse.json();
+
+    // Not found or expired
+    if (!data.found || !data.originalUrl) {
+      return NextResponse.rewrite(new URL('/not-found', request.url));
+    }
+
+    // Record click analytics asynchronously (fire-and-forget)
+    const metadata = extractClickMetadata(request.headers);
+    const recordClickUrl = new URL('/api/record-click', request.url);
+
+    fetch(recordClickUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        linkId: data.id,
+        device: metadata.device,
+        browser: metadata.browser,
+        os: metadata.os,
+        country: metadata.country,
+        city: metadata.city,
+        referer: metadata.referer,
+      }),
+    }).catch((err) => {
+      console.error('Failed to record click:', err);
+    });
+
+    // Redirect to original URL
+    return NextResponse.redirect(data.originalUrl, { status: 307 });
+  } catch (error) {
+    console.error('Middleware lookup error:', error);
     return NextResponse.rewrite(new URL('/not-found', request.url));
   }
-
-  // Check if expired (expired links also return 404)
-  if (isLinkExpired(link)) {
-    return NextResponse.rewrite(new URL('/not-found', request.url));
-  }
-
-  // Record click analytics asynchronously (fire-and-forget)
-  const metadata = extractClickMetadata(request.headers);
-  const recordClickUrl = new URL('/api/record-click', request.url);
-  
-  // Use fetch to record the click asynchronously
-  // We don't await this - it's fire-and-forget
-  fetch(recordClickUrl.toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      linkId: link.id,
-      device: metadata.device,
-      browser: metadata.browser,
-      os: metadata.os,
-      country: metadata.country,
-      city: metadata.city,
-      referer: metadata.referer,
-    }),
-  }).catch((err) => {
-    console.error('Failed to record click:', err);
-  });
-
-  // Redirect to original URL
-  return NextResponse.redirect(link.originalUrl, { status: 307 });
 });
 
 export const config = {
