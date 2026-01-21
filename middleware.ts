@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { isReservedPath } from '@/lib/constants';
+import { getMockLink, isLinkExpired } from '@/lib/mock-links';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,9 +19,24 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // TODO: Phase 1 - Look up slug in database and redirect
-  // For now, all non-reserved paths go to 404
-  return NextResponse.rewrite(new URL('/not-found', request.url));
+  // Look up the short link
+  const link = getMockLink(slug);
+
+  // Not found
+  if (!link) {
+    return NextResponse.rewrite(new URL('/not-found', request.url));
+  }
+
+  // Check if expired (expired links also return 404)
+  if (isLinkExpired(link)) {
+    return NextResponse.rewrite(new URL('/not-found', request.url));
+  }
+
+  // TODO: Phase 2 - Record click analytics asynchronously
+  // waitUntil(recordClick(link.id, request));
+
+  // Redirect to original URL
+  return NextResponse.redirect(link.originalUrl, { status: 307 });
 }
 
 export const config = {
