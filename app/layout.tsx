@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Zhe - URL Shortener",
   description: "A minimalist URL shortener service",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon-16.png",
+  },
 };
 
 export default function RootLayout({
