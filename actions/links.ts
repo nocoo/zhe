@@ -1,5 +1,6 @@
 'use server';
 
+import { auth } from '@/auth';
 import { 
   createLink as dbCreateLink, 
   getLinksByUserId,
@@ -8,13 +9,11 @@ import {
   slugExists 
 } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
-import { isValidSlug } from '@/lib/constants';
 import type { Link } from '@/lib/db/schema';
 
-// TODO: Replace with actual auth check from Auth.js
 async function getCurrentUserId(): Promise<string | null> {
-  // Placeholder - will be replaced with: const session = await auth();
-  return 'mock-user-id';
+  const session = await auth();
+  return session?.user?.id ?? null;
 }
 
 export interface CreateLinkInput {

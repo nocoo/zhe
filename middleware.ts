@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { getMockLink, isLinkExpired } from '@/lib/mock-links';
 
-export function middleware(request: NextRequest) {
+export default auth((request) => {
   const { pathname } = request.nextUrl;
 
   // Skip root path
@@ -14,8 +15,16 @@ export function middleware(request: NextRequest) {
   // Get the first segment of the path (potential slug)
   const slug = pathname.slice(1).split('/')[0];
 
-  // Skip reserved paths
+  // Skip reserved paths - let Auth.js and Next.js handle them
   if (isReservedPath(slug)) {
+    // Check auth for dashboard
+    if (pathname.startsWith('/dashboard')) {
+      if (!request.auth?.user) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
     return NextResponse.next();
   }
 
@@ -32,12 +41,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/not-found', request.url));
   }
 
-  // TODO: Phase 2 - Record click analytics asynchronously
+  // TODO: Record click analytics asynchronously
   // waitUntil(recordClick(link.id, request));
 
   // Redirect to original URL
   return NextResponse.redirect(link.originalUrl, { status: 307 });
-}
+});
 
 export const config = {
   matcher: [

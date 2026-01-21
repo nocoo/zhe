@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createLink, getLinks, deleteLink, updateLink } from '@/actions/links';
 import { clearMockStorage } from '@/lib/db';
+
+// Mock auth to return a test user
+vi.mock('@/auth', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'test-user-id', name: 'Test', email: 'test@test.com' } }),
+}));
 
 describe('Link Server Actions', () => {
   beforeEach(() => {
