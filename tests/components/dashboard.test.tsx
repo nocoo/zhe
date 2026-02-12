@@ -38,7 +38,7 @@ describe('Dashboard Page', () => {
     const jsx = await DashboardPage();
     render(jsx);
 
-    expect(screen.getByText('Links')).toBeInTheDocument();
+    expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('暂无链接')).toBeInTheDocument();
     expect(screen.getByText('共 0 条链接')).toBeInTheDocument();
   });
@@ -84,7 +84,7 @@ describe('Dashboard Page', () => {
 
     // The component passes siteUrl to CreateLinkModal — we verify indirectly
     // by checking the page rendered without error with the mocked headers
-    expect(screen.getByText('Links')).toBeInTheDocument();
+    expect(screen.getByText('全部链接')).toBeInTheDocument();
   });
 
   it('handles getLinks failure gracefully', async () => {

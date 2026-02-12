@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { LinkCard } from './link-card';
-import { CreateLinkModal } from './create-link-modal';
-import { Link2 } from 'lucide-react';
-import type { Link } from '@/lib/db/schema';
+import { LinkCard } from "./link-card";
+import { CreateLinkModal } from "./create-link-modal";
+import { Link2 } from "lucide-react";
+import { useLinksViewModel } from "@/viewmodels/useLinksViewModel";
+import type { Link } from "@/models/types";
 
 interface LinksListProps {
   initialLinks: Link[];
@@ -12,39 +12,39 @@ interface LinksListProps {
 }
 
 export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
-  const [links, setLinks] = useState<Link[]>(initialLinks);
-
-  const handleLinkCreated = (newLink: Link) => {
-    setLinks((prev) => [newLink, ...prev]);
-  };
-
-  const handleLinkDeleted = (linkId: number) => {
-    setLinks((prev) => prev.filter((link) => link.id !== linkId));
-  };
+  const { links, handleLinkCreated, handleLinkDeleted } = useLinksViewModel(
+    initialLinks,
+    siteUrl
+  );
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Links</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h2 className="text-lg font-semibold text-foreground">全部链接</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
             共 {links.length} 条链接
           </p>
         </div>
         <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} />
       </div>
 
+      {/* Content */}
       {links.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-12 text-center">
-          <Link2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground mb-4">暂无链接</p>
-          <p className="text-muted-foreground/70 text-sm mb-4">
+        <div className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
+          <Link2
+            className="w-10 h-10 mx-auto text-muted-foreground mb-4"
+            strokeWidth={1.5}
+          />
+          <p className="text-sm text-muted-foreground mb-2">暂无链接</p>
+          <p className="text-xs text-muted-foreground mb-6">
             点击上方按钮创建您的第一个短链接
           </p>
           <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {links.map((link) => (
             <LinkCard
               key={link.id}

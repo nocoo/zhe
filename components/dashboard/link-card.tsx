@@ -1,27 +1,26 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Copy, ExternalLink, Trash2, Check, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+  Copy,
+  ExternalLink,
+  Trash2,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { formatDate, formatNumber, copyToClipboard } from '@/lib/utils';
-import { deleteLink, getAnalyticsStats } from '@/actions/links';
-import type { Link } from '@/lib/db/schema';
-
-interface AnalyticsStats {
-  totalClicks: number;
-  uniqueCountries: string[];
-  deviceBreakdown: Record<string, number>;
-  browserBreakdown: Record<string, number>;
-  osBreakdown: Record<string, number>;
-}
+} from "@/components/ui/dropdown-menu";
+import { formatDate, formatNumber } from "@/lib/utils";
+import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { stripProtocol } from "@/models/links";
+import { topBreakdownEntries } from "@/models/links";
+import type { Link } from "@/models/types";
 
 interface LinkCardProps {
   link: Link;
@@ -30,245 +29,195 @@ interface LinkCardProps {
 }
 
 export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
-  const [copied, setCopied] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-
-  const shortUrl = `${siteUrl}/${link.slug}`;
-
-  const handleToggleAnalytics = async () => {
-    const newShowState = !showAnalytics;
-    setShowAnalytics(newShowState);
-
-    if (newShowState && !analyticsStats && !isLoadingAnalytics) {
-      setIsLoadingAnalytics(true);
-      try {
-        const result = await getAnalyticsStats(link.id);
-        if (result.success && result.data) {
-          setAnalyticsStats(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to load analytics:', error);
-      } finally {
-        setIsLoadingAnalytics(false);
-      }
-    }
-  };
-
-  const handleCopy = async () => {
-    const success = await copyToClipboard(shortUrl);
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this link?')) return;
-
-    setIsDeleting(true);
-    const result = await deleteLink(link.id);
-    if (result.success) {
-      onDelete(link.id);
-    } else {
-      alert(result.error || 'Failed to delete link');
-    }
-    setIsDeleting(false);
-  };
+  const {
+    shortUrl,
+    copied,
+    isDeleting,
+    showAnalytics,
+    analyticsStats,
+    isLoadingAnalytics,
+    handleCopy,
+    handleDelete,
+    handleToggleAnalytics,
+  } = useLinkCardViewModel(link, siteUrl, onDelete);
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 border-border/50 hover:border-border">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <a
-                href={shortUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground font-medium hover:underline truncate"
-              >
-                {shortUrl.replace(/^https?:\/\//, '')}
-              </a>
-              {link.isCustom && (
-                <Badge variant="secondary" className="shrink-0 text-xs">
-                  custom
-                </Badge>
-              )}
-            </div>
-
+    <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {/* Short URL */}
+          <div className="flex items-center gap-2 mb-1">
             <a
-              href={link.originalUrl}
+              href={shortUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground truncate block"
+              className="text-sm font-medium text-foreground hover:underline truncate"
             >
-              {link.originalUrl}
+              {stripProtocol(shortUrl)}
             </a>
-
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-              <button
-                onClick={handleToggleAnalytics}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
+            {link.isCustom && (
+              <Badge
+                variant="secondary"
+                className="shrink-0 text-[11px] bg-accent"
               >
-                <BarChart3 className="w-3 h-3" />
-                <span>{formatNumber(link.clicks ?? 0)} 次点击</span>
-                {showAnalytics ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
-                )}
-              </button>
-              <span>{formatDate(link.createdAt)}</span>
-              {link.expiresAt && (
-                <span className="text-destructive">
-                  Expires {formatDate(link.expiresAt)}
-                </span>
-              )}
-            </div>
+                custom
+              </Badge>
+            )}
           </div>
 
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCopy}
-              title="Copy link"
+          {/* Original URL */}
+          <a
+            href={link.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground truncate block"
+          >
+            {link.originalUrl}
+          </a>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <button
+              onClick={handleToggleAnalytics}
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
+              <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
+              <span>{formatNumber(link.clicks ?? 0)} 次点击</span>
+              {showAnalytics ? (
+                <ChevronUp className="w-3 h-3" />
               ) : (
-                <Copy className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3" />
               )}
-            </Button>
-            <a
-              href={link.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-10 w-10 inline-flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="Open link"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isDeleting}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="text-destructive focus:text-destructive"
-                >
-                  {isDeleting ? '删除中...' : '删除链接'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            </button>
+            <span>{formatDate(link.createdAt)}</span>
+            {link.expiresAt && (
+              <span className="text-destructive">
+                过期: {formatDate(link.expiresAt)}
+              </span>
+            )}
           </div>
         </div>
 
-        {showAnalytics && analyticsStats && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Countries</h4>
-                {analyticsStats.uniqueCountries.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {analyticsStats.uniqueCountries.slice(0, 5).map((country) => (
-                      <span
-                        key={country}
-                        className="bg-secondary px-2 py-0.5 rounded text-xs"
-                      >
-                        {country}
-                      </span>
-                    ))}
-                    {analyticsStats.uniqueCountries.length > 5 && (
-                      <span className="text-muted-foreground text-xs">
-                        +{analyticsStats.uniqueCountries.length - 5} more
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No data</span>
-                )}
-              </div>
+        {/* Actions */}
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={handleCopy}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Copy link"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-success" strokeWidth={1.5} />
+            ) : (
+              <Copy className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
+          <a
+            href={link.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Open link"
+          >
+            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
+          </a>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                disabled={isDeleting}
+              >
+                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+              >
+                {isDeleting ? "删除中..." : "删除链接"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-              <div>
-                <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Devices</h4>
-                {Object.keys(analyticsStats.deviceBreakdown).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(analyticsStats.deviceBreakdown)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 3)
-                      .map(([device, count]) => (
-                        <div key={device} className="flex justify-between text-xs">
-                          <span className="text-muted-foreground capitalize">{device}</span>
-                          <span className="text-muted-foreground/70">{count}</span>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No data</span>
-                )}
-              </div>
+      {/* Analytics panel */}
+      {showAnalytics && analyticsStats && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <BreakdownSection
+              title="Countries"
+              entries={analyticsStats.uniqueCountries.slice(0, 5).map((c) => [c, 0])}
+              total={analyticsStats.uniqueCountries.length}
+              showCount={false}
+            />
+            <BreakdownSection
+              title="Devices"
+              entries={topBreakdownEntries(analyticsStats.deviceBreakdown, 3)}
+            />
+            <BreakdownSection
+              title="Browsers"
+              entries={topBreakdownEntries(analyticsStats.browserBreakdown, 3)}
+            />
+            <BreakdownSection
+              title="OS"
+              entries={topBreakdownEntries(analyticsStats.osBreakdown, 3)}
+            />
+          </div>
+        </div>
+      )}
 
-              <div>
-                <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Browsers</h4>
-                {Object.keys(analyticsStats.browserBreakdown).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(analyticsStats.browserBreakdown)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 3)
-                      .map(([browser, count]) => (
-                        <div key={browser} className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">{browser}</span>
-                          <span className="text-muted-foreground/70">{count}</span>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No data</span>
-                )}
-              </div>
+      {showAnalytics && !analyticsStats && !isLoadingAnalytics && (
+        <div className="mt-4 pt-4 border-t border-border text-center text-muted-foreground text-xs">
+          暂无分析数据
+        </div>
+      )}
 
-              <div>
-                <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">Operating Systems</h4>
-                {Object.keys(analyticsStats.osBreakdown).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(analyticsStats.osBreakdown)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 3)
-                      .map(([os, count]) => (
-                        <div key={os} className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">{os}</span>
-                          <span className="text-muted-foreground/70">{count}</span>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No data</span>
-                )}
-              </div>
+      {showAnalytics && isLoadingAnalytics && (
+        <div className="mt-4 pt-4 border-t border-border text-center text-muted-foreground text-xs">
+          加载中...
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BreakdownSection({
+  title,
+  entries,
+  total,
+  showCount = true,
+}: {
+  title: string;
+  entries: [string, number][];
+  total?: number;
+  showCount?: boolean;
+}) {
+  return (
+    <div>
+      <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+        {title}
+      </h4>
+      {entries.length > 0 ? (
+        <div className="space-y-1">
+          {entries.map(([label, count]) => (
+            <div key={label} className="flex justify-between text-xs">
+              <span className="text-muted-foreground capitalize">{label}</span>
+              {showCount && (
+                <span className="text-muted-foreground/70">{count}</span>
+              )}
             </div>
-          </div>
-        )}
-
-        {showAnalytics && !analyticsStats && !isLoadingAnalytics && (
-          <div className="mt-4 pt-4 border-t border-border text-center text-muted-foreground text-sm">
-            No analytics data available yet
-          </div>
-        )}
-
-        {showAnalytics && isLoadingAnalytics && (
-          <div className="mt-4 pt-4 border-t border-border text-center text-muted-foreground text-sm">
-            Loading analytics...
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ))}
+          {total && total > entries.length && (
+            <span className="text-muted-foreground/70 text-xs">
+              +{total - entries.length} more
+            </span>
+          )}
+        </div>
+      ) : (
+        <span className="text-muted-foreground text-xs">No data</span>
+      )}
+    </div>
   );
 }

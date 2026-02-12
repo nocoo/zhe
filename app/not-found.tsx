@@ -2,17 +2,16 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-400 mb-8">Link not found</p>
-        <Link 
-          href="/"
-          className="text-gray-500 hover:text-white transition-colors"
-        >
-          ← Back to home
-        </Link>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+      <h1 className="text-[18vw] leading-none font-light text-muted-foreground font-display tracking-tight select-none">
+        404
+      </h1>
+      <Link
+        href="/"
+        className="mt-6 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+      >
+        返回首页
+      </Link>
     </div>
   );
 }

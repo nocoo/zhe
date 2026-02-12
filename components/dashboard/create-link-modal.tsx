@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Plus, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { createLink } from '@/actions/links';
-import type { Link } from '@/lib/db/schema';
+} from "@/components/ui/dialog";
+import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
+import { stripProtocol } from "@/models/links";
+import type { Link } from "@/models/types";
 
 interface CreateLinkModalProps {
   siteUrl: string;
@@ -21,69 +21,44 @@ interface CreateLinkModalProps {
 }
 
 export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState<'simple' | 'custom'>('simple');
-  const [url, setUrl] = useState('');
-  const [customSlug, setCustomSlug] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    const result = await createLink({
-      originalUrl: url,
-      customSlug: mode === 'custom' ? customSlug : undefined,
-    });
-
-    setIsLoading(false);
-
-    if (result.success && result.data) {
-      onSuccess(result.data);
-      setUrl('');
-      setCustomSlug('');
-      setIsOpen(false);
-    } else {
-      setError(result.error || 'Failed to create link');
-    }
-  };
+  const vm = useCreateLinkViewModel(siteUrl, onSuccess);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button className="rounded-[10px]">
+          <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
           新建链接
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] rounded-[14px] border-0 bg-card">
         <DialogHeader>
-          <DialogTitle>创建短链接</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">
+            创建短链接
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={vm.handleSubmit} className="space-y-4">
           {/* Mode tabs */}
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setMode('simple')}
-              className={`flex-1 py-2 text-sm rounded-md transition-colors ${
-                mode === 'simple'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              onClick={() => vm.setMode("simple")}
+              className={`flex-1 py-2 text-sm rounded-[10px] transition-colors ${
+                vm.mode === "simple"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
               }`}
             >
               简单模式
             </button>
             <button
               type="button"
-              onClick={() => setMode('custom')}
-              className={`flex-1 py-2 text-sm rounded-md transition-colors ${
-                mode === 'custom'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              onClick={() => vm.setMode("custom")}
+              className={`flex-1 py-2 text-sm rounded-[10px] transition-colors ${
+                vm.mode === "custom"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
               }`}
             >
               自定义 slug
@@ -92,59 +67,65 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
 
           {/* URL input */}
           <div className="space-y-2">
-            <Label htmlFor="url">原始链接</Label>
+            <Label htmlFor="url" className="text-sm text-foreground">
+              原始链接
+            </Label>
             <Input
               id="url"
               type="url"
               placeholder="https://example.com/very-long-url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              value={vm.url}
+              onChange={(e) => vm.setUrl(e.target.value)}
               required
+              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>
 
           {/* Custom slug input */}
-          {mode === 'custom' && (
+          {vm.mode === "custom" && (
             <div className="space-y-2">
-              <Label htmlFor="slug">自定义 slug</Label>
+              <Label htmlFor="slug" className="text-sm text-foreground">
+                自定义 slug
+              </Label>
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm">
-                  {siteUrl.replace(/^https?:\/\//, '')}/
+                <span className="text-muted-foreground text-sm whitespace-nowrap">
+                  {stripProtocol(siteUrl)}/
                 </span>
                 <Input
                   id="slug"
                   type="text"
                   placeholder="my-custom-link"
-                  value={customSlug}
-                  onChange={(e) => setCustomSlug(e.target.value)}
+                  value={vm.customSlug}
+                  onChange={(e) => vm.setCustomSlug(e.target.value)}
                   pattern="^[a-zA-Z0-9_-]+$"
                   title="Only letters, numbers, hyphens, and underscores"
-                  required={mode === 'custom'}
+                  required={vm.mode === "custom"}
+                  className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
                 />
               </div>
             </div>
           )}
 
           {/* Error message */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {vm.error && (
+            <p className="text-sm text-destructive">{vm.error}</p>
           )}
 
           {/* Submit button */}
-          <Button
+          <button
             type="submit"
-            className="w-full"
-            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={vm.isLoading}
           >
-            {isLoading ? (
+            {vm.isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
                 创建中...
               </>
             ) : (
-              '创建链接'
+              "创建链接"
             )}
-          </Button>
+          </button>
         </form>
       </DialogContent>
     </Dialog>
