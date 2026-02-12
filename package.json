@@ -9,8 +9,11 @@
     "lint": "next lint",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:unit": "vitest run --exclude tests/e2e/**",
+    "test:e2e": "vitest run tests/e2e",
     "test:coverage": "vitest run --coverage",
-    "generate:logos": "./scripts/generate-logos.sh"
+    "generate:logos": "./scripts/generate-logos.sh",
+    "prepare": "husky"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
@@ -52,10 +55,17 @@
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
+    "husky": "^9.1.7",
     "jsdom": "^26.0.0",
+    "lint-staged": "^16.2.7",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0"
+    ]
+  }
 }
