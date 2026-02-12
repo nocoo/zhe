@@ -68,7 +68,7 @@ describe('Home Page', () => {
     const jsx = await Home();
     render(jsx);
 
-    expect(screen.getByText('欢迎使用 Zhe')).toBeInTheDocument();
+    expect(screen.getByText('就是这')).toBeInTheDocument();
   });
 
   it('displays copyright footer', async () => {

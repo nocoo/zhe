@@ -108,7 +108,7 @@ export default async function Home() {
             </div>
 
             <p className="mt-5 text-lg font-semibold text-foreground">
-              欢迎使用 Zhe
+              就是这
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               登录以管理您的短链接
