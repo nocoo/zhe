@@ -53,7 +53,7 @@ describe('AppSidebar', () => {
 
       // Should have nav links but no visible text labels
       const links = container.querySelectorAll('nav a');
-      expect(links.length).toBe(2);
+      expect(links.length).toBe(3);
 
       // Text labels should not be visible (no span with item titles)
       expect(screen.queryByText('全部链接')).not.toBeInTheDocument();

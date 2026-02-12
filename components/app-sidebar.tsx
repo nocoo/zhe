@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, FolderOpen, PanelLeft, LogOut, Search, Zap } from "lucide-react";
+import { Link2, FolderOpen, PanelLeft, LogOut, Search, Zap, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,10 +17,29 @@ interface NavItem {
   href: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { title: "全部链接", icon: Link2, href: "/dashboard" },
-  { title: "未分类", icon: FolderOpen, href: "/dashboard?folder=uncategorized" },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "链接管理",
+    items: [
+      { title: "全部链接", icon: Link2, href: "/dashboard" },
+      { title: "未分类", icon: FolderOpen, href: "/dashboard?folder=uncategorized" },
+    ],
+  },
+  {
+    label: "图床",
+    items: [
+      { title: "图床", icon: ImageIcon, href: "/dashboard/uploads" },
+    ],
+  },
 ];
+
+// Flat list for collapsed mode
+const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -129,30 +148,32 @@ export function AppSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto pt-2">
-        <div className="px-3">
-          <div className="px-3 py-2.5">
-            <span className="text-sm font-normal text-muted-foreground">
-              链接管理
-            </span>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="px-3 mb-1">
+            <div className="px-3 py-2.5">
+              <span className="text-sm font-normal text-muted-foreground">
+                {group.label}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                    pathname === item.href
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                  <span className="flex-1 text-left">{item.title}</span>
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col gap-0.5">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                  pathname === item.href
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                <span className="flex-1 text-left">{item.title}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
+        ))}
       </nav>
 
       {/* User section */}
