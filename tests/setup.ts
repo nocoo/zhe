@@ -98,7 +98,7 @@ vi.mock('@/lib/db/d1-client', async () => {
         const id = params[params.length - 2];
         const userId = params[params.length - 1];
         
-        for (const [slug, link] of mockLinks.entries()) {
+        for (const [_slug, link] of mockLinks.entries()) {
           const rawLink = link as unknown as Record<string, unknown>;
           if (rawLink.id === id && rawLink.user_id === userId) {
             // Parse SET clause to update fields

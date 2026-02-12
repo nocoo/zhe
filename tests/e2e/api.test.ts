@@ -6,7 +6,7 @@
  * Validates HTTP status codes, response bodies, and error handling
  * from the perspective of an external HTTP client (BDD style).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { clearMockStorage } from '../setup';
 

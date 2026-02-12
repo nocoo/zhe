@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack -p 7005",
     "build": "next build",
     "start": "next start -p 7005",
-    "lint": "next lint",
+    "lint": "eslint . --max-warnings=0",
     "test": "vitest",
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude tests/e2e/**",
