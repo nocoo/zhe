@@ -102,6 +102,7 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
         <div className="flex items-center gap-0.5">
           <button
             onClick={handleCopy}
+            aria-label="Copy link"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="Copy link"
           >
@@ -123,6 +124,7 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                aria-label="Delete link"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 disabled={isDeleting}
               >

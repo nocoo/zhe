@@ -63,6 +63,7 @@ export function DashboardShell({
               {isMobile && (
                 <button
                   onClick={toggleSidebar}
+                  aria-label="Open menu"
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
                   <Menu className="h-5 w-5" strokeWidth={1.5} />

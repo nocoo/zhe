@@ -69,6 +69,7 @@ export function AppSidebar({
 
         <button
           onClick={onToggle}
+          aria-label="Expand sidebar"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-2"
         >
           <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
@@ -129,6 +130,7 @@ export function AppSidebar({
           </div>
           <button
             onClick={onToggle}
+            aria-label="Collapse sidebar"
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
           >
             <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
@@ -196,6 +198,7 @@ export function AppSidebar({
           <form action={signOutAction}>
             <button
               type="submit"
+              aria-label="Sign out"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
             >
               <LogOut className="h-4 w-4" strokeWidth={1.5} />

@@ -20,7 +20,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground">
+      <button aria-label="Toggle theme" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground">
         <Sun className="h-4 w-4" strokeWidth={1.5} />
       </button>
     );
@@ -29,6 +29,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={cycleTheme}
+      aria-label="Toggle theme"
       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       title={`Theme: ${theme}`}
     >

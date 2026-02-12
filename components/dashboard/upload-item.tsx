@@ -78,6 +78,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
         <div className="flex items-center gap-0.5">
           <button
             onClick={handleCopy}
+            aria-label="Copy link"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="复制链接"
           >
@@ -99,6 +100,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                aria-label="Delete file"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 disabled={isDeleting}
               >
@@ -171,6 +173,7 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
         {file.status === "error" && (
           <button
             onClick={() => onDismiss(file.id)}
+            aria-label="Dismiss"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="关闭"
           >
