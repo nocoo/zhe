@@ -1,7 +1,7 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { Link2, User } from "lucide-react";
+import { Zap, User } from "lucide-react";
 
 function Barcode() {
   const bars = [2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1];
@@ -75,7 +75,7 @@ export default async function Home() {
                 }}
               />
               <div className="flex items-center gap-2">
-                <Link2
+                <Zap
                   className="h-4 w-4 text-primary-foreground"
                   strokeWidth={1.5}
                 />
