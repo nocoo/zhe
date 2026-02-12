@@ -127,7 +127,7 @@ export default async function Home() {
                 "use server";
                 const h = await headers();
                 const proto = h.get("x-forwarded-proto") || "http";
-                const host = h.get("host") || "localhost:7005";
+                const host = h.get("x-forwarded-host") || h.get("host") || "localhost:7005";
                 const redirectTo = `${proto}://${host}/dashboard`;
                 await signIn("google", { redirectTo });
               }}

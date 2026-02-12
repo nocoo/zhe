@@ -4,6 +4,7 @@ import { D1Adapter } from '@/lib/auth-adapter';
 import { isD1Configured } from '@/lib/db/d1-client';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   adapter: isD1Configured() ? D1Adapter() : undefined,
   session: {
     // Use JWT strategy when no adapter, database strategy when adapter is present
