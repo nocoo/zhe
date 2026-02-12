@@ -12,20 +12,39 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: [
+        'lib/**/*.ts',
+        'models/links.ts',
+        'actions/**/*.ts',
+        'middleware.ts',
+        'viewmodels/**/*.ts',
+        'hooks/**/*.tsx',
+        'components/app-sidebar.tsx',
+        'components/dashboard-shell.tsx',
+        'components/theme-toggle.tsx',
+        'components/dashboard/**/*.tsx',
+        'app/**/page.tsx',
+        'app/**/route.ts',
+      ],
       exclude: [
         'node_modules/',
         'tests/',
         '**/*.config.*',
         '**/*.d.ts',
         '.next/',
+        // Config/schema/type-only files
+        'lib/db/schema.ts',
+        'lib/palette.ts',
+        // Thin wrappers
+        'app/api/auth/**',
+        // Shadcn/UI auto-generated primitives
+        'components/ui/',
       ],
       thresholds: {
-        // Enforce minimum coverage on core logic (lib/)
-        // UI components and API routes are covered by E2E
-        lines: 50,
-        functions: 40,
-        branches: 40,
-        statements: 50,
+        lines: 90,
+        functions: 85,
+        branches: 80,
+        statements: 90,
       },
     },
   },
