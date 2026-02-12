@@ -62,10 +62,18 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     const recordClickUrl = new URL('/api/record-click', request.url);
 
     // Use waitUntil to record analytics after response is sent (zero latency)
+    const clickHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    if (internalSecret) {
+      clickHeaders['x-internal-secret'] = internalSecret;
+    }
+
     event.waitUntil(
       fetch(recordClickUrl.toString(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: clickHeaders,
         body: JSON.stringify({
           linkId: data.id,
           device: metadata.device,

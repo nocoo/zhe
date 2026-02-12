@@ -1,20 +1,20 @@
 'use server';
 
 import { auth } from '@/auth';
-import { 
-  createLink as dbCreateLink, 
-  getLinksByUserId,
-  deleteLinkById,
-  updateLink as dbUpdateLink,
-  slugExists,
-  getAnalyticsStats as dbGetAnalyticsStats,
-} from '@/lib/db';
+import { ScopedDB } from '@/lib/db/scoped';
+import { slugExists } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import type { Link } from '@/lib/db/schema';
 
-async function getCurrentUserId(): Promise<string | null> {
+/**
+ * Get a ScopedDB instance for the current authenticated user.
+ * Returns null if not authenticated.
+ */
+async function getScopedDB(): Promise<ScopedDB | null> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  return new ScopedDB(userId);
 }
 
 export interface CreateLinkInput {
@@ -35,8 +35,8 @@ export interface ActionResult<T = void> {
  */
 export async function createLink(input: CreateLinkInput): Promise<ActionResult<Link>> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    const db = await getScopedDB();
+    if (!db) {
       return { success: false, error: 'Unauthorized' };
     }
 
@@ -56,7 +56,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
         return { success: false, error: 'Invalid slug format or reserved word' };
       }
 
-      // Check if already exists
+      // Check if already exists (public query — no scope needed)
       if (await slugExists(sanitized)) {
         return { success: false, error: 'Slug already taken' };
       }
@@ -67,8 +67,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       slug = await generateUniqueSlug(slugExists);
     }
 
-    const link = await dbCreateLink({
-      userId,
+    const link = await db.createLink({
       originalUrl: input.originalUrl,
       slug,
       isCustom: !!input.customSlug,
@@ -91,12 +90,12 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
  */
 export async function getLinks(): Promise<ActionResult<Link[]>> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    const db = await getScopedDB();
+    if (!db) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const links = await getLinksByUserId(userId);
+    const links = await db.getLinks();
     return { success: true, data: links };
   } catch (error) {
     console.error('Failed to get links:', error);
@@ -109,12 +108,12 @@ export async function getLinks(): Promise<ActionResult<Link[]>> {
  */
 export async function deleteLink(linkId: number): Promise<ActionResult> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    const db = await getScopedDB();
+    if (!db) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const deleted = await deleteLinkById(linkId, userId);
+    const deleted = await db.deleteLink(linkId);
     if (!deleted) {
       return { success: false, error: 'Link not found or access denied' };
     }
@@ -134,8 +133,8 @@ export async function updateLink(
   data: { originalUrl?: string; folderId?: string; expiresAt?: Date }
 ): Promise<ActionResult<Link>> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    const db = await getScopedDB();
+    if (!db) {
       return { success: false, error: 'Unauthorized' };
     }
 
@@ -148,7 +147,7 @@ export async function updateLink(
       }
     }
 
-    const updated = await dbUpdateLink(linkId, userId, data);
+    const updated = await db.updateLink(linkId, data);
     if (!updated) {
       return { success: false, error: 'Link not found or access denied' };
     }
@@ -170,21 +169,16 @@ export interface AnalyticsStats {
 
 /**
  * Get analytics stats for a specific link.
+ * Ownership is enforced at the SQL level via ScopedDB JOIN.
  */
 export async function getAnalyticsStats(linkId: number): Promise<ActionResult<AnalyticsStats>> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    const db = await getScopedDB();
+    if (!db) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Verify the link belongs to this user
-    const userLinks = await getLinksByUserId(userId);
-    if (!userLinks.some((l) => l.id === linkId)) {
-      return { success: false, error: 'Link not found or access denied' };
-    }
-
-    const stats = await dbGetAnalyticsStats(linkId);
+    const stats = await db.getAnalyticsStats(linkId);
     return { success: true, data: stats };
   } catch (error) {
     console.error('Failed to get analytics:', error);
