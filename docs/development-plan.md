@@ -16,7 +16,7 @@
 ## 2. Tech Stack Architecture
 
 * **Runtime**: Bun
-* **Package Manager**: npm (fallback from pnpm)
+* **Package Manager**: Bun
 * **Framework**: Next.js 15 (App Router)
 * **Deployment**: Vercel (using Edge Middleware for redirection)
 * **Database**: Cloudflare D1 (Serverless SQLite)
@@ -111,10 +111,10 @@ tests/
 
 **Verification Checklist**:
 ```
-□ `npm run dev` starts without errors (port 7003)
-□ Visit http://localhost:7003 shows home page
-□ Visit http://localhost:7003/dashboard shows placeholder
-□ `npm run test:run` passes (22 tests)
+□ `bun run dev` starts without errors (port 7005)
+□ Visit http://localhost:7005 shows home page
+□ Visit http://localhost:7005/dashboard shows placeholder
+□ `bun run test:run` passes (22 tests)
 □ Vercel deployment succeeds
 □ https://zhe.to shows home page
 ```

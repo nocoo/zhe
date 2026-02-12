@@ -1,6 +1,5 @@
 # Dependencies
 node_modules
-bun.lockb
 .pnp
 .pnp.js
 .yarn/install-state.gz
@@ -25,6 +24,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+bun-debug.log*
 
 # Local env files
 .env

@@ -1,6 +1,6 @@
 /**
  * Quick test script to verify D1 connection works.
- * Run with: npx tsx scripts/test-d1.ts
+ * Run with: bunx tsx scripts/test-d1.ts
  */
 
 async function testD1Connection() {
