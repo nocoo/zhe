@@ -58,17 +58,17 @@ describe('Home Page', () => {
     const jsx = await Home();
     render(jsx);
 
-    expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
+    expect(screen.getByText('Continue with Google')).toBeInTheDocument();
   });
 
-  it('displays 验证身份 divider text', async () => {
+  it('displays welcome heading', async () => {
     mockAuth.mockResolvedValue(null);
 
     const { default: Home } = await import('@/app/page');
     const jsx = await Home();
     render(jsx);
 
-    expect(screen.getByText('验证身份')).toBeInTheDocument();
+    expect(screen.getByText('欢迎使用 Zhe')).toBeInTheDocument();
   });
 
   it('displays copyright footer', async () => {
