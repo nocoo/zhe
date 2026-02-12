@@ -7,7 +7,7 @@
  * - DB query failure → 503, status "error", sanitised message
  * - Cache-Control header is no-store
  * - Error responses never contain the word "ok" (monitor keyword safety)
- * - Response includes version, timestamp, uptime, dependencies
+ * - Response includes version, timestamp, dependencies
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -79,13 +79,12 @@ describe('GET /api/live', () => {
     expect(body.version).toBe('0.1.0');
   });
 
-  it('includes uptime as a non-negative number', async () => {
+  it('does not include uptime (unavailable in Edge Runtime)', async () => {
     const { GET } = await import('@/app/api/live/route');
     const response = await GET();
     const body = await response.json();
 
-    expect(typeof body.uptime).toBe('number');
-    expect(body.uptime).toBeGreaterThanOrEqual(0);
+    expect(body.uptime).toBeUndefined();
   });
 
   it('includes database dependency with connected=true and latencyMs', async () => {
@@ -240,7 +239,6 @@ describe('GET /api/live', () => {
     expect(body).toHaveProperty('status');
     expect(body).toHaveProperty('timestamp');
     expect(body).toHaveProperty('version');
-    expect(body).toHaveProperty('uptime');
     expect(body).toHaveProperty('dependencies');
   });
 });

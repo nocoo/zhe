@@ -40,7 +40,7 @@ export async function GET() {
     status: healthy ? 'ok' : 'error',
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version ?? '0.1.0',
-    uptime: Math.floor(process.uptime?.() ?? 0),
+    // NOTE: process.uptime() is unavailable in Edge Runtime
     dependencies: {
       database: db,
     },
