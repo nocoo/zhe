@@ -230,7 +230,7 @@ export class ScopedDB {
   /** Get all uploads owned by this user. */
   async getUploads(): Promise<Upload[]> {
     const rows = await executeD1Query<Record<string, unknown>>(
-      'SELECT * FROM uploads WHERE user_id = ? ORDER BY created_at DESC',
+      'SELECT * FROM uploads WHERE user_id = ? ORDER BY created_at DESC, id DESC',
       [this.userId],
     );
     return rows.map(rowToUpload);

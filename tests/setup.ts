@@ -236,9 +236,11 @@ vi.mock('@/lib/db/d1-client', async () => {
           }
         }
         results.sort((a, b) => {
-          const aTime = (a as Record<string, unknown>).created_at as number;
-          const bTime = (b as Record<string, unknown>).created_at as number;
-          return bTime - aTime;
+          const aRaw = a as Record<string, unknown>;
+          const bRaw = b as Record<string, unknown>;
+          const timeDiff = (bRaw.created_at as number) - (aRaw.created_at as number);
+          if (timeDiff !== 0) return timeDiff;
+          return (bRaw.id as number) - (aRaw.id as number);
         });
         return results as T[];
       }
