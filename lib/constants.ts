@@ -10,6 +10,7 @@ export const RESERVED_PATHS = [
   'dashboard',
   'api',
   'admin',
+  'live',
   '_next',
   'static',
   'favicon.ico',

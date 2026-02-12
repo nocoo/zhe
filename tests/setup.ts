@@ -18,6 +18,11 @@ vi.mock('@/lib/db/d1-client', async () => {
       // Parse SQL and simulate D1 responses
       const sqlLower = sql.toLowerCase().trim();
       
+      // Liveness probe: SELECT 1
+      if (sqlLower === 'select 1 as result') {
+        return [{ result: 1 }] as T[];
+      }
+      
       // INSERT INTO links
       if (sqlLower.startsWith('insert into links')) {
         const [userId, folderId, originalUrl, slug, isCustom, expiresAt, clicks, createdAt] = params;
