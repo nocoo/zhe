@@ -17,11 +17,6 @@ interface FolderSidebarProps {
   onSelectFolder: (folderId: string | null) => void;
 }
 
-const FOLDER_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#10b981', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899'
-];
-
 export function FolderSidebar({ folders, selectedFolderId, onSelectFolder }: FolderSidebarProps) {
   const totalLinks = folders.reduce((sum, f) => sum + f.linkCount, 0);
 

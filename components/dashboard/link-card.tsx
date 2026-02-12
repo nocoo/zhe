@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatDate, formatNumber, copyToClipboard } from '@/lib/utils';
@@ -155,16 +154,17 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
             </a>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isDeleting}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={handleDelete}
+                  disabled={isDeleting}
                   className="text-destructive focus:text-destructive"
                 >
-                  删除链接
+                  {isDeleting ? '删除中...' : '删除链接'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

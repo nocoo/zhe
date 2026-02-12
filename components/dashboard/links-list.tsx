@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { LinkCard } from './link-card';
 import { CreateLinkModal } from './create-link-modal';
-import { Button } from '@/components/ui/button';
-import { Plus, Link2 } from 'lucide-react';
+import { Link2 } from 'lucide-react';
 import type { Link } from '@/lib/db/schema';
 
 interface LinksListProps {

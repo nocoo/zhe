@@ -2,15 +2,7 @@ import { auth, signOut } from '@/auth';
 import Link from 'next/link';
 import { Link2, FolderOpen, LogOut, Search } from 'lucide-react';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default async function DashboardLayout({
