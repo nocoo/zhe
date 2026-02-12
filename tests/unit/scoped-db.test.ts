@@ -217,4 +217,108 @@ describe('ScopedDB', () => {
       expect(folders).toEqual([]);
     });
   });
+
+  // ---- Uploads -----------------------------------------------
+
+  describe('upload operations', () => {
+    it('createUpload assigns the scoped userId', async () => {
+      const db = new ScopedDB(USER_A);
+      const upload = await db.createUpload({
+        key: '20260212/test-uuid.png',
+        fileName: 'photo.png',
+        fileType: 'image/png',
+        fileSize: 1024,
+        publicUrl: 'https://s.zhe.to/20260212/test-uuid.png',
+      });
+
+      expect(upload.userId).toBe(USER_A);
+      expect(upload.key).toBe('20260212/test-uuid.png');
+      expect(upload.fileName).toBe('photo.png');
+      expect(upload.fileType).toBe('image/png');
+      expect(upload.fileSize).toBe(1024);
+      expect(upload.publicUrl).toBe('https://s.zhe.to/20260212/test-uuid.png');
+      expect(upload.id).toBeGreaterThan(0);
+      expect(upload.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('getUploads only returns own uploads', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createUpload({
+        key: '20260212/a1.png',
+        fileName: 'a1.png',
+        fileType: 'image/png',
+        fileSize: 100,
+        publicUrl: 'https://s.zhe.to/20260212/a1.png',
+      });
+      await dbA.createUpload({
+        key: '20260212/a2.jpg',
+        fileName: 'a2.jpg',
+        fileType: 'image/jpeg',
+        fileSize: 200,
+        publicUrl: 'https://s.zhe.to/20260212/a2.jpg',
+      });
+      await dbB.createUpload({
+        key: '20260212/b1.pdf',
+        fileName: 'b1.pdf',
+        fileType: 'application/pdf',
+        fileSize: 300,
+        publicUrl: 'https://s.zhe.to/20260212/b1.pdf',
+      });
+
+      const uploadsA = await dbA.getUploads();
+      const uploadsB = await dbB.getUploads();
+
+      expect(uploadsA).toHaveLength(2);
+      expect(uploadsB).toHaveLength(1);
+      expect(uploadsA.every(u => u.userId === USER_A)).toBe(true);
+      expect(uploadsB.every(u => u.userId === USER_B)).toBe(true);
+    });
+
+    it('deleteUpload cannot delete another user upload', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const upload = await dbA.createUpload({
+        key: '20260212/priv.png',
+        fileName: 'priv.png',
+        fileType: 'image/png',
+        fileSize: 100,
+        publicUrl: 'https://s.zhe.to/20260212/priv.png',
+      });
+
+      // Bob cannot delete Alice's upload
+      expect(await dbB.deleteUpload(upload.id)).toBe(false);
+      // Alice can
+      expect(await dbA.deleteUpload(upload.id)).toBe(true);
+    });
+
+    it('getUploadKey returns key for own upload', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const upload = await dbA.createUpload({
+        key: '20260212/getkey.png',
+        fileName: 'getkey.png',
+        fileType: 'image/png',
+        fileSize: 100,
+        publicUrl: 'https://s.zhe.to/20260212/getkey.png',
+      });
+
+      expect(await dbA.getUploadKey(upload.id)).toBe('20260212/getkey.png');
+      expect(await dbB.getUploadKey(upload.id)).toBeNull();
+    });
+
+    it('getUploadKey returns null for non-existent upload', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.getUploadKey(99999)).toBeNull();
+    });
+
+    it('getUploads returns empty array when no uploads exist', async () => {
+      const db = new ScopedDB(USER_A);
+      const uploads = await db.getUploads();
+      expect(uploads).toEqual([]);
+    });
+  });
 });

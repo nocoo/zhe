@@ -6,13 +6,14 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getNextLinkId, getNextAnalyticsId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getNextLinkId, getNextAnalyticsId, getNextUploadId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
     executeD1Query: async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
       const mockLinks = getMockLinks();
       const mockAnalytics = getMockAnalytics();
+      const mockUploads = getMockUploads();
       
       // Parse SQL and simulate D1 responses
       const sqlLower = sql.toLowerCase().trim();
@@ -199,6 +200,69 @@ vi.mock('@/lib/db/d1-client', async () => {
           const rawLink = link as unknown as Record<string, unknown>;
           if (rawLink.id === id && rawLink.user_id === userId) {
             return [link] as T[];
+          }
+        }
+        return [];
+      }
+
+      // ---- Uploads ----
+
+      // INSERT INTO uploads
+      if (sqlLower.startsWith('insert into uploads')) {
+        const [userId, key, fileName, fileType, fileSize, publicUrl, createdAt] = params;
+        const id = getNextUploadId();
+        const upload = {
+          id,
+          user_id: userId,
+          key,
+          file_name: fileName,
+          file_type: fileType,
+          file_size: fileSize,
+          public_url: publicUrl,
+          created_at: createdAt,
+        };
+        mockUploads.set(id, upload as unknown as import('@/lib/db/schema').Upload);
+        return [upload] as T[];
+      }
+
+      // SELECT FROM uploads WHERE user_id = ?
+      if (sqlLower.includes('from uploads') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
+        const [userId] = params;
+        const results: unknown[] = [];
+        for (const upload of mockUploads.values()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            results.push(upload);
+          }
+        }
+        results.sort((a, b) => {
+          const aTime = (a as Record<string, unknown>).created_at as number;
+          const bTime = (b as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
+      // DELETE FROM uploads WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('delete from uploads') && sqlLower.includes('where id = ?')) {
+        const [id, userId] = params;
+        for (const [uploadId, upload] of mockUploads.entries()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            mockUploads.delete(uploadId);
+            return [{ id }] as T[];
+          }
+        }
+        return [];
+      }
+
+      // SELECT key FROM uploads WHERE id = ? AND user_id = ?
+      if (sqlLower.includes('from uploads') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
+        const [id, userId] = params;
+        for (const upload of mockUploads.values()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            return [{ key: raw.key }] as T[];
           }
         }
         return [];

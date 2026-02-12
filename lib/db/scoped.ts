@@ -10,7 +10,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, Analytics, Folder, NewLink } from './schema';
+import type { Link, Analytics, Folder, NewLink, Upload, NewUpload } from './schema';
 
 // ============================================
 // Row conversion helpers (shared with index.ts)
@@ -49,6 +49,19 @@ function rowToFolder(row: Record<string, unknown>): Folder {
     id: row.id as string,
     userId: row.user_id as string,
     name: row.name as string,
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+function rowToUpload(row: Record<string, unknown>): Upload {
+  return {
+    id: row.id as number,
+    userId: row.user_id as string,
+    key: row.key as string,
+    fileName: row.file_name as string,
+    fileType: row.file_type as string,
+    fileSize: row.file_size as number,
+    publicUrl: row.public_url as string,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -210,5 +223,56 @@ export class ScopedDB {
       [this.userId],
     );
     return rows.map(rowToFolder);
+  }
+
+  // ---- Uploads -----------------------------------------------
+
+  /** Get all uploads owned by this user. */
+  async getUploads(): Promise<Upload[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM uploads WHERE user_id = ? ORDER BY created_at DESC',
+      [this.userId],
+    );
+    return rows.map(rowToUpload);
+  }
+
+  /** Record a completed upload. */
+  async createUpload(
+    data: Omit<NewUpload, 'id' | 'createdAt' | 'userId'>,
+  ): Promise<Upload> {
+    const now = Date.now();
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO uploads (user_id, key, file_name, file_type, file_size, public_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [
+        this.userId,
+        data.key,
+        data.fileName,
+        data.fileType,
+        data.fileSize,
+        data.publicUrl,
+        now,
+      ],
+    );
+    return rowToUpload(rows[0]);
+  }
+
+  /** Delete an upload by id. Returns true if deleted. */
+  async deleteUpload(id: number): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'DELETE FROM uploads WHERE id = ? AND user_id = ? RETURNING id',
+      [id, this.userId],
+    );
+    return rows.length > 0;
+  }
+
+  /** Get the R2 key for an upload, only if owned by this user. Returns null if not found. */
+  async getUploadKey(id: number): Promise<string | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT key FROM uploads WHERE id = ? AND user_id = ? LIMIT 1',
+      [id, this.userId],
+    );
+    return rows[0] ? (rows[0].key as string) : null;
   }
 }
