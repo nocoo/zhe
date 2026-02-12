@@ -70,5 +70,11 @@
     "*.{ts,tsx}": [
       "eslint --max-warnings=0"
     ]
-  }
+  },
+  "browserslist": [
+    "chrome >= 96",
+    "firefox >= 95",
+    "safari >= 15.4",
+    "edge >= 96"
+  ]
 }
