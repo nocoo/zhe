@@ -84,6 +84,25 @@ describe('ScopedDB', () => {
       const aliceResult = await dbA.updateLink(link.id, { originalUrl: 'https://new.com' });
       expect(aliceResult?.originalUrl).toBe('https://new.com');
     });
+
+    it('updateLink with empty data returns existing link unchanged', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://keep.com', slug: 'noop' });
+
+      // Pass empty object — should hit the early return (lines 140-142)
+      const result = await db.updateLink(link.id, {});
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(link.id);
+      expect(result!.originalUrl).toBe('https://keep.com');
+    });
+
+    it('updateLink with empty data returns null for non-existent link', async () => {
+      const db = new ScopedDB(USER_A);
+
+      // Non-existent id, empty data — exercises the early-return path with a miss
+      const result = await db.updateLink(99999, {});
+      expect(result).toBeNull();
+    });
   });
 
   // ---- Analytics scoped through link ownership ---------------
@@ -144,6 +163,58 @@ describe('ScopedDB', () => {
       // Bob gets zero stats for Alice's link
       const statsB = await dbB.getAnalyticsStats(linkA.id);
       expect(statsB.totalClicks).toBe(0);
+    });
+
+    it('getAnalyticsStats aggregates browser and OS breakdowns', async () => {
+      const link = await createLink({
+        userId: USER_A,
+        originalUrl: 'https://a.com',
+        slug: 'stats-full',
+      });
+
+      await recordClick({ linkId: link.id, device: 'desktop', browser: 'Chrome', os: 'macOS', country: 'US' });
+      await recordClick({ linkId: link.id, device: 'desktop', browser: 'Chrome', os: 'Windows', country: 'DE' });
+      await recordClick({ linkId: link.id, device: 'mobile', browser: 'Safari', os: 'iOS', country: 'US' });
+
+      const db = new ScopedDB(USER_A);
+      const stats = await db.getAnalyticsStats(link.id);
+
+      expect(stats.totalClicks).toBe(3);
+      expect(stats.uniqueCountries).toContain('US');
+      expect(stats.uniqueCountries).toContain('DE');
+      expect(stats.browserBreakdown.Chrome).toBe(2);
+      expect(stats.browserBreakdown.Safari).toBe(1);
+      expect(stats.osBreakdown.macOS).toBe(1);
+      expect(stats.osBreakdown.Windows).toBe(1);
+      expect(stats.osBreakdown.iOS).toBe(1);
+    });
+
+    it('getAnalyticsStats returns empty breakdowns when no clicks exist', async () => {
+      const link = await createLink({
+        userId: USER_A,
+        originalUrl: 'https://empty.com',
+        slug: 'stats-empty',
+      });
+
+      const db = new ScopedDB(USER_A);
+      const stats = await db.getAnalyticsStats(link.id);
+
+      expect(stats.totalClicks).toBe(0);
+      expect(stats.uniqueCountries).toEqual([]);
+      expect(stats.deviceBreakdown).toEqual({});
+      expect(stats.browserBreakdown).toEqual({});
+      expect(stats.osBreakdown).toEqual({});
+    });
+  });
+
+  // ---- Folders -----------------------------------------------
+
+  describe('folder operations', () => {
+    it('getFolders returns an empty array when no folders exist', async () => {
+      const db = new ScopedDB(USER_A);
+      const folders = await db.getFolders();
+
+      expect(folders).toEqual([]);
     });
   });
 });
