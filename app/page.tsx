@@ -1,5 +1,6 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { Link2, User } from "lucide-react";
 
 function Barcode() {
@@ -124,7 +125,11 @@ export default async function Home() {
             <form
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: "/dashboard" });
+                const h = await headers();
+                const proto = h.get("x-forwarded-proto") || "http";
+                const host = h.get("host") || "localhost:7005";
+                const redirectTo = `${proto}://${host}/dashboard`;
+                await signIn("google", { redirectTo });
               }}
             >
               <button
