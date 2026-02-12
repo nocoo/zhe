@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:unit": "vitest run --exclude tests/e2e/**",
+    "test:unit": "vitest run --exclude 'tests/e2e/**'",
     "test:e2e": "vitest run tests/e2e",
     "test:coverage": "vitest run --coverage",
     "generate:logos": "./scripts/generate-logos.sh",
