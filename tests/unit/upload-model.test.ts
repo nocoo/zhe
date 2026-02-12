@@ -6,6 +6,7 @@ import {
   buildPublicUrl,
   isImageType,
   formatFileSize,
+  hashUserId,
   ALLOWED_TYPES,
   MAX_FILE_SIZE,
 } from '@/models/upload';
@@ -129,43 +130,52 @@ describe('models/upload', () => {
 
   // --- generateObjectKey ---
   describe('generateObjectKey', () => {
+    const userHash = 'abc123def456';
+
     beforeEach(() => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-02-12T15:30:00Z'));
     });
 
-    it('produces YYYYMMDD/uuid.ext format', () => {
-      const key = generateObjectKey('photo.png');
-      expect(key).toMatch(/^20260212\/[0-9a-f-]{36}\.png$/);
+    it('produces {userHash}/YYYYMMDD/uuid.ext format', () => {
+      const key = generateObjectKey('photo.png', userHash);
+      expect(key).toMatch(/^abc123def456\/20260212\/[0-9a-f-]{36}\.png$/);
     });
 
     it('uses UTC date for folder name', () => {
       // 2026-02-12 23:30 UTC → should still be 20260212, not 20260213
       vi.setSystemTime(new Date('2026-02-12T23:30:00Z'));
-      const key = generateObjectKey('test.jpg');
-      expect(key).toMatch(/^20260212\//);
+      const key = generateObjectKey('test.jpg', userHash);
+      expect(key).toMatch(/^abc123def456\/20260212\//);
     });
 
     it('omits extension when filename has none', () => {
-      const key = generateObjectKey('noext');
-      expect(key).toMatch(/^20260212\/[0-9a-f-]{36}$/);
+      const key = generateObjectKey('noext', userHash);
+      expect(key).toMatch(/^abc123def456\/20260212\/[0-9a-f-]{36}$/);
     });
 
     it('generates unique keys on successive calls', () => {
-      const key1 = generateObjectKey('a.png');
-      const key2 = generateObjectKey('a.png');
+      const key1 = generateObjectKey('a.png', userHash);
+      const key2 = generateObjectKey('a.png', userHash);
       expect(key1).not.toBe(key2);
     });
 
     it('preserves lowercase extension from original', () => {
-      const key = generateObjectKey('PHOTO.WEBP');
+      const key = generateObjectKey('PHOTO.WEBP', userHash);
       expect(key).toMatch(/\.webp$/);
     });
 
     it('zero-pads month and day', () => {
       vi.setSystemTime(new Date('2026-01-05T10:00:00Z'));
-      const key = generateObjectKey('file.txt');
-      expect(key).toMatch(/^20260105\//);
+      const key = generateObjectKey('file.txt', userHash);
+      expect(key).toMatch(/^abc123def456\/20260105\//);
+    });
+
+    it('different user hashes produce different prefixes', () => {
+      const key1 = generateObjectKey('a.png', 'aaa111bbb222');
+      const key2 = generateObjectKey('a.png', 'ccc333ddd444');
+      expect(key1.split('/')[0]).toBe('aaa111bbb222');
+      expect(key2.split('/')[0]).toBe('ccc333ddd444');
     });
   });
 
@@ -231,6 +241,37 @@ describe('models/upload', () => {
 
     it('formats exact 1 KB', () => {
       expect(formatFileSize(1024)).toBe('1.0 KB');
+    });
+  });
+
+  // --- hashUserId ---
+  describe('hashUserId', () => {
+    it('returns a 12-char hex string', async () => {
+      const hash = await hashUserId('user-123', 'test-salt');
+      expect(hash).toMatch(/^[0-9a-f]{12}$/);
+    });
+
+    it('is deterministic for same inputs', async () => {
+      const a = await hashUserId('user-123', 'salt-a');
+      const b = await hashUserId('user-123', 'salt-a');
+      expect(a).toBe(b);
+    });
+
+    it('produces different hashes for different users', async () => {
+      const a = await hashUserId('user-aaa', 'salt');
+      const b = await hashUserId('user-bbb', 'salt');
+      expect(a).not.toBe(b);
+    });
+
+    it('produces different hashes for different salts', async () => {
+      const a = await hashUserId('user-123', 'salt-1');
+      const b = await hashUserId('user-123', 'salt-2');
+      expect(a).not.toBe(b);
+    });
+
+    it('does not contain the original userId', async () => {
+      const hash = await hashUserId('user-123', 'my-salt');
+      expect(hash).not.toContain('user-123');
     });
   });
 });

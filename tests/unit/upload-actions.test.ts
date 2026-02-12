@@ -21,10 +21,12 @@ vi.mock('@/lib/r2/client', () => ({
 const mockValidateUploadRequest = vi.fn();
 const mockGenerateObjectKey = vi.fn();
 const mockBuildPublicUrl = vi.fn();
+const mockHashUserId = vi.fn();
 vi.mock('@/models/upload', () => ({
   validateUploadRequest: (...args: unknown[]) => mockValidateUploadRequest(...args),
   generateObjectKey: (...args: unknown[]) => mockGenerateObjectKey(...args),
   buildPublicUrl: (...args: unknown[]) => mockBuildPublicUrl(...args),
+  hashUserId: (...args: unknown[]) => mockHashUserId(...args),
 }));
 
 // ScopedDB mock instance methods
@@ -84,8 +86,10 @@ const FAKE_UPLOAD = {
 describe('actions/upload', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: R2_PUBLIC_DOMAIN is set
+    // Default: env vars are set
     process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
+    process.env.R2_USER_HASH_SALT = 'test-salt';
+    mockHashUserId.mockResolvedValue('abc123def456');
   });
 
   // ====================================================================
@@ -127,10 +131,23 @@ describe('actions/upload', () => {
       expect(mockCreatePresignedUploadUrl).not.toHaveBeenCalled();
     });
 
+    it('returns error when R2_USER_HASH_SALT is not configured', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockValidateUploadRequest.mockReturnValue({ valid: true });
+      delete process.env.R2_USER_HASH_SALT;
+
+      const result = await getPresignedUploadUrl(validRequest);
+
+      expect(result).toEqual({
+        success: false,
+        error: 'R2 user hash salt not configured',
+      });
+    });
+
     it('returns error when R2_PUBLIC_DOMAIN is not configured', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockValidateUploadRequest.mockReturnValue({ valid: true });
-      mockGenerateObjectKey.mockReturnValue('20260212/uuid.png');
+      mockGenerateObjectKey.mockReturnValue('abc123def456/20260212/uuid.png');
       delete process.env.R2_PUBLIC_DOMAIN;
 
       const result = await getPresignedUploadUrl(validRequest);
@@ -144,8 +161,8 @@ describe('actions/upload', () => {
     it('returns presigned URL data on success', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockValidateUploadRequest.mockReturnValue({ valid: true });
-      mockGenerateObjectKey.mockReturnValue('20260212/uuid.png');
-      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/20260212/uuid.png');
+      mockGenerateObjectKey.mockReturnValue('abc123def456/20260212/uuid.png');
+      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/abc123def456/20260212/uuid.png');
       mockCreatePresignedUploadUrl.mockResolvedValue('https://r2.example.com/presigned-put');
 
       const result = await getPresignedUploadUrl(validRequest);
@@ -154,20 +171,21 @@ describe('actions/upload', () => {
         success: true,
         data: {
           uploadUrl: 'https://r2.example.com/presigned-put',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          publicUrl: 'https://s.zhe.to/abc123def456/20260212/uuid.png',
+          key: 'abc123def456/20260212/uuid.png',
         },
       });
-      expect(mockGenerateObjectKey).toHaveBeenCalledWith('photo.png');
-      expect(mockBuildPublicUrl).toHaveBeenCalledWith('https://s.zhe.to', '20260212/uuid.png');
-      expect(mockCreatePresignedUploadUrl).toHaveBeenCalledWith('20260212/uuid.png', 'image/png');
+      expect(mockHashUserId).toHaveBeenCalledWith(FAKE_USER_ID, 'test-salt');
+      expect(mockGenerateObjectKey).toHaveBeenCalledWith('photo.png', 'abc123def456');
+      expect(mockBuildPublicUrl).toHaveBeenCalledWith('https://s.zhe.to', 'abc123def456/20260212/uuid.png');
+      expect(mockCreatePresignedUploadUrl).toHaveBeenCalledWith('abc123def456/20260212/uuid.png', 'image/png');
     });
 
     it('returns error when createPresignedUploadUrl throws Error', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockValidateUploadRequest.mockReturnValue({ valid: true });
-      mockGenerateObjectKey.mockReturnValue('20260212/uuid.png');
-      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/20260212/uuid.png');
+      mockGenerateObjectKey.mockReturnValue('abc123def456/20260212/uuid.png');
+      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/abc123def456/20260212/uuid.png');
       mockCreatePresignedUploadUrl.mockRejectedValue(new Error('S3 timeout'));
 
       const result = await getPresignedUploadUrl(validRequest);
@@ -178,8 +196,8 @@ describe('actions/upload', () => {
     it('returns generic error when thrown value is not an Error', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockValidateUploadRequest.mockReturnValue({ valid: true });
-      mockGenerateObjectKey.mockReturnValue('20260212/uuid.png');
-      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/20260212/uuid.png');
+      mockGenerateObjectKey.mockReturnValue('abc123def456/20260212/uuid.png');
+      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/abc123def456/20260212/uuid.png');
       mockCreatePresignedUploadUrl.mockRejectedValue('string-error');
 
       const result = await getPresignedUploadUrl(validRequest);

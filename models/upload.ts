@@ -69,6 +69,22 @@ export interface UploadingFile {
 // Pure functions
 // ============================================
 
+/**
+ * Hash a userId with a salt for use as an R2 folder prefix.
+ * Uses SHA-256, returns first 12 hex characters.
+ * This prevents exposing real userIds in public R2 URLs.
+ */
+export async function hashUserId(
+  userId: string,
+  salt: string,
+): Promise<string> {
+  const data = new TextEncoder().encode(`${salt}:${userId}`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.slice(0, 12);
+}
+
 /** Validate an upload request. Returns `{ valid: true }` or `{ valid: false, error }`. */
 export function validateUploadRequest(
   req: UploadRequest,
@@ -106,13 +122,14 @@ export function extractExtension(fileName: string): string {
 }
 
 /**
- * Generate an R2 object key: `YYYYMMDD/{uuid}.{ext}`.
+ * Generate an R2 object key: `{userHash}/YYYYMMDD/{uuid}.{ext}`.
  *
+ * - User hash prefix for per-user folder isolation (salted, not reversible).
  * - Date folder uses UTC.
  * - UUID via `crypto.randomUUID()`.
  * - Extension extracted from the original filename.
  */
-export function generateObjectKey(fileName: string): string {
+export function generateObjectKey(fileName: string, userHash: string): string {
   const now = new Date();
   const y = now.getUTCFullYear();
   const m = String(now.getUTCMonth() + 1).padStart(2, '0');
@@ -122,7 +139,9 @@ export function generateObjectKey(fileName: string): string {
   const uuid = crypto.randomUUID();
   const ext = extractExtension(fileName);
 
-  return ext ? `${dateFolder}/${uuid}.${ext}` : `${dateFolder}/${uuid}`;
+  return ext
+    ? `${userHash}/${dateFolder}/${uuid}.${ext}`
+    : `${userHash}/${dateFolder}/${uuid}`;
 }
 
 /** Build the full public URL from the R2 public domain and object key. */

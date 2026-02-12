@@ -8,6 +8,7 @@ import {
   validateUploadRequest,
   generateObjectKey,
   buildPublicUrl,
+  hashUserId,
 } from '@/models/upload';
 import type { UploadRequest, PresignedUrlResponse } from '@/models/upload';
 import type { Upload } from '@/lib/db/schema';
@@ -19,14 +20,14 @@ interface ActionResult<T = void> {
 }
 
 /**
- * Get a ScopedDB instance for the current authenticated user.
+ * Get a ScopedDB instance and userId for the current authenticated user.
  * Returns null if not authenticated.
  */
-async function getScopedDB(): Promise<ScopedDB | null> {
+async function getAuthContext(): Promise<{ db: ScopedDB; userId: string } | null> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return null;
-  return new ScopedDB(userId);
+  return { db: new ScopedDB(userId), userId };
 }
 
 /**
@@ -36,8 +37,8 @@ export async function getPresignedUploadUrl(
   request: UploadRequest,
 ): Promise<ActionResult<PresignedUrlResponse>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
 
@@ -47,8 +48,15 @@ export async function getPresignedUploadUrl(
       return { success: false, error: validation.error };
     }
 
-    // Generate object key: YYYYMMDD/uuid.ext
-    const key = generateObjectKey(request.fileName);
+    // Hash userId for R2 folder prefix
+    const salt = process.env.R2_USER_HASH_SALT;
+    if (!salt) {
+      return { success: false, error: 'R2 user hash salt not configured' };
+    }
+    const userHash = await hashUserId(ctx.userId, salt);
+
+    // Generate object key: {userHash}/YYYYMMDD/uuid.ext
+    const key = generateObjectKey(request.fileName, userHash);
 
     // Build public URL
     const publicDomain = process.env.R2_PUBLIC_DOMAIN;
@@ -84,12 +92,12 @@ export async function recordUpload(data: {
   publicUrl: string;
 }): Promise<ActionResult<Upload>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const upload = await db.createUpload({
+    const upload = await ctx.db.createUpload({
       key: data.key,
       fileName: data.fileName,
       fileType: data.fileType,
@@ -112,12 +120,12 @@ export async function recordUpload(data: {
  */
 export async function getUploads(): Promise<ActionResult<Upload[]>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const uploads = await db.getUploads();
+    const uploads = await ctx.db.getUploads();
     return { success: true, data: uploads };
   } catch (error) {
     console.error('Failed to get uploads:', error);
@@ -130,13 +138,13 @@ export async function getUploads(): Promise<ActionResult<Upload[]>> {
  */
 export async function deleteUpload(uploadId: number): Promise<ActionResult> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
 
     // Get the R2 key first (with ownership check)
-    const key = await db.getUploadKey(uploadId);
+    const key = await ctx.db.getUploadKey(uploadId);
     if (!key) {
       return { success: false, error: 'Upload not found or access denied' };
     }
@@ -145,7 +153,7 @@ export async function deleteUpload(uploadId: number): Promise<ActionResult> {
     await deleteR2Object(key);
 
     // Delete from D1
-    await db.deleteUpload(uploadId);
+    await ctx.db.deleteUpload(uploadId);
 
     return { success: true };
   } catch (error) {

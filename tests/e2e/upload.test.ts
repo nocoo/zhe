@@ -51,12 +51,14 @@ describe('Upload E2E — full lifecycle', () => {
     vi.clearAllMocks();
     clearMockStorage();
     process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
+    process.env.R2_USER_HASH_SALT = 'e2e-test-salt';
     mockCreatePresignedUploadUrl.mockResolvedValue('https://r2.example.com/presigned-put');
     mockDeleteR2Object.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
     delete process.env.R2_PUBLIC_DOMAIN;
+    delete process.env.R2_USER_HASH_SALT;
   });
 
   // ============================================================
@@ -127,7 +129,7 @@ describe('Upload E2E — full lifecycle', () => {
       expect(presignResult.data).toBeDefined();
       expect(presignResult.data!.uploadUrl).toBe('https://r2.example.com/presigned-put');
       expect(presignResult.data!.publicUrl).toContain('https://s.zhe.to/');
-      expect(presignResult.data!.key).toMatch(/^\d{8}\//);
+      expect(presignResult.data!.key).toMatch(/^[0-9a-f]{12}\/\d{8}\//);
 
       const { publicUrl, key } = presignResult.data!;
 
