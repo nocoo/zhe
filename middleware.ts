@@ -3,15 +3,7 @@ import type { NextRequest, NextFetchEvent } from 'next/server';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { extractClickMetadata } from '@/lib/analytics';
-
-interface LookupResponse {
-  found: boolean;
-  id?: number;
-  originalUrl?: string;
-  slug?: string;
-  expired?: boolean;
-  error?: string;
-}
+import { getLinkBySlug, recordClick } from '@/lib/db';
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
@@ -38,58 +30,39 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // Look up the short link via API (to query D1 database)
+  // Look up the short link directly via D1 (no self-fetch)
   try {
-    const lookupUrl = new URL('/api/lookup', request.url);
-    lookupUrl.searchParams.set('slug', slug);
+    const link = await getLinkBySlug(slug);
 
-    const lookupResponse = await fetch(lookupUrl.toString(), {
-      headers: {
-        // Forward cookies for any auth context if needed
-        cookie: request.headers.get('cookie') || '',
-      },
-    });
+    // Not found
+    if (!link) {
+      return NextResponse.rewrite(new URL('/not-found', request.url));
+    }
 
-    const data: LookupResponse = await lookupResponse.json();
-
-    // Not found or expired
-    if (!data.found || !data.originalUrl) {
+    // Expired
+    if (link.expiresAt && new Date() > link.expiresAt) {
       return NextResponse.rewrite(new URL('/not-found', request.url));
     }
 
     // Record click analytics using waitUntil for non-blocking execution
     const metadata = extractClickMetadata(request.headers);
-    const recordClickUrl = new URL('/api/record-click', request.url);
-
-    // Use waitUntil to record analytics after response is sent (zero latency)
-    const clickHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    const internalSecret = process.env.INTERNAL_API_SECRET;
-    if (internalSecret) {
-      clickHeaders['x-internal-secret'] = internalSecret;
-    }
 
     event.waitUntil(
-      fetch(recordClickUrl.toString(), {
-        method: 'POST',
-        headers: clickHeaders,
-        body: JSON.stringify({
-          linkId: data.id,
-          device: metadata.device,
-          browser: metadata.browser,
-          os: metadata.os,
-          country: metadata.country,
-          city: metadata.city,
-          referer: metadata.referer,
-        }),
+      recordClick({
+        linkId: link.id,
+        device: metadata.device,
+        browser: metadata.browser,
+        os: metadata.os,
+        country: metadata.country,
+        city: metadata.city,
+        referer: metadata.referer,
       }).catch((err) => {
         console.error('Failed to record click:', err);
       })
     );
 
     // Redirect to original URL immediately (no waiting for analytics)
-    return NextResponse.redirect(data.originalUrl, { status: 307 });
+    return NextResponse.redirect(link.originalUrl, { status: 307 });
   } catch (error) {
     console.error('Middleware lookup error:', error);
     return NextResponse.rewrite(new URL('/not-found', request.url));
