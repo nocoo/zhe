@@ -79,7 +79,20 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
       
-      // UPDATE links SET ... WHERE id = ? AND user_id = ?
+      // UPDATE links SET clicks = clicks + 1 WHERE id = ? (simple increment, no user_id)
+      if (sqlLower.includes('update links set clicks = clicks + 1') && !sqlLower.includes('user_id')) {
+        const [linkId] = params;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId) {
+            rawLink.clicks = ((rawLink.clicks as number) || 0) + 1;
+            return [];
+          }
+        }
+        return [];
+      }
+      
+      // UPDATE links SET ... WHERE id = ? AND user_id = ? (scoped update)
       if (sqlLower.startsWith('update links set') && sqlLower.includes('where id = ?')) {
         // Extract id and userId from end of params
         const id = params[params.length - 2];
@@ -112,19 +125,6 @@ vi.mock('@/lib/db/d1-client', async () => {
               }
             }
             return [rawLink] as T[];
-          }
-        }
-        return [];
-      }
-      
-      // UPDATE links SET clicks = clicks + 1 WHERE id = ?
-      if (sqlLower.includes('update links set clicks = clicks + 1')) {
-        const [linkId] = params;
-        for (const link of mockLinks.values()) {
-          const rawLink = link as unknown as Record<string, unknown>;
-          if (rawLink.id === linkId) {
-            rawLink.clicks = ((rawLink.clicks as number) || 0) + 1;
-            return [];
           }
         }
         return [];

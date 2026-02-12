@@ -19,6 +19,14 @@ export default defineConfig({
         '**/*.d.ts',
         '.next/',
       ],
+      thresholds: {
+        // Enforce minimum coverage on core logic (lib/)
+        // UI components and API routes are covered by E2E
+        lines: 50,
+        functions: 40,
+        branches: 40,
+        statements: 50,
+      },
     },
   },
   resolve: {

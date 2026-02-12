@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordClick } from '@/lib/db';
 
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
-
 /**
  * POST /api/record-click
  * Records a click event for analytics.
@@ -11,10 +9,11 @@ const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify internal caller via shared secret
-    if (INTERNAL_SECRET) {
+    // Verify internal caller via shared secret (read at runtime for hot-reload)
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    if (internalSecret) {
       const authHeader = request.headers.get('x-internal-secret');
-      if (authHeader !== INTERNAL_SECRET) {
+      if (authHeader !== internalSecret) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
