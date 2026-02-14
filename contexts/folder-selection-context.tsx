@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 
 interface FolderSelectionContextValue {
   /** null = all links, "uncategorized" = no folder, string = specific folder id */
@@ -13,13 +12,12 @@ const FolderSelectionContext = createContext<FolderSelectionContextValue>({
 });
 
 export function FolderSelectionProvider({
+  selectedFolderId,
   children,
 }: {
+  selectedFolderId: string | null;
   children: React.ReactNode;
 }) {
-  const searchParams = useSearchParams();
-  const selectedFolderId = searchParams.get("folder") ?? null;
-
   const value = useMemo(
     () => ({ selectedFolderId }),
     [selectedFolderId],

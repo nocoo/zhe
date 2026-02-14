@@ -67,7 +67,7 @@ const mockFolders: Folder[] = [
 
 function renderWithFolderSelection(props: Partial<Parameters<typeof LinksList>[0]> = {}) {
   return render(
-    <FolderSelectionProvider>
+    <FolderSelectionProvider selectedFolderId={mockSearchParamsFolder}>
       <LinksList
         initialLinks={mockLinks}
         siteUrl={siteUrl}

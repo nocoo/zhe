@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Folder } from "@/models/types";
 import {
@@ -19,13 +19,25 @@ export function useFoldersViewModel(initialFolders: Folder[]) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // URL is the single source of truth for folder selection
-  const selectedFolderId = searchParams.get("folder") ?? null;
+  // Derive stable string from searchParams to avoid object-reference churn
+  const urlFolder = searchParams.get("folder") ?? null;
+
+  // Initialize from URL, then keep in sync via local state for immediate UI
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(
+    () => urlFolder,
+  );
+
+  // Sync local state when URL changes externally (e.g. browser back/forward)
+  useEffect(() => {
+    setSelectedFolderId(urlFolder);
+  }, [urlFolder]);
 
   const selectFolder = useCallback(
     (folderId: string | null) => {
+      // Update local state immediately for instant UI feedback
+      setSelectedFolderId(folderId);
+      // Sync URL
       if (folderId === null) {
-        // "全部链接" — remove folder param
         router.replace("/dashboard");
       } else {
         router.replace(`/dashboard?folder=${folderId}`);
@@ -70,14 +82,18 @@ export function useFoldersViewModel(initialFolders: Folder[]) {
       if (result.success) {
         setFolders((prev) => prev.filter((f) => f.id !== id));
         // If the deleted folder was selected, navigate to "全部链接"
-        if (selectedFolderId === id) {
-          router.replace("/dashboard");
-        }
+        setSelectedFolderId((prev) => {
+          if (prev === id) {
+            router.replace("/dashboard");
+            return null;
+          }
+          return prev;
+        });
       } else {
         alert(result.error || "Failed to delete folder");
       }
     },
-    [selectedFolderId, router],
+    [router],
   );
 
   const startEditing = useCallback((id: string) => {

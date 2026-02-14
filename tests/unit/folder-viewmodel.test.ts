@@ -6,8 +6,13 @@ import type { Folder } from '@/models/types';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockRouterReplace = vi.fn();
 let mockSearchParamsFolder: string | null = null;
+
+// When router.replace is called, sync the mock search params so useEffect stays consistent
+const mockRouterReplace = vi.fn((url: string) => {
+  const parsed = new URL(url, 'http://localhost');
+  mockSearchParamsFolder = parsed.searchParams.get('folder');
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
@@ -83,9 +88,9 @@ describe('useFoldersViewModel', () => {
   });
 
   // ====================================================================
-  // Folder selection (URL-based)
+  // Folder selection (local state + URL sync)
   // ====================================================================
-  it('selectedFolderId reflects URL search param', () => {
+  it('initializes selectedFolderId from URL search param', () => {
     mockSearchParamsFolder = 'folder-1';
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
@@ -93,7 +98,7 @@ describe('useFoldersViewModel', () => {
     expect(result.current.selectedFolderId).toBe('folder-1');
   });
 
-  it('selectFolder calls router.replace with folder param', () => {
+  it('selectFolder updates local state immediately and syncs URL', () => {
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
 
@@ -101,10 +106,13 @@ describe('useFoldersViewModel', () => {
       result.current.selectFolder('folder-1');
     });
 
+    // Local state updated immediately
+    expect(result.current.selectedFolderId).toBe('folder-1');
+    // URL synced
     expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard?folder=folder-1');
   });
 
-  it('selectFolder with null navigates to /dashboard (all links)', () => {
+  it('selectFolder with null clears selection and navigates to /dashboard', () => {
     mockSearchParamsFolder = 'folder-1';
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
@@ -113,6 +121,7 @@ describe('useFoldersViewModel', () => {
       result.current.selectFolder(null);
     });
 
+    expect(result.current.selectedFolderId).toBeNull();
     expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard');
   });
 
@@ -123,6 +132,7 @@ describe('useFoldersViewModel', () => {
       result.current.selectFolder('uncategorized');
     });
 
+    expect(result.current.selectedFolderId).toBe('uncategorized');
     expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard?folder=uncategorized');
   });
 
@@ -235,7 +245,7 @@ describe('useFoldersViewModel', () => {
     expect(result.current.folders).toHaveLength(0);
   });
 
-  it('handleDeleteFolder navigates to /dashboard if deleted folder was selected', async () => {
+  it('handleDeleteFolder clears selection if deleted folder was selected', async () => {
     mockSearchParamsFolder = 'folder-1';
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: true });
@@ -249,10 +259,11 @@ describe('useFoldersViewModel', () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
+    expect(result.current.selectedFolderId).toBeNull();
     expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('handleDeleteFolder does not navigate if deleted folder was not selected', async () => {
+  it('handleDeleteFolder does not clear selection if deleted folder was not selected', async () => {
     mockSearchParamsFolder = 'folder-2';
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: true });
@@ -264,6 +275,7 @@ describe('useFoldersViewModel', () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
+    expect(result.current.selectedFolderId).toBe('folder-2');
     expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 
