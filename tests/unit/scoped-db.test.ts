@@ -216,6 +216,156 @@ describe('ScopedDB', () => {
 
       expect(folders).toEqual([]);
     });
+
+    it('createFolder assigns the scoped userId and defaults', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Work', icon: 'briefcase' });
+
+      expect(folder.userId).toBe(USER_A);
+      expect(folder.name).toBe('Work');
+      expect(folder.icon).toBe('briefcase');
+      expect(folder.id).toBeTruthy();
+      expect(folder.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('createFolder uses default icon when not specified', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Default' });
+
+      expect(folder.icon).toBe('folder');
+    });
+
+    it('getFolders only returns own folders', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createFolder({ name: 'Alice Folder 1' });
+      await dbA.createFolder({ name: 'Alice Folder 2' });
+      await dbB.createFolder({ name: 'Bob Folder' });
+
+      const foldersA = await dbA.getFolders();
+      const foldersB = await dbB.getFolders();
+
+      expect(foldersA).toHaveLength(2);
+      expect(foldersB).toHaveLength(1);
+      expect(foldersA.every(f => f.userId === USER_A)).toBe(true);
+      expect(foldersB.every(f => f.userId === USER_B)).toBe(true);
+    });
+
+    it('getFolderById returns folder for owner', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Mine' });
+
+      const found = await db.getFolderById(folder.id);
+      expect(found).not.toBeNull();
+      expect(found!.id).toBe(folder.id);
+      expect(found!.name).toBe('Mine');
+    });
+
+    it('getFolderById returns null for other user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const folder = await dbA.createFolder({ name: 'Private' });
+
+      expect(await dbB.getFolderById(folder.id)).toBeNull();
+    });
+
+    it('getFolderById returns null for non-existent folder', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.getFolderById('non-existent-id')).toBeNull();
+    });
+
+    it('updateFolder updates name and icon', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Old Name', icon: 'folder' });
+
+      const updated = await db.updateFolder(folder.id, { name: 'New Name', icon: 'star' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('New Name');
+      expect(updated!.icon).toBe('star');
+    });
+
+    it('updateFolder updates only name when icon is not provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Original', icon: 'heart' });
+
+      const updated = await db.updateFolder(folder.id, { name: 'Renamed' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('Renamed');
+      expect(updated!.icon).toBe('heart');
+    });
+
+    it('updateFolder updates only icon when name is not provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Keep', icon: 'folder' });
+
+      const updated = await db.updateFolder(folder.id, { icon: 'rocket' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('Keep');
+      expect(updated!.icon).toBe('rocket');
+    });
+
+    it('updateFolder with empty data returns existing folder', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'NoChange' });
+
+      const result = await db.updateFolder(folder.id, {});
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('NoChange');
+    });
+
+    it('updateFolder returns null for other user folder', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const folder = await dbA.createFolder({ name: 'Protected' });
+
+      expect(await dbB.updateFolder(folder.id, { name: 'Hacked' })).toBeNull();
+    });
+
+    it('deleteFolder removes the folder', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'ToDelete' });
+
+      expect(await db.deleteFolder(folder.id)).toBe(true);
+
+      const folders = await db.getFolders();
+      expect(folders).toHaveLength(0);
+    });
+
+    it('deleteFolder cannot delete other user folder', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const folder = await dbA.createFolder({ name: 'Protected' });
+
+      expect(await dbB.deleteFolder(folder.id)).toBe(false);
+      // Folder still exists for Alice
+      const folders = await dbA.getFolders();
+      expect(folders).toHaveLength(1);
+    });
+
+    it('deleteFolder sets folder_id to null on associated links', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'Temp' });
+
+      const link = await db.createLink({
+        originalUrl: 'https://example.com',
+        slug: 'folder-link',
+        folderId: folder.id,
+      });
+
+      expect(link.folderId).toBe(folder.id);
+
+      await db.deleteFolder(folder.id);
+
+      const links = await db.getLinks();
+      expect(links[0].folderId).toBeNull();
+    });
   });
 
   // ---- Uploads -----------------------------------------------

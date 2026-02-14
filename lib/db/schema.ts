@@ -50,6 +50,7 @@ export const folders = sqliteTable('folders', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  icon: text('icon').notNull().default('folder'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

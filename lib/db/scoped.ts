@@ -10,7 +10,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, Analytics, Folder, NewLink, Upload, NewUpload } from './schema';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload } from './schema';
 
 // ============================================
 // Row conversion helpers (shared with index.ts)
@@ -49,6 +49,7 @@ function rowToFolder(row: Record<string, unknown>): Folder {
     id: row.id as string,
     userId: row.user_id as string,
     name: row.name as string,
+    icon: (row.icon as string) || 'folder',
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -223,6 +224,68 @@ export class ScopedDB {
       [this.userId],
     );
     return rows.map(rowToFolder);
+  }
+
+  /** Get a single folder by id, only if owned by this user. */
+  async getFolderById(id: string): Promise<Folder | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM folders WHERE id = ? AND user_id = ? LIMIT 1',
+      [id, this.userId],
+    );
+    return rows[0] ? rowToFolder(rows[0]) : null;
+  }
+
+  /** Create a new folder owned by this user. */
+  async createFolder(
+    data: Omit<NewFolder, 'id' | 'createdAt' | 'userId'>,
+  ): Promise<Folder> {
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO folders (id, user_id, name, icon, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING *`,
+      [id, this.userId, data.name, data.icon ?? 'folder', now],
+    );
+    return rowToFolder(rows[0]);
+  }
+
+  /** Update a folder by id. Returns updated folder or null if not found/not owned. */
+  async updateFolder(
+    id: string,
+    data: Partial<Pick<Folder, 'name' | 'icon'>>,
+  ): Promise<Folder | null> {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    if (data.name !== undefined) {
+      setClauses.push('name = ?');
+      params.push(data.name);
+    }
+    if (data.icon !== undefined) {
+      setClauses.push('icon = ?');
+      params.push(data.icon);
+    }
+
+    if (setClauses.length === 0) {
+      return this.getFolderById(id);
+    }
+
+    params.push(id, this.userId);
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `UPDATE folders SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+      params,
+    );
+    return rows[0] ? rowToFolder(rows[0]) : null;
+  }
+
+  /** Delete a folder by id. Returns true if deleted. */
+  async deleteFolder(id: string): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'DELETE FROM folders WHERE id = ? AND user_id = ? RETURNING id',
+      [id, this.userId],
+    );
+    return rows.length > 0;
   }
 
   // ---- Uploads -----------------------------------------------

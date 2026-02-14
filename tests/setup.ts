@@ -6,7 +6,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getNextLinkId, getNextAnalyticsId, getNextUploadId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getNextLinkId, getNextAnalyticsId, getNextUploadId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
@@ -14,6 +14,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       const mockLinks = getMockLinks();
       const mockAnalytics = getMockAnalytics();
       const mockUploads = getMockUploads();
+      const mockFolders = getMockFolders();
       
       // Parse SQL and simulate D1 responses
       const sqlLower = sql.toLowerCase().trim();
@@ -270,6 +271,99 @@ vi.mock('@/lib/db/d1-client', async () => {
           const raw = upload as unknown as Record<string, unknown>;
           if (raw.id === id && raw.user_id === userId) {
             return [{ key: raw.key }] as T[];
+          }
+        }
+        return [];
+      }
+      
+      // ---- Folders ----
+
+      // INSERT INTO folders
+      if (sqlLower.startsWith('insert into folders')) {
+        const [id, userId, name, icon, createdAt] = params;
+        const folder = {
+          id,
+          user_id: userId,
+          name,
+          icon,
+          created_at: createdAt,
+        };
+        mockFolders.set(id as string, folder as unknown as import('@/lib/db/schema').Folder);
+        return [folder] as T[];
+      }
+
+      // SELECT FROM folders WHERE user_id = ? (list all user folders)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from folders') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
+        const [userId] = params;
+        const results: unknown[] = [];
+        for (const folder of mockFolders.values()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            results.push(folder);
+          }
+        }
+        results.sort((a, b) => {
+          const aTime = (a as Record<string, unknown>).created_at as number;
+          const bTime = (b as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
+      // SELECT FROM folders WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('select') && sqlLower.includes('from folders') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
+        const [id, userId] = params;
+        for (const folder of mockFolders.values()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            return [folder] as T[];
+          }
+        }
+        return [];
+      }
+
+      // UPDATE folders SET ... WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('update folders set') && sqlLower.includes('where id = ?')) {
+        const id = params[params.length - 2];
+        const userId = params[params.length - 1];
+        for (const folder of mockFolders.values()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            const setMatch = sql.match(/set\s+(.+?)\s+where/i);
+            if (setMatch) {
+              const setClauses = setMatch[1].split(',').map(s => s.trim());
+              let paramIndex = 0;
+              for (const clause of setClauses) {
+                const field = clause.split('=')[0].trim();
+                if (field === 'name') {
+                  raw.name = params[paramIndex];
+                } else if (field === 'icon') {
+                  raw.icon = params[paramIndex];
+                }
+                paramIndex++;
+              }
+            }
+            return [raw] as T[];
+          }
+        }
+        return [];
+      }
+
+      // DELETE FROM folders WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('delete from folders') && sqlLower.includes('where id = ?')) {
+        const [id, userId] = params;
+        for (const [folderId, folder] of mockFolders.entries()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            mockFolders.delete(folderId);
+            // Cascade: set folder_id to null on all links referencing this folder
+            for (const link of mockLinks.values()) {
+              const rawLink = link as unknown as Record<string, unknown>;
+              if (rawLink.folder_id === id) {
+                rawLink.folder_id = null;
+              }
+            }
+            return [{ id }] as T[];
           }
         }
         return [];
