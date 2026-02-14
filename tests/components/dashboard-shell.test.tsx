@@ -174,4 +174,37 @@ describe('DashboardShell', () => {
       expect(mockViewModel.closeMobileSidebar).toHaveBeenCalledOnce();
     });
   });
+
+  describe('folder props passthrough', () => {
+    const mockFolders = [
+      { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
+    ];
+
+    it('passes folders to AppSidebar in expanded desktop mode', () => {
+      mockViewModel.isMobile = false;
+      mockViewModel.collapsed = false;
+      renderShell({ folders: mockFolders });
+
+      // If folders are passed through, the folder name should appear in sidebar
+      expect(screen.getByText('工作')).toBeInTheDocument();
+    });
+
+    it('passes folders to AppSidebar in collapsed desktop mode', () => {
+      mockViewModel.isMobile = false;
+      mockViewModel.collapsed = true;
+      const { container } = renderShell({ folders: mockFolders });
+
+      // In collapsed mode, folder items render as buttons in nav
+      const navButtons = container.querySelectorAll('nav button');
+      expect(navButtons.length).toBe(1);
+    });
+
+    it('passes folders to mobile sidebar when open', () => {
+      mockViewModel.isMobile = true;
+      mockViewModel.mobileOpen = true;
+      renderShell({ folders: mockFolders });
+
+      expect(screen.getByText('工作')).toBeInTheDocument();
+    });
+  });
 });

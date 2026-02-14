@@ -6,8 +6,9 @@ import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutView
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import type { Folder } from "@/models/types";
 
-interface DashboardShellProps {
+export interface DashboardShellProps {
   children: React.ReactNode;
   user?: {
     name?: string | null;
@@ -15,12 +16,20 @@ interface DashboardShellProps {
     image?: string | null;
   };
   signOutAction: () => Promise<void>;
+  folders?: Folder[];
+  selectedFolderId?: string | null;
+  onFolderSelect?: (folderId: string) => void;
+  onCreateFolder?: () => void;
 }
 
 export function DashboardShell({
   children,
   user,
   signOutAction,
+  folders,
+  selectedFolderId,
+  onFolderSelect,
+  onCreateFolder,
 }: DashboardShellProps) {
   const { collapsed, isMobile, mobileOpen, toggleSidebar, closeMobileSidebar } =
     useDashboardLayoutViewModel();
@@ -35,6 +44,10 @@ export function DashboardShell({
             onToggle={toggleSidebar}
             user={user}
             signOutAction={signOutAction}
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            onFolderSelect={onFolderSelect}
+            onCreateFolder={onCreateFolder}
           />
         )}
 
@@ -51,6 +64,10 @@ export function DashboardShell({
                 onToggle={closeMobileSidebar}
                 user={user}
                 signOutAction={signOutAction}
+                folders={folders}
+                selectedFolderId={selectedFolderId}
+                onFolderSelect={onFolderSelect}
+                onCreateFolder={onCreateFolder}
               />
             </div>
           </>
