@@ -3,7 +3,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
-import { Menu } from "lucide-react";
+import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -74,6 +74,15 @@ export function DashboardShell({
               </h1>
             </div>
             <div className="flex items-center gap-1">
+              <a
+                href="https://github.com/nocoo/zhe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="GitHub"
+              >
+                <Github className="h-[18px] w-[18px]" strokeWidth={1.5} />
+              </a>
               <ThemeToggle />
             </div>
           </header>

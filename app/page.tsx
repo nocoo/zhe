@@ -1,7 +1,8 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { Zap } from "lucide-react";
+import { Zap, Github } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function Barcode() {
   const bars = [2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1];
@@ -29,6 +30,20 @@ export default async function Home() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
+      {/* Top-right controls */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
+        <a
+          href="https://github.com/nocoo/zhe"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          title="GitHub"
+        >
+          <Github className="h-[18px] w-[18px]" strokeWidth={1.5} />
+        </a>
+        <ThemeToggle />
+      </div>
+
       {/* Radial glow */}
       <div
         className="pointer-events-none absolute inset-0"

@@ -20,6 +20,10 @@ vi.mock('next/image', () => ({
   },
 }));
 
+vi.mock('next-themes', () => ({
+  useTheme: () => ({ theme: 'system', setTheme: vi.fn(), resolvedTheme: 'light' }),
+}));
+
 describe('Home Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,5 +83,27 @@ describe('Home Page', () => {
     render(jsx);
 
     expect(screen.getByText('点击登录即表示您同意服务条款')).toBeInTheDocument();
+  });
+
+  it('displays GitHub link', async () => {
+    mockAuth.mockResolvedValue(null);
+
+    const { default: Home } = await import('@/app/page');
+    const jsx = await Home();
+    render(jsx);
+
+    const link = screen.getByTitle('GitHub');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://github.com/nocoo/zhe');
+  });
+
+  it('displays theme toggle', async () => {
+    mockAuth.mockResolvedValue(null);
+
+    const { default: Home } = await import('@/app/page');
+    const jsx = await Home();
+    render(jsx);
+
+    expect(screen.getByTitle('Theme: system')).toBeInTheDocument();
   });
 });

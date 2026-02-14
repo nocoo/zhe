@@ -70,8 +70,14 @@ describe('DashboardShell', () => {
 
   it('renders ThemeToggle in header', () => {
     renderShell();
-    // ThemeToggle renders a button with title "Theme: system"
     expect(screen.getByTitle('Theme: system')).toBeInTheDocument();
+  });
+
+  it('renders GitHub link in header', () => {
+    renderShell();
+    const link = screen.getByTitle('GitHub');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://github.com/nocoo/zhe');
   });
 
   describe('desktop mode', () => {
