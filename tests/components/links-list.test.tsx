@@ -19,9 +19,13 @@ vi.mock('@/actions/links', () => ({
   getAnalyticsStats: vi.fn(),
 }));
 
-import { LinksList } from '@/components/dashboard/links-list';
+vi.mock('@/actions/folders', () => ({
+  getFolders: vi.fn(),
+}));
 
-const siteUrl = 'https://zhe.to';
+import { LinksList } from '@/components/dashboard/links-list';
+import { getLinks } from '@/actions/links';
+import { getFolders } from '@/actions/folders';
 
 const mockLinks: Link[] = [
   {
@@ -64,85 +68,109 @@ const mockFolders: Folder[] = [
   { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
 ];
 
-function renderLinksList(props: Partial<Parameters<typeof LinksList>[0]> = {}) {
-  return render(
-    <LinksList
-      initialLinks={mockLinks}
-      siteUrl={siteUrl}
-      folders={mockFolders}
-      {...props}
-    />
-  );
+function setupMocks(links: Link[] = mockLinks, folders: Folder[] = mockFolders) {
+  vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+  vi.mocked(getFolders).mockResolvedValue({ success: true, data: folders });
 }
 
-describe('LinksList folder filtering', () => {
+async function renderLinksList() {
+  const { act } = await import('@testing-library/react');
+  let result: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(<LinksList />);
+  });
+  return result!;
+}
+
+describe('LinksList', () => {
   beforeEach(() => {
     mockSearchParamsFolder = null;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('shows all links when no folder is selected', () => {
+  it('shows skeleton while loading', () => {
+    // Don't resolve the mocks yet
+    vi.mocked(getLinks).mockReturnValue(new Promise(() => {}));
+    vi.mocked(getFolders).mockReturnValue(new Promise(() => {}));
+
+    render(<LinksList />);
+
+    // Should show skeleton (animate-pulse class)
+    const skeleton = document.querySelector('.animate-pulse');
+    expect(skeleton).toBeInTheDocument();
+    expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
+  });
+
+  it('shows all links when no folder is selected', async () => {
     mockSearchParamsFolder = null;
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
-    expect(screen.getByText('zhe.to/abc')).toBeInTheDocument();
-    expect(screen.getByText('zhe.to/def')).toBeInTheDocument();
-    expect(screen.getByText('zhe.to/ghi')).toBeInTheDocument();
+    expect(screen.getByText('localhost:3000/abc')).toBeInTheDocument();
+    expect(screen.getByText('localhost:3000/def')).toBeInTheDocument();
+    expect(screen.getByText('localhost:3000/ghi')).toBeInTheDocument();
   });
 
-  it('filters links by selected folder', () => {
+  it('filters links by selected folder', async () => {
     mockSearchParamsFolder = 'f1';
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('工作')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
-    expect(screen.getByText('zhe.to/abc')).toBeInTheDocument();
-    expect(screen.queryByText('zhe.to/def')).not.toBeInTheDocument();
-    expect(screen.queryByText('zhe.to/ghi')).not.toBeInTheDocument();
+    expect(screen.getByText('localhost:3000/abc')).toBeInTheDocument();
+    expect(screen.queryByText('localhost:3000/def')).not.toBeInTheDocument();
+    expect(screen.queryByText('localhost:3000/ghi')).not.toBeInTheDocument();
   });
 
-  it('shows folder name as header when folder is selected', () => {
+  it('shows folder name as header when folder is selected', async () => {
     mockSearchParamsFolder = 'f2';
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('个人')).toBeInTheDocument();
     expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
   });
 
-  it('shows correct count for filtered links', () => {
+  it('shows correct count for filtered links', async () => {
     mockSearchParamsFolder = 'f2';
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
   });
 
-  it('shows empty state when selected folder has no links', () => {
+  it('shows empty state when selected folder has no links', async () => {
     mockSearchParamsFolder = 'f-nonexistent';
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('暂无链接')).toBeInTheDocument();
     expect(screen.getByText('共 0 条链接')).toBeInTheDocument();
   });
 
-  it('shows uncategorized links when folder=uncategorized', () => {
+  it('shows uncategorized links when folder=uncategorized', async () => {
     mockSearchParamsFolder = 'uncategorized';
-    renderLinksList();
+    setupMocks();
+    await renderLinksList();
 
     expect(screen.getByText('未分类')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
     // Only link with folderId=null
-    expect(screen.getByText('zhe.to/ghi')).toBeInTheDocument();
-    expect(screen.queryByText('zhe.to/abc')).not.toBeInTheDocument();
-    expect(screen.queryByText('zhe.to/def')).not.toBeInTheDocument();
+    expect(screen.getByText('localhost:3000/ghi')).toBeInTheDocument();
+    expect(screen.queryByText('localhost:3000/abc')).not.toBeInTheDocument();
+    expect(screen.queryByText('localhost:3000/def')).not.toBeInTheDocument();
   });
 
-  it('shows all links when folders prop is empty', () => {
-    renderLinksList({ folders: [] });
+  it('shows all links when folders list is empty', async () => {
+    setupMocks(mockLinks, []);
+    await renderLinksList();
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();

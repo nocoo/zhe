@@ -353,6 +353,7 @@ describe('UploadList', () => {
   it('renders empty state when no uploads', () => {
     vi.mocked(useUploadsViewModel).mockReturnValue({
       uploads: [],
+      loading: false,
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
@@ -362,7 +363,7 @@ describe('UploadList', () => {
       dismissUploadingFile: mockDismissUploadingFile,
     });
 
-    render(<UploadList initialUploads={[]} />);
+    render(<UploadList />);
 
     expect(screen.getByText('暂无文件')).toBeInTheDocument();
     expect(screen.getByText('共 0 个文件')).toBeInTheDocument();
@@ -373,6 +374,7 @@ describe('UploadList', () => {
 
     vi.mocked(useUploadsViewModel).mockReturnValue({
       uploads,
+      loading: false,
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
@@ -390,7 +392,7 @@ describe('UploadList', () => {
       handleDelete: vi.fn(),
     });
 
-    render(<UploadList initialUploads={uploads} />);
+    render(<UploadList />);
 
     expect(screen.getByText('图床')).toBeInTheDocument();
     expect(screen.getByText('共 2 个文件')).toBeInTheDocument();
@@ -399,6 +401,7 @@ describe('UploadList', () => {
   it('renders upload zone', () => {
     vi.mocked(useUploadsViewModel).mockReturnValue({
       uploads: [],
+      loading: false,
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
@@ -408,7 +411,7 @@ describe('UploadList', () => {
       dismissUploadingFile: mockDismissUploadingFile,
     });
 
-    render(<UploadList initialUploads={[]} />);
+    render(<UploadList />);
 
     expect(screen.getByTestId('upload-zone')).toBeInTheDocument();
   });
@@ -427,6 +430,7 @@ describe('UploadList', () => {
 
     vi.mocked(useUploadsViewModel).mockReturnValue({
       uploads: [],
+      loading: false,
       uploadingFiles,
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
@@ -436,8 +440,28 @@ describe('UploadList', () => {
       dismissUploadingFile: mockDismissUploadingFile,
     });
 
-    render(<UploadList initialUploads={[]} />);
+    render(<UploadList />);
 
     expect(screen.getByText('uploading.png')).toBeInTheDocument();
+  });
+
+  it('renders skeleton when loading', () => {
+    vi.mocked(useUploadsViewModel).mockReturnValue({
+      uploads: [],
+      loading: true,
+      uploadingFiles: [],
+      isDragOver: false,
+      setIsDragOver: mockSetIsDragOver,
+      handleFiles: mockHandleFiles,
+      handleDelete: mockHandleDelete,
+      refreshUploads: vi.fn(),
+      dismissUploadingFile: mockDismissUploadingFile,
+    });
+
+    render(<UploadList />);
+
+    const skeleton = document.querySelector('.animate-pulse');
+    expect(skeleton).toBeInTheDocument();
+    expect(screen.queryByText('图床')).not.toBeInTheDocument();
   });
 });

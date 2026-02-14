@@ -84,6 +84,8 @@ describe('useUploadsViewModel', () => {
       ...globalThis.crypto,
       randomUUID: () => 'mock-uuid-1234',
     });
+    // Default: empty uploads from server
+    mockFetchUploads.mockResolvedValue({ success: true, data: [] });
   });
 
   afterEach(() => {
@@ -91,17 +93,26 @@ describe('useUploadsViewModel', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns initial state with provided uploads', () => {
+  it('returns loading=true initially, then loads data', async () => {
     const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
-    const { result } = renderHook(() => useUploadsViewModel(uploads));
+    mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
 
+    const { result } = renderHook(() => useUploadsViewModel());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.uploads).toEqual([]);
+
+    await act(async () => {});
+
+    expect(result.current.loading).toBe(false);
     expect(result.current.uploads).toEqual(uploads);
     expect(result.current.uploadingFiles).toEqual([]);
     expect(result.current.isDragOver).toBe(false);
   });
 
-  it('setIsDragOver toggles drag state', () => {
-    const { result } = renderHook(() => useUploadsViewModel([]));
+  it('setIsDragOver toggles drag state', async () => {
+    const { result } = renderHook(() => useUploadsViewModel());
+    await act(async () => {});
 
     act(() => {
       result.current.setIsDragOver(true);
@@ -128,7 +139,8 @@ describe('useUploadsViewModel', () => {
       mockFetch.mockResolvedValue({ ok: true });
       mockRecordUpload.mockResolvedValue({ success: true, data: upload });
 
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile()]);
@@ -166,7 +178,8 @@ describe('useUploadsViewModel', () => {
     });
 
     it('shows error when file type is not allowed', async () => {
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile('virus.exe', 'application/x-msdownload', 100)]);
@@ -178,7 +191,8 @@ describe('useUploadsViewModel', () => {
     });
 
     it('shows error when file size exceeds limit', async () => {
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         // 11MB file
@@ -195,7 +209,8 @@ describe('useUploadsViewModel', () => {
         error: 'R2 error',
       });
 
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile()]);
@@ -218,7 +233,8 @@ describe('useUploadsViewModel', () => {
       });
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile()]);
@@ -240,7 +256,8 @@ describe('useUploadsViewModel', () => {
       });
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile()]);
@@ -266,7 +283,8 @@ describe('useUploadsViewModel', () => {
         error: 'DB write failed',
       });
 
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile()]);
@@ -281,9 +299,11 @@ describe('useUploadsViewModel', () => {
   describe('handleDelete', () => {
     it('removes upload from list on success', async () => {
       const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
+      mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
       mockDeleteUploadAction.mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() => useUploadsViewModel(uploads));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       let success: boolean = false;
       await act(async () => {
@@ -297,9 +317,11 @@ describe('useUploadsViewModel', () => {
 
     it('returns false and keeps upload on failure', async () => {
       const uploads = [makeUpload({ id: 1 })];
+      mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
       mockDeleteUploadAction.mockResolvedValue({ success: false });
 
-      const { result } = renderHook(() => useUploadsViewModel(uploads));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       let success: boolean = true;
       await act(async () => {
@@ -313,7 +335,11 @@ describe('useUploadsViewModel', () => {
 
   describe('refreshUploads', () => {
     it('replaces uploads with fresh server data', async () => {
-      const { result } = renderHook(() => useUploadsViewModel([makeUpload({ id: 1 })]));
+      const initial = [makeUpload({ id: 1 })];
+      mockFetchUploads.mockResolvedValue({ success: true, data: initial });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       const freshUploads = [makeUpload({ id: 2 }), makeUpload({ id: 3 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: freshUploads });
@@ -327,7 +353,10 @@ describe('useUploadsViewModel', () => {
 
     it('keeps existing uploads if refresh fails', async () => {
       const initial = [makeUpload({ id: 1 })];
-      const { result } = renderHook(() => useUploadsViewModel(initial));
+      mockFetchUploads.mockResolvedValue({ success: true, data: initial });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       mockFetchUploads.mockResolvedValue({ success: false });
 
@@ -342,7 +371,8 @@ describe('useUploadsViewModel', () => {
   describe('dismissUploadingFile', () => {
     it('removes a file from the uploading list', async () => {
       // Set up a failed upload so there's an item in uploadingFiles
-      const { result } = renderHook(() => useUploadsViewModel([]));
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
 
       await act(async () => {
         result.current.handleFiles([makeFile('virus.exe', 'application/x-msdownload', 100)]);

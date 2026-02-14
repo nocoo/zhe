@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Upload } from "@/lib/db/schema";
 import type { UploadingFile } from "@/models/upload";
 import { validateUploadRequest } from "@/models/upload";
@@ -16,11 +16,26 @@ import { copyToClipboard } from "@/lib/utils";
 // Re-export for component convenience
 export { formatFileSize, isImageType };
 
-/** ViewModel for the uploads list page — manages upload list, file upload flow, and deletion */
-export function useUploadsViewModel(initialUploads: Upload[]) {
-  const [uploads, setUploads] = useState<Upload[]>(initialUploads);
+/** ViewModel for the uploads list page — fetches data client-side on mount */
+export function useUploadsViewModel() {
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [loading, setLoading] = useState(true);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchData() {
+      const result = await fetchUploads();
+      if (cancelled) return;
+      if (result.success && result.data) {
+        setUploads(result.data);
+      }
+      setLoading(false);
+    }
+    fetchData();
+    return () => { cancelled = true; };
+  }, []);
 
   /**
    * Upload a single file via presigned URL flow:
@@ -198,6 +213,7 @@ export function useUploadsViewModel(initialUploads: Upload[]) {
 
   return {
     uploads,
+    loading,
     uploadingFiles,
     isDragOver,
     setIsDragOver,
