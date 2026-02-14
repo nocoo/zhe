@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { CreateLinkModal } from "@/components/dashboard/create-link-modal";
 
 const mockVm = {
@@ -11,6 +11,8 @@ const mockVm = {
   setUrl: vi.fn(),
   customSlug: "",
   setCustomSlug: vi.fn(),
+  folderId: undefined as string | undefined,
+  setFolderId: vi.fn(),
   isLoading: false,
   error: "",
   handleSubmit: vi.fn((e: React.FormEvent) => e.preventDefault()),
@@ -37,6 +39,7 @@ describe("CreateLinkModal", () => {
     mockVm.mode = "simple";
     mockVm.url = "";
     mockVm.customSlug = "";
+    mockVm.folderId = undefined;
     mockVm.isLoading = false;
     mockVm.error = "";
     mockVm.handleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
@@ -122,5 +125,64 @@ describe("CreateLinkModal", () => {
       .getAllByText("创建链接")
       .find((el) => el.closest("form"));
     expect(submitButton).toBeInTheDocument();
+  });
+
+  describe("folder selector", () => {
+    const folders = [
+      { id: "f1", userId: "u1", name: "工作", icon: "briefcase", createdAt: new Date("2026-01-01") },
+      { id: "f2", userId: "u1", name: "个人", icon: "heart", createdAt: new Date("2026-01-02") },
+    ];
+
+    it("shows folder selector when folders are provided", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      expect(screen.getByLabelText("文件夹")).toBeInTheDocument();
+    });
+
+    it("does not show folder selector when folders are empty", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} folders={[]} />);
+
+      expect(screen.queryByLabelText("文件夹")).not.toBeInTheDocument();
+    });
+
+    it("does not show folder selector when folders prop is not provided", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} />);
+
+      expect(screen.queryByLabelText("文件夹")).not.toBeInTheDocument();
+    });
+
+    it("renders folder names as select options", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      const select = screen.getByLabelText("文件夹") as HTMLSelectElement;
+      // "未分类" default option + 2 folders = 3 options
+      expect(select.options.length).toBe(3);
+      expect(select.options[0].textContent).toBe("未分类");
+      expect(select.options[1].textContent).toBe("工作");
+      expect(select.options[2].textContent).toBe("个人");
+    });
+
+    it("calls setFolderId when folder is selected", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      const select = screen.getByLabelText("文件夹");
+      fireEvent.change(select, { target: { value: "f1" } });
+      expect(mockVm.setFolderId).toHaveBeenCalledWith("f1");
+    });
+
+    it("calls setFolderId with undefined when '未分类' is selected", () => {
+      mockVm.isOpen = true;
+      mockVm.folderId = "f1";
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      const select = screen.getByLabelText("文件夹");
+      fireEvent.change(select, { target: { value: "" } });
+      expect(mockVm.setFolderId).toHaveBeenCalledWith(undefined);
+    });
   });
 });

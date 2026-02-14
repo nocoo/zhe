@@ -13,14 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
-import type { Link } from "@/models/types";
+import type { Link, Folder } from "@/models/types";
 
 interface CreateLinkModalProps {
   siteUrl: string;
   onSuccess: (link: Link) => void;
+  folders?: Folder[];
 }
 
-export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
+export function CreateLinkModal({ siteUrl, onSuccess, folders = [] }: CreateLinkModalProps) {
   const vm = useCreateLinkViewModel(siteUrl, onSuccess);
 
   return (
@@ -103,6 +104,30 @@ export function CreateLinkModal({ siteUrl, onSuccess }: CreateLinkModalProps) {
                   className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Folder selector */}
+          {folders.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="folder" className="text-sm text-foreground">
+                文件夹
+              </Label>
+              <select
+                id="folder"
+                value={vm.folderId ?? ""}
+                onChange={(e) =>
+                  vm.setFolderId(e.target.value || undefined)
+                }
+                className="flex h-9 w-full rounded-[10px] border border-border bg-secondary px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              >
+                <option value="">未分类</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
