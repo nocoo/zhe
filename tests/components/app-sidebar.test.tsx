@@ -7,6 +7,10 @@ let mockPathname = '/dashboard';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => ({
+    get: () => null,
+  }),
 }));
 
 // Mock next/link to a simple anchor
@@ -62,26 +66,34 @@ describe('AppSidebar', () => {
 
   describe('collapsed mode', () => {
     it('renders narrow sidebar with icon-only navigation', () => {
-      const { container } = renderSidebar({ collapsed: true });
+      const { container } = renderSidebar({ collapsed: true, foldersVm: createMockFoldersVm() });
 
       // Should render the narrow aside (68px)
       const aside = container.querySelector('aside');
       expect(aside).toBeInTheDocument();
       expect(aside?.className).toContain('w-[68px]');
 
-      // Should have nav links but no visible text labels
-      const links = container.querySelectorAll('nav a');
-      expect(links.length).toBe(3);
-
-      // Text labels should not be visible (no span with item titles)
+      // "全部链接" and "未分类" should not be visible as text
       expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
       expect(screen.queryByText('未分类')).not.toBeInTheDocument();
+    });
+
+    it('renders folder nav items as buttons and static items as links in collapsed mode', () => {
+      const { container } = renderSidebar({ collapsed: true, foldersVm: createMockFoldersVm() });
+
+      // 2 folder nav buttons (全部链接, 未分类) in nav
+      const navButtons = container.querySelectorAll('nav button');
+      expect(navButtons.length).toBe(2);
+
+      // 1 static link (图床) in nav
+      const navLinks = container.querySelectorAll('nav a');
+      expect(navLinks.length).toBe(1);
     });
   });
 
   describe('expanded mode', () => {
     it('renders wide sidebar with text navigation', () => {
-      const { container } = renderSidebar({ collapsed: false });
+      const { container } = renderSidebar({ collapsed: false, foldersVm: createMockFoldersVm() });
 
       // Should render the wide aside (260px)
       const aside = container.querySelector('aside');
@@ -104,29 +116,55 @@ describe('AppSidebar', () => {
     });
   });
 
-  describe('active nav item', () => {
-    it('highlights the active nav item matching pathname', () => {
-      mockPathname = '/dashboard';
-      const { container } = renderSidebar({ collapsed: false });
+  describe('folder nav items as buttons', () => {
+    it('renders "全部链接" and "未分类" as buttons not links', () => {
+      const vm = createMockFoldersVm();
+      renderSidebar({ collapsed: false, foldersVm: vm });
 
-      const links = container.querySelectorAll('nav a');
-      const dashboardLink = Array.from(links).find(
-        (a) => a.getAttribute('href') === '/dashboard'
-      );
-      expect(dashboardLink?.className).toContain('bg-accent');
-      expect(dashboardLink?.className).toContain('text-foreground');
+      const allLinksBtn = screen.getByText('全部链接').closest('button');
+      expect(allLinksBtn).toBeInTheDocument();
+
+      const uncategorizedBtn = screen.getByText('未分类').closest('button');
+      expect(uncategorizedBtn).toBeInTheDocument();
     });
 
-    it('does not highlight non-active nav items', () => {
-      mockPathname = '/dashboard';
-      const { container } = renderSidebar({ collapsed: false });
+    it('calls selectFolder(null) when "全部链接" is clicked', () => {
+      const vm = createMockFoldersVm();
+      renderSidebar({ collapsed: false, foldersVm: vm });
 
-      const links = container.querySelectorAll('nav a');
-      const uncategorizedLink = Array.from(links).find(
-        (a) => a.getAttribute('href') === '/dashboard?folder=uncategorized'
-      );
-      // The non-active item should have hover styles, not the active bg-accent + text-foreground combo
-      expect(uncategorizedLink?.className).toContain('text-muted-foreground');
+      const allLinksBtn = screen.getByText('全部链接').closest('button');
+      fireEvent.click(allLinksBtn!);
+      expect(vm.selectFolder).toHaveBeenCalledWith(null);
+    });
+
+    it('calls selectFolder("uncategorized") when "未分类" is clicked', () => {
+      const vm = createMockFoldersVm();
+      renderSidebar({ collapsed: false, foldersVm: vm });
+
+      const uncategorizedBtn = screen.getByText('未分类').closest('button');
+      fireEvent.click(uncategorizedBtn!);
+      expect(vm.selectFolder).toHaveBeenCalledWith('uncategorized');
+    });
+
+    it('highlights "全部链接" when selectedFolderId is null', () => {
+      const vm = createMockFoldersVm({ selectedFolderId: null });
+      renderSidebar({ collapsed: false, foldersVm: vm });
+
+      const allLinksBtn = screen.getByText('全部链接').closest('button');
+      expect(allLinksBtn?.className).toContain('bg-accent');
+      expect(allLinksBtn?.className).toContain('text-foreground');
+    });
+
+    it('highlights "未分类" when selectedFolderId is "uncategorized"', () => {
+      const vm = createMockFoldersVm({ selectedFolderId: 'uncategorized' });
+      renderSidebar({ collapsed: false, foldersVm: vm });
+
+      const uncategorizedBtn = screen.getByText('未分类').closest('button');
+      expect(uncategorizedBtn?.className).toContain('bg-accent');
+      expect(uncategorizedBtn?.className).toContain('text-foreground');
+
+      const allLinksBtn = screen.getByText('全部链接').closest('button');
+      expect(allLinksBtn?.className).toContain('text-muted-foreground');
     });
   });
 
@@ -246,8 +284,8 @@ describe('AppSidebar', () => {
     it('renders no folder items when foldersVm is not provided', () => {
       renderSidebar({ collapsed: false });
 
-      // Static items still exist, no crash
-      expect(screen.getByText('全部链接')).toBeInTheDocument();
+      // Should not crash even without foldersVm
+      expect(screen.queryByText('全部链接')).toBeInTheDocument();
     });
 
     it('shows folder icons in collapsed mode as tooltip buttons', () => {
@@ -256,12 +294,12 @@ describe('AppSidebar', () => {
         foldersVm: createMockFoldersVm({ folders: mockFolders }),
       });
 
-      // Should have static items (3) + folder items (2) = 5 nav items
-      // In collapsed mode, static items are links, folder items are buttons
-      const navLinks = container.querySelectorAll('nav a');
+      // Buttons: 2 folder nav items (全部链接, 未分类) + 2 dynamic folders = 4
+      // Links: 1 static (图床)
       const navButtons = container.querySelectorAll('nav button');
-      expect(navLinks.length).toBe(3);
-      expect(navButtons.length).toBe(2);
+      const navLinks = container.querySelectorAll('nav a');
+      expect(navButtons.length).toBe(4);
+      expect(navLinks.length).toBe(1);
     });
 
     it('renders "新建文件夹" button in expanded mode when foldersVm provided', () => {

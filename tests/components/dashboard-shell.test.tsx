@@ -34,6 +34,10 @@ vi.mock('@/viewmodels/useDashboardLayoutViewModel', () => ({
 let mockPathname = '/dashboard';
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => ({
+    get: () => null,
+  }),
 }));
 
 vi.mock('next/link', () => ({
@@ -227,9 +231,9 @@ describe('DashboardShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = renderShell();
 
-      // In collapsed mode, folder items render as buttons in nav
+      // In collapsed mode, folder nav items (2) + dynamic folder items (1) = 3 buttons in nav
       const navButtons = container.querySelectorAll('nav button');
-      expect(navButtons.length).toBe(1);
+      expect(navButtons.length).toBe(3);
     });
 
     it('passes folders to mobile sidebar when open', () => {

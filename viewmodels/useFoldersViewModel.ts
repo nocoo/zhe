@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Folder } from "@/models/types";
 import {
   createFolder,
@@ -12,15 +13,25 @@ import {
 export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
 export function useFoldersViewModel(initialFolders: Folder[]) {
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL is the single source of truth for folder selection
+  const selectedFolderId = searchParams.get("folder") ?? null;
+
   const selectFolder = useCallback(
     (folderId: string | null) => {
-      setSelectedFolderId((prev) => (prev === folderId ? null : folderId));
+      if (folderId === null) {
+        // "全部链接" — remove folder param
+        router.replace("/dashboard");
+      } else {
+        router.replace(`/dashboard?folder=${folderId}`);
+      }
     },
-    [],
+    [router],
   );
 
   const handleCreateFolder = useCallback(
@@ -58,12 +69,15 @@ export function useFoldersViewModel(initialFolders: Folder[]) {
       const result = await deleteFolder(id);
       if (result.success) {
         setFolders((prev) => prev.filter((f) => f.id !== id));
-        setSelectedFolderId((prev) => (prev === id ? null : prev));
+        // If the deleted folder was selected, navigate to "全部链接"
+        if (selectedFolderId === id) {
+          router.replace("/dashboard");
+        }
       } else {
         alert(result.error || "Failed to delete folder");
       }
     },
-    [],
+    [selectedFolderId, router],
   );
 
   const startEditing = useCallback((id: string) => {

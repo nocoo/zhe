@@ -6,6 +6,16 @@ import type { Folder } from '@/models/types';
 // Mocks
 // ---------------------------------------------------------------------------
 
+const mockRouterReplace = vi.fn();
+let mockSearchParamsFolder: string | null = null;
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockRouterReplace }),
+  useSearchParams: () => ({
+    get: (key: string) => key === 'folder' ? mockSearchParamsFolder : null,
+  }),
+}));
+
 vi.mock('@/actions/folders', () => ({
   getFolders: vi.fn(),
   createFolder: vi.fn(),
@@ -45,6 +55,7 @@ describe('useFoldersViewModel', () => {
     vi.clearAllMocks();
     vi.stubGlobal('confirm', vi.fn());
     vi.stubGlobal('alert', vi.fn());
+    mockSearchParamsFolder = null;
   });
 
   afterEach(() => {
@@ -72,46 +83,47 @@ describe('useFoldersViewModel', () => {
   });
 
   // ====================================================================
-  // Folder selection
+  // Folder selection (URL-based)
   // ====================================================================
-  it('selectFolder sets the selected folder id', () => {
+  it('selectedFolderId reflects URL search param', () => {
+    mockSearchParamsFolder = 'folder-1';
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
-
-    act(() => {
-      result.current.selectFolder('folder-1');
-    });
 
     expect(result.current.selectedFolderId).toBe('folder-1');
   });
 
-  it('selectFolder with same id deselects (toggle)', () => {
+  it('selectFolder calls router.replace with folder param', () => {
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
 
     act(() => {
       result.current.selectFolder('folder-1');
     });
-    expect(result.current.selectedFolderId).toBe('folder-1');
 
-    act(() => {
-      result.current.selectFolder('folder-1');
-    });
-    expect(result.current.selectedFolderId).toBeNull();
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard?folder=folder-1');
   });
 
-  it('selectFolder with null clears selection', () => {
+  it('selectFolder with null navigates to /dashboard (all links)', () => {
+    mockSearchParamsFolder = 'folder-1';
     const folders = [makeFolder()];
     const { result } = renderHook(() => useFoldersViewModel(folders));
-
-    act(() => {
-      result.current.selectFolder('folder-1');
-    });
 
     act(() => {
       result.current.selectFolder(null);
     });
-    expect(result.current.selectedFolderId).toBeNull();
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('selectFolder with "uncategorized" navigates to uncategorized URL', () => {
+    const { result } = renderHook(() => useFoldersViewModel([]));
+
+    act(() => {
+      result.current.selectFolder('uncategorized');
+    });
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard?folder=uncategorized');
   });
 
   // ====================================================================
@@ -223,24 +235,36 @@ describe('useFoldersViewModel', () => {
     expect(result.current.folders).toHaveLength(0);
   });
 
-  it('handleDeleteFolder clears selection if deleted folder was selected', async () => {
+  it('handleDeleteFolder navigates to /dashboard if deleted folder was selected', async () => {
+    mockSearchParamsFolder = 'folder-1';
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: true });
 
     const folder = makeFolder();
     const { result } = renderHook(() => useFoldersViewModel([folder]));
 
-    // Select the folder first
-    act(() => {
-      result.current.selectFolder('folder-1');
-    });
     expect(result.current.selectedFolderId).toBe('folder-1');
 
     await act(async () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
-    expect(result.current.selectedFolderId).toBeNull();
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('handleDeleteFolder does not navigate if deleted folder was not selected', async () => {
+    mockSearchParamsFolder = 'folder-2';
+    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    vi.mocked(deleteFolder).mockResolvedValue({ success: true });
+
+    const folder = makeFolder();
+    const { result } = renderHook(() => useFoldersViewModel([folder]));
+
+    await act(async () => {
+      await result.current.handleDeleteFolder('folder-1');
+    });
+
+    expect(mockRouterReplace).not.toHaveBeenCalled();
   });
 
   it('handleDeleteFolder does nothing when confirm is false', async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, FolderOpen, PanelLeft, LogOut, Search, ImageIcon, Plus } from "lucide-react";
+import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,7 +15,21 @@ import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
-interface NavItem {
+/** Folder-aware nav items rendered as buttons calling selectFolder */
+interface FolderNavItem {
+  title: string;
+  icon: React.ElementType;
+  /** null = all links, "uncategorized" = links with no folder */
+  folderValue: string | null;
+}
+
+const FOLDER_NAV_ITEMS: FolderNavItem[] = [
+  { title: "全部链接", icon: Link2, folderValue: null },
+  { title: "未分类", icon: FolderOpen, folderValue: "uncategorized" },
+];
+
+/** Static nav items rendered as <Link> */
+interface StaticNavItem {
   title: string;
   icon: React.ElementType;
   href: string;
@@ -23,17 +37,10 @@ interface NavItem {
 
 interface NavGroup {
   label: string;
-  items: NavItem[];
+  items: StaticNavItem[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "链接管理",
-    items: [
-      { title: "全部链接", icon: Link2, href: "/dashboard" },
-      { title: "未分类", icon: FolderOpen, href: "/dashboard?folder=uncategorized" },
-    ],
-  },
+const OTHER_NAV_GROUPS: NavGroup[] = [
   {
     label: "图床",
     items: [
@@ -41,9 +48,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-// Flat list for collapsed mode
-const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 export interface AppSidebarProps {
   collapsed: boolean;
@@ -65,6 +69,11 @@ export function AppSidebar({
   foldersVm,
 }: AppSidebarProps) {
   const pathname = usePathname();
+
+  /** Whether a folder nav item is active, based on current VM state */
+  function isFolderNavActive(folderValue: string | null): boolean {
+    return foldersVm?.selectedFolderId === folderValue;
+  }
 
   if (collapsed) {
     return (
@@ -97,20 +106,21 @@ export function AppSidebar({
         </button>
 
         <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
-          {NAV_ITEMS.map((item) => (
-            <Tooltip key={item.href} delayDuration={0}>
+          {/* Folder nav items as buttons */}
+          {FOLDER_NAV_ITEMS.map((item) => (
+            <Tooltip key={item.title} delayDuration={0}>
               <TooltipTrigger asChild>
-                <Link
-                  href={item.href}
+                <button
+                  onClick={() => foldersVm?.selectFolder(item.folderValue)}
                   className={cn(
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                    pathname === item.href
+                    isFolderNavActive(item.folderValue)
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                </Link>
+                </button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
                 {item.title}
@@ -118,7 +128,7 @@ export function AppSidebar({
             </Tooltip>
           ))}
 
-          {/* Folder items in collapsed mode */}
+          {/* Dynamic folder items */}
           {foldersVm?.folders.map((folder) => (
             <Tooltip key={folder.id} delayDuration={0}>
               <TooltipTrigger asChild>
@@ -136,6 +146,28 @@ export function AppSidebar({
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
                 {folder.name}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
+          {/* Other static nav items (图床 etc.) */}
+          {OTHER_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
+            <Tooltip key={item.href} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                    pathname === item.href
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {item.title}
               </TooltipContent>
             </Tooltip>
           ))}
@@ -208,21 +240,72 @@ export function AppSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto pt-2">
-        {NAV_GROUPS.map((group) => (
+        {/* 链接管理 group */}
+        <div className="px-3 mb-1">
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <span className="text-sm font-normal text-muted-foreground">
+              链接管理
+            </span>
+            {foldersVm && (
+              <button
+                onClick={() => foldersVm.setIsCreating(true)}
+                aria-label="新建文件夹"
+                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {/* "全部链接" and "未分类" as buttons */}
+            {FOLDER_NAV_ITEMS.map((item) => (
+              <button
+                key={item.title}
+                onClick={() => foldersVm?.selectFolder(item.folderValue)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                  isFolderNavActive(item.folderValue)
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                <span className="flex-1 text-left">{item.title}</span>
+              </button>
+            ))}
+
+            {/* Dynamic folder items */}
+            {foldersVm?.folders.map((folder) => (
+              <SidebarFolderItem
+                key={folder.id}
+                folder={folder}
+                isSelected={foldersVm.selectedFolderId === folder.id}
+                isEditing={foldersVm.editingFolderId === folder.id}
+                onSelect={foldersVm.selectFolder}
+                onStartEditing={foldersVm.startEditing}
+                onUpdate={foldersVm.handleUpdateFolder}
+                onDelete={foldersVm.handleDeleteFolder}
+                onCancelEditing={foldersVm.cancelEditing}
+              />
+            ))}
+
+            {/* Inline create form */}
+            {foldersVm?.isCreating && (
+              <SidebarFolderCreate
+                onCreate={foldersVm.handleCreateFolder}
+                onCancel={() => foldersVm.setIsCreating(false)}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Other nav groups (图床 etc.) */}
+        {OTHER_NAV_GROUPS.map((group) => (
           <div key={group.label} className="px-3 mb-1">
             <div className="flex items-center justify-between px-3 py-2.5">
               <span className="text-sm font-normal text-muted-foreground">
                 {group.label}
               </span>
-              {group.label === "链接管理" && foldersVm && (
-                <button
-                  onClick={() => foldersVm.setIsCreating(true)}
-                  aria-label="新建文件夹"
-                  className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                </button>
-              )}
             </div>
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
@@ -240,30 +323,6 @@ export function AppSidebar({
                   <span className="flex-1 text-left">{item.title}</span>
                 </Link>
               ))}
-
-              {/* Dynamic folder items under "链接管理" group */}
-              {group.label === "链接管理" &&
-                foldersVm?.folders.map((folder) => (
-                  <SidebarFolderItem
-                    key={folder.id}
-                    folder={folder}
-                    isSelected={foldersVm.selectedFolderId === folder.id}
-                    isEditing={foldersVm.editingFolderId === folder.id}
-                    onSelect={foldersVm.selectFolder}
-                    onStartEditing={foldersVm.startEditing}
-                    onUpdate={foldersVm.handleUpdateFolder}
-                    onDelete={foldersVm.handleDeleteFolder}
-                    onCancelEditing={foldersVm.cancelEditing}
-                  />
-                ))}
-
-              {/* Inline create form */}
-              {group.label === "链接管理" && foldersVm?.isCreating && (
-                <SidebarFolderCreate
-                  onCreate={foldersVm.handleCreateFolder}
-                  onCancel={() => foldersVm.setIsCreating(false)}
-                />
-              )}
             </div>
           </div>
         ))}

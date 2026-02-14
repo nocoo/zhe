@@ -24,15 +24,23 @@ export function LinksList({ initialLinks, siteUrl, folders = [] }: LinksListProp
 
   const filteredLinks = useMemo(() => {
     if (!selectedFolderId) return links;
+    if (selectedFolderId === "uncategorized") {
+      return links.filter((link) => link.folderId === null);
+    }
     return links.filter((link) => link.folderId === selectedFolderId);
   }, [links, selectedFolderId]);
 
   const selectedFolder = useMemo(() => {
     if (!selectedFolderId) return null;
+    if (selectedFolderId === "uncategorized") return null;
     return folders.find((f) => f.id === selectedFolderId) ?? null;
   }, [folders, selectedFolderId]);
 
-  const headerTitle = selectedFolder ? selectedFolder.name : "全部链接";
+  const headerTitle = selectedFolderId === "uncategorized"
+    ? "未分类"
+    : selectedFolder
+      ? selectedFolder.name
+      : "全部链接";
   const linkCount = filteredLinks.length;
 
   return (
