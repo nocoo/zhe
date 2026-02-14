@@ -8,11 +8,16 @@ vi.mock('@/auth', () => ({
 }));
 
 const mockGetLinks = vi.fn();
+const mockGetFolders = vi.fn();
 vi.mock('@/actions/links', () => ({
   getLinks: (...args: unknown[]) => mockGetLinks(...args),
   createLink: vi.fn(),
   deleteLink: vi.fn(),
   getAnalyticsStats: vi.fn(),
+}));
+
+vi.mock('@/actions/folders', () => ({
+  getFolders: (...args: unknown[]) => mockGetFolders(...args),
 }));
 
 vi.mock('next/headers', () => ({
@@ -27,6 +32,7 @@ vi.mock('next/headers', () => ({
 describe('Dashboard Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetFolders.mockResolvedValue({ success: true, data: [] });
   });
 
   it('renders empty state when no links', async () => {

@@ -4,14 +4,15 @@ import { LinkCard } from "./link-card";
 import { CreateLinkModal } from "./create-link-modal";
 import { Link2 } from "lucide-react";
 import { useLinksViewModel } from "@/viewmodels/useLinksViewModel";
-import type { Link } from "@/models/types";
+import type { Link, Folder } from "@/models/types";
 
 interface LinksListProps {
   initialLinks: Link[];
   siteUrl: string;
+  folders?: Folder[];
 }
 
-export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
+export function LinksList({ initialLinks, siteUrl, folders = [] }: LinksListProps) {
   const { links, handleLinkCreated, handleLinkDeleted } = useLinksViewModel(
     initialLinks,
     siteUrl
@@ -27,7 +28,7 @@ export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
             共 {links.length} 条链接
           </p>
         </div>
-        <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} />
+        <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
       </div>
 
       {/* Content */}
@@ -41,7 +42,7 @@ export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
           <p className="text-xs text-muted-foreground mb-6">
             点击上方按钮创建您的第一个短链接
           </p>
-          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} />
+          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
         </div>
       ) : (
         <div className="space-y-2">
