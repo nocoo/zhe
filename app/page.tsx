@@ -1,7 +1,6 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { Zap, User } from "lucide-react";
 
 function Barcode() {
   const bars = [2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1];
@@ -75,9 +74,21 @@ export default async function Home() {
                 }}
               />
               <div className="flex items-center gap-2">
-                <Zap
-                  className="h-4 w-4 text-primary-foreground"
-                  strokeWidth={1.5}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-light-24.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 block dark:hidden"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-dark-24.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 hidden dark:block"
                 />
                 <span className="text-sm font-semibold text-primary-foreground">
                   zhe.
@@ -100,11 +111,23 @@ export default async function Home() {
 
           {/* Badge content */}
           <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
-            {/* Avatar */}
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-secondary ring-1 ring-border">
-              <User
-                className="h-10 w-10 text-muted-foreground"
-                strokeWidth={1.5}
+            {/* Logo avatar */}
+            <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border p-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-light-80.png"
+                alt="Zhe"
+                width={80}
+                height={80}
+                className="h-full w-full object-contain dark:hidden"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-dark-80.png"
+                alt="Zhe"
+                width={80}
+                height={80}
+                className="hidden h-full w-full object-contain dark:block"
               />
             </div>
 
