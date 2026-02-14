@@ -71,17 +71,6 @@ describe('Home Page', () => {
     expect(screen.getByText('就是这')).toBeInTheDocument();
   });
 
-  it('displays copyright footer', async () => {
-    mockAuth.mockResolvedValue(null);
-
-    const { default: Home } = await import('@/app/page');
-    const jsx = await Home();
-    render(jsx);
-
-    const year = new Date().getFullYear();
-    expect(screen.getByText(`© ${year} Zhe.to`)).toBeInTheDocument();
-  });
-
   it('displays terms of service text', async () => {
     mockAuth.mockResolvedValue(null);
 

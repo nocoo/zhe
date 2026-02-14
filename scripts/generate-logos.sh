@@ -56,10 +56,10 @@ echo "  -> logo-light-24.png / logo-dark-24.png  (sidebar)"
 resize "$LIGHT_SRC" 24 "$OUTPUT_DIR/logo-light-24.png"
 resize "$DARK_SRC"  24 "$OUTPUT_DIR/logo-dark-24.png"
 
-# Signin page (80px)
-echo "  -> logo-light-80.png / logo-dark-80.png  (signin page)"
-resize "$LIGHT_SRC" 80 "$OUTPUT_DIR/logo-light-80.png"
-resize "$DARK_SRC"  80 "$OUTPUT_DIR/logo-dark-80.png"
+# Signin page (160px — displayed at 80px CSS, 2x for retina)
+echo "  -> logo-light-160.png / logo-dark-160.png  (signin page, 2x retina)"
+resize "$LIGHT_SRC" 160 "$OUTPUT_DIR/logo-light-160.png"
+resize "$DARK_SRC"  160 "$OUTPUT_DIR/logo-dark-160.png"
 
 # ============================================
 # 2. Favicon / system icons (light variant only)
@@ -88,7 +88,7 @@ resize "$LIGHT_SRC" 512 "$OUTPUT_DIR/icon-512.png"
 # 3. Clean up legacy single-theme logos
 # ============================================
 echo ""
-for legacy in logo-32.png logo-48.png logo-128.png logo-256.png; do
+for legacy in logo-32.png logo-48.png logo-128.png logo-256.png logo-light-80.png logo-dark-80.png; do
   if [ -f "$OUTPUT_DIR/$legacy" ]; then
     echo "  Removing legacy $legacy"
     rm "$OUTPUT_DIR/$legacy"
@@ -107,9 +107,9 @@ echo "  Sidebar (24px):"
 echo "    <img src=\"/logo-light-24.png\" className=\"block dark:hidden\" />"
 echo "    <img src=\"/logo-dark-24.png\"  className=\"hidden dark:block\" />"
 echo ""
-echo "  Signin (80px):"
-echo "    <img src=\"/logo-light-80.png\" className=\"block dark:hidden\" />"
-echo "    <img src=\"/logo-dark-80.png\"  className=\"hidden dark:block\" />"
+echo "  Signin (160px, displayed at ~80px CSS):"
+echo "    <img src=\"/logo-light-160.png\" className=\"block dark:hidden\" />"
+echo "    <img src=\"/logo-dark-160.png\"  className=\"hidden dark:block\" />"
 echo ""
 echo "  Favicon: served from public/favicon.png (light variant, 32x32)"
 echo ""

@@ -1,6 +1,7 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { Zap } from "lucide-react";
 
 function Barcode() {
   const bars = [2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1];
@@ -74,21 +75,9 @@ export default async function Home() {
                 }}
               />
               <div className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo-light-24.png"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 block dark:hidden"
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo-dark-24.png"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 hidden dark:block"
+                <Zap
+                  className="h-4 w-4 text-primary-foreground"
+                  strokeWidth={1.5}
                 />
                 <span className="text-sm font-semibold text-primary-foreground">
                   zhe.
@@ -115,18 +104,18 @@ export default async function Home() {
             <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border p-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-light-80.png"
+                src="/logo-light-160.png"
                 alt="Zhe"
-                width={80}
-                height={80}
+                width={160}
+                height={160}
                 className="h-full w-full object-contain dark:hidden"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-dark-80.png"
+                src="/logo-dark-160.png"
                 alt="Zhe"
-                width={80}
-                height={80}
+                width={160}
+                height={160}
                 className="hidden h-full w-full object-contain dark:block"
               />
             </div>
@@ -197,11 +186,6 @@ export default async function Home() {
             </div>
           </div>
         </div>
-
-        {/* Footer below badge */}
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          &copy; {year} Zhe.to
-        </p>
       </div>
     </div>
   );
