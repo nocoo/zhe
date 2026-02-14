@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FolderIcon } from "@/components/folder-icon";
-import type { Folder } from "@/models/types";
+import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
 interface NavItem {
   title: string;
@@ -52,10 +52,7 @@ export interface AppSidebarProps {
     image?: string | null;
   };
   signOutAction: () => Promise<void>;
-  folders?: Folder[];
-  selectedFolderId?: string | null;
-  onFolderSelect?: (folderId: string) => void;
-  onCreateFolder?: () => void;
+  foldersVm?: FoldersViewModel;
 }
 
 export function AppSidebar({
@@ -63,10 +60,7 @@ export function AppSidebar({
   onToggle,
   user,
   signOutAction,
-  folders = [],
-  selectedFolderId,
-  onFolderSelect,
-  onCreateFolder,
+  foldersVm,
 }: AppSidebarProps) {
   const pathname = usePathname();
 
@@ -123,14 +117,14 @@ export function AppSidebar({
           ))}
 
           {/* Folder items in collapsed mode */}
-          {folders.map((folder) => (
+          {foldersVm?.folders.map((folder) => (
             <Tooltip key={folder.id} delayDuration={0}>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => onFolderSelect?.(folder.id)}
+                  onClick={() => foldersVm.selectFolder(folder.id)}
                   className={cn(
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                    selectedFolderId === folder.id
+                    foldersVm.selectedFolderId === folder.id
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
@@ -218,9 +212,9 @@ export function AppSidebar({
               <span className="text-sm font-normal text-muted-foreground">
                 {group.label}
               </span>
-              {group.label === "链接管理" && onCreateFolder && (
+              {group.label === "链接管理" && foldersVm && (
                 <button
-                  onClick={onCreateFolder}
+                  onClick={() => foldersVm.setIsCreating(true)}
                   aria-label="新建文件夹"
                   className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -247,13 +241,13 @@ export function AppSidebar({
 
               {/* Dynamic folder items under "链接管理" group */}
               {group.label === "链接管理" &&
-                folders.map((folder) => (
+                foldersVm?.folders.map((folder) => (
                   <button
                     key={folder.id}
-                    onClick={() => onFolderSelect?.(folder.id)}
+                    onClick={() => foldersVm.selectFolder(folder.id)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                      selectedFolderId === folder.id
+                      foldersVm.selectedFolderId === folder.id
                         ? "bg-accent text-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-foreground"
                     )}

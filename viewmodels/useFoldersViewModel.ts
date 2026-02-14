@@ -8,7 +8,8 @@ import {
   deleteFolder,
 } from "@/actions/folders";
 
-/** ViewModel for the folders sidebar — manages folder CRUD, selection, and editing state */
+/** Return type of useFoldersViewModel — can be used as a prop type */
+export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
 export function useFoldersViewModel(initialFolders: Folder[]) {
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);

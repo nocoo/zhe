@@ -41,10 +41,7 @@ export function DashboardShell({
             onToggle={toggleSidebar}
             user={user}
             signOutAction={signOutAction}
-            folders={foldersVm.folders}
-            selectedFolderId={foldersVm.selectedFolderId}
-            onFolderSelect={foldersVm.selectFolder}
-            onCreateFolder={() => foldersVm.setIsCreating(true)}
+            foldersVm={foldersVm}
           />
         )}
 
@@ -61,10 +58,7 @@ export function DashboardShell({
                 onToggle={closeMobileSidebar}
                 user={user}
                 signOutAction={signOutAction}
-                folders={foldersVm.folders}
-                selectedFolderId={foldersVm.selectedFolderId}
-                onFolderSelect={foldersVm.selectFolder}
-                onCreateFolder={() => foldersVm.setIsCreating(true)}
+                foldersVm={foldersVm}
               />
             </div>
           </>
