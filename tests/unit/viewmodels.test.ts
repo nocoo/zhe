@@ -391,6 +391,7 @@ describe('useCreateLinkViewModel', () => {
     expect(result.current.mode).toBe('simple');
     expect(result.current.url).toBe('');
     expect(result.current.customSlug).toBe('');
+    expect(result.current.folderId).toBeUndefined();
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBe('');
     expect(result.current.siteUrl).toBe(SITE_URL);
@@ -431,6 +432,7 @@ describe('useCreateLinkViewModel', () => {
     expect(createLink).toHaveBeenCalledWith({
       originalUrl: 'https://example.com/long-url',
       customSlug: 'my-slug',
+      folderId: undefined,
     });
     expect(mockOnSuccess).toHaveBeenCalledWith(createdLink);
 
@@ -466,6 +468,7 @@ describe('useCreateLinkViewModel', () => {
     expect(createLink).toHaveBeenCalledWith({
       originalUrl: 'https://example.com',
       customSlug: undefined,
+      folderId: undefined,
     });
   });
 
@@ -553,6 +556,58 @@ describe('useCreateLinkViewModel', () => {
     });
 
     expect(result.current.error).toBe('');
+  });
+
+  it('handleSubmit passes folderId to createLink', async () => {
+    vi.mocked(createLink).mockResolvedValue({
+      success: true,
+      data: makeLink({ folderId: 'folder-123' }),
+    });
+
+    const { result } = renderHook(() =>
+      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
+    );
+
+    act(() => {
+      result.current.setUrl('https://example.com');
+      result.current.setFolderId('folder-123');
+    });
+
+    const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent);
+    });
+
+    expect(createLink).toHaveBeenCalledWith({
+      originalUrl: 'https://example.com',
+      customSlug: undefined,
+      folderId: 'folder-123',
+    });
+  });
+
+  it('handleSubmit resets folderId on success', async () => {
+    vi.mocked(createLink).mockResolvedValue({
+      success: true,
+      data: makeLink(),
+    });
+
+    const { result } = renderHook(() =>
+      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
+    );
+
+    act(() => {
+      result.current.setUrl('https://example.com');
+      result.current.setFolderId('folder-123');
+    });
+
+    const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent);
+    });
+
+    expect(result.current.folderId).toBeUndefined();
   });
 });
 

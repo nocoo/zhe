@@ -100,6 +100,7 @@ export function useCreateLinkViewModel(
   const [mode, setMode] = useState<"simple" | "custom">("simple");
   const [url, setUrl] = useState("");
   const [customSlug, setCustomSlug] = useState("");
+  const [folderId, setFolderId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -112,6 +113,7 @@ export function useCreateLinkViewModel(
       const result = await createLink({
         originalUrl: url,
         customSlug: mode === "custom" ? customSlug : undefined,
+        folderId,
       });
 
       setIsLoading(false);
@@ -120,12 +122,13 @@ export function useCreateLinkViewModel(
         onSuccess(result.data);
         setUrl("");
         setCustomSlug("");
+        setFolderId(undefined);
         setIsOpen(false);
       } else {
         setError(result.error || "Failed to create link");
       }
     },
-    [url, mode, customSlug, onSuccess]
+    [url, mode, customSlug, folderId, onSuccess]
   );
 
   return {
@@ -137,6 +140,8 @@ export function useCreateLinkViewModel(
     setUrl,
     customSlug,
     setCustomSlug,
+    folderId,
+    setFolderId,
     isLoading,
     error,
     handleSubmit,
