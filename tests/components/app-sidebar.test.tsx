@@ -167,4 +167,104 @@ describe('AppSidebar', () => {
       expect(onToggle).toHaveBeenCalledOnce();
     });
   });
+
+  describe('folders in sidebar', () => {
+    const mockFolders = [
+      { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
+      { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
+    ];
+
+    it('renders folder items in expanded mode', () => {
+      renderSidebar({
+        collapsed: false,
+        folders: mockFolders,
+      });
+
+      expect(screen.getByText('工作')).toBeInTheDocument();
+      expect(screen.getByText('个人')).toBeInTheDocument();
+    });
+
+    it('renders folder items as clickable buttons', () => {
+      const onFolderSelect = vi.fn();
+      renderSidebar({
+        collapsed: false,
+        folders: mockFolders,
+        onFolderSelect,
+      });
+
+      const workButton = screen.getByText('工作').closest('button');
+      expect(workButton).toBeInTheDocument();
+      fireEvent.click(workButton!);
+      expect(onFolderSelect).toHaveBeenCalledWith('f1');
+    });
+
+    it('highlights selected folder', () => {
+      renderSidebar({
+        collapsed: false,
+        folders: mockFolders,
+        selectedFolderId: 'f2',
+      });
+
+      const personalButton = screen.getByText('个人').closest('button');
+      expect(personalButton?.className).toContain('bg-accent');
+      expect(personalButton?.className).toContain('text-foreground');
+
+      const workButton = screen.getByText('工作').closest('button');
+      expect(workButton?.className).toContain('text-muted-foreground');
+    });
+
+    it('renders no folder items when folders is empty', () => {
+      renderSidebar({
+        collapsed: false,
+        folders: [],
+      });
+
+      // Static items still exist
+      expect(screen.getByText('全部链接')).toBeInTheDocument();
+      expect(screen.getByText('未分类')).toBeInTheDocument();
+    });
+
+    it('renders no folder items when folders prop is not provided', () => {
+      renderSidebar({ collapsed: false });
+
+      // Static items still exist, no crash
+      expect(screen.getByText('全部链接')).toBeInTheDocument();
+    });
+
+    it('shows folder icons in collapsed mode as tooltip buttons', () => {
+      const { container } = renderSidebar({
+        collapsed: true,
+        folders: mockFolders,
+      });
+
+      // Should have static items (3) + folder items (2) = 5 nav items
+      // In collapsed mode, static items are links, folder items are buttons
+      const navLinks = container.querySelectorAll('nav a');
+      const navButtons = container.querySelectorAll('nav button');
+      expect(navLinks.length).toBe(3);
+      expect(navButtons.length).toBe(2);
+    });
+
+    it('renders "新建文件夹" button in expanded mode', () => {
+      renderSidebar({
+        collapsed: false,
+        folders: mockFolders,
+        onCreateFolder: vi.fn(),
+      });
+
+      expect(screen.getByLabelText('新建文件夹')).toBeInTheDocument();
+    });
+
+    it('calls onCreateFolder when "新建文件夹" button is clicked', () => {
+      const onCreateFolder = vi.fn();
+      renderSidebar({
+        collapsed: false,
+        folders: mockFolders,
+        onCreateFolder,
+      });
+
+      fireEvent.click(screen.getByLabelText('新建文件夹'));
+      expect(onCreateFolder).toHaveBeenCalledOnce();
+    });
+  });
 });

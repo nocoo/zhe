@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, FolderOpen, PanelLeft, LogOut, Search, ImageIcon } from "lucide-react";
+import { Link2, FolderOpen, PanelLeft, LogOut, Search, ImageIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,6 +10,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { FolderIcon } from "@/components/folder-icon";
+import type { Folder } from "@/models/types";
 
 interface NavItem {
   title: string;
@@ -41,7 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
 // Flat list for collapsed mode
 const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
-interface AppSidebarProps {
+export interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   user?: {
@@ -50,6 +52,10 @@ interface AppSidebarProps {
     image?: string | null;
   };
   signOutAction: () => Promise<void>;
+  folders?: Folder[];
+  selectedFolderId?: string | null;
+  onFolderSelect?: (folderId: string) => void;
+  onCreateFolder?: () => void;
 }
 
 export function AppSidebar({
@@ -57,6 +63,10 @@ export function AppSidebar({
   onToggle,
   user,
   signOutAction,
+  folders = [],
+  selectedFolderId,
+  onFolderSelect,
+  onCreateFolder,
 }: AppSidebarProps) {
   const pathname = usePathname();
 
@@ -108,6 +118,28 @@ export function AppSidebar({
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
                 {item.title}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
+          {/* Folder items in collapsed mode */}
+          {folders.map((folder) => (
+            <Tooltip key={folder.id} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onFolderSelect?.(folder.id)}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                    selectedFolderId === folder.id
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {folder.name}
               </TooltipContent>
             </Tooltip>
           ))}
@@ -182,10 +214,19 @@ export function AppSidebar({
       <nav className="flex-1 overflow-y-auto pt-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="px-3 mb-1">
-            <div className="px-3 py-2.5">
+            <div className="flex items-center justify-between px-3 py-2.5">
               <span className="text-sm font-normal text-muted-foreground">
                 {group.label}
               </span>
+              {group.label === "链接管理" && onCreateFolder && (
+                <button
+                  onClick={onCreateFolder}
+                  aria-label="新建文件夹"
+                  className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                </button>
+              )}
             </div>
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
@@ -203,6 +244,28 @@ export function AppSidebar({
                   <span className="flex-1 text-left">{item.title}</span>
                 </Link>
               ))}
+
+              {/* Dynamic folder items under "链接管理" group */}
+              {group.label === "链接管理" &&
+                folders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => onFolderSelect?.(folder.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                      selectedFolderId === folder.id
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    <FolderIcon
+                      name={folder.icon}
+                      className="h-4 w-4 shrink-0"
+                      strokeWidth={1.5}
+                    />
+                    <span className="flex-1 text-left">{folder.name}</span>
+                  </button>
+                ))}
             </div>
           </div>
         ))}
