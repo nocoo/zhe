@@ -1,6 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 
+let mockFoldersVm = {
+  folders: [] as { id: string; userId: string; name: string; icon: string; createdAt: Date }[],
+  selectedFolderId: null as string | null,
+  editingFolderId: null as string | null,
+  isCreating: false,
+  setIsCreating: vi.fn(),
+  selectFolder: vi.fn(),
+  handleCreateFolder: vi.fn(),
+  handleUpdateFolder: vi.fn(),
+  handleDeleteFolder: vi.fn(),
+  startEditing: vi.fn(),
+  cancelEditing: vi.fn(),
+};
+
+vi.mock('@/viewmodels/useFoldersViewModel', () => ({
+  useFoldersViewModel: () => mockFoldersVm,
+}));
+
 let mockViewModel = {
   collapsed: false,
   isMobile: false,
@@ -49,6 +67,19 @@ describe('DashboardShell', () => {
       mobileOpen: false,
       toggleSidebar: vi.fn(),
       closeMobileSidebar: vi.fn(),
+    };
+    mockFoldersVm = {
+      folders: [],
+      selectedFolderId: null,
+      editingFolderId: null,
+      isCreating: false,
+      setIsCreating: vi.fn(),
+      selectFolder: vi.fn(),
+      handleCreateFolder: vi.fn(),
+      handleUpdateFolder: vi.fn(),
+      handleDeleteFolder: vi.fn(),
+      startEditing: vi.fn(),
+      cancelEditing: vi.fn(),
     };
     vi.clearAllMocks();
   });
@@ -183,7 +214,8 @@ describe('DashboardShell', () => {
     it('passes folders to AppSidebar in expanded desktop mode', () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = false;
-      renderShell({ folders: mockFolders });
+      mockFoldersVm.folders = mockFolders;
+      renderShell();
 
       // If folders are passed through, the folder name should appear in sidebar
       expect(screen.getByText('工作')).toBeInTheDocument();
@@ -192,7 +224,8 @@ describe('DashboardShell', () => {
     it('passes folders to AppSidebar in collapsed desktop mode', () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = true;
-      const { container } = renderShell({ folders: mockFolders });
+      mockFoldersVm.folders = mockFolders;
+      const { container } = renderShell();
 
       // In collapsed mode, folder items render as buttons in nav
       const navButtons = container.querySelectorAll('nav button');
@@ -202,7 +235,8 @@ describe('DashboardShell', () => {
     it('passes folders to mobile sidebar when open', () => {
       mockViewModel.isMobile = true;
       mockViewModel.mobileOpen = true;
-      renderShell({ folders: mockFolders });
+      mockFoldersVm.folders = mockFolders;
+      renderShell();
 
       expect(screen.getByText('工作')).toBeInTheDocument();
     });

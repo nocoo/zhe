@@ -3,6 +3,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
+import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,23 +17,19 @@ export interface DashboardShellProps {
     image?: string | null;
   };
   signOutAction: () => Promise<void>;
-  folders?: Folder[];
-  selectedFolderId?: string | null;
-  onFolderSelect?: (folderId: string) => void;
-  onCreateFolder?: () => void;
+  initialFolders?: Folder[];
 }
 
 export function DashboardShell({
   children,
   user,
   signOutAction,
-  folders,
-  selectedFolderId,
-  onFolderSelect,
-  onCreateFolder,
+  initialFolders = [],
 }: DashboardShellProps) {
   const { collapsed, isMobile, mobileOpen, toggleSidebar, closeMobileSidebar } =
     useDashboardLayoutViewModel();
+
+  const foldersVm = useFoldersViewModel(initialFolders);
 
   return (
     <TooltipProvider>
@@ -44,10 +41,10 @@ export function DashboardShell({
             onToggle={toggleSidebar}
             user={user}
             signOutAction={signOutAction}
-            folders={folders}
-            selectedFolderId={selectedFolderId}
-            onFolderSelect={onFolderSelect}
-            onCreateFolder={onCreateFolder}
+            folders={foldersVm.folders}
+            selectedFolderId={foldersVm.selectedFolderId}
+            onFolderSelect={foldersVm.selectFolder}
+            onCreateFolder={() => foldersVm.setIsCreating(true)}
           />
         )}
 
@@ -64,10 +61,10 @@ export function DashboardShell({
                 onToggle={closeMobileSidebar}
                 user={user}
                 signOutAction={signOutAction}
-                folders={folders}
-                selectedFolderId={selectedFolderId}
-                onFolderSelect={onFolderSelect}
-                onCreateFolder={onCreateFolder}
+                folders={foldersVm.folders}
+                selectedFolderId={foldersVm.selectedFolderId}
+                onFolderSelect={foldersVm.selectFolder}
+                onCreateFolder={() => foldersVm.setIsCreating(true)}
               />
             </div>
           </>
