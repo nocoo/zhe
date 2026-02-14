@@ -11,9 +11,18 @@ const mockVm = {
   showAnalytics: false,
   analyticsStats: null as AnalyticsStats | null,
   isLoadingAnalytics: false,
+  isEditing: false,
+  editUrl: "",
+  setEditUrl: vi.fn(),
+  editFolderId: undefined as string | undefined,
+  setEditFolderId: vi.fn(),
+  isSaving: false,
   handleCopy: vi.fn(),
   handleDelete: vi.fn(),
   handleToggleAnalytics: vi.fn(),
+  startEditing: vi.fn(),
+  cancelEditing: vi.fn(),
+  saveEdit: vi.fn(),
 };
 
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
@@ -54,6 +63,7 @@ describe("LinkCard", () => {
     link: baseLink,
     siteUrl: "https://zhe.to",
     onDelete: vi.fn(),
+    onUpdate: vi.fn(),
   };
 
   beforeEach(() => {
@@ -64,6 +74,10 @@ describe("LinkCard", () => {
     mockVm.showAnalytics = false;
     mockVm.analyticsStats = null;
     mockVm.isLoadingAnalytics = false;
+    mockVm.isEditing = false;
+    mockVm.editUrl = "";
+    mockVm.editFolderId = undefined;
+    mockVm.isSaving = false;
   });
 
   it("renders short URL and original URL", () => {
@@ -170,5 +184,56 @@ describe("LinkCard", () => {
 
     const dateTexts = screen.getAllByText(/formatted:/);
     expect(dateTexts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // --- Edit button ---
+
+  it("shows edit button", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
+  });
+
+  it("does not show edit form when isEditing is false", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByLabelText("目标链接")).not.toBeInTheDocument();
+  });
+
+  it("shows inline edit form when isEditing is true", () => {
+    mockVm.isEditing = true;
+    mockVm.editUrl = "https://example.com/very-long-url";
+
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByLabelText("目标链接")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("https://example.com/very-long-url")).toBeInTheDocument();
+    expect(screen.getByText("保存")).toBeInTheDocument();
+    expect(screen.getByText("取消")).toBeInTheDocument();
+  });
+
+  it("shows folder selector in edit form when folders are provided", () => {
+    mockVm.isEditing = true;
+    mockVm.editUrl = "https://example.com";
+
+    const folders = [
+      { id: "f1", userId: "u1", name: "Work", icon: "briefcase", createdAt: new Date() },
+      { id: "f2", userId: "u1", name: "Personal", icon: "folder", createdAt: new Date() },
+    ];
+
+    render(<LinkCard {...defaultProps} folders={folders} />);
+
+    expect(screen.getByLabelText("文件夹")).toBeInTheDocument();
+    expect(screen.getByText("Work")).toBeInTheDocument();
+    expect(screen.getByText("Personal")).toBeInTheDocument();
+  });
+
+  it("shows saving state with spinner", () => {
+    mockVm.isEditing = true;
+    mockVm.isSaving = true;
+
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByText("保存中...")).toBeInTheDocument();
   });
 });

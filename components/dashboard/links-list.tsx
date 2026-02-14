@@ -15,7 +15,7 @@ interface LinksListProps {
 }
 
 export function LinksList({ initialLinks, siteUrl, folders = [] }: LinksListProps) {
-  const { links, handleLinkCreated, handleLinkDeleted } = useLinksViewModel(
+  const { links, handleLinkCreated, handleLinkDeleted, handleLinkUpdated } = useLinksViewModel(
     initialLinks,
     siteUrl
   );
@@ -77,6 +77,8 @@ export function LinksList({ initialLinks, siteUrl, folders = [] }: LinksListProp
               link={link}
               siteUrl={siteUrl}
               onDelete={handleLinkDeleted}
+              onUpdate={handleLinkUpdated}
+              folders={folders}
             />
           ))}
         </div>

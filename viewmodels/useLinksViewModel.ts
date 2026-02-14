@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { Link, AnalyticsStats } from "@/models/types";
-import { createLink, deleteLink, getAnalyticsStats } from "@/actions/links";
+import { createLink, deleteLink, updateLink, getAnalyticsStats } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
 
@@ -19,23 +19,41 @@ export function useLinksViewModel(initialLinks: Link[], siteUrl: string) {
     setLinks((prev) => prev.filter((link) => link.id !== linkId));
   }, []);
 
+  const handleLinkUpdated = useCallback((updatedLink: Link) => {
+    setLinks((prev) =>
+      prev.map((link) => (link.id === updatedLink.id ? updatedLink : link)),
+    );
+  }, []);
+
   return {
     links,
     isCreating,
     setIsCreating,
     handleLinkCreated,
     handleLinkDeleted,
+    handleLinkUpdated,
     siteUrl,
   };
 }
 
-/** ViewModel for a single link card — manages copy, delete, analytics */
-export function useLinkCardViewModel(link: Link, siteUrl: string, onDelete: (id: number) => void) {
+/** ViewModel for a single link card — manages copy, delete, edit, analytics */
+export function useLinkCardViewModel(
+  link: Link,
+  siteUrl: string,
+  onDelete: (id: number) => void,
+  onUpdate: (link: Link) => void,
+) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editUrl, setEditUrl] = useState("");
+  const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
+  const [isSaving, setIsSaving] = useState(false);
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
@@ -78,6 +96,36 @@ export function useLinkCardViewModel(link: Link, siteUrl: string, onDelete: (id:
     }
   }, [showAnalytics, analyticsStats, isLoadingAnalytics, link.id]);
 
+  const startEditing = useCallback(() => {
+    setIsEditing(true);
+    setEditUrl(link.originalUrl);
+    setEditFolderId(link.folderId ?? undefined);
+  }, [link.originalUrl, link.folderId]);
+
+  const cancelEditing = useCallback(() => {
+    setIsEditing(false);
+    setEditUrl("");
+    setEditFolderId(undefined);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    setIsSaving(true);
+    const result = await updateLink(link.id, {
+      originalUrl: editUrl,
+      folderId: editFolderId,
+    });
+    setIsSaving(false);
+
+    if (result.success && result.data) {
+      onUpdate(result.data);
+      setIsEditing(false);
+      setEditUrl("");
+      setEditFolderId(undefined);
+    } else {
+      alert(result.error || "Failed to update link");
+    }
+  }, [link.id, editUrl, editFolderId, onUpdate]);
+
   return {
     shortUrl,
     copied,
@@ -85,9 +133,18 @@ export function useLinkCardViewModel(link: Link, siteUrl: string, onDelete: (id:
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
+    isEditing,
+    editUrl,
+    setEditUrl,
+    editFolderId,
+    setEditFolderId,
+    isSaving,
     handleCopy,
     handleDelete,
     handleToggleAnalytics,
+    startEditing,
+    cancelEditing,
+    saveEdit,
   };
 }
 

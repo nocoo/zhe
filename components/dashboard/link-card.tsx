@@ -8,6 +8,9 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
+  Pencil,
+  X,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,15 +23,17 @@ import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
-import type { Link } from "@/models/types";
+import type { Link, Folder } from "@/models/types";
 
 interface LinkCardProps {
   link: Link;
   siteUrl: string;
   onDelete: (id: number) => void;
+  onUpdate: (link: Link) => void;
+  folders?: Folder[];
 }
 
-export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
+export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -36,10 +41,19 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
+    isEditing,
+    editUrl,
+    setEditUrl,
+    editFolderId,
+    setEditFolderId,
+    isSaving,
     handleCopy,
     handleDelete,
     handleToggleAnalytics,
-  } = useLinkCardViewModel(link, siteUrl, onDelete);
+    startEditing,
+    cancelEditing,
+    saveEdit,
+  } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
 
   return (
     <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
@@ -112,6 +126,14 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
               <Copy className="w-4 h-4" strokeWidth={1.5} />
             )}
           </button>
+          <button
+            onClick={startEditing}
+            aria-label="Edit link"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Edit link"
+          >
+            <Pencil className="w-4 h-4" strokeWidth={1.5} />
+          </button>
           <a
             href={link.originalUrl}
             target="_blank"
@@ -143,6 +165,72 @@ export function LinkCard({ link, siteUrl, onDelete }: LinkCardProps) {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Inline edit form */}
+      {isEditing && (
+        <div className="mt-4 pt-4 border-t border-border space-y-3">
+          <div className="space-y-1.5">
+            <label htmlFor={`edit-url-${link.id}`} className="text-xs text-muted-foreground">
+              目标链接
+            </label>
+            <input
+              id={`edit-url-${link.id}`}
+              type="url"
+              value={editUrl}
+              onChange={(e) => setEditUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="flex h-9 w-full rounded-[10px] border border-border bg-background px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+            />
+          </div>
+          {folders.length > 0 && (
+            <div className="space-y-1.5">
+              <label htmlFor={`edit-folder-${link.id}`} className="text-xs text-muted-foreground">
+                文件夹
+              </label>
+              <select
+                id={`edit-folder-${link.id}`}
+                value={editFolderId ?? ""}
+                onChange={(e) => setEditFolderId(e.target.value || undefined)}
+                className="flex h-9 w-full rounded-[10px] border border-border bg-background px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              >
+                <option value="">未分类</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={cancelEditing}
+              disabled={isSaving}
+              className="flex h-8 items-center gap-1 rounded-[8px] px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+              取消
+            </button>
+            <button
+              onClick={saveEdit}
+              disabled={isSaving}
+              className="flex h-8 items-center gap-1 rounded-[8px] bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  保存
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Analytics panel */}
       {showAnalytics && analyticsStats && (

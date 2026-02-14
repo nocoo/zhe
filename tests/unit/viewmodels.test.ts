@@ -9,6 +9,7 @@ import type { Link, AnalyticsStats } from '@/models/types';
 vi.mock('@/actions/links', () => ({
   createLink: vi.fn(),
   deleteLink: vi.fn(),
+  updateLink: vi.fn(),
   getAnalyticsStats: vi.fn(),
 }));
 
@@ -31,7 +32,7 @@ import {
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, getAnalyticsStats } from '@/actions/links';
+import { createLink, deleteLink, updateLink, getAnalyticsStats } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -114,6 +115,36 @@ describe('useLinksViewModel', () => {
 
     expect(result.current.links).toHaveLength(1);
   });
+
+  it('handleLinkUpdated replaces the link in-place by id', () => {
+    const links = [
+      makeLink({ id: 1, originalUrl: 'https://old.com' }),
+      makeLink({ id: 2, slug: 'other' }),
+    ];
+    const { result } = renderHook(() => useLinksViewModel(links, SITE_URL));
+
+    const updated = makeLink({ id: 1, originalUrl: 'https://new.com' });
+
+    act(() => {
+      result.current.handleLinkUpdated(updated);
+    });
+
+    expect(result.current.links).toHaveLength(2);
+    expect(result.current.links[0].originalUrl).toBe('https://new.com');
+    expect(result.current.links[1].id).toBe(2);
+  });
+
+  it('handleLinkUpdated with non-existent id does nothing', () => {
+    const links = [makeLink({ id: 1 })];
+    const { result } = renderHook(() => useLinksViewModel(links, SITE_URL));
+
+    act(() => {
+      result.current.handleLinkUpdated(makeLink({ id: 999 }));
+    });
+
+    expect(result.current.links).toHaveLength(1);
+    expect(result.current.links[0].id).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -122,13 +153,16 @@ describe('useLinksViewModel', () => {
 
 describe('useLinkCardViewModel', () => {
   const mockOnDelete = vi.fn();
+  const mockOnUpdate = vi.fn();
   const link = makeLink({ id: 42, slug: 'my-link' });
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockOnDelete.mockClear();
+    mockOnUpdate.mockClear();
     vi.mocked(copyToClipboard).mockReset();
     vi.mocked(deleteLink).mockReset();
+    vi.mocked(updateLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
     // Mock window.confirm and window.alert
     vi.stubGlobal('confirm', vi.fn());
@@ -143,7 +177,7 @@ describe('useLinkCardViewModel', () => {
 
   it('computes shortUrl from siteUrl and slug', () => {
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     expect(result.current.shortUrl).toBe('https://zhe.to/my-link');
@@ -151,7 +185,7 @@ describe('useLinkCardViewModel', () => {
 
   it('returns correct initial state', () => {
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     expect(result.current.copied).toBe(false);
@@ -167,7 +201,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(copyToClipboard).mockResolvedValue(true);
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -189,7 +223,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(copyToClipboard).mockResolvedValue(false);
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -206,7 +240,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: true });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -229,7 +263,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -246,7 +280,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: false });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -260,7 +294,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -288,7 +322,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     expect(result.current.showAnalytics).toBe(false);
@@ -317,7 +351,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     // First toggle: open + fetch
@@ -350,7 +384,7 @@ describe('useLinkCardViewModel', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {
@@ -363,6 +397,143 @@ describe('useLinkCardViewModel', () => {
     expect(consoleSpy).toHaveBeenCalled();
 
     consoleSpy.mockRestore();
+  });
+
+  // --- handleEdit (enter/save/cancel editing) ---
+
+  it('returns isEditing=false and editUrl="" initially', () => {
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.editUrl).toBe('');
+    expect(result.current.editFolderId).toBeUndefined();
+    expect(result.current.isSaving).toBe(false);
+  });
+
+  it('startEditing sets isEditing=true and populates editUrl from link', () => {
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+    });
+
+    expect(result.current.isEditing).toBe(true);
+    expect(result.current.editUrl).toBe(link.originalUrl);
+    expect(result.current.editFolderId).toBe(link.folderId ?? undefined);
+  });
+
+  it('cancelEditing resets editing state', () => {
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+    });
+    expect(result.current.isEditing).toBe(true);
+
+    act(() => {
+      result.current.cancelEditing();
+    });
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.editUrl).toBe('');
+  });
+
+  it('saveEdit calls updateLink and onUpdate on success', async () => {
+    const updatedLink = { ...link, originalUrl: 'https://updated.com' };
+    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+    });
+
+    act(() => {
+      result.current.setEditUrl('https://updated.com');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateLink).toHaveBeenCalledWith(42, {
+      originalUrl: 'https://updated.com',
+      folderId: undefined,
+    });
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.isSaving).toBe(false);
+  });
+
+  it('saveEdit shows alert on failure', async () => {
+    vi.mocked(updateLink).mockResolvedValue({ success: false, error: 'Invalid URL' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setEditUrl('bad');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(globalThis.alert).toHaveBeenCalledWith('Invalid URL');
+    expect(result.current.isEditing).toBe(true); // stays in edit mode
+    expect(result.current.isSaving).toBe(false);
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+  });
+
+  it('saveEdit shows default error when error is empty', async () => {
+    vi.mocked(updateLink).mockResolvedValue({ success: false });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(globalThis.alert).toHaveBeenCalledWith('Failed to update link');
+  });
+
+  it('saveEdit sends folderId when changed', async () => {
+    const updatedLink = { ...link, folderId: 'folder-99' };
+    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    act(() => {
+      result.current.startEditing();
+      result.current.setEditFolderId('folder-99');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(updateLink).toHaveBeenCalledWith(42, {
+      originalUrl: link.originalUrl,
+      folderId: 'folder-99',
+    });
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
   });
 });
 
