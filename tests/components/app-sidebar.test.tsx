@@ -283,5 +283,84 @@ describe('AppSidebar', () => {
       fireEvent.click(screen.getByLabelText('新建文件夹'));
       expect(vm.setIsCreating).toHaveBeenCalledWith(true);
     });
+
+    it('renders SidebarFolderItem with context menu trigger for each folder', () => {
+      renderSidebar({
+        collapsed: false,
+        foldersVm: createMockFoldersVm({ folders: mockFolders }),
+      });
+
+      // Each SidebarFolderItem in normal mode has a "文件夹操作" menu trigger
+      const menuTriggers = screen.getAllByLabelText('文件夹操作');
+      expect(menuTriggers).toHaveLength(2);
+    });
+
+    it('shows edit form for the folder being edited', () => {
+      renderSidebar({
+        collapsed: false,
+        foldersVm: createMockFoldersVm({
+          folders: mockFolders,
+          editingFolderId: 'f1',
+        }),
+      });
+
+      // The editing folder should show an input with its name
+      expect(screen.getByDisplayValue('工作')).toBeInTheDocument();
+      expect(screen.getByLabelText('确认')).toBeInTheDocument();
+      expect(screen.getByLabelText('取消')).toBeInTheDocument();
+
+      // The non-editing folder should still show normally
+      expect(screen.getByText('个人')).toBeInTheDocument();
+    });
+
+    it('shows create form when isCreating is true', () => {
+      renderSidebar({
+        collapsed: false,
+        foldersVm: createMockFoldersVm({
+          folders: mockFolders,
+          isCreating: true,
+        }),
+      });
+
+      // SidebarFolderCreate renders an empty input with placeholder
+      expect(screen.getByPlaceholderText('文件夹名称')).toBeInTheDocument();
+    });
+
+    it('does not show create form when isCreating is false', () => {
+      renderSidebar({
+        collapsed: false,
+        foldersVm: createMockFoldersVm({
+          folders: mockFolders,
+          isCreating: false,
+        }),
+      });
+
+      expect(screen.queryByPlaceholderText('文件夹名称')).not.toBeInTheDocument();
+    });
+
+    it('wires handleCreateFolder to SidebarFolderCreate onCreate', () => {
+      const vm = createMockFoldersVm({
+        folders: mockFolders,
+        isCreating: true,
+      });
+      renderSidebar({ collapsed: false, foldersVm: vm });
+
+      const input = screen.getByPlaceholderText('文件夹名称');
+      fireEvent.change(input, { target: { value: '新文件夹' } });
+      fireEvent.click(screen.getByLabelText('确认'));
+
+      expect(vm.handleCreateFolder).toHaveBeenCalledWith('新文件夹', 'folder');
+    });
+
+    it('wires setIsCreating(false) to SidebarFolderCreate onCancel', () => {
+      const vm = createMockFoldersVm({
+        folders: mockFolders,
+        isCreating: true,
+      });
+      renderSidebar({ collapsed: false, foldersVm: vm });
+
+      fireEvent.click(screen.getByLabelText('取消'));
+      expect(vm.setIsCreating).toHaveBeenCalledWith(false);
+    });
   });
 });

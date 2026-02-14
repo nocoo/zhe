@@ -11,6 +11,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FolderIcon } from "@/components/folder-icon";
+import { SidebarFolderItem } from "@/components/sidebar-folder-item";
+import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
 interface NavItem {
@@ -242,24 +244,26 @@ export function AppSidebar({
               {/* Dynamic folder items under "链接管理" group */}
               {group.label === "链接管理" &&
                 foldersVm?.folders.map((folder) => (
-                  <button
+                  <SidebarFolderItem
                     key={folder.id}
-                    onClick={() => foldersVm.selectFolder(folder.id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                      foldersVm.selectedFolderId === folder.id
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    <FolderIcon
-                      name={folder.icon}
-                      className="h-4 w-4 shrink-0"
-                      strokeWidth={1.5}
-                    />
-                    <span className="flex-1 text-left">{folder.name}</span>
-                  </button>
+                    folder={folder}
+                    isSelected={foldersVm.selectedFolderId === folder.id}
+                    isEditing={foldersVm.editingFolderId === folder.id}
+                    onSelect={foldersVm.selectFolder}
+                    onStartEditing={foldersVm.startEditing}
+                    onUpdate={foldersVm.handleUpdateFolder}
+                    onDelete={foldersVm.handleDeleteFolder}
+                    onCancelEditing={foldersVm.cancelEditing}
+                  />
                 ))}
+
+              {/* Inline create form */}
+              {group.label === "链接管理" && foldersVm?.isCreating && (
+                <SidebarFolderCreate
+                  onCreate={foldersVm.handleCreateFolder}
+                  onCancel={() => foldersVm.setIsCreating(false)}
+                />
+              )}
             </div>
           </div>
         ))}
