@@ -6,21 +6,20 @@ import { CreateLinkModal } from "./create-link-modal";
 import { Link2 } from "lucide-react";
 import { useLinksViewModel } from "@/viewmodels/useLinksViewModel";
 import { useFolderSelection } from "@/contexts/folder-selection-context";
-import type { Link, Folder } from "@/models/types";
+import type { Link } from "@/models/types";
 
 interface LinksListProps {
   initialLinks: Link[];
   siteUrl: string;
-  folders?: Folder[];
 }
 
-export function LinksList({ initialLinks, siteUrl, folders = [] }: LinksListProps) {
+export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
   const { links, handleLinkCreated, handleLinkDeleted, handleLinkUpdated } = useLinksViewModel(
     initialLinks,
     siteUrl
   );
 
-  const { selectedFolderId } = useFolderSelection();
+  const { selectedFolderId, folders } = useFolderSelection();
 
   const filteredLinks = useMemo(() => {
     if (!selectedFolderId) return links;

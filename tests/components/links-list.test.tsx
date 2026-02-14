@@ -67,11 +67,10 @@ const mockFolders: Folder[] = [
 
 function renderWithFolderSelection(props: Partial<Parameters<typeof LinksList>[0]> = {}) {
   return render(
-    <FolderSelectionProvider selectedFolderId={mockSearchParamsFolder}>
+    <FolderSelectionProvider selectedFolderId={mockSearchParamsFolder} folders={mockFolders}>
       <LinksList
         initialLinks={mockLinks}
         siteUrl={siteUrl}
-        folders={mockFolders}
         {...props}
       />
     </FolderSelectionProvider>
@@ -145,12 +144,11 @@ describe('LinksList folder filtering', () => {
   });
 
   it('works without FolderSelectionProvider (defaults to showing all)', () => {
-    // Render without the provider — should default to null selectedFolderId
+    // Render without the provider — should default to null selectedFolderId and empty folders
     render(
       <LinksList
         initialLinks={mockLinks}
         siteUrl={siteUrl}
-        folders={mockFolders}
       />
     );
 
