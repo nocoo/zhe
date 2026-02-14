@@ -28,7 +28,6 @@ function renderItem(props: Partial<Parameters<typeof SidebarFolderItem>[0]> = {}
     folder: mockFolder,
     isSelected: false,
     isEditing: false,
-    onSelect: vi.fn(),
     onStartEditing: vi.fn(),
     onUpdate: vi.fn(),
     onDelete: vi.fn(),
@@ -53,27 +52,27 @@ describe('SidebarFolderItem', () => {
       expect(screen.getByText('工作')).toBeInTheDocument();
     });
 
-    it('calls onSelect when clicked', () => {
-      const onSelect = vi.fn();
-      renderItem({ onSelect });
+    it('renders as a link with correct href', () => {
+      renderItem();
 
-      fireEvent.click(screen.getByText('工作'));
-      expect(onSelect).toHaveBeenCalledWith('f1');
+      const link = screen.getByText('工作').closest('a');
+      expect(link).toBeInTheDocument();
+      expect(link?.getAttribute('href')).toBe('/dashboard?folder=f1');
     });
 
     it('applies active style when selected', () => {
       renderItem({ isSelected: true });
 
-      const button = screen.getByText('工作').closest('button');
-      expect(button?.className).toContain('bg-accent');
-      expect(button?.className).toContain('text-foreground');
+      const link = screen.getByText('工作').closest('a');
+      expect(link?.className).toContain('bg-accent');
+      expect(link?.className).toContain('text-foreground');
     });
 
     it('applies muted style when not selected', () => {
       renderItem({ isSelected: false });
 
-      const button = screen.getByText('工作').closest('button');
-      expect(button?.className).toContain('text-muted-foreground');
+      const link = screen.getByText('工作').closest('a');
+      expect(link?.className).toContain('text-muted-foreground');
     });
 
     it('shows context menu trigger on hover', () => {

@@ -4,12 +4,13 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
 
 let mockPathname = '/dashboard';
+let mockSearchParamsFolder: string | null = null;
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useRouter: () => ({ replace: vi.fn() }),
   useSearchParams: () => ({
-    get: () => null,
+    get: (key: string) => key === 'folder' ? mockSearchParamsFolder : null,
   }),
 }));
 
@@ -25,11 +26,9 @@ import { AppSidebar } from '@/components/app-sidebar';
 function createMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): FoldersViewModel {
   return {
     folders: [],
-    selectedFolderId: null,
     editingFolderId: null,
     isCreating: false,
     setIsCreating: vi.fn(),
-    selectFolder: vi.fn(),
     handleCreateFolder: vi.fn(),
     handleUpdateFolder: vi.fn(),
     handleDeleteFolder: vi.fn(),
@@ -57,6 +56,7 @@ function renderSidebar(props: Partial<Parameters<typeof AppSidebar>[0]> = {}) {
 describe('AppSidebar', () => {
   beforeEach(() => {
     mockPathname = '/dashboard';
+    mockSearchParamsFolder = null;
     vi.clearAllMocks();
   });
 
@@ -78,16 +78,12 @@ describe('AppSidebar', () => {
       expect(screen.queryByText('未分类')).not.toBeInTheDocument();
     });
 
-    it('renders folder nav items as buttons and static items as links in collapsed mode', () => {
+    it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true, foldersVm: createMockFoldersVm() });
 
-      // 2 folder nav buttons (全部链接, 未分类) in nav
-      const navButtons = container.querySelectorAll('nav button');
-      expect(navButtons.length).toBe(2);
-
-      // 1 static link (图床) in nav
+      // All items (2 folder nav + 1 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(1);
+      expect(navLinks.length).toBe(3);
     });
   });
 
@@ -116,55 +112,41 @@ describe('AppSidebar', () => {
     });
   });
 
-  describe('folder nav items as buttons', () => {
-    it('renders "全部链接" and "未分类" as buttons not links', () => {
+  describe('folder nav items as links', () => {
+    it('renders "全部链接" and "未分类" as links not buttons', () => {
       const vm = createMockFoldersVm();
       renderSidebar({ collapsed: false, foldersVm: vm });
 
-      const allLinksBtn = screen.getByText('全部链接').closest('button');
-      expect(allLinksBtn).toBeInTheDocument();
+      const allLinksAnchor = screen.getByText('全部链接').closest('a');
+      expect(allLinksAnchor).toBeInTheDocument();
+      expect(allLinksAnchor?.getAttribute('href')).toBe('/dashboard');
 
-      const uncategorizedBtn = screen.getByText('未分类').closest('button');
-      expect(uncategorizedBtn).toBeInTheDocument();
+      const uncategorizedAnchor = screen.getByText('未分类').closest('a');
+      expect(uncategorizedAnchor).toBeInTheDocument();
+      expect(uncategorizedAnchor?.getAttribute('href')).toBe('/dashboard?folder=uncategorized');
     });
 
-    it('calls selectFolder(null) when "全部链接" is clicked', () => {
+    it('highlights "全部链接" when no folder param in URL', () => {
+      mockSearchParamsFolder = null;
       const vm = createMockFoldersVm();
       renderSidebar({ collapsed: false, foldersVm: vm });
 
-      const allLinksBtn = screen.getByText('全部链接').closest('button');
-      fireEvent.click(allLinksBtn!);
-      expect(vm.selectFolder).toHaveBeenCalledWith(null);
+      const allLinksAnchor = screen.getByText('全部链接').closest('a');
+      expect(allLinksAnchor?.className).toContain('bg-accent');
+      expect(allLinksAnchor?.className).toContain('text-foreground');
     });
 
-    it('calls selectFolder("uncategorized") when "未分类" is clicked', () => {
+    it('highlights "未分类" when folder=uncategorized in URL', () => {
+      mockSearchParamsFolder = 'uncategorized';
       const vm = createMockFoldersVm();
       renderSidebar({ collapsed: false, foldersVm: vm });
 
-      const uncategorizedBtn = screen.getByText('未分类').closest('button');
-      fireEvent.click(uncategorizedBtn!);
-      expect(vm.selectFolder).toHaveBeenCalledWith('uncategorized');
-    });
+      const uncategorizedAnchor = screen.getByText('未分类').closest('a');
+      expect(uncategorizedAnchor?.className).toContain('bg-accent');
+      expect(uncategorizedAnchor?.className).toContain('text-foreground');
 
-    it('highlights "全部链接" when selectedFolderId is null', () => {
-      const vm = createMockFoldersVm({ selectedFolderId: null });
-      renderSidebar({ collapsed: false, foldersVm: vm });
-
-      const allLinksBtn = screen.getByText('全部链接').closest('button');
-      expect(allLinksBtn?.className).toContain('bg-accent');
-      expect(allLinksBtn?.className).toContain('text-foreground');
-    });
-
-    it('highlights "未分类" when selectedFolderId is "uncategorized"', () => {
-      const vm = createMockFoldersVm({ selectedFolderId: 'uncategorized' });
-      renderSidebar({ collapsed: false, foldersVm: vm });
-
-      const uncategorizedBtn = screen.getByText('未分类').closest('button');
-      expect(uncategorizedBtn?.className).toContain('bg-accent');
-      expect(uncategorizedBtn?.className).toContain('text-foreground');
-
-      const allLinksBtn = screen.getByText('全部链接').closest('button');
-      expect(allLinksBtn?.className).toContain('text-muted-foreground');
+      const allLinksAnchor = screen.getByText('全部链接').closest('a');
+      expect(allLinksAnchor?.className).toContain('text-muted-foreground');
     });
   });
 
@@ -240,34 +222,30 @@ describe('AppSidebar', () => {
       expect(screen.getByText('个人')).toBeInTheDocument();
     });
 
-    it('renders folder items as clickable buttons', () => {
-      const vm = createMockFoldersVm({ folders: mockFolders });
+    it('renders folder items as links with correct href', () => {
       renderSidebar({
         collapsed: false,
-        foldersVm: vm,
+        foldersVm: createMockFoldersVm({ folders: mockFolders }),
       });
 
-      const workButton = screen.getByText('工作').closest('button');
-      expect(workButton).toBeInTheDocument();
-      fireEvent.click(workButton!);
-      expect(vm.selectFolder).toHaveBeenCalledWith('f1');
+      const workLink = screen.getByText('工作').closest('a');
+      expect(workLink).toBeInTheDocument();
+      expect(workLink?.getAttribute('href')).toBe('/dashboard?folder=f1');
     });
 
-    it('highlights selected folder', () => {
+    it('highlights selected folder based on URL param', () => {
+      mockSearchParamsFolder = 'f2';
       renderSidebar({
         collapsed: false,
-        foldersVm: createMockFoldersVm({
-          folders: mockFolders,
-          selectedFolderId: 'f2',
-        }),
+        foldersVm: createMockFoldersVm({ folders: mockFolders }),
       });
 
-      const personalButton = screen.getByText('个人').closest('button');
-      expect(personalButton?.className).toContain('bg-accent');
-      expect(personalButton?.className).toContain('text-foreground');
+      const personalLink = screen.getByText('个人').closest('a');
+      expect(personalLink?.className).toContain('bg-accent');
+      expect(personalLink?.className).toContain('text-foreground');
 
-      const workButton = screen.getByText('工作').closest('button');
-      expect(workButton?.className).toContain('text-muted-foreground');
+      const workLink = screen.getByText('工作').closest('a');
+      expect(workLink?.className).toContain('text-muted-foreground');
     });
 
     it('renders no folder items when folders is empty', () => {
@@ -288,18 +266,15 @@ describe('AppSidebar', () => {
       expect(screen.queryByText('全部链接')).toBeInTheDocument();
     });
 
-    it('shows folder icons in collapsed mode as tooltip buttons', () => {
+    it('shows folder icons in collapsed mode as tooltip links', () => {
       const { container } = renderSidebar({
         collapsed: true,
         foldersVm: createMockFoldersVm({ folders: mockFolders }),
       });
 
-      // Buttons: 2 folder nav items (全部链接, 未分类) + 2 dynamic folders = 4
-      // Links: 1 static (图床)
-      const navButtons = container.querySelectorAll('nav button');
+      // All items are links: 2 folder nav + 2 dynamic folders + 1 static = 5
       const navLinks = container.querySelectorAll('nav a');
-      expect(navButtons.length).toBe(4);
-      expect(navLinks.length).toBe(1);
+      expect(navLinks.length).toBe(5);
     });
 
     it('renders "新建文件夹" button in expanded mode when foldersVm provided', () => {

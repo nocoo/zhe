@@ -4,7 +4,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
-import { FolderSelectionProvider } from "@/contexts/folder-selection-context";
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -99,9 +98,7 @@ export function DashboardShell({
           {/* Content panel — Basalt L1 rounded panel */}
           <div className={cn("flex-1 px-2 pb-2 md:px-3 md:pb-3")}>
             <div className="h-full rounded-[16px] md:rounded-[20px] bg-card p-3 md:p-5 overflow-y-auto">
-              <FolderSelectionProvider selectedFolderId={foldersVm.selectedFolderId} folders={foldersVm.folders}>
-                {children}
-              </FolderSelectionProvider>
+              {children}
             </div>
           </div>
         </main>

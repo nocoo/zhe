@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MoreHorizontal, Pencil, Trash2, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { FolderIcon } from "@/components/folder-icon";
 import { FOLDER_ICONS } from "@/models/folders";
 import type { Folder } from "@/models/types";
@@ -17,7 +18,6 @@ export interface SidebarFolderItemProps {
   folder: Folder;
   isSelected: boolean;
   isEditing: boolean;
-  onSelect: (folderId: string) => void;
   onStartEditing: (folderId: string) => void;
   onUpdate: (id: string, data: { name?: string; icon?: string }) => void;
   onDelete: (id: string) => void;
@@ -28,7 +28,6 @@ export function SidebarFolderItem({
   folder,
   isSelected,
   isEditing,
-  onSelect,
   onStartEditing,
   onUpdate,
   onDelete,
@@ -111,8 +110,8 @@ export function SidebarFolderItem({
 
   return (
     <div className="group relative">
-      <button
-        onClick={() => onSelect(folder.id)}
+      <Link
+        href={`/dashboard?folder=${folder.id}`}
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
           isSelected
@@ -126,7 +125,7 @@ export function SidebarFolderItem({
           strokeWidth={1.5}
         />
         <span className="flex-1 text-left">{folder.name}</span>
-      </button>
+      </Link>
 
       {/* Context menu trigger — visible on hover */}
       <DropdownMenu>

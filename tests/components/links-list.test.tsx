@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
-import { FolderSelectionProvider } from '@/contexts/folder-selection-context';
 import type { Link, Folder } from '@/models/types';
 
 let mockSearchParamsFolder: string | null = null;
@@ -65,15 +64,14 @@ const mockFolders: Folder[] = [
   { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
 ];
 
-function renderWithFolderSelection(props: Partial<Parameters<typeof LinksList>[0]> = {}) {
+function renderLinksList(props: Partial<Parameters<typeof LinksList>[0]> = {}) {
   return render(
-    <FolderSelectionProvider selectedFolderId={mockSearchParamsFolder} folders={mockFolders}>
-      <LinksList
-        initialLinks={mockLinks}
-        siteUrl={siteUrl}
-        {...props}
-      />
-    </FolderSelectionProvider>
+    <LinksList
+      initialLinks={mockLinks}
+      siteUrl={siteUrl}
+      folders={mockFolders}
+      {...props}
+    />
   );
 }
 
@@ -88,7 +86,7 @@ describe('LinksList folder filtering', () => {
 
   it('shows all links when no folder is selected', () => {
     mockSearchParamsFolder = null;
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
@@ -99,7 +97,7 @@ describe('LinksList folder filtering', () => {
 
   it('filters links by selected folder', () => {
     mockSearchParamsFolder = 'f1';
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('工作')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
@@ -110,7 +108,7 @@ describe('LinksList folder filtering', () => {
 
   it('shows folder name as header when folder is selected', () => {
     mockSearchParamsFolder = 'f2';
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('个人')).toBeInTheDocument();
     expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
@@ -118,14 +116,14 @@ describe('LinksList folder filtering', () => {
 
   it('shows correct count for filtered links', () => {
     mockSearchParamsFolder = 'f2';
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
   });
 
   it('shows empty state when selected folder has no links', () => {
     mockSearchParamsFolder = 'f-nonexistent';
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('暂无链接')).toBeInTheDocument();
     expect(screen.getByText('共 0 条链接')).toBeInTheDocument();
@@ -133,7 +131,7 @@ describe('LinksList folder filtering', () => {
 
   it('shows uncategorized links when folder=uncategorized', () => {
     mockSearchParamsFolder = 'uncategorized';
-    renderWithFolderSelection();
+    renderLinksList();
 
     expect(screen.getByText('未分类')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
@@ -143,14 +141,8 @@ describe('LinksList folder filtering', () => {
     expect(screen.queryByText('zhe.to/def')).not.toBeInTheDocument();
   });
 
-  it('works without FolderSelectionProvider (defaults to showing all)', () => {
-    // Render without the provider — should default to null selectedFolderId and empty folders
-    render(
-      <LinksList
-        initialLinks={mockLinks}
-        siteUrl={siteUrl}
-      />
-    );
+  it('shows all links when folders prop is empty', () => {
+    renderLinksList({ folders: [] });
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();

@@ -1,25 +1,27 @@
 "use client";
 
 import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
 import { CreateLinkModal } from "./create-link-modal";
 import { Link2 } from "lucide-react";
 import { useLinksViewModel } from "@/viewmodels/useLinksViewModel";
-import { useFolderSelection } from "@/contexts/folder-selection-context";
-import type { Link } from "@/models/types";
+import type { Link, Folder } from "@/models/types";
 
 interface LinksListProps {
   initialLinks: Link[];
   siteUrl: string;
+  folders: Folder[];
 }
 
-export function LinksList({ initialLinks, siteUrl }: LinksListProps) {
+export function LinksList({ initialLinks, siteUrl, folders }: LinksListProps) {
   const { links, handleLinkCreated, handleLinkDeleted, handleLinkUpdated } = useLinksViewModel(
     initialLinks,
     siteUrl
   );
 
-  const { selectedFolderId, folders } = useFolderSelection();
+  const searchParams = useSearchParams();
+  const selectedFolderId = searchParams.get("folder") ?? null;
 
   const filteredLinks = useMemo(() => {
     if (!selectedFolderId) return links;

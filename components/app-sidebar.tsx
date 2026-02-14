@@ -3,7 +3,7 @@
 import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -15,17 +15,18 @@ import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
-/** Folder-aware nav items rendered as buttons calling selectFolder */
+/** Nav items for folder filtering — rendered as <Link> */
 interface FolderNavItem {
   title: string;
   icon: React.ElementType;
-  /** null = all links, "uncategorized" = links with no folder */
-  folderValue: string | null;
+  href: string;
+  /** Value to match against ?folder param. null = no param (all links) */
+  folderParam: string | null;
 }
 
 const FOLDER_NAV_ITEMS: FolderNavItem[] = [
-  { title: "全部链接", icon: Link2, folderValue: null },
-  { title: "未分类", icon: FolderOpen, folderValue: "uncategorized" },
+  { title: "全部链接", icon: Link2, href: "/dashboard", folderParam: null },
+  { title: "未分类", icon: FolderOpen, href: "/dashboard?folder=uncategorized", folderParam: "uncategorized" },
 ];
 
 /** Static nav items rendered as <Link> */
@@ -69,10 +70,12 @@ export function AppSidebar({
   foldersVm,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
 
-  /** Whether a folder nav item is active, based on current VM state */
-  function isFolderNavActive(folderValue: string | null): boolean {
-    return foldersVm?.selectedFolderId === folderValue;
+  /** Whether a folder nav item is active, based on URL */
+  function isFolderNavActive(folderParam: string | null): boolean {
+    return currentFolder === folderParam;
   }
 
   if (collapsed) {
@@ -106,21 +109,21 @@ export function AppSidebar({
         </button>
 
         <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
-          {/* Folder nav items as buttons */}
+          {/* Folder nav items as links */}
           {FOLDER_NAV_ITEMS.map((item) => (
             <Tooltip key={item.title} delayDuration={0}>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => foldersVm?.selectFolder(item.folderValue)}
+                <Link
+                  href={item.href}
                   className={cn(
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                    isFolderNavActive(item.folderValue)
+                    isFolderNavActive(item.folderParam)
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                </button>
+                </Link>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
                 {item.title}
@@ -132,17 +135,17 @@ export function AppSidebar({
           {foldersVm?.folders.map((folder) => (
             <Tooltip key={folder.id} delayDuration={0}>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => foldersVm.selectFolder(folder.id)}
+                <Link
+                  href={`/dashboard?folder=${folder.id}`}
                   className={cn(
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-                    foldersVm.selectedFolderId === folder.id
+                    currentFolder === folder.id
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
-                </button>
+                </Link>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
                 {folder.name}
@@ -257,21 +260,21 @@ export function AppSidebar({
             )}
           </div>
           <div className="flex flex-col gap-0.5">
-            {/* "全部链接" and "未分类" as buttons */}
+            {/* "全部链接" and "未分类" as links */}
             {FOLDER_NAV_ITEMS.map((item) => (
-              <button
+              <Link
                 key={item.title}
-                onClick={() => foldersVm?.selectFolder(item.folderValue)}
+                href={item.href}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-                  isFolderNavActive(item.folderValue)
+                  isFolderNavActive(item.folderParam)
                     ? "bg-accent text-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                 <span className="flex-1 text-left">{item.title}</span>
-              </button>
+              </Link>
             ))}
 
             {/* Dynamic folder items */}
@@ -279,9 +282,8 @@ export function AppSidebar({
               <SidebarFolderItem
                 key={folder.id}
                 folder={folder}
-                isSelected={foldersVm.selectedFolderId === folder.id}
+                isSelected={currentFolder === folder.id}
                 isEditing={foldersVm.editingFolderId === folder.id}
-                onSelect={foldersVm.selectFolder}
                 onStartEditing={foldersVm.startEditing}
                 onUpdate={foldersVm.handleUpdateFolder}
                 onDelete={foldersVm.handleDeleteFolder}

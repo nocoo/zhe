@@ -29,6 +29,12 @@ vi.mock('next/headers', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/dashboard',
+}));
+
 describe('Dashboard Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();

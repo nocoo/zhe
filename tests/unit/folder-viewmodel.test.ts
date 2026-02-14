@@ -6,15 +6,6 @@ import type { Folder } from '@/models/types';
 // Mocks
 // ---------------------------------------------------------------------------
 
-let mockLocationHref = 'http://localhost/dashboard';
-
-// Mock window.history.replaceState so we can track URL sync calls
-const mockReplaceState = vi.fn((_data: unknown, _title: string, url?: string | URL | null) => {
-  if (url) {
-    mockLocationHref = new URL(String(url), 'http://localhost').href;
-  }
-});
-
 vi.mock('@/actions/folders', () => ({
   getFolders: vi.fn(),
   createFolder: vi.fn(),
@@ -50,28 +41,15 @@ function makeFolder(overrides: Partial<Folder> = {}): Folder {
 // ---------------------------------------------------------------------------
 
 describe('useFoldersViewModel', () => {
-  let origReplaceState: typeof window.history.replaceState;
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('confirm', vi.fn());
     vi.stubGlobal('alert', vi.fn());
-    mockLocationHref = 'http://localhost/dashboard';
-    // Mock window.location.href for getFolderFromUrl()
-    Object.defineProperty(window, 'location', {
-      value: { get href() { return mockLocationHref; } },
-      writable: true,
-      configurable: true,
-    });
-    // Mock history.replaceState
-    origReplaceState = window.history.replaceState;
-    window.history.replaceState = mockReplaceState;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    window.history.replaceState = origReplaceState;
   });
 
   // ====================================================================
@@ -82,7 +60,6 @@ describe('useFoldersViewModel', () => {
     const { result } = renderHook(() => useFoldersViewModel(folders));
 
     expect(result.current.folders).toEqual(folders);
-    expect(result.current.selectedFolderId).toBeNull();
     expect(result.current.editingFolderId).toBeNull();
     expect(result.current.isCreating).toBe(false);
   });
@@ -91,55 +68,6 @@ describe('useFoldersViewModel', () => {
     const { result } = renderHook(() => useFoldersViewModel([]));
 
     expect(result.current.folders).toEqual([]);
-  });
-
-  // ====================================================================
-  // Folder selection (local state + URL sync)
-  // ====================================================================
-  it('initializes selectedFolderId from URL search param', () => {
-    mockLocationHref = 'http://localhost/dashboard?folder=folder-1';
-    const folders = [makeFolder()];
-    const { result } = renderHook(() => useFoldersViewModel(folders));
-
-    expect(result.current.selectedFolderId).toBe('folder-1');
-  });
-
-  it('selectFolder updates local state immediately and syncs URL', () => {
-    const folders = [makeFolder()];
-    const { result } = renderHook(() => useFoldersViewModel(folders));
-
-    act(() => {
-      result.current.selectFolder('folder-1');
-    });
-
-    // Local state updated immediately
-    expect(result.current.selectedFolderId).toBe('folder-1');
-    // URL synced via history.replaceState
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/dashboard?folder=folder-1');
-  });
-
-  it('selectFolder with null clears selection and navigates to /dashboard', () => {
-    mockLocationHref = 'http://localhost/dashboard?folder=folder-1';
-    const folders = [makeFolder()];
-    const { result } = renderHook(() => useFoldersViewModel(folders));
-
-    act(() => {
-      result.current.selectFolder(null);
-    });
-
-    expect(result.current.selectedFolderId).toBeNull();
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/dashboard');
-  });
-
-  it('selectFolder with "uncategorized" navigates to uncategorized URL', () => {
-    const { result } = renderHook(() => useFoldersViewModel([]));
-
-    act(() => {
-      result.current.selectFolder('uncategorized');
-    });
-
-    expect(result.current.selectedFolderId).toBe('uncategorized');
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/dashboard?folder=uncategorized');
   });
 
   // ====================================================================
@@ -249,40 +177,6 @@ describe('useFoldersViewModel', () => {
 
     expect(deleteFolder).toHaveBeenCalledWith('folder-1');
     expect(result.current.folders).toHaveLength(0);
-  });
-
-  it('handleDeleteFolder clears selection if deleted folder was selected', async () => {
-    mockLocationHref = 'http://localhost/dashboard?folder=folder-1';
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    vi.mocked(deleteFolder).mockResolvedValue({ success: true });
-
-    const folder = makeFolder();
-    const { result } = renderHook(() => useFoldersViewModel([folder]));
-
-    expect(result.current.selectedFolderId).toBe('folder-1');
-
-    await act(async () => {
-      await result.current.handleDeleteFolder('folder-1');
-    });
-
-    expect(result.current.selectedFolderId).toBeNull();
-    expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/dashboard');
-  });
-
-  it('handleDeleteFolder does not clear selection if deleted folder was not selected', async () => {
-    mockLocationHref = 'http://localhost/dashboard?folder=folder-2';
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    vi.mocked(deleteFolder).mockResolvedValue({ success: true });
-
-    const folder = makeFolder();
-    const { result } = renderHook(() => useFoldersViewModel([folder]));
-
-    await act(async () => {
-      await result.current.handleDeleteFolder('folder-1');
-    });
-
-    expect(result.current.selectedFolderId).toBe('folder-2');
-    expect(mockReplaceState).not.toHaveBeenCalled();
   });
 
   it('handleDeleteFolder does nothing when confirm is false', async () => {

@@ -3,11 +3,9 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 
 let mockFoldersVm = {
   folders: [] as { id: string; userId: string; name: string; icon: string; createdAt: Date }[],
-  selectedFolderId: null as string | null,
   editingFolderId: null as string | null,
   isCreating: false,
   setIsCreating: vi.fn(),
-  selectFolder: vi.fn(),
   handleCreateFolder: vi.fn(),
   handleUpdateFolder: vi.fn(),
   handleDeleteFolder: vi.fn(),
@@ -74,11 +72,9 @@ describe('DashboardShell', () => {
     };
     mockFoldersVm = {
       folders: [],
-      selectedFolderId: null,
       editingFolderId: null,
       isCreating: false,
       setIsCreating: vi.fn(),
-      selectFolder: vi.fn(),
       handleCreateFolder: vi.fn(),
       handleUpdateFolder: vi.fn(),
       handleDeleteFolder: vi.fn(),
@@ -231,9 +227,9 @@ describe('DashboardShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = renderShell();
 
-      // In collapsed mode, folder nav items (2) + dynamic folder items (1) = 3 buttons in nav
-      const navButtons = container.querySelectorAll('nav button');
-      expect(navButtons.length).toBe(3);
+      // In collapsed mode, all items are links: 2 folder nav + 1 dynamic + 1 static = 4
+      const navLinks = container.querySelectorAll('nav a');
+      expect(navLinks.length).toBe(4);
     });
 
     it('passes folders to mobile sidebar when open', () => {
