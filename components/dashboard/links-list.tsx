@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
 import { CreateLinkModal } from "./create-link-modal";
 import { Link2 } from "lucide-react";
-import { useLinksViewModel } from "@/viewmodels/useLinksViewModel";
+import { useDashboardService } from "@/contexts/dashboard-service";
 
 function LinksListSkeleton() {
   return (
@@ -40,7 +40,7 @@ function LinksListSkeleton() {
 }
 
 export function LinksList() {
-  const { links, folders, loading, handleLinkCreated, handleLinkDeleted, handleLinkUpdated, siteUrl } = useLinksViewModel();
+  const { links, folders, loading, handleLinkCreated, handleLinkDeleted, handleLinkUpdated, siteUrl } = useDashboardService();
 
   const searchParams = useSearchParams();
   const selectedFolderId = searchParams.get("folder") ?? null;

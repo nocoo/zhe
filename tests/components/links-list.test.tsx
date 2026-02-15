@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import type { Link, Folder } from '@/models/types';
+import type { DashboardService } from '@/contexts/dashboard-service';
 
 let mockSearchParamsFolder: string | null = null;
 
@@ -12,10 +13,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+// Mock actions to prevent next-auth import chain
 vi.mock('@/actions/links', () => ({
   getLinks: vi.fn(),
   createLink: vi.fn(),
   deleteLink: vi.fn(),
+  updateLink: vi.fn(),
   getAnalyticsStats: vi.fn(),
 }));
 
@@ -23,9 +26,25 @@ vi.mock('@/actions/folders', () => ({
   getFolders: vi.fn(),
 }));
 
+// Mock DashboardService context — mutable so each test can set its own data
+const mockService: DashboardService = {
+  links: [],
+  folders: [],
+  loading: false,
+  siteUrl: 'http://localhost:3000',
+  handleLinkCreated: vi.fn(),
+  handleLinkDeleted: vi.fn(),
+  handleLinkUpdated: vi.fn(),
+  handleFolderCreated: vi.fn(),
+  handleFolderDeleted: vi.fn(),
+  handleFolderUpdated: vi.fn(),
+};
+
+vi.mock('@/contexts/dashboard-service', () => ({
+  useDashboardService: () => mockService,
+}));
+
 import { LinksList } from '@/components/dashboard/links-list';
-import { getLinks } from '@/actions/links';
-import { getFolders } from '@/actions/folders';
 
 const mockLinks: Link[] = [
   {
@@ -68,23 +87,16 @@ const mockFolders: Folder[] = [
   { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
 ];
 
-function setupMocks(links: Link[] = mockLinks, folders: Folder[] = mockFolders) {
-  vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
-  vi.mocked(getFolders).mockResolvedValue({ success: true, data: folders });
-}
-
-async function renderLinksList() {
-  const { act } = await import('@testing-library/react');
-  let result: ReturnType<typeof render>;
-  await act(async () => {
-    result = render(<LinksList />);
-  });
-  return result!;
+function setupService(links: Link[] = mockLinks, folders: Folder[] = mockFolders, loading = false) {
+  mockService.links = links;
+  mockService.folders = folders;
+  mockService.loading = loading;
 }
 
 describe('LinksList', () => {
   beforeEach(() => {
     mockSearchParamsFolder = null;
+    setupService();
     vi.clearAllMocks();
   });
 
@@ -93,22 +105,17 @@ describe('LinksList', () => {
   });
 
   it('shows skeleton while loading', () => {
-    // Don't resolve the mocks yet
-    vi.mocked(getLinks).mockReturnValue(new Promise(() => {}));
-    vi.mocked(getFolders).mockReturnValue(new Promise(() => {}));
-
+    setupService([], [], true);
     render(<LinksList />);
 
-    // Should show skeleton (animate-pulse class)
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
     expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
   });
 
-  it('shows all links when no folder is selected', async () => {
+  it('shows all links when no folder is selected', () => {
     mockSearchParamsFolder = null;
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
@@ -117,10 +124,9 @@ describe('LinksList', () => {
     expect(screen.getByText('localhost:3000/ghi')).toBeInTheDocument();
   });
 
-  it('filters links by selected folder', async () => {
+  it('filters links by selected folder', () => {
     mockSearchParamsFolder = 'f1';
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('工作')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
@@ -129,36 +135,32 @@ describe('LinksList', () => {
     expect(screen.queryByText('localhost:3000/ghi')).not.toBeInTheDocument();
   });
 
-  it('shows folder name as header when folder is selected', async () => {
+  it('shows folder name as header when folder is selected', () => {
     mockSearchParamsFolder = 'f2';
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('个人')).toBeInTheDocument();
     expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
   });
 
-  it('shows correct count for filtered links', async () => {
+  it('shows correct count for filtered links', () => {
     mockSearchParamsFolder = 'f2';
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
   });
 
-  it('shows empty state when selected folder has no links', async () => {
+  it('shows empty state when selected folder has no links', () => {
     mockSearchParamsFolder = 'f-nonexistent';
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('暂无链接')).toBeInTheDocument();
     expect(screen.getByText('共 0 条链接')).toBeInTheDocument();
   });
 
-  it('shows uncategorized links when folder=uncategorized', async () => {
+  it('shows uncategorized links when folder=uncategorized', () => {
     mockSearchParamsFolder = 'uncategorized';
-    setupMocks();
-    await renderLinksList();
+    render(<LinksList />);
 
     expect(screen.getByText('未分类')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
@@ -168,9 +170,9 @@ describe('LinksList', () => {
     expect(screen.queryByText('localhost:3000/def')).not.toBeInTheDocument();
   });
 
-  it('shows all links when folders list is empty', async () => {
-    setupMocks(mockLinks, []);
-    await renderLinksList();
+  it('shows all links when folders list is empty', () => {
+    setupService(mockLinks, []);
+    render(<LinksList />);
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
