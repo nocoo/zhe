@@ -1,6 +1,20 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Polyfill ResizeObserver for jsdom (required by cmdk)
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
+// Polyfill Element.scrollIntoView for jsdom (required by cmdk)
+if (typeof Element.prototype.scrollIntoView === 'undefined') {
+  Element.prototype.scrollIntoView = function () {};
+}
+
 // Re-export clearMockStorage for tests
 export { clearMockStorage } from './mocks/db-storage';
 
