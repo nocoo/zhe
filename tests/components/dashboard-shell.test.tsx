@@ -17,6 +17,11 @@ vi.mock('@/viewmodels/useFoldersViewModel', () => ({
   useFoldersViewModel: () => mockFoldersVm,
 }));
 
+// Mock getLinks for DashboardServiceProvider
+vi.mock('@/actions/links', () => ({
+  getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),
+}));
+
 let mockViewModel = {
   collapsed: false,
   isMobile: false,
@@ -50,14 +55,19 @@ vi.mock('next-themes', () => ({
 
 import { DashboardShell } from '@/components/dashboard-shell';
 
-function renderShell(props: Partial<Parameters<typeof DashboardShell>[0]> = {}) {
+async function renderShell(props: Partial<Parameters<typeof DashboardShell>[0]> = {}) {
+  const { act } = await import('@testing-library/react');
   const defaultProps = {
     user: { name: 'Test User', email: 'test@example.com', image: null },
     signOutAction: vi.fn(async () => {}),
     children: <div data-testid="child-content">Dashboard Content</div>,
     ...props,
   };
-  return render(<DashboardShell {...defaultProps} />);
+  let result: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(<DashboardShell {...defaultProps} />);
+  });
+  return result!;
 }
 
 describe('DashboardShell', () => {
@@ -88,103 +98,103 @@ describe('DashboardShell', () => {
     cleanup();
   });
 
-  it('renders children content', () => {
-    renderShell();
+  it('renders children content', async () => {
+    await renderShell();
     expect(screen.getByTestId('child-content')).toBeInTheDocument();
     expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
   });
 
-  it('renders header with title', () => {
-    renderShell();
+  it('renders header with title', async () => {
+    await renderShell();
     expect(screen.getByRole('heading', { name: '链接管理' })).toBeInTheDocument();
   });
 
-  it('renders ThemeToggle in header', () => {
-    renderShell();
+  it('renders ThemeToggle in header', async () => {
+    await renderShell();
     expect(screen.getByTitle('Theme: system')).toBeInTheDocument();
   });
 
-  it('renders GitHub link in header', () => {
-    renderShell();
+  it('renders GitHub link in header', async () => {
+    await renderShell();
     const link = screen.getByTitle('GitHub');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://github.com/nocoo/zhe');
   });
 
   describe('desktop mode', () => {
-    it('renders sidebar when not mobile', () => {
+    it('renders sidebar when not mobile', async () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = false;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
       expect(aside).toBeInTheDocument();
       expect(aside?.className).toContain('w-[260px]');
     });
 
-    it('renders collapsed sidebar', () => {
+    it('renders collapsed sidebar', async () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = true;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
       expect(aside).toBeInTheDocument();
       expect(aside?.className).toContain('w-[68px]');
     });
 
-    it('does not show mobile menu button on desktop', () => {
+    it('does not show mobile menu button on desktop', async () => {
       mockViewModel.isMobile = false;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const header = container.querySelector('header');
       const headerButtons = header?.querySelectorAll('button');
       // Only the ThemeToggle button should be in the header
       const nonThemeButtons = Array.from(headerButtons || []).filter(
-        (btn) => !btn.getAttribute('title')?.includes('Theme')
+        (btn: Element) => !btn.getAttribute('title')?.includes('Theme')
       );
       expect(nonThemeButtons.length).toBe(0);
     });
   });
 
   describe('mobile mode', () => {
-    it('does not render sidebar inline when mobile and drawer is closed', () => {
+    it('does not render sidebar inline when mobile and drawer is closed', async () => {
       mockViewModel.isMobile = true;
       mockViewModel.mobileOpen = false;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
       expect(aside).toBeNull();
     });
 
-    it('shows mobile menu button', () => {
+    it('shows mobile menu button', async () => {
       mockViewModel.isMobile = true;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const header = container.querySelector('header');
       const headerButtons = header?.querySelectorAll('button');
       const nonThemeButtons = Array.from(headerButtons || []).filter(
-        (btn) => !btn.getAttribute('title')?.includes('Theme')
+        (btn: Element) => !btn.getAttribute('title')?.includes('Theme')
       );
       expect(nonThemeButtons.length).toBe(1);
     });
 
-    it('calls toggleSidebar when mobile menu button is clicked', () => {
+    it('calls toggleSidebar when mobile menu button is clicked', async () => {
       mockViewModel.isMobile = true;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const header = container.querySelector('header');
       const headerButtons = header?.querySelectorAll('button');
       const menuButton = Array.from(headerButtons || []).find(
-        (btn) => !btn.getAttribute('title')?.includes('Theme')
+        (btn: Element) => !btn.getAttribute('title')?.includes('Theme')
       );
       fireEvent.click(menuButton!);
       expect(mockViewModel.toggleSidebar).toHaveBeenCalledOnce();
     });
 
-    it('renders mobile overlay and sidebar when drawer is open', () => {
+    it('renders mobile overlay and sidebar when drawer is open', async () => {
       mockViewModel.isMobile = true;
       mockViewModel.mobileOpen = true;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       // Should render an overlay backdrop
       const overlay = container.querySelector('.bg-black\\/50');
@@ -195,10 +205,10 @@ describe('DashboardShell', () => {
       expect(aside).toBeInTheDocument();
     });
 
-    it('calls closeMobileSidebar when overlay is clicked', () => {
+    it('calls closeMobileSidebar when overlay is clicked', async () => {
       mockViewModel.isMobile = true;
       mockViewModel.mobileOpen = true;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       const overlay = container.querySelector('.bg-black\\/50');
       fireEvent.click(overlay!);
@@ -211,32 +221,32 @@ describe('DashboardShell', () => {
       { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
     ];
 
-    it('passes folders to AppSidebar in expanded desktop mode', () => {
+    it('passes folders to AppSidebar in expanded desktop mode', async () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = false;
       mockFoldersVm.folders = mockFolders;
-      renderShell();
+      await renderShell();
 
       // If folders are passed through, the folder name should appear in sidebar
       expect(screen.getByText('工作')).toBeInTheDocument();
     });
 
-    it('passes folders to AppSidebar in collapsed desktop mode', () => {
+    it('passes folders to AppSidebar in collapsed desktop mode', async () => {
       mockViewModel.isMobile = false;
       mockViewModel.collapsed = true;
       mockFoldersVm.folders = mockFolders;
-      const { container } = renderShell();
+      const { container } = await renderShell();
 
       // In collapsed mode, all items are links: 2 folder nav + 1 dynamic + 1 static = 4
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(4);
     });
 
-    it('passes folders to mobile sidebar when open', () => {
+    it('passes folders to mobile sidebar when open', async () => {
       mockViewModel.isMobile = true;
       mockViewModel.mobileOpen = true;
       mockFoldersVm.folders = mockFolders;
-      renderShell();
+      await renderShell();
 
       expect(screen.getByText('工作')).toBeInTheDocument();
     });
