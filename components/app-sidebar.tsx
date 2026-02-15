@@ -15,7 +15,7 @@ import { FolderIcon } from "@/components/folder-icon";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
-import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
+import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
 /** Nav items for folder filtering — rendered as <Link> */
 interface FolderNavItem {
@@ -61,7 +61,6 @@ export interface AppSidebarProps {
     image?: string | null;
   };
   signOutAction: () => Promise<void>;
-  foldersVm?: FoldersViewModel;
 }
 
 export function AppSidebar({
@@ -69,11 +68,12 @@ export function AppSidebar({
   onToggle,
   user,
   signOutAction,
-  foldersVm,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
+
+  const foldersVm = useFoldersViewModel();
 
   // Search dialog state (pure UI — not in service)
   const [searchOpen, setSearchOpen] = useState(false);
@@ -151,7 +151,7 @@ export function AppSidebar({
           ))}
 
           {/* Dynamic folder items */}
-          {foldersVm?.folders.map((folder) => (
+          {foldersVm.folders.map((folder) => (
             <Tooltip key={folder.id} delayDuration={0}>
               <TooltipTrigger asChild>
                 <Link
@@ -277,15 +277,13 @@ export function AppSidebar({
             <span className="text-sm font-normal text-muted-foreground">
               链接管理
             </span>
-            {foldersVm && (
-              <button
-                onClick={() => foldersVm.setIsCreating(true)}
-                aria-label="新建文件夹"
-                className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-              </button>
-            )}
+            <button
+              onClick={() => foldersVm.setIsCreating(true)}
+              aria-label="新建文件夹"
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
           </div>
           <div className="flex flex-col gap-0.5">
             {/* "全部链接" and "未分类" as links */}
@@ -306,7 +304,7 @@ export function AppSidebar({
             ))}
 
             {/* Dynamic folder items */}
-            {foldersVm?.folders.map((folder) => (
+            {foldersVm.folders.map((folder) => (
               <SidebarFolderItem
                 key={folder.id}
                 folder={folder}
@@ -320,7 +318,7 @@ export function AppSidebar({
             ))}
 
             {/* Inline create form */}
-            {foldersVm?.isCreating && (
+            {foldersVm.isCreating && (
               <SidebarFolderCreate
                 onCreate={foldersVm.handleCreateFolder}
                 onCancel={() => foldersVm.setIsCreating(false)}

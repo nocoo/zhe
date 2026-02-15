@@ -3,7 +3,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
-import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,8 +29,6 @@ export function DashboardShell({
   const { collapsed, isMobile, mobileOpen, toggleSidebar, closeMobileSidebar } =
     useDashboardLayoutViewModel();
 
-  const foldersVm = useFoldersViewModel(initialFolders);
-
   return (
     <DashboardServiceProvider initialFolders={initialFolders}>
       <TooltipProvider>
@@ -43,7 +40,6 @@ export function DashboardShell({
               onToggle={toggleSidebar}
               user={user}
               signOutAction={signOutAction}
-              foldersVm={foldersVm}
             />
           )}
 
@@ -60,7 +56,6 @@ export function DashboardShell({
                   onToggle={closeMobileSidebar}
                   user={user}
                   signOutAction={signOutAction}
-                  foldersVm={foldersVm}
                 />
               </div>
             </>

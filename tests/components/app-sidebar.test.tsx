@@ -26,6 +26,13 @@ vi.mock('@/actions/links', () => ({
   getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),
 }));
 
+vi.mock('@/actions/folders', () => ({
+  getFolders: vi.fn(),
+  createFolder: vi.fn(),
+  updateFolder: vi.fn(),
+  deleteFolder: vi.fn(),
+}));
+
 // Mock DashboardService context for SearchCommandDialog
 vi.mock('@/contexts/dashboard-service', () => ({
   useDashboardService: () => ({
@@ -42,10 +49,27 @@ vi.mock('@/contexts/dashboard-service', () => ({
   }),
 }));
 
+// Mock useFoldersViewModel — mutable so each test can configure it
+let mockFoldersVm: FoldersViewModel = {
+  folders: [],
+  editingFolderId: null,
+  isCreating: false,
+  setIsCreating: vi.fn(),
+  handleCreateFolder: vi.fn(),
+  handleUpdateFolder: vi.fn(),
+  handleDeleteFolder: vi.fn(),
+  startEditing: vi.fn(),
+  cancelEditing: vi.fn(),
+};
+
+vi.mock('@/viewmodels/useFoldersViewModel', () => ({
+  useFoldersViewModel: () => mockFoldersVm,
+}));
+
 import { AppSidebar } from '@/components/app-sidebar';
 
-function createMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): FoldersViewModel {
-  return {
+function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
+  mockFoldersVm = {
     folders: [],
     editingFolderId: null,
     isCreating: false,
@@ -78,6 +102,7 @@ describe('AppSidebar', () => {
   beforeEach(() => {
     mockPathname = '/dashboard';
     mockSearchParamsFolder = null;
+    resetMockFoldersVm();
     vi.clearAllMocks();
   });
 
@@ -87,7 +112,7 @@ describe('AppSidebar', () => {
 
   describe('collapsed mode', () => {
     it('renders narrow sidebar with icon-only navigation', () => {
-      const { container } = renderSidebar({ collapsed: true, foldersVm: createMockFoldersVm() });
+      const { container } = renderSidebar({ collapsed: true });
 
       // Should render the narrow aside (68px)
       const aside = container.querySelector('aside');
@@ -100,7 +125,7 @@ describe('AppSidebar', () => {
     });
 
     it('renders all nav items as links in collapsed mode', () => {
-      const { container } = renderSidebar({ collapsed: true, foldersVm: createMockFoldersVm() });
+      const { container } = renderSidebar({ collapsed: true });
 
       // All items (2 folder nav + 1 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
@@ -110,7 +135,7 @@ describe('AppSidebar', () => {
 
   describe('expanded mode', () => {
     it('renders wide sidebar with text navigation', () => {
-      const { container } = renderSidebar({ collapsed: false, foldersVm: createMockFoldersVm() });
+      const { container } = renderSidebar({ collapsed: false });
 
       // Should render the wide aside (260px)
       const aside = container.querySelector('aside');
@@ -191,8 +216,7 @@ describe('AppSidebar', () => {
 
   describe('folder nav items as links', () => {
     it('renders "全部链接" and "未分类" as links not buttons', () => {
-      const vm = createMockFoldersVm();
-      renderSidebar({ collapsed: false, foldersVm: vm });
+      renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText('全部链接').closest('a');
       expect(allLinksAnchor).toBeInTheDocument();
@@ -205,8 +229,7 @@ describe('AppSidebar', () => {
 
     it('highlights "全部链接" when no folder param in URL', () => {
       mockSearchParamsFolder = null;
-      const vm = createMockFoldersVm();
-      renderSidebar({ collapsed: false, foldersVm: vm });
+      renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText('全部链接').closest('a');
       expect(allLinksAnchor?.className).toContain('bg-accent');
@@ -215,8 +238,7 @@ describe('AppSidebar', () => {
 
     it('highlights "未分类" when folder=uncategorized in URL', () => {
       mockSearchParamsFolder = 'uncategorized';
-      const vm = createMockFoldersVm();
-      renderSidebar({ collapsed: false, foldersVm: vm });
+      renderSidebar({ collapsed: false });
 
       const uncategorizedAnchor = screen.getByText('未分类').closest('a');
       expect(uncategorizedAnchor?.className).toContain('bg-accent');
@@ -290,20 +312,16 @@ describe('AppSidebar', () => {
     ];
 
     it('renders folder items in expanded mode', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       expect(screen.getByText('工作')).toBeInTheDocument();
       expect(screen.getByText('个人')).toBeInTheDocument();
     });
 
     it('renders folder items as links with correct href', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       const workLink = screen.getByText('工作').closest('a');
       expect(workLink).toBeInTheDocument();
@@ -312,10 +330,8 @@ describe('AppSidebar', () => {
 
     it('highlights selected folder based on URL param', () => {
       mockSearchParamsFolder = 'f2';
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       const personalLink = screen.getByText('个人').closest('a');
       expect(personalLink?.className).toContain('bg-accent');
@@ -326,59 +342,41 @@ describe('AppSidebar', () => {
     });
 
     it('renders no folder items when folders is empty', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: [] }),
-      });
+      resetMockFoldersVm({ folders: [] });
+      renderSidebar({ collapsed: false });
 
       // Static items still exist
       expect(screen.getByText('全部链接')).toBeInTheDocument();
       expect(screen.getByText('未分类')).toBeInTheDocument();
     });
 
-    it('renders no folder items when foldersVm is not provided', () => {
-      renderSidebar({ collapsed: false });
-
-      // Should not crash even without foldersVm
-      expect(screen.queryByText('全部链接')).toBeInTheDocument();
-    });
-
     it('shows folder icons in collapsed mode as tooltip links', () => {
-      const { container } = renderSidebar({
-        collapsed: true,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      const { container } = renderSidebar({ collapsed: true });
 
       // All items are links: 2 folder nav + 2 dynamic folders + 1 static = 5
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(5);
     });
 
-    it('renders "新建文件夹" button in expanded mode when foldersVm provided', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+    it('renders "新建文件夹" button in expanded mode', () => {
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       expect(screen.getByLabelText('新建文件夹')).toBeInTheDocument();
     });
 
     it('calls setIsCreating(true) when "新建文件夹" button is clicked', () => {
-      const vm = createMockFoldersVm({ folders: mockFolders });
-      renderSidebar({
-        collapsed: false,
-        foldersVm: vm,
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       fireEvent.click(screen.getByLabelText('新建文件夹'));
-      expect(vm.setIsCreating).toHaveBeenCalledWith(true);
+      expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(true);
     });
 
     it('renders SidebarFolderItem with context menu trigger for each folder', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({ folders: mockFolders }),
-      });
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
 
       // Each SidebarFolderItem in normal mode has a "文件夹操作" menu trigger
       const menuTriggers = screen.getAllByLabelText('文件夹操作');
@@ -386,13 +384,11 @@ describe('AppSidebar', () => {
     });
 
     it('shows edit form for the folder being edited', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({
-          folders: mockFolders,
-          editingFolderId: 'f1',
-        }),
+      resetMockFoldersVm({
+        folders: mockFolders,
+        editingFolderId: 'f1',
       });
+      renderSidebar({ collapsed: false });
 
       // The editing folder should show an input with its name
       expect(screen.getByDisplayValue('工作')).toBeInTheDocument();
@@ -404,53 +400,49 @@ describe('AppSidebar', () => {
     });
 
     it('shows create form when isCreating is true', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({
-          folders: mockFolders,
-          isCreating: true,
-        }),
+      resetMockFoldersVm({
+        folders: mockFolders,
+        isCreating: true,
       });
+      renderSidebar({ collapsed: false });
 
       // SidebarFolderCreate renders an empty input with placeholder
       expect(screen.getByPlaceholderText('文件夹名称')).toBeInTheDocument();
     });
 
     it('does not show create form when isCreating is false', () => {
-      renderSidebar({
-        collapsed: false,
-        foldersVm: createMockFoldersVm({
-          folders: mockFolders,
-          isCreating: false,
-        }),
+      resetMockFoldersVm({
+        folders: mockFolders,
+        isCreating: false,
       });
+      renderSidebar({ collapsed: false });
 
       expect(screen.queryByPlaceholderText('文件夹名称')).not.toBeInTheDocument();
     });
 
     it('wires handleCreateFolder to SidebarFolderCreate onCreate', () => {
-      const vm = createMockFoldersVm({
+      resetMockFoldersVm({
         folders: mockFolders,
         isCreating: true,
       });
-      renderSidebar({ collapsed: false, foldersVm: vm });
+      renderSidebar({ collapsed: false });
 
       const input = screen.getByPlaceholderText('文件夹名称');
       fireEvent.change(input, { target: { value: '新文件夹' } });
       fireEvent.click(screen.getByLabelText('确认'));
 
-      expect(vm.handleCreateFolder).toHaveBeenCalledWith('新文件夹', 'folder');
+      expect(mockFoldersVm.handleCreateFolder).toHaveBeenCalledWith('新文件夹', 'folder');
     });
 
     it('wires setIsCreating(false) to SidebarFolderCreate onCancel', () => {
-      const vm = createMockFoldersVm({
+      resetMockFoldersVm({
         folders: mockFolders,
         isCreating: true,
       });
-      renderSidebar({ collapsed: false, foldersVm: vm });
+      renderSidebar({ collapsed: false });
 
       fireEvent.click(screen.getByLabelText('取消'));
-      expect(vm.setIsCreating).toHaveBeenCalledWith(false);
+      expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(false);
     });
   });
 });

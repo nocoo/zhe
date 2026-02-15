@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Folder } from '@/models/types';
+import type { DashboardService } from '@/contexts/dashboard-service';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -11,6 +12,23 @@ vi.mock('@/actions/folders', () => ({
   createFolder: vi.fn(),
   updateFolder: vi.fn(),
   deleteFolder: vi.fn(),
+}));
+
+const mockService: DashboardService = {
+  links: [],
+  folders: [],
+  loading: false,
+  siteUrl: 'http://localhost:3000',
+  handleLinkCreated: vi.fn(),
+  handleLinkDeleted: vi.fn(),
+  handleLinkUpdated: vi.fn(),
+  handleFolderCreated: vi.fn(),
+  handleFolderDeleted: vi.fn(),
+  handleFolderUpdated: vi.fn(),
+};
+
+vi.mock('@/contexts/dashboard-service', () => ({
+  useDashboardService: () => mockService,
 }));
 
 // Import after mocks
@@ -45,6 +63,8 @@ describe('useFoldersViewModel', () => {
     vi.clearAllMocks();
     vi.stubGlobal('confirm', vi.fn());
     vi.stubGlobal('alert', vi.fn());
+    // Reset folders to empty by default
+    mockService.folders = [];
   });
 
   afterEach(() => {
@@ -55,17 +75,19 @@ describe('useFoldersViewModel', () => {
   // ====================================================================
   // Initial state
   // ====================================================================
-  it('returns initial state with provided folders', () => {
+  it('returns folders from DashboardService', () => {
     const folders = [makeFolder(), makeFolder({ id: 'folder-2', name: 'Personal' })];
-    const { result } = renderHook(() => useFoldersViewModel(folders));
+    mockService.folders = folders;
+    const { result } = renderHook(() => useFoldersViewModel());
 
     expect(result.current.folders).toEqual(folders);
     expect(result.current.editingFolderId).toBeNull();
     expect(result.current.isCreating).toBe(false);
   });
 
-  it('returns empty array when no folders provided', () => {
-    const { result } = renderHook(() => useFoldersViewModel([]));
+  it('returns empty array when service has no folders', () => {
+    mockService.folders = [];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     expect(result.current.folders).toEqual([]);
   });
@@ -73,39 +95,38 @@ describe('useFoldersViewModel', () => {
   // ====================================================================
   // createFolder
   // ====================================================================
-  it('handleCreateFolder adds folder to list on success', async () => {
+  it('handleCreateFolder calls service handleFolderCreated on success', async () => {
     const newFolder = makeFolder({ id: 'folder-new', name: 'New Folder' });
     vi.mocked(createFolder).mockResolvedValue({ success: true, data: newFolder });
 
-    const { result } = renderHook(() => useFoldersViewModel([]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleCreateFolder('New Folder', 'folder');
     });
 
     expect(createFolder).toHaveBeenCalledWith({ name: 'New Folder', icon: 'folder' });
-    expect(result.current.folders).toHaveLength(1);
-    expect(result.current.folders[0]).toEqual(newFolder);
+    expect(mockService.handleFolderCreated).toHaveBeenCalledWith(newFolder);
     expect(result.current.isCreating).toBe(false);
   });
 
   it('handleCreateFolder shows alert on failure', async () => {
     vi.mocked(createFolder).mockResolvedValue({ success: false, error: 'Invalid folder name' });
 
-    const { result } = renderHook(() => useFoldersViewModel([]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleCreateFolder('', 'folder');
     });
 
-    expect(result.current.folders).toHaveLength(0);
+    expect(mockService.handleFolderCreated).not.toHaveBeenCalled();
     expect(globalThis.alert).toHaveBeenCalledWith('Invalid folder name');
   });
 
   it('handleCreateFolder shows default error when error is empty', async () => {
     vi.mocked(createFolder).mockResolvedValue({ success: false });
 
-    const { result } = renderHook(() => useFoldersViewModel([]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleCreateFolder('Test', 'folder');
@@ -117,42 +138,40 @@ describe('useFoldersViewModel', () => {
   // ====================================================================
   // updateFolder
   // ====================================================================
-  it('handleUpdateFolder updates folder in list on success', async () => {
-    const original = makeFolder({ id: 'folder-1', name: 'Work', icon: 'briefcase' });
+  it('handleUpdateFolder calls service handleFolderUpdated on success', async () => {
     const updated = makeFolder({ id: 'folder-1', name: 'Work Projects', icon: 'star' });
     vi.mocked(updateFolder).mockResolvedValue({ success: true, data: updated });
 
-    const { result } = renderHook(() => useFoldersViewModel([original]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleUpdateFolder('folder-1', { name: 'Work Projects', icon: 'star' });
     });
 
     expect(updateFolder).toHaveBeenCalledWith('folder-1', { name: 'Work Projects', icon: 'star' });
-    expect(result.current.folders[0].name).toBe('Work Projects');
-    expect(result.current.folders[0].icon).toBe('star');
+    expect(mockService.handleFolderUpdated).toHaveBeenCalledWith(updated);
     expect(result.current.editingFolderId).toBeNull();
   });
 
   it('handleUpdateFolder shows alert on failure', async () => {
-    const original = makeFolder();
     vi.mocked(updateFolder).mockResolvedValue({ success: false, error: 'Not found' });
 
-    const { result } = renderHook(() => useFoldersViewModel([original]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleUpdateFolder('folder-1', { name: 'New Name' });
     });
 
-    // Folder unchanged
-    expect(result.current.folders[0].name).toBe('Work');
+    expect(mockService.handleFolderUpdated).not.toHaveBeenCalled();
     expect(globalThis.alert).toHaveBeenCalledWith('Not found');
   });
 
   it('handleUpdateFolder shows default error when error is empty', async () => {
     vi.mocked(updateFolder).mockResolvedValue({ success: false });
 
-    const { result } = renderHook(() => useFoldersViewModel([makeFolder()]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleUpdateFolder('folder-1', { name: 'Test' });
@@ -164,48 +183,47 @@ describe('useFoldersViewModel', () => {
   // ====================================================================
   // deleteFolder
   // ====================================================================
-  it('handleDeleteFolder removes folder from list on success', async () => {
+  it('handleDeleteFolder calls service handleFolderDeleted on success', async () => {
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: true });
 
-    const folder = makeFolder();
-    const { result } = renderHook(() => useFoldersViewModel([folder]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
     expect(deleteFolder).toHaveBeenCalledWith('folder-1');
-    expect(result.current.folders).toHaveLength(0);
+    expect(mockService.handleFolderDeleted).toHaveBeenCalledWith('folder-1');
   });
 
   it('handleDeleteFolder does nothing when confirm is false', async () => {
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
-    const folder = makeFolder();
-    const { result } = renderHook(() => useFoldersViewModel([folder]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
     expect(deleteFolder).not.toHaveBeenCalled();
-    expect(result.current.folders).toHaveLength(1);
+    expect(mockService.handleFolderDeleted).not.toHaveBeenCalled();
   });
 
   it('handleDeleteFolder shows alert on failure', async () => {
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: false, error: 'Access denied' });
 
-    const folder = makeFolder();
-    const { result } = renderHook(() => useFoldersViewModel([folder]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleDeleteFolder('folder-1');
     });
 
-    // Folder should still be in the list
-    expect(result.current.folders).toHaveLength(1);
+    expect(mockService.handleFolderDeleted).not.toHaveBeenCalled();
     expect(globalThis.alert).toHaveBeenCalledWith('Access denied');
   });
 
@@ -213,7 +231,7 @@ describe('useFoldersViewModel', () => {
     vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     vi.mocked(deleteFolder).mockResolvedValue({ success: false });
 
-    const { result } = renderHook(() => useFoldersViewModel([makeFolder()]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     await act(async () => {
       await result.current.handleDeleteFolder('folder-1');
@@ -226,7 +244,8 @@ describe('useFoldersViewModel', () => {
   // Editing state
   // ====================================================================
   it('startEditing sets editingFolderId', () => {
-    const { result } = renderHook(() => useFoldersViewModel([makeFolder()]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     act(() => {
       result.current.startEditing('folder-1');
@@ -236,7 +255,8 @@ describe('useFoldersViewModel', () => {
   });
 
   it('cancelEditing clears editingFolderId', () => {
-    const { result } = renderHook(() => useFoldersViewModel([makeFolder()]));
+    mockService.folders = [makeFolder()];
+    const { result } = renderHook(() => useFoldersViewModel());
 
     act(() => {
       result.current.startEditing('folder-1');
@@ -253,7 +273,7 @@ describe('useFoldersViewModel', () => {
   // isCreating state
   // ====================================================================
   it('setIsCreating toggles creating state', () => {
-    const { result } = renderHook(() => useFoldersViewModel([]));
+    const { result } = renderHook(() => useFoldersViewModel());
 
     act(() => {
       result.current.setIsCreating(true);

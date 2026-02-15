@@ -1,17 +1,30 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Folder } from "@/models/types";
 import {
   createFolder,
   updateFolder,
   deleteFolder,
 } from "@/actions/folders";
+import { useDashboardService } from "@/contexts/dashboard-service";
 
 /** Return type of useFoldersViewModel — can be used as a prop type */
 export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
-export function useFoldersViewModel(initialFolders: Folder[]) {
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
+
+/**
+ * Folders viewmodel — manages folder CRUD (server actions + service sync)
+ * and local UI state (editing / creating).
+ *
+ * Must be used inside DashboardServiceProvider.
+ */
+export function useFoldersViewModel() {
+  const {
+    folders,
+    handleFolderCreated,
+    handleFolderDeleted,
+    handleFolderUpdated,
+  } = useDashboardService();
+
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -19,28 +32,26 @@ export function useFoldersViewModel(initialFolders: Folder[]) {
     async (name: string, icon: string) => {
       const result = await createFolder({ name, icon });
       if (result.success && result.data) {
-        setFolders((prev) => [...prev, result.data!]);
+        handleFolderCreated(result.data);
         setIsCreating(false);
       } else {
         alert(result.error || "Failed to create folder");
       }
     },
-    [],
+    [handleFolderCreated],
   );
 
   const handleUpdateFolder = useCallback(
     async (id: string, data: { name?: string; icon?: string }) => {
       const result = await updateFolder(id, data);
       if (result.success && result.data) {
-        setFolders((prev) =>
-          prev.map((f) => (f.id === id ? result.data! : f)),
-        );
+        handleFolderUpdated(result.data);
         setEditingFolderId(null);
       } else {
         alert(result.error || "Failed to update folder");
       }
     },
-    [],
+    [handleFolderUpdated],
   );
 
   const handleDeleteFolder = useCallback(
@@ -49,12 +60,12 @@ export function useFoldersViewModel(initialFolders: Folder[]) {
 
       const result = await deleteFolder(id);
       if (result.success) {
-        setFolders((prev) => prev.filter((f) => f.id !== id));
+        handleFolderDeleted(id);
       } else {
         alert(result.error || "Failed to delete folder");
       }
     },
-    [],
+    [handleFolderDeleted],
   );
 
   const startEditing = useCallback((id: string) => {

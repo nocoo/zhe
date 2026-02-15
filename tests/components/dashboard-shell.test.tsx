@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
 
-let mockFoldersVm = {
-  folders: [] as { id: string; userId: string; name: string; icon: string; createdAt: Date }[],
-  editingFolderId: null as string | null,
+let mockFoldersVm: FoldersViewModel = {
+  folders: [],
+  editingFolderId: null,
   isCreating: false,
   setIsCreating: vi.fn(),
   handleCreateFolder: vi.fn(),
@@ -20,6 +21,31 @@ vi.mock('@/viewmodels/useFoldersViewModel', () => ({
 // Mock getLinks for DashboardServiceProvider
 vi.mock('@/actions/links', () => ({
   getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),
+}));
+
+// Mock folders actions to prevent next-auth import chain
+vi.mock('@/actions/folders', () => ({
+  getFolders: vi.fn(),
+  createFolder: vi.fn(),
+  updateFolder: vi.fn(),
+  deleteFolder: vi.fn(),
+}));
+
+// Mock DashboardService context
+vi.mock('@/contexts/dashboard-service', () => ({
+  useDashboardService: () => ({
+    links: [],
+    folders: [],
+    loading: false,
+    siteUrl: 'https://zhe.to',
+    handleLinkCreated: vi.fn(),
+    handleLinkDeleted: vi.fn(),
+    handleLinkUpdated: vi.fn(),
+    handleFolderCreated: vi.fn(),
+    handleFolderDeleted: vi.fn(),
+    handleFolderUpdated: vi.fn(),
+  }),
+  DashboardServiceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 let mockViewModel = {
