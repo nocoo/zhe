@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import {
 import { FolderIcon } from "@/components/folder-icon";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
+import { SearchCommandDialog } from "@/components/search-command-dialog";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 
 /** Nav items for folder filtering — rendered as <Link> */
@@ -72,6 +74,23 @@ export function AppSidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
+
+  // Search dialog state (pure UI — not in service)
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Cmd+K / Ctrl+K global keyboard shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const openSearch = useCallback(() => setSearchOpen(true), []);
 
   /** Whether a folder nav item is active, based on URL */
   function isFolderNavActive(folderParam: string | null): boolean {
@@ -231,15 +250,24 @@ export function AppSidebar({
         </div>
       </div>
 
-      {/* Search placeholder */}
+      {/* Search button */}
       <div className="px-3 pb-1">
-        <div className="flex w-full items-center gap-3 rounded-lg bg-secondary px-3 py-1.5">
+        <button
+          onClick={openSearch}
+          className="flex w-full items-center gap-3 rounded-lg bg-secondary px-3 py-1.5 cursor-pointer"
+        >
           <Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
           <span className="flex-1 text-left text-sm text-muted-foreground">
             搜索链接...
           </span>
-        </div>
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
       </div>
+
+      {/* Search command dialog */}
+      <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto pt-2">

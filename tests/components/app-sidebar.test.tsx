@@ -8,7 +8,7 @@ let mockSearchParamsFolder: string | null = null;
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => ({
     get: (key: string) => key === 'folder' ? mockSearchParamsFolder : null,
   }),
@@ -19,6 +19,27 @@ vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
     <a href={href} {...props}>{children}</a>
   ),
+}));
+
+// Mock actions to prevent next-auth/next-server import chain
+vi.mock('@/actions/links', () => ({
+  getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),
+}));
+
+// Mock DashboardService context for SearchCommandDialog
+vi.mock('@/contexts/dashboard-service', () => ({
+  useDashboardService: () => ({
+    links: [],
+    folders: [],
+    loading: false,
+    siteUrl: 'https://zhe.to',
+    handleLinkCreated: vi.fn(),
+    handleLinkDeleted: vi.fn(),
+    handleLinkUpdated: vi.fn(),
+    handleFolderCreated: vi.fn(),
+    handleFolderDeleted: vi.fn(),
+    handleFolderUpdated: vi.fn(),
+  }),
 }));
 
 import { AppSidebar } from '@/components/app-sidebar';
@@ -106,9 +127,65 @@ describe('AppSidebar', () => {
       expect(screen.getByText('ZHE.TO')).toBeInTheDocument();
     });
 
-    it('displays search placeholder', () => {
+    it('displays search button with text', () => {
       renderSidebar({ collapsed: false });
       expect(screen.getByText('搜索链接...')).toBeInTheDocument();
+    });
+
+    it('displays ⌘K keyboard shortcut hint in search button', () => {
+      renderSidebar({ collapsed: false });
+      expect(screen.getByText('K')).toBeInTheDocument();
+    });
+  });
+
+  describe('search functionality', () => {
+    it('opens search dialog when search button is clicked', () => {
+      renderSidebar({ collapsed: false });
+
+      const searchButton = screen.getByText('搜索链接...').closest('button');
+      expect(searchButton).toBeInTheDocument();
+      fireEvent.click(searchButton!);
+
+      // SearchCommandDialog should render with a search input
+      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+    });
+
+    it('opens search dialog on Cmd+K', () => {
+      renderSidebar({ collapsed: false });
+
+      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+
+      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+    });
+
+    it('opens search dialog on Ctrl+K', () => {
+      renderSidebar({ collapsed: false });
+
+      fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+
+      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+    });
+
+    it('toggles search dialog closed on second Cmd+K', () => {
+      renderSidebar({ collapsed: false });
+
+      // Open
+      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+
+      // Close — the CommandInput placeholder should disappear
+      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+      expect(screen.queryByPlaceholderText('搜索链接...')).not.toBeInTheDocument();
+    });
+
+    it('does not open search dialog on plain K key', () => {
+      renderSidebar({ collapsed: false });
+
+      fireEvent.keyDown(document, { key: 'k' });
+
+      // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
+      const allMatches = screen.queryAllByPlaceholderText('搜索链接...');
+      expect(allMatches).toHaveLength(0);
     });
   });
 
