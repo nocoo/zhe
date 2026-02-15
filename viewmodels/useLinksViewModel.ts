@@ -1,63 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import type { Link, Folder, AnalyticsStats } from "@/models/types";
-import { getLinks } from "@/actions/links";
-import { getFolders } from "@/actions/folders";
+import { useState, useCallback } from "react";
+import type { Link, AnalyticsStats } from "@/models/types";
 import { createLink, deleteLink, updateLink, getAnalyticsStats } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
-
-/** ViewModel for the links list page — fetches data client-side on mount */
-export function useLinksViewModel() {
-  const [links, setLinks] = useState<Link[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
-
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchData() {
-      const [linksResult, foldersResult] = await Promise.all([
-        getLinks(),
-        getFolders(),
-      ]);
-      if (cancelled) return;
-      setLinks(linksResult.data ?? []);
-      setFolders(foldersResult.data ?? []);
-      setLoading(false);
-    }
-    fetchData();
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleLinkCreated = useCallback((newLink: Link) => {
-    setLinks((prev) => [newLink, ...prev]);
-  }, []);
-
-  const handleLinkDeleted = useCallback((linkId: number) => {
-    setLinks((prev) => prev.filter((link) => link.id !== linkId));
-  }, []);
-
-  const handleLinkUpdated = useCallback((updatedLink: Link) => {
-    setLinks((prev) =>
-      prev.map((link) => (link.id === updatedLink.id ? updatedLink : link)),
-    );
-  }, []);
-
-  return {
-    links,
-    folders,
-    loading,
-    isCreating,
-    setIsCreating,
-    handleLinkCreated,
-    handleLinkDeleted,
-    handleLinkUpdated,
-    siteUrl,
-  };
-}
 
 /** ViewModel for a single link card — manages copy, delete, edit, analytics */
 export function useLinkCardViewModel(

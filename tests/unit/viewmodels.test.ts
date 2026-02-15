@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { Link, Folder, AnalyticsStats } from '@/models/types';
+import type { Link, AnalyticsStats } from '@/models/types';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -32,13 +32,11 @@ vi.mock('@/hooks/use-mobile', () => ({
 
 // Import after mocks are defined
 import {
-  useLinksViewModel,
   useLinkCardViewModel,
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { getLinks, createLink, deleteLink, updateLink, getAnalyticsStats } from '@/actions/links';
-import { getFolders } from '@/actions/folders';
+import { createLink, deleteLink, updateLink, getAnalyticsStats } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -61,132 +59,6 @@ function makeLink(overrides: Partial<Link> = {}): Link {
 }
 
 const SITE_URL = 'https://zhe.to';
-
-// ---------------------------------------------------------------------------
-// useLinksViewModel
-// ---------------------------------------------------------------------------
-
-describe('useLinksViewModel', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  function setupMocks(links: Link[] = [], folders: Folder[] = []) {
-    vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
-    vi.mocked(getFolders).mockResolvedValue({ success: true, data: folders });
-  }
-
-  it('returns loading=true initially, then loads data', async () => {
-    const links = [makeLink({ id: 1 }), makeLink({ id: 2, slug: 'xyz' })];
-    setupMocks(links);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    expect(result.current.loading).toBe(true);
-    expect(result.current.links).toEqual([]);
-
-    await act(async () => {
-      // Let useEffect resolve
-    });
-
-    expect(result.current.loading).toBe(false);
-    expect(result.current.links).toEqual(links);
-    expect(result.current.isCreating).toBe(false);
-    expect(result.current.siteUrl).toBe('http://localhost:3000');
-  });
-
-  it('handleLinkCreated prepends the new link to the front', async () => {
-    const existing = [makeLink({ id: 1 })];
-    setupMocks(existing);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    await act(async () => {});
-
-    const newLink = makeLink({ id: 99, slug: 'new-one' });
-
-    act(() => {
-      result.current.handleLinkCreated(newLink);
-    });
-
-    expect(result.current.links).toHaveLength(2);
-    expect(result.current.links[0]).toEqual(newLink);
-    expect(result.current.links[1]).toEqual(existing[0]);
-  });
-
-  it('handleLinkDeleted removes the link by id', async () => {
-    const links = [
-      makeLink({ id: 1, slug: 'a' }),
-      makeLink({ id: 2, slug: 'b' }),
-      makeLink({ id: 3, slug: 'c' }),
-    ];
-    setupMocks(links);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    await act(async () => {});
-
-    act(() => {
-      result.current.handleLinkDeleted(2);
-    });
-
-    expect(result.current.links).toHaveLength(2);
-    expect(result.current.links.map((l) => l.id)).toEqual([1, 3]);
-  });
-
-  it('handleLinkDeleted with non-existent id does nothing', async () => {
-    const links = [makeLink({ id: 1 })];
-    setupMocks(links);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    await act(async () => {});
-
-    act(() => {
-      result.current.handleLinkDeleted(999);
-    });
-
-    expect(result.current.links).toHaveLength(1);
-  });
-
-  it('handleLinkUpdated replaces the link in-place by id', async () => {
-    const links = [
-      makeLink({ id: 1, originalUrl: 'https://old.com' }),
-      makeLink({ id: 2, slug: 'other' }),
-    ];
-    setupMocks(links);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    await act(async () => {});
-
-    const updated = makeLink({ id: 1, originalUrl: 'https://new.com' });
-
-    act(() => {
-      result.current.handleLinkUpdated(updated);
-    });
-
-    expect(result.current.links).toHaveLength(2);
-    expect(result.current.links[0].originalUrl).toBe('https://new.com');
-    expect(result.current.links[1].id).toBe(2);
-  });
-
-  it('handleLinkUpdated with non-existent id does nothing', async () => {
-    const links = [makeLink({ id: 1 })];
-    setupMocks(links);
-
-    const { result } = renderHook(() => useLinksViewModel());
-
-    await act(async () => {});
-
-    act(() => {
-      result.current.handleLinkUpdated(makeLink({ id: 999 }));
-    });
-
-    expect(result.current.links).toHaveLength(1);
-    expect(result.current.links[0].id).toBe(1);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // useLinkCardViewModel
