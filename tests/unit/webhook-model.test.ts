@@ -3,6 +3,7 @@ import {
   generateWebhookToken,
   validateWebhookPayload,
   checkRateLimit,
+  buildWebhookDocumentation,
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
 } from "@/models/webhook";
@@ -180,6 +181,56 @@ describe("webhook model", () => {
       vi.advanceTimersByTime(30_001);
       // The first 30 expired, so we should have room
       expect(checkRateLimit(token).allowed).toBe(true);
+    });
+  });
+
+  describe("buildWebhookDocumentation", () => {
+    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
+
+    it("returns an object with endpoint, method, and headers", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.endpoint).toBe(baseUrl);
+      expect(docs.method).toBe("POST");
+      expect(docs.headers).toEqual({ "Content-Type": "application/json" });
+    });
+
+    it("includes request body parameters with descriptions", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.body).toHaveProperty("url");
+      expect(docs.body).toHaveProperty("customSlug");
+      expect(docs.body.url.required).toBe(true);
+      expect(docs.body.customSlug.required).toBe(false);
+    });
+
+    it("includes a curl example containing the webhook URL", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.example.curl).toContain(baseUrl);
+      expect(docs.example.curl).toContain("curl");
+    });
+
+    it("includes response schema with all fields", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.response).toHaveProperty("slug");
+      expect(docs.response).toHaveProperty("shortUrl");
+      expect(docs.response).toHaveProperty("originalUrl");
+    });
+
+    it("includes rate limit information", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.rateLimit.maxRequests).toBe(RATE_LIMIT_MAX_REQUESTS);
+      expect(docs.rateLimit.windowMs).toBe(RATE_LIMIT_WINDOW_MS);
+    });
+
+    it("includes error codes", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.errors).toBeDefined();
+      expect(docs.errors.length).toBeGreaterThan(0);
+      // Should at least cover 400, 404, 409, 429
+      const codes = docs.errors.map((e: { status: number }) => e.status);
+      expect(codes).toContain(400);
+      expect(codes).toContain(404);
+      expect(codes).toContain(409);
+      expect(codes).toContain(429);
     });
   });
 });
