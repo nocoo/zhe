@@ -366,6 +366,74 @@ export class ScopedDB {
     return rows.length > 0;
   }
 
+  // ---- Overview (global aggregates across all user data) ------
+
+  /**
+   * Get aggregated overview stats across all user-owned links, analytics, and uploads.
+   * Returns counts, breakdowns, click timestamps (for trend building), and top links.
+   */
+  async getOverviewStats(): Promise<{
+    totalLinks: number;
+    totalClicks: number;
+    totalUploads: number;
+    totalStorageBytes: number;
+    clickTimestamps: Date[];
+    topLinks: { slug: string; originalUrl: string; clicks: number }[];
+    deviceBreakdown: Record<string, number>;
+    browserBreakdown: Record<string, number>;
+    osBreakdown: Record<string, number>;
+  }> {
+    // Fetch all user data in parallel
+    const [links, uploads] = await Promise.all([
+      this.getLinks(),
+      this.getUploads(),
+    ]);
+
+    // Aggregate link stats
+    const totalLinks = links.length;
+    const totalClicks = links.reduce((sum, l) => sum + (l.clicks ?? 0), 0);
+
+    // Top links sorted by clicks descending
+    const topLinks = [...links]
+      .sort((a, b) => (b.clicks ?? 0) - (a.clicks ?? 0))
+      .map(l => ({ slug: l.slug, originalUrl: l.originalUrl, clicks: l.clicks ?? 0 }));
+
+    // Upload stats
+    const totalUploads = uploads.length;
+    const totalStorageBytes = uploads.reduce((sum, u) => sum + u.fileSize, 0);
+
+    // Fetch all analytics across all links (for breakdowns and timestamps)
+    const allAnalytics: Analytics[] = [];
+    for (const link of links) {
+      const analytics = await this.getAnalyticsByLinkId(link.id);
+      allAnalytics.push(...analytics);
+    }
+
+    const clickTimestamps = allAnalytics.map(a => a.createdAt);
+
+    const devices: Record<string, number> = {};
+    const browsers: Record<string, number> = {};
+    const oses: Record<string, number> = {};
+
+    for (const record of allAnalytics) {
+      if (record.device) devices[record.device] = (devices[record.device] || 0) + 1;
+      if (record.browser) browsers[record.browser] = (browsers[record.browser] || 0) + 1;
+      if (record.os) oses[record.os] = (oses[record.os] || 0) + 1;
+    }
+
+    return {
+      totalLinks,
+      totalClicks,
+      totalUploads,
+      totalStorageBytes,
+      clickTimestamps,
+      topLinks,
+      deviceBreakdown: devices,
+      browserBreakdown: browsers,
+      osBreakdown: oses,
+    };
+  }
+
   /** Get the R2 key for an upload, only if owned by this user. Returns null if not found. */
   async getUploadKey(id: number): Promise<string | null> {
     const rows = await executeD1Query<Record<string, unknown>>(

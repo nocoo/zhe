@@ -551,4 +551,143 @@ describe('ScopedDB', () => {
       expect(uploads).toEqual([]);
     });
   });
+
+  // ---- Overview stats ----------------------------------------
+
+  describe('getOverviewStats', () => {
+    it('returns zeroed stats when user has no data', async () => {
+      const db = new ScopedDB(USER_A);
+      const stats = await db.getOverviewStats();
+
+      expect(stats.totalLinks).toBe(0);
+      expect(stats.totalClicks).toBe(0);
+      expect(stats.totalUploads).toBe(0);
+      expect(stats.totalStorageBytes).toBe(0);
+      expect(stats.clickTimestamps).toEqual([]);
+      expect(stats.topLinks).toEqual([]);
+      expect(stats.deviceBreakdown).toEqual({});
+      expect(stats.browserBreakdown).toEqual({});
+      expect(stats.osBreakdown).toEqual({});
+    });
+
+    it('aggregates link and click counts across all user links', async () => {
+      const db = new ScopedDB(USER_A);
+      const link1 = await db.createLink({ originalUrl: 'https://a.com', slug: 'ov-a1', clicks: 10 });
+      const link2 = await db.createLink({ originalUrl: 'https://b.com', slug: 'ov-a2', clicks: 5 });
+
+      // Record some analytics clicks
+      await recordClick({ linkId: link1.id, device: 'desktop', browser: 'Chrome', os: 'macOS', country: 'US' });
+      await recordClick({ linkId: link1.id, device: 'mobile', browser: 'Safari', os: 'iOS', country: 'JP' });
+      await recordClick({ linkId: link2.id, device: 'desktop', browser: 'Firefox', os: 'Windows', country: 'DE' });
+
+      const stats = await db.getOverviewStats();
+
+      expect(stats.totalLinks).toBe(2);
+      // totalClicks comes from sum of links.clicks column (10 + 5 initial + 3 recorded = 18)
+      expect(stats.totalClicks).toBe(18);
+      expect(stats.clickTimestamps).toHaveLength(3);
+    });
+
+    it('does not include other users data', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createLink({ originalUrl: 'https://a.com', slug: 'ov-iso-a', clicks: 100 });
+      const linkB = await createLink({ userId: USER_B, originalUrl: 'https://b.com', slug: 'ov-iso-b' });
+      await recordClick({ linkId: linkB.id, device: 'desktop', browser: 'Edge', os: 'Windows' });
+
+      const statsA = await dbA.getOverviewStats();
+      expect(statsA.totalLinks).toBe(1);
+      expect(statsA.totalClicks).toBe(100);
+      // Alice should not see Bob's analytics
+      expect(statsA.clickTimestamps).toHaveLength(0);
+
+      const statsB = await dbB.getOverviewStats();
+      expect(statsB.totalLinks).toBe(1);
+      expect(statsB.clickTimestamps).toHaveLength(1);
+    });
+
+    it('computes device/browser/OS breakdowns across all links', async () => {
+      const db = new ScopedDB(USER_A);
+      const link1 = await db.createLink({ originalUrl: 'https://a.com', slug: 'ov-br1' });
+      const link2 = await db.createLink({ originalUrl: 'https://b.com', slug: 'ov-br2' });
+
+      await recordClick({ linkId: link1.id, device: 'desktop', browser: 'Chrome', os: 'macOS' });
+      await recordClick({ linkId: link1.id, device: 'mobile', browser: 'Chrome', os: 'Android' });
+      await recordClick({ linkId: link2.id, device: 'desktop', browser: 'Safari', os: 'macOS' });
+
+      const stats = await db.getOverviewStats();
+
+      expect(stats.deviceBreakdown).toEqual({ desktop: 2, mobile: 1 });
+      expect(stats.browserBreakdown).toEqual({ Chrome: 2, Safari: 1 });
+      expect(stats.osBreakdown).toEqual({ macOS: 2, Android: 1 });
+    });
+
+    it('returns top links sorted by clicks descending', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createLink({ originalUrl: 'https://low.com', slug: 'ov-top-low', clicks: 5 });
+      await db.createLink({ originalUrl: 'https://high.com', slug: 'ov-top-high', clicks: 100 });
+      await db.createLink({ originalUrl: 'https://mid.com', slug: 'ov-top-mid', clicks: 50 });
+
+      const stats = await db.getOverviewStats();
+
+      expect(stats.topLinks).toHaveLength(3);
+      expect(stats.topLinks[0].slug).toBe('ov-top-high');
+      expect(stats.topLinks[0].clicks).toBe(100);
+      expect(stats.topLinks[1].slug).toBe('ov-top-mid');
+      expect(stats.topLinks[2].slug).toBe('ov-top-low');
+    });
+
+    it('includes upload stats', async () => {
+      const db = new ScopedDB(USER_A);
+
+      await db.createUpload({
+        key: '20260212/ov1.png',
+        fileName: 'ov1.png',
+        fileType: 'image/png',
+        fileSize: 1024,
+        publicUrl: 'https://s.zhe.to/20260212/ov1.png',
+      });
+      await db.createUpload({
+        key: '20260212/ov2.jpg',
+        fileName: 'ov2.jpg',
+        fileType: 'image/jpeg',
+        fileSize: 2048,
+        publicUrl: 'https://s.zhe.to/20260212/ov2.jpg',
+      });
+
+      const stats = await db.getOverviewStats();
+
+      expect(stats.totalUploads).toBe(2);
+      expect(stats.totalStorageBytes).toBe(3072);
+    });
+
+    it('does not include other users uploads', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createUpload({
+        key: '20260212/alice.png',
+        fileName: 'alice.png',
+        fileType: 'image/png',
+        fileSize: 500,
+        publicUrl: 'https://s.zhe.to/20260212/alice.png',
+      });
+      await dbB.createUpload({
+        key: '20260212/bob.png',
+        fileName: 'bob.png',
+        fileType: 'image/png',
+        fileSize: 700,
+        publicUrl: 'https://s.zhe.to/20260212/bob.png',
+      });
+
+      const statsA = await dbA.getOverviewStats();
+      expect(statsA.totalUploads).toBe(1);
+      expect(statsA.totalStorageBytes).toBe(500);
+
+      const statsB = await dbB.getOverviewStats();
+      expect(statsB.totalUploads).toBe(1);
+      expect(statsB.totalStorageBytes).toBe(700);
+    });
+  });
 });
