@@ -95,6 +95,19 @@ describe('SidebarFolderItem', () => {
       expect(menuTrigger.className).toContain('group-hover:flex');
     });
 
+    it('wraps link count and more button in a fixed-width container', () => {
+      renderItem({ linkCount: 3 });
+
+      const countEl = screen.getByText('3');
+      const menuTrigger = screen.getByLabelText('文件夹操作');
+      // Both should share the same parent container
+      const container = countEl.parentElement!;
+      expect(container).toBe(menuTrigger.parentElement);
+      // Container has fixed width matching the + button (w-5) and centers content
+      expect(container.className).toContain('w-5');
+      expect(container.className).toContain('justify-center');
+    });
+
     it('shows edit and delete options in context menu', () => {
       // Radix DropdownMenu uses portals that don't render in jsdom.
       // We verify the menu trigger exists and callbacks are wired correctly instead.
