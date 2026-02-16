@@ -32,6 +32,9 @@ export const ALLOWED_TYPES: readonly string[] = [
 /** Maximum file size in bytes (10 MB). */
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+/** Default JPEG quality for PNG-to-JPG conversion (1–100 scale). */
+export const DEFAULT_JPEG_QUALITY = 90;
+
 // ============================================
 // Types
 // ============================================
@@ -216,6 +219,15 @@ export function convertPngToJpeg(
 
     img.src = url;
   });
+}
+
+/**
+ * Normalize a JPEG quality percentage (1–100) to a 0–1 value for the Canvas API.
+ * Clamps to [1, 100] and floors fractional input before dividing by 100.
+ */
+export function normalizeJpegQuality(percent: number): number {
+  const clamped = Math.max(1, Math.min(100, Math.floor(percent)));
+  return clamped / 100;
 }
 
 /** Check whether a MIME type is an image type. */

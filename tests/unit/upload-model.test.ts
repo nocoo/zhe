@@ -9,6 +9,8 @@ import {
   hashUserId,
   isPngFile,
   replaceExtension,
+  normalizeJpegQuality,
+  DEFAULT_JPEG_QUALITY,
   ALLOWED_TYPES,
   MAX_FILE_SIZE,
 } from '@/models/upload';
@@ -316,6 +318,46 @@ describe('models/upload', () => {
 
     it('appends extension when filename ends with dot', () => {
       expect(replaceExtension('file.', 'jpg')).toBe('file.jpg');
+    });
+  });
+
+  // --- DEFAULT_JPEG_QUALITY ---
+  describe('DEFAULT_JPEG_QUALITY', () => {
+    it('is 90', () => {
+      expect(DEFAULT_JPEG_QUALITY).toBe(90);
+    });
+  });
+
+  // --- normalizeJpegQuality ---
+  describe('normalizeJpegQuality', () => {
+    it('converts 90 to 0.9', () => {
+      expect(normalizeJpegQuality(90)).toBeCloseTo(0.9);
+    });
+
+    it('converts 100 to 1.0', () => {
+      expect(normalizeJpegQuality(100)).toBeCloseTo(1.0);
+    });
+
+    it('converts 1 to 0.01', () => {
+      expect(normalizeJpegQuality(1)).toBeCloseTo(0.01);
+    });
+
+    it('converts 50 to 0.5', () => {
+      expect(normalizeJpegQuality(50)).toBeCloseTo(0.5);
+    });
+
+    it('clamps values below 1 to 0.01', () => {
+      expect(normalizeJpegQuality(0)).toBeCloseTo(0.01);
+      expect(normalizeJpegQuality(-10)).toBeCloseTo(0.01);
+    });
+
+    it('clamps values above 100 to 1.0', () => {
+      expect(normalizeJpegQuality(150)).toBeCloseTo(1.0);
+      expect(normalizeJpegQuality(999)).toBeCloseTo(1.0);
+    });
+
+    it('handles fractional input by flooring', () => {
+      expect(normalizeJpegQuality(85.7)).toBeCloseTo(0.85);
     });
   });
 });
