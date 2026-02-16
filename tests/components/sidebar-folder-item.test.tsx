@@ -76,12 +76,23 @@ describe('SidebarFolderItem', () => {
       expect(link?.className).toContain('text-muted-foreground');
     });
 
-    it('shows context menu trigger on hover', () => {
+    it('shows link count by default', () => {
+      renderItem({ linkCount: 5 });
+
+      const countEl = screen.getByText('5');
+      expect(countEl).toBeInTheDocument();
+      // link count visible by default (group-hover hides it)
+      expect(countEl.className).toContain('group-hover:hidden');
+    });
+
+    it('shows more button hidden by default, visible on group hover', () => {
       renderItem();
 
-      // The "..." button should exist but be visually hidden until hover
       const menuTrigger = screen.getByLabelText('文件夹操作');
       expect(menuTrigger).toBeInTheDocument();
+      // hidden by default, shown on group-hover
+      expect(menuTrigger.className).toContain('hidden');
+      expect(menuTrigger.className).toContain('group-hover:flex');
     });
 
     it('shows edit and delete options in context menu', () => {
