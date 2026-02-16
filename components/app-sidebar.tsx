@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen } from "lucide-react";
+import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -43,6 +43,17 @@ interface NavGroup {
   items: StaticNavItem[];
 }
 
+/** Nav groups rendered ABOVE the 链接管理 section */
+const PRE_LINK_NAV_GROUPS: NavGroup[] = [
+  {
+    label: "概览",
+    items: [
+      { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
+    ],
+  },
+];
+
+/** Nav groups rendered BELOW the 链接管理 section */
 const OTHER_NAV_GROUPS: NavGroup[] = [
   {
     label: "图片管理",
@@ -128,6 +139,28 @@ export function AppSidebar({
         </button>
 
         <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
+          {/* Pre-link nav items (概览 etc.) */}
+          {PRE_LINK_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
+            <Tooltip key={item.href} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                    pathname === item.href
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" strokeWidth={1.5} />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {item.title}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
           {/* Folder nav items as links */}
           {FOLDER_NAV_ITEMS.map((item) => (
             <Tooltip key={item.title} delayDuration={0}>
@@ -271,6 +304,34 @@ export function AppSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto pt-2">
+        {/* Pre-link nav groups (概览 etc.) */}
+        {PRE_LINK_NAV_GROUPS.map((group) => (
+          <div key={group.label} className="px-3 mb-1">
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <span className="text-sm font-normal text-muted-foreground">
+                {group.label}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
+                    pathname === item.href
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                  <span className="flex-1 text-left">{item.title}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+
         {/* 链接管理 group */}
         <div className="px-3 mb-1">
           <div className="flex items-center justify-between px-3 py-2.5">

@@ -127,9 +127,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (2 folder nav + 1 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 1 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(3);
+      expect(navLinks.length).toBe(4);
     });
   });
 
@@ -211,6 +211,39 @@ describe('AppSidebar', () => {
       // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
       const allMatches = screen.queryAllByPlaceholderText('搜索链接...');
       expect(allMatches).toHaveLength(0);
+    });
+  });
+
+  describe('overview nav item', () => {
+    it('renders "概览" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      // Find the link by href (the section label "概览" also exists as text)
+      const overviewLink = screen.getByRole('link', { name: '概览' });
+      expect(overviewLink).toBeInTheDocument();
+      expect(overviewLink.getAttribute('href')).toBe('/dashboard/overview');
+    });
+
+    it('highlights "概览" when on overview page', () => {
+      mockPathname = '/dashboard/overview';
+      renderSidebar({ collapsed: false });
+
+      const overviewLink = screen.getByRole('link', { name: '概览' });
+      expect(overviewLink.className).toContain('bg-accent');
+      expect(overviewLink.className).toContain('text-foreground');
+    });
+
+    it('renders overview section label above 链接管理', () => {
+      const { container } = renderSidebar({ collapsed: false });
+
+      // Find section labels by their class
+      const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
+      const labels = Array.from(sectionLabels).map((el) => el.textContent);
+
+      // Overview should come before 链接管理
+      const overviewIndex = labels.indexOf('概览');
+      const linksIndex = labels.indexOf('链接管理');
+      expect(overviewIndex).toBeLessThan(linksIndex);
     });
   });
 
@@ -354,9 +387,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 2 folder nav + 2 dynamic folders + 1 static = 5
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 1 static = 6
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(5);
+      expect(navLinks.length).toBe(6);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
