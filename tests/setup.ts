@@ -51,6 +51,9 @@ vi.mock('@/lib/db/d1-client', async () => {
           is_custom: isCustom,
           expires_at: expiresAt,
           clicks: clicks ?? 0,
+          meta_title: null,
+          meta_description: null,
+          meta_favicon: null,
           created_at: createdAt,
         };
         mockLinks.set(slug as string, link as unknown as import('@/lib/db/schema').Link);
@@ -135,6 +138,12 @@ vi.mock('@/lib/db/d1-client', async () => {
                   rawLink.folder_id = params[paramIndex];
                 } else if (field === 'expires_at') {
                   rawLink.expires_at = params[paramIndex];
+                } else if (field === 'meta_title') {
+                  rawLink.meta_title = params[paramIndex];
+                } else if (field === 'meta_description') {
+                  rawLink.meta_description = params[paramIndex];
+                } else if (field === 'meta_favicon') {
+                  rawLink.meta_favicon = params[paramIndex];
                 } else if (field === 'clicks') {
                   // Handle increment: clicks = clicks + 1
                   if (clause.includes('clicks + 1')) {

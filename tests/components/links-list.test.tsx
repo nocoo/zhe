@@ -57,6 +57,9 @@ const mockLinks: Link[] = [
     createdAt: new Date('2026-01-01'),
     expiresAt: null,
     folderId: 'f1',
+    metaTitle: null,
+    metaDescription: null,
+    metaFavicon: null,
   },
   {
     id: 2,
@@ -68,6 +71,9 @@ const mockLinks: Link[] = [
     createdAt: new Date('2026-01-02'),
     expiresAt: null,
     folderId: 'f2',
+    metaTitle: null,
+    metaDescription: null,
+    metaFavicon: null,
   },
   {
     id: 3,
@@ -79,6 +85,9 @@ const mockLinks: Link[] = [
     createdAt: new Date('2026-01-03'),
     expiresAt: null,
     folderId: null,
+    metaTitle: null,
+    metaDescription: null,
+    metaFavicon: null,
   },
 ];
 

@@ -26,6 +26,9 @@ function rowToLink(row: Record<string, unknown>): Link {
     isCustom: Boolean(row.is_custom),
     expiresAt: row.expires_at ? new Date(row.expires_at as number) : null,
     clicks: row.clicks as number,
+    metaTitle: (row.meta_title as string) ?? null,
+    metaDescription: (row.meta_description as string) ?? null,
+    metaFavicon: (row.meta_favicon as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -149,6 +152,39 @@ export class ScopedDB {
     if (data.expiresAt !== undefined) {
       setClauses.push('expires_at = ?');
       params.push(data.expiresAt ? data.expiresAt.getTime() : null);
+    }
+
+    if (setClauses.length === 0) {
+      return this.getLinkById(id);
+    }
+
+    params.push(id, this.userId);
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+      params,
+    );
+    return rows[0] ? rowToLink(rows[0]) : null;
+  }
+
+  /** Update metadata fields for a link. Returns updated link or null if not found/not owned. */
+  async updateLinkMetadata(
+    id: number,
+    data: { metaTitle?: string | null; metaDescription?: string | null; metaFavicon?: string | null },
+  ): Promise<Link | null> {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    if (data.metaTitle !== undefined) {
+      setClauses.push('meta_title = ?');
+      params.push(data.metaTitle);
+    }
+    if (data.metaDescription !== undefined) {
+      setClauses.push('meta_description = ?');
+      params.push(data.metaDescription);
+    }
+    if (data.metaFavicon !== undefined) {
+      setClauses.push('meta_favicon = ?');
+      params.push(data.metaFavicon);
     }
 
     if (setClauses.length === 0) {

@@ -72,6 +72,9 @@ const FAKE_LINK = {
   isCustom: false,
   expiresAt: null,
   clicks: 0,
+  metaTitle: null,
+  metaDescription: null,
+  metaFavicon: null,
   createdAt: new Date(),
 };
 

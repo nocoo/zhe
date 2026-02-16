@@ -130,6 +130,9 @@ describe('middleware', () => {
       userId: 'u1',
       folderId: null,
       isCustom: false,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
       createdAt: new Date('2019-01-01'),
     });
 
@@ -150,6 +153,9 @@ describe('middleware', () => {
       userId: 'u1',
       folderId: null,
       isCustom: true,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
       createdAt: new Date(),
     });
 
@@ -171,6 +177,9 @@ describe('middleware', () => {
       userId: 'u1',
       folderId: null,
       isCustom: true,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
       createdAt: new Date(),
     });
 

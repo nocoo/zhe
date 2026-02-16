@@ -63,6 +63,9 @@ export const links = sqliteTable('links', {
   isCustom: integer('is_custom', { mode: 'boolean' }).default(false),
   expiresAt: integer('expires_at', { mode: 'timestamp' }),
   clicks: integer('clicks').default(0),
+  metaTitle: text('meta_title'),
+  metaDescription: text('meta_description'),
+  metaFavicon: text('meta_favicon'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

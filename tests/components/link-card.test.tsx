@@ -56,6 +56,9 @@ const baseLink: Link = {
   createdAt: new Date("2026-01-15"),
   expiresAt: null,
   folderId: null,
+  metaTitle: null,
+  metaDescription: null,
+  metaFavicon: null,
 };
 
 describe("LinkCard", () => {
