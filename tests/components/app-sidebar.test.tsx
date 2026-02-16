@@ -610,6 +610,27 @@ describe('AppSidebar', () => {
       expect(personalItem.textContent).toContain('0');
     });
 
+    it('wraps "全部链接" and "未分类" counts in a fixed-width w-5 container', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: null }),
+      ];
+      resetMockFoldersVm({ folders: [] });
+      renderSidebar({ collapsed: false });
+
+      const allLinksItem = screen.getByText('全部链接').closest('a')!;
+      const allCount = allLinksItem.querySelector('.tabular-nums')!;
+      const allContainer = allCount.parentElement!;
+      expect(allContainer.className).toContain('w-5');
+      expect(allContainer.className).toContain('shrink-0');
+
+      const uncategorizedItem = screen.getByText('未分类').closest('a')!;
+      const uncatCount = uncategorizedItem.querySelector('.tabular-nums')!;
+      const uncatContainer = uncatCount.parentElement!;
+      expect(uncatContainer.className).toContain('w-5');
+      expect(uncatContainer.className).toContain('shrink-0');
+    });
+
     it('does not show count badges in collapsed mode', () => {
       mockLinks = [
         makeLink({ id: 1, folderId: null }),

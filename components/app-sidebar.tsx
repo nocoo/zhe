@@ -371,8 +371,10 @@ export function AppSidebar({
               >
                 <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                 <span className="flex-1 text-left">{item.title}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
+                <span className="flex w-5 shrink-0 items-center justify-center">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
+                  </span>
                 </span>
               </Link>
             ))}
