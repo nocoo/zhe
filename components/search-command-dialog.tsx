@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Link2, FolderOpen, Copy } from "lucide-react";
 import {
@@ -12,7 +12,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useDashboardService } from "@/contexts/dashboard-service";
-import { buildShortUrl, stripProtocol } from "@/models/links";
+import { buildShortUrl, stripProtocol, filterLinks } from "@/models/links";
 
 export interface SearchCommandDialogProps {
   open: boolean;
@@ -25,6 +25,13 @@ export function SearchCommandDialog({
 }: SearchCommandDialogProps) {
   const { links, folders, siteUrl } = useDashboardService();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  /** Filter links using substring match instead of cmdk fuzzy matching */
+  const filteredLinks = useMemo(
+    () => filterLinks(links, searchQuery),
+    [links, searchQuery],
+  );
 
   /** Find the folder a link belongs to */
   const getFolderName = useCallback(
@@ -59,21 +66,23 @@ export function SearchCommandDialog({
   );
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="搜索链接..." />
+    <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
+      <CommandInput
+        placeholder="搜索链接..."
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+      />
       <CommandList>
         <CommandEmpty>没有找到匹配的链接</CommandEmpty>
         <CommandGroup heading="链接">
-          {links.map((link) => {
+          {filteredLinks.map((link) => {
             const folderName = getFolderName(link.folderId);
             const shortUrl = buildShortUrl(siteUrl, link.slug);
-            // cmdk uses `value` for fuzzy matching
-            const searchValue = `${link.slug} ${stripProtocol(link.originalUrl)}`;
 
             return (
               <CommandItem
                 key={link.id}
-                value={searchValue}
+                value={link.slug}
                 className="flex items-center justify-between gap-2"
                 onSelect={() => handleNavigateToFolder(link.folderId)}
               >

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Link, Folder } from "@/models/types";
 import type { DashboardService } from "@/contexts/dashboard-service";
 
@@ -237,6 +238,73 @@ describe("SearchCommandDialog", () => {
       // Press Escape to close dialog
       fireEvent.keyDown(document, { key: "Escape" });
       expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  // ── Search filtering ──
+
+  describe("search filtering", () => {
+    beforeEach(() => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
+        makeLink({ id: 2, slug: "xyz", originalUrl: "https://google.com/search" }),
+        makeLink({ id: 3, slug: "hello", originalUrl: "https://world.org" }),
+      ];
+    });
+
+    it("shows all links when search input is empty", () => {
+      renderDialog();
+      expect(screen.getByText("zhe.to/abc")).toBeInTheDocument();
+      expect(screen.getByText("zhe.to/xyz")).toBeInTheDocument();
+      expect(screen.getByText("zhe.to/hello")).toBeInTheDocument();
+    });
+
+    it("filters links by slug substring", async () => {
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接...");
+      await userEvent.type(input, "abc");
+
+      expect(screen.getByText("zhe.to/abc")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/xyz")).not.toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/hello")).not.toBeInTheDocument();
+    });
+
+    it("filters links by URL substring", async () => {
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接...");
+      await userEvent.type(input, "google");
+
+      expect(screen.getByText("zhe.to/xyz")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/abc")).not.toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/hello")).not.toBeInTheDocument();
+    });
+
+    it("does not produce false positives from cross-field matching", async () => {
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接...");
+      // "abcgoo" should NOT match — "abc" is in slug of link 1, "goo" is in URL of link 2
+      await userEvent.type(input, "abcgoo");
+
+      expect(screen.queryByText("zhe.to/abc")).not.toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/xyz")).not.toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/hello")).not.toBeInTheDocument();
+    });
+
+    it("shows empty state when no links match search", async () => {
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接...");
+      await userEvent.type(input, "nonexistent");
+
+      expect(screen.getByText("没有找到匹配的链接")).toBeInTheDocument();
+    });
+
+    it("filtering is case-insensitive", async () => {
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接...");
+      await userEvent.type(input, "HELLO");
+
+      expect(screen.getByText("zhe.to/hello")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/abc")).not.toBeInTheDocument();
     });
   });
 });
