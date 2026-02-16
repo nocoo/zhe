@@ -9,10 +9,12 @@ interface OverviewRawStats {
   totalUploads: number;
   totalStorageBytes: number;
   clickTimestamps: Date[];
+  uploadTimestamps: Date[];
   topLinks: { slug: string; originalUrl: string; clicks: number }[];
   deviceBreakdown: Record<string, number>;
   browserBreakdown: Record<string, number>;
   osBreakdown: Record<string, number>;
+  fileTypeBreakdown: Record<string, number>;
 }
 
 interface ActionResult<T = void> {

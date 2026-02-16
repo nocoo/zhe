@@ -52,10 +52,12 @@ describe('getOverviewStats action', () => {
       totalUploads: 5,
       totalStorageBytes: 1048576,
       clickTimestamps: [new Date('2026-02-10'), new Date('2026-02-11')],
+      uploadTimestamps: [new Date('2026-02-10'), new Date('2026-02-12')],
       topLinks: [{ slug: 'abc', originalUrl: 'https://example.com', clicks: 100 }],
       deviceBreakdown: { desktop: 300, mobile: 200 },
       browserBreakdown: { Chrome: 400 },
       osBreakdown: { macOS: 300 },
+      fileTypeBreakdown: { 'image/png': 3, 'image/jpeg': 2 },
     };
     mockGetOverviewStats.mockResolvedValue(mockStats);
 
