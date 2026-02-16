@@ -29,7 +29,7 @@ vi.mock("@/lib/slug", () => ({
   sanitizeSlug: (...args: unknown[]) => mockSanitizeSlug(...args),
 }));
 
-import { POST } from "@/app/api/webhook/[token]/route";
+import { POST, GET } from "@/app/api/webhook/[token]/route";
 
 function makeRequest(
   token: string,
@@ -230,5 +230,63 @@ describe("POST /api/webhook/[token]", () => {
 
     const res = await POST(req, makeParams("valid-token"));
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/webhook/[token]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 404 for invalid token", async () => {
+    mockGetWebhookByToken.mockResolvedValue(null);
+
+    const req = new Request("http://localhost/api/webhook/bad-token", {
+      method: "GET",
+    });
+    const res = await GET(req, makeParams("bad-token"));
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBeDefined();
+  });
+
+  it("returns documentation JSON for valid token", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "GET",
+    });
+    const res = await GET(req, makeParams("valid-token"));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.endpoint).toContain("valid-token");
+    expect(json.method).toBe("POST");
+    expect(json.headers).toEqual({ "Content-Type": "application/json" });
+    expect(json.body).toBeDefined();
+    expect(json.response).toBeDefined();
+    expect(json.rateLimit).toBeDefined();
+    expect(json.example).toBeDefined();
+    expect(json.errors).toBeDefined();
+  });
+
+  it("builds endpoint URL from request origin", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "my-token",
+      createdAt: new Date(),
+    });
+
+    const req = new Request("https://zhe.example.com/api/webhook/my-token", {
+      method: "GET",
+    });
+    const res = await GET(req, makeParams("my-token"));
+    const json = await res.json();
+    expect(json.endpoint).toBe("https://zhe.example.com/api/webhook/my-token");
   });
 });
