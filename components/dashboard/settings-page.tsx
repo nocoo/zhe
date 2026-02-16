@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 import { useWebhookViewModel } from "@/viewmodels/useWebhookViewModel";
+import { buildWebhookDocumentation } from "@/models/webhook";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, CheckCircle, Webhook, Copy } from "lucide-react";
@@ -190,6 +191,9 @@ export function SettingsPage() {
                   {isRevoking ? "撤销中..." : "撤销令牌"}
                 </Button>
               </div>
+
+              {/* Usage documentation */}
+              <WebhookUsageDocs webhookUrl={webhookUrl} />
             </div>
           ) : (
             <Button
@@ -203,6 +207,96 @@ export function SettingsPage() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Webhook usage documentation sub-component
+// ---------------------------------------------------------------------------
+
+function WebhookUsageDocs({ webhookUrl }: { webhookUrl: string }) {
+  const docs = buildWebhookDocumentation(webhookUrl);
+
+  return (
+    <div className="space-y-4 border-t border-border/50 pt-4">
+      <p className="text-xs font-medium text-foreground">使用说明</p>
+
+      {/* Curl example */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">请求示例</p>
+        <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+          {docs.example.curl}
+        </pre>
+      </div>
+
+      {/* Request parameters */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">请求参数</p>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border/50 text-left text-muted-foreground">
+              <th className="pb-1.5 pr-3 font-medium">参数</th>
+              <th className="pb-1.5 pr-3 font-medium">类型</th>
+              <th className="pb-1.5 pr-3 font-medium">必填</th>
+              <th className="pb-1.5 font-medium">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(docs.body).map(([name, param]) => (
+              <tr key={name} className="border-b border-border/30">
+                <td className="py-1.5 pr-3 font-mono">{name}</td>
+                <td className="py-1.5 pr-3 text-muted-foreground">{param.type}</td>
+                <td className="py-1.5 pr-3">{param.required ? "是" : "否"}</td>
+                <td className="py-1.5 text-muted-foreground">{param.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Response format */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">响应格式</p>
+        <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+          {JSON.stringify(
+            Object.fromEntries(
+              Object.entries(docs.response).map(([k, v]) => [k, `(${v.type}) ${v.description}`]),
+            ),
+            null,
+            2,
+          )}
+        </pre>
+      </div>
+
+      {/* Rate limit */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">速率限制</p>
+        <p className="text-xs text-muted-foreground">
+          每个令牌最多 <strong className="text-foreground">{docs.rateLimit.maxRequests}</strong> 次请求 / 分钟
+        </p>
+      </div>
+
+      {/* Error codes */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">错误码</p>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border/50 text-left text-muted-foreground">
+              <th className="pb-1.5 pr-3 font-medium">状态码</th>
+              <th className="pb-1.5 font-medium">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {docs.errors.map((err) => (
+              <tr key={err.status} className="border-b border-border/30">
+                <td className="py-1.5 pr-3 font-mono">{err.status}</td>
+                <td className="py-1.5 text-muted-foreground">{err.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
