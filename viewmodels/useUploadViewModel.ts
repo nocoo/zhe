@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Upload } from "@/lib/db/schema";
 import type { UploadingFile } from "@/models/upload";
 import { validateUploadRequest } from "@/models/upload";
-import { formatFileSize, isImageType, isPngFile, convertPngToJpeg } from "@/models/upload";
+import { formatFileSize, isImageType, isPngFile, convertPngToJpeg, normalizeJpegQuality, DEFAULT_JPEG_QUALITY } from "@/models/upload";
 import {
   getPresignedUploadUrl,
   recordUpload,
@@ -17,6 +17,7 @@ import { copyToClipboard } from "@/lib/utils";
 export { formatFileSize, isImageType };
 
 const AUTO_CONVERT_PNG_KEY = "autoConvertPng";
+const JPEG_QUALITY_KEY = "jpegQuality";
 
 /** ViewModel for the uploads list page — fetches data client-side on mount */
 export function useUploadsViewModel() {
@@ -32,10 +33,32 @@ export function useUploadsViewModel() {
     }
   });
 
+  const [jpegQuality, setJpegQualityState] = useState(() => {
+    try {
+      const stored = localStorage.getItem(JPEG_QUALITY_KEY);
+      if (stored !== null) {
+        const parsed = Number(stored);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
+    return DEFAULT_JPEG_QUALITY;
+  });
+
   const setAutoConvertPng = useCallback((value: boolean) => {
     setAutoConvertPngState(value);
     try {
       localStorage.setItem(AUTO_CONVERT_PNG_KEY, String(value));
+    } catch {
+      // localStorage unavailable — ignore
+    }
+  }, []);
+
+  const setJpegQuality = useCallback((value: number) => {
+    setJpegQualityState(value);
+    try {
+      localStorage.setItem(JPEG_QUALITY_KEY, String(value));
     } catch {
       // localStorage unavailable — ignore
     }
@@ -77,7 +100,7 @@ export function useUploadsViewModel() {
     let fileToUpload = file;
     if (autoConvertPng && isPngFile(file)) {
       try {
-        fileToUpload = await convertPngToJpeg(file);
+        fileToUpload = await convertPngToJpeg(file, normalizeJpegQuality(jpegQuality));
       } catch {
         // Fall back to original file on conversion failure
         fileToUpload = file;
@@ -204,7 +227,7 @@ export function useUploadsViewModel() {
     setTimeout(() => {
       setUploadingFiles((prev) => prev.filter((f) => f.id !== tempId));
     }, 2000);
-  }, [autoConvertPng]);
+  }, [autoConvertPng, jpegQuality]);
 
   /** Handle multiple files from input or drop */
   const handleFiles = useCallback(
@@ -248,6 +271,8 @@ export function useUploadsViewModel() {
     setIsDragOver,
     autoConvertPng,
     setAutoConvertPng,
+    jpegQuality,
+    setJpegQuality,
     handleFiles,
     handleDelete,
     refreshUploads,

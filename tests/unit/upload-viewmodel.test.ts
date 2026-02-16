@@ -46,6 +46,7 @@ import {
   useUploadItemViewModel,
 } from '@/viewmodels/useUploadViewModel';
 import { convertPngToJpeg } from '@/models/upload';
+import { DEFAULT_JPEG_QUALITY } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -599,6 +600,116 @@ describe('useUploadsViewModel', () => {
         fileType: 'image/png',
         fileSize: 1024,
       });
+    });
+  });
+
+  describe('jpegQuality', () => {
+    it('defaults to DEFAULT_JPEG_QUALITY when localStorage has no value', async () => {
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.jpegQuality).toBe(DEFAULT_JPEG_QUALITY);
+    });
+
+    it('reads initial value from localStorage', async () => {
+      localStorage.setItem('jpegQuality', '75');
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.jpegQuality).toBe(75);
+    });
+
+    it('ignores invalid localStorage value and falls back to default', async () => {
+      localStorage.setItem('jpegQuality', 'abc');
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.jpegQuality).toBe(DEFAULT_JPEG_QUALITY);
+    });
+
+    it('persists value to localStorage when set', async () => {
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setJpegQuality(75);
+      });
+
+      expect(localStorage.getItem('jpegQuality')).toBe('75');
+      expect(result.current.jpegQuality).toBe(75);
+    });
+
+    it('passes quality to convertPngToJpeg when uploading', async () => {
+      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+      vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
+
+      const upload = makeUpload({ id: 60 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
+          key: '20260212/uuid.jpg',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+        result.current.setJpegQuality(75);
+      });
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should pass normalized quality (75 / 100 = 0.75)
+      expect(convertPngToJpeg).toHaveBeenCalledWith(
+        expect.any(File),
+        0.75,
+      );
+    });
+
+    it('uses default quality when jpegQuality not changed', async () => {
+      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+      vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
+
+      const upload = makeUpload({ id: 61 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
+          key: '20260212/uuid.jpg',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should pass normalized default quality (90 / 100 = 0.9)
+      expect(convertPngToJpeg).toHaveBeenCalledWith(
+        expect.any(File),
+        0.9,
+      );
     });
   });
 });
