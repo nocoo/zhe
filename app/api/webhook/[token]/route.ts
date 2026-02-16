@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWebhookByToken, slugExists, createLink } from "@/lib/db";
+import { getWebhookByToken, getLinkByUserAndUrl, slugExists, createLink } from "@/lib/db";
 import {
   validateWebhookPayload,
   checkRateLimit,
@@ -95,7 +95,21 @@ export async function POST(
 
   const { url, customSlug } = validation.data;
 
-  // 4. Resolve slug
+  // 4. Idempotency check — if same URL already exists for this user, return it
+  const existingLink = await getLinkByUserAndUrl(webhook.userId, url);
+  if (existingLink) {
+    const origin = new URL(request.url).origin;
+    return NextResponse.json(
+      {
+        slug: existingLink.slug,
+        shortUrl: `${origin}/${existingLink.slug}`,
+        originalUrl: existingLink.originalUrl,
+      },
+      { status: 200 },
+    );
+  }
+
+  // 5. Resolve slug
   let slug: string;
   let isCustom = false;
 
@@ -122,7 +136,7 @@ export async function POST(
     slug = await generateUniqueSlug(slugExists);
   }
 
-  // 5. Create the link under the webhook owner's account
+  // 6. Create the link under the webhook owner's account
   const link = await createLink({
     userId: webhook.userId,
     originalUrl: url,
@@ -132,7 +146,7 @@ export async function POST(
     clicks: 0,
   });
 
-  // 6. Build short URL from the request origin
+  // 7. Build short URL from the request origin
   const origin = new URL(request.url).origin;
   const shortUrl = `${origin}/${link.slug}`;
 
