@@ -7,6 +7,7 @@ import {
   topBreakdownEntries,
   hasAnalyticsData,
   filterLinks,
+  buildLinkCounts,
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
@@ -268,6 +269,77 @@ describe('models/links', () => {
 
     it('returns empty array for empty links array', () => {
       expect(filterLinks([], 'test')).toEqual([]);
+    });
+  });
+
+  // --- buildLinkCounts ---
+  describe('buildLinkCounts', () => {
+    it('returns zeros for empty links array', () => {
+      const counts = buildLinkCounts([]);
+      expect(counts.total).toBe(0);
+      expect(counts.uncategorized).toBe(0);
+      expect(counts.byFolder).toEqual(new Map());
+    });
+
+    it('counts all links as total', () => {
+      const links = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: 'folder-1' }),
+        makeLink({ id: 3, folderId: 'folder-2' }),
+      ];
+      expect(buildLinkCounts(links).total).toBe(3);
+    });
+
+    it('counts links with null folderId as uncategorized', () => {
+      const links = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: null }),
+        makeLink({ id: 3, folderId: 'folder-1' }),
+      ];
+      expect(buildLinkCounts(links).uncategorized).toBe(2);
+    });
+
+    it('groups links by folderId in byFolder map', () => {
+      const links = [
+        makeLink({ id: 1, folderId: 'folder-a' }),
+        makeLink({ id: 2, folderId: 'folder-a' }),
+        makeLink({ id: 3, folderId: 'folder-b' }),
+        makeLink({ id: 4, folderId: null }),
+      ];
+      const counts = buildLinkCounts(links);
+      expect(counts.byFolder.get('folder-a')).toBe(2);
+      expect(counts.byFolder.get('folder-b')).toBe(1);
+      expect(counts.byFolder.has('folder-c')).toBe(false);
+    });
+
+    it('does not include null folderId in byFolder map', () => {
+      const links = [
+        makeLink({ id: 1, folderId: null }),
+      ];
+      const counts = buildLinkCounts(links);
+      expect(counts.byFolder.size).toBe(0);
+    });
+
+    it('handles all links in one folder', () => {
+      const links = [
+        makeLink({ id: 1, folderId: 'only-folder' }),
+        makeLink({ id: 2, folderId: 'only-folder' }),
+      ];
+      const counts = buildLinkCounts(links);
+      expect(counts.total).toBe(2);
+      expect(counts.uncategorized).toBe(0);
+      expect(counts.byFolder.get('only-folder')).toBe(2);
+    });
+
+    it('handles all links uncategorized', () => {
+      const links = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: null }),
+      ];
+      const counts = buildLinkCounts(links);
+      expect(counts.total).toBe(2);
+      expect(counts.uncategorized).toBe(2);
+      expect(counts.byFolder.size).toBe(0);
     });
   });
 });

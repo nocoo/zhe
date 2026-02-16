@@ -54,3 +54,29 @@ export function filterLinks(links: Link[], query: string): Link[] {
     return slug.includes(trimmed) || url.includes(trimmed);
   });
 }
+
+/** Link count breakdown for sidebar badges */
+export interface LinkCounts {
+  /** Total number of links */
+  total: number;
+  /** Links with no folder (folderId is null) */
+  uncategorized: number;
+  /** Per-folder link counts keyed by folderId */
+  byFolder: Map<string, number>;
+}
+
+/** Build link count breakdown from an array of links */
+export function buildLinkCounts(links: Link[]): LinkCounts {
+  let uncategorized = 0;
+  const byFolder = new Map<string, number>();
+
+  for (const link of links) {
+    if (link.folderId === null) {
+      uncategorized++;
+    } else {
+      byFolder.set(link.folderId, (byFolder.get(link.folderId) ?? 0) + 1);
+    }
+  }
+
+  return { total: links.length, uncategorized, byFolder };
+}
