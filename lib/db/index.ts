@@ -4,7 +4,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, NewLink, Analytics, NewAnalytics } from './schema';
+import type { Link, NewLink, Analytics, NewAnalytics, Webhook } from './schema';
 
 // ============================================
 // Type Conversion Helpers
@@ -241,4 +241,28 @@ export async function getAnalyticsStats(linkId: number): Promise<{
     browserBreakdown: browsers,
     osBreakdown: oses,
   };
+}
+
+// ============================================
+// Webhook Operations (unscoped — for API route)
+// ============================================
+
+function rowToWebhook(row: Record<string, unknown>): Webhook {
+  return {
+    id: row.id as number,
+    userId: row.user_id as string,
+    token: row.token as string,
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+/**
+ * Look up a webhook by its token (unscoped — used by the public API route).
+ */
+export async function getWebhookByToken(token: string): Promise<Webhook | null> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    'SELECT * FROM webhooks WHERE token = ? LIMIT 1',
+    [token]
+  );
+  return rows[0] ? rowToWebhook(rows[0]) : null;
 }

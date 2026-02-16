@@ -10,7 +10,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload } from './schema';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook } from './schema';
 
 // ============================================
 // Row conversion helpers (shared with index.ts)
@@ -66,6 +66,15 @@ function rowToUpload(row: Record<string, unknown>): Upload {
     fileType: row.file_type as string,
     fileSize: row.file_size as number,
     publicUrl: row.public_url as string,
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+function rowToWebhook(row: Record<string, unknown>): Webhook {
+  return {
+    id: row.id as number,
+    userId: row.user_id as string,
+    token: row.token as string,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -452,5 +461,43 @@ export class ScopedDB {
       [id, this.userId],
     );
     return rows[0] ? (rows[0].key as string) : null;
+  }
+
+  // ============================================
+  // Webhook Operations (one per user)
+  // ============================================
+
+  /** Get the current webhook for this user, or null. */
+  async getWebhook(): Promise<Webhook | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM webhooks WHERE user_id = ? LIMIT 1',
+      [this.userId],
+    );
+    return rows[0] ? rowToWebhook(rows[0]) : null;
+  }
+
+  /** Upsert a webhook token for this user (replaces existing). */
+  async upsertWebhook(token: string): Promise<Webhook> {
+    // Delete existing webhook for this user (if any)
+    await executeD1Query(
+      'DELETE FROM webhooks WHERE user_id = ?',
+      [this.userId],
+    );
+
+    const now = Date.now();
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO webhooks (user_id, token, created_at) VALUES (?, ?, ?) RETURNING *`,
+      [this.userId, token, now],
+    );
+    return rowToWebhook(rows[0]);
+  }
+
+  /** Delete the webhook for this user. Returns true if deleted. */
+  async deleteWebhook(): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'DELETE FROM webhooks WHERE user_id = ? RETURNING id',
+      [this.userId],
+    );
+    return rows.length > 0;
   }
 }

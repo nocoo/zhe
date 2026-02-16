@@ -20,7 +20,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getNextLinkId, getNextAnalyticsId, getNextUploadId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
@@ -29,6 +29,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       const mockAnalytics = getMockAnalytics();
       const mockUploads = getMockUploads();
       const mockFolders = getMockFolders();
+      const mockWebhooks = getMockWebhooks();
       
       // Parse SQL and simulate D1 responses
       const sqlLower = sql.toLowerCase().trim();
@@ -392,6 +393,60 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
       
+      // ---- Webhooks ----
+
+      // SELECT FROM webhooks WHERE user_id = ?
+      if (sqlLower.includes('from webhooks') && sqlLower.includes('where user_id = ?')) {
+        const [userId] = params;
+        const webhook = mockWebhooks.get(userId as string);
+        return webhook ? [webhook] as T[] : [];
+      }
+
+      // SELECT FROM webhooks WHERE token = ?
+      if (sqlLower.includes('from webhooks') && sqlLower.includes('where token = ?')) {
+        const [token] = params;
+        for (const webhook of mockWebhooks.values()) {
+          const raw = webhook as unknown as Record<string, unknown>;
+          if (raw.token === token) {
+            return [webhook] as T[];
+          }
+        }
+        return [];
+      }
+
+      // DELETE FROM webhooks WHERE user_id = ?
+      if (sqlLower.startsWith('delete from webhooks') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('returning')) {
+        const [userId] = params;
+        mockWebhooks.delete(userId as string);
+        return [];
+      }
+
+      // DELETE FROM webhooks WHERE user_id = ? RETURNING id
+      if (sqlLower.startsWith('delete from webhooks') && sqlLower.includes('where user_id = ?') && sqlLower.includes('returning')) {
+        const [userId] = params;
+        const webhook = mockWebhooks.get(userId as string);
+        if (webhook) {
+          mockWebhooks.delete(userId as string);
+          const raw = webhook as unknown as Record<string, unknown>;
+          return [{ id: raw.id }] as T[];
+        }
+        return [];
+      }
+
+      // INSERT INTO webhooks
+      if (sqlLower.startsWith('insert into webhooks')) {
+        const [userId, token, createdAt] = params;
+        const id = getNextWebhookId();
+        const webhook = {
+          id,
+          user_id: userId,
+          token,
+          created_at: createdAt,
+        };
+        mockWebhooks.set(userId as string, webhook as unknown as import('@/lib/db/schema').Webhook);
+        return [webhook] as T[];
+      }
+
       console.warn('Unhandled SQL in mock:', sql);
       return [];
     },

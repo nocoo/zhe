@@ -81,6 +81,13 @@ export const analytics = sqliteTable('analytics', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+export const webhooks = sqliteTable('webhooks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  token: text('token').notNull().unique(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
 export const uploads = sqliteTable('uploads', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -110,3 +117,6 @@ export type NewAnalytics = typeof analytics.$inferInsert;
 
 export type Upload = typeof uploads.$inferSelect;
 export type NewUpload = typeof uploads.$inferInsert;
+
+export type Webhook = typeof webhooks.$inferSelect;
+export type NewWebhook = typeof webhooks.$inferInsert;
