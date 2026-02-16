@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createLink,
   getLinksByUserId,
+  getLinkByUserAndUrl,
   deleteLinkById,
   updateLink,
 } from '@/lib/db';
@@ -104,6 +105,96 @@ describe('Link DB Operations', () => {
       expect(link.expiresAt!.getTime()).toBe(expiresAt.getTime());
       expect(link.clicks).toBe(5);
       expect(link.createdAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('getLinkByUserAndUrl', () => {
+    it('should return the link when user has a link with the given URL', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/existing',
+        slug: 'exist1',
+      });
+
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/existing');
+
+      expect(found).not.toBeNull();
+      expect(found!.userId).toBe('user-1');
+      expect(found!.originalUrl).toBe('https://example.com/existing');
+      expect(found!.slug).toBe('exist1');
+    });
+
+    it('should return null when URL does not exist for the user', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/a',
+        slug: 'aaa',
+      });
+
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/nonexistent');
+
+      expect(found).toBeNull();
+    });
+
+    it('should not return links belonging to other users', async () => {
+      await createLink({
+        userId: 'user-2',
+        originalUrl: 'https://example.com/shared',
+        slug: 'shared',
+      });
+
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/shared');
+
+      expect(found).toBeNull();
+    });
+
+    it('should return null when no links exist at all', async () => {
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/nothing');
+      expect(found).toBeNull();
+    });
+
+    it('should return the correct link when user has multiple links', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/first',
+        slug: 'first',
+      });
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/second',
+        slug: 'second',
+      });
+
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/second');
+
+      expect(found).not.toBeNull();
+      expect(found!.slug).toBe('second');
+      expect(found!.originalUrl).toBe('https://example.com/second');
+    });
+
+    it('should map the returned row through rowToLink correctly', async () => {
+      const expiresAt = new Date('2027-06-01T00:00:00Z');
+      await createLink({
+        userId: 'user-1',
+        folderId: 'folder-99',
+        originalUrl: 'https://example.com/mapped',
+        slug: 'mapped',
+        isCustom: true,
+        expiresAt,
+        clicks: 10,
+      });
+
+      const found = await getLinkByUserAndUrl('user-1', 'https://example.com/mapped');
+
+      expect(found).not.toBeNull();
+      expect(found!.id).toBeTypeOf('number');
+      expect(found!.userId).toBe('user-1');
+      expect(found!.folderId).toBe('folder-99');
+      expect(found!.isCustom).toBe(true);
+      expect(found!.expiresAt).toBeInstanceOf(Date);
+      expect(found!.expiresAt!.getTime()).toBe(expiresAt.getTime());
+      expect(found!.clicks).toBe(10);
+      expect(found!.createdAt).toBeInstanceOf(Date);
     });
   });
 

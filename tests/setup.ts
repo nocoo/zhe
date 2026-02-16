@@ -72,6 +72,18 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
       
+      // SELECT FROM links WHERE user_id = ? AND original_url = ? (idempotency lookup)
+      if (sqlLower.includes('from links') && sqlLower.includes('where user_id = ?') && sqlLower.includes('and original_url = ?')) {
+        const [userId, url] = params;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId && rawLink.original_url === url) {
+            return [link] as T[];
+          }
+        }
+        return [];
+      }
+
       // SELECT FROM links WHERE user_id = ?
       if (sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
