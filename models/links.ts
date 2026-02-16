@@ -43,3 +43,14 @@ export function hasAnalyticsData(stats: AnalyticsStats): boolean {
     Object.keys(stats.deviceBreakdown).length > 0
   );
 }
+
+/** Filter links by substring match on slug or original URL (protocol-stripped, case-insensitive) */
+export function filterLinks(links: Link[], query: string): Link[] {
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed === "") return links;
+  return links.filter((link) => {
+    const slug = link.slug.toLowerCase();
+    const url = stripProtocol(link.originalUrl).toLowerCase();
+    return slug.includes(trimmed) || url.includes(trimmed);
+  });
+}

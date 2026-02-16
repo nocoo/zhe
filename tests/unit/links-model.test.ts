@@ -6,6 +6,7 @@ import {
   sortLinksByDate,
   topBreakdownEntries,
   hasAnalyticsData,
+  filterLinks,
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
@@ -195,6 +196,78 @@ describe('models/links', () => {
         osBreakdown: { Windows: 10 },
       };
       expect(hasAnalyticsData(stats)).toBe(false);
+    });
+  });
+
+  // --- filterLinks ---
+  describe('filterLinks', () => {
+    const links = [
+      makeLink({ id: 1, slug: 'abc', originalUrl: 'https://example.com' }),
+      makeLink({ id: 2, slug: 'xyz', originalUrl: 'https://google.com/search' }),
+      makeLink({ id: 3, slug: 'hello', originalUrl: 'https://world.org' }),
+      makeLink({ id: 4, slug: 'test', originalUrl: 'https://abc-site.com' }),
+    ];
+
+    it('returns all links when query is empty', () => {
+      expect(filterLinks(links, '')).toEqual(links);
+    });
+
+    it('returns all links when query is whitespace', () => {
+      expect(filterLinks(links, '   ')).toEqual(links);
+    });
+
+    it('matches by slug substring (case-insensitive)', () => {
+      // "abc" matches slug "abc" (link 1) and url "abc-site.com" (link 4)
+      const result = filterLinks(links, 'abc');
+      expect(result.map((l) => l.id)).toEqual([1, 4]);
+    });
+
+    it('matches by original URL substring (case-insensitive, protocol stripped)', () => {
+      const result = filterLinks(links, 'google');
+      expect(result.map((l) => l.id)).toEqual([2]);
+    });
+
+    it('matches are case-insensitive', () => {
+      const result = filterLinks(links, 'ABC');
+      // "ABC" matches slug "abc" (link 1) and url "abc-site.com" (link 4)
+      expect(result.map((l) => l.id)).toEqual([1, 4]);
+    });
+
+    it('does not produce false positives from cross-field fuzzy matching', () => {
+      // "abcgoo" should NOT match any link — no single field contains "abcgoo"
+      // (slug "abc" + url "google.com" would falsely match with cmdk fuzzy)
+      const result = filterLinks(links, 'abcgoo');
+      expect(result).toEqual([]);
+    });
+
+    it('matches when query appears in slug only', () => {
+      const result = filterLinks(links, 'hell');
+      expect(result.map((l) => l.id)).toEqual([3]);
+    });
+
+    it('matches when query appears in URL only', () => {
+      const result = filterLinks(links, 'world');
+      expect(result.map((l) => l.id)).toEqual([3]);
+    });
+
+    it('can match multiple links', () => {
+      // "abc" is in slug of link 1 and in URL of link 4 (abc-site.com)
+      const result = filterLinks(links, 'abc');
+      expect(result.map((l) => l.id)).toEqual([1, 4]);
+    });
+
+    it('matches URL path segments', () => {
+      const result = filterLinks(links, 'search');
+      expect(result.map((l) => l.id)).toEqual([2]);
+    });
+
+    it('returns empty array when nothing matches', () => {
+      const result = filterLinks(links, 'nonexistent');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array for empty links array', () => {
+      expect(filterLinks([], 'test')).toEqual([]);
     });
   });
 });
