@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Upload } from "@/lib/db/schema";
 import type { UploadingFile } from "@/models/upload";
 import { validateUploadRequest } from "@/models/upload";
-import { formatFileSize, isImageType } from "@/models/upload";
+import { formatFileSize, isImageType, isPngFile, convertPngToJpeg } from "@/models/upload";
 import {
   getPresignedUploadUrl,
   recordUpload,
@@ -22,6 +22,7 @@ export function useUploadsViewModel() {
   const [loading, setLoading] = useState(true);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [autoConvertPng, setAutoConvertPng] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,11 +56,22 @@ export function useUploadsViewModel() {
     // Add to uploading list
     setUploadingFiles((prev) => [uploadingFile, ...prev]);
 
+    // Step 0: Convert PNG to JPEG if enabled
+    let fileToUpload = file;
+    if (autoConvertPng && isPngFile(file)) {
+      try {
+        fileToUpload = await convertPngToJpeg(file);
+      } catch {
+        // Fall back to original file on conversion failure
+        fileToUpload = file;
+      }
+    }
+
     // Step 1: Validate
     const validation = validateUploadRequest({
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
+      fileName: fileToUpload.name,
+      fileType: fileToUpload.type,
+      fileSize: fileToUpload.size,
     });
 
     if (!validation.valid) {
@@ -81,9 +93,9 @@ export function useUploadsViewModel() {
     );
 
     const presignResult = await getPresignedUploadUrl({
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
+      fileName: fileToUpload.name,
+      fileType: fileToUpload.type,
+      fileSize: fileToUpload.size,
     });
 
     if (!presignResult.success || !presignResult.data) {
@@ -109,8 +121,8 @@ export function useUploadsViewModel() {
     try {
       const putResponse = await fetch(uploadUrl, {
         method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
+        body: fileToUpload,
+        headers: { "Content-Type": fileToUpload.type },
       });
 
       if (!putResponse.ok) {
@@ -140,9 +152,9 @@ export function useUploadsViewModel() {
 
     const recordResult = await recordUpload({
       key,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
+      fileName: fileToUpload.name,
+      fileType: fileToUpload.type,
+      fileSize: fileToUpload.size,
       publicUrl,
     });
 
@@ -175,7 +187,7 @@ export function useUploadsViewModel() {
     setTimeout(() => {
       setUploadingFiles((prev) => prev.filter((f) => f.id !== tempId));
     }, 2000);
-  }, []);
+  }, [autoConvertPng]);
 
   /** Handle multiple files from input or drop */
   const handleFiles = useCallback(
@@ -217,6 +229,8 @@ export function useUploadsViewModel() {
     uploadingFiles,
     isDragOver,
     setIsDragOver,
+    autoConvertPng,
+    setAutoConvertPng,
     handleFiles,
     handleDelete,
     refreshUploads,

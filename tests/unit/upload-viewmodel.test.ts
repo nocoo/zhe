@@ -26,6 +26,9 @@ vi.mock('@/models/upload', async (importOriginal) => {
     validateUploadRequest: original.validateUploadRequest,
     formatFileSize: original.formatFileSize,
     isImageType: original.isImageType,
+    isPngFile: original.isPngFile,
+    replaceExtension: original.replaceExtension,
+    convertPngToJpeg: vi.fn(),
   };
 });
 
@@ -42,6 +45,7 @@ import {
   useUploadsViewModel,
   useUploadItemViewModel,
 } from '@/viewmodels/useUploadViewModel';
+import { convertPngToJpeg } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -387,6 +391,169 @@ describe('useUploadsViewModel', () => {
       });
 
       expect(result.current.uploadingFiles).toHaveLength(0);
+    });
+  });
+
+  describe('autoConvertPng', () => {
+    it('defaults to false', async () => {
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.autoConvertPng).toBe(false);
+    });
+
+    it('can be toggled on and off', async () => {
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+      expect(result.current.autoConvertPng).toBe(true);
+
+      act(() => {
+        result.current.setAutoConvertPng(false);
+      });
+      expect(result.current.autoConvertPng).toBe(false);
+    });
+
+    it('converts PNG to JPEG before upload when enabled', async () => {
+      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+      vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
+
+      const upload = makeUpload({ id: 50 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
+          key: '20260212/uuid.jpg',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should have called convertPngToJpeg
+      expect(convertPngToJpeg).toHaveBeenCalled();
+
+      // Presigned URL should use the converted file's metadata
+      expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
+        fileName: 'photo.jpg',
+        fileType: 'image/jpeg',
+        fileSize: 800,
+      });
+
+      // PUT should use converted file type
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://r2.example.com/presigned',
+        expect.objectContaining({
+          headers: { 'Content-Type': 'image/jpeg' },
+        }),
+      );
+    });
+
+    it('does not convert PNG when autoConvertPng is false', async () => {
+      const upload = makeUpload({ id: 51 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
+          key: '20260212/uuid.png',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      expect(convertPngToJpeg).not.toHaveBeenCalled();
+      expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
+        fileName: 'photo.png',
+        fileType: 'image/png',
+        fileSize: 1024,
+      });
+    });
+
+    it('does not convert non-PNG files even when enabled', async () => {
+      const upload = makeUpload({ id: 52 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
+          key: '20260212/uuid.jpg',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.jpg', 'image/jpeg', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      expect(convertPngToJpeg).not.toHaveBeenCalled();
+    });
+
+    it('falls back to original file when conversion fails', async () => {
+      vi.mocked(convertPngToJpeg).mockRejectedValue(new Error('Canvas error'));
+
+      const upload = makeUpload({ id: 53 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
+          key: '20260212/uuid.png',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+
+      await act(async () => {
+        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should fall back to original PNG
+      expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
+        fileName: 'photo.png',
+        fileType: 'image/png',
+        fileSize: 1024,
+      });
     });
   });
 });
