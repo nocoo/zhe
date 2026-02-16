@@ -39,7 +39,6 @@ export function useLinkCardViewModel(
   }, [shortUrl]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this link?")) return;
     setIsDeleting(true);
     const result = await deleteLink(link.id);
     if (result.success) {

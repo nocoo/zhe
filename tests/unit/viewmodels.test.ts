@@ -81,8 +81,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(deleteLink).mockReset();
     vi.mocked(updateLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
-    // Mock window.confirm and window.alert
-    vi.stubGlobal('confirm', vi.fn());
+    // Mock window.alert (confirm no longer used — AlertDialog handles confirmation)
     vi.stubGlobal('alert', vi.fn());
   });
 
@@ -151,9 +150,10 @@ describe('useLinkCardViewModel', () => {
   });
 
   // --- handleDelete ---
+  // Note: confirmation is now handled by AlertDialog in the component layer.
+  // handleDelete is called directly after user confirms via AlertDialog.
 
-  it('handleDelete with confirm=true calls deleteLink and onDelete on success', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
+  it('handleDelete calls deleteLink and onDelete on success', async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: true });
 
     const { result } = renderHook(() =>
@@ -164,16 +164,12 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleDelete();
     });
 
-    expect(globalThis.confirm).toHaveBeenCalledWith(
-      'Are you sure you want to delete this link?'
-    );
     expect(deleteLink).toHaveBeenCalledWith(42);
     expect(mockOnDelete).toHaveBeenCalledWith(42);
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete with confirm=true shows alert on failure', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
+  it('handleDelete shows alert on failure', async () => {
     vi.mocked(deleteLink).mockResolvedValue({
       success: false,
       error: 'Not found',
@@ -192,8 +188,7 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete with confirm=true shows default error message when error is empty', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
+  it('handleDelete shows default error message when error is empty', async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: false });
 
     const { result } = renderHook(() =>
@@ -205,22 +200,6 @@ describe('useLinkCardViewModel', () => {
     });
 
     expect(globalThis.alert).toHaveBeenCalledWith('Failed to delete link');
-  });
-
-  it('handleDelete with confirm=false does nothing', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(false);
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {
-      await result.current.handleDelete();
-    });
-
-    expect(deleteLink).not.toHaveBeenCalled();
-    expect(mockOnDelete).not.toHaveBeenCalled();
-    expect(result.current.isDeleting).toBe(false);
   });
 
   // --- handleToggleAnalytics ---
