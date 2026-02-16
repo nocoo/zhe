@@ -12,7 +12,7 @@ import type { Folder } from "@/models/types";
 
 /** Route-to-title mapping for the dashboard header */
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard/uploads": "图床",
+  "/dashboard/uploads": "图片管理",
 };
 
 function usePageTitle(): string {

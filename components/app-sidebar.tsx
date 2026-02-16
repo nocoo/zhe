@@ -45,9 +45,9 @@ interface NavGroup {
 
 const OTHER_NAV_GROUPS: NavGroup[] = [
   {
-    label: "图床",
+    label: "图片管理",
     items: [
-      { title: "图床", icon: ImageIcon, href: "/dashboard/uploads" },
+      { title: "图片管理", icon: ImageIcon, href: "/dashboard/uploads" },
     ],
   },
 ];
@@ -172,7 +172,7 @@ export function AppSidebar({
             </Tooltip>
           ))}
 
-          {/* Other static nav items (图床 etc.) */}
+          {/* Other static nav items (图片管理 etc.) */}
           {OTHER_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
             <Tooltip key={item.href} delayDuration={0}>
               <TooltipTrigger asChild>
@@ -327,7 +327,7 @@ export function AppSidebar({
           </div>
         </div>
 
-        {/* Other nav groups (图床 etc.) */}
+        {/* Other nav groups (图片管理 etc.) */}
         {OTHER_NAV_GROUPS.map((group) => (
           <div key={group.label} className="px-3 mb-1">
             <div className="flex items-center justify-between px-3 py-2.5">

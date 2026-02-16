@@ -394,7 +394,7 @@ describe('UploadList', () => {
 
     render(<UploadList />);
 
-    expect(screen.getByText('图床')).toBeInTheDocument();
+    expect(screen.getByText('图片管理')).toBeInTheDocument();
     expect(screen.getByText('共 2 个文件')).toBeInTheDocument();
   });
 
@@ -462,6 +462,6 @@ describe('UploadList', () => {
 
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
-    expect(screen.queryByText('图床')).not.toBeInTheDocument();
+    expect(screen.queryByText('图片管理')).not.toBeInTheDocument();
   });
 });
