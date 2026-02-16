@@ -89,6 +89,19 @@ export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promi
 }
 
 /**
+ * Find a link by user id and original URL.
+ * Used for webhook idempotency — returns existing link if URL already shortened.
+ */
+export async function getLinkByUserAndUrl(userId: string, url: string): Promise<Link | null> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    'SELECT * FROM links WHERE user_id = ? AND original_url = ? LIMIT 1',
+    [userId, url]
+  );
+
+  return rows[0] ? rowToLink(rows[0]) : null;
+}
+
+/**
  * Get all links for a user.
  */
 export async function getLinksByUserId(userId: string): Promise<Link[]> {
