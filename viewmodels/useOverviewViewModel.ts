@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getOverviewStats } from '@/actions/overview';
-import { buildClickTrend } from '@/models/overview';
+import { buildClickTrend, buildUploadTrend } from '@/models/overview';
 import type { OverviewStats } from '@/models/overview';
 
 export interface OverviewViewModelState {
@@ -32,6 +32,7 @@ export function useOverviewViewModel(): OverviewViewModelState {
         } else {
           const raw = result.data;
           const clickTrend = buildClickTrend(raw.clickTimestamps);
+          const uploadTrend = buildUploadTrend(raw.uploadTimestamps);
 
           setStats({
             totalLinks: raw.totalLinks,
@@ -39,10 +40,12 @@ export function useOverviewViewModel(): OverviewViewModelState {
             totalUploads: raw.totalUploads,
             totalStorageBytes: raw.totalStorageBytes,
             clickTrend,
+            uploadTrend,
             topLinks: raw.topLinks,
             deviceBreakdown: raw.deviceBreakdown,
             browserBreakdown: raw.browserBreakdown,
             osBreakdown: raw.osBreakdown,
+            fileTypeBreakdown: raw.fileTypeBreakdown,
           });
           setError(null);
         }
