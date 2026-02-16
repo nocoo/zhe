@@ -90,6 +90,7 @@ describe('useUploadsViewModel', () => {
     });
     // Default: empty uploads from server
     mockFetchUploads.mockResolvedValue({ success: true, data: [] });
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -395,10 +396,54 @@ describe('useUploadsViewModel', () => {
   });
 
   describe('autoConvertPng', () => {
-    it('defaults to false', async () => {
+    it('defaults to false when localStorage has no value', async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
+      expect(result.current.autoConvertPng).toBe(false);
+    });
+
+    it('reads initial value from localStorage', async () => {
+      localStorage.setItem('autoConvertPng', 'true');
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.autoConvertPng).toBe(true);
+    });
+
+    it('reads false from localStorage', async () => {
+      localStorage.setItem('autoConvertPng', 'false');
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      expect(result.current.autoConvertPng).toBe(false);
+    });
+
+    it('persists true to localStorage when toggled on', async () => {
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(true);
+      });
+
+      expect(localStorage.getItem('autoConvertPng')).toBe('true');
+      expect(result.current.autoConvertPng).toBe(true);
+    });
+
+    it('persists false to localStorage when toggled off', async () => {
+      localStorage.setItem('autoConvertPng', 'true');
+
+      const { result } = renderHook(() => useUploadsViewModel());
+      await act(async () => {});
+
+      act(() => {
+        result.current.setAutoConvertPng(false);
+      });
+
+      expect(localStorage.getItem('autoConvertPng')).toBe('false');
       expect(result.current.autoConvertPng).toBe(false);
     });
 

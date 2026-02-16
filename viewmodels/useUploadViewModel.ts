@@ -16,13 +16,30 @@ import { copyToClipboard } from "@/lib/utils";
 // Re-export for component convenience
 export { formatFileSize, isImageType };
 
+const AUTO_CONVERT_PNG_KEY = "autoConvertPng";
+
 /** ViewModel for the uploads list page — fetches data client-side on mount */
 export function useUploadsViewModel() {
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [autoConvertPng, setAutoConvertPng] = useState(false);
+  const [autoConvertPng, setAutoConvertPngState] = useState(() => {
+    try {
+      return localStorage.getItem(AUTO_CONVERT_PNG_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const setAutoConvertPng = useCallback((value: boolean) => {
+    setAutoConvertPngState(value);
+    try {
+      localStorage.setItem(AUTO_CONVERT_PNG_KEY, String(value));
+    } catch {
+      // localStorage unavailable — ignore
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
