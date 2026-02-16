@@ -118,3 +118,85 @@ export function checkRateLimit(token: string): RateLimitResult {
   timestamps.push(now);
   return { allowed: true };
 }
+
+// ---------------------------------------------------------------------------
+// API documentation builder
+// ---------------------------------------------------------------------------
+
+export interface WebhookDocParam {
+  type: string;
+  required: boolean;
+  description: string;
+}
+
+export interface WebhookDocError {
+  status: number;
+  description: string;
+}
+
+export interface WebhookDocumentation {
+  endpoint: string;
+  method: string;
+  headers: Record<string, string>;
+  body: Record<string, WebhookDocParam>;
+  response: Record<string, WebhookDocParam>;
+  rateLimit: { maxRequests: number; windowMs: number };
+  example: { curl: string };
+  errors: WebhookDocError[];
+}
+
+/** Build a self-describing documentation object for the webhook API. */
+export function buildWebhookDocumentation(
+  webhookUrl: string,
+): WebhookDocumentation {
+  return {
+    endpoint: webhookUrl,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: {
+      url: {
+        type: "string",
+        required: true,
+        description: "The original URL to shorten (must be a valid URL)",
+      },
+      customSlug: {
+        type: "string",
+        required: false,
+        description:
+          "Optional custom slug (1-50 alphanumeric/dash/underscore chars). Auto-generated if omitted.",
+      },
+    },
+    response: {
+      slug: {
+        type: "string",
+        required: true,
+        description: "The generated or custom slug",
+      },
+      shortUrl: {
+        type: "string",
+        required: true,
+        description: "The full short URL",
+      },
+      originalUrl: {
+        type: "string",
+        required: true,
+        description: "The original URL that was shortened",
+      },
+    },
+    rateLimit: {
+      maxRequests: RATE_LIMIT_MAX_REQUESTS,
+      windowMs: RATE_LIMIT_WINDOW_MS,
+    },
+    example: {
+      curl: `curl -X POST ${webhookUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com/long-page"}'`,
+    },
+    errors: [
+      { status: 400, description: "Invalid request body or slug format" },
+      { status: 404, description: "Invalid webhook token" },
+      { status: 409, description: "Custom slug already taken" },
+      { status: 429, description: "Rate limit exceeded (60 req/min)" },
+    ],
+  };
+}
