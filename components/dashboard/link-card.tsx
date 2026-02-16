@@ -16,11 +16,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
@@ -184,8 +189,8 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
           >
             <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
           </a>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
               <button
                 aria-label="Delete link"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -193,17 +198,26 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
               >
                 <Trash2 className="w-4 h-4" strokeWidth={1.5} />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="text-destructive focus:text-destructive"
-              >
-                {isDeleting ? "删除中..." : "删除链接"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  此操作不可撤销，确定要删除这条链接吗？
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? "删除中..." : "删除"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

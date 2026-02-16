@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { Link } from "@/models/types";
 import type { AnalyticsStats } from "@/models/types";
@@ -302,5 +303,51 @@ describe("LinkCard", () => {
     const refreshBtn = screen.getByTitle("Refresh metadata");
     const spinner = refreshBtn.querySelector(".animate-spin");
     expect(spinner).toBeInTheDocument();
+  });
+
+  // --- Delete confirmation dialog ---
+
+  it("shows delete button with trash icon", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
+  });
+
+  it("opens AlertDialog with confirmation text when delete button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Delete link"));
+
+    expect(screen.getByText("确认删除")).toBeInTheDocument();
+    expect(screen.getByText("此操作不可撤销，确定要删除这条链接吗？")).toBeInTheDocument();
+  });
+
+  it("does not call handleDelete when cancel button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Delete link"));
+    await user.click(screen.getByText("取消"));
+
+    expect(mockVm.handleDelete).not.toHaveBeenCalled();
+  });
+
+  it("calls handleDelete when confirm delete button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Delete link"));
+    await user.click(screen.getByText("删除"));
+
+    expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables delete button when isDeleting is true", () => {
+    mockVm.isDeleting = true;
+    render(<LinkCard {...defaultProps} />);
+
+    const deleteBtn = screen.getByLabelText("Delete link");
+    expect(deleteBtn).toBeDisabled();
   });
 });
