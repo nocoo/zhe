@@ -564,10 +564,12 @@ describe('ScopedDB', () => {
       expect(stats.totalUploads).toBe(0);
       expect(stats.totalStorageBytes).toBe(0);
       expect(stats.clickTimestamps).toEqual([]);
+      expect(stats.uploadTimestamps).toEqual([]);
       expect(stats.topLinks).toEqual([]);
       expect(stats.deviceBreakdown).toEqual({});
       expect(stats.browserBreakdown).toEqual({});
       expect(stats.osBreakdown).toEqual({});
+      expect(stats.fileTypeBreakdown).toEqual({});
     });
 
     it('aggregates link and click counts across all user links', async () => {
@@ -638,7 +640,7 @@ describe('ScopedDB', () => {
       expect(stats.topLinks[2].slug).toBe('ov-top-low');
     });
 
-    it('includes upload stats', async () => {
+    it('includes upload stats with timestamps and file type breakdown', async () => {
       const db = new ScopedDB(USER_A);
 
       await db.createUpload({
@@ -660,6 +662,8 @@ describe('ScopedDB', () => {
 
       expect(stats.totalUploads).toBe(2);
       expect(stats.totalStorageBytes).toBe(3072);
+      expect(stats.uploadTimestamps).toHaveLength(2);
+      expect(stats.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
     });
 
     it('does not include other users uploads', async () => {

@@ -378,10 +378,12 @@ export class ScopedDB {
     totalUploads: number;
     totalStorageBytes: number;
     clickTimestamps: Date[];
+    uploadTimestamps: Date[];
     topLinks: { slug: string; originalUrl: string; clicks: number }[];
     deviceBreakdown: Record<string, number>;
     browserBreakdown: Record<string, number>;
     osBreakdown: Record<string, number>;
+    fileTypeBreakdown: Record<string, number>;
   }> {
     // Fetch all user data in parallel
     const [links, uploads] = await Promise.all([
@@ -401,6 +403,13 @@ export class ScopedDB {
     // Upload stats
     const totalUploads = uploads.length;
     const totalStorageBytes = uploads.reduce((sum, u) => sum + u.fileSize, 0);
+    const uploadTimestamps = uploads.map(u => u.createdAt);
+
+    // File type breakdown
+    const fileTypes: Record<string, number> = {};
+    for (const upload of uploads) {
+      fileTypes[upload.fileType] = (fileTypes[upload.fileType] || 0) + 1;
+    }
 
     // Fetch all analytics across all links (for breakdowns and timestamps)
     const allAnalytics: Analytics[] = [];
@@ -427,10 +436,12 @@ export class ScopedDB {
       totalUploads,
       totalStorageBytes,
       clickTimestamps,
+      uploadTimestamps,
       topLinks,
       deviceBreakdown: devices,
       browserBreakdown: browsers,
       osBreakdown: oses,
+      fileTypeBreakdown: fileTypes,
     };
   }
 
