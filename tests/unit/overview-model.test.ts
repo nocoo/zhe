@@ -3,9 +3,12 @@ import {
   formatClickCount,
   formatStorageSize,
   buildClickTrend,
+  buildUploadTrend,
+  buildFileTypeBreakdown,
   type OverviewStats,
   type ClickTrendPoint,
   type TopLinkEntry,
+  type UploadTrendPoint,
 } from '@/models/overview';
 
 describe('overview model', () => {
@@ -92,25 +95,93 @@ describe('overview model', () => {
     });
   });
 
+  // ---- buildUploadTrend ----
+  describe('buildUploadTrend', () => {
+    it('returns empty array when no data', () => {
+      expect(buildUploadTrend([])).toEqual([]);
+    });
+
+    it('aggregates uploads by date', () => {
+      const timestamps = [
+        new Date('2026-02-10T08:00:00Z'),
+        new Date('2026-02-10T14:30:00Z'),
+        new Date('2026-02-11T09:00:00Z'),
+      ];
+      const result = buildUploadTrend(timestamps);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ date: '2026-02-10', uploads: 2 });
+      expect(result[1]).toEqual({ date: '2026-02-11', uploads: 1 });
+    });
+
+    it('sorts by date ascending', () => {
+      const timestamps = [
+        new Date('2026-02-12T00:00:00Z'),
+        new Date('2026-02-10T00:00:00Z'),
+        new Date('2026-02-11T00:00:00Z'),
+      ];
+      const result = buildUploadTrend(timestamps);
+
+      expect(result.map(p => p.date)).toEqual([
+        '2026-02-10',
+        '2026-02-11',
+        '2026-02-12',
+      ]);
+    });
+  });
+
+  // ---- buildFileTypeBreakdown ----
+  describe('buildFileTypeBreakdown', () => {
+    it('returns empty object when no data', () => {
+      expect(buildFileTypeBreakdown([])).toEqual({});
+    });
+
+    it('counts occurrences of each file type', () => {
+      const types = ['image/png', 'image/jpeg', 'image/png', 'image/webp'];
+      const result = buildFileTypeBreakdown(types);
+
+      expect(result).toEqual({
+        'image/png': 2,
+        'image/jpeg': 1,
+        'image/webp': 1,
+      });
+    });
+
+    it('handles single file type', () => {
+      const result = buildFileTypeBreakdown(['application/pdf']);
+      expect(result).toEqual({ 'application/pdf': 1 });
+    });
+  });
+
   // ---- Type assertions (compile-time) ----
-  it('OverviewStats type is well-defined', () => {
+  it('OverviewStats type includes upload trend and file type breakdown', () => {
     const stats: OverviewStats = {
       totalLinks: 10,
       totalClicks: 500,
       totalUploads: 20,
       totalStorageBytes: 1048576,
       clickTrend: [{ date: '2026-02-10', clicks: 5 }],
+      uploadTrend: [{ date: '2026-02-10', uploads: 3 }],
       topLinks: [{ slug: 'abc', originalUrl: 'https://example.com', clicks: 100 }],
       deviceBreakdown: { desktop: 300, mobile: 200 },
       browserBreakdown: { Chrome: 400, Safari: 100 },
       osBreakdown: { macOS: 300, Windows: 200 },
+      fileTypeBreakdown: { 'image/png': 10, 'image/jpeg': 5 },
     };
     expect(stats.totalLinks).toBe(10);
+    expect(stats.uploadTrend).toHaveLength(1);
+    expect(stats.fileTypeBreakdown['image/png']).toBe(10);
   });
 
   it('ClickTrendPoint type is well-defined', () => {
     const point: ClickTrendPoint = { date: '2026-02-10', clicks: 5 };
     expect(point.date).toBe('2026-02-10');
+  });
+
+  it('UploadTrendPoint type is well-defined', () => {
+    const point: UploadTrendPoint = { date: '2026-02-10', uploads: 3 };
+    expect(point.date).toBe('2026-02-10');
+    expect(point.uploads).toBe(3);
   });
 
   it('TopLinkEntry type is well-defined', () => {

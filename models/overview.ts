@@ -6,6 +6,12 @@ export interface ClickTrendPoint {
   clicks: number;
 }
 
+/** A single day's upload count for trend charts */
+export interface UploadTrendPoint {
+  date: string; // YYYY-MM-DD
+  uploads: number;
+}
+
 /** A link entry for the "top links" list */
 export interface TopLinkEntry {
   slug: string;
@@ -20,10 +26,12 @@ export interface OverviewStats {
   totalUploads: number;
   totalStorageBytes: number;
   clickTrend: ClickTrendPoint[];
+  uploadTrend: UploadTrendPoint[];
   topLinks: TopLinkEntry[];
   deviceBreakdown: Record<string, number>;
   browserBreakdown: Record<string, number>;
   osBreakdown: Record<string, number>;
+  fileTypeBreakdown: Record<string, number>;
 }
 
 /** Format a click count for display: 1500 → "1.5K", 2500000 → "2.5M" */
@@ -58,4 +66,36 @@ export function buildClickTrend(timestamps: Date[]): ClickTrendPoint[] {
   return Array.from(byDate.entries())
     .map(([date, clicks]) => ({ date, clicks }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Build an upload trend from an array of upload timestamps.
+ * Groups by date (YYYY-MM-DD) and sorts ascending.
+ */
+export function buildUploadTrend(timestamps: Date[]): UploadTrendPoint[] {
+  if (timestamps.length === 0) return [];
+
+  const byDate = new Map<string, number>();
+  for (const ts of timestamps) {
+    const date = ts.toISOString().slice(0, 10);
+    byDate.set(date, (byDate.get(date) ?? 0) + 1);
+  }
+
+  return Array.from(byDate.entries())
+    .map(([date, uploads]) => ({ date, uploads }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Build a file type breakdown from an array of MIME types.
+ * Returns a record mapping each type to its count.
+ */
+export function buildFileTypeBreakdown(fileTypes: string[]): Record<string, number> {
+  if (fileTypes.length === 0) return {};
+
+  const counts: Record<string, number> = {};
+  for (const ft of fileTypes) {
+    counts[ft] = (counts[ft] ?? 0) + 1;
+  }
+  return counts;
 }
