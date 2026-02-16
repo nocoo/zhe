@@ -110,7 +110,7 @@ export function AppSidebar({
 
   if (collapsed) {
     return (
-      <aside className="flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-300 ease-in-out overflow-hidden">
+      <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-300 ease-in-out overflow-hidden">
         <div className="flex h-14 items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -248,7 +248,7 @@ export function AppSidebar({
   }
 
   return (
-    <aside className="flex h-screen w-[260px] shrink-0 flex-col bg-background transition-all duration-300 ease-in-out overflow-hidden">
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-background transition-all duration-300 ease-in-out overflow-hidden">
       {/* Header */}
       <div className="px-3 h-14 flex items-center">
         <div className="flex w-full items-center justify-between px-3">
