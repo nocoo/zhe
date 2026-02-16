@@ -1,7 +1,37 @@
 import { NextResponse } from "next/server";
 import { getWebhookByToken, slugExists, createLink } from "@/lib/db";
-import { validateWebhookPayload, checkRateLimit } from "@/models/webhook";
+import {
+  validateWebhookPayload,
+  checkRateLimit,
+  buildWebhookDocumentation,
+} from "@/models/webhook";
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
+
+/**
+ * GET /api/webhook/[token]
+ *
+ * Self-documentation endpoint. Returns a JSON object describing how to use
+ * the webhook API, including parameters, curl examples, and error codes.
+ */
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ token: string }> },
+) {
+  const { token } = await context.params;
+
+  const webhook = await getWebhookByToken(token);
+  if (!webhook) {
+    return NextResponse.json(
+      { error: "Invalid webhook token" },
+      { status: 404 },
+    );
+  }
+
+  const webhookUrl = `${new URL(request.url).origin}/api/webhook/${token}`;
+  const docs = buildWebhookDocumentation(webhookUrl);
+
+  return NextResponse.json(docs, { status: 200 });
+}
 
 /**
  * POST /api/webhook/[token]
