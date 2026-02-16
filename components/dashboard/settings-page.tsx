@@ -2,9 +2,10 @@
 
 import { useRef } from "react";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
+import { useWebhookViewModel } from "@/viewmodels/useWebhookViewModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, CheckCircle } from "lucide-react";
+import { Download, Upload, CheckCircle, Webhook, Copy } from "lucide-react";
 
 export function SettingsPage() {
   const {
@@ -15,6 +16,16 @@ export function SettingsPage() {
     handleImport,
     clearImportResult,
   } = useSettingsViewModel();
+
+  const {
+    token,
+    isLoading: webhookLoading,
+    isGenerating,
+    isRevoking,
+    webhookUrl,
+    handleGenerate,
+    handleRevoke,
+  } = useWebhookViewModel();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +38,10 @@ export function SettingsPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
   }
 
   return (
@@ -97,6 +112,94 @@ export function SettingsPage() {
                 className="block text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-accent/80 file:cursor-pointer"
               />
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Webhook ──────────────────────────────────────────────── */}
+      <Card className="border-0 bg-secondary shadow-none">
+        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Webhook className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            Webhook
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+          <p className="mb-4 text-sm text-muted-foreground">
+            通过 Webhook 令牌，外部系统可以调用 API 创建短链接，无需登录认证。
+          </p>
+
+          {webhookLoading ? (
+            <p className="text-sm text-muted-foreground">加载中...</p>
+          ) : token && webhookUrl ? (
+            <div className="space-y-4">
+              {/* Token display */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">令牌</p>
+                <div className="flex items-center gap-2">
+                  <code className="rounded bg-accent px-2 py-1 text-xs">
+                    {token}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => copyToClipboard(token)}
+                    aria-label="复制令牌"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Webhook URL display */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">Webhook URL</p>
+                <div className="flex items-center gap-2">
+                  <code className="rounded bg-accent px-2 py-1 text-xs break-all">
+                    {webhookUrl}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 shrink-0 p-0"
+                    onClick={() => copyToClipboard(webhookUrl)}
+                    aria-label="复制 URL"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isGenerating ? "生成中..." : "重新生成"}
+                </Button>
+                <Button
+                  onClick={handleRevoke}
+                  disabled={isRevoking}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isRevoking ? "撤销中..." : "撤销令牌"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              variant="outline"
+              size="sm"
+            >
+              {isGenerating ? "生成中..." : "生成令牌"}
+            </Button>
           )}
         </CardContent>
       </Card>
