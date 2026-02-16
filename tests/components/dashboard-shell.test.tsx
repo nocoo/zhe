@@ -141,6 +141,12 @@ describe('DashboardShell', () => {
     expect(screen.getByRole('heading', { name: '图片管理' })).toBeInTheDocument();
   });
 
+  it('renders header with 概览 title on overview page', async () => {
+    mockPathname = '/dashboard/overview';
+    await renderShell();
+    expect(screen.getByRole('heading', { name: '概览' })).toBeInTheDocument();
+  });
+
   it('renders ThemeToggle in header', async () => {
     await renderShell();
     expect(screen.getByTitle('Theme: system')).toBeInTheDocument();
