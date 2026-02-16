@@ -5,6 +5,7 @@ import { UploadZone } from "./upload-zone";
 import { UploadItem, UploadingItem } from "./upload-item";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 
 function UploadListSkeleton() {
@@ -52,6 +53,8 @@ export function UploadList() {
     setIsDragOver,
     autoConvertPng,
     setAutoConvertPng,
+    jpegQuality,
+    setJpegQuality,
     handleFiles,
     handleDelete,
     dismissUploadingFile,
@@ -88,6 +91,25 @@ export function UploadList() {
             PNG 自动转 JPG
           </Label>
         </div>
+        {autoConvertPng && (
+          <div className="flex items-center gap-3">
+            <Label className="text-sm text-muted-foreground whitespace-nowrap">
+              质量
+            </Label>
+            <Slider
+              value={[jpegQuality]}
+              onValueChange={([v]) => setJpegQuality(v)}
+              min={1}
+              max={100}
+              step={1}
+              className="w-28"
+              aria-label="JPG 质量"
+            />
+            <span className="text-sm text-muted-foreground tabular-nums w-8 text-right">
+              {jpegQuality}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Upload zone */}

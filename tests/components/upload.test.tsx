@@ -11,6 +11,7 @@ const mockSetIsDragOver = vi.fn();
 const mockHandleDelete = vi.fn();
 const mockDismissUploadingFile = vi.fn();
 const mockSetAutoConvertPng = vi.fn();
+const mockSetJpegQuality = vi.fn();
 
 vi.mock('@/viewmodels/useUploadViewModel', () => ({
   useUploadsViewModel: vi.fn(),
@@ -400,12 +401,8 @@ describe('UploadingItem', () => {
 // ---------------------------------------------------------------------------
 
 describe('UploadList', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders empty state when no uploads', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
+  function mockUploadsVM(overrides: Record<string, unknown> = {}) {
+    const defaults = {
       uploads: [],
       loading: false,
       uploadingFiles: [],
@@ -413,11 +410,23 @@ describe('UploadList', () => {
       setIsDragOver: mockSetIsDragOver,
       autoConvertPng: false,
       setAutoConvertPng: mockSetAutoConvertPng,
+      jpegQuality: 90,
+      setJpegQuality: mockSetJpegQuality,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
       dismissUploadingFile: mockDismissUploadingFile,
-    });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(useUploadsViewModel).mockReturnValue({ ...defaults, ...overrides } as any);
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders empty state when no uploads', () => {
+    mockUploadsVM();
 
     render(<UploadList />);
 
@@ -427,22 +436,8 @@ describe('UploadList', () => {
 
   it('renders upload list with file count', () => {
     const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2, fileName: 'doc.pdf' })];
+    mockUploadsVM({ uploads });
 
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads,
-      loading: false,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
-
-    // Mock individual item viewmodel
     vi.mocked(useUploadItemViewModel).mockReturnValue({
       copied: false,
       isDeleting: false,
@@ -457,19 +452,7 @@ describe('UploadList', () => {
   });
 
   it('renders upload zone', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: false,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM();
 
     render(<UploadList />);
 
@@ -487,20 +470,7 @@ describe('UploadList', () => {
         progress: 50,
       },
     ];
-
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: false,
-      uploadingFiles,
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM({ uploadingFiles });
 
     render(<UploadList />);
 
@@ -508,19 +478,7 @@ describe('UploadList', () => {
   });
 
   it('renders skeleton when loading', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: true,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM({ loading: true });
 
     render(<UploadList />);
 
@@ -530,19 +488,7 @@ describe('UploadList', () => {
   });
 
   it('renders PNG auto-convert switch', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: false,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM();
 
     render(<UploadList />);
 
@@ -553,19 +499,7 @@ describe('UploadList', () => {
   });
 
   it('renders PNG auto-convert switch as checked when enabled', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: false,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: true,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM({ autoConvertPng: true });
 
     render(<UploadList />);
 
@@ -574,19 +508,7 @@ describe('UploadList', () => {
   });
 
   it('calls setAutoConvertPng when switch is toggled', () => {
-    vi.mocked(useUploadsViewModel).mockReturnValue({
-      uploads: [],
-      loading: false,
-      uploadingFiles: [],
-      isDragOver: false,
-      setIsDragOver: mockSetIsDragOver,
-      autoConvertPng: false,
-      setAutoConvertPng: mockSetAutoConvertPng,
-      handleFiles: mockHandleFiles,
-      handleDelete: mockHandleDelete,
-      refreshUploads: vi.fn(),
-      dismissUploadingFile: mockDismissUploadingFile,
-    });
+    mockUploadsVM();
 
     render(<UploadList />);
 
@@ -594,5 +516,32 @@ describe('UploadList', () => {
     fireEvent.click(switchEl);
 
     expect(mockSetAutoConvertPng).toHaveBeenCalledWith(true);
+  });
+
+  it('does not show quality slider when autoConvertPng is off', () => {
+    mockUploadsVM({ autoConvertPng: false });
+
+    render(<UploadList />);
+
+    expect(screen.queryByText('质量')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('JPG 质量')).not.toBeInTheDocument();
+  });
+
+  it('shows quality slider when autoConvertPng is on', () => {
+    mockUploadsVM({ autoConvertPng: true, jpegQuality: 90 });
+
+    render(<UploadList />);
+
+    expect(screen.getByText('质量')).toBeInTheDocument();
+    expect(screen.getByLabelText('JPG 质量')).toBeInTheDocument();
+    expect(screen.getByText('90')).toBeInTheDocument();
+  });
+
+  it('shows custom quality value', () => {
+    mockUploadsVM({ autoConvertPng: true, jpegQuality: 75 });
+
+    render(<UploadList />);
+
+    expect(screen.getByText('75')).toBeInTheDocument();
   });
 });
