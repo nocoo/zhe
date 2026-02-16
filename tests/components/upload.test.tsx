@@ -10,6 +10,7 @@ const mockHandleFiles = vi.fn();
 const mockSetIsDragOver = vi.fn();
 const mockHandleDelete = vi.fn();
 const mockDismissUploadingFile = vi.fn();
+const mockSetAutoConvertPng = vi.fn();
 
 vi.mock('@/viewmodels/useUploadViewModel', () => ({
   useUploadsViewModel: vi.fn(),
@@ -357,6 +358,8 @@ describe('UploadList', () => {
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
@@ -378,6 +381,8 @@ describe('UploadList', () => {
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
@@ -405,6 +410,8 @@ describe('UploadList', () => {
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
@@ -434,6 +441,8 @@ describe('UploadList', () => {
       uploadingFiles,
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
@@ -452,6 +461,8 @@ describe('UploadList', () => {
       uploadingFiles: [],
       isDragOver: false,
       setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
       handleFiles: mockHandleFiles,
       handleDelete: mockHandleDelete,
       refreshUploads: vi.fn(),
@@ -463,5 +474,72 @@ describe('UploadList', () => {
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
     expect(screen.queryByText('图片管理')).not.toBeInTheDocument();
+  });
+
+  it('renders PNG auto-convert switch', () => {
+    vi.mocked(useUploadsViewModel).mockReturnValue({
+      uploads: [],
+      loading: false,
+      uploadingFiles: [],
+      isDragOver: false,
+      setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
+      handleFiles: mockHandleFiles,
+      handleDelete: mockHandleDelete,
+      refreshUploads: vi.fn(),
+      dismissUploadingFile: mockDismissUploadingFile,
+    });
+
+    render(<UploadList />);
+
+    expect(screen.getByText('PNG 自动转 JPG')).toBeInTheDocument();
+    const switchEl = screen.getByRole('switch');
+    expect(switchEl).toBeInTheDocument();
+    expect(switchEl).not.toBeChecked();
+  });
+
+  it('renders PNG auto-convert switch as checked when enabled', () => {
+    vi.mocked(useUploadsViewModel).mockReturnValue({
+      uploads: [],
+      loading: false,
+      uploadingFiles: [],
+      isDragOver: false,
+      setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: true,
+      setAutoConvertPng: mockSetAutoConvertPng,
+      handleFiles: mockHandleFiles,
+      handleDelete: mockHandleDelete,
+      refreshUploads: vi.fn(),
+      dismissUploadingFile: mockDismissUploadingFile,
+    });
+
+    render(<UploadList />);
+
+    const switchEl = screen.getByRole('switch');
+    expect(switchEl).toBeChecked();
+  });
+
+  it('calls setAutoConvertPng when switch is toggled', () => {
+    vi.mocked(useUploadsViewModel).mockReturnValue({
+      uploads: [],
+      loading: false,
+      uploadingFiles: [],
+      isDragOver: false,
+      setIsDragOver: mockSetIsDragOver,
+      autoConvertPng: false,
+      setAutoConvertPng: mockSetAutoConvertPng,
+      handleFiles: mockHandleFiles,
+      handleDelete: mockHandleDelete,
+      refreshUploads: vi.fn(),
+      dismissUploadingFile: mockDismissUploadingFile,
+    });
+
+    render(<UploadList />);
+
+    const switchEl = screen.getByRole('switch');
+    fireEvent.click(switchEl);
+
+    expect(mockSetAutoConvertPng).toHaveBeenCalledWith(true);
   });
 });

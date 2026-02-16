@@ -4,6 +4,8 @@ import { Upload as UploadIcon } from "lucide-react";
 import { UploadZone } from "./upload-zone";
 import { UploadItem, UploadingItem } from "./upload-item";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 function UploadListSkeleton() {
   return (
@@ -48,6 +50,8 @@ export function UploadList() {
     uploadingFiles,
     isDragOver,
     setIsDragOver,
+    autoConvertPng,
+    setAutoConvertPng,
     handleFiles,
     handleDelete,
     dismissUploadingFile,
@@ -66,6 +70,23 @@ export function UploadList() {
           <p className="text-sm text-muted-foreground mt-0.5">
             共 {uploads.length} 个文件
           </p>
+        </div>
+      </div>
+
+      {/* Options */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="auto-convert-png"
+            checked={autoConvertPng}
+            onCheckedChange={setAutoConvertPng}
+          />
+          <Label
+            htmlFor="auto-convert-png"
+            className="text-sm text-muted-foreground cursor-pointer"
+          >
+            PNG 自动转 JPG
+          </Label>
         </div>
       </div>
 
