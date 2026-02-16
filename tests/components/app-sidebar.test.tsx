@@ -150,9 +150,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 1 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 2 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(4);
+      expect(navLinks.length).toBe(5);
     });
   });
 
@@ -410,9 +410,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 1 static = 6
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 2 static = 7
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(6);
+      expect(navLinks.length).toBe(7);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -499,6 +499,51 @@ describe('AppSidebar', () => {
 
       fireEvent.click(screen.getByLabelText('取消'));
       expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('system nav group', () => {
+    it('renders "系统" section label in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      expect(screen.getByText('系统')).toBeInTheDocument();
+    });
+
+    it('renders "设置" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      const settingsLink = screen.getByRole('link', { name: '设置' });
+      expect(settingsLink).toBeInTheDocument();
+      expect(settingsLink.getAttribute('href')).toBe('/dashboard/settings');
+    });
+
+    it('highlights "设置" when on settings page', () => {
+      mockPathname = '/dashboard/settings';
+      renderSidebar({ collapsed: false });
+
+      const settingsLink = screen.getByRole('link', { name: '设置' });
+      expect(settingsLink.className).toContain('bg-accent');
+      expect(settingsLink.className).toContain('text-foreground');
+    });
+
+    it('renders "系统" section below 图片管理 section', () => {
+      const { container } = renderSidebar({ collapsed: false });
+
+      const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
+      const labels = Array.from(sectionLabels).map((el) => el.textContent);
+
+      const uploadsIndex = labels.indexOf('图片管理');
+      const systemIndex = labels.indexOf('系统');
+      expect(uploadsIndex).toBeGreaterThanOrEqual(0);
+      expect(systemIndex).toBeGreaterThan(uploadsIndex);
+    });
+
+    it('renders settings link in collapsed mode', () => {
+      const { container } = renderSidebar({ collapsed: true });
+
+      // Should include settings link: 1 overview + 2 folder nav + 1 uploads + 1 settings = 5
+      const navLinks = container.querySelectorAll('nav a');
+      expect(navLinks.length).toBe(5);
     });
   });
 
