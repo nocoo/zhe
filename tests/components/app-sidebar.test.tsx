@@ -33,10 +33,14 @@ vi.mock('@/actions/folders', () => ({
   deleteFolder: vi.fn(),
 }));
 
-// Mock DashboardService context for SearchCommandDialog
+// Mock DashboardService context — mutable links array for count badge tests
+import type { Link } from '@/models/types';
+
+let mockLinks: Link[] = [];
+
 vi.mock('@/contexts/dashboard-service', () => ({
   useDashboardService: () => ({
-    links: [],
+    get links() { return mockLinks; },
     folders: [],
     loading: false,
     siteUrl: 'https://zhe.to',
@@ -67,6 +71,24 @@ vi.mock('@/viewmodels/useFoldersViewModel', () => ({
 }));
 
 import { AppSidebar } from '@/components/app-sidebar';
+
+function makeLink(overrides: Partial<Link> = {}): Link {
+  return {
+    id: 1,
+    userId: 'user-1',
+    folderId: null,
+    originalUrl: 'https://example.com',
+    slug: 'abc123',
+    isCustom: false,
+    expiresAt: null,
+    clicks: 0,
+    metaTitle: null,
+    metaDescription: null,
+    metaFavicon: null,
+    createdAt: new Date('2026-01-15'),
+    ...overrides,
+  };
+}
 
 function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
   mockFoldersVm = {
@@ -102,6 +124,7 @@ describe('AppSidebar', () => {
   beforeEach(() => {
     mockPathname = '/dashboard';
     mockSearchParamsFolder = null;
+    mockLinks = [];
     resetMockFoldersVm();
     vi.clearAllMocks();
   });
@@ -476,6 +499,84 @@ describe('AppSidebar', () => {
 
       fireEvent.click(screen.getByLabelText('取消'));
       expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('link count badges', () => {
+    const mockFolders = [
+      { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
+      { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
+    ];
+
+    it('shows total link count next to "全部链接"', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: 'f1' }),
+        makeLink({ id: 3, folderId: 'f2' }),
+      ];
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
+
+      const allLinksItem = screen.getByText('全部链接').closest('a')!;
+      expect(allLinksItem.textContent).toContain('3');
+    });
+
+    it('shows uncategorized link count next to "未分类"', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: null }),
+        makeLink({ id: 3, folderId: 'f1' }),
+      ];
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
+
+      const uncategorizedItem = screen.getByText('未分类').closest('a')!;
+      expect(uncategorizedItem.textContent).toContain('2');
+    });
+
+    it('shows per-folder link count next to folder name', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: 'f1' }),
+        makeLink({ id: 2, folderId: 'f1' }),
+        makeLink({ id: 3, folderId: 'f1' }),
+        makeLink({ id: 4, folderId: 'f2' }),
+      ];
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
+
+      // SidebarFolderItem for '工作' should display count 3
+      const workItem = screen.getByText('工作').closest('a')!;
+      expect(workItem.textContent).toContain('3');
+
+      // SidebarFolderItem for '个人' should display count 1
+      const personalItem = screen.getByText('个人').closest('a')!;
+      expect(personalItem.textContent).toContain('1');
+    });
+
+    it('shows 0 count for folder with no links', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: 'f1' }),
+      ];
+      resetMockFoldersVm({ folders: mockFolders });
+      renderSidebar({ collapsed: false });
+
+      // '个人' (f2) has no links, should show 0
+      const personalItem = screen.getByText('个人').closest('a')!;
+      expect(personalItem.textContent).toContain('0');
+    });
+
+    it('does not show count badges in collapsed mode', () => {
+      mockLinks = [
+        makeLink({ id: 1, folderId: null }),
+        makeLink({ id: 2, folderId: 'f1' }),
+      ];
+      resetMockFoldersVm({ folders: mockFolders });
+      const { container } = renderSidebar({ collapsed: true });
+
+      // Collapsed mode should not have any count text (just icons)
+      // The nav should only contain icon links, no text counts
+      const navText = container.querySelector('nav')?.textContent ?? '';
+      expect(navText.trim()).toBe('');
     });
   });
 });

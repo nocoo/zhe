@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -16,6 +16,8 @@ import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
+import { useDashboardService } from "@/contexts/dashboard-service";
+import { buildLinkCounts } from "@/models/links";
 
 /** Nav items for folder filtering — rendered as <Link> */
 interface FolderNavItem {
@@ -85,6 +87,8 @@ export function AppSidebar({
   const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
 
   const foldersVm = useFoldersViewModel();
+  const { links } = useDashboardService();
+  const linkCounts = useMemo(() => buildLinkCounts(links), [links]);
 
   // Search dialog state (pure UI — not in service)
   const [searchOpen, setSearchOpen] = useState(false);
@@ -361,6 +365,9 @@ export function AppSidebar({
               >
                 <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                 <span className="flex-1 text-left">{item.title}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
+                </span>
               </Link>
             ))}
 
@@ -369,6 +376,7 @@ export function AppSidebar({
               <SidebarFolderItem
                 key={folder.id}
                 folder={folder}
+                linkCount={linkCounts.byFolder.get(folder.id) ?? 0}
                 isSelected={currentFolder === folder.id}
                 isEditing={foldersVm.editingFolderId === folder.id}
                 onStartEditing={foldersVm.startEditing}

@@ -16,6 +16,7 @@ import {
 
 export interface SidebarFolderItemProps {
   folder: Folder;
+  linkCount: number;
   isSelected: boolean;
   isEditing: boolean;
   onStartEditing: (folderId: string) => void;
@@ -26,6 +27,7 @@ export interface SidebarFolderItemProps {
 
 export function SidebarFolderItem({
   folder,
+  linkCount,
   isSelected,
   isEditing,
   onStartEditing,
@@ -125,6 +127,7 @@ export function SidebarFolderItem({
           strokeWidth={1.5}
         />
         <span className="flex-1 text-left">{folder.name}</span>
+        <span className="text-xs text-muted-foreground tabular-nums">{linkCount}</span>
       </Link>
 
       {/* Context menu trigger — visible on hover */}

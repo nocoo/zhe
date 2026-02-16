@@ -26,6 +26,7 @@ const mockFolder: Folder = {
 function renderItem(props: Partial<Parameters<typeof SidebarFolderItem>[0]> = {}) {
   const defaultProps = {
     folder: mockFolder,
+    linkCount: 0,
     isSelected: false,
     isEditing: false,
     onStartEditing: vi.fn(),
