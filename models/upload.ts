@@ -149,6 +149,75 @@ export function buildPublicUrl(publicDomain: string, key: string): string {
   return `${publicDomain.replace(/\/$/, '')}/${key}`;
 }
 
+/** Check whether a file is a PNG based on its MIME type. */
+export function isPngFile(file: { type: string }): boolean {
+  return file.type === 'image/png';
+}
+
+/**
+ * Replace (or append) the file extension in a filename.
+ * If the filename has no extension or ends with a dot, the new extension is appended.
+ */
+export function replaceExtension(fileName: string, newExt: string): string {
+  const lastDot = fileName.lastIndexOf('.');
+  if (lastDot === -1) return `${fileName}.${newExt}`;
+  return `${fileName.slice(0, lastDot)}.${newExt}`;
+}
+
+/**
+ * Convert a PNG File to JPEG using the Canvas API.
+ * Returns a new File with JPEG data, updated name (.jpg), and image/jpeg type.
+ * Quality is 0.92 (Canvas default for JPEG).
+ */
+export function convertPngToJpeg(
+  file: File,
+  quality = 0.92,
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to get canvas 2d context'));
+        return;
+      }
+
+      // JPEG has no alpha — fill white background, then draw image
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          if (!blob) {
+            reject(new Error('Canvas toBlob returned null'));
+            return;
+          }
+          const jpegName = replaceExtension(file.name, 'jpg');
+          resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image for PNG to JPEG conversion'));
+    };
+
+    img.src = url;
+  });
+}
+
 /** Check whether a MIME type is an image type. */
 export function isImageType(fileType: string): boolean {
   return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(fileType);

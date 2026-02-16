@@ -7,6 +7,8 @@ import {
   isImageType,
   formatFileSize,
   hashUserId,
+  isPngFile,
+  replaceExtension,
   ALLOWED_TYPES,
   MAX_FILE_SIZE,
 } from '@/models/upload';
@@ -272,6 +274,48 @@ describe('models/upload', () => {
     it('does not contain the original userId', async () => {
       const hash = await hashUserId('user-123', 'my-salt');
       expect(hash).not.toContain('user-123');
+    });
+  });
+
+  // --- isPngFile ---
+  describe('isPngFile', () => {
+    it('returns true for image/png', () => {
+      expect(isPngFile({ type: 'image/png' })).toBe(true);
+    });
+
+    it('returns false for image/jpeg', () => {
+      expect(isPngFile({ type: 'image/jpeg' })).toBe(false);
+    });
+
+    it('returns false for image/webp', () => {
+      expect(isPngFile({ type: 'image/webp' })).toBe(false);
+    });
+
+    it('returns false for empty type', () => {
+      expect(isPngFile({ type: '' })).toBe(false);
+    });
+  });
+
+  // --- replaceExtension ---
+  describe('replaceExtension', () => {
+    it('replaces .png with .jpg', () => {
+      expect(replaceExtension('photo.png', 'jpg')).toBe('photo.jpg');
+    });
+
+    it('replaces .PNG with .jpg (case insensitive)', () => {
+      expect(replaceExtension('PHOTO.PNG', 'jpg')).toBe('PHOTO.jpg');
+    });
+
+    it('replaces last extension only', () => {
+      expect(replaceExtension('my.file.name.png', 'jpg')).toBe('my.file.name.jpg');
+    });
+
+    it('appends extension when no extension exists', () => {
+      expect(replaceExtension('noext', 'jpg')).toBe('noext.jpg');
+    });
+
+    it('appends extension when filename ends with dot', () => {
+      expect(replaceExtension('file.', 'jpg')).toBe('file.jpg');
     });
   });
 });
