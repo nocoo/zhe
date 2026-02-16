@@ -141,6 +141,7 @@ export interface WebhookDocumentation {
   body: Record<string, WebhookDocParam>;
   response: Record<string, WebhookDocParam>;
   rateLimit: { maxRequests: number; windowMs: number };
+  notes: string[];
   example: { curl: string };
   errors: WebhookDocError[];
 }
@@ -187,6 +188,10 @@ export function buildWebhookDocumentation(
       maxRequests: RATE_LIMIT_MAX_REQUESTS,
       windowMs: RATE_LIMIT_WINDOW_MS,
     },
+    notes: [
+      "Idempotent: if the same URL has already been shortened under your account, the existing short link is returned (200) instead of creating a duplicate (201).",
+      "When an existing link is returned, the customSlug parameter is ignored.",
+    ],
     example: {
       curl: `curl -X POST ${webhookUrl} \\
   -H "Content-Type: application/json" \\

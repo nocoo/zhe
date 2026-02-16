@@ -232,5 +232,14 @@ describe("webhook model", () => {
       expect(codes).toContain(409);
       expect(codes).toContain(429);
     });
+
+    it("includes idempotency notes", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      expect(docs.notes).toBeDefined();
+      expect(docs.notes.length).toBeGreaterThan(0);
+      const notesText = docs.notes.join(" ");
+      expect(notesText).toContain("Idempotent");
+      expect(notesText).toContain("customSlug");
+    });
   });
 });
