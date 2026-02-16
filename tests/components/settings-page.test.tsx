@@ -184,11 +184,12 @@ describe('SettingsPage', () => {
       mockWebhookVm.createdAt = '2026-01-15T00:00:00.000Z';
       render(<SettingsPage />);
 
-      // Token appears in both the token display and the webhook URL
-      const matches = screen.getAllByText(/abc-123-def/);
-      expect(matches.length).toBe(2);
-      // Webhook URL should be visible
-      expect(screen.getByText(/https:\/\/zhe\.example\.com\/api\/webhook/)).toBeInTheDocument();
+      // Token appears in the token display, webhook URL, and curl example
+      const tokenMatches = screen.getAllByText(/abc-123-def/);
+      expect(tokenMatches.length).toBeGreaterThanOrEqual(2);
+      // Webhook URL appears in the URL display and the curl example
+      const urlMatches = screen.getAllByText(/https:\/\/zhe\.example\.com\/api\/webhook/);
+      expect(urlMatches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows regenerate and revoke buttons when token exists', () => {
@@ -239,6 +240,75 @@ describe('SettingsPage', () => {
       // Should have copy buttons (via data-testid or aria-label)
       const copyButtons = screen.getAllByRole('button', { name: /复制/ });
       expect(copyButtons.length).toBeGreaterThanOrEqual(2);
+    });
+
+    // ================================================================
+    // Usage documentation section
+    // ================================================================
+
+    it('shows usage documentation section when token exists', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByText('使用说明')).toBeInTheDocument();
+    });
+
+    it('does not show usage documentation when no token exists', () => {
+      render(<SettingsPage />);
+
+      expect(screen.queryByText('使用说明')).not.toBeInTheDocument();
+    });
+
+    it('shows curl example in usage docs', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByText(/curl/)).toBeInTheDocument();
+    });
+
+    it('shows request parameters table', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      // Should show parameter names
+      expect(screen.getByText('url')).toBeInTheDocument();
+      expect(screen.getByText('customSlug')).toBeInTheDocument();
+    });
+
+    it('shows response format section', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByText('响应格式')).toBeInTheDocument();
+    });
+
+    it('shows rate limit info', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      // 60 req/min — appears in rate limit section and error table
+      const matches = screen.getAllByText(/60/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+      // Check the specific rate limit text
+      expect(screen.getByText(/次请求/)).toBeInTheDocument();
+    });
+
+    it('shows error codes section', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByText('错误码')).toBeInTheDocument();
+      // Should show status codes
+      expect(screen.getByText('400')).toBeInTheDocument();
+      expect(screen.getByText('404')).toBeInTheDocument();
+      expect(screen.getByText('409')).toBeInTheDocument();
+      expect(screen.getByText('429')).toBeInTheDocument();
     });
   });
 });
