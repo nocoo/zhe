@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
 import { slugExists } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
+import { fetchMetadata } from '@/lib/metadata';
 import type { Link } from '@/lib/db/schema';
 
 /**
@@ -74,6 +75,23 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       folderId: input.folderId,
       expiresAt: input.expiresAt,
     });
+
+    // Fire-and-forget: fetch metadata and update the link asynchronously.
+    // Metadata failure must never block link creation.
+    void (async () => {
+      try {
+        const meta = await fetchMetadata(input.originalUrl);
+        if (meta.title || meta.description || meta.favicon) {
+          await db.updateLinkMetadata(link.id, {
+            metaTitle: meta.title,
+            metaDescription: meta.description,
+            metaFavicon: meta.favicon,
+          });
+        }
+      } catch {
+        // Silently ignore — metadata is best-effort
+      }
+    })();
 
     return { success: true, data: link };
   } catch (error) {
@@ -183,5 +201,35 @@ export async function getAnalyticsStats(linkId: number): Promise<ActionResult<An
   } catch (error) {
     console.error('Failed to get analytics:', error);
     return { success: false, error: 'Failed to get analytics' };
+  }
+}
+
+/**
+ * Manually refresh metadata for a link.
+ * Re-fetches title, description, and favicon from the original URL.
+ */
+export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<Link>> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const link = await db.getLinkById(linkId);
+    if (!link) {
+      return { success: false, error: 'Link not found or access denied' };
+    }
+
+    const meta = await fetchMetadata(link.originalUrl);
+    const updated = await db.updateLinkMetadata(linkId, {
+      metaTitle: meta.title,
+      metaDescription: meta.description,
+      metaFavicon: meta.favicon,
+    });
+
+    return { success: true, data: updated! };
+  } catch (error) {
+    console.error('Failed to refresh metadata:', error);
+    return { success: false, error: 'Failed to refresh metadata' };
   }
 }
