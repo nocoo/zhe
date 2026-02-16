@@ -7,7 +7,18 @@ import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { usePathname } from "next/navigation";
 import type { Folder } from "@/models/types";
+
+/** Route-to-title mapping for the dashboard header */
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard/uploads": "图床",
+};
+
+function usePageTitle(): string {
+  const pathname = usePathname();
+  return PAGE_TITLES[pathname] ?? "链接管理";
+}
 
 export interface DashboardShellProps {
   children: React.ReactNode;
@@ -28,6 +39,7 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const { collapsed, isMobile, mobileOpen, toggleSidebar, closeMobileSidebar } =
     useDashboardLayoutViewModel();
+  const pageTitle = usePageTitle();
 
   return (
     <DashboardServiceProvider initialFolders={initialFolders}>
@@ -75,7 +87,7 @@ export function DashboardShell({
                   </button>
                 )}
                 <h1 className="text-lg md:text-xl font-semibold text-foreground">
-                  链接管理
+                  {pageTitle}
                 </h1>
               </div>
               <div className="flex items-center gap-1">
