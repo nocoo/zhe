@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen, BarChart3 } from "lucide-react";
+import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -61,6 +61,12 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
     label: "图片管理",
     items: [
       { title: "图片管理", icon: ImageIcon, href: "/dashboard/uploads" },
+    ],
+  },
+  {
+    label: "系统",
+    items: [
+      { title: "设置", icon: Settings, href: "/dashboard/settings" },
     ],
   },
 ];
