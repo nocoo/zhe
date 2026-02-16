@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock DB modules
 const mockGetWebhookByToken = vi.fn();
+const mockGetLinkByUserAndUrl = vi.fn();
 const mockSlugExists = vi.fn();
 const mockCreateLink = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   getWebhookByToken: (...args: unknown[]) => mockGetWebhookByToken(...args),
+  getLinkByUserAndUrl: (...args: unknown[]) => mockGetLinkByUserAndUrl(...args),
   slugExists: (...args: unknown[]) => mockSlugExists(...args),
   createLink: (...args: unknown[]) => mockCreateLink(...args),
 }));
@@ -51,6 +53,7 @@ describe("POST /api/webhook/[token]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckRateLimit.mockReturnValue({ allowed: true });
+    mockGetLinkByUserAndUrl.mockResolvedValue(null);
   });
 
   it("returns 404 for invalid token", async () => {
@@ -230,6 +233,122 @@ describe("POST /api/webhook/[token]", () => {
 
     const res = await POST(req, makeParams("valid-token"));
     expect(res.status).toBe(400);
+  });
+
+  describe("idempotency", () => {
+    it("returns 200 with existing link when URL already exists for the user", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue({
+        id: 5,
+        userId: "user-1",
+        slug: "existing-slug",
+        originalUrl: "https://example.com/already-exists",
+        isCustom: false,
+        clicks: 3,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", { url: "https://example.com/already-exists" }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.slug).toBe("existing-slug");
+      expect(json.shortUrl).toContain("existing-slug");
+      expect(json.originalUrl).toBe("https://example.com/already-exists");
+    });
+
+    it("does not create a new link when URL already exists", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue({
+        id: 5,
+        userId: "user-1",
+        slug: "existing-slug",
+        originalUrl: "https://example.com/dup",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      await POST(
+        makeRequest("valid-token", { url: "https://example.com/dup" }),
+        makeParams("valid-token"),
+      );
+
+      expect(mockCreateLink).not.toHaveBeenCalled();
+      expect(mockGenerateUniqueSlug).not.toHaveBeenCalled();
+    });
+
+    it("ignores customSlug when URL already exists and returns existing link", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue({
+        id: 5,
+        userId: "user-1",
+        slug: "original-slug",
+        originalUrl: "https://example.com/exists",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com/exists",
+          customSlug: "new-custom",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.slug).toBe("original-slug");
+      expect(mockCreateLink).not.toHaveBeenCalled();
+      expect(mockSanitizeSlug).not.toHaveBeenCalled();
+    });
+
+    it("creates a new link when URL does not exist (existing 201 behavior)", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue(null);
+      mockGenerateUniqueSlug.mockResolvedValue("new-slug");
+      mockCreateLink.mockResolvedValue({
+        id: 20,
+        userId: "user-1",
+        slug: "new-slug",
+        originalUrl: "https://example.com/brand-new",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", { url: "https://example.com/brand-new" }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(201);
+      const json = await res.json();
+      expect(json.slug).toBe("new-slug");
+      expect(mockCreateLink).toHaveBeenCalled();
+    });
   });
 });
 
