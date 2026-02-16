@@ -1,0 +1,234 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock DB modules
+const mockGetWebhookByToken = vi.fn();
+const mockSlugExists = vi.fn();
+const mockCreateLink = vi.fn();
+
+vi.mock("@/lib/db", () => ({
+  getWebhookByToken: (...args: unknown[]) => mockGetWebhookByToken(...args),
+  slugExists: (...args: unknown[]) => mockSlugExists(...args),
+  createLink: (...args: unknown[]) => mockCreateLink(...args),
+}));
+
+// Mock rate limiter
+const mockCheckRateLimit = vi.fn();
+vi.mock("@/models/webhook", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/models/webhook")>();
+  return {
+    ...original,
+    checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+  };
+});
+
+// Mock slug generation
+const mockGenerateUniqueSlug = vi.fn();
+const mockSanitizeSlug = vi.fn();
+vi.mock("@/lib/slug", () => ({
+  generateUniqueSlug: (...args: unknown[]) => mockGenerateUniqueSlug(...args),
+  sanitizeSlug: (...args: unknown[]) => mockSanitizeSlug(...args),
+}));
+
+import { POST } from "@/app/api/webhook/[token]/route";
+
+function makeRequest(
+  token: string,
+  body: unknown,
+  method = "POST",
+): Request {
+  return new Request(`http://localhost/api/webhook/${token}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function makeParams(token: string) {
+  return { params: Promise.resolve({ token }) };
+}
+
+describe("POST /api/webhook/[token]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCheckRateLimit.mockReturnValue({ allowed: true });
+  });
+
+  it("returns 404 for invalid token", async () => {
+    mockGetWebhookByToken.mockResolvedValue(null);
+
+    const res = await POST(
+      makeRequest("bad-token", { url: "https://example.com" }),
+      makeParams("bad-token"),
+    );
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBeDefined();
+  });
+
+  it("returns 429 when rate limited", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockCheckRateLimit.mockReturnValue({ allowed: false, retryAfterMs: 30000 });
+
+    const res = await POST(
+      makeRequest("valid-token", { url: "https://example.com" }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("30");
+  });
+
+  it("returns 400 for invalid payload (missing url)", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+
+    const res = await POST(
+      makeRequest("valid-token", {}),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid url format", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+
+    const res = await POST(
+      makeRequest("valid-token", { url: "not-a-url" }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("creates a link with auto-generated slug and returns short URL", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockGenerateUniqueSlug.mockResolvedValue("abc123");
+    mockCreateLink.mockResolvedValue({
+      id: 10,
+      userId: "user-1",
+      slug: "abc123",
+      originalUrl: "https://example.com/long-page",
+      isCustom: false,
+      clicks: 0,
+      createdAt: new Date(),
+    });
+
+    const res = await POST(
+      makeRequest("valid-token", { url: "https://example.com/long-page" }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.slug).toBe("abc123");
+    expect(json.shortUrl).toContain("abc123");
+    expect(json.originalUrl).toBe("https://example.com/long-page");
+  });
+
+  it("creates a link with custom slug", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockSanitizeSlug.mockReturnValue("my-custom");
+    mockSlugExists.mockResolvedValue(false);
+    mockCreateLink.mockResolvedValue({
+      id: 11,
+      userId: "user-1",
+      slug: "my-custom",
+      originalUrl: "https://example.com",
+      isCustom: true,
+      clicks: 0,
+      createdAt: new Date(),
+    });
+
+    const res = await POST(
+      makeRequest("valid-token", {
+        url: "https://example.com",
+        customSlug: "my-custom",
+      }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.slug).toBe("my-custom");
+  });
+
+  it("returns 400 for invalid custom slug", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockSanitizeSlug.mockReturnValue(null);
+
+    const res = await POST(
+      makeRequest("valid-token", {
+        url: "https://example.com",
+        customSlug: "has spaces",
+      }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBeDefined();
+  });
+
+  it("returns 409 when custom slug already exists", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockSanitizeSlug.mockReturnValue("taken");
+    mockSlugExists.mockResolvedValue(true);
+
+    const res = await POST(
+      makeRequest("valid-token", {
+        url: "https://example.com",
+        customSlug: "taken",
+      }),
+      makeParams("valid-token"),
+    );
+    expect(res.status).toBe(409);
+    const json = await res.json();
+    expect(json.error).toContain("slug");
+  });
+
+  it("returns 400 for non-JSON body", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "POST",
+      body: "not json",
+    });
+
+    const res = await POST(req, makeParams("valid-token"));
+    expect(res.status).toBe(400);
+  });
+});
