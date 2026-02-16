@@ -272,7 +272,6 @@ export function useUploadItemViewModel(
   }, [upload.publicUrl]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm("确定要删除这个文件吗？删除后无法恢复。")) return;
     setIsDeleting(true);
     const success = await onDelete(upload.id);
     if (!success) {

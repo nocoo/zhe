@@ -202,6 +202,7 @@ describe('UploadZone', () => {
 
 describe('UploadItem', () => {
   const mockOnDelete = vi.fn();
+  const mockHandleDeleteFn = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -209,7 +210,7 @@ describe('UploadItem', () => {
       copied: false,
       isDeleting: false,
       handleCopy: vi.fn(),
-      handleDelete: vi.fn(),
+      handleDelete: mockHandleDeleteFn,
     });
   });
 
@@ -236,7 +237,7 @@ describe('UploadItem', () => {
       copied: true,
       isDeleting: false,
       handleCopy: vi.fn(),
-      handleDelete: vi.fn(),
+      handleDelete: mockHandleDeleteFn,
     });
 
     const upload = makeUpload();
@@ -245,6 +246,58 @@ describe('UploadItem', () => {
     // Check icon should be rendered (by title attribute on the button)
     const copyBtn = container.querySelector('[title="复制链接"]');
     expect(copyBtn).toBeInTheDocument();
+  });
+
+  it('shows AlertDialog confirmation when delete button is clicked', () => {
+    const upload = makeUpload();
+    render(<UploadItem upload={upload} onDelete={mockOnDelete} />);
+
+    const deleteBtn = screen.getByLabelText('Delete file');
+    fireEvent.click(deleteBtn);
+
+    expect(screen.getByText('确认删除')).toBeInTheDocument();
+    expect(screen.getByText('此操作不可撤销，确定要删除这个文件吗？')).toBeInTheDocument();
+    expect(screen.getByText('取消')).toBeInTheDocument();
+    expect(screen.getByText('删除')).toBeInTheDocument();
+  });
+
+  it('calls handleDelete when AlertDialog confirm button is clicked', () => {
+    const upload = makeUpload();
+    render(<UploadItem upload={upload} onDelete={mockOnDelete} />);
+
+    // Open dialog
+    fireEvent.click(screen.getByLabelText('Delete file'));
+    // Confirm delete
+    fireEvent.click(screen.getByText('删除'));
+
+    expect(mockHandleDeleteFn).toHaveBeenCalled();
+  });
+
+  it('does not call handleDelete when cancel is clicked', () => {
+    const upload = makeUpload();
+    render(<UploadItem upload={upload} onDelete={mockOnDelete} />);
+
+    // Open dialog
+    fireEvent.click(screen.getByLabelText('Delete file'));
+    // Cancel
+    fireEvent.click(screen.getByText('取消'));
+
+    expect(mockHandleDeleteFn).not.toHaveBeenCalled();
+  });
+
+  it('disables delete button when isDeleting', () => {
+    vi.mocked(useUploadItemViewModel).mockReturnValue({
+      copied: false,
+      isDeleting: true,
+      handleCopy: vi.fn(),
+      handleDelete: mockHandleDeleteFn,
+    });
+
+    const upload = makeUpload();
+    render(<UploadItem upload={upload} onDelete={mockOnDelete} />);
+
+    const deleteBtn = screen.getByLabelText('Delete file');
+    expect(deleteBtn).toBeDisabled();
   });
 });
 

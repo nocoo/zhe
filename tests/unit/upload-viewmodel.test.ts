@@ -615,7 +615,6 @@ describe('useUploadItemViewModel', () => {
     vi.useFakeTimers();
     mockOnDelete.mockClear();
     mockCopyToClipboard.mockReset();
-    vi.stubGlobal('confirm', vi.fn());
     vi.stubGlobal('alert', vi.fn());
   });
 
@@ -662,8 +661,7 @@ describe('useUploadItemViewModel', () => {
     expect(result.current.copied).toBe(false);
   });
 
-  it('handleDelete with confirm=true calls onDelete on success', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
+  it('handleDelete calls onDelete and resets isDeleting on success', async () => {
     mockOnDelete.mockResolvedValue(true);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -672,13 +670,11 @@ describe('useUploadItemViewModel', () => {
       await result.current.handleDelete();
     });
 
-    expect(globalThis.confirm).toHaveBeenCalledWith('确定要删除这个文件吗？删除后无法恢复。');
     expect(mockOnDelete).toHaveBeenCalledWith(42);
     expect(result.current.isDeleting).toBe(false);
   });
 
   it('handleDelete shows alert on failure', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
     mockOnDelete.mockResolvedValue(false);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -688,19 +684,6 @@ describe('useUploadItemViewModel', () => {
     });
 
     expect(globalThis.alert).toHaveBeenCalledWith('删除失败，请重试');
-    expect(result.current.isDeleting).toBe(false);
-  });
-
-  it('handleDelete with confirm=false does nothing', async () => {
-    vi.mocked(globalThis.confirm as ReturnType<typeof vi.fn>).mockReturnValue(false);
-
-    const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
-
-    await act(async () => {
-      await result.current.handleDelete();
-    });
-
-    expect(mockOnDelete).not.toHaveBeenCalled();
     expect(result.current.isDeleting).toBe(false);
   });
 });
