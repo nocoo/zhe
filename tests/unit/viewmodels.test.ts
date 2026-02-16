@@ -12,6 +12,7 @@ vi.mock('@/actions/links', () => ({
   deleteLink: vi.fn(),
   updateLink: vi.fn(),
   getAnalyticsStats: vi.fn(),
+  refreshLinkMetadata: vi.fn(),
 }));
 
 vi.mock('@/actions/folders', () => ({
@@ -36,7 +37,7 @@ import {
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, updateLink, getAnalyticsStats } from '@/actions/links';
+import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -450,6 +451,83 @@ describe('useLinkCardViewModel', () => {
       folderId: 'folder-99',
     });
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+  });
+
+  // --- handleRefreshMetadata ---
+
+  it('handleRefreshMetadata calls refreshLinkMetadata and onUpdate on success', async () => {
+    const updatedLink = {
+      ...link,
+      metaTitle: 'Example Title',
+      metaDescription: 'A description',
+      metaFavicon: 'https://example.com/favicon.ico',
+    };
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: updatedLink });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.isRefreshingMetadata).toBe(false);
+
+    await act(async () => {
+      await result.current.handleRefreshMetadata();
+    });
+
+    expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+    expect(result.current.isRefreshingMetadata).toBe(false);
+  });
+
+  it('handleRefreshMetadata shows alert on failure', async () => {
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({
+      success: false,
+      error: 'Failed to refresh metadata',
+    });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {
+      await result.current.handleRefreshMetadata();
+    });
+
+    expect(globalThis.alert).toHaveBeenCalledWith('Failed to refresh metadata');
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+    expect(result.current.isRefreshingMetadata).toBe(false);
+  });
+
+  it('handleRefreshMetadata shows default error when error is empty', async () => {
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {
+      await result.current.handleRefreshMetadata();
+    });
+
+    expect(globalThis.alert).toHaveBeenCalledWith('Failed to refresh metadata');
+  });
+
+  it('handleRefreshMetadata handles thrown errors gracefully', async () => {
+    vi.mocked(refreshLinkMetadata).mockRejectedValue(new Error('Network error'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {
+      await result.current.handleRefreshMetadata();
+    });
+
+    expect(result.current.isRefreshingMetadata).toBe(false);
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
   });
 });
 

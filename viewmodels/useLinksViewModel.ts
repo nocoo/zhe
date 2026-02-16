@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type { Link, AnalyticsStats } from "@/models/types";
-import { createLink, deleteLink, updateLink, getAnalyticsStats } from "@/actions/links";
+import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
 
@@ -24,6 +24,9 @@ export function useLinkCardViewModel(
   const [editUrl, setEditUrl] = useState("");
   const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Metadata refresh state
+  const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
@@ -96,6 +99,22 @@ export function useLinkCardViewModel(
     }
   }, [link.id, editUrl, editFolderId, onUpdate]);
 
+  const handleRefreshMetadata = useCallback(async () => {
+    setIsRefreshingMetadata(true);
+    try {
+      const result = await refreshLinkMetadata(link.id);
+      if (result.success && result.data) {
+        onUpdate(result.data);
+      } else {
+        alert(result.error || "Failed to refresh metadata");
+      }
+    } catch (error) {
+      console.error("Failed to refresh metadata:", error);
+    } finally {
+      setIsRefreshingMetadata(false);
+    }
+  }, [link.id, onUpdate]);
+
   return {
     shortUrl,
     copied,
@@ -115,6 +134,8 @@ export function useLinkCardViewModel(
     startEditing,
     cancelEditing,
     saveEdit,
+    handleRefreshMetadata,
+    isRefreshingMetadata,
   };
 }
 
