@@ -127,33 +127,33 @@ export function SidebarFolderItem({
           strokeWidth={1.5}
         />
         <span className="flex-1 text-left">{folder.name}</span>
-        <span className="text-xs text-muted-foreground tabular-nums group-hover:hidden">{linkCount}</span>
+        <span className="relative flex w-5 shrink-0 items-center justify-center">
+          <span className="text-xs text-muted-foreground tabular-nums group-hover:hidden">{linkCount}</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="文件夹操作"
+                className="hidden h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors group-hover:flex"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="bottom" className="w-32">
+              <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
+                <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+                编辑
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(folder.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+                删除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </span>
       </Link>
-
-      {/* Context menu trigger — replaces link count on hover */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            aria-label="文件夹操作"
-            className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors group-hover:flex"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="bottom" className="w-32">
-          <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
-            <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
-            编辑
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => onDelete(folder.id)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
-            删除
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
 }
