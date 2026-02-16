@@ -2,7 +2,7 @@
 
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { formatClickCount, formatStorageSize } from "@/models/overview";
-import type { OverviewStats, ClickTrendPoint, TopLinkEntry } from "@/models/overview";
+import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry } from "@/models/overview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CHART_COLORS, withAlpha, chartAxis } from "@/lib/palette";
 import {
@@ -14,6 +14,8 @@ import {
   Crown,
   Monitor,
   Globe,
+  Upload,
+  FileType,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -130,6 +132,64 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
             dataKey="clicks"
             stroke={CHART_COLORS[0]}
             fill="url(#clickGradient)"
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Upload Trend Chart ───────────────────────────────────────────────────────
+
+function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+        暂无上传数据
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[200px] md:h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+          <defs>
+            <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_COLORS[1]} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={CHART_COLORS[1]} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={withAlpha("chart-axis", 0.15)} />
+          <XAxis
+            dataKey="date"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: chartAxis, fontSize: 11 }}
+            tickFormatter={(v: string) => v.slice(5)} // MM-DD
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: chartAxis, fontSize: 11 }}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+            labelFormatter={(label) => String(label)}
+            formatter={(value) => [String(value), "上传"]}
+          />
+          <Area
+            type="monotone"
+            dataKey="uploads"
+            stroke={CHART_COLORS[1]}
+            fill="url(#uploadGradient)"
             strokeWidth={2}
           />
         </AreaChart>
@@ -320,7 +380,30 @@ function OverviewContent({ stats }: { stats: OverviewStats }) {
         </Card>
       </div>
 
-      {/* Charts row 2: Device + Browser + OS */}
+      {/* Charts row 2: Upload trend (wide) + File type breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+        <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
+          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+            <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+            <UploadTrendChart data={stats.uploadTrend} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 bg-secondary shadow-none">
+          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+            <FileType className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <CardTitle className="text-sm font-medium">文件类型</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+            <BreakdownDonut data={stats.fileTypeBreakdown} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts row 3: Device + Browser + OS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <Card className="border-0 bg-secondary shadow-none">
           <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">

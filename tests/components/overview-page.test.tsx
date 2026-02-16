@@ -40,6 +40,10 @@ function makeStats(overrides: Partial<OverviewStats> = {}): OverviewStats {
       { date: '2026-02-10', clicks: 100 },
       { date: '2026-02-11', clicks: 200 },
     ],
+    uploadTrend: [
+      { date: '2026-02-10', uploads: 2 },
+      { date: '2026-02-11', uploads: 3 },
+    ],
     topLinks: [
       { slug: 'abc', originalUrl: 'https://example.com', clicks: 100 },
       { slug: 'def', originalUrl: 'https://other.com', clicks: 50 },
@@ -47,6 +51,7 @@ function makeStats(overrides: Partial<OverviewStats> = {}): OverviewStats {
     deviceBreakdown: { desktop: 300, mobile: 200 },
     browserBreakdown: { Chrome: 400, Safari: 100 },
     osBreakdown: { macOS: 300, Windows: 200 },
+    fileTypeBreakdown: { 'image/png': 3, 'image/jpeg': 2 },
     ...overrides,
   };
 }
@@ -146,6 +151,28 @@ describe('OverviewPage', () => {
     expect(screen.getByText('浏览器分布')).toBeInTheDocument();
   });
 
+  it('renders upload trend chart section', () => {
+    mockUseOverviewViewModel.mockReturnValue({
+      loading: false,
+      error: null,
+      stats: makeStats(),
+    });
+
+    render(<OverviewPage />);
+    expect(screen.getByText('上传趋势')).toBeInTheDocument();
+  });
+
+  it('renders file type breakdown chart section', () => {
+    mockUseOverviewViewModel.mockReturnValue({
+      loading: false,
+      error: null,
+      stats: makeStats(),
+    });
+
+    render(<OverviewPage />);
+    expect(screen.getByText('文件类型')).toBeInTheDocument();
+  });
+
   it('shows empty state when no data', () => {
     mockUseOverviewViewModel.mockReturnValue({
       loading: false,
@@ -156,10 +183,12 @@ describe('OverviewPage', () => {
         totalUploads: 0,
         totalStorageBytes: 0,
         clickTrend: [],
+        uploadTrend: [],
         topLinks: [],
         deviceBreakdown: {},
         browserBreakdown: {},
         osBreakdown: {},
+        fileTypeBreakdown: {},
       }),
     });
 
@@ -173,7 +202,8 @@ describe('OverviewPage', () => {
 
     // Empty chart/list states
     expect(screen.getByText('暂无点击数据')).toBeInTheDocument();
+    expect(screen.getByText('暂无上传数据')).toBeInTheDocument();
     expect(screen.getByText('暂无链接')).toBeInTheDocument();
-    expect(screen.getAllByText('暂无数据').length).toBe(3); // device, browser, os
+    expect(screen.getAllByText('暂无数据').length).toBe(4); // device, browser, os, file type
   });
 });
