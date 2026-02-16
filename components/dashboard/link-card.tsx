@@ -11,8 +11,10 @@ import {
   Pencil,
   X,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +55,8 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
     startEditing,
     cancelEditing,
     saveEdit,
+    handleRefreshMetadata,
+    isRefreshingMetadata,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
 
   return (
@@ -61,6 +65,16 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
         <div className="flex-1 min-w-0">
           {/* Short URL */}
           <div className="flex items-center gap-2 mb-1">
+            {link.metaFavicon && (
+              <Image
+                src={link.metaFavicon}
+                alt="favicon"
+                width={16}
+                height={16}
+                className="w-4 h-4 shrink-0 rounded-sm"
+                unoptimized
+              />
+            )}
             <a
               href={shortUrl}
               target="_blank"
@@ -79,6 +93,13 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
             )}
           </div>
 
+          {/* Meta title */}
+          {link.metaTitle && (
+            <p className="text-xs text-foreground/80 truncate mb-0.5">
+              {link.metaTitle}
+            </p>
+          )}
+
           {/* Original URL */}
           <a
             href={link.originalUrl}
@@ -88,6 +109,13 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
           >
             {link.originalUrl}
           </a>
+
+          {/* Meta description */}
+          {link.metaDescription && (
+            <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+              {link.metaDescription}
+            </p>
+          )}
 
           {/* Meta row */}
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -114,6 +142,19 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
 
         {/* Actions */}
         <div className="flex items-center gap-0.5">
+          <button
+            onClick={handleRefreshMetadata}
+            disabled={isRefreshingMetadata}
+            aria-label="Refresh metadata"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Refresh metadata"
+          >
+            {isRefreshingMetadata ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
           <button
             onClick={handleCopy}
             aria-label="Copy link"

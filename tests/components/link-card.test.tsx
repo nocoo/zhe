@@ -23,6 +23,8 @@ const mockVm = {
   startEditing: vi.fn(),
   cancelEditing: vi.fn(),
   saveEdit: vi.fn(),
+  handleRefreshMetadata: vi.fn(),
+  isRefreshingMetadata: false,
 };
 
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
@@ -81,6 +83,7 @@ describe("LinkCard", () => {
     mockVm.editUrl = "";
     mockVm.editFolderId = undefined;
     mockVm.isSaving = false;
+    mockVm.isRefreshingMetadata = false;
   });
 
   it("renders short URL and original URL", () => {
@@ -238,5 +241,66 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} />);
 
     expect(screen.getByText("保存中...")).toBeInTheDocument();
+  });
+
+  // --- Metadata display ---
+
+  it("shows favicon when metaFavicon is set", () => {
+    const linkWithMeta = {
+      ...baseLink,
+      metaFavicon: "https://example.com/favicon.ico",
+    };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
+
+    const favicon = screen.getByAltText("favicon");
+    expect(favicon).toBeInTheDocument();
+    expect(favicon).toHaveAttribute("src", "https://example.com/favicon.ico");
+  });
+
+  it("does not show favicon when metaFavicon is null", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
+  });
+
+  it("shows meta title when metaTitle is set", () => {
+    const linkWithMeta = {
+      ...baseLink,
+      metaTitle: "Example Page Title",
+    };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
+
+    expect(screen.getByText("Example Page Title")).toBeInTheDocument();
+  });
+
+  it("does not show meta title when metaTitle is null", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByText("Example Page Title")).not.toBeInTheDocument();
+  });
+
+  it("shows meta description when metaDescription is set", () => {
+    const linkWithMeta = {
+      ...baseLink,
+      metaDescription: "A description of the page",
+    };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
+
+    expect(screen.getByText("A description of the page")).toBeInTheDocument();
+  });
+
+  it("shows refresh metadata button", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByTitle("Refresh metadata")).toBeInTheDocument();
+  });
+
+  it("shows spinner on refresh metadata button when refreshing", () => {
+    mockVm.isRefreshingMetadata = true;
+    render(<LinkCard {...defaultProps} />);
+
+    const refreshBtn = screen.getByTitle("Refresh metadata");
+    const spinner = refreshBtn.querySelector(".animate-spin");
+    expect(spinner).toBeInTheDocument();
   });
 });
