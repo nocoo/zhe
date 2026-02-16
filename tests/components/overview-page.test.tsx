@@ -92,6 +92,10 @@ describe('OverviewPage', () => {
 
     render(<OverviewPage />);
 
+    // Section headers
+    expect(screen.getByText('链接统计')).toBeInTheDocument();
+    expect(screen.getByText('图床统计')).toBeInTheDocument();
+
     // Stat card labels
     expect(screen.getByText('总链接数')).toBeInTheDocument();
     expect(screen.getByText('总点击量')).toBeInTheDocument();

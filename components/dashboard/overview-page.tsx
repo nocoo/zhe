@@ -332,109 +332,125 @@ export function OverviewPage() {
 
 function OverviewContent({ stats }: { stats: OverviewStats }) {
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Stat cards grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard
-          label="总链接数"
-          value={formatClickCount(stats.totalLinks)}
-          icon={Link2}
-        />
-        <StatCard
-          label="总点击量"
-          value={formatClickCount(stats.totalClicks)}
-          icon={MousePointerClick}
-        />
-        <StatCard
-          label="总上传数"
-          value={formatClickCount(stats.totalUploads)}
-          icon={ImageIcon}
-        />
-        <StatCard
-          label="存储用量"
-          value={formatStorageSize(stats.totalStorageBytes)}
-          icon={HardDrive}
-        />
-      </div>
+    <div className="space-y-8 md:space-y-10">
+      {/* ── 链接统计 ──────────────────────────────────────────────── */}
+      <section>
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">链接统计</h2>
+        <div className="space-y-4 md:space-y-6">
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <StatCard
+              label="总链接数"
+              value={formatClickCount(stats.totalLinks)}
+              icon={Link2}
+            />
+            <StatCard
+              label="总点击量"
+              value={formatClickCount(stats.totalClicks)}
+              icon={MousePointerClick}
+            />
+          </div>
 
-      {/* Charts row 1: Click trend (wide) + Top links */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-        <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <ClickTrendChart data={stats.clickTrend} />
-          </CardContent>
-        </Card>
+          {/* Click trend (wide) + Top links */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <ClickTrendChart data={stats.clickTrend} />
+              </CardContent>
+            </Card>
 
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Crown className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">热门链接</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <TopLinksList links={stats.topLinks} />
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <Crown className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">热门链接</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <TopLinksList links={stats.topLinks} />
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Charts row 2: Upload trend (wide) + File type breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-        <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <UploadTrendChart data={stats.uploadTrend} />
-          </CardContent>
-        </Card>
+          {/* Device + Browser + OS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            <Card className="border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">设备分布</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <BreakdownDonut data={stats.deviceBreakdown} />
+              </CardContent>
+            </Card>
 
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <FileType className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">文件类型</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <BreakdownDonut data={stats.fileTypeBreakdown} />
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">浏览器分布</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <BreakdownDonut data={stats.browserBreakdown} />
+              </CardContent>
+            </Card>
 
-      {/* Charts row 3: Device + Browser + OS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">设备分布</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <BreakdownDonut data={stats.deviceBreakdown} />
-          </CardContent>
-        </Card>
+            <Card className="border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">操作系统</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <BreakdownDonut data={stats.osBreakdown} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">浏览器分布</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <BreakdownDonut data={stats.browserBreakdown} />
-          </CardContent>
-        </Card>
+      {/* ── 图床统计 ──────────────────────────────────────────────── */}
+      <section>
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">图床统计</h2>
+        <div className="space-y-4 md:space-y-6">
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <StatCard
+              label="总上传数"
+              value={formatClickCount(stats.totalUploads)}
+              icon={ImageIcon}
+            />
+            <StatCard
+              label="存储用量"
+              value={formatStorageSize(stats.totalStorageBytes)}
+              icon={HardDrive}
+            />
+          </div>
 
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">操作系统</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <BreakdownDonut data={stats.osBreakdown} />
-          </CardContent>
-        </Card>
-      </div>
+          {/* Upload trend (wide) + File type breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <UploadTrendChart data={stats.uploadTrend} />
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 bg-secondary shadow-none">
+              <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+                <FileType className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                <CardTitle className="text-sm font-medium">文件类型</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+                <BreakdownDonut data={stats.fileTypeBreakdown} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
