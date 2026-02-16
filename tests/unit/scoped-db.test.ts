@@ -105,6 +105,86 @@ describe('ScopedDB', () => {
     });
   });
 
+  // ---- Link Metadata ----------------------------------------
+
+  describe('updateLinkMetadata', () => {
+    it('updates all metadata fields', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'meta1' });
+
+      const updated = await db.updateLinkMetadata(link.id, {
+        metaTitle: 'Example',
+        metaDescription: 'An example site',
+        metaFavicon: 'https://example.com/favicon.ico',
+      });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.metaTitle).toBe('Example');
+      expect(updated!.metaDescription).toBe('An example site');
+      expect(updated!.metaFavicon).toBe('https://example.com/favicon.ico');
+    });
+
+    it('updates only title when other fields are not provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'meta2' });
+
+      const updated = await db.updateLinkMetadata(link.id, { metaTitle: 'Only Title' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.metaTitle).toBe('Only Title');
+    });
+
+    it('can set metadata to null (clear)', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'meta3' });
+
+      // First set metadata
+      await db.updateLinkMetadata(link.id, {
+        metaTitle: 'Title',
+        metaDescription: 'Desc',
+        metaFavicon: 'https://example.com/icon.png',
+      });
+
+      // Then clear it
+      const cleared = await db.updateLinkMetadata(link.id, {
+        metaTitle: null,
+        metaDescription: null,
+        metaFavicon: null,
+      });
+
+      expect(cleared).not.toBeNull();
+      expect(cleared!.metaTitle).toBeNull();
+      expect(cleared!.metaDescription).toBeNull();
+      expect(cleared!.metaFavicon).toBeNull();
+    });
+
+    it('returns null for another user link', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const link = await dbA.createLink({ originalUrl: 'https://example.com', slug: 'meta4' });
+
+      const result = await dbB.updateLinkMetadata(link.id, { metaTitle: 'Hacked' });
+      expect(result).toBeNull();
+    });
+
+    it('returns existing link when no metadata fields are provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'meta5' });
+
+      const result = await db.updateLinkMetadata(link.id, {});
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(link.id);
+    });
+
+    it('returns null for non-existent link with empty data', async () => {
+      const db = new ScopedDB(USER_A);
+
+      const result = await db.updateLinkMetadata(99999, {});
+      expect(result).toBeNull();
+    });
+  });
+
   // ---- Analytics scoped through link ownership ---------------
 
   describe('analytics operations', () => {
