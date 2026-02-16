@@ -127,15 +127,15 @@ export function SidebarFolderItem({
           strokeWidth={1.5}
         />
         <span className="flex-1 text-left">{folder.name}</span>
-        <span className="text-xs text-muted-foreground tabular-nums">{linkCount}</span>
+        <span className="text-xs text-muted-foreground tabular-nums group-hover:hidden">{linkCount}</span>
       </Link>
 
-      {/* Context menu trigger — visible on hover */}
+      {/* Context menu trigger — replaces link count on hover */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             aria-label="文件夹操作"
-            className="absolute right-1 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+            className="absolute right-3 top-1/2 -translate-y-1/2 hidden h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors group-hover:flex"
           >
             <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>
