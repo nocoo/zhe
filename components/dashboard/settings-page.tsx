@@ -277,6 +277,18 @@ function WebhookUsageDocs({ webhookUrl }: { webhookUrl: string }) {
         </p>
       </div>
 
+      {/* Notes */}
+      {docs.notes.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">行为说明</p>
+          <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+            {docs.notes.map((note, i) => (
+              <li key={i}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Error codes */}
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">错误码</p>

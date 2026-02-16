@@ -310,5 +310,14 @@ describe('SettingsPage', () => {
       expect(screen.getByText('409')).toBeInTheDocument();
       expect(screen.getByText('429')).toBeInTheDocument();
     });
+
+    it('shows behavior notes section with idempotency info', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByText('行为说明')).toBeInTheDocument();
+      expect(screen.getByText(/Idempotent/)).toBeInTheDocument();
+    });
   });
 });
