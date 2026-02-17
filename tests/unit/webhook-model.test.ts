@@ -5,7 +5,10 @@ import {
   checkRateLimit,
   buildWebhookDocumentation,
   RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_DEFAULT_MAX,
+  RATE_LIMIT_ABSOLUTE_MAX,
+  clampRateLimit,
+  isValidRateLimit,
 } from "@/models/webhook";
 
 describe("webhook model", () => {
@@ -180,19 +183,20 @@ describe("webhook model", () => {
 
     it("exports rate limit constants", () => {
       expect(RATE_LIMIT_WINDOW_MS).toBe(60_000);
-      expect(RATE_LIMIT_MAX_REQUESTS).toBe(60);
+      expect(RATE_LIMIT_DEFAULT_MAX).toBe(5);
+      expect(RATE_LIMIT_ABSOLUTE_MAX).toBe(10);
     });
 
     it("allows requests within the limit", () => {
       const token = "test-token";
-      for (let i = 0; i < RATE_LIMIT_MAX_REQUESTS; i++) {
+      for (let i = 0; i < RATE_LIMIT_DEFAULT_MAX; i++) {
         expect(checkRateLimit(token)).toEqual({ allowed: true });
       }
     });
 
     it("blocks requests exceeding the limit", () => {
       const token = "test-token-2";
-      for (let i = 0; i < RATE_LIMIT_MAX_REQUESTS; i++) {
+      for (let i = 0; i < RATE_LIMIT_DEFAULT_MAX; i++) {
         checkRateLimit(token);
       }
       const result = checkRateLimit(token);
@@ -203,7 +207,7 @@ describe("webhook model", () => {
 
     it("resets after the window expires", () => {
       const token = "test-token-3";
-      for (let i = 0; i < RATE_LIMIT_MAX_REQUESTS; i++) {
+      for (let i = 0; i < RATE_LIMIT_DEFAULT_MAX; i++) {
         checkRateLimit(token);
       }
       expect(checkRateLimit(token).allowed).toBe(false);
@@ -215,7 +219,7 @@ describe("webhook model", () => {
     it("tracks tokens independently", () => {
       const tokenA = "token-a";
       const tokenB = "token-b";
-      for (let i = 0; i < RATE_LIMIT_MAX_REQUESTS; i++) {
+      for (let i = 0; i < RATE_LIMIT_DEFAULT_MAX; i++) {
         checkRateLimit(tokenA);
       }
       expect(checkRateLimit(tokenA).allowed).toBe(false);
@@ -224,22 +228,83 @@ describe("webhook model", () => {
 
     it("uses sliding window — old entries expire individually", () => {
       const token = "test-token-4";
-      // Fill half at time 0
-      for (let i = 0; i < 30; i++) {
-        checkRateLimit(token);
+      // Fill half at time 0 (use custom limit of 10 for this test)
+      const limit = RATE_LIMIT_ABSOLUTE_MAX;
+      for (let i = 0; i < limit / 2; i++) {
+        checkRateLimit(token, limit);
       }
       // Advance 30 seconds, fill the rest
       vi.advanceTimersByTime(30_000);
-      for (let i = 0; i < 30; i++) {
-        checkRateLimit(token);
+      for (let i = 0; i < limit / 2; i++) {
+        checkRateLimit(token, limit);
       }
-      // Now at 60 requests, should be blocked
-      expect(checkRateLimit(token).allowed).toBe(false);
+      // Now at limit requests, should be blocked
+      expect(checkRateLimit(token, limit).allowed).toBe(false);
 
       // Advance past the first batch's window (30s more)
       vi.advanceTimersByTime(30_001);
-      // The first 30 expired, so we should have room
-      expect(checkRateLimit(token).allowed).toBe(true);
+      // The first half expired, so we should have room
+      expect(checkRateLimit(token, limit).allowed).toBe(true);
+    });
+
+    it("respects custom maxRequests parameter", () => {
+      const token = "test-token-custom";
+      const customLimit = 3;
+      for (let i = 0; i < customLimit; i++) {
+        expect(checkRateLimit(token, customLimit).allowed).toBe(true);
+      }
+      expect(checkRateLimit(token, customLimit).allowed).toBe(false);
+    });
+
+    it("uses default limit when maxRequests is not provided", () => {
+      const token = "test-token-default";
+      for (let i = 0; i < RATE_LIMIT_DEFAULT_MAX; i++) {
+        expect(checkRateLimit(token).allowed).toBe(true);
+      }
+      expect(checkRateLimit(token).allowed).toBe(false);
+    });
+  });
+
+  describe("clampRateLimit", () => {
+    it("clamps values below 1 to 1", () => {
+      expect(clampRateLimit(0)).toBe(1);
+      expect(clampRateLimit(-5)).toBe(1);
+    });
+
+    it("clamps values above max to max", () => {
+      expect(clampRateLimit(20)).toBe(RATE_LIMIT_ABSOLUTE_MAX);
+      expect(clampRateLimit(100)).toBe(RATE_LIMIT_ABSOLUTE_MAX);
+    });
+
+    it("rounds to nearest integer", () => {
+      expect(clampRateLimit(3.7)).toBe(4);
+      expect(clampRateLimit(3.2)).toBe(3);
+    });
+
+    it("passes through valid values unchanged", () => {
+      expect(clampRateLimit(5)).toBe(5);
+      expect(clampRateLimit(1)).toBe(1);
+      expect(clampRateLimit(RATE_LIMIT_ABSOLUTE_MAX)).toBe(RATE_LIMIT_ABSOLUTE_MAX);
+    });
+  });
+
+  describe("isValidRateLimit", () => {
+    it("accepts valid values", () => {
+      expect(isValidRateLimit(1)).toBe(true);
+      expect(isValidRateLimit(5)).toBe(true);
+      expect(isValidRateLimit(RATE_LIMIT_ABSOLUTE_MAX)).toBe(true);
+    });
+
+    it("rejects values out of range", () => {
+      expect(isValidRateLimit(0)).toBe(false);
+      expect(isValidRateLimit(11)).toBe(false);
+      expect(isValidRateLimit(-1)).toBe(false);
+    });
+
+    it("rejects non-numbers", () => {
+      expect(isValidRateLimit("5")).toBe(false);
+      expect(isValidRateLimit(null)).toBe(false);
+      expect(isValidRateLimit(undefined)).toBe(false);
     });
   });
 
@@ -278,7 +343,13 @@ describe("webhook model", () => {
 
     it("includes rate limit information", () => {
       const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.rateLimit.maxRequests).toBe(RATE_LIMIT_MAX_REQUESTS);
+      expect(docs.rateLimit.maxRequests).toBe(RATE_LIMIT_DEFAULT_MAX);
+      expect(docs.rateLimit.windowMs).toBe(RATE_LIMIT_WINDOW_MS);
+    });
+
+    it("includes custom rate limit when provided", () => {
+      const docs = buildWebhookDocumentation(baseUrl, 8);
+      expect(docs.rateLimit.maxRequests).toBe(8);
       expect(docs.rateLimit.windowMs).toBe(RATE_LIMIT_WINDOW_MS);
     });
 

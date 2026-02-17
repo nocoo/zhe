@@ -291,8 +291,8 @@ describe('SettingsPage', () => {
       mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
       render(<SettingsPage />);
 
-      // 60 req/min — appears in rate limit section and error table
-      const matches = screen.getAllByText(/60/);
+      // 5 req/min (default) — appears in rate limit section and error table
+      const matches = screen.getAllByText(/5/);
       expect(matches.length).toBeGreaterThanOrEqual(1);
       // Check the specific rate limit text
       expect(screen.getByText(/次请求/)).toBeInTheDocument();

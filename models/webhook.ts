@@ -97,7 +97,18 @@ export function validateWebhookPayload(
 // ---------------------------------------------------------------------------
 
 export const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-export const RATE_LIMIT_MAX_REQUESTS = 60; // 60 req/min
+export const RATE_LIMIT_DEFAULT_MAX = 5; // default: 5 req/min
+export const RATE_LIMIT_ABSOLUTE_MAX = 10; // hard cap: 10 req/min
+
+/** Clamp a rate limit value to [1, RATE_LIMIT_ABSOLUTE_MAX]. */
+export function clampRateLimit(value: number): number {
+  return Math.max(1, Math.min(RATE_LIMIT_ABSOLUTE_MAX, Math.round(value)));
+}
+
+/** Validate that a rate limit value is within the allowed range. */
+export function isValidRateLimit(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= RATE_LIMIT_ABSOLUTE_MAX;
+}
 
 /** Map of token → array of request timestamps (ms). */
 const tokenBuckets = new Map<string, number[]>();
@@ -106,7 +117,17 @@ const tokenBuckets = new Map<string, number[]>();
  * Check whether a request for the given token is allowed under the rate limit.
  * Each call records the current timestamp if allowed.
  */
-export function checkRateLimit(token: string): RateLimitResult {
+/**
+ * Check whether a request for the given token is allowed under the rate limit.
+ * Each call records the current timestamp if allowed.
+ *
+ * @param token  The webhook token
+ * @param maxRequests  Per-token limit (defaults to RATE_LIMIT_DEFAULT_MAX)
+ */
+export function checkRateLimit(
+  token: string,
+  maxRequests: number = RATE_LIMIT_DEFAULT_MAX,
+): RateLimitResult {
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW_MS;
 
@@ -124,7 +145,7 @@ export function checkRateLimit(token: string): RateLimitResult {
     timestamps.length = 0;
   }
 
-  if (timestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+  if (timestamps.length >= maxRequests) {
     // Earliest entry determines when a slot opens
     const retryAfterMs = timestamps[0] + RATE_LIMIT_WINDOW_MS - now;
     return { allowed: false, retryAfterMs: Math.max(1, retryAfterMs) };
@@ -164,6 +185,7 @@ export interface WebhookDocumentation {
 /** Build a self-describing documentation object for the webhook API. */
 export function buildWebhookDocumentation(
   webhookUrl: string,
+  maxRequests: number = RATE_LIMIT_DEFAULT_MAX,
 ): WebhookDocumentation {
   return {
     endpoint: webhookUrl,
@@ -206,7 +228,7 @@ export function buildWebhookDocumentation(
       },
     },
     rateLimit: {
-      maxRequests: RATE_LIMIT_MAX_REQUESTS,
+      maxRequests,
       windowMs: RATE_LIMIT_WINDOW_MS,
     },
     notes: [
@@ -222,7 +244,7 @@ export function buildWebhookDocumentation(
       { status: 400, description: "Invalid request body or slug format" },
       { status: 404, description: "Invalid webhook token" },
       { status: 409, description: "Custom slug already taken" },
-      { status: 429, description: "Rate limit exceeded (60 req/min)" },
+      { status: 429, description: `Rate limit exceeded (${maxRequests} req/min)` },
     ],
   };
 }
