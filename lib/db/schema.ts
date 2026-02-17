@@ -85,6 +85,7 @@ export const webhooks = sqliteTable('webhooks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
   token: text('token').notNull().unique(),
+  rateLimit: integer('rate_limit').notNull().default(5),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
