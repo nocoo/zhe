@@ -3,9 +3,10 @@
 import { useRef } from "react";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 import { useWebhookViewModel } from "@/viewmodels/useWebhookViewModel";
-import { buildWebhookDocumentation } from "@/models/webhook";
+import { buildWebhookDocumentation, RATE_LIMIT_ABSOLUTE_MAX } from "@/models/webhook";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Download, Upload, CheckCircle, Webhook, Copy } from "lucide-react";
 
 export function SettingsPage() {
@@ -23,9 +24,11 @@ export function SettingsPage() {
     isLoading: webhookLoading,
     isGenerating,
     isRevoking,
+    rateLimit,
     webhookUrl,
     handleGenerate,
     handleRevoke,
+    handleRateLimitChange,
   } = useWebhookViewModel();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,8 +195,26 @@ export function SettingsPage() {
                 </Button>
               </div>
 
+              {/* Rate limit slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">速率限制</p>
+                  <p className="text-xs font-medium" data-testid="rate-limit-value">
+                    {rateLimit} 次/分钟
+                  </p>
+                </div>
+                <Slider
+                  data-testid="rate-limit-slider"
+                  min={1}
+                  max={RATE_LIMIT_ABSOLUTE_MAX}
+                  step={1}
+                  value={[rateLimit]}
+                  onValueCommit={([v]) => handleRateLimitChange(v)}
+                />
+              </div>
+
               {/* Usage documentation */}
-              <WebhookUsageDocs webhookUrl={webhookUrl} />
+              <WebhookUsageDocs webhookUrl={webhookUrl} rateLimit={rateLimit} />
             </div>
           ) : (
             <Button
@@ -215,8 +236,8 @@ export function SettingsPage() {
 // Webhook usage documentation sub-component
 // ---------------------------------------------------------------------------
 
-function WebhookUsageDocs({ webhookUrl }: { webhookUrl: string }) {
-  const docs = buildWebhookDocumentation(webhookUrl);
+function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateLimit: number }) {
+  const docs = buildWebhookDocumentation(webhookUrl, rateLimit);
 
   return (
     <div className="space-y-4 border-t border-border/50 pt-4">

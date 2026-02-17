@@ -26,16 +26,19 @@ vi.mock('@/viewmodels/useSettingsViewModel', () => ({
 
 const mockHandleGenerate = vi.fn();
 const mockHandleRevoke = vi.fn();
+const mockHandleRateLimitChange = vi.fn();
 
 const mockWebhookVm = {
   token: null as string | null,
   createdAt: null as string | null,
+  rateLimit: 5,
   isLoading: false,
   isGenerating: false,
   isRevoking: false,
   webhookUrl: null as string | null,
   handleGenerate: mockHandleGenerate,
   handleRevoke: mockHandleRevoke,
+  handleRateLimitChange: mockHandleRateLimitChange,
 };
 
 vi.mock('@/viewmodels/useWebhookViewModel', () => ({
@@ -54,6 +57,7 @@ describe('SettingsPage', () => {
     mockViewModel.importResult = null;
     mockWebhookVm.token = null;
     mockWebhookVm.createdAt = null;
+    mockWebhookVm.rateLimit = 5;
     mockWebhookVm.isLoading = false;
     mockWebhookVm.isGenerating = false;
     mockWebhookVm.isRevoking = false;
@@ -318,6 +322,54 @@ describe('SettingsPage', () => {
 
       expect(screen.getByText('行为说明')).toBeInTheDocument();
       expect(screen.getByText(/Idempotent/)).toBeInTheDocument();
+    });
+
+    // ================================================================
+    // Rate limit slider
+    // ================================================================
+
+    it('shows rate limit slider when token exists', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<SettingsPage />);
+
+      expect(screen.getByTestId('rate-limit-slider')).toBeInTheDocument();
+    });
+
+    it('does not show rate limit slider when no token exists', () => {
+      render(<SettingsPage />);
+
+      expect(screen.queryByTestId('rate-limit-slider')).not.toBeInTheDocument();
+    });
+
+    it('displays current rate limit value', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.rateLimit = 7;
+      render(<SettingsPage />);
+
+      const label = screen.getByTestId('rate-limit-value');
+      expect(label).toHaveTextContent('7 次/分钟');
+    });
+
+    it('displays default rate limit value of 5', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.rateLimit = 5;
+      render(<SettingsPage />);
+
+      const label = screen.getByTestId('rate-limit-value');
+      expect(label).toHaveTextContent('5 次/分钟');
+    });
+
+    it('passes rateLimit to webhook documentation', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.rateLimit = 9;
+      render(<SettingsPage />);
+
+      // The 429 error message includes the rate limit value
+      expect(screen.getByText(/9 req\/min/)).toBeInTheDocument();
     });
   });
 });
