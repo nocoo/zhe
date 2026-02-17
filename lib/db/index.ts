@@ -292,6 +292,7 @@ function rowToWebhook(row: Record<string, unknown>): Webhook {
     id: row.id as number,
     userId: row.user_id as string,
     token: row.token as string,
+    rateLimit: (row.rate_limit as number) ?? 5,
     createdAt: new Date(row.created_at as number),
   };
 }

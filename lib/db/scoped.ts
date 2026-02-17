@@ -75,6 +75,7 @@ function rowToWebhook(row: Record<string, unknown>): Webhook {
     id: row.id as number,
     userId: row.user_id as string,
     token: row.token as string,
+    rateLimit: (row.rate_limit as number) ?? 5,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -486,10 +487,19 @@ export class ScopedDB {
 
     const now = Date.now();
     const rows = await executeD1Query<Record<string, unknown>>(
-      `INSERT INTO webhooks (user_id, token, created_at) VALUES (?, ?, ?) RETURNING *`,
+      `INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, 5, ?) RETURNING *`,
       [this.userId, token, now],
     );
     return rowToWebhook(rows[0]);
+  }
+
+  /** Update the rate limit for this user's webhook. */
+  async updateWebhookRateLimit(rateLimit: number): Promise<Webhook | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'UPDATE webhooks SET rate_limit = ? WHERE user_id = ? RETURNING *',
+      [rateLimit, this.userId],
+    );
+    return rows[0] ? rowToWebhook(rows[0]) : null;
   }
 
   /** Delete the webhook for this user. Returns true if deleted. */

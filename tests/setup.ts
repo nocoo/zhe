@@ -466,10 +466,23 @@ vi.mock('@/lib/db/d1-client', async () => {
           id,
           user_id: userId,
           token,
+          rate_limit: 5,
           created_at: createdAt,
         };
         mockWebhooks.set(userId as string, webhook as unknown as import('@/lib/db/schema').Webhook);
         return [webhook] as T[];
+      }
+
+      // UPDATE webhooks SET rate_limit = ? WHERE user_id = ?
+      if (sqlLower.startsWith('update webhooks') && sqlLower.includes('rate_limit')) {
+        const [rateLimit, userId] = params;
+        const webhook = mockWebhooks.get(userId as string);
+        if (webhook) {
+          const raw = webhook as unknown as Record<string, unknown>;
+          raw.rate_limit = rateLimit;
+          return [raw] as T[];
+        }
+        return [];
       }
 
       console.warn('Unhandled SQL in mock:', sql);
