@@ -5,8 +5,9 @@ import {
   getLinkByUserAndUrl,
   deleteLinkById,
   updateLink,
+  getFolderByUserAndName,
 } from '@/lib/db';
-import { clearMockStorage } from '../mocks/db-storage';
+import { clearMockStorage, getMockFolders } from '../mocks/db-storage';
 
 describe('Link DB Operations', () => {
   beforeEach(() => {
@@ -385,6 +386,69 @@ describe('Link DB Operations', () => {
 
       expect(updated).not.toBeNull();
       expect(updated!.expiresAt).toBeNull();
+    });
+  });
+
+  describe('getFolderByUserAndName', () => {
+    function seedFolder(id: string, userId: string, name: string) {
+      const mockFolders = getMockFolders();
+      mockFolders.set(id, {
+        id,
+        user_id: userId,
+        name,
+        icon: 'folder',
+        created_at: Date.now(),
+      } as unknown as import('@/lib/db/schema').Folder);
+    }
+
+    it('should find folder by exact name match', async () => {
+      seedFolder('f1', 'user-1', '工作');
+
+      const folder = await getFolderByUserAndName('user-1', '工作');
+
+      expect(folder).not.toBeNull();
+      expect(folder!.id).toBe('f1');
+      expect(folder!.name).toBe('工作');
+    });
+
+    it('should match folder name case-insensitively', async () => {
+      seedFolder('f2', 'user-1', 'Projects');
+
+      const folder = await getFolderByUserAndName('user-1', 'projects');
+
+      expect(folder).not.toBeNull();
+      expect(folder!.id).toBe('f2');
+      expect(folder!.name).toBe('Projects');
+    });
+
+    it('should match folder name case-insensitively (uppercase query)', async () => {
+      seedFolder('f3', 'user-1', 'work');
+
+      const folder = await getFolderByUserAndName('user-1', 'WORK');
+
+      expect(folder).not.toBeNull();
+      expect(folder!.id).toBe('f3');
+    });
+
+    it('should return null when folder name does not exist', async () => {
+      seedFolder('f4', 'user-1', '工作');
+
+      const folder = await getFolderByUserAndName('user-1', '生活');
+
+      expect(folder).toBeNull();
+    });
+
+    it('should not return folders belonging to other users', async () => {
+      seedFolder('f5', 'user-2', '工作');
+
+      const folder = await getFolderByUserAndName('user-1', '工作');
+
+      expect(folder).toBeNull();
+    });
+
+    it('should return null when no folders exist', async () => {
+      const folder = await getFolderByUserAndName('user-1', '工作');
+      expect(folder).toBeNull();
     });
   });
 });

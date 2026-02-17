@@ -328,6 +328,19 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [folder] as T[];
       }
 
+      // SELECT FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?) (case-insensitive name lookup)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from folders') && sqlLower.includes('lower(name)')) {
+        const [userId, name] = params;
+        const lowerName = (name as string).toLowerCase();
+        for (const folder of mockFolders.values()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.user_id === userId && (raw.name as string).toLowerCase() === lowerName) {
+            return [folder] as T[];
+          }
+        }
+        return [];
+      }
+
       // SELECT FROM folders WHERE user_id = ? (list all user folders)
       if (sqlLower.startsWith('select') && sqlLower.includes('from folders') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
         const [userId] = params;

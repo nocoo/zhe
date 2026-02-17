@@ -4,7 +4,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, NewLink, Analytics, NewAnalytics, Webhook } from './schema';
+import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook } from './schema';
 
 // ============================================
 // Type Conversion Helpers
@@ -254,6 +254,33 @@ export async function getAnalyticsStats(linkId: number): Promise<{
     browserBreakdown: browsers,
     osBreakdown: oses,
   };
+}
+
+// ============================================
+// Folder Operations (unscoped — for webhook route)
+// ============================================
+
+function rowToFolder(row: Record<string, unknown>): Folder {
+  return {
+    id: row.id as string,
+    userId: row.user_id as string,
+    name: row.name as string,
+    icon: (row.icon as string) || 'folder',
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+/**
+ * Find a folder by user id and name (case-insensitive).
+ * Used by webhook route to resolve folder name to folder id.
+ */
+export async function getFolderByUserAndName(userId: string, name: string): Promise<Folder | null> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    'SELECT * FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1',
+    [userId, name]
+  );
+
+  return rows[0] ? rowToFolder(rows[0]) : null;
 }
 
 // ============================================
