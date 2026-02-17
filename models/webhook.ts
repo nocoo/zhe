@@ -8,6 +8,7 @@ import { isValidSlug } from "@/lib/constants";
 export interface WebhookPayload {
   url: string;
   customSlug?: string;
+  folder?: string;
 }
 
 export interface WebhookValidationResult {
@@ -68,11 +69,25 @@ export function validateWebhookPayload(
     }
   }
 
+  // folder — optional, non-empty string, max 50 chars
+  if (obj.folder !== undefined) {
+    if (typeof obj.folder !== "string") {
+      return { success: false, error: "folder must be a string" };
+    }
+    if (obj.folder.trim() === "") {
+      return { success: false, error: "folder must be a non-empty string" };
+    }
+    if (obj.folder.length > 50) {
+      return { success: false, error: "folder must be at most 50 characters" };
+    }
+  }
+
   return {
     success: true,
     data: {
       url: obj.url,
       ...(obj.customSlug !== undefined ? { customSlug: obj.customSlug as string } : {}),
+      ...(obj.folder !== undefined ? { folder: (obj.folder as string).trim() } : {}),
     },
   };
 }
@@ -166,6 +181,12 @@ export function buildWebhookDocumentation(
         description:
           "Optional custom slug (1-50 alphanumeric/dash/underscore chars). Auto-generated if omitted.",
       },
+      folder: {
+        type: "string",
+        required: false,
+        description:
+          "Optional folder name (case-insensitive match). Link is placed in the matched folder, or left uncategorized if not found.",
+      },
     },
     response: {
       slug: {
@@ -190,7 +211,7 @@ export function buildWebhookDocumentation(
     },
     notes: [
       "Idempotent: if the same URL has already been shortened under your account, the existing short link is returned (200) instead of creating a duplicate (201).",
-      "When an existing link is returned, the customSlug parameter is ignored.",
+      "When an existing link is returned, the customSlug and folder parameters are ignored.",
     ],
     example: {
       curl: `curl -X POST ${webhookUrl} \\

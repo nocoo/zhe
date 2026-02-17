@@ -99,6 +99,65 @@ describe("webhook model", () => {
       expect(result.data!.customSlug).toBeUndefined();
     });
 
+    it("accepts valid payload with folder", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        folder: "工作",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        url: "https://example.com",
+        folder: "工作",
+      });
+    });
+
+    it("accepts payload with url, customSlug, and folder", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        customSlug: "my-slug",
+        folder: "项目",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        url: "https://example.com",
+        customSlug: "my-slug",
+        folder: "项目",
+      });
+    });
+
+    it("accepts payload without folder field", () => {
+      const result = validateWebhookPayload({ url: "https://example.com" });
+      expect(result.success).toBe(true);
+      expect(result.data!.folder).toBeUndefined();
+    });
+
+    it("rejects non-string folder", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        folder: 123,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("folder");
+    });
+
+    it("rejects empty folder string", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        folder: "",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("folder");
+    });
+
+    it("rejects folder exceeding max length", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        folder: "a".repeat(51),
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("folder");
+    });
+
     it("rejects non-object payload", () => {
       const result = validateWebhookPayload("string");
       expect(result.success).toBe(false);
@@ -198,8 +257,10 @@ describe("webhook model", () => {
       const docs = buildWebhookDocumentation(baseUrl);
       expect(docs.body).toHaveProperty("url");
       expect(docs.body).toHaveProperty("customSlug");
+      expect(docs.body).toHaveProperty("folder");
       expect(docs.body.url.required).toBe(true);
       expect(docs.body.customSlug.required).toBe(false);
+      expect(docs.body.folder.required).toBe(false);
     });
 
     it("includes a curl example containing the webhook URL", () => {
@@ -240,6 +301,7 @@ describe("webhook model", () => {
       const notesText = docs.notes.join(" ");
       expect(notesText).toContain("Idempotent");
       expect(notesText).toContain("customSlug");
+      expect(notesText).toContain("folder");
     });
   });
 });
