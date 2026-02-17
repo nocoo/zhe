@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWebhookByToken, getLinkByUserAndUrl, slugExists, createLink } from "@/lib/db";
+import { getWebhookByToken, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
 import {
   validateWebhookPayload,
   checkRateLimit,
@@ -93,7 +93,7 @@ export async function POST(
     );
   }
 
-  const { url, customSlug } = validation.data;
+  const { url, customSlug, folder } = validation.data;
 
   // 4. Idempotency check — if same URL already exists for this user, return it
   const existingLink = await getLinkByUserAndUrl(webhook.userId, url);
@@ -109,7 +109,14 @@ export async function POST(
     );
   }
 
-  // 5. Resolve slug
+  // 5. Resolve folder name to folderId (case-insensitive, falls back to null)
+  let folderId: string | null = null;
+  if (folder) {
+    const matchedFolder = await getFolderByUserAndName(webhook.userId, folder);
+    folderId = matchedFolder?.id ?? null;
+  }
+
+  // 6. Resolve slug
   let slug: string;
   let isCustom = false;
 
@@ -136,17 +143,17 @@ export async function POST(
     slug = await generateUniqueSlug(slugExists);
   }
 
-  // 6. Create the link under the webhook owner's account
+  // 7. Create the link under the webhook owner's account
   const link = await createLink({
     userId: webhook.userId,
     originalUrl: url,
     slug,
     isCustom,
-    folderId: null,
+    folderId,
     clicks: 0,
   });
 
-  // 7. Build short URL from the request origin
+  // 8. Build short URL from the request origin
   const origin = new URL(request.url).origin;
   const shortUrl = `${origin}/${link.slug}`;
 

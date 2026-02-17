@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock DB modules
 const mockGetWebhookByToken = vi.fn();
 const mockGetLinkByUserAndUrl = vi.fn();
+const mockGetFolderByUserAndName = vi.fn();
 const mockSlugExists = vi.fn();
 const mockCreateLink = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   getWebhookByToken: (...args: unknown[]) => mockGetWebhookByToken(...args),
   getLinkByUserAndUrl: (...args: unknown[]) => mockGetLinkByUserAndUrl(...args),
+  getFolderByUserAndName: (...args: unknown[]) => mockGetFolderByUserAndName(...args),
   slugExists: (...args: unknown[]) => mockSlugExists(...args),
   createLink: (...args: unknown[]) => mockCreateLink(...args),
 }));
@@ -54,6 +56,7 @@ describe("POST /api/webhook/[token]", () => {
     vi.clearAllMocks();
     mockCheckRateLimit.mockReturnValue({ allowed: true });
     mockGetLinkByUserAndUrl.mockResolvedValue(null);
+    mockGetFolderByUserAndName.mockResolvedValue(null);
   });
 
   it("returns 404 for invalid token", async () => {
@@ -348,6 +351,141 @@ describe("POST /api/webhook/[token]", () => {
       const json = await res.json();
       expect(json.slug).toBe("new-slug");
       expect(mockCreateLink).toHaveBeenCalled();
+    });
+  });
+
+  describe("folder resolution", () => {
+    it("passes matching folderId when folder name matches", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetFolderByUserAndName.mockResolvedValue({
+        id: "folder-1",
+        userId: "user-1",
+        name: "工作",
+        icon: "folder",
+        createdAt: new Date(),
+      });
+      mockGenerateUniqueSlug.mockResolvedValue("abc");
+      mockCreateLink.mockResolvedValue({
+        id: 30,
+        userId: "user-1",
+        slug: "abc",
+        originalUrl: "https://example.com",
+        folderId: "folder-1",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com",
+          folder: "工作",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(201);
+      expect(mockGetFolderByUserAndName).toHaveBeenCalledWith("user-1", "工作");
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({ folderId: "folder-1" }),
+      );
+    });
+
+    it("falls back to null folderId when folder name not found", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetFolderByUserAndName.mockResolvedValue(null);
+      mockGenerateUniqueSlug.mockResolvedValue("xyz");
+      mockCreateLink.mockResolvedValue({
+        id: 31,
+        userId: "user-1",
+        slug: "xyz",
+        originalUrl: "https://example.com/no-folder",
+        folderId: null,
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com/no-folder",
+          folder: "不存在",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(201);
+      expect(mockGetFolderByUserAndName).toHaveBeenCalledWith("user-1", "不存在");
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({ folderId: null }),
+      );
+    });
+
+    it("does not call getFolderByUserAndName when folder is not provided", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGenerateUniqueSlug.mockResolvedValue("nofolder");
+      mockCreateLink.mockResolvedValue({
+        id: 32,
+        userId: "user-1",
+        slug: "nofolder",
+        originalUrl: "https://example.com",
+        folderId: null,
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      await POST(
+        makeRequest("valid-token", { url: "https://example.com" }),
+        makeParams("valid-token"),
+      );
+      expect(mockGetFolderByUserAndName).not.toHaveBeenCalled();
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({ folderId: null }),
+      );
+    });
+
+    it("ignores folder when idempotency hits (existing URL)", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue({
+        id: 5,
+        userId: "user-1",
+        slug: "existing",
+        originalUrl: "https://example.com/dup",
+        folderId: null,
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com/dup",
+          folder: "工作",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(200);
+      expect(mockGetFolderByUserAndName).not.toHaveBeenCalled();
+      expect(mockCreateLink).not.toHaveBeenCalled();
     });
   });
 });
