@@ -9,11 +9,13 @@ import type { DashboardService } from '@/contexts/dashboard-service';
 const mockGetWebhookToken = vi.fn();
 const mockCreateWebhookToken = vi.fn();
 const mockRevokeWebhookToken = vi.fn();
+const mockUpdateWebhookRateLimit = vi.fn();
 
 vi.mock('@/actions/webhook', () => ({
   getWebhookToken: (...args: unknown[]) => mockGetWebhookToken(...args),
   createWebhookToken: (...args: unknown[]) => mockCreateWebhookToken(...args),
   revokeWebhookToken: (...args: unknown[]) => mockRevokeWebhookToken(...args),
+  updateWebhookRateLimit: (...args: unknown[]) => mockUpdateWebhookRateLimit(...args),
 }));
 
 const mockService: DashboardService = {
@@ -263,5 +265,176 @@ describe('useWebhookViewModel', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.webhookUrl).toBe('https://zhe.example.com/api/webhook/my-token');
+  });
+
+  // ====================================================================
+  // rateLimit
+  // ====================================================================
+
+  it('defaults rateLimit to RATE_LIMIT_DEFAULT_MAX (5)', async () => {
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.rateLimit).toBe(5);
+  });
+
+  it('loads rateLimit from existing token data', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc-123', createdAt: '2026-01-15', rateLimit: 8 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.rateLimit).toBe(8);
+  });
+
+  it('falls back to default when rateLimit is missing from token data', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc-123', createdAt: '2026-01-15' },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.rateLimit).toBe(5);
+  });
+
+  it('sets rateLimit from handleGenerate response', async () => {
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockCreateWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'new-token', createdAt: '2026-02-01', rateLimit: 7 },
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    expect(result.current.rateLimit).toBe(7);
+  });
+
+  it('resets rateLimit to default on revoke', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'existing', createdAt: '2026-01-15', rateLimit: 9 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.rateLimit).toBe(9));
+
+    mockRevokeWebhookToken.mockResolvedValue({ success: true });
+
+    await act(async () => {
+      await result.current.handleRevoke();
+    });
+
+    expect(result.current.rateLimit).toBe(5);
+  });
+
+  // ====================================================================
+  // handleRateLimitChange
+  // ====================================================================
+
+  it('optimistically updates rateLimit and confirms from server', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockUpdateWebhookRateLimit.mockResolvedValue({
+      success: true,
+      data: { rateLimit: 8 },
+    });
+
+    await act(async () => {
+      await result.current.handleRateLimitChange(8);
+    });
+
+    expect(mockUpdateWebhookRateLimit).toHaveBeenCalledWith(8);
+    expect(result.current.rateLimit).toBe(8);
+  });
+
+  it('keeps optimistic value when server confirms same value', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockUpdateWebhookRateLimit.mockResolvedValue({
+      success: true,
+      data: { rateLimit: 3 },
+    });
+
+    await act(async () => {
+      await result.current.handleRateLimitChange(3);
+    });
+
+    // Server confirmed 3, should stay 3
+    expect(result.current.rateLimit).toBe(3);
+  });
+
+  it('handles server clamping the rate limit value', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Client sends 15 but server clamps to 10
+    mockUpdateWebhookRateLimit.mockResolvedValue({
+      success: true,
+      data: { rateLimit: 10 },
+    });
+
+    await act(async () => {
+      await result.current.handleRateLimitChange(15);
+    });
+
+    // Should use server-clamped value
+    expect(result.current.rateLimit).toBe(10);
+  });
+
+  it('keeps optimistic value when updateWebhookRateLimit fails', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockUpdateWebhookRateLimit.mockResolvedValue({
+      success: false,
+      error: 'DB error',
+    });
+
+    await act(async () => {
+      await result.current.handleRateLimitChange(7);
+    });
+
+    // Optimistic value stays since we don't rollback
+    expect(result.current.rateLimit).toBe(7);
   });
 });
