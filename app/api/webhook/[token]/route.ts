@@ -28,7 +28,7 @@ export async function GET(
   }
 
   const webhookUrl = `${new URL(request.url).origin}/api/webhook/${token}`;
-  const docs = buildWebhookDocumentation(webhookUrl);
+  const docs = buildWebhookDocumentation(webhookUrl, webhook.rateLimit);
 
   return NextResponse.json(docs, { status: 200 });
 }
@@ -62,7 +62,7 @@ export async function POST(
   }
 
   // 2. Rate limit check
-  const rateResult = checkRateLimit(token);
+  const rateResult = checkRateLimit(token, webhook.rateLimit);
   if (!rateResult.allowed) {
     const retryAfterSeconds = Math.ceil((rateResult.retryAfterMs ?? 1000) / 1000);
     return NextResponse.json(
