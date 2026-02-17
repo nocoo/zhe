@@ -2,7 +2,12 @@
 
 import { auth } from "@/auth";
 import { ScopedDB } from "@/lib/db/scoped";
-import { generateWebhookToken as generateToken } from "@/models/webhook";
+import {
+  generateWebhookToken as generateToken,
+  clampRateLimit,
+  isValidRateLimit,
+  RATE_LIMIT_DEFAULT_MAX,
+} from "@/models/webhook";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,7 +33,11 @@ export async function getWebhookToken() {
 
   return {
     success: true as const,
-    data: { token: webhook.token, createdAt: webhook.createdAt },
+    data: {
+      token: webhook.token,
+      createdAt: webhook.createdAt,
+      rateLimit: webhook.rateLimit ?? RATE_LIMIT_DEFAULT_MAX,
+    },
   };
 }
 
@@ -42,7 +51,11 @@ export async function createWebhookToken() {
 
   return {
     success: true as const,
-    data: { token: webhook.token, createdAt: webhook.createdAt },
+    data: {
+      token: webhook.token,
+      createdAt: webhook.createdAt,
+      rateLimit: webhook.rateLimit ?? RATE_LIMIT_DEFAULT_MAX,
+    },
   };
 }
 
@@ -53,4 +66,23 @@ export async function revokeWebhookToken() {
 
   await db.deleteWebhook();
   return { success: true as const };
+}
+
+/** Update the rate limit for the authenticated user's webhook. */
+export async function updateWebhookRateLimit(value: number) {
+  const db = await getScopedDB();
+  if (!db) return { success: false as const, error: "Unauthorized" };
+
+  if (!isValidRateLimit(value)) {
+    return { success: false as const, error: "Rate limit must be between 1 and 10" };
+  }
+
+  const clamped = clampRateLimit(value);
+  const webhook = await db.updateWebhookRateLimit(clamped);
+  if (!webhook) return { success: false as const, error: "No webhook found" };
+
+  return {
+    success: true as const,
+    data: { rateLimit: webhook.rateLimit },
+  };
 }
