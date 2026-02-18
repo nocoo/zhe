@@ -165,7 +165,7 @@ export class ScopedDB {
   /** Update a link by id. Returns updated link or null if not found/not owned. */
   async updateLink(
     id: number,
-    data: Partial<Pick<Link, 'originalUrl' | 'folderId' | 'expiresAt'>>,
+    data: Partial<Pick<Link, 'originalUrl' | 'folderId' | 'expiresAt' | 'slug' | 'isCustom'>>,
   ): Promise<Link | null> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
@@ -181,6 +181,14 @@ export class ScopedDB {
     if (data.expiresAt !== undefined) {
       setClauses.push('expires_at = ?');
       params.push(data.expiresAt ? data.expiresAt.getTime() : null);
+    }
+    if (data.slug !== undefined) {
+      setClauses.push('slug = ?');
+      params.push(data.slug);
+    }
+    if (data.isCustom !== undefined) {
+      setClauses.push('is_custom = ?');
+      params.push(data.isCustom ? 1 : 0);
     }
 
     if (setClauses.length === 0) {

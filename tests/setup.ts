@@ -170,6 +170,17 @@ vi.mock('@/lib/db/d1-client', async () => {
                   rawLink.screenshot_url = params[paramIndex];
                 } else if (field === 'note') {
                   rawLink.note = params[paramIndex];
+                } else if (field === 'slug') {
+                  const oldSlug = rawLink.slug as string;
+                  const newSlug = params[paramIndex] as string;
+                  rawLink.slug = newSlug;
+                  // Re-key the mockLinks map since it's keyed by slug
+                  if (oldSlug !== newSlug) {
+                    mockLinks.delete(oldSlug);
+                    mockLinks.set(newSlug, link);
+                  }
+                } else if (field === 'is_custom') {
+                  rawLink.is_custom = params[paramIndex];
                 } else if (field === 'clicks') {
                   // Handle increment: clicks = clicks + 1
                   if (clause.includes('clicks + 1')) {
