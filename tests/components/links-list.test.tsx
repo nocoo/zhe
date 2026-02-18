@@ -62,6 +62,7 @@ const mockLinks: Link[] = [
     metaDescription: null,
     metaFavicon: null,
     screenshotUrl: null,
+    note: null,
   },
   {
     id: 2,
@@ -77,6 +78,7 @@ const mockLinks: Link[] = [
     metaDescription: null,
     metaFavicon: null,
     screenshotUrl: null,
+    note: null,
   },
   {
     id: 3,
@@ -92,6 +94,7 @@ const mockLinks: Link[] = [
     metaDescription: null,
     metaFavicon: null,
     screenshotUrl: null,
+    note: null,
   },
 ];
 

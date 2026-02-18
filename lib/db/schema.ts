@@ -67,6 +67,7 @@ export const links = sqliteTable('links', {
   metaDescription: text('meta_description'),
   metaFavicon: text('meta_favicon'),
   screenshotUrl: text('screenshot_url'),
+  note: text('note'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
@@ -101,6 +102,21 @@ export const uploads = sqliteTable('uploads', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+export const tags = sqliteTable('tags', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  color: text('color').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const linkTags = sqliteTable('link_tags', {
+  linkId: integer('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
+  tagId: text('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
+}, (table) => ({
+  compositePk: primaryKey({ columns: [table.linkId, table.tagId] }),
+}));
+
 // ============================================
 // Type exports
 // ============================================
@@ -122,3 +138,9 @@ export type NewUpload = typeof uploads.$inferInsert;
 
 export type Webhook = typeof webhooks.$inferSelect;
 export type NewWebhook = typeof webhooks.$inferInsert;
+
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
+export type LinkTag = typeof linkTags.$inferSelect;
+export type NewLinkTag = typeof linkTags.$inferInsert;

@@ -67,6 +67,8 @@ const FAKE_LINK = {
   metaTitle: null,
   metaDescription: null,
   metaFavicon: null,
+  screenshotUrl: null,
+  note: null,
   createdAt: new Date(),
 };
 

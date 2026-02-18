@@ -20,6 +20,7 @@ function makeLink(overrides: Partial<Link> = {}): Link {
     metaDescription: null,
     metaFavicon: null,
     screenshotUrl: null,
+    note: null,
     createdAt: new Date('2026-01-15T00:00:00.000Z'),
     ...overrides,
   };

@@ -133,6 +133,8 @@ describe('middleware', () => {
       metaTitle: null,
       metaDescription: null,
       metaFavicon: null,
+      screenshotUrl: null,
+      note: null,
       createdAt: new Date('2019-01-01'),
     });
 
@@ -156,6 +158,8 @@ describe('middleware', () => {
       metaTitle: null,
       metaDescription: null,
       metaFavicon: null,
+      screenshotUrl: null,
+      note: null,
       createdAt: new Date(),
     });
 
@@ -180,6 +184,8 @@ describe('middleware', () => {
       metaTitle: null,
       metaDescription: null,
       metaFavicon: null,
+      screenshotUrl: null,
+      note: null,
       createdAt: new Date(),
     });
 
