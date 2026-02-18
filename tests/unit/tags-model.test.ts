@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   TAG_COLORS,
+  TAG_COLOR_MAP,
   isValidTagColor,
   randomTagColor,
   validateTagName,
+  getTagColorClasses,
 } from '@/models/tags';
 
 describe('models/tags', () => {
@@ -79,6 +81,41 @@ describe('models/tags', () => {
     it('preserves unicode characters', () => {
       expect(validateTagName('工作')).toBe('工作');
       expect(validateTagName('プロジェクト')).toBe('プロジェクト');
+    });
+  });
+
+  describe('TAG_COLOR_MAP', () => {
+    it('has an entry for every TAG_COLORS value', () => {
+      for (const color of TAG_COLORS) {
+        expect(TAG_COLOR_MAP[color]).toBeDefined();
+        expect(TAG_COLOR_MAP[color].badge).toBeTruthy();
+        expect(TAG_COLOR_MAP[color].dot).toBeTruthy();
+      }
+    });
+
+    it('badge classes contain bg- and text- prefixes', () => {
+      for (const color of TAG_COLORS) {
+        expect(TAG_COLOR_MAP[color].badge).toMatch(/bg-/);
+        expect(TAG_COLOR_MAP[color].badge).toMatch(/text-/);
+      }
+    });
+
+    it('dot classes are bg-{color}-500', () => {
+      expect(TAG_COLOR_MAP.red.dot).toBe('bg-red-500');
+      expect(TAG_COLOR_MAP.blue.dot).toBe('bg-blue-500');
+    });
+  });
+
+  describe('getTagColorClasses', () => {
+    it('returns correct classes for valid colors', () => {
+      expect(getTagColorClasses('red')).toBe(TAG_COLOR_MAP.red);
+      expect(getTagColorClasses('blue')).toBe(TAG_COLOR_MAP.blue);
+    });
+
+    it('falls back to slate for unknown colors', () => {
+      expect(getTagColorClasses('purple')).toBe(TAG_COLOR_MAP.slate);
+      expect(getTagColorClasses('')).toBe(TAG_COLOR_MAP.slate);
+      expect(getTagColorClasses('invalid')).toBe(TAG_COLOR_MAP.slate);
     });
   });
 });
