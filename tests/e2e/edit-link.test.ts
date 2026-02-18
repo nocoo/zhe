@@ -600,4 +600,125 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  // ============================================================
+  // Scenario 10: Slug editing lifecycle
+  // As an authenticated user, I want to change a link's slug,
+  // including validation, uniqueness checks, and edge cases.
+  // ============================================================
+  describe('slug editing', () => {
+    beforeEach(() => {
+      authenticatedAs(USER_A);
+    });
+
+    it('updates slug to a new custom value', async () => {
+      const { updateLink, getLinks } = await import('@/actions/links');
+
+      const link = await seedLink('https://slug-test.com');
+      const result = await updateLink(link.id, { slug: 'my-custom-slug' });
+
+      expect(result.success).toBe(true);
+      expect(result.data!.slug).toBe('my-custom-slug');
+      expect(result.data!.isCustom).toBe(true);
+
+      // Verify persisted
+      const links = await getLinks();
+      const found = links.data!.find(l => l.id === link.id);
+      expect(found!.slug).toBe('my-custom-slug');
+    });
+
+    it('allows keeping the same slug (no-op for custom slug)', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      // First create and set a custom lowercase slug
+      const link = await seedLink('https://same-slug.com');
+      const setResult = await updateLink(link.id, { slug: 'my-stable' });
+      expect(setResult.success).toBe(true);
+
+      // Now "update" to the same slug — should succeed
+      const result = await updateLink(link.id, { slug: 'my-stable' });
+
+      expect(result.success).toBe(true);
+      expect(result.data!.slug).toBe('my-stable');
+    });
+
+    it('rejects slug that is already taken by another link', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      const link1 = await seedLink('https://slug-a.com');
+      // Give link1 a known lowercase custom slug
+      await updateLink(link1.id, { slug: 'taken-one' });
+
+      const link2 = await seedLink('https://slug-b.com');
+
+      // Try to set link2's slug to link1's slug
+      const result = await updateLink(link2.id, { slug: 'taken-one' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('This slug is already taken');
+    });
+
+    it('rejects invalid slug characters', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      const link = await seedLink('https://invalid-slug.com');
+      const result = await updateLink(link.id, { slug: 'has spaces!' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid slug');
+    });
+
+    it('rejects reserved path as slug', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      const link = await seedLink('https://reserved-slug.com');
+      const result = await updateLink(link.id, { slug: 'dashboard' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid slug');
+    });
+
+    it('lowercases slug via sanitizeSlug', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      const link = await seedLink('https://case-slug.com');
+      const result = await updateLink(link.id, { slug: 'MySlug' });
+
+      expect(result.success).toBe(true);
+      expect(result.data!.slug).toBe('myslug');
+    });
+
+    it('cross-user slug uniqueness — cannot steal another user slug', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      // User A creates a link with a known custom slug
+      const linkA = await seedLink('https://user-a.com');
+      await updateLink(linkA.id, { slug: 'user-a-slug' });
+
+      // User B creates a link
+      authenticatedAs(USER_B);
+      const linkB = await seedLink('https://user-b.com');
+
+      // User B tries to change slug to User A's slug
+      const result = await updateLink(linkB.id, { slug: 'user-a-slug' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('This slug is already taken');
+    });
+
+    it('can update slug and URL simultaneously', async () => {
+      const { updateLink } = await import('@/actions/links');
+
+      const link = await seedLink('https://both.com');
+      const result = await updateLink(link.id, {
+        originalUrl: 'https://updated-both.com',
+        slug: 'both-updated',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data!.originalUrl).toBe('https://updated-both.com');
+      expect(result.data!.slug).toBe('both-updated');
+      expect(result.data!.isCustom).toBe(true);
+    });
+  });
 });

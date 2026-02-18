@@ -103,6 +103,26 @@ describe('ScopedDB', () => {
       const result = await db.updateLink(99999, {});
       expect(result).toBeNull();
     });
+
+    it('updateLink updates slug and sets isCustom', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'oldslug' });
+
+      const updated = await db.updateLink(link.id, { slug: 'newslug', isCustom: true });
+      expect(updated).not.toBeNull();
+      expect(updated!.slug).toBe('newslug');
+      expect(updated!.isCustom).toBe(true);
+    });
+
+    it('updateLink slug change is reflected in getLinks', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'before' });
+
+      await db.updateLink(link.id, { slug: 'after' });
+      const links = await db.getLinks();
+      expect(links.find(l => l.slug === 'after')).toBeDefined();
+      expect(links.find(l => l.slug === 'before')).toBeUndefined();
+    });
   });
 
   // ---- Link Metadata ----------------------------------------
