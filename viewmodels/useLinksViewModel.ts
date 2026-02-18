@@ -87,6 +87,17 @@ export function useLinkCardViewModel(
     }
   }, [showAnalytics, analyticsStats, isLoadingAnalytics, link.id]);
 
+  const handleRetryScreenshot = useCallback(async () => {
+    if (isLoadingScreenshot) return;
+    setIsLoadingScreenshot(true);
+    const url = await fetchMicrolinkScreenshot(link.originalUrl);
+    setScreenshotUrl(url);
+    setIsLoadingScreenshot(false);
+    if (url) {
+      void saveScreenshot(link.id, url);
+    }
+  }, [link.id, link.originalUrl, isLoadingScreenshot]);
+
   const handleRefreshMetadata = useCallback(async () => {
     setIsRefreshingMetadata(true);
     try {
@@ -117,6 +128,7 @@ export function useLinkCardViewModel(
     isRefreshingMetadata,
     screenshotUrl,
     isLoadingScreenshot,
+    handleRetryScreenshot,
   };
 }
 
