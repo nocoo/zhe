@@ -32,15 +32,18 @@ import { stripProtocol } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
 import type { Link, Folder } from "@/models/types";
 
+type ViewMode = "list" | "grid";
+
 interface LinkCardProps {
   link: Link;
   siteUrl: string;
   onDelete: (id: number) => void;
   onUpdate: (link: Link) => void;
   folders?: Folder[];
+  viewMode?: ViewMode;
 }
 
-export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: LinkCardProps) {
+export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], viewMode = "list" }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -65,6 +68,128 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
     screenshotUrl,
     isLoadingScreenshot,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
+
+  if (viewMode === "grid") {
+    return (
+      <div className="group rounded-[14px] border-0 bg-secondary shadow-none overflow-hidden transition-colors">
+        {/* Screenshot — top, full width */}
+        <div
+          className="relative block w-full aspect-[4/3] bg-accent cursor-pointer"
+          onClick={() => window.open(link.originalUrl, "_blank", "noopener,noreferrer")}
+        >
+          {screenshotUrl ? (
+            <Image
+              src={screenshotUrl}
+              alt="Screenshot"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : isLoadingScreenshot ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ExternalLink className="w-5 h-5 text-muted-foreground/50" strokeWidth={1.5} />
+            </div>
+          )}
+
+          {/* Hover action overlay */}
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+              aria-label="Copy link"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+              title="Copy link"
+            >
+              {copied ? (
+                <Check className="w-4 h-4" strokeWidth={1.5} />
+              ) : (
+                <Copy className="w-4 h-4" strokeWidth={1.5} />
+              )}
+            </button>
+            <a
+              href={link.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+              title="Open link"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
+            </a>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Delete link"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认删除</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    此操作不可撤销，确定要删除这条链接吗？
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? "删除中..." : "删除"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        {/* Compact info */}
+        <div className="p-3 space-y-1">
+          <div className="flex items-center gap-1.5">
+            {link.metaFavicon && (
+              <Image
+                src={link.metaFavicon}
+                alt="favicon"
+                width={14}
+                height={14}
+                className="w-3.5 h-3.5 shrink-0 rounded-sm"
+                unoptimized
+              />
+            )}
+            <a
+              href={shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-foreground hover:underline truncate"
+            >
+              {stripProtocol(shortUrl)}
+            </a>
+          </div>
+          {link.metaTitle && (
+            <p className="text-xs text-foreground/80 truncate">
+              {link.metaTitle}
+            </p>
+          )}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
+              {formatNumber(link.clicks ?? 0)}
+            </span>
+            <span>{formatDate(link.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
