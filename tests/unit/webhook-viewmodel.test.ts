@@ -21,6 +21,8 @@ vi.mock('@/actions/webhook', () => ({
 const mockService: DashboardService = {
   links: [],
   folders: [],
+  tags: [],
+  linkTags: [],
   loading: false,
   siteUrl: 'https://zhe.example.com',
   handleLinkCreated: vi.fn(),
@@ -29,6 +31,11 @@ const mockService: DashboardService = {
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),
+  handleTagCreated: vi.fn(),
+  handleTagDeleted: vi.fn(),
+  handleTagUpdated: vi.fn(),
+  handleLinkTagAdded: vi.fn(),
+  handleLinkTagRemoved: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({

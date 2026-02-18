@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, cleanup, waitFor } from "@testing-library/react";
-import type { Link, Folder } from "@/models/types";
+import type { Link, Folder, Tag, LinkTag } from "@/models/types";
 import type { DashboardService } from "@/contexts/dashboard-service";
 
 // ── Mocks ──
@@ -9,7 +9,13 @@ vi.mock("@/actions/links", () => ({
   getLinks: vi.fn(),
 }));
 
+vi.mock("@/actions/tags", () => ({
+  getTags: vi.fn(),
+  getLinkTags: vi.fn(),
+}));
+
 import { getLinks } from "@/actions/links";
+import { getTags, getLinkTags } from "@/actions/tags";
 import {
   DashboardServiceProvider,
   useDashboardService,
@@ -48,6 +54,25 @@ function makeFolder(overrides: Partial<Folder> = {}): Folder {
   };
 }
 
+function makeTag(overrides: Partial<Tag> = {}): Tag {
+  return {
+    id: "tag-1",
+    userId: "user-1",
+    name: "important",
+    color: "red",
+    createdAt: new Date("2026-01-01"),
+    ...overrides,
+  };
+}
+
+function makeLinkTag(overrides: Partial<LinkTag> = {}): LinkTag {
+  return {
+    linkId: 1,
+    tagId: "tag-1",
+    ...overrides,
+  };
+}
+
 function wrapper({
   initialFolders = [],
 }: { initialFolders?: Folder[] } = {}) {
@@ -79,8 +104,10 @@ async function renderService(opts?: { initialFolders?: Folder[] }) {
 describe("DashboardService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: getLinks resolves with empty array
+    // Default: all fetches resolve with empty arrays
     vi.mocked(getLinks).mockResolvedValue({ success: true, data: [] });
+    vi.mocked(getTags).mockResolvedValue({ success: true, data: [] });
+    vi.mocked(getLinkTags).mockResolvedValue({ success: true, data: [] });
   });
 
   afterEach(() => {
@@ -348,6 +375,126 @@ describe("DashboardService", () => {
     });
   });
 
+  // ── Tags CRUD ──
+
+  describe("tags CRUD", () => {
+    it("fetches tags on mount", async () => {
+      const tags = [makeTag(), makeTag({ id: "tag-2", name: "urgent" })];
+      vi.mocked(getTags).mockResolvedValue({ success: true, data: tags });
+
+      const { result } = await renderService();
+      expect(result.current.tags).toEqual(tags);
+      expect(getTags).toHaveBeenCalledOnce();
+    });
+
+    it("sets tags=[] when getTags fails", async () => {
+      vi.mocked(getTags).mockResolvedValue({ success: false, error: "fail" });
+      const { result } = await renderService();
+      expect(result.current.tags).toEqual([]);
+    });
+
+    it("handleTagCreated appends a tag", async () => {
+      const { result } = await renderService();
+      const tag = makeTag({ id: "t-new" });
+      act(() => { result.current.handleTagCreated(tag); });
+      expect(result.current.tags).toHaveLength(1);
+      expect(result.current.tags[0]).toEqual(tag);
+    });
+
+    it("handleTagDeleted removes a tag by id", async () => {
+      vi.mocked(getTags).mockResolvedValue({
+        success: true,
+        data: [makeTag({ id: "t1" }), makeTag({ id: "t2" })],
+      });
+      const { result } = await renderService();
+
+      act(() => { result.current.handleTagDeleted("t1"); });
+      expect(result.current.tags).toHaveLength(1);
+      expect(result.current.tags[0].id).toBe("t2");
+    });
+
+    it("handleTagDeleted cascades: removes link-tags for deleted tag", async () => {
+      vi.mocked(getTags).mockResolvedValue({
+        success: true,
+        data: [makeTag({ id: "t1" })],
+      });
+      vi.mocked(getLinkTags).mockResolvedValue({
+        success: true,
+        data: [
+          makeLinkTag({ linkId: 1, tagId: "t1" }),
+          makeLinkTag({ linkId: 2, tagId: "t2" }),
+        ],
+      });
+
+      const { result } = await renderService();
+      act(() => { result.current.handleTagDeleted("t1"); });
+
+      expect(result.current.linkTags).toHaveLength(1);
+      expect(result.current.linkTags[0].tagId).toBe("t2");
+    });
+
+    it("handleTagUpdated replaces a tag by id", async () => {
+      vi.mocked(getTags).mockResolvedValue({
+        success: true,
+        data: [makeTag({ id: "t1", name: "old" })],
+      });
+      const { result } = await renderService();
+
+      act(() => {
+        result.current.handleTagUpdated(makeTag({ id: "t1", name: "new", color: "blue" }));
+      });
+
+      expect(result.current.tags[0].name).toBe("new");
+      expect(result.current.tags[0].color).toBe("blue");
+    });
+  });
+
+  // ── Link-Tags CRUD ──
+
+  describe("link-tags CRUD", () => {
+    it("fetches linkTags on mount", async () => {
+      const lts = [makeLinkTag({ linkId: 1, tagId: "t1" })];
+      vi.mocked(getLinkTags).mockResolvedValue({ success: true, data: lts });
+
+      const { result } = await renderService();
+      expect(result.current.linkTags).toEqual(lts);
+      expect(getLinkTags).toHaveBeenCalledOnce();
+    });
+
+    it("sets linkTags=[] when getLinkTags fails", async () => {
+      vi.mocked(getLinkTags).mockResolvedValue({ success: false, error: "fail" });
+      const { result } = await renderService();
+      expect(result.current.linkTags).toEqual([]);
+    });
+
+    it("handleLinkTagAdded appends a link-tag association", async () => {
+      const { result } = await renderService();
+      const lt = makeLinkTag({ linkId: 5, tagId: "t3" });
+      act(() => { result.current.handleLinkTagAdded(lt); });
+      expect(result.current.linkTags).toHaveLength(1);
+      expect(result.current.linkTags[0]).toEqual(lt);
+    });
+
+    it("handleLinkTagRemoved removes by linkId+tagId", async () => {
+      vi.mocked(getLinkTags).mockResolvedValue({
+        success: true,
+        data: [
+          makeLinkTag({ linkId: 1, tagId: "t1" }),
+          makeLinkTag({ linkId: 1, tagId: "t2" }),
+          makeLinkTag({ linkId: 2, tagId: "t1" }),
+        ],
+      });
+
+      const { result } = await renderService();
+      act(() => { result.current.handleLinkTagRemoved(1, "t1"); });
+
+      expect(result.current.linkTags).toHaveLength(2);
+      expect(result.current.linkTags.find(
+        (lt) => lt.linkId === 1 && lt.tagId === "t1"
+      )).toBeUndefined();
+    });
+  });
+
   // ── Callback stability ──
 
   describe("callback stability", () => {
@@ -364,6 +511,11 @@ describe("DashboardService", () => {
       expect(result.current.handleFolderCreated).toBe(first.handleFolderCreated);
       expect(result.current.handleFolderDeleted).toBe(first.handleFolderDeleted);
       expect(result.current.handleFolderUpdated).toBe(first.handleFolderUpdated);
+      expect(result.current.handleTagCreated).toBe(first.handleTagCreated);
+      expect(result.current.handleTagDeleted).toBe(first.handleTagDeleted);
+      expect(result.current.handleTagUpdated).toBe(first.handleTagUpdated);
+      expect(result.current.handleLinkTagAdded).toBe(first.handleLinkTagAdded);
+      expect(result.current.handleLinkTagRemoved).toBe(first.handleLinkTagRemoved);
     });
   });
 

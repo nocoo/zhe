@@ -17,6 +17,8 @@ vi.mock('@/actions/folders', () => ({
 const mockService: DashboardService = {
   links: [],
   folders: [],
+  tags: [],
+  linkTags: [],
   loading: false,
   siteUrl: 'http://localhost:3000',
   handleLinkCreated: vi.fn(),
@@ -25,6 +27,11 @@ const mockService: DashboardService = {
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),
+  handleTagCreated: vi.fn(),
+  handleTagDeleted: vi.fn(),
+  handleTagUpdated: vi.fn(),
+  handleLinkTagAdded: vi.fn(),
+  handleLinkTagRemoved: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({
