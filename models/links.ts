@@ -1,6 +1,6 @@
 // Pure business logic for link operations — no React, no DOM.
 
-import type { Link, AnalyticsStats } from "./types";
+import type { Link, Tag, LinkTag, AnalyticsStats } from "./types";
 
 /** Build a short URL from site base URL and slug */
 export function buildShortUrl(siteUrl: string, slug: string): string {
@@ -44,14 +44,63 @@ export function hasAnalyticsData(stats: AnalyticsStats): boolean {
   );
 }
 
-/** Filter links by substring match on slug or original URL (protocol-stripped, case-insensitive) */
-export function filterLinks(links: Link[], query: string): Link[] {
+/** Context for tag-aware search */
+export interface FilterContext {
+  tags: Tag[];
+  linkTags: LinkTag[];
+}
+
+/**
+ * Filter links by substring match on slug, original URL, meta title,
+ * meta description, note, or tag name (case-insensitive).
+ *
+ * When `ctx` is provided, tag names associated with each link are also searched.
+ */
+export function filterLinks(
+  links: Link[],
+  query: string,
+  ctx?: FilterContext,
+): Link[] {
   const trimmed = query.trim().toLowerCase();
   if (trimmed === "") return links;
+
+  // Pre-build a linkId → tag names lookup for O(1) access per link
+  let tagNamesByLinkId: Map<number, string[]> | undefined;
+  if (ctx) {
+    const tagNameById = new Map<string, string>();
+    for (const tag of ctx.tags) {
+      tagNameById.set(tag.id, tag.name.toLowerCase());
+    }
+    tagNamesByLinkId = new Map();
+    for (const lt of ctx.linkTags) {
+      const name = tagNameById.get(lt.tagId);
+      if (!name) continue;
+      let names = tagNamesByLinkId.get(lt.linkId);
+      if (!names) {
+        names = [];
+        tagNamesByLinkId.set(lt.linkId, names);
+      }
+      names.push(name);
+    }
+  }
+
   return links.filter((link) => {
-    const slug = link.slug.toLowerCase();
-    const url = stripProtocol(link.originalUrl).toLowerCase();
-    return slug.includes(trimmed) || url.includes(trimmed);
+    // Slug
+    if (link.slug.toLowerCase().includes(trimmed)) return true;
+    // Original URL (protocol-stripped)
+    if (stripProtocol(link.originalUrl).toLowerCase().includes(trimmed)) return true;
+    // Meta title
+    if (link.metaTitle?.toLowerCase().includes(trimmed)) return true;
+    // Meta description
+    if (link.metaDescription?.toLowerCase().includes(trimmed)) return true;
+    // Note
+    if (link.note?.toLowerCase().includes(trimmed)) return true;
+    // Tag names
+    if (tagNamesByLinkId) {
+      const names = tagNamesByLinkId.get(link.id);
+      if (names?.some((n) => n.includes(trimmed))) return true;
+    }
+    return false;
   });
 }
 

@@ -273,6 +273,116 @@ describe('models/links', () => {
     it('returns empty array for empty links array', () => {
       expect(filterLinks([], 'test')).toEqual([]);
     });
+
+    // --- meta, note, tag search ---
+
+    it('matches by metaTitle substring', () => {
+      const richLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com', metaTitle: 'React Documentation' }),
+        makeLink({ id: 11, slug: 'b', originalUrl: 'https://b.com', metaTitle: 'Vue.js Guide' }),
+      ];
+      const result = filterLinks(richLinks, 'react');
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('matches by metaDescription substring', () => {
+      const richLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com', metaDescription: 'A library for building UIs' }),
+        makeLink({ id: 11, slug: 'b', originalUrl: 'https://b.com', metaDescription: 'Server-side rendering' }),
+      ];
+      const result = filterLinks(richLinks, 'building');
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('matches by note substring', () => {
+      const richLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com', note: 'Important reference for project' }),
+        makeLink({ id: 11, slug: 'b', originalUrl: 'https://b.com', note: 'Temporary link' }),
+      ];
+      const result = filterLinks(richLinks, 'reference');
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('matches by tag name when context is provided', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com' }),
+        makeLink({ id: 11, slug: 'b', originalUrl: 'https://b.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Frontend', color: '#ff0000', createdAt: new Date() },
+          { id: 't2', userId: 'u1', name: 'Backend', color: '#0000ff', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't1' },
+          { linkId: 11, tagId: 't2' },
+        ],
+      };
+      const result = filterLinks(taggedLinks, 'frontend', ctx);
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('does not match tag names when context is not provided', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com' }),
+      ];
+      // Without context, tag search is skipped
+      const result = filterLinks(taggedLinks, 'frontend');
+      expect(result).toEqual([]);
+    });
+
+    it('matches across multiple fields (any match returns the link)', () => {
+      const richLinks = [
+        makeLink({ id: 10, slug: 'docs', originalUrl: 'https://docs.example.com', metaTitle: 'API Reference', note: 'Check weekly' }),
+      ];
+      // Match by slug
+      expect(filterLinks(richLinks, 'docs').map((l) => l.id)).toEqual([10]);
+      // Match by metaTitle
+      expect(filterLinks(richLinks, 'api ref').map((l) => l.id)).toEqual([10]);
+      // Match by note
+      expect(filterLinks(richLinks, 'weekly').map((l) => l.id)).toEqual([10]);
+    });
+
+    it('tag search is case-insensitive', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'JavaScript', color: '#f7df1e', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't1' },
+        ],
+      };
+      const result = filterLinks(taggedLinks, 'JAVASCRIPT', ctx);
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('handles links with null meta fields gracefully', () => {
+      const richLinks = [
+        makeLink({ id: 10, slug: 'a', originalUrl: 'https://a.com', metaTitle: null, metaDescription: null, note: null }),
+      ];
+      // Should not throw, and should not match
+      const result = filterLinks(richLinks, 'something');
+      expect(result).toEqual([]);
+    });
+
+    it('matches link with tag even if other fields do not match', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'x', originalUrl: 'https://x.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Design', color: '#00ff00', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't1' },
+        ],
+      };
+      const result = filterLinks(taggedLinks, 'design', ctx);
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
   });
 
   // --- buildLinkCounts ---
