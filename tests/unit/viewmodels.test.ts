@@ -45,8 +45,9 @@ import {
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata } from '@/actions/links';
+import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, saveScreenshot } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
+import * as linksModel from '@/models/links';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -379,6 +380,55 @@ describe('useLinkCardViewModel', () => {
     expect(consoleSpy).toHaveBeenCalled();
 
     consoleSpy.mockRestore();
+  });
+
+  // --- handleRetryScreenshot ---
+
+  it('handleRetryScreenshot calls fetchMicrolinkScreenshot and saves on success', async () => {
+    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+      .mockResolvedValue('https://screenshot.example.com/img.png');
+    vi.mocked(saveScreenshot).mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    // Flush the initial useEffect that also calls fetchMicrolinkScreenshot
+    await act(async () => {});
+
+    spy.mockClear();
+
+    await act(async () => {
+      await result.current.handleRetryScreenshot();
+    });
+
+    expect(spy).toHaveBeenCalledWith('https://example.com');
+    expect(result.current.screenshotUrl).toBe('https://screenshot.example.com/img.png');
+    expect(result.current.isLoadingScreenshot).toBe(false);
+    expect(saveScreenshot).toHaveBeenCalledWith(42, 'https://screenshot.example.com/img.png');
+
+    spy.mockRestore();
+  });
+
+  it('handleRetryScreenshot sets screenshotUrl to null when fetch returns null', async () => {
+    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+      .mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    // Flush the initial useEffect
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.handleRetryScreenshot();
+    });
+
+    expect(result.current.screenshotUrl).toBeNull();
+    expect(result.current.isLoadingScreenshot).toBe(false);
+
+    spy.mockRestore();
   });
 });
 

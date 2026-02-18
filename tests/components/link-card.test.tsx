@@ -19,6 +19,7 @@ const mockVm = {
   isRefreshingMetadata: false,
   screenshotUrl: null as string | null,
   isLoadingScreenshot: false,
+  handleRetryScreenshot: vi.fn(),
 };
 
 const mockEditVm = {
@@ -593,5 +594,78 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} />);
 
     expect(screen.getByText("Failed to update")).toBeInTheDocument();
+  });
+
+  // --- Thumbnail placeholder + retry ---
+
+  it("shows placeholder icon in list mode when no screenshot and not loading", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    const { container } = render(<LinkCard {...defaultProps} />);
+
+    // ImageIcon should be present in the thumbnail area
+    const thumbArea = container.querySelector(".group\\/thumb");
+    expect(thumbArea).toBeInTheDocument();
+    const svgs = thumbArea!.querySelectorAll("svg");
+    expect(svgs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows retry screenshot button in list mode placeholder on hover", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    render(<LinkCard {...defaultProps} />);
+
+    const retryBtn = screen.getByTitle("重新抓取图片");
+    expect(retryBtn).toBeInTheDocument();
+  });
+
+  it("calls handleRetryScreenshot when retry button is clicked in list mode", async () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("重新抓取图片"));
+
+    expect(mockVm.handleRetryScreenshot).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not show retry button in list mode when screenshot exists", () => {
+    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByTitle("重新抓取图片")).not.toBeInTheDocument();
+  });
+
+  it("does not show retry button in list mode when loading", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = true;
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByTitle("重新抓取图片")).not.toBeInTheDocument();
+  });
+
+  it("shows retry screenshot button in grid mode when no screenshot", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.getByTitle("重新抓取图片")).toBeInTheDocument();
+  });
+
+  it("does not show retry button in grid mode when screenshot exists", () => {
+    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.queryByTitle("重新抓取图片")).not.toBeInTheDocument();
+  });
+
+  it("always shows thumbnail area in list mode even without screenshot", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    const { container } = render(<LinkCard {...defaultProps} />);
+
+    const thumbArea = container.querySelector(".group\\/thumb");
+    expect(thumbArea).toBeInTheDocument();
   });
 });
