@@ -29,6 +29,7 @@ function rowToLink(row: Record<string, unknown>): Link {
     metaTitle: (row.meta_title as string) ?? null,
     metaDescription: (row.meta_description as string) ?? null,
     metaFavicon: (row.meta_favicon as string) ?? null,
+    screenshotUrl: (row.screenshot_url as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -205,6 +206,18 @@ export class ScopedDB {
     const rows = await executeD1Query<Record<string, unknown>>(
       `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
       params,
+    );
+    return rows[0] ? rowToLink(rows[0]) : null;
+  }
+
+  /** Update the screenshot URL for a link. Returns updated link or null if not found/not owned. */
+  async updateLinkScreenshot(
+    id: number,
+    screenshotUrl: string,
+  ): Promise<Link | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'UPDATE links SET screenshot_url = ? WHERE id = ? AND user_id = ? RETURNING *',
+      [screenshotUrl, id, this.userId],
     );
     return rows[0] ? rowToLink(rows[0]) : null;
   }
