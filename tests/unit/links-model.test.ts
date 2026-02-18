@@ -8,6 +8,7 @@ import {
   hasAnalyticsData,
   filterLinks,
   buildLinkCounts,
+  fetchMicrolinkScreenshot,
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
@@ -26,6 +27,7 @@ function makeLink(overrides: Partial<Link> = {}): Link {
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,
+    screenshotUrl: null,
     createdAt: new Date('2026-01-15'),
     ...overrides,
   };
@@ -340,6 +342,70 @@ describe('models/links', () => {
       expect(counts.total).toBe(2);
       expect(counts.uncategorized).toBe(2);
       expect(counts.byFolder.size).toBe(0);
+    });
+  });
+
+  // --- fetchMicrolinkScreenshot ---
+  describe('fetchMicrolinkScreenshot', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns screenshot URL on successful response', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: { screenshot: { url: 'https://cdn.microlink.io/shot.png' } },
+          }),
+          { status: 200 },
+        ),
+      );
+
+      const result = await fetchMicrolinkScreenshot('https://example.com');
+      expect(result).toBe('https://cdn.microlink.io/shot.png');
+    });
+
+    it('returns null when response is not ok', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('error', { status: 500 }),
+      );
+
+      const result = await fetchMicrolinkScreenshot('https://example.com');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when screenshot field is missing', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ data: {} }), { status: 200 }),
+      );
+
+      const result = await fetchMicrolinkScreenshot('https://example.com');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when fetch throws', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network'));
+
+      const result = await fetchMicrolinkScreenshot('https://example.com');
+      expect(result).toBeNull();
+    });
+
+    it('passes correct query params to Microlink API', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: { screenshot: { url: 'https://cdn.microlink.io/shot.png' } },
+          }),
+          { status: 200 },
+        ),
+      );
+
+      await fetchMicrolinkScreenshot('https://example.com/page');
+
+      const calledUrl = new URL(fetchSpy.mock.calls[0][0] as string);
+      expect(calledUrl.origin + calledUrl.pathname).toBe('https://api.microlink.io/');
+      expect(calledUrl.searchParams.get('url')).toBe('https://example.com/page');
+      expect(calledUrl.searchParams.get('screenshot')).toBe('true');
     });
   });
 });
