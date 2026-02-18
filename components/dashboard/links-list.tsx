@@ -54,7 +54,19 @@ function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
 }
 
 export function LinksList() {
-  const { links, folders, loading, handleLinkCreated, handleLinkDeleted, handleLinkUpdated, siteUrl } = useDashboardService();
+  const {
+    links, folders, tags, linkTags, loading,
+    handleLinkCreated, handleLinkDeleted, handleLinkUpdated,
+    handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved,
+    siteUrl,
+  } = useDashboardService();
+
+  const editCallbacks = useMemo(() => ({
+    onLinkUpdated: handleLinkUpdated,
+    onTagCreated: handleTagCreated,
+    onLinkTagAdded: handleLinkTagAdded,
+    onLinkTagRemoved: handleLinkTagRemoved,
+  }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
 
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
 
@@ -169,6 +181,9 @@ export function LinksList() {
               onUpdate={handleLinkUpdated}
               folders={folders}
               viewMode={viewMode}
+              tags={tags}
+              linkTags={linkTags}
+              editCallbacks={editCallbacks}
             />
           ))}
         </div>

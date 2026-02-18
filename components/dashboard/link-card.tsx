@@ -9,7 +9,6 @@ import {
   ChevronUp,
   BarChart3,
   Pencil,
-  X,
   Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -26,11 +25,14 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { EditLinkDialog } from "./edit-link-dialog";
 import { formatDate, formatNumber } from "@/lib/utils";
-import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { useLinkCardViewModel, useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
-import type { Link, Folder } from "@/models/types";
+import { getTagColorClasses } from "@/models/tags";
+import type { Link, Folder, Tag, LinkTag } from "@/models/types";
 
 type ViewMode = "list" | "grid";
 
@@ -41,9 +43,19 @@ interface LinkCardProps {
   onUpdate: (link: Link) => void;
   folders?: Folder[];
   viewMode?: ViewMode;
+  tags?: Tag[];
+  linkTags?: LinkTag[];
+  editCallbacks?: EditLinkCallbacks;
 }
 
-export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], viewMode = "list" }: LinkCardProps) {
+const defaultEditCallbacks: EditLinkCallbacks = {
+  onLinkUpdated: () => {},
+  onTagCreated: () => {},
+  onLinkTagAdded: () => {},
+  onLinkTagRemoved: () => {},
+};
+
+export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], viewMode = "list", tags = [], linkTags = [], editCallbacks = defaultEditCallbacks }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -51,23 +63,19 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
-    isEditing,
-    editUrl,
-    setEditUrl,
-    editFolderId,
-    setEditFolderId,
-    isSaving,
     handleCopy,
     handleDelete,
     handleToggleAnalytics,
-    startEditing,
-    cancelEditing,
-    saveEdit,
     handleRefreshMetadata,
     isRefreshingMetadata,
     screenshotUrl,
     isLoadingScreenshot,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
+
+  const editVm = useEditLinkViewModel(link, tags, linkTags, editCallbacks);
+
+  // Tags assigned to this specific link
+  const cardTags = tags.filter((t) => editVm.assignedTagIds.has(t.id));
 
   if (viewMode === "grid") {
     return (
@@ -119,6 +127,14 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             >
               <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
             </a>
+            <button
+              onClick={(e) => { e.stopPropagation(); editVm.openDialog(link); }}
+              aria-label="Edit link"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+              title="Edit link"
+            >
+              <Pencil className="w-4 h-4" strokeWidth={1.5} />
+            </button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -186,7 +202,47 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             </span>
             <span>{formatDate(link.createdAt)}</span>
           </div>
+          {/* Tag badges in grid mode */}
+          {cardTags.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {cardTags.map((tag) => {
+                const colors = getTagColorClasses(tag.color);
+                return (
+                  <span
+                    key={tag.id}
+                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium ${colors.badge}`}
+                  >
+                    <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
+                    {tag.name}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Edit dialog (shared for grid mode) */}
+        <EditLinkDialog
+          isOpen={editVm.isOpen}
+          onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
+          editUrl={editVm.editUrl}
+          setEditUrl={editVm.setEditUrl}
+          editFolderId={editVm.editFolderId}
+          setEditFolderId={editVm.setEditFolderId}
+          editNote={editVm.editNote}
+          setEditNote={editVm.setEditNote}
+          isSaving={editVm.isSaving}
+          error={editVm.error}
+          assignedTags={editVm.assignedTags}
+          allTags={tags}
+          assignedTagIds={editVm.assignedTagIds}
+          folders={folders}
+          onSave={editVm.saveEdit}
+          onClose={editVm.closeDialog}
+          onAddTag={editVm.addTag}
+          onRemoveTag={editVm.removeTag}
+          onCreateAndAssignTag={editVm.createAndAssignTag}
+        />
       </div>
     );
   }
@@ -324,7 +380,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             )}
           </button>
           <button
-            onClick={startEditing}
+            onClick={() => editVm.openDialog(link)}
             aria-label="Edit link"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="Edit link"
@@ -372,71 +428,46 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
         </div>
       </div>
 
-      {/* Inline edit form */}
-      {isEditing && (
-        <div className="mt-4 pt-4 border-t border-border space-y-3">
-          <div className="space-y-1.5">
-            <label htmlFor={`edit-url-${link.id}`} className="text-xs text-muted-foreground">
-              目标链接
-            </label>
-            <input
-              id={`edit-url-${link.id}`}
-              type="url"
-              value={editUrl}
-              onChange={(e) => setEditUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="flex h-9 w-full rounded-[10px] border border-border bg-background px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </div>
-          {folders.length > 0 && (
-            <div className="space-y-1.5">
-              <label htmlFor={`edit-folder-${link.id}`} className="text-xs text-muted-foreground">
-                文件夹
-              </label>
-              <select
-                id={`edit-folder-${link.id}`}
-                value={editFolderId ?? ""}
-                onChange={(e) => setEditFolderId(e.target.value || undefined)}
-                className="flex h-9 w-full rounded-[10px] border border-border bg-background px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+      {/* Tag badges */}
+      {cardTags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border">
+          {cardTags.map((tag) => {
+            const colors = getTagColorClasses(tag.color);
+            return (
+              <span
+                key={tag.id}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colors.badge}`}
               >
-                <option value="">未分类</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="flex items-center gap-2 justify-end">
-            <button
-              onClick={cancelEditing}
-              disabled={isSaving}
-              className="flex h-8 items-center gap-1 rounded-[8px] px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-              取消
-            </button>
-            <button
-              onClick={saveEdit}
-              disabled={isSaving}
-              className="flex h-8 items-center gap-1 rounded-[8px] bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  保存
-                </>
-              )}
-            </button>
-          </div>
+                <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
+                {tag.name}
+              </span>
+            );
+          })}
         </div>
       )}
+
+      {/* Edit dialog */}
+      <EditLinkDialog
+        isOpen={editVm.isOpen}
+        onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
+        editUrl={editVm.editUrl}
+        setEditUrl={editVm.setEditUrl}
+        editFolderId={editVm.editFolderId}
+        setEditFolderId={editVm.setEditFolderId}
+        editNote={editVm.editNote}
+        setEditNote={editVm.setEditNote}
+        isSaving={editVm.isSaving}
+        error={editVm.error}
+        assignedTags={editVm.assignedTags}
+        allTags={tags}
+        assignedTagIds={editVm.assignedTagIds}
+        folders={folders}
+        onSave={editVm.saveEdit}
+        onClose={editVm.closeDialog}
+        onAddTag={editVm.addTag}
+        onRemoveTag={editVm.removeTag}
+        onCreateAndAssignTag={editVm.createAndAssignTag}
+      />
 
       {/* Analytics panel */}
       {showAnalytics && analyticsStats && (
