@@ -20,11 +20,19 @@ vi.mock('@/actions/links', () => ({
   createLink: vi.fn(),
   deleteLink: vi.fn(),
   updateLink: vi.fn(),
+  updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
+  saveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/actions/folders', () => ({
   getFolders: vi.fn(),
+}));
+
+vi.mock('@/actions/tags', () => ({
+  createTag: vi.fn(),
+  addTagToLink: vi.fn(),
+  removeTagFromLink: vi.fn(),
 }));
 
 // Mock DashboardService context — mutable so each test can set its own data

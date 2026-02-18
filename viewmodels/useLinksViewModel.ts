@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import type { Link, AnalyticsStats } from "@/models/types";
-import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
+import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
+import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl, fetchMicrolinkScreenshot } from "@/models/links";
 import { saveScreenshot } from "@/actions/links";
@@ -219,5 +220,172 @@ export function useCreateLinkViewModel(
     error,
     handleSubmit,
     siteUrl,
+  };
+}
+
+/** Callbacks for syncing edit-dialog mutations back to the parent service */
+export interface EditLinkCallbacks {
+  onLinkUpdated: (link: Link) => void;
+  onTagCreated: (tag: Tag) => void;
+  onLinkTagAdded: (linkTag: LinkTag) => void;
+  onLinkTagRemoved: (linkId: number, tagId: string) => void;
+}
+
+/** ViewModel for the edit-link dialog — manages URL, folder, note & tags */
+export function useEditLinkViewModel(
+  link: Link | null,
+  allTags: Tag[],
+  allLinkTags: LinkTag[],
+  callbacks: EditLinkCallbacks,
+) {
+  // Dialog open/close
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Form fields
+  const [editUrl, setEditUrl] = useState("");
+  const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
+  const [editNote, setEditNote] = useState("");
+
+  // Save state
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // Tags assigned to this link
+  const assignedTagIds = useMemo(() => {
+    if (!link) return new Set<string>();
+    return new Set(
+      allLinkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId),
+    );
+  }, [link, allLinkTags]);
+
+  const assignedTags = useMemo(
+    () => allTags.filter((t) => assignedTagIds.has(t.id)),
+    [allTags, assignedTagIds],
+  );
+
+  // Open dialog and populate form with current link data
+  const openDialog = useCallback(
+    (targetLink: Link) => {
+      setEditUrl(targetLink.originalUrl);
+      setEditFolderId(targetLink.folderId ?? undefined);
+      setEditNote(targetLink.note ?? "");
+      setError("");
+      setIsOpen(true);
+    },
+    [],
+  );
+
+  const closeDialog = useCallback(() => {
+    setIsOpen(false);
+    setError("");
+  }, []);
+
+  // Save URL + folder + note
+  const saveEdit = useCallback(async () => {
+    if (!link) return;
+    setIsSaving(true);
+    setError("");
+
+    try {
+      // Update link (URL + folder)
+      const linkResult = await updateLink(link.id, {
+        originalUrl: editUrl,
+        folderId: editFolderId,
+      });
+
+      if (!linkResult.success || !linkResult.data) {
+        setError(linkResult.error || "Failed to update link");
+        setIsSaving(false);
+        return;
+      }
+
+      // Update note (only if changed)
+      const currentNote = link.note ?? "";
+      if (editNote !== currentNote) {
+        const noteResult = await updateLinkNote(
+          link.id,
+          editNote.trim() || null,
+        );
+        if (!noteResult.success) {
+          setError(noteResult.error || "Failed to update note");
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // Merge note into the updated link for the callback
+      const updatedLink: Link = {
+        ...linkResult.data,
+        note: editNote.trim() || null,
+      };
+      callbacks.onLinkUpdated(updatedLink);
+      setIsOpen(false);
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [link, editUrl, editFolderId, editNote, callbacks]);
+
+  // Tag operations — immediate (optimistic)
+  const addTag = useCallback(
+    async (tagId: string) => {
+      if (!link) return;
+      callbacks.onLinkTagAdded({ linkId: link.id, tagId });
+      const result = await addTagToLink(link.id, tagId);
+      if (!result.success) {
+        // Rollback on failure
+        callbacks.onLinkTagRemoved(link.id, tagId);
+      }
+    },
+    [link, callbacks],
+  );
+
+  const removeTag = useCallback(
+    async (tagId: string) => {
+      if (!link) return;
+      callbacks.onLinkTagRemoved(link.id, tagId);
+      const result = await removeTagFromLink(link.id, tagId);
+      if (!result.success) {
+        // Rollback on failure
+        callbacks.onLinkTagAdded({ linkId: link.id, tagId });
+      }
+    },
+    [link, callbacks],
+  );
+
+  // Create a new tag and immediately assign it to the link
+  const createAndAssignTag = useCallback(
+    async (name: string) => {
+      if (!link) return;
+      const result = await createTag({ name });
+      if (result.success && result.data) {
+        callbacks.onTagCreated(result.data);
+        // Assign to current link
+        await addTag(result.data.id);
+      }
+      return result;
+    },
+    [link, callbacks, addTag],
+  );
+
+  return {
+    isOpen,
+    editUrl,
+    setEditUrl,
+    editFolderId,
+    setEditFolderId,
+    editNote,
+    setEditNote,
+    isSaving,
+    error,
+    assignedTagIds,
+    assignedTags,
+    openDialog,
+    closeDialog,
+    saveEdit,
+    addTag,
+    removeTag,
+    createAndAssignTag,
   };
 }

@@ -11,12 +11,20 @@ vi.mock('@/actions/links', () => ({
   createLink: vi.fn(),
   deleteLink: vi.fn(),
   updateLink: vi.fn(),
+  updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
   refreshLinkMetadata: vi.fn(),
+  saveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/actions/folders', () => ({
   getFolders: vi.fn(),
+}));
+
+vi.mock('@/actions/tags', () => ({
+  createTag: vi.fn(),
+  addTagToLink: vi.fn(),
+  removeTagFromLink: vi.fn(),
 }));
 
 vi.mock('@/lib/utils', () => ({
