@@ -1,27 +1,20 @@
 #!/bin/bash
 
-# Generate logo variants from logo-light and logo-dark source images.
-# Sources: logo-light.jpg and logo-dark.jpg in project root.
-# Outputs: public/ directory with themed + favicon variants.
+# Generate logo variants from a single transparent-background source image.
+# Source: logo-new.png in project root.
+# Outputs: public/ directory with all icon variants.
 #
 # Usage: ./scripts/generate-logos.sh
-#
-# Favicon and apple-touch-icon use the light variant by default,
-# since they cannot switch with the OS theme.
 
 set -e
 
-LIGHT_SRC="logo-light.jpg"
-DARK_SRC="logo-dark.jpg"
+SRC="logo-new.png"
 OUTPUT_DIR="public"
 
-# Validate sources
-for src in "$LIGHT_SRC" "$DARK_SRC"; do
-  if [ ! -f "$src" ]; then
-    echo "Error: $src not found in project root"
-    exit 1
-  fi
-done
+if [ ! -f "$SRC" ]; then
+  echo "Error: $SRC not found in project root"
+  exit 1
+fi
 
 # Check for sips (macOS)
 if ! command -v sips &> /dev/null; then
@@ -31,70 +24,63 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
-# Helper: resize a source to a given size and output path
+# Helper: resize source to a given size and output path
 resize() {
-  local src="$1" size="$2" out="$3"
-  # sips can read jpg and write png via --setProperty format
-  sips -z "$size" "$size" "$src" --setProperty format png --out "$out" > /dev/null 2>&1
+  local size="$1" out="$2"
+  sips -z "$size" "$size" "$SRC" --setProperty format png --out "$out" > /dev/null 2>&1
 }
 
-echo "Generating logo variants..."
-echo "  Light source: $LIGHT_SRC"
-echo "  Dark source:  $DARK_SRC"
+echo "Generating logo variants from $SRC..."
 echo ""
 
 # ============================================
-# 1. Themed logo pairs (light + dark)
-#    Used in sidebar and signin page.
-#    CSS class switching: block dark:hidden / hidden dark:block
+# 1. App logo (transparent background, works on any theme)
 # ============================================
 
-echo "Themed logo pairs:"
+echo "App logos:"
 
 # Sidebar (24px)
-echo "  -> logo-light-24.png / logo-dark-24.png  (sidebar)"
-resize "$LIGHT_SRC" 24 "$OUTPUT_DIR/logo-light-24.png"
-resize "$DARK_SRC"  24 "$OUTPUT_DIR/logo-dark-24.png"
+echo "  -> logo-24.png   (sidebar)"
+resize 24 "$OUTPUT_DIR/logo-24.png"
 
 # README (80px — GitHub markdown)
-echo "  -> logo-light-80.png  (README)"
-resize "$LIGHT_SRC" 80 "$OUTPUT_DIR/logo-light-80.png"
+echo "  -> logo-80.png   (README)"
+resize 80 "$OUTPUT_DIR/logo-80.png"
 
 # Signin page (320px — displayed at 96px CSS, ~3.3x for retina)
-echo "  -> logo-light-320.png / logo-dark-320.png  (signin page, retina)"
-resize "$LIGHT_SRC" 320 "$OUTPUT_DIR/logo-light-320.png"
-resize "$DARK_SRC"  320 "$OUTPUT_DIR/logo-dark-320.png"
+echo "  -> logo-320.png  (signin page, retina)"
+resize 320 "$OUTPUT_DIR/logo-320.png"
 
 # ============================================
-# 2. Favicon / system icons (light variant only)
-#    These cannot respond to OS theme, so we default to light.
+# 2. Favicon / system icons
 # ============================================
 
 echo ""
-echo "Favicon and system icons (light variant):"
+echo "Favicon and system icons:"
 
 echo "  -> favicon.png         (32x32  - browser tab)"
-resize "$LIGHT_SRC" 32  "$OUTPUT_DIR/favicon.png"
+resize 32  "$OUTPUT_DIR/favicon.png"
 
 echo "  -> favicon-16.png      (16x16  - small favicon)"
-resize "$LIGHT_SRC" 16  "$OUTPUT_DIR/favicon-16.png"
+resize 16  "$OUTPUT_DIR/favicon-16.png"
 
 echo "  -> apple-touch-icon.png (180x180 - iOS home screen)"
-resize "$LIGHT_SRC" 180 "$OUTPUT_DIR/apple-touch-icon.png"
+resize 180 "$OUTPUT_DIR/apple-touch-icon.png"
 
 echo "  -> icon-192.png        (192x192 - Android/PWA)"
-resize "$LIGHT_SRC" 192 "$OUTPUT_DIR/icon-192.png"
+resize 192 "$OUTPUT_DIR/icon-192.png"
 
 echo "  -> icon-512.png        (512x512 - PWA splash)"
-resize "$LIGHT_SRC" 512 "$OUTPUT_DIR/icon-512.png"
+resize 512 "$OUTPUT_DIR/icon-512.png"
 
 # ============================================
-# 3. Clean up legacy single-theme logos
+# 3. Clean up old themed logo files
 # ============================================
 echo ""
-for legacy in logo-32.png logo-48.png logo-128.png logo-256.png logo-dark-80.png logo-light-160.png logo-dark-160.png; do
+echo "Cleaning up old themed logos..."
+for legacy in logo-light-24.png logo-dark-24.png logo-light-80.png logo-light-320.png logo-dark-320.png logo-dark-80.png logo-light-160.png logo-dark-160.png logo-32.png logo-48.png logo-128.png logo-256.png; do
   if [ -f "$OUTPUT_DIR/$legacy" ]; then
-    echo "  Removing legacy $legacy"
+    echo "  Removing $legacy"
     rm "$OUTPUT_DIR/$legacy"
   fi
 done
@@ -104,17 +90,11 @@ done
 # ============================================
 echo ""
 echo "Generated files in $OUTPUT_DIR/:"
-ls -la "$OUTPUT_DIR"/*.png
+ls -la "$OUTPUT_DIR"/logo-*.png "$OUTPUT_DIR"/favicon*.png "$OUTPUT_DIR"/apple-touch-icon.png "$OUTPUT_DIR"/icon-*.png 2>/dev/null
 echo ""
 echo "Usage in components:"
-echo "  Sidebar (24px):"
-echo "    <img src=\"/logo-light-24.png\" className=\"block dark:hidden\" />"
-echo "    <img src=\"/logo-dark-24.png\"  className=\"hidden dark:block\" />"
-echo ""
-echo "  Signin (320px, displayed at ~96px CSS):"
-echo "    <img src=\"/logo-light-320.png\" className=\"block dark:hidden\" />"
-echo "    <img src=\"/logo-dark-320.png\"  className=\"hidden dark:block\" />"
-echo ""
-echo "  Favicon: served from public/favicon.png (light variant, 32x32)"
+echo "  Sidebar (24px):  <img src=\"/logo-24.png\" />"
+echo "  Signin (320px):  <img src=\"/logo-320.png\" />"
+echo "  Favicon: served from public/favicon.png (32x32)"
 echo ""
 echo "Done!"

@@ -124,19 +124,11 @@ export function AppSidebar({
         <div className="flex h-14 items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-light-24.png"
+              src="/logo-24.png"
               alt="Zhe"
               width={24}
               height={24}
-              className="block shrink-0 dark:hidden"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-dark-24.png"
-              alt="Zhe"
-              width={24}
-              height={24}
-              className="hidden shrink-0 dark:block"
+              className="shrink-0"
             />
         </div>
 
@@ -265,19 +257,11 @@ export function AppSidebar({
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-light-24.png"
+              src="/logo-24.png"
               alt="Zhe"
               width={24}
               height={24}
-              className="block shrink-0 dark:hidden"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-dark-24.png"
-              alt="Zhe"
-              width={24}
-              height={24}
-              className="hidden shrink-0 dark:block"
+              className="shrink-0"
             />
             <span className="text-lg md:text-xl font-semibold text-foreground">
               ZHE.TO

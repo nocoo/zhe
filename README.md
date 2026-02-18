@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo-light-80.png" alt="Zhe Logo" width="80" height="80">
+  <img src="public/logo-80.png" alt="Zhe Logo" width="80" height="80">
 </p>
 
 <h1 align="center">Zhe</h1>

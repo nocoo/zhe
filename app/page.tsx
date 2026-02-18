@@ -119,19 +119,11 @@ export default async function Home() {
             <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border p-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo-light-320.png"
+                src="/logo-320.png"
                 alt="Zhe"
                 width={320}
                 height={320}
-                className="h-full w-full object-contain dark:hidden"
-              />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-dark-320.png"
-                alt="Zhe"
-                width={320}
-                height={320}
-                className="hidden h-full w-full object-contain dark:block"
+                className="h-full w-full object-contain"
               />
             </div>
 
