@@ -198,6 +198,7 @@ export function useEditLinkViewModel(
 
   // Form fields
   const [editUrl, setEditUrl] = useState("");
+  const [editSlug, setEditSlug] = useState("");
   const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
   const [editNote, setEditNote] = useState("");
 
@@ -222,6 +223,7 @@ export function useEditLinkViewModel(
   const openDialog = useCallback(
     (targetLink: Link) => {
       setEditUrl(targetLink.originalUrl);
+      setEditSlug(targetLink.slug);
       setEditFolderId(targetLink.folderId ?? undefined);
       setEditNote(targetLink.note ?? "");
       setError("");
@@ -235,18 +237,24 @@ export function useEditLinkViewModel(
     setError("");
   }, []);
 
-  // Save URL + folder + note
+  // Save URL + folder + slug + note
   const saveEdit = useCallback(async () => {
     if (!link) return;
     setIsSaving(true);
     setError("");
 
     try {
-      // Update link (URL + folder)
-      const linkResult = await updateLink(link.id, {
+      // Build update payload — include slug only if changed
+      const payload: { originalUrl: string; folderId?: string; slug?: string } = {
         originalUrl: editUrl,
         folderId: editFolderId,
-      });
+      };
+      if (editSlug !== link.slug) {
+        payload.slug = editSlug;
+      }
+
+      // Update link (URL + folder + optional slug)
+      const linkResult = await updateLink(link.id, payload);
 
       if (!linkResult.success || !linkResult.data) {
         setError(linkResult.error || "Failed to update link");
@@ -280,7 +288,7 @@ export function useEditLinkViewModel(
     } finally {
       setIsSaving(false);
     }
-  }, [link, editUrl, editFolderId, editNote, callbacks]);
+  }, [link, editUrl, editSlug, editFolderId, editNote, callbacks]);
 
   // Tag operations — immediate (optimistic)
   const addTag = useCallback(
@@ -328,6 +336,8 @@ export function useEditLinkViewModel(
     isOpen,
     editUrl,
     setEditUrl,
+    editSlug,
+    setEditSlug,
     editFolderId,
     setEditFolderId,
     editNote,

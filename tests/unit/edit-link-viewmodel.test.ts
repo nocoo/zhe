@@ -95,6 +95,7 @@ describe('useEditLinkViewModel', () => {
 
       expect(result.current.isOpen).toBe(false);
       expect(result.current.editUrl).toBe('');
+      expect(result.current.editSlug).toBe('');
       expect(result.current.editFolderId).toBeUndefined();
       expect(result.current.editNote).toBe('');
       expect(result.current.isSaving).toBe(false);
@@ -162,6 +163,7 @@ describe('useEditLinkViewModel', () => {
 
       expect(result.current.isOpen).toBe(true);
       expect(result.current.editUrl).toBe('https://test.com');
+      expect(result.current.editSlug).toBe('abc123');
       expect(result.current.editFolderId).toBe('f1');
       expect(result.current.editNote).toBe('my note');
       expect(result.current.error).toBe('');
@@ -226,6 +228,46 @@ describe('useEditLinkViewModel', () => {
       });
       expect(result.current.isOpen).toBe(false);
       expect(result.current.isSaving).toBe(false);
+    });
+
+    it('includes slug in updateLink payload when slug is changed', async () => {
+      const link = makeLink({ id: 1, slug: 'old-slug' });
+      const cbs = makeCallbacks();
+      const updatedLink = makeLink({ id: 1, slug: 'new-slug' });
+
+      vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
+
+      const { result } = renderHook(() =>
+        useEditLinkViewModel(link, [], [], cbs),
+      );
+
+      act(() => { result.current.openDialog(link); });
+      act(() => { result.current.setEditSlug('new-slug'); });
+
+      await act(async () => { await result.current.saveEdit(); });
+
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        slug: 'new-slug',
+      }));
+    });
+
+    it('omits slug from payload when slug is unchanged', async () => {
+      const link = makeLink({ id: 1, slug: 'abc123' });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({ success: true, data: makeLink({ id: 1 }) });
+
+      const { result } = renderHook(() =>
+        useEditLinkViewModel(link, [], [], cbs),
+      );
+
+      act(() => { result.current.openDialog(link); });
+      // Do NOT change slug
+
+      await act(async () => { await result.current.saveEdit(); });
+
+      const callArgs = vi.mocked(updateLink).mock.calls[0][1];
+      expect(callArgs).not.toHaveProperty('slug');
     });
 
     it('skips updateLinkNote when note is unchanged', async () => {
