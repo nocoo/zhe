@@ -552,6 +552,293 @@ describe('ScopedDB', () => {
     });
   });
 
+  // ---- Tags --------------------------------------------------
+
+  describe('tag operations', () => {
+    it('getTags returns empty array when no tags exist', async () => {
+      const db = new ScopedDB(USER_A);
+      const tags = await db.getTags();
+      expect(tags).toEqual([]);
+    });
+
+    it('createTag assigns the scoped userId', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'work', color: 'blue' });
+
+      expect(tag.userId).toBe(USER_A);
+      expect(tag.name).toBe('work');
+      expect(tag.color).toBe('blue');
+      expect(tag.id).toBeTruthy();
+      expect(tag.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('getTags only returns own tags', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createTag({ name: 'work', color: 'blue' });
+      await dbA.createTag({ name: 'personal', color: 'red' });
+      await dbB.createTag({ name: 'bob-tag', color: 'emerald' });
+
+      const tagsA = await dbA.getTags();
+      const tagsB = await dbB.getTags();
+
+      expect(tagsA).toHaveLength(2);
+      expect(tagsB).toHaveLength(1);
+      expect(tagsA.every(t => t.userId === USER_A)).toBe(true);
+      expect(tagsB.every(t => t.userId === USER_B)).toBe(true);
+    });
+
+    it('updateTag updates name and color', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'old', color: 'blue' });
+
+      const updated = await db.updateTag(tag.id, { name: 'new', color: 'red' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('new');
+      expect(updated!.color).toBe('red');
+    });
+
+    it('updateTag updates only name', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'original', color: 'emerald' });
+
+      const updated = await db.updateTag(tag.id, { name: 'renamed' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('renamed');
+      expect(updated!.color).toBe('emerald');
+    });
+
+    it('updateTag updates only color', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'keep', color: 'blue' });
+
+      const updated = await db.updateTag(tag.id, { color: 'rose' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.name).toBe('keep');
+      expect(updated!.color).toBe('rose');
+    });
+
+    it('updateTag with empty data returns existing tag', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'nochange', color: 'slate' });
+
+      const result = await db.updateTag(tag.id, {});
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('nochange');
+    });
+
+    it('updateTag returns null for other user tag', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const tag = await dbA.createTag({ name: 'private', color: 'blue' });
+
+      expect(await dbB.updateTag(tag.id, { name: 'hacked' })).toBeNull();
+    });
+
+    it('updateTag with empty data returns null for non-existent tag', async () => {
+      const db = new ScopedDB(USER_A);
+      const result = await db.updateTag('non-existent-id', {});
+      expect(result).toBeNull();
+    });
+
+    it('deleteTag removes the tag', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'to-delete', color: 'red' });
+
+      expect(await db.deleteTag(tag.id)).toBe(true);
+
+      const tags = await db.getTags();
+      expect(tags).toHaveLength(0);
+    });
+
+    it('deleteTag cannot delete other user tag', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const tag = await dbA.createTag({ name: 'protected', color: 'blue' });
+
+      expect(await dbB.deleteTag(tag.id)).toBe(false);
+      const tags = await dbA.getTags();
+      expect(tags).toHaveLength(1);
+    });
+  });
+
+  // ---- Link-Tag associations --------------------------------
+
+  describe('link-tag operations', () => {
+    it('addTagToLink associates a tag with a link', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'lt1' });
+      const tag = await db.createTag({ name: 'work', color: 'blue' });
+
+      const result = await db.addTagToLink(link.id, tag.id);
+      expect(result).toBe(true);
+
+      const linkTags = await db.getLinkTags();
+      expect(linkTags).toHaveLength(1);
+      expect(linkTags[0].linkId).toBe(link.id);
+      expect(linkTags[0].tagId).toBe(tag.id);
+    });
+
+    it('addTagToLink returns false for unowned link', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const link = await dbA.createLink({ originalUrl: 'https://a.com', slug: 'lt2' });
+      const tag = await dbB.createTag({ name: 'bob-tag', color: 'red' });
+
+      expect(await dbB.addTagToLink(link.id, tag.id)).toBe(false);
+    });
+
+    it('addTagToLink returns false for unowned tag', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const link = await dbA.createLink({ originalUrl: 'https://a.com', slug: 'lt3' });
+      const tag = await dbB.createTag({ name: 'bob-tag', color: 'red' });
+
+      expect(await dbA.addTagToLink(link.id, tag.id)).toBe(false);
+    });
+
+    it('getLinkTags only returns associations for own links', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const linkA = await dbA.createLink({ originalUrl: 'https://a.com', slug: 'lt4' });
+      const tagA = await dbA.createTag({ name: 'a-tag', color: 'blue' });
+      await dbA.addTagToLink(linkA.id, tagA.id);
+
+      const linkB = await dbB.createLink({ originalUrl: 'https://b.com', slug: 'lt5' });
+      const tagB = await dbB.createTag({ name: 'b-tag', color: 'red' });
+      await dbB.addTagToLink(linkB.id, tagB.id);
+
+      const linkTagsA = await dbA.getLinkTags();
+      const linkTagsB = await dbB.getLinkTags();
+
+      expect(linkTagsA).toHaveLength(1);
+      expect(linkTagsA[0].linkId).toBe(linkA.id);
+      expect(linkTagsB).toHaveLength(1);
+      expect(linkTagsB[0].linkId).toBe(linkB.id);
+    });
+
+    it('removeTagFromLink removes the association', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'lt6' });
+      const tag = await db.createTag({ name: 'temp', color: 'amber' });
+      await db.addTagToLink(link.id, tag.id);
+
+      expect(await db.removeTagFromLink(link.id, tag.id)).toBe(true);
+
+      const linkTags = await db.getLinkTags();
+      expect(linkTags).toHaveLength(0);
+    });
+
+    it('removeTagFromLink returns false for non-existent association', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.removeTagFromLink(99999, 'fake-id')).toBe(false);
+    });
+
+    it('removeTagFromLink cannot remove other user associations', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const link = await dbA.createLink({ originalUrl: 'https://a.com', slug: 'lt7' });
+      const tag = await dbA.createTag({ name: 'a-tag', color: 'blue' });
+      await dbA.addTagToLink(link.id, tag.id);
+
+      expect(await dbB.removeTagFromLink(link.id, tag.id)).toBe(false);
+
+      const linkTags = await dbA.getLinkTags();
+      expect(linkTags).toHaveLength(1);
+    });
+
+    it('deleting a tag cascades to link_tags', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'lt8' });
+      const tag = await db.createTag({ name: 'cascade', color: 'violet' });
+      await db.addTagToLink(link.id, tag.id);
+
+      await db.deleteTag(tag.id);
+
+      const linkTags = await db.getLinkTags();
+      expect(linkTags).toHaveLength(0);
+    });
+
+    it('deleting a link cascades to link_tags', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'lt9' });
+      const tag = await db.createTag({ name: 'cascade2', color: 'pink' });
+      await db.addTagToLink(link.id, tag.id);
+
+      await db.deleteLink(link.id);
+
+      const linkTags = await db.getLinkTags();
+      expect(linkTags).toHaveLength(0);
+    });
+
+    it('addTagToLink is idempotent (INSERT OR IGNORE)', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'lt10' });
+      const tag = await db.createTag({ name: 'dup', color: 'cyan' });
+
+      await db.addTagToLink(link.id, tag.id);
+      await db.addTagToLink(link.id, tag.id); // duplicate — should not throw
+
+      const linkTags = await db.getLinkTags();
+      expect(linkTags).toHaveLength(1);
+    });
+  });
+
+  // ---- Link Note --------------------------------------------
+
+  describe('updateLinkNote', () => {
+    it('sets note on a link', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'note1' });
+
+      const updated = await db.updateLinkNote(link.id, 'this is a note');
+
+      expect(updated).not.toBeNull();
+      expect(updated!.note).toBe('this is a note');
+    });
+
+    it('clears note by setting null', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'note2' });
+      await db.updateLinkNote(link.id, 'has note');
+
+      const cleared = await db.updateLinkNote(link.id, null);
+
+      expect(cleared).not.toBeNull();
+      expect(cleared!.note).toBeNull();
+    });
+
+    it('returns null for other user link', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const link = await dbA.createLink({ originalUrl: 'https://example.com', slug: 'note3' });
+
+      expect(await dbB.updateLinkNote(link.id, 'hacked')).toBeNull();
+    });
+
+    it('returns null for non-existent link', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.updateLinkNote(99999, 'no link')).toBeNull();
+    });
+
+    it('newly created links have null note', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'note4' });
+      expect(link.note).toBeNull();
+    });
+  });
+
   // ---- Overview stats ----------------------------------------
 
   describe('getOverviewStats', () => {

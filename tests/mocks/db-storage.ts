@@ -3,7 +3,13 @@
  * This is used by vitest to mock the D1 client.
  */
 
-import type { Link, Analytics, Upload, Folder, Webhook } from '@/lib/db/schema';
+import type { Link, Analytics, Upload, Folder, Webhook, Tag } from '@/lib/db/schema';
+
+// LinkTag raw row shape (matches D1 column names)
+export interface MockLinkTag {
+  link_id: number;
+  tag_id: string;
+}
 
 // In-memory storage
 const mockLinks = new Map<string, Link>();
@@ -11,6 +17,8 @@ const mockAnalytics: Analytics[] = [];
 const mockUploads = new Map<number, Upload>();
 const mockFolders = new Map<string, Folder>();
 const mockWebhooks = new Map<string, Webhook>(); // keyed by userId
+const mockTags = new Map<string, Tag>();
+const mockLinkTags: MockLinkTag[] = [];
 let nextLinkId = 1;
 let nextAnalyticsId = 1;
 let nextUploadId = 1;
@@ -22,6 +30,8 @@ export function clearMockStorage(): void {
   mockUploads.clear();
   mockFolders.clear();
   mockWebhooks.clear();
+  mockTags.clear();
+  mockLinkTags.length = 0;
   nextLinkId = 1;
   nextAnalyticsId = 1;
   nextUploadId = 1;
@@ -46,6 +56,14 @@ export function getMockFolders(): Map<string, Folder> {
 
 export function getMockWebhooks(): Map<string, Webhook> {
   return mockWebhooks;
+}
+
+export function getMockTags(): Map<string, Tag> {
+  return mockTags;
+}
+
+export function getMockLinkTags(): MockLinkTag[] {
+  return mockLinkTags;
 }
 
 export function getNextLinkId(): number {

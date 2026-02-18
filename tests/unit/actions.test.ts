@@ -29,6 +29,8 @@ const mockUpdateLink = vi.fn();
 const mockGetAnalyticsStats = vi.fn();
 const mockUpdateLinkMetadata = vi.fn();
 const mockGetLinkById = vi.fn();
+const mockUpdateLinkScreenshot = vi.fn();
+const mockUpdateLinkNote = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(() => ({
@@ -39,6 +41,8 @@ vi.mock('@/lib/db/scoped', () => ({
     getAnalyticsStats: mockGetAnalyticsStats,
     updateLinkMetadata: mockUpdateLinkMetadata,
     getLinkById: mockGetLinkById,
+    updateLinkScreenshot: mockUpdateLinkScreenshot,
+    updateLinkNote: mockUpdateLinkNote,
   })),
 }));
 
@@ -61,6 +65,7 @@ import {
   updateLink,
   getAnalyticsStats,
   refreshLinkMetadata,
+  updateLinkNote,
 } from '@/actions/links';
 
 // ---------------------------------------------------------------------------
@@ -620,6 +625,61 @@ describe('actions/links — uncovered paths', () => {
         success: false,
         error: 'Failed to refresh metadata',
       });
+    });
+  });
+
+  // ====================================================================
+  // updateLinkNote
+  // ====================================================================
+  describe('updateLinkNote', () => {
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await updateLinkNote(1, 'a note');
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns not found when db.updateLinkNote returns null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLinkNote.mockResolvedValue(null);
+
+      const result = await updateLinkNote(9999, 'note');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Link not found or access denied',
+      });
+    });
+
+    it('updates note on success', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const updatedLink = { ...FAKE_LINK, note: 'my note' };
+      mockUpdateLinkNote.mockResolvedValue(updatedLink);
+
+      const result = await updateLinkNote(1, 'my note');
+
+      expect(result).toEqual({ success: true, data: updatedLink });
+      expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, 'my note');
+    });
+
+    it('clears note by passing null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLinkNote.mockResolvedValue(FAKE_LINK);
+
+      const result = await updateLinkNote(1, null);
+
+      expect(result).toEqual({ success: true, data: FAKE_LINK });
+      expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, null);
+    });
+
+    it('returns error when db.updateLinkNote throws', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLinkNote.mockRejectedValue(new Error('DB error'));
+
+      const result = await updateLinkNote(1, 'note');
+
+      expect(result).toEqual({ success: false, error: 'Failed to update link note' });
     });
   });
 });

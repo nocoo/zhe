@@ -20,7 +20,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
@@ -55,6 +55,8 @@ vi.mock('@/lib/db/d1-client', async () => {
           meta_title: null,
           meta_description: null,
           meta_favicon: null,
+          screenshot_url: null,
+          note: null,
           created_at: createdAt,
         };
         mockLinks.set(slug as string, link as unknown as import('@/lib/db/schema').Link);
@@ -85,7 +87,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       }
 
       // SELECT FROM links WHERE user_id = ?
-      if (sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
+      if (sqlLower.startsWith('select') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
         const results: unknown[] = [];
         for (const link of mockLinks.values()) {
@@ -110,6 +112,13 @@ vi.mock('@/lib/db/d1-client', async () => {
           const rawLink = link as unknown as Record<string, unknown>;
           if (rawLink.id === id && rawLink.user_id === userId) {
             mockLinks.delete(slug);
+            // Cascade: remove associated link_tags entries
+            const linkTags = getMockLinkTags();
+            for (let i = linkTags.length - 1; i >= 0; i--) {
+              if (linkTags[i].link_id === id) {
+                linkTags.splice(i, 1);
+              }
+            }
             return [{ id }] as T[];
           }
         }
@@ -157,6 +166,10 @@ vi.mock('@/lib/db/d1-client', async () => {
                   rawLink.meta_description = params[paramIndex];
                 } else if (field === 'meta_favicon') {
                   rawLink.meta_favicon = params[paramIndex];
+                } else if (field === 'screenshot_url') {
+                  rawLink.screenshot_url = params[paramIndex];
+                } else if (field === 'note') {
+                  rawLink.note = params[paramIndex];
                 } else if (field === 'clicks') {
                   // Handle increment: clicks = clicks + 1
                   if (clause.includes('clicks + 1')) {
@@ -413,6 +426,166 @@ vi.mock('@/lib/db/d1-client', async () => {
               }
             }
             return [{ id }] as T[];
+          }
+        }
+        return [];
+      }
+      
+      // ---- Tags ----
+
+      // INSERT INTO tags
+      if (sqlLower.startsWith('insert into tags')) {
+        const [id, userId, name, color, createdAt] = params;
+        const tag = {
+          id,
+          user_id: userId,
+          name,
+          color,
+          created_at: createdAt,
+        };
+        const mockTags = getMockTags();
+        mockTags.set(id as string, tag as unknown as import('@/lib/db/schema').Tag);
+        return [tag] as T[];
+      }
+
+      // SELECT FROM tags WHERE id = ? AND user_id = ? (single tag lookup)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from tags') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
+        const [id, userId] = params;
+        const mockTags = getMockTags();
+        for (const tag of mockTags.values()) {
+          const raw = tag as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            return [tag] as T[];
+          }
+        }
+        return [];
+      }
+
+      // SELECT FROM tags WHERE user_id = ? (list all user tags)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from tags') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
+        const [userId] = params;
+        const mockTags = getMockTags();
+        const results: unknown[] = [];
+        for (const tag of mockTags.values()) {
+          const raw = tag as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            results.push(tag);
+          }
+        }
+        results.sort((a, b) => {
+          const aTime = (a as Record<string, unknown>).created_at as number;
+          const bTime = (b as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
+      // UPDATE tags SET ... WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('update tags set') && sqlLower.includes('where id = ?')) {
+        const id = params[params.length - 2];
+        const userId = params[params.length - 1];
+        const mockTags = getMockTags();
+        for (const tag of mockTags.values()) {
+          const raw = tag as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            const setMatch = sql.match(/set\s+(.+?)\s+where/i);
+            if (setMatch) {
+              const setClauses = setMatch[1].split(',').map(s => s.trim());
+              let paramIndex = 0;
+              for (const clause of setClauses) {
+                const field = clause.split('=')[0].trim();
+                if (field === 'name') {
+                  raw.name = params[paramIndex];
+                } else if (field === 'color') {
+                  raw.color = params[paramIndex];
+                }
+                paramIndex++;
+              }
+            }
+            return [raw] as T[];
+          }
+        }
+        return [];
+      }
+
+      // DELETE FROM tags WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('delete from tags') && sqlLower.includes('where id = ?')) {
+        const [id, userId] = params;
+        const mockTags = getMockTags();
+        for (const [tagId, tag] of mockTags.entries()) {
+          const raw = tag as unknown as Record<string, unknown>;
+          if (raw.id === id && raw.user_id === userId) {
+            mockTags.delete(tagId);
+            // Cascade: remove associated link_tags entries
+            const linkTags = getMockLinkTags();
+            for (let i = linkTags.length - 1; i >= 0; i--) {
+              if (linkTags[i].tag_id === id) {
+                linkTags.splice(i, 1);
+              }
+            }
+            return [{ id }] as T[];
+          }
+        }
+        return [];
+      }
+
+      // ---- Link-Tags ----
+
+      // SELECT id FROM links WHERE id = ? AND user_id = ? (ownership check for addTagToLink)
+      // This is already handled above by "SELECT FROM links WHERE id = ? AND user_id = ?"
+
+      // SELECT id FROM tags WHERE id = ? AND user_id = ? (ownership check for addTagToLink)
+      // This is already handled above by "SELECT FROM tags WHERE id = ? AND user_id = ?"
+
+      // INSERT OR IGNORE INTO link_tags
+      if (sqlLower.startsWith('insert or ignore into link_tags')) {
+        const [linkId, tagId] = params;
+        const linkTags = getMockLinkTags();
+        // Check for duplicate (INSERT OR IGNORE semantics)
+        const exists = linkTags.some(lt => lt.link_id === linkId && lt.tag_id === tagId);
+        if (!exists) {
+          linkTags.push({ link_id: linkId as number, tag_id: tagId as string });
+        }
+        return [] as T[];
+      }
+
+      // SELECT lt.* FROM link_tags lt JOIN links l ON ... WHERE l.user_id = ?
+      if (sqlLower.includes('from link_tags') && sqlLower.includes('join links') && sqlLower.includes('user_id')) {
+        const [userId] = params;
+        const linkTags = getMockLinkTags();
+        const results: unknown[] = [];
+        for (const lt of linkTags) {
+          // Check if the link belongs to this user
+          for (const link of mockLinks.values()) {
+            const rawLink = link as unknown as Record<string, unknown>;
+            if (rawLink.id === lt.link_id && rawLink.user_id === userId) {
+              results.push({ link_id: lt.link_id, tag_id: lt.tag_id });
+              break;
+            }
+          }
+        }
+        return results as T[];
+      }
+
+      // DELETE FROM link_tags WHERE link_id = ? AND tag_id = ? AND link_id IN (SELECT id FROM links WHERE user_id = ?)
+      if (sqlLower.startsWith('delete from link_tags') && sqlLower.includes('where link_id = ?') && sqlLower.includes('tag_id = ?')) {
+        const [linkId, tagId, userId] = params;
+        const linkTags = getMockLinkTags();
+        // Verify link ownership
+        let linkOwned = false;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId && rawLink.user_id === userId) {
+            linkOwned = true;
+            break;
+          }
+        }
+        if (!linkOwned) return [];
+        
+        for (let i = linkTags.length - 1; i >= 0; i--) {
+          if (linkTags[i].link_id === linkId && linkTags[i].tag_id === tagId) {
+            linkTags.splice(i, 1);
+            return [{ link_id: linkId }] as T[];
           }
         }
         return [];
