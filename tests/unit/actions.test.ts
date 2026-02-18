@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before importing the module under test
@@ -53,6 +53,20 @@ vi.mock('@/lib/metadata', () => ({
   fetchMetadata: (...args: unknown[]) => mockFetchMetadata(...args),
 }));
 
+const mockUploadBufferToR2 = vi.fn();
+vi.mock('@/lib/r2/client', () => ({
+  uploadBufferToR2: (...args: unknown[]) => mockUploadBufferToR2(...args),
+}));
+
+const mockHashUserId = vi.fn();
+const mockGenerateObjectKey = vi.fn();
+const mockBuildPublicUrl = vi.fn();
+vi.mock('@/models/upload', () => ({
+  hashUserId: (...args: unknown[]) => mockHashUserId(...args),
+  generateObjectKey: (...args: unknown[]) => mockGenerateObjectKey(...args),
+  buildPublicUrl: (...args: unknown[]) => mockBuildPublicUrl(...args),
+}));
+
 // Suppress console.error noise from catch blocks
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -68,6 +82,7 @@ import {
   getAnalyticsStats,
   refreshLinkMetadata,
   updateLinkNote,
+  saveScreenshot,
 } from '@/actions/links';
 
 // ---------------------------------------------------------------------------
@@ -738,6 +753,169 @@ describe('actions/links — uncovered paths', () => {
       const result = await updateLinkNote(1, 'note');
 
       expect(result).toEqual({ success: false, error: 'Failed to update link note' });
+    });
+  });
+
+  // ====================================================================
+  // saveScreenshot
+  // ====================================================================
+  describe('saveScreenshot', () => {
+    const MICROLINK_URL = 'https://iad.microlink.io/screenshot.png';
+    const R2_PUBLIC_URL = 'https://s.zhe.to/abc123/20260218/uuid.png';
+    const FAKE_IMAGE_BYTES = new Uint8Array([137, 80, 78, 71]); // PNG header
+
+    beforeEach(() => {
+      process.env.R2_USER_HASH_SALT = 'test-salt';
+      process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
+      mockHashUserId.mockResolvedValue('abc123');
+      mockGenerateObjectKey.mockReturnValue('abc123/20260218/uuid.png');
+      mockBuildPublicUrl.mockReturnValue(R2_PUBLIC_URL);
+      mockUploadBufferToR2.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      delete process.env.R2_USER_HASH_SALT;
+      delete process.env.R2_PUBLIC_DOMAIN;
+    });
+
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('downloads image, uploads to R2, and stores R2 URL in DB', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: R2_PUBLIC_URL };
+      mockUpdateLinkScreenshot.mockResolvedValue(updatedLink);
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: true, data: updatedLink });
+      // Verify download
+      expect(fetch).toHaveBeenCalledWith(MICROLINK_URL);
+      // Verify R2 upload
+      expect(mockUploadBufferToR2).toHaveBeenCalledWith(
+        'abc123/20260218/uuid.png',
+        expect.any(Uint8Array),
+        'image/png',
+      );
+      // Verify DB persistence with R2 URL (not Microlink URL)
+      expect(mockUpdateLinkScreenshot).toHaveBeenCalledWith(1, R2_PUBLIC_URL);
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when screenshot download fails', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Failed to download screenshot' });
+      expect(mockUploadBufferToR2).not.toHaveBeenCalled();
+      expect(mockUpdateLinkScreenshot).not.toHaveBeenCalled();
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when R2_USER_HASH_SALT is missing', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      delete process.env.R2_USER_HASH_SALT;
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'R2 user hash salt not configured' });
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when R2_PUBLIC_DOMAIN is missing', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      delete process.env.R2_PUBLIC_DOMAIN;
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'R2 public domain not configured' });
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when link not found', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      mockUpdateLinkScreenshot.mockResolvedValue(null);
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Link not found or access denied' });
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when R2 upload throws', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      mockUploadBufferToR2.mockRejectedValue(new Error('R2 timeout'));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Failed to save screenshot' });
+
+      vi.unstubAllGlobals();
+    });
+
+    it('defaults to image/png when content-type header is missing', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers(), // no content-type
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: R2_PUBLIC_URL };
+      mockUpdateLinkScreenshot.mockResolvedValue(updatedLink);
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result.success).toBe(true);
+      expect(mockUploadBufferToR2).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Uint8Array),
+        'image/png', // fallback
+      );
+
+      vi.unstubAllGlobals();
     });
   });
 });

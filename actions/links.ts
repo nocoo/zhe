@@ -5,6 +5,8 @@ import { ScopedDB } from '@/lib/db/scoped';
 import { slugExists, getLinkBySlug } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import { fetchMetadata } from '@/lib/metadata';
+import { uploadBufferToR2 } from '@/lib/r2/client';
+import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
 import type { Link } from '@/lib/db/schema';
 
 /**
@@ -16,6 +18,17 @@ async function getScopedDB(): Promise<ScopedDB | null> {
   const userId = session?.user?.id;
   if (!userId) return null;
   return new ScopedDB(userId);
+}
+
+/**
+ * Get a ScopedDB instance and userId for the current authenticated user.
+ * Returns null if not authenticated.
+ */
+async function getAuthContext(): Promise<{ db: ScopedDB; userId: string } | null> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  return { db: new ScopedDB(userId), userId };
 }
 
 export interface CreateLinkInput {
@@ -283,20 +296,48 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
 }
 
 /**
- * Persist a screenshot URL for a link.
- * Called by the client after fetching from Microlink API.
+ * Download a screenshot from an external URL, upload it to R2, and persist
+ * the permanent R2 public URL in the DB.
+ *
+ * Called by the client after fetching a temporary screenshot URL from Microlink.
  */
 export async function saveScreenshot(
   linkId: number,
   screenshotUrl: string,
 ): Promise<ActionResult<Link>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const updated = await db.updateLinkScreenshot(linkId, screenshotUrl);
+    // Download the screenshot image from the external URL
+    const res = await fetch(screenshotUrl);
+    if (!res.ok) {
+      return { success: false, error: 'Failed to download screenshot' };
+    }
+
+    const contentType = res.headers.get('content-type') || 'image/png';
+    const buffer = new Uint8Array(await res.arrayBuffer());
+
+    // Generate R2 key and upload
+    const salt = process.env.R2_USER_HASH_SALT;
+    if (!salt) {
+      return { success: false, error: 'R2 user hash salt not configured' };
+    }
+    const userHash = await hashUserId(ctx.userId, salt);
+    const key = generateObjectKey('screenshot.png', userHash);
+    await uploadBufferToR2(key, buffer, contentType);
+
+    // Build the permanent R2 public URL
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+    if (!publicDomain) {
+      return { success: false, error: 'R2 public domain not configured' };
+    }
+    const r2Url = buildPublicUrl(publicDomain, key);
+
+    // Persist the R2 URL in the DB
+    const updated = await ctx.db.updateLinkScreenshot(linkId, r2Url);
     if (!updated) {
       return { success: false, error: 'Link not found or access denied' };
     }
