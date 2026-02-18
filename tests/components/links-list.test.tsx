@@ -194,12 +194,13 @@ describe('LinksList', () => {
     mockSearchParamsFolder = 'uncategorized';
     render(<LinksList />);
 
-    expect(screen.getByText('未分类')).toBeInTheDocument();
-    expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
-    // Only link with folderId=null
-    expect(screen.getByText('ghi')).toBeInTheDocument();
-    expect(screen.queryByText('abc')).not.toBeInTheDocument();
-    expect(screen.queryByText('def')).not.toBeInTheDocument();
+    // InboxTriage is rendered — header is an h2
+    expect(screen.getByRole('heading', { name: 'Inbox' })).toBeInTheDocument();
+    expect(screen.getByText('共 1 条待整理链接')).toBeInTheDocument();
+    // Only link with folderId=null (InboxItem shows metaTitle, not slug)
+    expect(screen.getByText('Example 3')).toBeInTheDocument();
+    expect(screen.queryByText('Example 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Example 2')).not.toBeInTheDocument();
   });
 
   it('shows all links when folders list is empty', () => {

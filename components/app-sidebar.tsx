@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, FolderOpen, BarChart3, Settings } from "lucide-react";
+import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, Inbox, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -30,7 +30,7 @@ interface FolderNavItem {
 
 const FOLDER_NAV_ITEMS: FolderNavItem[] = [
   { title: "全部链接", icon: Link2, href: "/dashboard", folderParam: null },
-  { title: "未分类", icon: FolderOpen, href: "/dashboard?folder=uncategorized", folderParam: "uncategorized" },
+  { title: "Inbox", icon: Inbox, href: "/dashboard?folder=uncategorized", folderParam: "uncategorized" },
 ];
 
 /** Static nav items rendered as <Link> */

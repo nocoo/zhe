@@ -151,7 +151,7 @@ export function EditLinkDialog({
                 }
                 className="flex h-9 w-full rounded-[10px] border border-border bg-secondary px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               >
-                <option value="">未分类</option>
+                <option value="">Inbox</option>
                 {folders.map((folder) => (
                   <option key={folder.id} value={folder.id}>
                     {folder.name}

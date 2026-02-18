@@ -152,9 +152,9 @@ describe('AppSidebar', () => {
       expect(aside).toBeInTheDocument();
       expect(aside?.className).toContain('w-[68px]');
 
-      // "全部链接" and "未分类" should not be visible as text
+      // "全部链接" and "Inbox" should not be visible as text
       expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
-      expect(screen.queryByText('未分类')).not.toBeInTheDocument();
+      expect(screen.queryByText('Inbox')).not.toBeInTheDocument();
     });
 
     it('renders all nav items as links in collapsed mode', () => {
@@ -177,7 +177,7 @@ describe('AppSidebar', () => {
 
       // Should display nav item text labels
       expect(screen.getByText('全部链接')).toBeInTheDocument();
-      expect(screen.getByText('未分类')).toBeInTheDocument();
+      expect(screen.getByText('Inbox')).toBeInTheDocument();
     });
 
     it('displays brand name ZHE.TO', () => {
@@ -245,6 +245,35 @@ describe('AppSidebar', () => {
       const allMatches = screen.queryAllByPlaceholderText('搜索链接、标题、备注、标签...');
       expect(allMatches).toHaveLength(0);
     });
+
+    it('does not render search button in collapsed mode', () => {
+      renderSidebar({ collapsed: true });
+
+      expect(screen.queryByText('搜索链接...')).not.toBeInTheDocument();
+    });
+
+    it('opens search dialog on Cmd+K even when sidebar is collapsed', () => {
+      renderSidebar({ collapsed: true });
+
+      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+
+      expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
+    });
+
+    it('prevents default browser behavior on Cmd+K', () => {
+      renderSidebar({ collapsed: false });
+
+      const event = new KeyboardEvent('keydown', {
+        key: 'k',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+      document.dispatchEvent(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
+    });
   });
 
   describe('overview nav item', () => {
@@ -281,14 +310,14 @@ describe('AppSidebar', () => {
   });
 
   describe('folder nav items as links', () => {
-    it('renders "全部链接" and "未分类" as links not buttons', () => {
+    it('renders "全部链接" and "Inbox" as links not buttons', () => {
       renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText('全部链接').closest('a');
       expect(allLinksAnchor).toBeInTheDocument();
       expect(allLinksAnchor?.getAttribute('href')).toBe('/dashboard');
 
-      const uncategorizedAnchor = screen.getByText('未分类').closest('a');
+      const uncategorizedAnchor = screen.getByText('Inbox').closest('a');
       expect(uncategorizedAnchor).toBeInTheDocument();
       expect(uncategorizedAnchor?.getAttribute('href')).toBe('/dashboard?folder=uncategorized');
     });
@@ -302,11 +331,11 @@ describe('AppSidebar', () => {
       expect(allLinksAnchor?.className).toContain('text-foreground');
     });
 
-    it('highlights "未分类" when folder=uncategorized in URL', () => {
+    it('highlights "Inbox" when folder=uncategorized in URL', () => {
       mockSearchParamsFolder = 'uncategorized';
       renderSidebar({ collapsed: false });
 
-      const uncategorizedAnchor = screen.getByText('未分类').closest('a');
+      const uncategorizedAnchor = screen.getByText('Inbox').closest('a');
       expect(uncategorizedAnchor?.className).toContain('bg-accent');
       expect(uncategorizedAnchor?.className).toContain('text-foreground');
 
@@ -413,7 +442,7 @@ describe('AppSidebar', () => {
 
       // Static items still exist
       expect(screen.getByText('全部链接')).toBeInTheDocument();
-      expect(screen.getByText('未分类')).toBeInTheDocument();
+      expect(screen.getByText('Inbox')).toBeInTheDocument();
     });
 
     it('shows folder icons in collapsed mode as tooltip links', () => {
@@ -576,7 +605,7 @@ describe('AppSidebar', () => {
       expect(allLinksItem.textContent).toContain('3');
     });
 
-    it('shows uncategorized link count next to "未分类"', () => {
+    it('shows uncategorized link count next to "Inbox"', () => {
       mockLinks = [
         makeLink({ id: 1, folderId: null }),
         makeLink({ id: 2, folderId: null }),
@@ -585,7 +614,7 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const uncategorizedItem = screen.getByText('未分类').closest('a')!;
+      const uncategorizedItem = screen.getByText('Inbox').closest('a')!;
       expect(uncategorizedItem.textContent).toContain('2');
     });
 
@@ -620,7 +649,7 @@ describe('AppSidebar', () => {
       expect(personalItem.textContent).toContain('0');
     });
 
-    it('wraps "全部链接" and "未分类" counts in a fixed-width w-5 container', () => {
+    it('wraps "全部链接" and "Inbox" counts in a fixed-width w-5 container', () => {
       mockLinks = [
         makeLink({ id: 1, folderId: null }),
         makeLink({ id: 2, folderId: null }),
@@ -634,7 +663,7 @@ describe('AppSidebar', () => {
       expect(allContainer.className).toContain('w-5');
       expect(allContainer.className).toContain('shrink-0');
 
-      const uncategorizedItem = screen.getByText('未分类').closest('a')!;
+      const uncategorizedItem = screen.getByText('Inbox').closest('a')!;
       const uncatCount = uncategorizedItem.querySelector('.tabular-nums')!;
       const uncatContainer = uncatCount.parentElement!;
       expect(uncatContainer.className).toContain('w-5');

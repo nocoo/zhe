@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
+import { InboxTriage } from "./inbox-triage";
 import { CreateLinkModal } from "./create-link-modal";
 import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -105,7 +106,7 @@ export function LinksList() {
   }, [folders, selectedFolderId]);
 
   const headerTitle = selectedFolderId === "uncategorized"
-    ? "未分类"
+    ? "Inbox"
     : selectedFolder
       ? selectedFolder.name
       : "全部链接";
@@ -124,6 +125,10 @@ export function LinksList() {
         <LinksListSkeleton viewMode={viewMode} />
       </div>
     );
+  }
+
+  if (selectedFolderId === "uncategorized") {
+    return <InboxTriage />;
   }
 
   return (

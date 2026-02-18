@@ -159,9 +159,9 @@ describe("CreateLinkModal", () => {
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
       const select = screen.getByLabelText("文件夹") as HTMLSelectElement;
-      // "未分类" default option + 2 folders = 3 options
+      // "Inbox" default option + 2 folders = 3 options
       expect(select.options.length).toBe(3);
-      expect(select.options[0].textContent).toBe("未分类");
+      expect(select.options[0].textContent).toBe("Inbox");
       expect(select.options[1].textContent).toBe("工作");
       expect(select.options[2].textContent).toBe("个人");
     });
@@ -175,7 +175,7 @@ describe("CreateLinkModal", () => {
       expect(mockVm.setFolderId).toHaveBeenCalledWith("f1");
     });
 
-    it("calls setFolderId with undefined when '未分类' is selected", () => {
+    it("calls setFolderId with undefined when 'Inbox' is selected", () => {
       mockVm.isOpen = true;
       mockVm.folderId = "f1";
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
