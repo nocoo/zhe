@@ -95,17 +95,17 @@ describe('SidebarFolderItem', () => {
       expect(menuTrigger.className).toContain('group-hover:opacity-100');
     });
 
-    it('wraps link count and more button in a fixed-width container', () => {
+    it('places link count inside link and menu trigger outside link', () => {
       renderItem({ linkCount: 3 });
 
       const countEl = screen.getByText('3');
       const menuTrigger = screen.getByLabelText('文件夹操作');
-      // Both should share the same parent container
-      const container = countEl.parentElement!;
-      expect(container).toBe(menuTrigger.parentElement);
-      // Container has fixed width matching the + button (w-5) and centers content
-      expect(container.className).toContain('w-5');
-      expect(container.className).toContain('justify-center');
+      // Link count is inside the <a> link
+      expect(countEl.closest('a')).toBeInTheDocument();
+      // Menu trigger is outside the <a> link to prevent event bubbling
+      expect(menuTrigger.closest('a')).toBeNull();
+      // Link count container has fixed width
+      expect(countEl.className).toContain('w-5');
     });
 
     it('shows edit and delete options in context menu', () => {

@@ -127,33 +127,35 @@ export function SidebarFolderItem({
           strokeWidth={1.5}
         />
         <span className="flex-1 text-left">{folder.name}</span>
-        <span className="relative flex w-5 shrink-0 items-center justify-center">
-          <span className="text-xs text-muted-foreground tabular-nums group-hover:opacity-0">{linkCount}</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <button
-                aria-label="文件夹操作"
-                className="absolute inset-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom" className="w-32">
-              <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
-                <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
-                编辑
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDelete(folder.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
-                删除
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <span className="w-5 shrink-0 text-center text-xs text-muted-foreground tabular-nums group-hover:opacity-0">
+          {linkCount}
         </span>
       </Link>
+
+      {/* Dropdown outside Link to prevent click event bubbling into navigation */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label="文件夹操作"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="bottom" className="w-32">
+          <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
+            <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+            编辑
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => onDelete(folder.id)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+            删除
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
