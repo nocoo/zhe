@@ -177,6 +177,31 @@ export async function updateLink(
   }
 }
 
+/**
+ * Update the note for a link.
+ */
+export async function updateLinkNote(
+  linkId: number,
+  note: string | null,
+): Promise<ActionResult<Link>> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const updated = await db.updateLinkNote(linkId, note);
+    if (!updated) {
+      return { success: false, error: 'Link not found or access denied' };
+    }
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error('Failed to update link note:', error);
+    return { success: false, error: 'Failed to update link note' };
+  }
+}
+
 export interface AnalyticsStats {
   totalClicks: number;
   uniqueCountries: string[];
