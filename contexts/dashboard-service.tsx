@@ -32,6 +32,8 @@ export interface DashboardService {
   handleLinkCreated: (link: Link) => void;
   handleLinkDeleted: (id: number) => void;
   handleLinkUpdated: (link: Link) => void;
+  /** Re-fetch all links from the server */
+  refreshLinks: () => Promise<void>;
 
   // Folders — call after server action succeeds to sync memory
   handleFolderCreated: (folder: Folder) => void;
@@ -109,6 +111,11 @@ export function DashboardServiceProvider({
     );
   }, []);
 
+  const refreshLinks = useCallback(async () => {
+    const result = await getLinks();
+    setLinks(result.data ?? []);
+  }, []);
+
   // ── Folders CRUD (memory sync) ──
 
   const handleFolderCreated = useCallback((folder: Folder) => {
@@ -172,6 +179,7 @@ export function DashboardServiceProvider({
       handleLinkCreated,
       handleLinkDeleted,
       handleLinkUpdated,
+      refreshLinks,
       handleFolderCreated,
       handleFolderDeleted,
       handleFolderUpdated,
@@ -191,6 +199,7 @@ export function DashboardServiceProvider({
       handleLinkCreated,
       handleLinkDeleted,
       handleLinkUpdated,
+      refreshLinks,
       handleFolderCreated,
       handleFolderDeleted,
       handleFolderUpdated,
