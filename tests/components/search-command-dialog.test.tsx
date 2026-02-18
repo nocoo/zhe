@@ -89,6 +89,8 @@ describe("SearchCommandDialog", () => {
     vi.clearAllMocks();
     mockService.links = [];
     mockService.folders = [];
+    mockService.tags = [];
+    mockService.linkTags = [];
     mockService.siteUrl = "https://zhe.to";
   });
 
@@ -101,12 +103,12 @@ describe("SearchCommandDialog", () => {
   describe("rendering", () => {
     it("renders the search input when open", () => {
       renderDialog();
-      expect(screen.getByPlaceholderText("搜索链接...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索链接、标题、备注、标签...")).toBeInTheDocument();
     });
 
     it("does not render content when closed", () => {
       renderDialog({ open: false });
-      expect(screen.queryByPlaceholderText("搜索链接...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("搜索链接、标题、备注、标签...")).not.toBeInTheDocument();
     });
 
     it("shows empty state when no links", () => {
@@ -238,7 +240,7 @@ describe("SearchCommandDialog", () => {
   describe("dialog state", () => {
     it("passes open prop to CommandDialog", () => {
       renderDialog({ open: true });
-      expect(screen.getByPlaceholderText("搜索链接...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索链接、标题、备注、标签...")).toBeInTheDocument();
     });
 
     it("calls onOpenChange when dialog is dismissed", () => {
@@ -271,7 +273,7 @@ describe("SearchCommandDialog", () => {
 
     it("filters links by slug substring", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接...");
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
       expect(screen.getByText("zhe.to/abc")).toBeInTheDocument();
@@ -281,7 +283,7 @@ describe("SearchCommandDialog", () => {
 
     it("filters links by URL substring", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接...");
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "google");
 
       expect(screen.getByText("zhe.to/xyz")).toBeInTheDocument();
@@ -291,7 +293,7 @@ describe("SearchCommandDialog", () => {
 
     it("does not produce false positives from cross-field matching", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接...");
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       // "abcgoo" should NOT match — "abc" is in slug of link 1, "goo" is in URL of link 2
       await userEvent.type(input, "abcgoo");
 
@@ -302,7 +304,7 @@ describe("SearchCommandDialog", () => {
 
     it("shows empty state when no links match search", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接...");
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "nonexistent");
 
       expect(screen.getByText("没有找到匹配的链接")).toBeInTheDocument();
@@ -310,11 +312,112 @@ describe("SearchCommandDialog", () => {
 
     it("filtering is case-insensitive", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接...");
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "HELLO");
 
       expect(screen.getByText("zhe.to/hello")).toBeInTheDocument();
       expect(screen.queryByText("zhe.to/abc")).not.toBeInTheDocument();
+    });
+
+    it("filters links by metaTitle substring", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "react-docs", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
+        makeLink({ id: 2, slug: "vue-guide", originalUrl: "https://vuejs.org", metaTitle: "Vue.js Guide" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "documentation");
+
+      expect(screen.getByText("zhe.to/react-docs")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/vue-guide")).not.toBeInTheDocument();
+    });
+
+    it("filters links by note substring", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "ref", originalUrl: "https://a.com", note: "Important reference" }),
+        makeLink({ id: 2, slug: "temp", originalUrl: "https://b.com", note: "Temporary" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "important");
+
+      expect(screen.getByText("zhe.to/ref")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/temp")).not.toBeInTheDocument();
+    });
+
+    it("filters links by tag name", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "design", originalUrl: "https://figma.com" }),
+        makeLink({ id: 2, slug: "code", originalUrl: "https://github.com" }),
+      ];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "UI", color: "#ff0000", createdAt: new Date() },
+        { id: "t2", userId: "user-1", name: "Dev", color: "#0000ff", createdAt: new Date() },
+      ];
+      mockService.linkTags = [
+        { linkId: 1, tagId: "t1" },
+        { linkId: 2, tagId: "t2" },
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "UI");
+
+      expect(screen.getByText("zhe.to/design")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/code")).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Tag badge rendering ──
+
+  describe("tag badge rendering", () => {
+    it("shows tag badges on links that have tags", () => {
+      mockService.links = [makeLink({ id: 1, slug: "tagged" })];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "Frontend", color: "#ff0000", createdAt: new Date() },
+      ];
+      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      renderDialog();
+
+      expect(screen.getByText("Frontend")).toBeInTheDocument();
+    });
+
+    it("shows at most 2 tag badges per link", () => {
+      mockService.links = [makeLink({ id: 1, slug: "multi-tag" })];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "Tag1", color: "#ff0000", createdAt: new Date() },
+        { id: "t2", userId: "user-1", name: "Tag2", color: "#00ff00", createdAt: new Date() },
+        { id: "t3", userId: "user-1", name: "Tag3", color: "#0000ff", createdAt: new Date() },
+      ];
+      mockService.linkTags = [
+        { linkId: 1, tagId: "t1" },
+        { linkId: 1, tagId: "t2" },
+        { linkId: 1, tagId: "t3" },
+      ];
+      renderDialog();
+
+      expect(screen.getByText("Tag1")).toBeInTheDocument();
+      expect(screen.getByText("Tag2")).toBeInTheDocument();
+      expect(screen.queryByText("Tag3")).not.toBeInTheDocument();
+    });
+
+    it("shows metaTitle instead of URL when metaTitle is available", () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: "API Reference" }),
+      ];
+      renderDialog();
+
+      expect(screen.getByText("API Reference")).toBeInTheDocument();
+      // Original URL should not appear since metaTitle takes precedence
+      expect(screen.queryByText("example.com/docs")).not.toBeInTheDocument();
+    });
+
+    it("falls back to original URL when metaTitle is null", () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: null }),
+      ];
+      renderDialog();
+
+      expect(screen.getByText("example.com/docs")).toBeInTheDocument();
     });
   });
 });

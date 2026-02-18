@@ -205,7 +205,7 @@ describe('AppSidebar', () => {
       fireEvent.click(searchButton!);
 
       // SearchCommandDialog should render with a search input
-      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Cmd+K', () => {
@@ -213,7 +213,7 @@ describe('AppSidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Ctrl+K', () => {
@@ -221,7 +221,7 @@ describe('AppSidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
     });
 
     it('toggles search dialog closed on second Cmd+K', () => {
@@ -229,11 +229,11 @@ describe('AppSidebar', () => {
 
       // Open
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.getByPlaceholderText('搜索链接...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
 
       // Close — the CommandInput placeholder should disappear
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.queryByPlaceholderText('搜索链接...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('搜索链接、标题、备注、标签...')).not.toBeInTheDocument();
     });
 
     it('does not open search dialog on plain K key', () => {
@@ -242,7 +242,7 @@ describe('AppSidebar', () => {
       fireEvent.keyDown(document, { key: 'k' });
 
       // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
-      const allMatches = screen.queryAllByPlaceholderText('搜索链接...');
+      const allMatches = screen.queryAllByPlaceholderText('搜索链接、标题、备注、标签...');
       expect(allMatches).toHaveLength(0);
     });
   });

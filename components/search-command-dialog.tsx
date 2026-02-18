@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { buildShortUrl, stripProtocol, filterLinks } from "@/models/links";
+import type { Tag } from "@/models/types";
 
 export interface SearchCommandDialogProps {
   open: boolean;
@@ -23,15 +24,33 @@ export function SearchCommandDialog({
   open,
   onOpenChange,
 }: SearchCommandDialogProps) {
-  const { links, folders, siteUrl } = useDashboardService();
+  const { links, folders, tags, linkTags, siteUrl } = useDashboardService();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
   /** Filter links using substring match instead of cmdk fuzzy matching */
   const filteredLinks = useMemo(
-    () => filterLinks(links, searchQuery),
-    [links, searchQuery],
+    () => filterLinks(links, searchQuery, { tags, linkTags }),
+    [links, searchQuery, tags, linkTags],
   );
+
+  /** Build a lookup: linkId → Tag[] for rendering tag badges */
+  const tagsByLinkId = useMemo(() => {
+    const tagById = new Map<string, Tag>();
+    for (const t of tags) tagById.set(t.id, t);
+    const result = new Map<number, Tag[]>();
+    for (const lt of linkTags) {
+      const tag = tagById.get(lt.tagId);
+      if (!tag) continue;
+      let arr = result.get(lt.linkId);
+      if (!arr) {
+        arr = [];
+        result.set(lt.linkId, arr);
+      }
+      arr.push(tag);
+    }
+    return result;
+  }, [tags, linkTags]);
 
   /** Find the folder a link belongs to */
   const getFolderName = useCallback(
@@ -68,7 +87,7 @@ export function SearchCommandDialog({
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="搜索链接..."
+        placeholder="搜索链接、标题、备注、标签..."
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
@@ -78,6 +97,7 @@ export function SearchCommandDialog({
           {filteredLinks.map((link) => {
             const folderName = getFolderName(link.folderId);
             const shortUrl = buildShortUrl(siteUrl, link.slug);
+            const linkTags = tagsByLinkId.get(link.id);
 
             return (
               <CommandItem
@@ -93,15 +113,29 @@ export function SearchCommandDialog({
                       {stripProtocol(shortUrl)}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {stripProtocol(link.originalUrl)}
+                      {link.metaTitle ?? stripProtocol(link.originalUrl)}
                     </p>
                   </div>
-                  {folderName && (
-                    <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                      <FolderOpen className="h-3 w-3" />
-                      {folderName}
-                    </span>
-                  )}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {linkTags?.slice(0, 2).map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                    {folderName && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <FolderOpen className="h-3 w-3" />
+                        {folderName}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
