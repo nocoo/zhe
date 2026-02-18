@@ -45,7 +45,7 @@ import {
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from '@/actions/links';
+import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -89,7 +89,6 @@ describe('useLinkCardViewModel', () => {
     mockOnUpdate.mockClear();
     vi.mocked(copyToClipboard).mockReset();
     vi.mocked(deleteLink).mockReset();
-    vi.mocked(updateLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
     // Mock window.alert (confirm no longer used — AlertDialog handles confirmation)
     vi.stubGlobal('alert', vi.fn());
@@ -303,143 +302,6 @@ describe('useLinkCardViewModel', () => {
     expect(consoleSpy).toHaveBeenCalled();
 
     consoleSpy.mockRestore();
-  });
-
-  // --- handleEdit (enter/save/cancel editing) ---
-
-  it('returns isEditing=false and editUrl="" initially', () => {
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    expect(result.current.isEditing).toBe(false);
-    expect(result.current.editUrl).toBe('');
-    expect(result.current.editFolderId).toBeUndefined();
-    expect(result.current.isSaving).toBe(false);
-  });
-
-  it('startEditing sets isEditing=true and populates editUrl from link', () => {
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-    });
-
-    expect(result.current.isEditing).toBe(true);
-    expect(result.current.editUrl).toBe(link.originalUrl);
-    expect(result.current.editFolderId).toBe(link.folderId ?? undefined);
-  });
-
-  it('cancelEditing resets editing state', () => {
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-    });
-    expect(result.current.isEditing).toBe(true);
-
-    act(() => {
-      result.current.cancelEditing();
-    });
-    expect(result.current.isEditing).toBe(false);
-    expect(result.current.editUrl).toBe('');
-  });
-
-  it('saveEdit calls updateLink and onUpdate on success', async () => {
-    const updatedLink = { ...link, originalUrl: 'https://updated.com' };
-    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-    });
-
-    act(() => {
-      result.current.setEditUrl('https://updated.com');
-    });
-
-    await act(async () => {
-      await result.current.saveEdit();
-    });
-
-    expect(updateLink).toHaveBeenCalledWith(42, {
-      originalUrl: 'https://updated.com',
-      folderId: undefined,
-    });
-    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(result.current.isEditing).toBe(false);
-    expect(result.current.isSaving).toBe(false);
-  });
-
-  it('saveEdit shows alert on failure', async () => {
-    vi.mocked(updateLink).mockResolvedValue({ success: false, error: 'Invalid URL' });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-      result.current.setEditUrl('bad');
-    });
-
-    await act(async () => {
-      await result.current.saveEdit();
-    });
-
-    expect(globalThis.alert).toHaveBeenCalledWith('Invalid URL');
-    expect(result.current.isEditing).toBe(true); // stays in edit mode
-    expect(result.current.isSaving).toBe(false);
-    expect(mockOnUpdate).not.toHaveBeenCalled();
-  });
-
-  it('saveEdit shows default error when error is empty', async () => {
-    vi.mocked(updateLink).mockResolvedValue({ success: false });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-    });
-
-    await act(async () => {
-      await result.current.saveEdit();
-    });
-
-    expect(globalThis.alert).toHaveBeenCalledWith('Failed to update link');
-  });
-
-  it('saveEdit sends folderId when changed', async () => {
-    const updatedLink = { ...link, folderId: 'folder-99' };
-    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    act(() => {
-      result.current.startEditing();
-      result.current.setEditFolderId('folder-99');
-    });
-
-    await act(async () => {
-      await result.current.saveEdit();
-    });
-
-    expect(updateLink).toHaveBeenCalledWith(42, {
-      originalUrl: link.originalUrl,
-      folderId: 'folder-99',
-    });
-    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
   });
 
   // --- handleRefreshMetadata ---

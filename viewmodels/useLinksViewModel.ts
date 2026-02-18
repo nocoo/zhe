@@ -8,7 +8,7 @@ import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl, fetchMicrolinkScreenshot } from "@/models/links";
 import { saveScreenshot } from "@/actions/links";
 
-/** ViewModel for a single link card — manages copy, delete, edit, analytics */
+/** ViewModel for a single link card — manages copy, delete, analytics, metadata & screenshot */
 export function useLinkCardViewModel(
   link: Link,
   siteUrl: string,
@@ -20,12 +20,6 @@ export function useLinkCardViewModel(
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsStats, setAnalyticsStats] = useState<AnalyticsStats | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-
-  // Edit state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editUrl, setEditUrl] = useState("");
-  const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Metadata refresh state
   const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
@@ -93,36 +87,6 @@ export function useLinkCardViewModel(
     }
   }, [showAnalytics, analyticsStats, isLoadingAnalytics, link.id]);
 
-  const startEditing = useCallback(() => {
-    setIsEditing(true);
-    setEditUrl(link.originalUrl);
-    setEditFolderId(link.folderId ?? undefined);
-  }, [link.originalUrl, link.folderId]);
-
-  const cancelEditing = useCallback(() => {
-    setIsEditing(false);
-    setEditUrl("");
-    setEditFolderId(undefined);
-  }, []);
-
-  const saveEdit = useCallback(async () => {
-    setIsSaving(true);
-    const result = await updateLink(link.id, {
-      originalUrl: editUrl,
-      folderId: editFolderId,
-    });
-    setIsSaving(false);
-
-    if (result.success && result.data) {
-      onUpdate(result.data);
-      setIsEditing(false);
-      setEditUrl("");
-      setEditFolderId(undefined);
-    } else {
-      alert(result.error || "Failed to update link");
-    }
-  }, [link.id, editUrl, editFolderId, onUpdate]);
-
   const handleRefreshMetadata = useCallback(async () => {
     setIsRefreshingMetadata(true);
     try {
@@ -146,18 +110,9 @@ export function useLinkCardViewModel(
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
-    isEditing,
-    editUrl,
-    setEditUrl,
-    editFolderId,
-    setEditFolderId,
-    isSaving,
     handleCopy,
     handleDelete,
     handleToggleAnalytics,
-    startEditing,
-    cancelEditing,
-    saveEdit,
     handleRefreshMetadata,
     isRefreshingMetadata,
     screenshotUrl,
