@@ -66,6 +66,7 @@ export const links = sqliteTable('links', {
   metaTitle: text('meta_title'),
   metaDescription: text('meta_description'),
   metaFavicon: text('meta_favicon'),
+  screenshotUrl: text('screenshot_url'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
