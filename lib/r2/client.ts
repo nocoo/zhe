@@ -69,6 +69,32 @@ export async function createPresignedUploadUrl(
 }
 
 /**
+ * Upload a buffer directly to R2 (server-side).
+ * Used for proxying external images (e.g. Microlink screenshots) into R2.
+ *
+ * @param key         - R2 object key
+ * @param body        - File content as Buffer or Uint8Array
+ * @param contentType - MIME type of the file
+ */
+export async function uploadBufferToR2(
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const client = getR2Client();
+  const { bucket } = getR2Config();
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+}
+
+/**
  * Delete an object from R2.
  *
  * @param key - R2 object key to delete
