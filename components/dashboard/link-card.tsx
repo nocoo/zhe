@@ -68,7 +68,31 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
 
   return (
     <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-stretch gap-4">
+        {/* Screenshot thumbnail — left side, fills container height */}
+        {screenshotUrl && (
+          <a
+            href={link.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 hidden sm:block self-stretch"
+          >
+            <Image
+              src={screenshotUrl}
+              alt="Screenshot"
+              width={120}
+              height={90}
+              className="w-[120px] h-full rounded-md object-cover border border-border/50 aspect-[4/3]"
+              unoptimized
+            />
+          </a>
+        )}
+        {isLoadingScreenshot && (
+          <div className="shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" strokeWidth={1.5} />
+          </div>
+        )}
+
         <div className="flex-1 min-w-0">
           {/* Short URL */}
           <div className="flex items-center gap-2 mb-1">
@@ -148,31 +172,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
         </div>
 
         {/* Actions */}
-        <div className="flex items-start gap-3">
-          {/* Screenshot thumbnail */}
-          {screenshotUrl && (
-            <a
-              href={link.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 hidden sm:block"
-            >
-              <Image
-                src={screenshotUrl}
-                alt="Screenshot"
-                width={120}
-                height={68}
-                className="w-[120px] h-[68px] rounded-lg object-cover border border-border/50"
-                unoptimized
-              />
-            </a>
-          )}
-          {isLoadingScreenshot && (
-            <div className="shrink-0 hidden sm:flex w-[120px] h-[68px] rounded-lg border border-border/50 bg-accent items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" strokeWidth={1.5} />
-            </div>
-          )}
-          <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handleRefreshMetadata}
             disabled={isRefreshingMetadata}
@@ -244,7 +244,6 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [] }: Li
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          </div>
         </div>
       </div>
 
