@@ -43,6 +43,7 @@ vi.mock('@/contexts/dashboard-service', () => ({
     handleLinkCreated: vi.fn(),
     handleLinkDeleted: vi.fn(),
     handleLinkUpdated: vi.fn(),
+    refreshLinks: vi.fn().mockResolvedValue(undefined),
     handleFolderCreated: vi.fn(),
     handleFolderDeleted: vi.fn(),
     handleFolderUpdated: vi.fn(),

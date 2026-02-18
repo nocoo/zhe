@@ -46,6 +46,7 @@ const mockService: DashboardService = {
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
+  refreshLinks: vi.fn().mockResolvedValue(undefined),
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),
@@ -298,5 +299,33 @@ describe('LinksList', () => {
 
     const listSkeleton = container.querySelector('.space-y-2');
     expect(listSkeleton).toBeInTheDocument();
+  });
+
+  // --- Refresh button ---
+
+  it('renders refresh button', () => {
+    render(<LinksList />);
+
+    expect(screen.getByLabelText('刷新链接')).toBeInTheDocument();
+  });
+
+  it('calls refreshLinks when refresh button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<LinksList />);
+
+    await user.click(screen.getByLabelText('刷新链接'));
+
+    expect(mockService.refreshLinks).toHaveBeenCalledOnce();
+  });
+
+  it('disables refresh button while refreshing', async () => {
+    // Make refreshLinks hang so isRefreshing stays true
+    mockService.refreshLinks = vi.fn().mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup();
+    render(<LinksList />);
+
+    await user.click(screen.getByLabelText('刷新链接'));
+
+    expect(screen.getByLabelText('刷新链接')).toBeDisabled();
   });
 });
