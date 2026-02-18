@@ -10,7 +10,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook } from './schema';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag } from './schema';
 
 // ============================================
 // Row conversion helpers (shared with index.ts)
@@ -30,6 +30,7 @@ function rowToLink(row: Record<string, unknown>): Link {
     metaDescription: (row.meta_description as string) ?? null,
     metaFavicon: (row.meta_favicon as string) ?? null,
     screenshotUrl: (row.screenshot_url as string) ?? null,
+    note: (row.note as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -78,6 +79,23 @@ function rowToWebhook(row: Record<string, unknown>): Webhook {
     token: row.token as string,
     rateLimit: (row.rate_limit as number) ?? 5,
     createdAt: new Date(row.created_at as number),
+  };
+}
+
+function rowToTag(row: Record<string, unknown>): Tag {
+  return {
+    id: row.id as string,
+    userId: row.user_id as string,
+    name: row.name as string,
+    color: row.color as string,
+    createdAt: new Date(row.created_at as number),
+  };
+}
+
+function rowToLinkTag(row: Record<string, unknown>): LinkTag {
+  return {
+    linkId: row.link_id as number,
+    tagId: row.tag_id as string,
   };
 }
 
@@ -522,5 +540,128 @@ export class ScopedDB {
       [this.userId],
     );
     return rows.length > 0;
+  }
+
+  // ---- Tags -------------------------------------------------
+
+  /** Get all tags owned by this user. */
+  async getTags(): Promise<Tag[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM tags WHERE user_id = ? ORDER BY created_at DESC',
+      [this.userId],
+    );
+    return rows.map(rowToTag);
+  }
+
+  /** Create a new tag owned by this user. */
+  async createTag(data: { name: string; color: string }): Promise<Tag> {
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO tags (id, user_id, name, color, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING *`,
+      [id, this.userId, data.name, data.color, now],
+    );
+    return rowToTag(rows[0]);
+  }
+
+  /** Update a tag by id. Returns updated tag or null if not found/not owned. */
+  async updateTag(
+    id: string,
+    data: Partial<Pick<Tag, 'name' | 'color'>>,
+  ): Promise<Tag | null> {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    if (data.name !== undefined) {
+      setClauses.push('name = ?');
+      params.push(data.name);
+    }
+    if (data.color !== undefined) {
+      setClauses.push('color = ?');
+      params.push(data.color);
+    }
+
+    if (setClauses.length === 0) {
+      const rows = await executeD1Query<Record<string, unknown>>(
+        'SELECT * FROM tags WHERE id = ? AND user_id = ? LIMIT 1',
+        [id, this.userId],
+      );
+      return rows[0] ? rowToTag(rows[0]) : null;
+    }
+
+    params.push(id, this.userId);
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `UPDATE tags SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+      params,
+    );
+    return rows[0] ? rowToTag(rows[0]) : null;
+  }
+
+  /** Delete a tag by id. Returns true if deleted. Cascade removes link_tags entries. */
+  async deleteTag(id: string): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'DELETE FROM tags WHERE id = ? AND user_id = ? RETURNING id',
+      [id, this.userId],
+    );
+    return rows.length > 0;
+  }
+
+  // ---- Link-Tag associations --------------------------------
+
+  /** Get all link-tag associations for this user's links. */
+  async getLinkTags(): Promise<LinkTag[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT lt.* FROM link_tags lt
+       JOIN links l ON lt.link_id = l.id
+       WHERE l.user_id = ?`,
+      [this.userId],
+    );
+    return rows.map(rowToLinkTag);
+  }
+
+  /** Add a tag to a link (only if both are owned by this user). */
+  async addTagToLink(linkId: number, tagId: string): Promise<boolean> {
+    // Verify ownership of both link and tag
+    const [linkRows, tagRows] = await Promise.all([
+      executeD1Query<Record<string, unknown>>(
+        'SELECT id FROM links WHERE id = ? AND user_id = ? LIMIT 1',
+        [linkId, this.userId],
+      ),
+      executeD1Query<Record<string, unknown>>(
+        'SELECT id FROM tags WHERE id = ? AND user_id = ? LIMIT 1',
+        [tagId, this.userId],
+      ),
+    ]);
+
+    if (linkRows.length === 0 || tagRows.length === 0) return false;
+
+    await executeD1Query(
+      'INSERT OR IGNORE INTO link_tags (link_id, tag_id) VALUES (?, ?)',
+      [linkId, tagId],
+    );
+    return true;
+  }
+
+  /** Remove a tag from a link. */
+  async removeTagFromLink(linkId: number, tagId: string): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `DELETE FROM link_tags
+       WHERE link_id = ? AND tag_id = ?
+       AND link_id IN (SELECT id FROM links WHERE user_id = ?)
+       RETURNING link_id`,
+      [linkId, tagId, this.userId],
+    );
+    return rows.length > 0;
+  }
+
+  /** Update the note for a link. Returns updated link or null. */
+  async updateLinkNote(id: number, note: string | null): Promise<Link | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'UPDATE links SET note = ? WHERE id = ? AND user_id = ? RETURNING *',
+      [note, id, this.userId],
+    );
+    return rows[0] ? rowToLink(rows[0]) : null;
   }
 }

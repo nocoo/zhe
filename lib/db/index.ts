@@ -24,6 +24,7 @@ function rowToLink(row: Record<string, unknown>): Link {
     metaDescription: (row.meta_description as string) ?? null,
     metaFavicon: (row.meta_favicon as string) ?? null,
     screenshotUrl: (row.screenshot_url as string) ?? null,
+    note: (row.note as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
