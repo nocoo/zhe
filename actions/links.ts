@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
-import { slugExists } from '@/lib/db';
+import { slugExists, getLinkBySlug } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import { fetchMetadata } from '@/lib/metadata';
 import type { Link } from '@/lib/db/schema';
@@ -148,7 +148,7 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
  */
 export async function updateLink(
   linkId: number,
-  data: { originalUrl?: string; folderId?: string; expiresAt?: Date }
+  data: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string }
 ): Promise<ActionResult<Link>> {
   try {
     const db = await getScopedDB();
@@ -165,7 +165,30 @@ export async function updateLink(
       }
     }
 
-    const updated = await db.updateLink(linkId, data);
+    // Validate and sanitize slug if provided
+    const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean } = {
+      originalUrl: data.originalUrl,
+      folderId: data.folderId,
+      expiresAt: data.expiresAt,
+    };
+
+    if (data.slug !== undefined) {
+      const sanitized = sanitizeSlug(data.slug);
+      if (!sanitized) {
+        return { success: false, error: 'Invalid slug: only letters, numbers, hyphens and underscores allowed (1-50 chars)' };
+      }
+
+      // Check uniqueness — allow if the slug belongs to the same link
+      const existing = await getLinkBySlug(sanitized);
+      if (existing && existing.id !== linkId) {
+        return { success: false, error: 'This slug is already taken' };
+      }
+
+      updateData.slug = sanitized;
+      updateData.isCustom = true;
+    }
+
+    const updated = await db.updateLink(linkId, updateData);
     if (!updated) {
       return { success: false, error: 'Link not found or access denied' };
     }

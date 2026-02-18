@@ -10,8 +10,10 @@ vi.mock('@/auth', () => ({
 }));
 
 const mockSlugExists = vi.fn();
+const mockGetLinkBySlug = vi.fn();
 vi.mock('@/lib/db', () => ({
   slugExists: (...args: unknown[]) => mockSlugExists(...args),
+  getLinkBySlug: (...args: unknown[]) => mockGetLinkBySlug(...args),
 }));
 
 const mockGenerateUniqueSlug = vi.fn();
@@ -376,9 +378,9 @@ describe('actions/links — uncovered paths', () => {
       const result = await updateLink(1, { originalUrl: 'https://new.com' });
 
       expect(result).toEqual({ success: true, data: updatedLink });
-      expect(mockUpdateLink).toHaveBeenCalledWith(1, {
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, expect.objectContaining({
         originalUrl: 'https://new.com',
-      });
+      }));
     });
 
     it('skips URL validation when originalUrl is not provided', async () => {
@@ -389,7 +391,63 @@ describe('actions/links — uncovered paths', () => {
       const result = await updateLink(1, { folderId: 'folder-2' });
 
       expect(result.success).toBe(true);
-      expect(mockUpdateLink).toHaveBeenCalledWith(1, { folderId: 'folder-2' });
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        folderId: 'folder-2',
+      }));
+    });
+
+    it('updates slug when provided with valid slug', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockSanitizeSlug.mockReturnValue('my-slug');
+      mockGetLinkBySlug.mockResolvedValue(null); // not taken
+      const updatedLink = { ...FAKE_LINK, slug: 'my-slug', isCustom: true };
+      mockUpdateLink.mockResolvedValue(updatedLink);
+
+      const result = await updateLink(1, { slug: 'My-Slug' });
+
+      expect(result.success).toBe(true);
+      expect(mockSanitizeSlug).toHaveBeenCalledWith('My-Slug');
+      expect(mockGetLinkBySlug).toHaveBeenCalledWith('my-slug');
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        slug: 'my-slug',
+        isCustom: true,
+      }));
+    });
+
+    it('returns error when slug is invalid', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockSanitizeSlug.mockReturnValue(null);
+
+      const result = await updateLink(1, { slug: '!!invalid!!' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid slug');
+      expect(mockUpdateLink).not.toHaveBeenCalled();
+    });
+
+    it('returns error when slug is taken by another link', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockSanitizeSlug.mockReturnValue('taken-slug');
+      mockGetLinkBySlug.mockResolvedValue({ ...FAKE_LINK, id: 999, slug: 'taken-slug' });
+
+      const result = await updateLink(1, { slug: 'taken-slug' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('This slug is already taken');
+      expect(mockUpdateLink).not.toHaveBeenCalled();
+    });
+
+    it('allows keeping the same slug (same link id)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockSanitizeSlug.mockReturnValue('abc123');
+      mockGetLinkBySlug.mockResolvedValue({ ...FAKE_LINK, id: 1, slug: 'abc123' });
+      const updatedLink = { ...FAKE_LINK, slug: 'abc123', isCustom: true };
+      mockUpdateLink.mockResolvedValue(updatedLink);
+
+      const result = await updateLink(1, { slug: 'abc123' });
+
+      expect(result.success).toBe(true);
+      expect(mockUpdateLink).toHaveBeenCalled();
     });
   });
 
