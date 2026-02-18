@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect } from "react";
 import type { Link, AnalyticsStats } from "@/models/types";
 import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
-import { buildShortUrl, fetchScreenshotUrl, getCachedScreenshot } from "@/models/links";
+import { buildShortUrl, fetchMicrolinkScreenshot } from "@/models/links";
+import { saveScreenshot } from "@/actions/links";
 
 /** ViewModel for a single link card — manages copy, delete, edit, analytics */
 export function useLinkCardViewModel(
@@ -28,27 +29,30 @@ export function useLinkCardViewModel(
   // Metadata refresh state
   const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
 
-  // Screenshot state
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(() =>
-    getCachedScreenshot(link.originalUrl)
+  // Screenshot state — DB is the primary source; Microlink is fallback
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(
+    link.screenshotUrl ?? null
   );
   const [isLoadingScreenshot, setIsLoadingScreenshot] = useState(false);
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
-  // Fetch screenshot on mount if not cached
+  // Fetch screenshot from Microlink if not persisted in DB yet
   useEffect(() => {
     if (screenshotUrl) return;
     let cancelled = false;
     setIsLoadingScreenshot(true);
-    fetchScreenshotUrl(link.originalUrl).then((url) => {
-      if (!cancelled) {
-        setScreenshotUrl(url);
-        setIsLoadingScreenshot(false);
+    fetchMicrolinkScreenshot(link.originalUrl).then((url) => {
+      if (cancelled) return;
+      setScreenshotUrl(url);
+      setIsLoadingScreenshot(false);
+      // Persist to DB so we never call Microlink again for this link
+      if (url) {
+        void saveScreenshot(link.id, url);
       }
     });
     return () => { cancelled = true; };
-  }, [link.originalUrl, screenshotUrl]);
+  }, [link.id, link.originalUrl, screenshotUrl]);
 
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(shortUrl);
