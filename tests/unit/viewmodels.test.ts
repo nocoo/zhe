@@ -82,7 +82,8 @@ const SITE_URL = 'https://zhe.to';
 describe('useLinkCardViewModel', () => {
   const mockOnDelete = vi.fn();
   const mockOnUpdate = vi.fn();
-  const link = makeLink({ id: 42, slug: 'my-link' });
+  // Link with metadata populated — avoids triggering auto-fetch useEffect
+  const link = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png' });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -91,6 +92,9 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(copyToClipboard).mockReset();
     vi.mocked(deleteLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
+    vi.mocked(refreshLinkMetadata).mockReset();
+    // Default: auto-fetch metadata resolves with no-op (link has no metadata)
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: link });
     // Mock window.alert (confirm no longer used — AlertDialog handles confirmation)
     vi.stubGlobal('alert', vi.fn());
   });
@@ -306,6 +310,62 @@ describe('useLinkCardViewModel', () => {
   });
 
   // --- handleRefreshMetadata ---
+
+  it('auto-fetches metadata when all metadata fields are null', async () => {
+    const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updatedLink = { ...noMetaLink, metaTitle: 'Fetched Title', metaFavicon: 'https://example.com/icon.png' };
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: updatedLink });
+
+    renderHook(() =>
+      useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    // Flush the auto-fetch useEffect
+    await act(async () => {});
+
+    expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+  });
+
+  it('does not auto-fetch metadata when metaTitle is present', async () => {
+    vi.mocked(refreshLinkMetadata).mockClear();
+
+    renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+
+    expect(refreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-fetch metadata when only metaFavicon is present', async () => {
+    vi.mocked(refreshLinkMetadata).mockClear();
+    const faviconOnlyLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: 'https://example.com/icon.png' });
+
+    renderHook(() =>
+      useLinkCardViewModel(faviconOnlyLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+
+    expect(refreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
+  it('auto-fetch metadata handles failure gracefully', async () => {
+    const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
+    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false, error: 'Failed' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+
+    expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+    expect(result.current.isRefreshingMetadata).toBe(false);
+  });
 
   it('handleRefreshMetadata calls refreshLinkMetadata and onUpdate on success', async () => {
     const updatedLink = {
