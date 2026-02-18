@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { Link, Folder } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 
@@ -60,6 +61,7 @@ const mockLinks: Link[] = [
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,
+    screenshotUrl: null,
   },
   {
     id: 2,
@@ -74,6 +76,7 @@ const mockLinks: Link[] = [
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,
+    screenshotUrl: null,
   },
   {
     id: 3,
@@ -88,6 +91,7 @@ const mockLinks: Link[] = [
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,
+    screenshotUrl: null,
   },
 ];
 
@@ -185,5 +189,96 @@ describe('LinksList', () => {
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
+  });
+
+  // --- View mode toggle ---
+
+  it('renders list and grid toggle buttons', () => {
+    render(<LinksList />);
+
+    expect(screen.getByLabelText('List view')).toBeInTheDocument();
+    expect(screen.getByLabelText('Grid view')).toBeInTheDocument();
+  });
+
+  it('defaults to list view mode', () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    render(<LinksList />);
+
+    const listBtn = screen.getByLabelText('List view');
+    expect(listBtn.className).toContain('bg-accent');
+  });
+
+  it('switches to grid view when grid toggle is clicked', async () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    const user = userEvent.setup();
+    render(<LinksList />);
+
+    await user.click(screen.getByLabelText('Grid view'));
+
+    const gridBtn = screen.getByLabelText('Grid view');
+    expect(gridBtn.className).toContain('bg-accent');
+
+    const listBtn = screen.getByLabelText('List view');
+    expect(listBtn.className).not.toContain('bg-accent');
+  });
+
+  it('switches back to list view when list toggle is clicked', async () => {
+    localStorage.setItem('zhe_links_view_mode', 'grid');
+    const user = userEvent.setup();
+    render(<LinksList />);
+
+    await user.click(screen.getByLabelText('List view'));
+
+    const listBtn = screen.getByLabelText('List view');
+    expect(listBtn.className).toContain('bg-accent');
+  });
+
+  it('persists view mode to localStorage', async () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    const user = userEvent.setup();
+    render(<LinksList />);
+
+    await user.click(screen.getByLabelText('Grid view'));
+    expect(localStorage.getItem('zhe_links_view_mode')).toBe('grid');
+
+    await user.click(screen.getByLabelText('List view'));
+    expect(localStorage.getItem('zhe_links_view_mode')).toBe('list');
+  });
+
+  it('uses grid layout container when in grid mode', async () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    const user = userEvent.setup();
+    const { container } = render(<LinksList />);
+
+    await user.click(screen.getByLabelText('Grid view'));
+
+    const gridContainer = container.querySelector('.grid');
+    expect(gridContainer).toBeInTheDocument();
+  });
+
+  it('uses list layout container when in list mode', () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    const { container } = render(<LinksList />);
+
+    const listContainer = container.querySelector('.space-y-2');
+    expect(listContainer).toBeInTheDocument();
+  });
+
+  it('renders grid skeleton when loading in grid mode', () => {
+    localStorage.setItem('zhe_links_view_mode', 'grid');
+    setupService([], [], true);
+    const { container } = render(<LinksList />);
+
+    const gridSkeleton = container.querySelector('.grid');
+    expect(gridSkeleton).toBeInTheDocument();
+  });
+
+  it('renders list skeleton when loading in list mode', () => {
+    localStorage.removeItem('zhe_links_view_mode');
+    setupService([], [], true);
+    const { container } = render(<LinksList />);
+
+    const listSkeleton = container.querySelector('.space-y-2');
+    expect(listSkeleton).toBeInTheDocument();
   });
 });

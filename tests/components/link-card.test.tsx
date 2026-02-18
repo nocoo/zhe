@@ -26,6 +26,8 @@ const mockVm = {
   saveEdit: vi.fn(),
   handleRefreshMetadata: vi.fn(),
   isRefreshingMetadata: false,
+  screenshotUrl: null as string | null,
+  isLoadingScreenshot: false,
 };
 
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
@@ -62,6 +64,7 @@ const baseLink: Link = {
   metaTitle: null,
   metaDescription: null,
   metaFavicon: null,
+  screenshotUrl: null,
 };
 
 describe("LinkCard", () => {
@@ -85,6 +88,8 @@ describe("LinkCard", () => {
     mockVm.editFolderId = undefined;
     mockVm.isSaving = false;
     mockVm.isRefreshingMetadata = false;
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
   });
 
   it("renders short URL and original URL", () => {
@@ -349,5 +354,109 @@ describe("LinkCard", () => {
 
     const deleteBtn = screen.getByLabelText("Delete link");
     expect(deleteBtn).toBeDisabled();
+  });
+
+  // --- Grid mode ---
+
+  it("renders short URL in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.getByText("zhe.to/abc123")).toBeInTheDocument();
+  });
+
+  it("shows click count in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.getByText(/num:42/)).toBeInTheDocument();
+  });
+
+  it("shows created date in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    const dateTexts = screen.getAllByText(/formatted:/);
+    expect(dateTexts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does not show edit button in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.queryByTitle("Edit link")).not.toBeInTheDocument();
+  });
+
+  it("does not show analytics toggle in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.queryByText(/次点击/)).not.toBeInTheDocument();
+  });
+
+  it("does not show refresh metadata button in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.queryByTitle("Refresh metadata")).not.toBeInTheDocument();
+  });
+
+  it("shows placeholder icon when no screenshot and not loading in grid mode", () => {
+    mockVm.screenshotUrl = null;
+    mockVm.isLoadingScreenshot = false;
+    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    // ExternalLink icon is rendered as placeholder
+    const svgs = container.querySelectorAll("svg");
+    expect(svgs.length).toBeGreaterThan(0);
+  });
+
+  it("shows spinner when screenshot is loading in grid mode", () => {
+    mockVm.isLoadingScreenshot = true;
+    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    const spinner = container.querySelector(".animate-spin");
+    expect(spinner).toBeInTheDocument();
+  });
+
+  it("shows screenshot image when screenshotUrl is set in grid mode", () => {
+    mockVm.screenshotUrl = "https://screenshot.example.com/image.png";
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    const img = screen.getByAltText("Screenshot");
+    expect(img).toBeInTheDocument();
+  });
+
+  it("shows meta title in grid mode when set", () => {
+    const linkWithMeta = { ...baseLink, metaTitle: "Grid Title" };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} viewMode="grid" />);
+
+    expect(screen.getByText("Grid Title")).toBeInTheDocument();
+  });
+
+  it("shows favicon in grid mode when set", () => {
+    const linkWithMeta = { ...baseLink, metaFavicon: "https://example.com/fav.ico" };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} viewMode="grid" />);
+
+    const favicon = screen.getByAltText("favicon");
+    expect(favicon).toBeInTheDocument();
+  });
+
+  it("shows hover overlay actions (copy, open, delete) in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.getByTitle("Copy link")).toBeInTheDocument();
+    expect(screen.getByTitle("Open link")).toBeInTheDocument();
+    expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
+  });
+
+  it("opens delete dialog from grid mode hover overlay", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    await user.click(screen.getByLabelText("Delete link"));
+
+    expect(screen.getByText("确认删除")).toBeInTheDocument();
+  });
+
+  it("defaults to list mode when viewMode prop is omitted", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    // List mode shows edit button; grid mode doesn't
+    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 });
