@@ -33,6 +33,8 @@ interface EditLinkDialogProps {
   onOpenChange: (open: boolean) => void;
   editUrl: string;
   setEditUrl: (url: string) => void;
+  editSlug: string;
+  setEditSlug: (slug: string) => void;
   editFolderId: string | undefined;
   setEditFolderId: (id: string | undefined) => void;
   editNote: string;
@@ -55,6 +57,8 @@ export function EditLinkDialog({
   onOpenChange,
   editUrl,
   setEditUrl,
+  editSlug,
+  setEditSlug,
   editFolderId,
   setEditFolderId,
   editNote,
@@ -114,6 +118,21 @@ export function EditLinkDialog({
               value={editUrl}
               onChange={(e) => setEditUrl(e.target.value)}
               placeholder="https://example.com"
+              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* Slug input */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-slug" className="text-sm text-foreground">
+              短链接
+            </Label>
+            <Input
+              id="edit-slug"
+              type="text"
+              value={editSlug}
+              onChange={(e) => setEditSlug(e.target.value)}
+              placeholder="custom-slug"
               className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>

@@ -25,6 +25,8 @@ const mockEditVm = {
   isOpen: false,
   editUrl: "",
   setEditUrl: vi.fn(),
+  editSlug: "",
+  setEditSlug: vi.fn(),
   editFolderId: undefined as string | undefined,
   setEditFolderId: vi.fn(),
   editNote: "",

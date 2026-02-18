@@ -227,6 +227,8 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
           onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
           editUrl={editVm.editUrl}
           setEditUrl={editVm.setEditUrl}
+          editSlug={editVm.editSlug}
+          setEditSlug={editVm.setEditSlug}
           editFolderId={editVm.editFolderId}
           setEditFolderId={editVm.setEditFolderId}
           editNote={editVm.editNote}
@@ -452,6 +454,8 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
         onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
         editUrl={editVm.editUrl}
         setEditUrl={editVm.setEditUrl}
+        editSlug={editVm.editSlug}
+        setEditSlug={editVm.setEditSlug}
         editFolderId={editVm.editFolderId}
         setEditFolderId={editVm.setEditFolderId}
         editNote={editVm.editNote}
