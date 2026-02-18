@@ -32,6 +32,22 @@ export function useLinkCardViewModel(
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
+  // Auto-fetch text metadata (title/description/favicon) if all missing
+  const hasMetadata = !!(link.metaTitle || link.metaDescription || link.metaFavicon);
+  useEffect(() => {
+    if (hasMetadata) return;
+    let cancelled = false;
+    setIsRefreshingMetadata(true);
+    refreshLinkMetadata(link.id).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data) {
+        onUpdate(result.data);
+      }
+      setIsRefreshingMetadata(false);
+    });
+    return () => { cancelled = true; };
+  }, [link.id, hasMetadata, onUpdate]);
+
   // Fetch screenshot from Microlink if not persisted in DB yet
   useEffect(() => {
     if (screenshotUrl) return;
