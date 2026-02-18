@@ -80,3 +80,81 @@ export function buildLinkCounts(links: Link[]): LinkCounts {
 
   return { total: links.length, uncategorized, byFolder };
 }
+
+// --- Screenshot via Microlink API ---
+
+const SCREENSHOT_CACHE_PREFIX = "zhe_screenshot_";
+const SCREENSHOT_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+interface CachedScreenshot {
+  url: string;
+  cachedAt: number;
+}
+
+/** Build the localStorage key for a given original URL */
+export function screenshotCacheKey(originalUrl: string): string {
+  return `${SCREENSHOT_CACHE_PREFIX}${originalUrl}`;
+}
+
+/** Read a cached screenshot URL. Returns null if missing or expired. */
+export function getCachedScreenshot(originalUrl: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(screenshotCacheKey(originalUrl));
+    if (!raw) return null;
+    const cached: CachedScreenshot = JSON.parse(raw);
+    if (Date.now() - cached.cachedAt > SCREENSHOT_CACHE_TTL_MS) {
+      localStorage.removeItem(screenshotCacheKey(originalUrl));
+      return null;
+    }
+    return cached.url;
+  } catch {
+    return null;
+  }
+}
+
+/** Write a screenshot URL to localStorage cache */
+export function setCachedScreenshot(originalUrl: string, screenshotUrl: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const entry: CachedScreenshot = { url: screenshotUrl, cachedAt: Date.now() };
+    localStorage.setItem(screenshotCacheKey(originalUrl), JSON.stringify(entry));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
+/** Build the Microlink API URL that returns a screenshot for a given page URL */
+export function buildMicrolinkScreenshotUrl(targetUrl: string): string {
+  const params = new URLSearchParams({
+    url: targetUrl,
+    screenshot: "true",
+    meta: "false",
+    embed: "screenshot.url",
+  });
+  return `https://api.microlink.io?${params.toString()}`;
+}
+
+/** Fetch a screenshot URL for a target page, using cache when available */
+export async function fetchScreenshotUrl(targetUrl: string): Promise<string | null> {
+  const cached = getCachedScreenshot(targetUrl);
+  if (cached) return cached;
+
+  try {
+    const apiUrl = new URL("https://api.microlink.io");
+    apiUrl.searchParams.set("url", targetUrl);
+    apiUrl.searchParams.set("screenshot", "true");
+
+    const res = await fetch(apiUrl.toString());
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const screenshotUrl: string | undefined = json?.data?.screenshot?.url;
+    if (!screenshotUrl) return null;
+
+    setCachedScreenshot(targetUrl, screenshotUrl);
+    return screenshotUrl;
+  } catch {
+    return null;
+  }
+}
