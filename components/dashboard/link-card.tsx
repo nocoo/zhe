@@ -12,6 +12,7 @@ import {
   Loader2,
   RefreshCw,
   Link2,
+  ImageIcon,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -70,6 +71,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
     isRefreshingMetadata,
     screenshotUrl,
     isLoadingScreenshot,
+    handleRetryScreenshot,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
 
   const editVm = useEditLinkViewModel(link, tags, linkTags, editCallbacks);
@@ -99,12 +101,22 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <ExternalLink className="w-5 h-5 text-muted-foreground/50" strokeWidth={1.5} />
+              <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
             </div>
           )}
 
           {/* Hover action overlay */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+            {!screenshotUrl && !isLoadingScreenshot && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRetryScreenshot(); }}
+                aria-label="Retry screenshot"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+                title="重新抓取图片"
+              >
+                <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); handleCopy(); }}
               aria-label="Copy link"
@@ -252,29 +264,43 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
   return (
     <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-stretch gap-4">
-        {/* Screenshot thumbnail — left side, fills container height */}
-        {screenshotUrl && (
-          <a
-            href={link.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 hidden sm:block self-stretch"
-          >
-            <Image
-              src={screenshotUrl}
-              alt="Screenshot"
-              width={120}
-              height={90}
-              className="w-[120px] h-full rounded-md object-cover border border-border/50 aspect-[4/3]"
-              unoptimized
-            />
-          </a>
-        )}
-        {isLoadingScreenshot && (
-          <div className="shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center">
+        {/* Screenshot thumbnail — left side, always visible */}
+        <div className="group/thumb relative shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
+          {screenshotUrl ? (
+            <a
+              href={link.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full h-full"
+            >
+              <Image
+                src={screenshotUrl}
+                alt="Screenshot"
+                width={120}
+                height={90}
+                className="w-full h-full object-cover aspect-[4/3]"
+                unoptimized
+              />
+            </a>
+          ) : isLoadingScreenshot ? (
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" strokeWidth={1.5} />
-          </div>
-        )}
+          ) : (
+            <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
+          )}
+          {/* Hover overlay with retry button — only when no screenshot or failed */}
+          {!screenshotUrl && !isLoadingScreenshot && (
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+              <button
+                onClick={handleRetryScreenshot}
+                aria-label="Retry screenshot"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+                title="重新抓取图片"
+              >
+                <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="flex-1 min-w-0">
           {/* Title row: [favicon] note + metaTitle | metaTitle | originalUrl */}
