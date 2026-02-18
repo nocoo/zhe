@@ -81,8 +81,8 @@ describe('SidebarFolderItem', () => {
 
       const countEl = screen.getByText('5');
       expect(countEl).toBeInTheDocument();
-      // link count visible by default (group-hover hides it)
-      expect(countEl.className).toContain('group-hover:hidden');
+      // link count visible by default (group-hover fades it out)
+      expect(countEl.className).toContain('group-hover:opacity-0');
     });
 
     it('shows more button hidden by default, visible on group hover', () => {
@@ -90,9 +90,9 @@ describe('SidebarFolderItem', () => {
 
       const menuTrigger = screen.getByLabelText('文件夹操作');
       expect(menuTrigger).toBeInTheDocument();
-      // hidden by default, shown on group-hover
-      expect(menuTrigger.className).toContain('hidden');
-      expect(menuTrigger.className).toContain('group-hover:flex');
+      // invisible by default, shown on group-hover
+      expect(menuTrigger.className).toContain('opacity-0');
+      expect(menuTrigger.className).toContain('group-hover:opacity-100');
     });
 
     it('wraps link count and more button in a fixed-width container', () => {
