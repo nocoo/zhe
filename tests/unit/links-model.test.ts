@@ -383,6 +383,190 @@ describe('models/links', () => {
       const result = filterLinks(taggedLinks, 'design', ctx);
       expect(result.map((l) => l.id)).toEqual([10]);
     });
+
+    // --- edge cases: protocol exclusion ---
+
+    it('does not match protocol prefix "https" since protocol is stripped', () => {
+      const result = filterLinks(
+        [makeLink({ id: 1, slug: 'a', originalUrl: 'https://example.com' })],
+        'https',
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('does not match "http://" since protocol is stripped', () => {
+      const result = filterLinks(
+        [makeLink({ id: 1, slug: 'a', originalUrl: 'http://example.com' })],
+        'http://',
+      );
+      expect(result).toEqual([]);
+    });
+
+    // --- edge cases: whitespace trimming ---
+
+    it('trims leading and trailing whitespace from query before matching', () => {
+      const result = filterLinks(
+        [makeLink({ id: 1, slug: 'abc', originalUrl: 'https://example.com' })],
+        '  abc  ',
+      );
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    // --- edge cases: special characters ---
+
+    it('treats special regex characters as literal in query', () => {
+      const linksWithDot = [
+        makeLink({ id: 1, slug: 'v1.2.3', originalUrl: 'https://example.com/v1.2.3' }),
+        makeLink({ id: 2, slug: 'v1x2y3', originalUrl: 'https://example.com/v1x2y3' }),
+      ];
+      // "1.2" should only match the literal dot, not regex any-char
+      const result = filterLinks(linksWithDot, '1.2');
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    it('handles query with brackets and plus signs', () => {
+      const specialLinks = [
+        makeLink({ id: 1, slug: 'cpp', originalUrl: 'https://example.com', metaTitle: 'C++ Guide' }),
+        makeLink({ id: 2, slug: 'python', originalUrl: 'https://example.com', metaTitle: 'Python Guide' }),
+      ];
+      const result = filterLinks(specialLinks, 'c++');
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    // --- edge cases: unicode / Chinese characters ---
+
+    it('matches Chinese characters in metaTitle', () => {
+      const cnLinks = [
+        makeLink({ id: 1, slug: 'docs', originalUrl: 'https://a.com', metaTitle: '前端开发指南' }),
+        makeLink({ id: 2, slug: 'api', originalUrl: 'https://b.com', metaTitle: 'API Reference' }),
+      ];
+      const result = filterLinks(cnLinks, '前端');
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    it('matches Chinese characters in note', () => {
+      const cnLinks = [
+        makeLink({ id: 1, slug: 'a', originalUrl: 'https://a.com', note: '每周检查这个链接' }),
+        makeLink({ id: 2, slug: 'b', originalUrl: 'https://b.com', note: 'Check weekly' }),
+      ];
+      const result = filterLinks(cnLinks, '每周');
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    it('matches Chinese characters in tag names', () => {
+      const cnLinks = [
+        makeLink({ id: 1, slug: 'a', originalUrl: 'https://a.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: '设计资源', color: '#ff0000', createdAt: new Date() },
+        ],
+        linkTags: [{ linkId: 1, tagId: 't1' }],
+      };
+      const result = filterLinks(cnLinks, '设计', ctx);
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    // --- edge cases: multi-tag on single link ---
+
+    it('matches when link has multiple tags and query matches a non-first tag', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'x', originalUrl: 'https://x.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Frontend', color: '#ff0000', createdAt: new Date() },
+          { id: 't2', userId: 'u1', name: 'React', color: '#61dafb', createdAt: new Date() },
+          { id: 't3', userId: 'u1', name: 'TypeScript', color: '#3178c6', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't1' },
+          { linkId: 10, tagId: 't2' },
+          { linkId: 10, tagId: 't3' },
+        ],
+      };
+      // Query matches the third tag
+      const result = filterLinks(taggedLinks, 'typescript', ctx);
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    // --- edge cases: empty / orphan context ---
+
+    it('works with empty ctx arrays (tags=[], linkTags=[])', () => {
+      const result = filterLinks(
+        [makeLink({ id: 1, slug: 'abc', originalUrl: 'https://example.com' })],
+        'abc',
+        { tags: [], linkTags: [] },
+      );
+      expect(result.map((l) => l.id)).toEqual([1]);
+    });
+
+    it('ignores linkTag entries referencing nonexistent tagId', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'x', originalUrl: 'https://x.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Real', color: '#ff0000', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't1' },
+          { linkId: 10, tagId: 'nonexistent' }, // orphan linkTag
+        ],
+      };
+      // Should still match via the valid tag
+      const result = filterLinks(taggedLinks, 'real', ctx);
+      expect(result.map((l) => l.id)).toEqual([10]);
+    });
+
+    it('does not crash when linkTag references nonexistent linkId', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'x', originalUrl: 'https://x.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Orphan', color: '#ff0000', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 999, tagId: 't1' }, // linkId 999 doesn't exist
+        ],
+      };
+      // Should not crash, and link 10 should not match "orphan"
+      const result = filterLinks(taggedLinks, 'orphan', ctx);
+      expect(result).toEqual([]);
+    });
+
+    it('handles tags with no linkTag references (orphan tags)', () => {
+      const taggedLinks = [
+        makeLink({ id: 10, slug: 'x', originalUrl: 'https://x.com' }),
+      ];
+      const ctx = {
+        tags: [
+          { id: 't1', userId: 'u1', name: 'Unused', color: '#ff0000', createdAt: new Date() },
+          { id: 't2', userId: 'u1', name: 'Active', color: '#00ff00', createdAt: new Date() },
+        ],
+        linkTags: [
+          { linkId: 10, tagId: 't2' },
+        ],
+      };
+      // "unused" tag exists but isn't linked to any link
+      expect(filterLinks(taggedLinks, 'unused', ctx)).toEqual([]);
+      // "active" tag is linked to link 10
+      expect(filterLinks(taggedLinks, 'active', ctx).map((l) => l.id)).toEqual([10]);
+    });
+
+    // --- edge cases: multiple links matching different fields ---
+
+    it('returns multiple links when each matches via different fields', () => {
+      const mixedLinks = [
+        makeLink({ id: 1, slug: 'alpha', originalUrl: 'https://one.com', metaTitle: 'Unrelated' }),
+        makeLink({ id: 2, slug: 'beta', originalUrl: 'https://two.com', metaDescription: 'alpha reference' }),
+        makeLink({ id: 3, slug: 'gamma', originalUrl: 'https://three.com', note: 'see alpha docs' }),
+      ];
+      // "alpha" matches link 1 (slug), link 2 (metaDescription), link 3 (note)
+      const result = filterLinks(mixedLinks, 'alpha');
+      expect(result.map((l) => l.id)).toEqual([1, 2, 3]);
+    });
   });
 
   // --- buildLinkCounts ---
