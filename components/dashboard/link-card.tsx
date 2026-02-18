@@ -11,8 +11,8 @@ import {
   Pencil,
   Loader2,
   RefreshCw,
+  Link2,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -277,7 +277,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
         )}
 
         <div className="flex-1 min-w-0">
-          {/* Short URL */}
+          {/* Title row: [favicon] note + metaTitle | metaTitle | originalUrl */}
           <div className="flex items-center gap-2 mb-1">
             {link.metaFavicon && (
               <Image
@@ -289,30 +289,14 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
                 unoptimized
               />
             )}
-            <a
-              href={shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-foreground hover:underline truncate"
-            >
-              {stripProtocol(shortUrl)}
-            </a>
-            {link.isCustom && (
-              <Badge
-                variant="secondary"
-                className="shrink-0 text-[11px] bg-accent"
-              >
-                custom
-              </Badge>
-            )}
+            <span className="text-sm font-medium text-foreground truncate">
+              {link.note && link.metaTitle
+                ? `${link.note} ${link.metaTitle}`
+                : link.metaTitle
+                  ? link.metaTitle
+                  : link.originalUrl}
+            </span>
           </div>
-
-          {/* Meta title */}
-          {link.metaTitle && (
-            <p className="text-xs text-foreground/80 truncate mb-0.5">
-              {link.metaTitle}
-            </p>
-          )}
 
           {/* Original URL */}
           <a
@@ -333,6 +317,15 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
 
           {/* Meta row */}
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <a
+              href={shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Link2 className="w-3 h-3" strokeWidth={1.5} />
+              <span>{link.slug}</span>
+            </a>
             <button
               onClick={handleToggleAnalytics}
               className="flex items-center gap-1 hover:text-foreground transition-colors"

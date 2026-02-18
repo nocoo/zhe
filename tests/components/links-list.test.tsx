@@ -151,9 +151,9 @@ describe('LinksList', () => {
 
     expect(screen.getByText('全部链接')).toBeInTheDocument();
     expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
-    expect(screen.getByText('localhost:3000/abc')).toBeInTheDocument();
-    expect(screen.getByText('localhost:3000/def')).toBeInTheDocument();
-    expect(screen.getByText('localhost:3000/ghi')).toBeInTheDocument();
+    expect(screen.getByText('abc')).toBeInTheDocument();
+    expect(screen.getByText('def')).toBeInTheDocument();
+    expect(screen.getByText('ghi')).toBeInTheDocument();
   });
 
   it('filters links by selected folder', () => {
@@ -162,9 +162,9 @@ describe('LinksList', () => {
 
     expect(screen.getByText('工作')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
-    expect(screen.getByText('localhost:3000/abc')).toBeInTheDocument();
-    expect(screen.queryByText('localhost:3000/def')).not.toBeInTheDocument();
-    expect(screen.queryByText('localhost:3000/ghi')).not.toBeInTheDocument();
+    expect(screen.getByText('abc')).toBeInTheDocument();
+    expect(screen.queryByText('def')).not.toBeInTheDocument();
+    expect(screen.queryByText('ghi')).not.toBeInTheDocument();
   });
 
   it('shows folder name as header when folder is selected', () => {
@@ -197,9 +197,9 @@ describe('LinksList', () => {
     expect(screen.getByText('未分类')).toBeInTheDocument();
     expect(screen.getByText('共 1 条链接')).toBeInTheDocument();
     // Only link with folderId=null
-    expect(screen.getByText('localhost:3000/ghi')).toBeInTheDocument();
-    expect(screen.queryByText('localhost:3000/abc')).not.toBeInTheDocument();
-    expect(screen.queryByText('localhost:3000/def')).not.toBeInTheDocument();
+    expect(screen.getByText('ghi')).toBeInTheDocument();
+    expect(screen.queryByText('abc')).not.toBeInTheDocument();
+    expect(screen.queryByText('def')).not.toBeInTheDocument();
   });
 
   it('shows all links when folders list is empty', () => {

@@ -124,26 +124,47 @@ describe("LinkCard", () => {
     mockEditVm.assignedTags = [];
   });
 
-  it("renders short URL and original URL", () => {
+  it("renders slug in meta row and original URL", () => {
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.getByText("zhe.to/abc123")).toBeInTheDocument();
+    // Slug appears in meta row
+    expect(screen.getByText("abc123")).toBeInTheDocument();
+    // Original URL appears as both title (span) and link (a)
     expect(
-      screen.getByText("https://example.com/very-long-url")
-    ).toBeInTheDocument();
+      screen.getAllByText("https://example.com/very-long-url").length
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows custom badge when isCustom is true", () => {
-    const customLink = { ...baseLink, isCustom: true };
-    render(<LinkCard {...defaultProps} link={customLink} />);
-
-    expect(screen.getByText("custom")).toBeInTheDocument();
-  });
-
-  it("does not show custom badge when isCustom is false", () => {
+  it("shows originalUrl as title when no metaTitle", () => {
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.queryByText("custom")).not.toBeInTheDocument();
+    // Title row shows originalUrl when metaTitle is null
+    const titleSpan = screen.getByText("https://example.com/very-long-url", {
+      selector: "span",
+    });
+    expect(titleSpan).toBeInTheDocument();
+  });
+
+  it("shows metaTitle as title when available", () => {
+    const linkWithMeta = { ...baseLink, metaTitle: "Example Page" };
+    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
+
+    const titleSpan = screen.getByText("Example Page", { selector: "span" });
+    expect(titleSpan).toBeInTheDocument();
+  });
+
+  it("shows note + metaTitle as title when both available", () => {
+    const linkWithBoth = {
+      ...baseLink,
+      note: "Important",
+      metaTitle: "Example Page",
+    };
+    render(<LinkCard {...defaultProps} link={linkWithBoth} />);
+
+    const titleSpan = screen.getByText("Important Example Page", {
+      selector: "span",
+    });
+    expect(titleSpan).toBeInTheDocument();
   });
 
   it("shows expiry date when link.expiresAt is set", () => {
