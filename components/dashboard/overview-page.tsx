@@ -95,7 +95,7 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
 
   return (
     <div className="h-[200px] md:h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
           <defs>
             <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
@@ -153,7 +153,7 @@ function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
 
   return (
     <div className="h-[200px] md:h-[250px]">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
           <defs>
             <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
@@ -216,7 +216,7 @@ function BreakdownDonut({ data }: { data: Record<string, number> }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="h-[180px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart>
             <Pie
               data={pieData}
