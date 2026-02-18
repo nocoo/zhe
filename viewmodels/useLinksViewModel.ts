@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Link, AnalyticsStats } from "@/models/types";
 import { createLink, deleteLink, updateLink, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
-import { buildShortUrl } from "@/models/links";
+import { buildShortUrl, fetchScreenshotUrl, getCachedScreenshot } from "@/models/links";
 
 /** ViewModel for a single link card — manages copy, delete, edit, analytics */
 export function useLinkCardViewModel(
@@ -28,7 +28,27 @@ export function useLinkCardViewModel(
   // Metadata refresh state
   const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
 
+  // Screenshot state
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(() =>
+    getCachedScreenshot(link.originalUrl)
+  );
+  const [isLoadingScreenshot, setIsLoadingScreenshot] = useState(false);
+
   const shortUrl = buildShortUrl(siteUrl, link.slug);
+
+  // Fetch screenshot on mount if not cached
+  useEffect(() => {
+    if (screenshotUrl) return;
+    let cancelled = false;
+    setIsLoadingScreenshot(true);
+    fetchScreenshotUrl(link.originalUrl).then((url) => {
+      if (!cancelled) {
+        setScreenshotUrl(url);
+        setIsLoadingScreenshot(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [link.originalUrl, screenshotUrl]);
 
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(shortUrl);
@@ -135,6 +155,8 @@ export function useLinkCardViewModel(
     saveEdit,
     handleRefreshMetadata,
     isRefreshingMetadata,
+    screenshotUrl,
+    isLoadingScreenshot,
   };
 }
 
