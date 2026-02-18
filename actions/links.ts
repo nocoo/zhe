@@ -233,3 +233,29 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
     return { success: false, error: 'Failed to refresh metadata' };
   }
 }
+
+/**
+ * Persist a screenshot URL for a link.
+ * Called by the client after fetching from Microlink API.
+ */
+export async function saveScreenshot(
+  linkId: number,
+  screenshotUrl: string,
+): Promise<ActionResult<Link>> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const updated = await db.updateLinkScreenshot(linkId, screenshotUrl);
+    if (!updated) {
+      return { success: false, error: 'Link not found or access denied' };
+    }
+
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error('Failed to save screenshot:', error);
+    return { success: false, error: 'Failed to save screenshot' };
+  }
+}
