@@ -352,6 +352,19 @@ describe('useLinkCardViewModel', () => {
     expect(refreshLinkMetadata).not.toHaveBeenCalled();
   });
 
+  it('does not auto-fetch metadata when link has a user note', async () => {
+    vi.mocked(refreshLinkMetadata).mockClear();
+    const noteLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null, note: 'My personal note' });
+
+    renderHook(() =>
+      useLinkCardViewModel(noteLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+
+    expect(refreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
   it('auto-fetch metadata handles failure gracefully', async () => {
     const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false, error: 'Failed' });

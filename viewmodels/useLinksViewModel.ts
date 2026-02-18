@@ -32,10 +32,12 @@ export function useLinkCardViewModel(
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
-  // Auto-fetch text metadata (title/description/favicon) if all missing
+  // Auto-fetch text metadata (title/description/favicon) if all missing.
+  // Skip if user already wrote a note — they have their own description intent.
   const hasMetadata = !!(link.metaTitle || link.metaDescription || link.metaFavicon);
+  const skipAutoFetch = hasMetadata || !!link.note;
   useEffect(() => {
-    if (hasMetadata) return;
+    if (skipAutoFetch) return;
     let cancelled = false;
     setIsRefreshingMetadata(true);
     refreshLinkMetadata(link.id).then((result) => {
@@ -46,7 +48,7 @@ export function useLinkCardViewModel(
       setIsRefreshingMetadata(false);
     });
     return () => { cancelled = true; };
-  }, [link.id, hasMetadata, onUpdate]);
+  }, [link.id, skipAutoFetch, onUpdate]);
 
   // Fetch screenshot from Microlink if not persisted in DB yet
   useEffect(() => {
