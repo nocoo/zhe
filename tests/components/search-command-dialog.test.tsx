@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Link, Folder } from "@/models/types";
 import type { DashboardService } from "@/contexts/dashboard-service";
@@ -418,6 +418,143 @@ describe("SearchCommandDialog", () => {
       renderDialog();
 
       expect(screen.getByText("example.com/docs")).toBeInTheDocument();
+    });
+  });
+
+  // ── Copy button interaction details ──
+
+  describe("copy button behavior", () => {
+    beforeEach(() => {
+      mockService.links = [makeLink({ id: 1, slug: "test-slug" })];
+      Object.assign(navigator, {
+        clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+      });
+    });
+
+    it("does not trigger navigation when copy button is clicked", () => {
+      const onOpenChange = vi.fn();
+      renderDialog({ onOpenChange });
+
+      const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
+      fireEvent.click(copyBtn);
+
+      // Copy should work but navigation should NOT be triggered
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://zhe.to/test-slug");
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("closes dialog after copying", async () => {
+      const onOpenChange = vi.fn();
+      renderDialog({ onOpenChange });
+
+      const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
+      fireEvent.click(copyBtn);
+
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    });
+
+    it("copies on Enter keydown without triggering navigation", () => {
+      const onOpenChange = vi.fn();
+      renderDialog({ onOpenChange });
+
+      const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
+      fireEvent.keyDown(copyBtn, { key: "Enter" });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://zhe.to/test-slug");
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Search filtering edge cases ──
+
+  describe("search filtering edge cases", () => {
+    it("filters links by metaDescription substring", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "lib", originalUrl: "https://a.com", metaDescription: "A library for building UIs" }),
+        makeLink({ id: 2, slug: "server", originalUrl: "https://b.com", metaDescription: "Server-side rendering" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "building");
+
+      expect(screen.getByText("zhe.to/lib")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/server")).not.toBeInTheDocument();
+    });
+
+    it("does not match protocol prefix in URL", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "site", originalUrl: "https://example.com" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "https");
+
+      expect(screen.queryByText("zhe.to/site")).not.toBeInTheDocument();
+      expect(screen.getByText("没有找到匹配的链接")).toBeInTheDocument();
+    });
+
+    it("searches Chinese characters correctly", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "docs", originalUrl: "https://a.com", metaTitle: "前端开发指南" }),
+        makeLink({ id: 2, slug: "api", originalUrl: "https://b.com", metaTitle: "API Reference" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "前端");
+
+      expect(screen.getByText("zhe.to/docs")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/api")).not.toBeInTheDocument();
+    });
+
+    it("trims whitespace from search query", async () => {
+      mockService.links = [
+        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
+        makeLink({ id: 2, slug: "xyz", originalUrl: "https://other.com" }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "  abc  ");
+
+      expect(screen.getByText("zhe.to/abc")).toBeInTheDocument();
+      expect(screen.queryByText("zhe.to/xyz")).not.toBeInTheDocument();
+    });
+  });
+
+  // ── Tag badge edge cases ──
+
+  describe("tag badge edge cases", () => {
+    it("does not render tag badge elements for link with no tags", () => {
+      mockService.links = [makeLink({ id: 1, slug: "no-tags" })];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "SomeTag", color: "#ff0000", createdAt: new Date() },
+      ];
+      mockService.linkTags = []; // no link-tag associations
+      renderDialog();
+
+      expect(screen.queryByText("SomeTag")).not.toBeInTheDocument();
+    });
+
+    it("renders exactly 1 badge for link with 1 tag", () => {
+      mockService.links = [makeLink({ id: 1, slug: "one-tag" })];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "Solo", color: "#ff0000", createdAt: new Date() },
+      ];
+      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      renderDialog();
+
+      expect(screen.getByText("Solo")).toBeInTheDocument();
+    });
+
+    it("renders tag badges with correct inline styles", () => {
+      mockService.links = [makeLink({ id: 1, slug: "styled" })];
+      mockService.tags = [
+        { id: "t1", userId: "user-1", name: "Styled", color: "#ff5733", createdAt: new Date() },
+      ];
+      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      renderDialog();
+
+      const badge = screen.getByText("Styled");
+      expect(badge).toHaveStyle({ backgroundColor: "#ff573320", color: "#ff5733" });
     });
   });
 });

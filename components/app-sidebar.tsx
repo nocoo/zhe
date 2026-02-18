@@ -245,6 +245,7 @@ export function AppSidebar({
             </TooltipContent>
           </Tooltip>
         </div>
+        <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
       </aside>
     );
   }
