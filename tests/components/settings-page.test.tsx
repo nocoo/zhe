@@ -27,11 +27,13 @@ vi.mock('@/viewmodels/useSettingsViewModel', () => ({
 const mockHandleGenerate = vi.fn();
 const mockHandleRevoke = vi.fn();
 const mockHandleRateLimitChange = vi.fn();
+const mockSetRateLimit = vi.fn();
 
 const mockWebhookVm = {
   token: null as string | null,
   createdAt: null as string | null,
   rateLimit: 5,
+  setRateLimit: mockSetRateLimit,
   isLoading: false,
   isGenerating: false,
   isRevoking: false,

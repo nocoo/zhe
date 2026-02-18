@@ -25,6 +25,7 @@ export function SettingsPage() {
     isGenerating,
     isRevoking,
     rateLimit,
+    setRateLimit,
     webhookUrl,
     handleGenerate,
     handleRevoke,
@@ -49,7 +50,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
       <Card className="border-0 bg-secondary shadow-none">
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
@@ -209,6 +210,7 @@ export function SettingsPage() {
                   max={RATE_LIMIT_ABSOLUTE_MAX}
                   step={1}
                   value={[rateLimit]}
+                  onValueChange={([v]) => setRateLimit(v)}
                   onValueCommit={([v]) => handleRateLimitChange(v)}
                 />
               </div>

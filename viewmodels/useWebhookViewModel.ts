@@ -91,6 +91,7 @@ export function useWebhookViewModel() {
     token,
     createdAt,
     rateLimit,
+    setRateLimit,
     isLoading,
     isGenerating,
     isRevoking,
