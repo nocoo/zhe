@@ -137,16 +137,6 @@ export function LinksList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            aria-label="刷新链接"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-          </Button>
           <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
             <button
               onClick={() => handleViewModeChange("list")}
@@ -171,6 +161,17 @@ export function LinksList() {
               <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-[10px]"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="刷新链接"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+            刷新
+          </Button>
           <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
         </div>
       </div>
