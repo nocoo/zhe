@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
 import { CreateLinkModal } from "./create-link-modal";
-import { Link2, LayoutList, LayoutGrid } from "lucide-react";
+import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
 
 type ViewMode = "list" | "grid";
@@ -58,6 +59,7 @@ export function LinksList() {
     links, folders, tags, linkTags, loading,
     handleLinkCreated, handleLinkDeleted, handleLinkUpdated,
     handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved,
+    refreshLinks,
     siteUrl,
   } = useDashboardService();
 
@@ -69,6 +71,16 @@ export function LinksList() {
   }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
 
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshLinks();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshLinks]);
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -125,6 +137,16 @@ export function LinksList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="刷新链接"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+          </Button>
           <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
             <button
               onClick={() => handleViewModeChange("list")}

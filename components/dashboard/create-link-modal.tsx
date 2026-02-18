@@ -27,8 +27,8 @@ export function CreateLinkModal({ siteUrl, onSuccess, folders = [] }: CreateLink
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="rounded-[10px]">
-          <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+        <Button size="sm" className="rounded-[10px]">
+          <Plus className="w-4 h-4 mr-1.5" strokeWidth={1.5} />
           新建链接
         </Button>
       </DialogTrigger>
