@@ -9,6 +9,7 @@ import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 export interface InboxItemDraft {
   folderId: string | undefined;
   note: string;
+  screenshotUrl: string;
   /** True while a save is in flight */
   isSaving: boolean;
   error: string;
@@ -48,6 +49,7 @@ export function useInboxViewModel(
       return {
         folderId: undefined,
         note: link?.note ?? "",
+        screenshotUrl: link?.screenshotUrl ?? "",
         isSaving: false,
         error: "",
       };
@@ -63,6 +65,7 @@ export function useInboxViewModel(
         const current = next.get(linkId) ?? {
           folderId: undefined,
           note: inboxLinks.find((l) => l.id === linkId)?.note ?? "",
+          screenshotUrl: inboxLinks.find((l) => l.id === linkId)?.screenshotUrl ?? "",
           isSaving: false,
           error: "",
         };
@@ -89,6 +92,14 @@ export function useInboxViewModel(
     [updateDraft],
   );
 
+  /** Set the screenshot URL for a draft */
+  const setDraftScreenshotUrl = useCallback(
+    (linkId: number, screenshotUrl: string) => {
+      updateDraft(linkId, { screenshotUrl });
+    },
+    [updateDraft],
+  );
+
   /** Save a single link's triage edits (folder + note) */
   const saveItem = useCallback(
     async (linkId: number) => {
@@ -99,11 +110,17 @@ export function useInboxViewModel(
       updateDraft(linkId, { isSaving: true, error: "" });
 
       try {
-        // Update link (folder assignment)
-        const payload: { originalUrl: string; folderId?: string } = {
+        // Update link (folder assignment + optional screenshotUrl)
+        const payload: { originalUrl: string; folderId?: string; screenshotUrl?: string | null } = {
           originalUrl: link.originalUrl,
           folderId: draft.folderId,
         };
+
+        // Include screenshotUrl only if changed
+        const currentScreenshotUrl = link.screenshotUrl ?? "";
+        if (draft.screenshotUrl !== currentScreenshotUrl) {
+          payload.screenshotUrl = draft.screenshotUrl.trim() || null;
+        }
 
         const linkResult = await updateLink(link.id, payload);
         if (!linkResult.success || !linkResult.data) {
@@ -130,10 +147,11 @@ export function useInboxViewModel(
           }
         }
 
-        // Merge note into updated link for the callback
+        // Merge note + screenshotUrl into updated link for the callback
         const updatedLink: Link = {
           ...linkResult.data,
           note: draft.note.trim() || null,
+          screenshotUrl: draft.screenshotUrl.trim() || null,
         };
         callbacks.onLinkUpdated(updatedLink);
 
@@ -217,6 +235,7 @@ export function useInboxViewModel(
     getDraft,
     setDraftFolderId,
     setDraftNote,
+    setDraftScreenshotUrl,
     saveItem,
     getAssignedTagIds,
     getAssignedTags,

@@ -129,6 +129,7 @@ describe('useInboxViewModel', () => {
       const draft = result.current.getDraft(1);
       expect(draft.folderId).toBeUndefined();
       expect(draft.note).toBe('');
+      expect(draft.screenshotUrl).toBe('');
       expect(draft.isSaving).toBe(false);
       expect(draft.error).toBe('');
     });
@@ -142,6 +143,17 @@ describe('useInboxViewModel', () => {
 
       const draft = result.current.getDraft(1);
       expect(draft.note).toBe('existing note');
+    });
+
+    it('returns link existing screenshotUrl in default draft', () => {
+      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/shot.png' });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], makeCallbacks()),
+      );
+
+      const draft = result.current.getDraft(1);
+      expect(draft.screenshotUrl).toBe('https://img.example.com/shot.png');
     });
 
     it('returns stored draft after editing', () => {
@@ -189,6 +201,35 @@ describe('useInboxViewModel', () => {
     });
   });
 
+  // ── setDraftScreenshotUrl ──
+
+  describe('setDraftScreenshotUrl', () => {
+    it('updates the draft screenshotUrl', () => {
+      const link = makeLink({ id: 1 });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], makeCallbacks()),
+      );
+
+      act(() => { result.current.setDraftScreenshotUrl(1, 'https://img.example.com/shot.png'); });
+
+      expect(result.current.getDraft(1).screenshotUrl).toBe('https://img.example.com/shot.png');
+    });
+
+    it('can clear the screenshotUrl back to empty string', () => {
+      const link = makeLink({ id: 1 });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], makeCallbacks()),
+      );
+
+      act(() => { result.current.setDraftScreenshotUrl(1, 'https://img.example.com/shot.png'); });
+      act(() => { result.current.setDraftScreenshotUrl(1, ''); });
+
+      expect(result.current.getDraft(1).screenshotUrl).toBe('');
+    });
+  });
+
   // ── setDraftNote ──
 
   describe('setDraftNote', () => {
@@ -233,6 +274,7 @@ describe('useInboxViewModel', () => {
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith({
         ...updatedLink,
         note: 'new note',
+        screenshotUrl: null,
       });
       // Draft should be cleaned up
       const draft = result.current.getDraft(1);
@@ -399,6 +441,74 @@ describe('useInboxViewModel', () => {
       await act(async () => { await result.current.saveItem(1); });
 
       expect(result.current.getDraft(1).error).toBe('Failed to update note');
+    });
+
+    it('includes screenshotUrl in updateLink payload when changed', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: null });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1 }),
+      });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], cbs),
+      );
+
+      act(() => { result.current.setDraftScreenshotUrl(1, 'https://img.example.com/new.png'); });
+
+      await act(async () => { await result.current.saveItem(1); });
+
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        screenshotUrl: 'https://img.example.com/new.png',
+      }));
+    });
+
+    it('omits screenshotUrl from updateLink payload when unchanged', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/existing.png' });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1 }),
+      });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], cbs),
+      );
+
+      // Don't change screenshotUrl — getDraft will initialize it to existing value
+
+      await act(async () => { await result.current.saveItem(1); });
+
+      const payload = vi.mocked(updateLink).mock.calls[0][1];
+      expect(payload).not.toHaveProperty('screenshotUrl');
+    });
+
+    it('clears screenshotUrl to null when emptied', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/old.png' });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1 }),
+      });
+
+      const { result } = renderHook(() =>
+        useInboxViewModel([link], [], [], [], cbs),
+      );
+
+      act(() => { result.current.setDraftScreenshotUrl(1, ''); });
+
+      await act(async () => { await result.current.saveItem(1); });
+
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        screenshotUrl: null,
+      }));
+      expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ screenshotUrl: null }),
+      );
     });
   });
 
