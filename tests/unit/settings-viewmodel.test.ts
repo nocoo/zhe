@@ -8,9 +8,11 @@ import type { DashboardService } from '@/contexts/dashboard-service';
 
 const mockImportLinks = vi.fn();
 const mockExportLinks = vi.fn();
+const mockUpdatePreviewStyle = vi.fn();
 vi.mock('@/actions/settings', () => ({
   importLinks: (...args: unknown[]) => mockImportLinks(...args),
   exportLinks: (...args: unknown[]) => mockExportLinks(...args),
+  updatePreviewStyle: (...args: unknown[]) => mockUpdatePreviewStyle(...args),
 }));
 
 const mockService: DashboardService = {
@@ -20,6 +22,7 @@ const mockService: DashboardService = {
   linkTags: [],
   loading: false,
   siteUrl: 'http://localhost:3000',
+  previewStyle: 'favicon' as const,
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
@@ -32,6 +35,7 @@ const mockService: DashboardService = {
   handleTagUpdated: vi.fn(),
   handleLinkTagAdded: vi.fn(),
   handleLinkTagRemoved: vi.fn(),
+  setPreviewStyle: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({
@@ -61,6 +65,7 @@ describe('useSettingsViewModel', () => {
     vi.clearAllMocks();
     vi.stubGlobal('alert', vi.fn());
     mockService.links = [];
+    mockService.previewStyle = 'favicon';
   });
 
   afterEach(() => {
@@ -231,5 +236,65 @@ describe('useSettingsViewModel', () => {
       result.current.clearImportResult();
     });
     expect(result.current.importResult).toBeNull();
+  });
+
+  // ====================================================================
+  // previewStyle
+  // ====================================================================
+  it('exposes previewStyle from dashboard service context', () => {
+    mockService.previewStyle = 'screenshot';
+    const { result } = renderHook(() => useSettingsViewModel());
+
+    expect(result.current.previewStyle).toBe('screenshot');
+  });
+
+  it('exposes default previewStyle as favicon', () => {
+    const { result } = renderHook(() => useSettingsViewModel());
+
+    expect(result.current.previewStyle).toBe('favicon');
+  });
+
+  it('handlePreviewStyleChange optimistically updates and calls server action', async () => {
+    mockUpdatePreviewStyle.mockResolvedValue({ success: true, data: 'screenshot' });
+
+    const { result } = renderHook(() => useSettingsViewModel());
+
+    await act(async () => {
+      await result.current.handlePreviewStyleChange('screenshot');
+    });
+
+    expect(mockService.setPreviewStyle).toHaveBeenCalledWith('screenshot');
+    expect(mockUpdatePreviewStyle).toHaveBeenCalledWith('screenshot');
+  });
+
+  it('handlePreviewStyleChange rolls back on server failure', async () => {
+    mockService.previewStyle = 'favicon';
+    mockUpdatePreviewStyle.mockResolvedValue({ success: false, error: 'DB error' });
+
+    const { result } = renderHook(() => useSettingsViewModel());
+
+    await act(async () => {
+      await result.current.handlePreviewStyleChange('screenshot');
+    });
+
+    // First call: optimistic update to 'screenshot'
+    // Second call: rollback to 'favicon'
+    expect(mockService.setPreviewStyle).toHaveBeenCalledTimes(2);
+    expect(mockService.setPreviewStyle).toHaveBeenNthCalledWith(1, 'screenshot');
+    expect(mockService.setPreviewStyle).toHaveBeenNthCalledWith(2, 'favicon');
+  });
+
+  it('handlePreviewStyleChange does not rollback on success', async () => {
+    mockUpdatePreviewStyle.mockResolvedValue({ success: true, data: 'screenshot' });
+
+    const { result } = renderHook(() => useSettingsViewModel());
+
+    await act(async () => {
+      await result.current.handlePreviewStyleChange('screenshot');
+    });
+
+    // Only one call: optimistic update
+    expect(mockService.setPreviewStyle).toHaveBeenCalledTimes(1);
+    expect(mockService.setPreviewStyle).toHaveBeenCalledWith('screenshot');
   });
 });
