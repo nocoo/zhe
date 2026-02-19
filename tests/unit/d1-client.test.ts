@@ -95,7 +95,7 @@ describe('executeD1Query', () => {
     expect(result).toEqual(rows);
   });
 
-  it('throws with error text when response is not ok', async () => {
+  it('throws sanitized error when response is not ok', async () => {
     setEnv();
     mockFetch.mockResolvedValueOnce({
       ok: false,
@@ -104,10 +104,10 @@ describe('executeD1Query', () => {
 
     await expect(
       executeD1Query('SELECT * FROM users')
-    ).rejects.toThrow('D1 query failed: Unauthorized: bad token');
+    ).rejects.toThrow('D1 query failed');
   });
 
-  it('throws with joined error messages when data.success is false', async () => {
+  it('throws sanitized error when data.success is false', async () => {
     setEnv();
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -123,7 +123,23 @@ describe('executeD1Query', () => {
 
     await expect(
       executeD1Query('SELCT * FROM users')
-    ).rejects.toThrow('D1 query failed: syntax error, near SELCT');
+    ).rejects.toThrow('D1 query failed');
+  });
+
+  it('preserves UNIQUE constraint errors for caller detection', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        result: [],
+        errors: [{ message: 'UNIQUE constraint failed: links.slug' }],
+      }),
+    });
+
+    await expect(
+      executeD1Query('INSERT INTO links ...')
+    ).rejects.toThrow('UNIQUE constraint failed');
   });
 
   it('returns empty array when result set is empty', async () => {
