@@ -471,12 +471,15 @@ export class ScopedDB {
       fileTypes[upload.fileType] = (fileTypes[upload.fileType] || 0) + 1;
     }
 
-    // Fetch all analytics across all links (for breakdowns and timestamps)
-    const allAnalytics: Analytics[] = [];
-    for (const link of links) {
-      const analytics = await this.getAnalyticsByLinkId(link.id);
-      allAnalytics.push(...analytics);
-    }
+    // Fetch all analytics for the user in a single query (avoids N+1)
+    const analyticsRows = await executeD1Query<Record<string, unknown>>(
+      `SELECT a.* FROM analytics a
+       JOIN links l ON a.link_id = l.id
+       WHERE l.user_id = ?
+       ORDER BY a.created_at DESC`,
+      [this.userId],
+    );
+    const allAnalytics = analyticsRows.map(rowToAnalytics);
 
     const clickTimestamps = allAnalytics.map(a => a.createdAt);
 

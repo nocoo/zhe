@@ -216,8 +216,32 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [record] as T[];
       }
       
+      // SELECT a.* FROM analytics a JOIN links l ON ... WHERE l.user_id = ?
+      // (ScopedDB bulk analytics query — all analytics for a user, no specific link_id filter)
+      if (sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('user_id') && !sqlLower.includes('a.link_id = ?')) {
+        const [userId] = params;
+        // Collect all link IDs owned by this user
+        const userLinkIds = new Set<number>();
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) {
+            userLinkIds.add(rawLink.id as number);
+          }
+        }
+        const results = mockAnalytics.filter(a => {
+          const rawA = a as unknown as Record<string, unknown>;
+          return userLinkIds.has(rawA.link_id as number);
+        });
+        results.sort((a, b) => {
+          const aTime = (a as unknown as Record<string, unknown>).created_at as number;
+          const bTime = (b as unknown as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
       // SELECT a.* FROM analytics a JOIN links l ON ... WHERE a.link_id = ? AND l.user_id = ?
-      // (ScopedDB analytics query with ownership check)
+      // (ScopedDB analytics query with ownership check — single link)
       if (sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('user_id')) {
         const [linkId, userId] = params;
         // Verify the link belongs to this user
