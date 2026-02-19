@@ -52,6 +52,8 @@ const mockService: DashboardService = {
   handleTagUpdated: vi.fn(),
   handleLinkTagAdded: vi.fn(),
   handleLinkTagRemoved: vi.fn(),
+  previewStyle: 'favicon' as const,
+  setPreviewStyle: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({
@@ -314,6 +316,46 @@ describe('InboxTriage', () => {
       await user.type(inputs[0], 'my note');
 
       expect(inputs[0]).toHaveValue('my note');
+    });
+  });
+
+  // ── Screenshot URL input ──
+
+  describe('screenshot URL input', () => {
+    it('shows screenshot URL input with placeholder', () => {
+      render(<InboxTriage />);
+
+      const inputs = screen.getAllByPlaceholderText('https://...');
+      expect(inputs.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('shows screenshot URL label', () => {
+      render(<InboxTriage />);
+
+      const labels = screen.getAllByText('截图链接');
+      expect(labels.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('allows typing into screenshot URL input', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const inputs = screen.getAllByPlaceholderText('https://...');
+      await user.type(inputs[0], 'https://img.example.com/shot.png');
+
+      expect(inputs[0]).toHaveValue('https://img.example.com/shot.png');
+    });
+
+    it('pre-fills screenshot URL from existing link data', () => {
+      const linkWithScreenshot = makeLink({
+        id: 10,
+        screenshotUrl: 'https://img.example.com/existing.png',
+      });
+      setupService({ links: [linkWithScreenshot] });
+      render(<InboxTriage />);
+
+      const inputs = screen.getAllByPlaceholderText('https://...');
+      expect(inputs[0]).toHaveValue('https://img.example.com/existing.png');
     });
   });
 

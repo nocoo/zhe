@@ -51,6 +51,7 @@ function InboxItem({
   assignedTagIds,
   onSetFolderId,
   onSetNote,
+  onSetScreenshotUrl,
   onSave,
   onAddTag,
   onRemoveTag,
@@ -58,13 +59,14 @@ function InboxItem({
   onDelete,
 }: {
   link: Link;
-  draft: { folderId: string | undefined; note: string; isSaving: boolean; error: string };
+  draft: { folderId: string | undefined; note: string; screenshotUrl: string; isSaving: boolean; error: string };
   folders: { id: string; name: string }[];
   allTags: Tag[];
   assignedTags: Tag[];
   assignedTagIds: Set<string>;
   onSetFolderId: (folderId: string | undefined) => void;
   onSetNote: (note: string) => void;
+  onSetScreenshotUrl: (url: string) => void;
   onSave: () => void;
   onAddTag: (tagId: string) => void;
   onRemoveTag: (tagId: string) => void;
@@ -216,6 +218,21 @@ function InboxItem({
             value={draft.note}
             onChange={(e) => onSetNote(e.target.value)}
             placeholder="添加备注..."
+            className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          />
+        </div>
+
+        {/* Screenshot URL input */}
+        <div className="space-y-1 flex-1 min-w-[200px]">
+          <label htmlFor={`screenshot-url-${link.id}`} className="text-xs text-muted-foreground">
+            截图链接
+          </label>
+          <input
+            id={`screenshot-url-${link.id}`}
+            type="url"
+            value={draft.screenshotUrl}
+            onChange={(e) => onSetScreenshotUrl(e.target.value)}
+            placeholder="https://..."
             className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
           />
         </div>
@@ -424,6 +441,7 @@ export function InboxTriage() {
                 assignedTagIds={assignedTagIds}
                 onSetFolderId={(fId) => vm.setDraftFolderId(link.id, fId)}
                 onSetNote={(note) => vm.setDraftNote(link.id, note)}
+                onSetScreenshotUrl={(url) => vm.setDraftScreenshotUrl(link.id, url)}
                 onSave={() => vm.saveItem(link.id)}
                 onAddTag={(tagId) => vm.addTag(link.id, tagId)}
                 onRemoveTag={(tagId) => vm.removeTag(link.id, tagId)}
