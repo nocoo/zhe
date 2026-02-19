@@ -240,6 +240,64 @@ vi.mock('@/lib/db/d1-client', async () => {
         return results as T[];
       }
 
+      // SELECT COUNT(*) as total FROM analytics a JOIN links ... (scoped count)
+      if (sqlLower.includes('select count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('a.link_id = ?')) {
+        const [linkId, userId] = params;
+        // Verify link ownership
+        let linkOwned = false;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId && rawLink.user_id === userId) { linkOwned = true; break; }
+        }
+        if (!linkOwned) return [{ total: 0 }] as T[];
+        const count = mockAnalytics.filter(a => (a as unknown as Record<string, unknown>).link_id === linkId).length;
+        return [{ total: count }] as T[];
+      }
+
+      // SELECT DISTINCT a.country FROM analytics a JOIN links ... (scoped countries)
+      if (sqlLower.includes('select distinct') && sqlLower.includes('country') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('a.link_id = ?')) {
+        const [linkId, userId] = params;
+        let linkOwned = false;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId && rawLink.user_id === userId) { linkOwned = true; break; }
+        }
+        if (!linkOwned) return [] as T[];
+        const countries = new Set<string>();
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (rawA.link_id === linkId && rawA.country != null) countries.add(rawA.country as string);
+        }
+        return Array.from(countries).map(c => ({ country: c })) as T[];
+      }
+
+      // SELECT a.device/browser/os, COUNT(*) as count FROM analytics a JOIN links ... GROUP BY ... (scoped breakdown)
+      if (sqlLower.includes('count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('group by') && sqlLower.includes('a.link_id = ?')) {
+        const [linkId, userId] = params;
+        let linkOwned = false;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId && rawLink.user_id === userId) { linkOwned = true; break; }
+        }
+        if (!linkOwned) return [] as T[];
+
+        let field: string;
+        if (sqlLower.includes('group by a.device')) field = 'device';
+        else if (sqlLower.includes('group by a.browser')) field = 'browser';
+        else if (sqlLower.includes('group by a.os')) field = 'os';
+        else return [] as T[];
+
+        const counts: Record<string, number> = {};
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (rawA.link_id === linkId && rawA[field] != null) {
+            const val = rawA[field] as string;
+            counts[val] = (counts[val] || 0) + 1;
+          }
+        }
+        return Object.entries(counts).map(([key, count]) => ({ [field]: key, count })) as T[];
+      }
+
       // SELECT a.* FROM analytics a JOIN links l ON ... WHERE a.link_id = ? AND l.user_id = ?
       // (ScopedDB analytics query with ownership check — single link)
       if (sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('user_id')) {
@@ -267,7 +325,51 @@ vi.mock('@/lib/db/d1-client', async () => {
         return results as T[];
       }
 
-      // SELECT FROM analytics WHERE link_id = ? (unscoped — used by old db/index.ts)
+      // SELECT COUNT(*) as total FROM analytics WHERE link_id = ?
+      if (sqlLower.includes('select count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('where link_id = ?') && !sqlLower.includes('join links')) {
+        const [linkId] = params;
+        const count = mockAnalytics.filter(a => {
+          const rawA = a as unknown as Record<string, unknown>;
+          return rawA.link_id === linkId;
+        }).length;
+        return [{ total: count }] as T[];
+      }
+
+      // SELECT DISTINCT country FROM analytics WHERE link_id = ? AND country IS NOT NULL
+      if (sqlLower.includes('select distinct') && sqlLower.includes('country') && sqlLower.includes('from analytics') && sqlLower.includes('where link_id = ?') && !sqlLower.includes('join links')) {
+        const [linkId] = params;
+        const countries = new Set<string>();
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (rawA.link_id === linkId && rawA.country != null) {
+            countries.add(rawA.country as string);
+          }
+        }
+        return Array.from(countries).map(c => ({ country: c })) as T[];
+      }
+
+      // SELECT device/browser/os, COUNT(*) as count FROM analytics WHERE link_id = ? AND ... GROUP BY ...
+      if (sqlLower.includes('count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('group by') && sqlLower.includes('where link_id = ?') && !sqlLower.includes('join links')) {
+        const [linkId] = params;
+        // Determine which field is being grouped
+        let field: string;
+        if (sqlLower.includes('group by device')) field = 'device';
+        else if (sqlLower.includes('group by browser')) field = 'browser';
+        else if (sqlLower.includes('group by os')) field = 'os';
+        else return [] as T[];
+
+        const counts: Record<string, number> = {};
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (rawA.link_id === linkId && rawA[field] != null) {
+            const val = rawA[field] as string;
+            counts[val] = (counts[val] || 0) + 1;
+          }
+        }
+        return Object.entries(counts).map(([key, count]) => ({ [field]: key, count })) as T[];
+      }
+
+      // SELECT FROM analytics WHERE link_id = ? (unscoped — used by getAnalyticsByLinkId)
       if (sqlLower.includes('from analytics') && sqlLower.includes('where link_id = ?')) {
         const [linkId] = params;
         const results = mockAnalytics.filter(a => {

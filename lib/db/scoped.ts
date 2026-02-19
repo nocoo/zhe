@@ -278,6 +278,7 @@ export class ScopedDB {
 
   /**
    * Get aggregated analytics stats for a link, scoped to this user.
+   * Uses SQL aggregation instead of fetching all rows.
    */
   async getAnalyticsStats(linkId: number): Promise<{
     totalClicks: number;
@@ -286,28 +287,52 @@ export class ScopedDB {
     browserBreakdown: Record<string, number>;
     osBreakdown: Record<string, number>;
   }> {
-    const records = await this.getAnalyticsByLinkId(linkId);
+    // All queries enforce ownership via JOIN on links.user_id
+    const ownershipJoin = 'JOIN links l ON a.link_id = l.id';
+    const ownershipWhere = 'WHERE a.link_id = ? AND l.user_id = ?';
+    const params = [linkId, this.userId];
 
-    const countries = new Set<string>();
-    const devices: Record<string, number> = {};
-    const browsers: Record<string, number> = {};
-    const oses: Record<string, number> = {};
+    const [countRows, countryRows, deviceRows, browserRows, osRows] = await Promise.all([
+      executeD1Query<Record<string, unknown>>(
+        `SELECT COUNT(*) as total FROM analytics a ${ownershipJoin} ${ownershipWhere}`,
+        params,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT DISTINCT a.country FROM analytics a ${ownershipJoin} ${ownershipWhere} AND a.country IS NOT NULL`,
+        params,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.device, COUNT(*) as count FROM analytics a ${ownershipJoin} ${ownershipWhere} AND a.device IS NOT NULL GROUP BY a.device`,
+        params,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.browser, COUNT(*) as count FROM analytics a ${ownershipJoin} ${ownershipWhere} AND a.browser IS NOT NULL GROUP BY a.browser`,
+        params,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.os, COUNT(*) as count FROM analytics a ${ownershipJoin} ${ownershipWhere} AND a.os IS NOT NULL GROUP BY a.os`,
+        params,
+      ),
+    ]);
 
-    for (const record of records) {
-      if (record.country) countries.add(record.country);
-      if (record.device)
-        devices[record.device] = (devices[record.device] || 0) + 1;
-      if (record.browser)
-        browsers[record.browser] = (browsers[record.browser] || 0) + 1;
-      if (record.os) oses[record.os] = (oses[record.os] || 0) + 1;
-    }
+    const totalClicks = (countRows[0]?.total as number) ?? 0;
+    const uniqueCountries = countryRows.map(r => r.country as string);
+
+    const deviceBreakdown: Record<string, number> = {};
+    for (const r of deviceRows) deviceBreakdown[r.device as string] = r.count as number;
+
+    const browserBreakdown: Record<string, number> = {};
+    for (const r of browserRows) browserBreakdown[r.browser as string] = r.count as number;
+
+    const osBreakdown: Record<string, number> = {};
+    for (const r of osRows) osBreakdown[r.os as string] = r.count as number;
 
     return {
-      totalClicks: records.length,
-      uniqueCountries: Array.from(countries),
-      deviceBreakdown: devices,
-      browserBreakdown: browsers,
-      osBreakdown: oses,
+      totalClicks,
+      uniqueCountries,
+      deviceBreakdown,
+      browserBreakdown,
+      osBreakdown,
     };
   }
 
