@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Stub `server-only` so server modules can be imported in Vitest (jsdom)
+vi.mock('server-only', () => ({}));
+
 // Polyfill ResizeObserver for jsdom (required by cmdk)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {

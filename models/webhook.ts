@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { isValidSlug } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
@@ -20,15 +19,6 @@ export interface WebhookValidationResult {
 export interface RateLimitResult {
   allowed: boolean;
   retryAfterMs?: number;
-}
-
-// ---------------------------------------------------------------------------
-// Token generation
-// ---------------------------------------------------------------------------
-
-/** Generate a UUID v4 webhook token. */
-export function generateWebhookToken(): string {
-  return randomUUID();
 }
 
 // ---------------------------------------------------------------------------

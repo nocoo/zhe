@@ -26,13 +26,9 @@ vi.mock("@/lib/db/scoped", () => ({
 
 // Mock generateWebhookToken
 const mockToken = "550e8400-e29b-41d4-a716-446655440000";
-vi.mock("@/models/webhook", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/models/webhook")>();
-  return {
-    ...original,
-    generateWebhookToken: vi.fn(() => mockToken),
-  };
-});
+vi.mock("@/models/webhook.server", () => ({
+  generateWebhookToken: vi.fn(() => mockToken),
+}));
 
 import {
   getWebhookToken,

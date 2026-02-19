@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import { ScopedDB } from "@/lib/db/scoped";
+import { generateWebhookToken as generateToken } from "@/models/webhook.server";
 import {
-  generateWebhookToken as generateToken,
   clampRateLimit,
   isValidRateLimit,
   RATE_LIMIT_DEFAULT_MAX,

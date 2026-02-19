@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { generateWebhookToken } from "@/models/webhook.server";
 import {
-  generateWebhookToken,
   validateWebhookPayload,
   checkRateLimit,
   buildWebhookDocumentation,
