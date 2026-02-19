@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
-import { slugExists } from '@/lib/db';
+
 import {
   parseImportPayload,
   parsePreviewStyle,
@@ -49,19 +49,24 @@ export async function importLinks(
     let skipped = 0;
 
     for (const entry of parsed.data) {
-      const exists = await slugExists(entry.slug);
-      if (exists) {
-        skipped++;
-        continue;
+      try {
+        await db.createLink({
+          originalUrl: entry.originalUrl,
+          slug: entry.slug,
+          isCustom: entry.isCustom,
+          clicks: entry.clicks,
+        });
+        created++;
+      } catch (err) {
+        // UNIQUE constraint on slug — treat as skip (eliminates TOCTOU race
+        // that existed with the previous slugExists-then-insert pattern)
+        const message = err instanceof Error ? err.message : '';
+        if (message.includes('UNIQUE') || message.includes('unique') || message.includes('duplicate')) {
+          skipped++;
+        } else {
+          throw err;
+        }
       }
-
-      await db.createLink({
-        originalUrl: entry.originalUrl,
-        slug: entry.slug,
-        isCustom: entry.isCustom,
-        clicks: entry.clicks,
-      });
-      created++;
     }
 
     return { success: true, data: { created, skipped } };

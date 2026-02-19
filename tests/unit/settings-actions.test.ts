@@ -9,11 +9,6 @@ vi.mock('@/auth', () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
-const mockSlugExists = vi.fn();
-vi.mock('@/lib/db', () => ({
-  slugExists: (...args: unknown[]) => mockSlugExists(...args),
-}));
-
 const mockCreateLink = vi.fn();
 const mockGetLinks = vi.fn();
 const mockGetUserSettings = vi.fn();
@@ -113,22 +108,19 @@ describe('actions/settings', () => {
       expect(result.success).toBe(false);
     });
 
-    it('skips links with existing slugs', async () => {
+    it('skips links when createLink throws UNIQUE constraint error', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockSlugExists.mockResolvedValue(true); // all slugs exist
-      mockCreateLink.mockResolvedValue(FAKE_LINK);
+      mockCreateLink.mockRejectedValue(new Error('UNIQUE constraint failed: links.slug'));
 
       const result = await importLinks([makeExportedLink({ slug: 'existing' })]);
 
       expect(result.success).toBe(true);
       expect(result.data!.created).toBe(0);
       expect(result.data!.skipped).toBe(1);
-      expect(mockCreateLink).not.toHaveBeenCalled();
     });
 
     it('creates links for new slugs', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockSlugExists.mockResolvedValue(false);
       mockCreateLink.mockResolvedValue(FAKE_LINK);
 
       const result = await importLinks([
@@ -146,13 +138,12 @@ describe('actions/settings', () => {
       });
     });
 
-    it('handles mixed existing and new slugs', async () => {
+    it('handles mixed duplicate and new slugs', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      // First slug exists, second is new
-      mockSlugExists
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
-      mockCreateLink.mockResolvedValue(FAKE_LINK);
+      // First slug triggers UNIQUE constraint, second succeeds
+      mockCreateLink
+        .mockRejectedValueOnce(new Error('UNIQUE constraint failed: links.slug'))
+        .mockResolvedValueOnce(FAKE_LINK);
 
       const result = await importLinks([
         makeExportedLink({ slug: 'existing' }),
@@ -162,13 +153,12 @@ describe('actions/settings', () => {
       expect(result.success).toBe(true);
       expect(result.data!.created).toBe(1);
       expect(result.data!.skipped).toBe(1);
-      expect(mockCreateLink).toHaveBeenCalledTimes(1);
+      expect(mockCreateLink).toHaveBeenCalledTimes(2);
     });
 
-    it('returns error when createLink throws', async () => {
+    it('returns error when createLink throws non-UNIQUE error', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockSlugExists.mockResolvedValue(false);
-      mockCreateLink.mockRejectedValue(new Error('DB error'));
+      mockCreateLink.mockRejectedValue(new Error('DB connection failed'));
 
       const result = await importLinks([makeExportedLink()]);
 
@@ -177,7 +167,6 @@ describe('actions/settings', () => {
 
     it('passes isCustom and clicks from payload', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockSlugExists.mockResolvedValue(false);
       mockCreateLink.mockResolvedValue(FAKE_LINK);
 
       await importLinks([
