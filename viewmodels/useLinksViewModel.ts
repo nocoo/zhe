@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
+import type { PreviewStyle } from "@/models/settings";
 import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl, fetchMicrolinkScreenshot } from "@/models/links";
+import { buildFaviconUrl } from "@/models/settings";
 import { saveScreenshot } from "@/actions/links";
 
 /** ViewModel for a single link card — manages copy, delete, analytics, metadata & screenshot */
@@ -14,6 +16,7 @@ export function useLinkCardViewModel(
   siteUrl: string,
   onDelete: (id: number) => void,
   onUpdate: (link: Link) => void,
+  previewStyle: PreviewStyle = "favicon",
 ) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,8 +53,12 @@ export function useLinkCardViewModel(
     return () => { cancelled = true; };
   }, [link.id, skipAutoFetch, onUpdate]);
 
-  // Fetch screenshot from Microlink if not persisted in DB yet
+  // Compute favicon URL when in favicon mode
+  const faviconUrl = previewStyle === "favicon" ? buildFaviconUrl(link.originalUrl) : null;
+
+  // Fetch screenshot from Microlink if not persisted in DB yet (screenshot mode only)
   useEffect(() => {
+    if (previewStyle === "favicon") return;
     if (screenshotUrl) return;
     let cancelled = false;
     setIsLoadingScreenshot(true);
@@ -65,7 +72,7 @@ export function useLinkCardViewModel(
       }
     });
     return () => { cancelled = true; };
-  }, [link.id, link.originalUrl, screenshotUrl]);
+  }, [link.id, link.originalUrl, screenshotUrl, previewStyle]);
 
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(shortUrl);
@@ -147,6 +154,8 @@ export function useLinkCardViewModel(
     screenshotUrl,
     isLoadingScreenshot,
     handleRetryScreenshot,
+    faviconUrl,
+    previewStyle,
   };
 }
 

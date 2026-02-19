@@ -503,6 +503,72 @@ describe('useLinkCardViewModel', () => {
 
     spy.mockRestore();
   });
+
+  // --- favicon mode (previewStyle) ---
+
+  it('returns faviconUrl when previewStyle is "favicon"', () => {
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
+    );
+
+    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
+    expect(result.current.previewStyle).toBe('favicon');
+  });
+
+  it('returns faviconUrl=null when previewStyle is "screenshot"', () => {
+    vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate, 'screenshot')
+    );
+
+    expect(result.current.faviconUrl).toBeNull();
+    expect(result.current.previewStyle).toBe('screenshot');
+  });
+
+  it('skips Microlink fetch in favicon mode', async () => {
+    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
+
+    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png', screenshotUrl: null });
+
+    renderHook(() =>
+      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
+    );
+
+    await act(async () => {});
+
+    expect(spy).not.toHaveBeenCalled();
+
+    spy.mockRestore();
+  });
+
+  it('fetches Microlink screenshot in screenshot mode when no screenshotUrl', async () => {
+    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+      .mockResolvedValue('https://screenshot.example.com/img.png');
+    vi.mocked(saveScreenshot).mockResolvedValue({ success: true });
+
+    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png', screenshotUrl: null });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate, 'screenshot')
+    );
+
+    await act(async () => {});
+
+    expect(spy).toHaveBeenCalledWith('https://example.com');
+    expect(result.current.screenshotUrl).toBe('https://screenshot.example.com/img.png');
+
+    spy.mockRestore();
+  });
+
+  it('defaults previewStyle to "favicon" when not provided', () => {
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.previewStyle).toBe('favicon');
+    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
+  });
 });
 
 // ---------------------------------------------------------------------------
