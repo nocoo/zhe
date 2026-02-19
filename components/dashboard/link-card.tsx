@@ -75,7 +75,6 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
     isLoadingScreenshot,
     handleRetryScreenshot,
     faviconUrl,
-    previewStyle,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate, previewStyleProp);
 
   const editVm = useEditLinkViewModel(link, tags, linkTags, editCallbacks);
@@ -91,7 +90,15 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
           className="relative block w-full aspect-[4/3] bg-accent cursor-pointer"
           onClick={() => window.open(link.originalUrl, "_blank", "noopener,noreferrer")}
         >
-          {previewStyle === "favicon" && faviconUrl ? (
+          {screenshotUrl ? (
+            <Image
+              src={screenshotUrl}
+              alt="Screenshot"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : faviconUrl ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Image
                 src={faviconUrl}
@@ -102,14 +109,6 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
                 unoptimized
               />
             </div>
-          ) : screenshotUrl ? (
-            <Image
-              src={screenshotUrl}
-              alt="Screenshot"
-              fill
-              className="object-cover"
-              unoptimized
-            />
           ) : isLoadingScreenshot ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
@@ -122,7 +121,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
 
           {/* Hover action overlay */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-            {previewStyle !== "favicon" && !screenshotUrl && !isLoadingScreenshot && (
+            {!screenshotUrl && !faviconUrl && !isLoadingScreenshot && (
               <button
                 onClick={(e) => { e.stopPropagation(); handleRetryScreenshot(); }}
                 aria-label="Retry screenshot"
@@ -283,18 +282,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
       <div className="flex items-stretch gap-4">
         {/* Screenshot/favicon thumbnail — left side, always visible */}
         <div className="group/thumb relative shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
-          {previewStyle === "favicon" && faviconUrl ? (
-            <div className="flex items-center justify-center w-full h-full">
-              <Image
-                src={faviconUrl}
-                alt="Site favicon"
-                width={40}
-                height={40}
-                className="w-10 h-10 object-contain"
-                unoptimized
-              />
-            </div>
-          ) : screenshotUrl ? (
+          {screenshotUrl ? (
             <a
               href={link.originalUrl}
               target="_blank"
@@ -310,13 +298,24 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
                 unoptimized
               />
             </a>
+          ) : faviconUrl ? (
+            <div className="flex items-center justify-center w-full h-full">
+              <Image
+                src={faviconUrl}
+                alt="Site favicon"
+                width={40}
+                height={40}
+                className="w-10 h-10 object-contain"
+                unoptimized
+              />
+            </div>
           ) : isLoadingScreenshot ? (
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" strokeWidth={1.5} />
           ) : (
             <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
           )}
-          {/* Hover overlay with retry button — only in screenshot mode when no screenshot */}
-          {previewStyle !== "favicon" && !screenshotUrl && !isLoadingScreenshot && (
+          {/* Hover overlay with retry button — only when no image available */}
+          {!screenshotUrl && !faviconUrl && !isLoadingScreenshot && (
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
               <button
                 onClick={handleRetryScreenshot}

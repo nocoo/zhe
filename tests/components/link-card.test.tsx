@@ -766,6 +766,30 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("重新抓取图片")).toBeInTheDocument();
   });
 
+  it("shows screenshot over favicon in list mode when screenshotUrl exists and previewStyle is favicon", () => {
+    mockVm.previewStyle = "favicon";
+    mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
+    mockVm.screenshotUrl = "https://r2.example.com/manual-screenshot.png";
+    render(<LinkCard {...defaultProps} previewStyle="favicon" />);
+
+    const img = screen.getByAltText("Screenshot");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://r2.example.com/manual-screenshot.png");
+    expect(screen.queryByAltText("Site favicon")).not.toBeInTheDocument();
+  });
+
+  it("shows screenshot over favicon in grid mode when screenshotUrl exists and previewStyle is favicon", () => {
+    mockVm.previewStyle = "favicon";
+    mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
+    mockVm.screenshotUrl = "https://r2.example.com/manual-screenshot.png";
+    render(<LinkCard {...defaultProps} viewMode="grid" previewStyle="favicon" />);
+
+    const img = screen.getByAltText("Screenshot");
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "https://r2.example.com/manual-screenshot.png");
+    expect(screen.queryByAltText("Site favicon")).not.toBeInTheDocument();
+  });
+
   it("defaults to favicon mode when previewStyle prop is not provided", () => {
     mockVm.previewStyle = "favicon";
     mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
