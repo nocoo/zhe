@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   Copy,
   ExternalLink,
@@ -49,7 +49,7 @@ interface LinkCardProps {
   previewStyle?: PreviewStyle;
 }
 
-export function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], previewStyle: previewStyleProp = "favicon" }: LinkCardProps) {
+export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], previewStyle: previewStyleProp = "favicon" }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -498,7 +498,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode =
       )}
     </div>
   );
-}
+});
 
 function BreakdownSection({
   title,
