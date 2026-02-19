@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SettingsPage } from '@/components/dashboard/settings-page';
 import type { ImportResult } from '@/actions/settings';
+import type { PreviewStyle } from '@/models/settings';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -10,14 +11,17 @@ import type { ImportResult } from '@/actions/settings';
 const mockHandleExport = vi.fn();
 const mockHandleImport = vi.fn();
 const mockClearImportResult = vi.fn();
+const mockHandlePreviewStyleChange = vi.fn();
 
 const mockViewModel = {
   isExporting: false,
   isImporting: false,
   importResult: null as ImportResult | null,
+  previewStyle: 'favicon' as PreviewStyle,
   handleExport: mockHandleExport,
   handleImport: mockHandleImport,
   clearImportResult: mockClearImportResult,
+  handlePreviewStyleChange: mockHandlePreviewStyleChange,
 };
 
 vi.mock('@/viewmodels/useSettingsViewModel', () => ({
@@ -57,6 +61,7 @@ describe('SettingsPage', () => {
     mockViewModel.isExporting = false;
     mockViewModel.isImporting = false;
     mockViewModel.importResult = null;
+    mockViewModel.previewStyle = 'favicon';
     mockWebhookVm.token = null;
     mockWebhookVm.createdAt = null;
     mockWebhookVm.rateLimit = 5;
@@ -69,6 +74,7 @@ describe('SettingsPage', () => {
   it('renders page sections', () => {
     render(<SettingsPage />);
 
+    expect(screen.getByText('链接预览')).toBeInTheDocument();
     expect(screen.getByText('数据导出')).toBeInTheDocument();
     expect(screen.getByText('数据导入')).toBeInTheDocument();
     expect(screen.getByText('Webhook')).toBeInTheDocument();
@@ -147,6 +153,56 @@ describe('SettingsPage', () => {
     fireEvent.click(dismissBtn);
 
     expect(mockClearImportResult).toHaveBeenCalled();
+  });
+
+  // ====================================================================
+  // Preview style card
+  // ====================================================================
+
+  describe('preview style card', () => {
+    it('renders favicon and screenshot buttons', () => {
+      render(<SettingsPage />);
+
+      expect(screen.getByTestId('preview-style-favicon')).toBeInTheDocument();
+      expect(screen.getByTestId('preview-style-screenshot')).toBeInTheDocument();
+    });
+
+    it('shows favicon button as active when previewStyle is favicon', () => {
+      mockViewModel.previewStyle = 'favicon';
+      render(<SettingsPage />);
+
+      const faviconBtn = screen.getByTestId('preview-style-favicon');
+      const screenshotBtn = screen.getByTestId('preview-style-screenshot');
+      // "default" variant buttons do not have data-variant="outline"
+      // We check that favicon is not outline (active) and screenshot is outline
+      expect(faviconBtn).toHaveTextContent('Favicon');
+      expect(screenshotBtn).toHaveTextContent('截图');
+    });
+
+    it('calls handlePreviewStyleChange with screenshot when screenshot clicked', () => {
+      render(<SettingsPage />);
+
+      const screenshotBtn = screen.getByTestId('preview-style-screenshot');
+      fireEvent.click(screenshotBtn);
+
+      expect(mockHandlePreviewStyleChange).toHaveBeenCalledWith('screenshot');
+    });
+
+    it('calls handlePreviewStyleChange with favicon when favicon clicked', () => {
+      mockViewModel.previewStyle = 'screenshot';
+      render(<SettingsPage />);
+
+      const faviconBtn = screen.getByTestId('preview-style-favicon');
+      fireEvent.click(faviconBtn);
+
+      expect(mockHandlePreviewStyleChange).toHaveBeenCalledWith('favicon');
+    });
+
+    it('renders description text', () => {
+      render(<SettingsPage />);
+
+      expect(screen.getByText(/选择链接卡片中预览图的显示方式/)).toBeInTheDocument();
+    });
   });
 
   // ====================================================================
