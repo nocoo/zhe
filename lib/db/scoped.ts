@@ -532,15 +532,11 @@ export class ScopedDB {
 
   /** Upsert a webhook token for this user (replaces existing). */
   async upsertWebhook(token: string): Promise<Webhook> {
-    // Delete existing webhook for this user (if any)
-    await executeD1Query(
-      'DELETE FROM webhooks WHERE user_id = ?',
-      [this.userId],
-    );
-
     const now = Date.now();
     const rows = await executeD1Query<Record<string, unknown>>(
-      `INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, 5, ?) RETURNING *`,
+      `INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, 5, ?)
+       ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, created_at = excluded.created_at
+       RETURNING *`,
       [this.userId, token, now],
     );
     return rowToWebhook(rows[0]);

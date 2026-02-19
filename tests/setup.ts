@@ -666,9 +666,17 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
-      // INSERT INTO webhooks
+      // INSERT INTO webhooks ... ON CONFLICT(user_id) DO UPDATE (upsert)
       if (sqlLower.startsWith('insert into webhooks')) {
         const [userId, token, createdAt] = params;
+        const existing = mockWebhooks.get(userId as string);
+        if (existing && sqlLower.includes('on conflict')) {
+          // Update existing webhook (upsert)
+          const raw = existing as unknown as Record<string, unknown>;
+          raw.token = token;
+          raw.created_at = createdAt;
+          return [raw] as T[];
+        }
         const id = getNextWebhookId();
         const webhook = {
           id,
