@@ -71,11 +71,11 @@ function authenticatedSession() {
 const FAKE_UPLOAD = {
   id: 1,
   userId: FAKE_USER_ID,
-  key: '20260212/abc-def.png',
+  key: 'abc123def456/20260212/abc-def.png',
   fileName: 'photo.png',
   fileType: 'image/png',
   fileSize: 1024,
-  publicUrl: 'https://s.zhe.to/20260212/abc-def.png',
+  publicUrl: 'https://s.zhe.to/abc123def456/20260212/abc-def.png',
   createdAt: new Date(),
 };
 
@@ -214,11 +214,11 @@ describe('actions/upload', () => {
   // ====================================================================
   describe('recordUpload', () => {
     const validData = {
-      key: '20260212/abc-def.png',
+      key: 'abc123def456/20260212/abc-def.png',
       fileName: 'photo.png',
       fileType: 'image/png',
       fileSize: 1024,
-      publicUrl: 'https://s.zhe.to/20260212/abc-def.png',
+      publicUrl: 'https://s.zhe.to/abc123def456/20260212/abc-def.png',
     };
 
     it('returns Unauthorized when not authenticated', async () => {
@@ -227,6 +227,33 @@ describe('actions/upload', () => {
       const result = await recordUpload(validData);
 
       expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns error when R2_USER_HASH_SALT is not configured', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      delete process.env.R2_USER_HASH_SALT;
+
+      const result = await recordUpload(validData);
+
+      expect(result).toEqual({
+        success: false,
+        error: 'R2 user hash salt not configured',
+      });
+      expect(mockCreateUpload).not.toHaveBeenCalled();
+    });
+
+    it('rejects key that does not match user hash prefix (forgery defense)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      // mockHashUserId returns 'abc123def456' by default
+      const forgedData = {
+        ...validData,
+        key: 'other-user-hash/20260212/stolen.png',
+      };
+
+      const result = await recordUpload(forgedData);
+
+      expect(result).toEqual({ success: false, error: 'Invalid upload key' });
+      expect(mockCreateUpload).not.toHaveBeenCalled();
     });
 
     it('records upload and returns data on success', async () => {
@@ -335,7 +362,7 @@ describe('actions/upload', () => {
 
     it('deletes from D1 first, then R2 on success', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockGetUploadKey.mockResolvedValue('abc123def456/20260212/abc-def.png');
       mockDeleteR2Object.mockResolvedValue(undefined);
       mockDeleteUpload.mockResolvedValue(true);
 
@@ -344,12 +371,12 @@ describe('actions/upload', () => {
       expect(result).toEqual({ success: true });
       expect(mockGetUploadKey).toHaveBeenCalledWith(1);
       expect(mockDeleteUpload).toHaveBeenCalledWith(1);
-      expect(mockDeleteR2Object).toHaveBeenCalledWith('20260212/abc-def.png');
+      expect(mockDeleteR2Object).toHaveBeenCalledWith('abc123def456/20260212/abc-def.png');
     });
 
     it('succeeds even when R2 deletion fails (best-effort cleanup)', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockGetUploadKey.mockResolvedValue('abc123def456/20260212/abc-def.png');
       mockDeleteUpload.mockResolvedValue(true);
       mockDeleteR2Object.mockRejectedValue(new Error('R2 unavailable'));
 
@@ -363,7 +390,7 @@ describe('actions/upload', () => {
 
     it('returns error when D1 deletion throws Error', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockGetUploadKey.mockResolvedValue('abc123def456/20260212/abc-def.png');
       mockDeleteR2Object.mockResolvedValue(undefined);
       mockDeleteUpload.mockRejectedValue(new Error('D1 constraint'));
 
@@ -374,7 +401,7 @@ describe('actions/upload', () => {
 
     it('succeeds even when R2 deletion throws non-Error value', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockGetUploadKey.mockResolvedValue('abc123def456/20260212/abc-def.png');
       mockDeleteUpload.mockResolvedValue(true);
       mockDeleteR2Object.mockRejectedValue('string-error');
 

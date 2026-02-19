@@ -97,6 +97,17 @@ export async function recordUpload(data: {
       return { success: false, error: 'Unauthorized' };
     }
 
+    // Validate the key belongs to this user's namespace to prevent
+    // recording another user's R2 key (which would allow deleting their objects).
+    const salt = process.env.R2_USER_HASH_SALT;
+    if (!salt) {
+      return { success: false, error: 'R2 user hash salt not configured' };
+    }
+    const userHash = await hashUserId(ctx.userId, salt);
+    if (!data.key.startsWith(`${userHash}/`)) {
+      return { success: false, error: 'Invalid upload key' };
+    }
+
     const upload = await ctx.db.createUpload({
       key: data.key,
       fileName: data.fileName,

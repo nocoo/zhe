@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { hashUserId } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
 // Mocks — auth and R2 (D1 uses the global mock from setup.ts)
@@ -182,14 +183,18 @@ describe('Upload E2E — full lifecycle', () => {
         deleteUpload,
       } = await import('@/actions/upload');
 
+      const salt = process.env.R2_USER_HASH_SALT!;
+      const hashA = await hashUserId(USER_ID, salt);
+      const hashB = await hashUserId(OTHER_USER_ID, salt);
+
       // User A creates an upload
       authenticatedAs(USER_ID);
       const recordA = await recordUpload({
-        key: '20260212/user-a-file.png',
+        key: `${hashA}/20260212/user-a-file.png`,
         fileName: 'user-a.png',
         fileType: 'image/png',
         fileSize: 512,
-        publicUrl: 'https://s.zhe.to/20260212/user-a-file.png',
+        publicUrl: `https://s.zhe.to/${hashA}/20260212/user-a-file.png`,
       });
       expect(recordA.success).toBe(true);
       const uploadAId = recordA.data!.id;
@@ -197,11 +202,11 @@ describe('Upload E2E — full lifecycle', () => {
       // User B creates an upload
       authenticatedAs(OTHER_USER_ID);
       const recordB = await recordUpload({
-        key: '20260212/user-b-file.pdf',
+        key: `${hashB}/20260212/user-b-file.pdf`,
         fileName: 'user-b.pdf',
         fileType: 'application/pdf',
         fileSize: 4096,
-        publicUrl: 'https://s.zhe.to/20260212/user-b-file.pdf',
+        publicUrl: `https://s.zhe.to/${hashB}/20260212/user-b-file.pdf`,
       });
       expect(recordB.success).toBe(true);
 
@@ -283,15 +288,18 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(USER_ID);
       const { recordUpload, getUploads } = await import('@/actions/upload');
 
+      const salt = process.env.R2_USER_HASH_SALT!;
+      const userHash = await hashUserId(USER_ID, salt);
+
       // Create 3 uploads
       const files = ['first.png', 'second.png', 'third.png'];
       for (const fileName of files) {
         await recordUpload({
-          key: `20260212/${fileName}`,
+          key: `${userHash}/20260212/${fileName}`,
           fileName,
           fileType: 'image/png',
           fileSize: 1024,
-          publicUrl: `https://s.zhe.to/20260212/${fileName}`,
+          publicUrl: `https://s.zhe.to/${userHash}/20260212/${fileName}`,
         });
       }
 
