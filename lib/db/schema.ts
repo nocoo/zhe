@@ -117,6 +117,11 @@ export const linkTags = sqliteTable('link_tags', {
   compositePk: primaryKey({ columns: [table.linkId, table.tagId] }),
 }));
 
+export const userSettings = sqliteTable('user_settings', {
+  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  previewStyle: text('preview_style').notNull().default('favicon'),
+});
+
 // ============================================
 // Type exports
 // ============================================
@@ -144,3 +149,6 @@ export type NewTag = typeof tags.$inferInsert;
 
 export type LinkTag = typeof linkTags.$inferSelect;
 export type NewLinkTag = typeof linkTags.$inferInsert;
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type NewUserSettings = typeof userSettings.$inferInsert;
