@@ -101,8 +101,9 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
             metaFavicon: meta.favicon,
           });
         }
-      } catch {
-        // Silently ignore — metadata is best-effort
+      } catch (err) {
+        // Metadata is best-effort — log for observability but never block
+        console.error('Failed to fetch/persist metadata for link', link.id, err);
       }
     })();
 
