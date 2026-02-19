@@ -127,7 +127,7 @@ describe("DashboardService", () => {
       // Suppress console.error from React error boundary
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       expect(() => renderHook(() => useDashboardService())).toThrow(
-        "useDashboardService must be used within a DashboardServiceProvider",
+        "useDashboardState must be used within a DashboardServiceProvider",
       );
       spy.mockRestore();
     });

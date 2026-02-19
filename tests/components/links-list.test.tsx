@@ -43,6 +43,7 @@ const mockService: DashboardService = {
   linkTags: [],
   loading: false,
   siteUrl: 'http://localhost:3000',
+  previewStyle: 'favicon',
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
@@ -55,6 +56,7 @@ const mockService: DashboardService = {
   handleTagUpdated: vi.fn(),
   handleLinkTagAdded: vi.fn(),
   handleLinkTagRemoved: vi.fn(),
+  setPreviewStyle: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({

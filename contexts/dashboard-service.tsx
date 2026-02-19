@@ -15,9 +15,9 @@ import { getLinks } from "@/actions/links";
 import { getTags, getLinkTags } from "@/actions/tags";
 import { getPreviewStyle } from "@/actions/settings";
 
-// ── Service interface ──
+// ── State interface (changes on every data mutation) ──
 
-export interface DashboardService {
+export interface DashboardState {
   /** All links for the current user (full in-memory set) */
   links: Link[];
   /** All folders for the current user */
@@ -32,7 +32,11 @@ export interface DashboardService {
   siteUrl: string;
   /** User's preview style preference */
   previewStyle: PreviewStyle;
+}
 
+// ── Actions interface (stable callback refs) ──
+
+export interface DashboardActions {
   // Links — call after server action succeeds to sync memory
   handleLinkCreated: (link: Link) => void;
   handleLinkDeleted: (id: number) => void;
@@ -58,9 +62,14 @@ export interface DashboardService {
   setPreviewStyle: (style: PreviewStyle) => void;
 }
 
-// ── Context ──
+// ── Combined interface (backward-compatible) ──
 
-const DashboardServiceContext = createContext<DashboardService | null>(null);
+export type DashboardService = DashboardState & DashboardActions;
+
+// ── Contexts ──
+
+const DashboardStateContext = createContext<DashboardState | null>(null);
+const DashboardActionsContext = createContext<DashboardActions | null>(null);
 
 // ── Provider ──
 
@@ -179,9 +188,9 @@ export function DashboardServiceProvider({
     );
   }, []);
 
-  // ── Stable value ──
+  // ── Stable state value (changes when data changes) ──
 
-  const value = useMemo<DashboardService>(
+  const stateValue = useMemo<DashboardState>(
     () => ({
       links,
       folders,
@@ -190,6 +199,14 @@ export function DashboardServiceProvider({
       loading,
       siteUrl,
       previewStyle,
+    }),
+    [links, folders, tags, linkTags, loading, siteUrl, previewStyle],
+  );
+
+  // ── Stable actions value (never changes — all callbacks have [] deps) ──
+
+  const actionsValue = useMemo<DashboardActions>(
+    () => ({
       handleLinkCreated,
       handleLinkDeleted,
       handleLinkUpdated,
@@ -205,13 +222,6 @@ export function DashboardServiceProvider({
       setPreviewStyle,
     }),
     [
-      links,
-      folders,
-      tags,
-      linkTags,
-      loading,
-      siteUrl,
-      previewStyle,
       handleLinkCreated,
       handleLinkDeleted,
       handleLinkUpdated,
@@ -228,20 +238,41 @@ export function DashboardServiceProvider({
   );
 
   return (
-    <DashboardServiceContext.Provider value={value}>
-      {children}
-    </DashboardServiceContext.Provider>
+    <DashboardActionsContext.Provider value={actionsValue}>
+      <DashboardStateContext.Provider value={stateValue}>
+        {children}
+      </DashboardStateContext.Provider>
+    </DashboardActionsContext.Provider>
   );
 }
 
-// ── Hook ──
+// ── Hooks ──
 
-export function useDashboardService(): DashboardService {
-  const ctx = useContext(DashboardServiceContext);
+/** Subscribe to state only — does NOT re-render on action ref changes */
+export function useDashboardState(): DashboardState {
+  const ctx = useContext(DashboardStateContext);
   if (!ctx) {
     throw new Error(
-      "useDashboardService must be used within a DashboardServiceProvider",
+      "useDashboardState must be used within a DashboardServiceProvider",
     );
   }
   return ctx;
+}
+
+/** Subscribe to actions only — never causes re-renders (refs are stable) */
+export function useDashboardActions(): DashboardActions {
+  const ctx = useContext(DashboardActionsContext);
+  if (!ctx) {
+    throw new Error(
+      "useDashboardActions must be used within a DashboardServiceProvider",
+    );
+  }
+  return ctx;
+}
+
+/** Combined hook (backward-compatible) — subscribes to BOTH contexts */
+export function useDashboardService(): DashboardService {
+  const state = useDashboardState();
+  const actions = useDashboardActions();
+  return useMemo(() => ({ ...state, ...actions }), [state, actions]);
 }
