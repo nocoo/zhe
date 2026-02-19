@@ -240,6 +240,7 @@ export function useEditLinkViewModel(
   const [editSlug, setEditSlug] = useState("");
   const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
   const [editNote, setEditNote] = useState("");
+  const [editScreenshotUrl, setEditScreenshotUrl] = useState("");
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -265,6 +266,7 @@ export function useEditLinkViewModel(
       setEditSlug(targetLink.slug);
       setEditFolderId(targetLink.folderId ?? undefined);
       setEditNote(targetLink.note ?? "");
+      setEditScreenshotUrl(targetLink.screenshotUrl ?? "");
       setError("");
       setIsOpen(true);
     },
@@ -284,12 +286,17 @@ export function useEditLinkViewModel(
 
     try {
       // Build update payload — include slug only if changed
-      const payload: { originalUrl: string; folderId?: string; slug?: string } = {
+      const payload: { originalUrl: string; folderId?: string; slug?: string; screenshotUrl?: string | null } = {
         originalUrl: editUrl,
         folderId: editFolderId,
       };
       if (editSlug !== link.slug) {
         payload.slug = editSlug;
+      }
+      // Include screenshotUrl only if changed
+      const currentScreenshotUrl = link.screenshotUrl ?? "";
+      if (editScreenshotUrl !== currentScreenshotUrl) {
+        payload.screenshotUrl = editScreenshotUrl.trim() || null;
       }
 
       // Update link (URL + folder + optional slug)
@@ -315,10 +322,11 @@ export function useEditLinkViewModel(
         }
       }
 
-      // Merge note into the updated link for the callback
+      // Merge note + screenshotUrl into the updated link for the callback
       const updatedLink: Link = {
         ...linkResult.data,
         note: editNote.trim() || null,
+        screenshotUrl: editScreenshotUrl.trim() || null,
       };
       callbacks.onLinkUpdated(updatedLink);
       setIsOpen(false);
@@ -327,7 +335,7 @@ export function useEditLinkViewModel(
     } finally {
       setIsSaving(false);
     }
-  }, [link, editUrl, editSlug, editFolderId, editNote, callbacks]);
+  }, [link, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
 
   // Tag operations — immediate (optimistic)
   const addTag = useCallback(
@@ -381,6 +389,8 @@ export function useEditLinkViewModel(
     setEditFolderId,
     editNote,
     setEditNote,
+    editScreenshotUrl,
+    setEditScreenshotUrl,
     isSaving,
     error,
     assignedTagIds,

@@ -98,6 +98,7 @@ describe('useEditLinkViewModel', () => {
       expect(result.current.editSlug).toBe('');
       expect(result.current.editFolderId).toBeUndefined();
       expect(result.current.editNote).toBe('');
+      expect(result.current.editScreenshotUrl).toBe('');
       expect(result.current.isSaving).toBe(false);
       expect(result.current.error).toBe('');
     });
@@ -154,6 +155,7 @@ describe('useEditLinkViewModel', () => {
         originalUrl: 'https://test.com',
         folderId: 'f1',
         note: 'my note',
+        screenshotUrl: 'https://img.example.com/shot.png',
       });
       const { result } = renderHook(() =>
         useEditLinkViewModel(link, [], [], makeCallbacks()),
@@ -166,11 +168,12 @@ describe('useEditLinkViewModel', () => {
       expect(result.current.editSlug).toBe('abc123');
       expect(result.current.editFolderId).toBe('f1');
       expect(result.current.editNote).toBe('my note');
+      expect(result.current.editScreenshotUrl).toBe('https://img.example.com/shot.png');
       expect(result.current.error).toBe('');
     });
 
-    it('openDialog handles null folderId and note', () => {
-      const link = makeLink({ folderId: null, note: null });
+    it('openDialog handles null folderId, note, and screenshotUrl', () => {
+      const link = makeLink({ folderId: null, note: null, screenshotUrl: null });
       const { result } = renderHook(() =>
         useEditLinkViewModel(link, [], [], makeCallbacks()),
       );
@@ -179,6 +182,7 @@ describe('useEditLinkViewModel', () => {
 
       expect(result.current.editFolderId).toBeUndefined();
       expect(result.current.editNote).toBe('');
+      expect(result.current.editScreenshotUrl).toBe('');
     });
 
     it('closeDialog closes dialog and clears error', () => {
@@ -225,6 +229,7 @@ describe('useEditLinkViewModel', () => {
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith({
         ...updatedLink,
         note: 'new note',
+        screenshotUrl: null,
       });
       expect(result.current.isOpen).toBe(false);
       expect(result.current.isSaving).toBe(false);
@@ -375,6 +380,80 @@ describe('useEditLinkViewModel', () => {
       expect(updateLinkNote).toHaveBeenCalledWith(1, null);
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
         expect.objectContaining({ note: null }),
+      );
+    });
+
+    it('includes screenshotUrl in payload when changed', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: null });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1 }),
+      });
+
+      const { result } = renderHook(() =>
+        useEditLinkViewModel(link, [], [], cbs),
+      );
+
+      act(() => { result.current.openDialog(link); });
+      act(() => { result.current.setEditScreenshotUrl('https://img.example.com/shot.png'); });
+
+      await act(async () => { await result.current.saveEdit(); });
+
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        screenshotUrl: 'https://img.example.com/shot.png',
+      }));
+      expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ screenshotUrl: 'https://img.example.com/shot.png' }),
+      );
+    });
+
+    it('omits screenshotUrl from payload when unchanged', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/existing.png' });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1, screenshotUrl: 'https://img.example.com/existing.png' }),
+      });
+
+      const { result } = renderHook(() =>
+        useEditLinkViewModel(link, [], [], cbs),
+      );
+
+      act(() => { result.current.openDialog(link); });
+      // Do NOT change screenshotUrl
+
+      await act(async () => { await result.current.saveEdit(); });
+
+      const callArgs = vi.mocked(updateLink).mock.calls[0][1];
+      expect(callArgs).not.toHaveProperty('screenshotUrl');
+    });
+
+    it('clears screenshotUrl to null when emptied', async () => {
+      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/old.png' });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValue({
+        success: true,
+        data: makeLink({ id: 1 }),
+      });
+
+      const { result } = renderHook(() =>
+        useEditLinkViewModel(link, [], [], cbs),
+      );
+
+      act(() => { result.current.openDialog(link); });
+      act(() => { result.current.setEditScreenshotUrl(''); });
+
+      await act(async () => { await result.current.saveEdit(); });
+
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
+        screenshotUrl: null,
+      }));
+      expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ screenshotUrl: null }),
       );
     });
   });
