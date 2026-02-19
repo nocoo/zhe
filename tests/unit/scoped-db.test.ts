@@ -1001,4 +1001,67 @@ describe('ScopedDB', () => {
       expect(statsB.totalStorageBytes).toBe(700);
     });
   });
+
+  // ---- User Settings ----------------------------------------
+
+  describe('user settings operations', () => {
+    it('getUserSettings returns null when no settings exist', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.getUserSettings()).toBeNull();
+    });
+
+    it('upsertPreviewStyle creates settings when none exist', async () => {
+      const db = new ScopedDB(USER_A);
+      const settings = await db.upsertPreviewStyle('screenshot');
+
+      expect(settings.userId).toBe(USER_A);
+      expect(settings.previewStyle).toBe('screenshot');
+    });
+
+    it('getUserSettings returns settings after upsert', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertPreviewStyle('favicon');
+
+      const settings = await db.getUserSettings();
+
+      expect(settings).not.toBeNull();
+      expect(settings!.userId).toBe(USER_A);
+      expect(settings!.previewStyle).toBe('favicon');
+    });
+
+    it('upsertPreviewStyle updates existing settings', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertPreviewStyle('favicon');
+
+      const updated = await db.upsertPreviewStyle('screenshot');
+
+      expect(updated.previewStyle).toBe('screenshot');
+
+      const settings = await db.getUserSettings();
+      expect(settings!.previewStyle).toBe('screenshot');
+    });
+
+    it('settings are scoped to user (user isolation)', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.upsertPreviewStyle('screenshot');
+      await dbB.upsertPreviewStyle('favicon');
+
+      const settingsA = await dbA.getUserSettings();
+      const settingsB = await dbB.getUserSettings();
+
+      expect(settingsA!.previewStyle).toBe('screenshot');
+      expect(settingsB!.previewStyle).toBe('favicon');
+    });
+
+    it('user without settings does not see other user settings', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.upsertPreviewStyle('screenshot');
+
+      expect(await dbB.getUserSettings()).toBeNull();
+    });
+  });
 });

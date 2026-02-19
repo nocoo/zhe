@@ -11,6 +11,12 @@ export interface MockLinkTag {
   tag_id: string;
 }
 
+// UserSettings raw row shape (matches D1 column names)
+export interface MockUserSettings {
+  user_id: string;
+  preview_style: string;
+}
+
 // In-memory storage
 const mockLinks = new Map<string, Link>();
 const mockAnalytics: Analytics[] = [];
@@ -19,6 +25,7 @@ const mockFolders = new Map<string, Folder>();
 const mockWebhooks = new Map<string, Webhook>(); // keyed by userId
 const mockTags = new Map<string, Tag>();
 const mockLinkTags: MockLinkTag[] = [];
+const mockUserSettings = new Map<string, MockUserSettings>(); // keyed by userId
 let nextLinkId = 1;
 let nextAnalyticsId = 1;
 let nextUploadId = 1;
@@ -32,6 +39,7 @@ export function clearMockStorage(): void {
   mockWebhooks.clear();
   mockTags.clear();
   mockLinkTags.length = 0;
+  mockUserSettings.clear();
   nextLinkId = 1;
   nextAnalyticsId = 1;
   nextUploadId = 1;
@@ -64,6 +72,10 @@ export function getMockTags(): Map<string, Tag> {
 
 export function getMockLinkTags(): MockLinkTag[] {
   return mockLinkTags;
+}
+
+export function getMockUserSettings(): Map<string, MockUserSettings> {
+  return mockUserSettings;
 }
 
 export function getNextLinkId(): number {

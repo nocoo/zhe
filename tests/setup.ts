@@ -20,7 +20,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
@@ -667,6 +667,25 @@ vi.mock('@/lib/db/d1-client', async () => {
           return [raw] as T[];
         }
         return [];
+      }
+
+      // ---- User Settings ----
+
+      // SELECT FROM user_settings WHERE user_id = ?
+      if (sqlLower.includes('from user_settings') && sqlLower.includes('where user_id = ?')) {
+        const [userId] = params;
+        const mockSettings = getMockUserSettings();
+        const settings = mockSettings.get(userId as string);
+        return settings ? [settings] as T[] : [];
+      }
+
+      // INSERT INTO user_settings ... ON CONFLICT ... DO UPDATE (upsert)
+      if (sqlLower.startsWith('insert into user_settings')) {
+        const [userId, previewStyle] = params;
+        const mockSettings = getMockUserSettings();
+        const settings = { user_id: userId as string, preview_style: previewStyle as string };
+        mockSettings.set(userId as string, settings);
+        return [settings] as T[];
       }
 
       console.warn('Unhandled SQL in mock:', sql);

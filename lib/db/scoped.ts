@@ -10,7 +10,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag } from './schema';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings } from './schema';
 
 // ============================================
 // Row conversion helpers (shared with index.ts)
@@ -96,6 +96,13 @@ function rowToLinkTag(row: Record<string, unknown>): LinkTag {
   return {
     linkId: row.link_id as number,
     tagId: row.tag_id as string,
+  };
+}
+
+function rowToUserSettings(row: Record<string, unknown>): UserSettings {
+  return {
+    userId: row.user_id as string,
+    previewStyle: row.preview_style as string,
   };
 }
 
@@ -671,5 +678,28 @@ export class ScopedDB {
       [note, id, this.userId],
     );
     return rows[0] ? rowToLink(rows[0]) : null;
+  }
+
+  // ---- User Settings ----------------------------------------
+
+  /** Get user settings, or null if no row exists yet. */
+  async getUserSettings(): Promise<UserSettings | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM user_settings WHERE user_id = ? LIMIT 1',
+      [this.userId],
+    );
+    return rows[0] ? rowToUserSettings(rows[0]) : null;
+  }
+
+  /** Insert or update the preview style setting. Returns the upserted row. */
+  async upsertPreviewStyle(previewStyle: string): Promise<UserSettings> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO user_settings (user_id, preview_style)
+       VALUES (?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET preview_style = excluded.preview_style
+       RETURNING *`,
+      [this.userId, previewStyle],
+    );
+    return rowToUserSettings(rows[0]);
   }
 }
