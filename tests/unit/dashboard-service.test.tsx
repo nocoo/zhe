@@ -14,8 +14,13 @@ vi.mock("@/actions/tags", () => ({
   getLinkTags: vi.fn(),
 }));
 
+vi.mock("@/actions/settings", () => ({
+  getPreviewStyle: vi.fn(),
+}));
+
 import { getLinks } from "@/actions/links";
 import { getTags, getLinkTags } from "@/actions/tags";
+import { getPreviewStyle } from "@/actions/settings";
 import {
   DashboardServiceProvider,
   useDashboardService,
@@ -108,6 +113,7 @@ describe("DashboardService", () => {
     vi.mocked(getLinks).mockResolvedValue({ success: true, data: [] });
     vi.mocked(getTags).mockResolvedValue({ success: true, data: [] });
     vi.mocked(getLinkTags).mockResolvedValue({ success: true, data: [] });
+    vi.mocked(getPreviewStyle).mockResolvedValue({ success: true, data: "favicon" });
   });
 
   afterEach(() => {
@@ -492,6 +498,42 @@ describe("DashboardService", () => {
       expect(result.current.linkTags.find(
         (lt) => lt.linkId === 1 && lt.tagId === "t1"
       )).toBeUndefined();
+    });
+  });
+
+  // ── Preview style ──
+
+  describe("preview style", () => {
+    it("defaults to 'favicon' when getPreviewStyle returns no data", async () => {
+      vi.mocked(getPreviewStyle).mockResolvedValue({ success: false, error: "fail" });
+
+      const { result } = await renderService();
+      expect(result.current.previewStyle).toBe("favicon");
+    });
+
+    it("loads 'screenshot' from server on mount", async () => {
+      vi.mocked(getPreviewStyle).mockResolvedValue({ success: true, data: "screenshot" });
+
+      const { result } = await renderService();
+      expect(result.current.previewStyle).toBe("screenshot");
+    });
+
+    it("setPreviewStyle updates the value in context", async () => {
+      vi.mocked(getPreviewStyle).mockResolvedValue({ success: true, data: "favicon" });
+
+      const { result } = await renderService();
+      expect(result.current.previewStyle).toBe("favicon");
+
+      act(() => {
+        result.current.setPreviewStyle("screenshot");
+      });
+
+      expect(result.current.previewStyle).toBe("screenshot");
+    });
+
+    it("fetches preview style alongside links and tags", async () => {
+      await renderService();
+      expect(getPreviewStyle).toHaveBeenCalledOnce();
     });
   });
 
