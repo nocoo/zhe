@@ -33,6 +33,11 @@ export function useLinkCardViewModel(
   );
   const [isLoadingScreenshot, setIsLoadingScreenshot] = useState(false);
 
+  // Sync local screenshot state when parent prop changes (e.g. after edit-save)
+  useEffect(() => {
+    setScreenshotUrl(link.screenshotUrl ?? null);
+  }, [link.screenshotUrl]);
+
   const shortUrl = buildShortUrl(siteUrl, link.slug);
 
   // Auto-fetch text metadata (title/description/favicon) if all missing.
@@ -312,26 +317,31 @@ export function useEditLinkViewModel(
 
       // Update note (only if changed)
       const currentNote = link.note ?? "";
+      let noteSaved = true;
       if (editNote !== currentNote) {
         const noteResult = await updateLinkNote(
           link.id,
           editNote.trim() || null,
         );
         if (!noteResult.success) {
-          setError(noteResult.error || "Failed to update note");
-          setIsSaving(false);
-          return;
+          noteSaved = false;
         }
       }
 
-      // Merge note + screenshotUrl into the updated link for the callback
+      // Always sync updated link back to the list — even if note failed,
+      // the primary link update already succeeded on the server.
       const updatedLink: Link = {
         ...linkResult.data,
-        note: editNote.trim() || null,
+        note: noteSaved ? (editNote.trim() || null) : (link.note ?? null),
         screenshotUrl: editScreenshotUrl.trim() || null,
       };
       callbacks.onLinkUpdated(updatedLink);
       setIsOpen(false);
+
+      // Show note error after closing dialog so the list still updates
+      if (!noteSaved) {
+        setError("Link saved but note update failed");
+      }
     } catch {
       setError("An unexpected error occurred");
     } finally {

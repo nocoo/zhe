@@ -319,7 +319,7 @@ describe('useEditLinkViewModel', () => {
       expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
-    it('sets error when updateLinkNote fails', async () => {
+    it('still updates list when updateLinkNote fails, shows warning', async () => {
       const link = makeLink({ id: 1, note: null });
       const cbs = makeCallbacks();
 
@@ -341,9 +341,14 @@ describe('useEditLinkViewModel', () => {
 
       await act(async () => { await result.current.saveEdit(); });
 
-      expect(result.current.error).toBe('Note too long');
-      expect(result.current.isOpen).toBe(true);
-      expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
+      // Link update succeeded — list should still be updated
+      expect(cbs.onLinkUpdated).toHaveBeenCalled();
+      // Updated link should keep original note since note save failed
+      const updatedLink = vi.mocked(cbs.onLinkUpdated).mock.calls[0][0];
+      expect(updatedLink.note).toBeNull();
+      // Dialog closes but error is shown
+      expect(result.current.isOpen).toBe(false);
+      expect(result.current.error).toBe('Link saved but note update failed');
     });
 
     it('does nothing when link is null', async () => {
