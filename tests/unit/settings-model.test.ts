@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   serializeLinksForExport,
   parseImportPayload,
+  buildFaviconUrl,
+  parsePreviewStyle,
+  DEFAULT_PREVIEW_STYLE,
+  PREVIEW_STYLES,
   type ExportedLink,
 } from '@/models/settings';
 import type { Link } from '@/models/types';
@@ -177,6 +181,78 @@ describe('models/settings', () => {
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
+    });
+  });
+
+  describe('buildFaviconUrl', () => {
+    it('returns favicon.im URL with hostname and larger=true', () => {
+      expect(buildFaviconUrl('https://example.com/page')).toBe(
+        'https://favicon.im/example.com?larger=true',
+      );
+    });
+
+    it('extracts hostname from URL with path and query', () => {
+      expect(buildFaviconUrl('https://docs.github.com/en/actions?q=1')).toBe(
+        'https://favicon.im/docs.github.com?larger=true',
+      );
+    });
+
+    it('handles http URLs', () => {
+      expect(buildFaviconUrl('http://example.org')).toBe(
+        'https://favicon.im/example.org?larger=true',
+      );
+    });
+
+    it('returns null for invalid URLs', () => {
+      expect(buildFaviconUrl('not-a-url')).toBeNull();
+    });
+
+    it('returns null for empty string', () => {
+      expect(buildFaviconUrl('')).toBeNull();
+    });
+
+    it('handles URLs with ports (hostname only, no port)', () => {
+      expect(buildFaviconUrl('https://localhost:3000/api')).toBe(
+        'https://favicon.im/localhost?larger=true',
+      );
+    });
+  });
+
+  describe('parsePreviewStyle', () => {
+    it('returns "favicon" for "favicon"', () => {
+      expect(parsePreviewStyle('favicon')).toBe('favicon');
+    });
+
+    it('returns "screenshot" for "screenshot"', () => {
+      expect(parsePreviewStyle('screenshot')).toBe('screenshot');
+    });
+
+    it('returns default for invalid string', () => {
+      expect(parsePreviewStyle('invalid')).toBe(DEFAULT_PREVIEW_STYLE);
+    });
+
+    it('returns default for undefined', () => {
+      expect(parsePreviewStyle(undefined)).toBe(DEFAULT_PREVIEW_STYLE);
+    });
+
+    it('returns default for null', () => {
+      expect(parsePreviewStyle(null)).toBe(DEFAULT_PREVIEW_STYLE);
+    });
+
+    it('returns default for number', () => {
+      expect(parsePreviewStyle(42)).toBe(DEFAULT_PREVIEW_STYLE);
+    });
+  });
+
+  describe('PREVIEW_STYLES', () => {
+    it('contains both style options', () => {
+      expect(PREVIEW_STYLES).toEqual(['favicon', 'screenshot']);
+    });
+  });
+
+  describe('DEFAULT_PREVIEW_STYLE', () => {
+    it('is "favicon"', () => {
+      expect(DEFAULT_PREVIEW_STYLE).toBe('favicon');
     });
   });
 });

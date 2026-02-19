@@ -2,6 +2,42 @@
 
 import type { Link } from "./types";
 
+// ============================================
+// Preview style
+// ============================================
+
+/** Available preview image rendering modes */
+export type PreviewStyle = "favicon" | "screenshot";
+
+/** All valid preview style values */
+export const PREVIEW_STYLES: PreviewStyle[] = ["favicon", "screenshot"];
+
+/** Default preview style for new users */
+export const DEFAULT_PREVIEW_STYLE: PreviewStyle = "favicon";
+
+/**
+ * Build a favicon.im URL for the given original link URL.
+ * Returns `null` if the URL is invalid or cannot be parsed.
+ */
+export function buildFaviconUrl(originalUrl: string): string | null {
+  try {
+    const { hostname } = new URL(originalUrl);
+    if (!hostname) return null;
+    return `https://favicon.im/${hostname}?larger=true`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validate that a string is a valid PreviewStyle.
+ * Returns the validated value or the default if invalid.
+ */
+export function parsePreviewStyle(value: unknown): PreviewStyle {
+  if (value === "favicon" || value === "screenshot") return value;
+  return DEFAULT_PREVIEW_STYLE;
+}
+
 /** Exported link shape — stripped of internal fields */
 export interface ExportedLink {
   originalUrl: string;
