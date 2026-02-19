@@ -8,8 +8,8 @@ interface OverviewRawStats {
   totalClicks: number;
   totalUploads: number;
   totalStorageBytes: number;
-  clickTimestamps: Date[];
-  uploadTimestamps: Date[];
+  clickTrend: { date: string; clicks: number }[];
+  uploadTrend: { date: string; uploads: number }[];
   topLinks: { slug: string; originalUrl: string; clicks: number }[];
   deviceBreakdown: Record<string, number>;
   browserBreakdown: Record<string, number>;

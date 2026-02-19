@@ -455,22 +455,22 @@ export class ScopedDB {
 
   /**
    * Get aggregated overview stats across all user-owned links, analytics, and uploads.
-   * Returns counts, breakdowns, click timestamps (for trend building), and top links.
+   * All aggregation is done at the SQL level — no raw row fetching.
    */
   async getOverviewStats(): Promise<{
     totalLinks: number;
     totalClicks: number;
     totalUploads: number;
     totalStorageBytes: number;
-    clickTimestamps: Date[];
-    uploadTimestamps: Date[];
+    clickTrend: { date: string; clicks: number }[];
+    uploadTrend: { date: string; uploads: number }[];
     topLinks: { slug: string; originalUrl: string; clicks: number }[];
     deviceBreakdown: Record<string, number>;
     browserBreakdown: Record<string, number>;
     osBreakdown: Record<string, number>;
     fileTypeBreakdown: Record<string, number>;
   }> {
-    // Fetch all user data in parallel
+    // Fetch links and uploads for basic counts (already small result sets)
     const [links, uploads] = await Promise.all([
       this.getLinks(),
       this.getUploads(),
@@ -488,47 +488,71 @@ export class ScopedDB {
     // Upload stats
     const totalUploads = uploads.length;
     const totalStorageBytes = uploads.reduce((sum, u) => sum + u.fileSize, 0);
-    const uploadTimestamps = uploads.map(u => u.createdAt);
 
-    // File type breakdown
+    // Upload trend: GROUP BY date in JS (uploads are already fetched, typically small)
+    const uploadDateCounts = new Map<string, number>();
+    for (const u of uploads) {
+      const date = u.createdAt.toISOString().slice(0, 10);
+      uploadDateCounts.set(date, (uploadDateCounts.get(date) ?? 0) + 1);
+    }
+    const uploadTrend = Array.from(uploadDateCounts.entries())
+      .map(([date, count]) => ({ date, uploads: count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // File type breakdown from already-fetched uploads
     const fileTypes: Record<string, number> = {};
     for (const upload of uploads) {
       fileTypes[upload.fileType] = (fileTypes[upload.fileType] || 0) + 1;
     }
 
-    // Fetch all analytics for the user in a single query (avoids N+1)
-    const analyticsRows = await executeD1Query<Record<string, unknown>>(
-      `SELECT a.* FROM analytics a
-       JOIN links l ON a.link_id = l.id
-       WHERE l.user_id = ?
-       ORDER BY a.created_at DESC`,
-      [this.userId],
-    );
-    const allAnalytics = analyticsRows.map(rowToAnalytics);
+    // Analytics aggregations — all done in SQL via JOINs for ownership
+    const analyticsJoin = 'FROM analytics a JOIN links l ON a.link_id = l.id WHERE l.user_id = ?';
+    const analyticsParams = [this.userId];
 
-    const clickTimestamps = allAnalytics.map(a => a.createdAt);
+    const [clickTrendRows, deviceRows, browserRows, osRows] = await Promise.all([
+      executeD1Query<Record<string, unknown>>(
+        `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
+        analyticsParams,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.device, COUNT(*) as count ${analyticsJoin} AND a.device IS NOT NULL GROUP BY a.device`,
+        analyticsParams,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.browser, COUNT(*) as count ${analyticsJoin} AND a.browser IS NOT NULL GROUP BY a.browser`,
+        analyticsParams,
+      ),
+      executeD1Query<Record<string, unknown>>(
+        `SELECT a.os, COUNT(*) as count ${analyticsJoin} AND a.os IS NOT NULL GROUP BY a.os`,
+        analyticsParams,
+      ),
+    ]);
 
-    const devices: Record<string, number> = {};
-    const browsers: Record<string, number> = {};
-    const oses: Record<string, number> = {};
+    const clickTrend = clickTrendRows.map(r => ({
+      date: r.date as string,
+      clicks: r.clicks as number,
+    }));
 
-    for (const record of allAnalytics) {
-      if (record.device) devices[record.device] = (devices[record.device] || 0) + 1;
-      if (record.browser) browsers[record.browser] = (browsers[record.browser] || 0) + 1;
-      if (record.os) oses[record.os] = (oses[record.os] || 0) + 1;
-    }
+    const deviceBreakdown: Record<string, number> = {};
+    for (const r of deviceRows) deviceBreakdown[r.device as string] = r.count as number;
+
+    const browserBreakdown: Record<string, number> = {};
+    for (const r of browserRows) browserBreakdown[r.browser as string] = r.count as number;
+
+    const osBreakdown: Record<string, number> = {};
+    for (const r of osRows) osBreakdown[r.os as string] = r.count as number;
 
     return {
       totalLinks,
       totalClicks,
       totalUploads,
       totalStorageBytes,
-      clickTimestamps,
-      uploadTimestamps,
+      clickTrend,
+      uploadTrend,
       topLinks,
-      deviceBreakdown: devices,
-      browserBreakdown: browsers,
-      osBreakdown: oses,
+      deviceBreakdown,
+      browserBreakdown,
+      osBreakdown,
       fileTypeBreakdown: fileTypes,
     };
   }

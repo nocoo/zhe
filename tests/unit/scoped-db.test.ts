@@ -890,8 +890,8 @@ describe('ScopedDB', () => {
       expect(stats.totalClicks).toBe(0);
       expect(stats.totalUploads).toBe(0);
       expect(stats.totalStorageBytes).toBe(0);
-      expect(stats.clickTimestamps).toEqual([]);
-      expect(stats.uploadTimestamps).toEqual([]);
+      expect(stats.clickTrend).toEqual([]);
+      expect(stats.uploadTrend).toEqual([]);
       expect(stats.topLinks).toEqual([]);
       expect(stats.deviceBreakdown).toEqual({});
       expect(stats.browserBreakdown).toEqual({});
@@ -914,7 +914,8 @@ describe('ScopedDB', () => {
       expect(stats.totalLinks).toBe(2);
       // totalClicks comes from sum of links.clicks column (10 + 5 initial + 3 recorded = 18)
       expect(stats.totalClicks).toBe(18);
-      expect(stats.clickTimestamps).toHaveLength(3);
+      expect(stats.clickTrend).toHaveLength(1); // all 3 clicks on same day
+      expect(stats.clickTrend[0].clicks).toBe(3);
     });
 
     it('does not include other users data', async () => {
@@ -929,11 +930,11 @@ describe('ScopedDB', () => {
       expect(statsA.totalLinks).toBe(1);
       expect(statsA.totalClicks).toBe(100);
       // Alice should not see Bob's analytics
-      expect(statsA.clickTimestamps).toHaveLength(0);
+      expect(statsA.clickTrend).toHaveLength(0);
 
       const statsB = await dbB.getOverviewStats();
       expect(statsB.totalLinks).toBe(1);
-      expect(statsB.clickTimestamps).toHaveLength(1);
+      expect(statsB.clickTrend).toHaveLength(1);
     });
 
     it('computes device/browser/OS breakdowns across all links', async () => {
@@ -989,7 +990,8 @@ describe('ScopedDB', () => {
 
       expect(stats.totalUploads).toBe(2);
       expect(stats.totalStorageBytes).toBe(3072);
-      expect(stats.uploadTimestamps).toHaveLength(2);
+      expect(stats.uploadTrend).toHaveLength(1); // both uploads on same day
+      expect(stats.uploadTrend[0].uploads).toBe(2);
       expect(stats.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
     });
 

@@ -216,6 +216,52 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [record] as T[];
       }
       
+      // SELECT date(...) as date, COUNT(*) as clicks FROM analytics a JOIN links ... GROUP BY date (overview click trend)
+      if (sqlLower.includes('count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('group by date') && !sqlLower.includes('a.link_id = ?')) {
+        const [userId] = params;
+        const userLinkIds = new Set<number>();
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) userLinkIds.add(rawLink.id as number);
+        }
+        const dateCounts: Record<string, number> = {};
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (userLinkIds.has(rawA.link_id as number)) {
+            const date = new Date(rawA.created_at as number).toISOString().slice(0, 10);
+            dateCounts[date] = (dateCounts[date] || 0) + 1;
+          }
+        }
+        return Object.entries(dateCounts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, clicks]) => ({ date, clicks })) as T[];
+      }
+
+      // SELECT a.device/browser/os, COUNT(*) as count FROM analytics a JOIN links ... GROUP BY ... (overview breakdown, no link_id filter)
+      if (sqlLower.includes('count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('group by') && !sqlLower.includes('a.link_id = ?')) {
+        const [userId] = params;
+        const userLinkIds = new Set<number>();
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) userLinkIds.add(rawLink.id as number);
+        }
+        let field: string;
+        if (sqlLower.includes('group by a.device')) field = 'device';
+        else if (sqlLower.includes('group by a.browser')) field = 'browser';
+        else if (sqlLower.includes('group by a.os')) field = 'os';
+        else return [] as T[];
+
+        const counts: Record<string, number> = {};
+        for (const a of mockAnalytics) {
+          const rawA = a as unknown as Record<string, unknown>;
+          if (userLinkIds.has(rawA.link_id as number) && rawA[field] != null) {
+            const val = rawA[field] as string;
+            counts[val] = (counts[val] || 0) + 1;
+          }
+        }
+        return Object.entries(counts).map(([key, count]) => ({ [field]: key, count })) as T[];
+      }
+
       // SELECT a.* FROM analytics a JOIN links l ON ... WHERE l.user_id = ?
       // (ScopedDB bulk analytics query — all analytics for a user, no specific link_id filter)
       if (sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('user_id') && !sqlLower.includes('a.link_id = ?')) {

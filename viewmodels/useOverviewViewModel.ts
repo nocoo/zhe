@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { getOverviewStats } from '@/actions/overview';
-import { buildClickTrend, buildUploadTrend } from '@/models/overview';
 import type { OverviewStats } from '@/models/overview';
 
 export interface OverviewViewModelState {
@@ -11,7 +10,7 @@ export interface OverviewViewModelState {
 
 /**
  * ViewModel for the overview / dashboard page.
- * Fetches aggregated stats on mount and transforms raw data into chart-ready shapes.
+ * Fetches pre-aggregated stats on mount.
  */
 export function useOverviewViewModel(): OverviewViewModelState {
   const [loading, setLoading] = useState(true);
@@ -31,16 +30,14 @@ export function useOverviewViewModel(): OverviewViewModelState {
           setStats(null);
         } else {
           const raw = result.data;
-          const clickTrend = buildClickTrend(raw.clickTimestamps);
-          const uploadTrend = buildUploadTrend(raw.uploadTimestamps);
 
           setStats({
             totalLinks: raw.totalLinks,
             totalClicks: raw.totalClicks,
             totalUploads: raw.totalUploads,
             totalStorageBytes: raw.totalStorageBytes,
-            clickTrend,
-            uploadTrend,
+            clickTrend: raw.clickTrend,
+            uploadTrend: raw.uploadTrend,
             topLinks: raw.topLinks,
             deviceBreakdown: raw.deviceBreakdown,
             browserBreakdown: raw.browserBreakdown,
