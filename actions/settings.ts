@@ -5,8 +5,10 @@ import { ScopedDB } from '@/lib/db/scoped';
 import { slugExists } from '@/lib/db';
 import {
   parseImportPayload,
+  parsePreviewStyle,
   serializeLinksForExport,
   type ExportedLink,
+  type PreviewStyle,
 } from '@/models/settings';
 
 /**
@@ -89,5 +91,51 @@ export async function exportLinks(): Promise<{
   } catch (error) {
     console.error('Failed to export links:', error);
     return { success: false, error: 'Failed to export links' };
+  }
+}
+
+/**
+ * Get the preview style setting for the current user.
+ * Returns the default ('favicon') if no setting exists.
+ */
+export async function getPreviewStyle(): Promise<{
+  success: boolean;
+  data?: PreviewStyle;
+  error?: string;
+}> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const settings = await db.getUserSettings();
+    const style = parsePreviewStyle(settings?.previewStyle);
+    return { success: true, data: style };
+  } catch (error) {
+    console.error('Failed to get preview style:', error);
+    return { success: false, error: 'Failed to get preview style' };
+  }
+}
+
+/**
+ * Update the preview style setting for the current user.
+ * Creates the row if it doesn't exist (upsert).
+ */
+export async function updatePreviewStyle(
+  value: string,
+): Promise<{ success: boolean; data?: PreviewStyle; error?: string }> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const style = parsePreviewStyle(value);
+    await db.upsertPreviewStyle(style);
+    return { success: true, data: style };
+  } catch (error) {
+    console.error('Failed to update preview style:', error);
+    return { success: false, error: 'Failed to update preview style' };
   }
 }

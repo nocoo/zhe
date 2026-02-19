@@ -16,11 +16,15 @@ vi.mock('@/lib/db', () => ({
 
 const mockCreateLink = vi.fn();
 const mockGetLinks = vi.fn();
+const mockGetUserSettings = vi.fn();
+const mockUpsertPreviewStyle = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(() => ({
     createLink: mockCreateLink,
     getLinks: mockGetLinks,
+    getUserSettings: mockGetUserSettings,
+    upsertPreviewStyle: mockUpsertPreviewStyle,
   })),
 }));
 
@@ -31,7 +35,7 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 // Import the module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { importLinks, exportLinks } from '@/actions/settings';
+import { importLinks, exportLinks, getPreviewStyle, updatePreviewStyle } from '@/actions/settings';
 import type { ExportedLink } from '@/models/settings';
 
 // ---------------------------------------------------------------------------
@@ -235,6 +239,122 @@ describe('actions/settings', () => {
       const result = await exportLinks();
 
       expect(result).toEqual({ success: false, error: 'Failed to export links' });
+    });
+  });
+
+  // ====================================================================
+  // getPreviewStyle
+  // ====================================================================
+  describe('getPreviewStyle', () => {
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await getPreviewStyle();
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns default "favicon" when no settings row exists', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetUserSettings.mockResolvedValue(null);
+
+      const result = await getPreviewStyle();
+
+      expect(result).toEqual({ success: true, data: 'favicon' });
+    });
+
+    it('returns "screenshot" when stored in DB', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetUserSettings.mockResolvedValue({
+        userId: FAKE_USER_ID,
+        previewStyle: 'screenshot',
+      });
+
+      const result = await getPreviewStyle();
+
+      expect(result).toEqual({ success: true, data: 'screenshot' });
+    });
+
+    it('returns default for invalid stored value', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetUserSettings.mockResolvedValue({
+        userId: FAKE_USER_ID,
+        previewStyle: 'invalid-garbage',
+      });
+
+      const result = await getPreviewStyle();
+
+      expect(result).toEqual({ success: true, data: 'favicon' });
+    });
+
+    it('returns error when getUserSettings throws', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetUserSettings.mockRejectedValue(new Error('DB error'));
+
+      const result = await getPreviewStyle();
+
+      expect(result).toEqual({ success: false, error: 'Failed to get preview style' });
+    });
+  });
+
+  // ====================================================================
+  // updatePreviewStyle
+  // ====================================================================
+  describe('updatePreviewStyle', () => {
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await updatePreviewStyle('screenshot');
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('upserts "screenshot" and returns it', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpsertPreviewStyle.mockResolvedValue({
+        userId: FAKE_USER_ID,
+        previewStyle: 'screenshot',
+      });
+
+      const result = await updatePreviewStyle('screenshot');
+
+      expect(result).toEqual({ success: true, data: 'screenshot' });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('screenshot');
+    });
+
+    it('upserts "favicon" and returns it', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpsertPreviewStyle.mockResolvedValue({
+        userId: FAKE_USER_ID,
+        previewStyle: 'favicon',
+      });
+
+      const result = await updatePreviewStyle('favicon');
+
+      expect(result).toEqual({ success: true, data: 'favicon' });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('favicon');
+    });
+
+    it('normalizes invalid value to default before upserting', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpsertPreviewStyle.mockResolvedValue({
+        userId: FAKE_USER_ID,
+        previewStyle: 'favicon',
+      });
+
+      const result = await updatePreviewStyle('bogus');
+
+      expect(result).toEqual({ success: true, data: 'favicon' });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('favicon');
+    });
+
+    it('returns error when upsertPreviewStyle throws', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpsertPreviewStyle.mockRejectedValue(new Error('DB error'));
+
+      const result = await updatePreviewStyle('screenshot');
+
+      expect(result).toEqual({ success: false, error: 'Failed to update preview style' });
     });
   });
 });
