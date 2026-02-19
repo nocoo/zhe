@@ -53,8 +53,10 @@ export function useLinkCardViewModel(
     return () => { cancelled = true; };
   }, [link.id, skipAutoFetch, onUpdate]);
 
-  // Compute favicon URL when in favicon mode
-  const faviconUrl = previewStyle === "favicon" ? buildFaviconUrl(link.originalUrl) : null;
+  // Compute favicon URL: DB screenshotUrl takes absolute priority over previewStyle
+  const faviconUrl = screenshotUrl ? null
+    : previewStyle === "favicon" ? buildFaviconUrl(link.originalUrl)
+    : null;
 
   // Fetch screenshot from Microlink if not persisted in DB yet (screenshot mode only)
   useEffect(() => {

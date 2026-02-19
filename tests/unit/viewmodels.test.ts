@@ -569,6 +569,18 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.previewStyle).toBe('favicon');
     expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
   });
+
+  it('returns faviconUrl=null in favicon mode when screenshotUrl exists in DB', () => {
+    const linkWithScreenshot = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: 'https://img.example.com/shot.png' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(linkWithScreenshot, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
+    );
+
+    expect(result.current.faviconUrl).toBeNull();
+    expect(result.current.screenshotUrl).toBe('https://img.example.com/shot.png');
+    expect(result.current.previewStyle).toBe('favicon');
+  });
 });
 
 // ---------------------------------------------------------------------------
