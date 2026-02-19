@@ -321,14 +321,48 @@ export async function saveScreenshot(
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Download the screenshot image from the external URL
-    const res = await fetch(screenshotUrl);
+    // SSRF defense: validate URL before fetching
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(screenshotUrl);
+    } catch {
+      return { success: false, error: 'Invalid screenshot URL' };
+    }
+    if (parsedUrl.protocol !== 'https:') {
+      return { success: false, error: 'Only HTTPS URLs are allowed' };
+    }
+
+    // Download the screenshot image with timeout and size limit
+    const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024; // 10 MB
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    let res: Response;
+    try {
+      res = await fetch(screenshotUrl, { signal: controller.signal });
+    } catch (err) {
+      clearTimeout(timeout);
+      const message = err instanceof Error && err.name === 'AbortError'
+        ? 'Screenshot download timed out'
+        : 'Failed to download screenshot';
+      return { success: false, error: message };
+    }
+    clearTimeout(timeout);
     if (!res.ok) {
       return { success: false, error: 'Failed to download screenshot' };
     }
 
+    // Reject responses that declare an oversized Content-Length upfront
+    const declaredLength = Number(res.headers.get('content-length') || '0');
+    if (declaredLength > MAX_SCREENSHOT_BYTES) {
+      return { success: false, error: 'Screenshot too large' };
+    }
+
     const contentType = res.headers.get('content-type') || 'image/png';
-    const buffer = new Uint8Array(await res.arrayBuffer());
+    const rawBuffer = await res.arrayBuffer();
+    if (rawBuffer.byteLength > MAX_SCREENSHOT_BYTES) {
+      return { success: false, error: 'Screenshot too large' };
+    }
+    const buffer = new Uint8Array(rawBuffer);
 
     // Generate R2 key and upload
     const salt = process.env.R2_USER_HASH_SALT;

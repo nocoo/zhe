@@ -831,8 +831,8 @@ describe('actions/links — uncovered paths', () => {
       const result = await saveScreenshot(1, MICROLINK_URL);
 
       expect(result).toEqual({ success: true, data: updatedLink });
-      // Verify download
-      expect(fetch).toHaveBeenCalledWith(MICROLINK_URL);
+      // Verify download (with AbortSignal for timeout)
+      expect(fetch).toHaveBeenCalledWith(MICROLINK_URL, { signal: expect.any(AbortSignal) });
       // Verify R2 upload
       expect(mockUploadBufferToR2).toHaveBeenCalledWith(
         'abc123/20260218/uuid.png',
@@ -945,6 +945,63 @@ describe('actions/links — uncovered paths', () => {
         expect.any(Uint8Array),
         'image/png', // fallback
       );
+
+      vi.unstubAllGlobals();
+    });
+
+    it('rejects non-HTTPS URLs (SSRF defense)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const result = await saveScreenshot(1, 'http://internal-server/secret');
+
+      expect(result).toEqual({ success: false, error: 'Only HTTPS URLs are allowed' });
+    });
+
+    it('rejects invalid URLs (SSRF defense)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const result = await saveScreenshot(1, 'not-a-url');
+
+      expect(result).toEqual({ success: false, error: 'Invalid screenshot URL' });
+    });
+
+    it('rejects file:// protocol URLs (SSRF defense)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const result = await saveScreenshot(1, 'file:///etc/passwd');
+
+      expect(result).toEqual({ success: false, error: 'Only HTTPS URLs are allowed' });
+    });
+
+    it('rejects oversized screenshots declared via Content-Length', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({
+          'content-type': 'image/png',
+          'content-length': String(11 * 1024 * 1024), // 11 MB
+        }),
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(0)),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Screenshot too large' });
+      expect(mockUploadBufferToR2).not.toHaveBeenCalled();
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns timeout error when fetch is aborted', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abortError));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Screenshot download timed out' });
 
       vi.unstubAllGlobals();
     });
