@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Copy,
   ExternalLink,
@@ -26,14 +27,12 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { EditLinkDialog } from "./edit-link-dialog";
 import { formatDate, formatNumber } from "@/lib/utils";
-import { useLinkCardViewModel, useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
-import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
 import { getTagColorClasses } from "@/models/tags";
-import type { Link, Folder, Tag, LinkTag } from "@/models/types";
+import type { Link, Tag, LinkTag } from "@/models/types";
 import type { PreviewStyle } from "@/models/settings";
 
 type ViewMode = "list" | "grid";
@@ -43,22 +42,14 @@ interface LinkCardProps {
   siteUrl: string;
   onDelete: (id: number) => void;
   onUpdate: (link: Link) => void;
-  folders?: Folder[];
+  onEdit: (link: Link) => void;
   viewMode?: ViewMode;
   tags?: Tag[];
   linkTags?: LinkTag[];
-  editCallbacks?: EditLinkCallbacks;
   previewStyle?: PreviewStyle;
 }
 
-const defaultEditCallbacks: EditLinkCallbacks = {
-  onLinkUpdated: () => {},
-  onTagCreated: () => {},
-  onLinkTagAdded: () => {},
-  onLinkTagRemoved: () => {},
-};
-
-export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], viewMode = "list", tags = [], linkTags = [], editCallbacks = defaultEditCallbacks, previewStyle: previewStyleProp = "favicon" }: LinkCardProps) {
+export function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], previewStyle: previewStyleProp = "favicon" }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -77,10 +68,11 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
     faviconUrl,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate, previewStyleProp);
 
-  const editVm = useEditLinkViewModel(link, tags, linkTags, editCallbacks);
-
-  // Tags assigned to this specific link
-  const cardTags = tags.filter((t) => editVm.assignedTagIds.has(t.id));
+  // Tags assigned to this specific link — derived from linkTags prop
+  const assignedTagIds = useMemo(() => {
+    return new Set(linkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId));
+  }, [linkTags, link.id]);
+  const cardTags = tags.filter((t) => assignedTagIds.has(t.id));
 
   if (viewMode === "grid") {
     return (
@@ -154,7 +146,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
               <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
             </a>
             <button
-              onClick={(e) => { e.stopPropagation(); editVm.openDialog(link); }}
+              onClick={(e) => { e.stopPropagation(); onEdit(link); }}
               aria-label="Edit link"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
               title="Edit link"
@@ -246,33 +238,6 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             </div>
           )}
         </div>
-
-        {/* Edit dialog (shared for grid mode) */}
-        <EditLinkDialog
-          isOpen={editVm.isOpen}
-          onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
-          editUrl={editVm.editUrl}
-          setEditUrl={editVm.setEditUrl}
-          editSlug={editVm.editSlug}
-          setEditSlug={editVm.setEditSlug}
-          editFolderId={editVm.editFolderId}
-          setEditFolderId={editVm.setEditFolderId}
-          editNote={editVm.editNote}
-          setEditNote={editVm.setEditNote}
-          editScreenshotUrl={editVm.editScreenshotUrl}
-          setEditScreenshotUrl={editVm.setEditScreenshotUrl}
-          isSaving={editVm.isSaving}
-          error={editVm.error}
-          assignedTags={editVm.assignedTags}
-          allTags={tags}
-          assignedTagIds={editVm.assignedTagIds}
-          folders={folders}
-          onSave={editVm.saveEdit}
-          onClose={editVm.closeDialog}
-          onAddTag={editVm.addTag}
-          onRemoveTag={editVm.removeTag}
-          onCreateAndAssignTag={editVm.createAndAssignTag}
-        />
       </div>
     );
   }
@@ -428,7 +393,7 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
             )}
           </button>
           <button
-            onClick={() => editVm.openDialog(link)}
+            onClick={() => onEdit(link)}
             aria-label="Edit link"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="Edit link"
@@ -493,33 +458,6 @@ export function LinkCard({ link, siteUrl, onDelete, onUpdate, folders = [], view
           })}
         </div>
       )}
-
-      {/* Edit dialog */}
-      <EditLinkDialog
-        isOpen={editVm.isOpen}
-        onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
-        editUrl={editVm.editUrl}
-        setEditUrl={editVm.setEditUrl}
-        editSlug={editVm.editSlug}
-        setEditSlug={editVm.setEditSlug}
-        editFolderId={editVm.editFolderId}
-        setEditFolderId={editVm.setEditFolderId}
-        editNote={editVm.editNote}
-        setEditNote={editVm.setEditNote}
-        editScreenshotUrl={editVm.editScreenshotUrl}
-        setEditScreenshotUrl={editVm.setEditScreenshotUrl}
-        isSaving={editVm.isSaving}
-        error={editVm.error}
-        assignedTags={editVm.assignedTags}
-        allTags={tags}
-        assignedTagIds={editVm.assignedTagIds}
-        folders={folders}
-        onSave={editVm.saveEdit}
-        onClose={editVm.closeDialog}
-        onAddTag={editVm.addTag}
-        onRemoveTag={editVm.removeTag}
-        onCreateAndAssignTag={editVm.createAndAssignTag}
-      />
 
       {/* Analytics panel */}
       {showAnalytics && analyticsStats && (

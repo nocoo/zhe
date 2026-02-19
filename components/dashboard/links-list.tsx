@@ -3,11 +3,14 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
+import { EditLinkDialog } from "./edit-link-dialog";
 import { InboxTriage } from "./inbox-triage";
 import { CreateLinkModal } from "./create-link-modal";
 import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
+import { useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
+import type { Link } from "@/models/types";
 
 type ViewMode = "list" | "grid";
 
@@ -71,6 +74,14 @@ export function LinksList() {
     onLinkTagAdded: handleLinkTagAdded,
     onLinkTagRemoved: handleLinkTagRemoved,
   }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
+
+  // Single shared edit viewmodel + dialog for all link cards
+  const editVm = useEditLinkViewModel(null, tags, linkTags, editCallbacks);
+  const { openDialog } = editVm;
+
+  const handleEdit = useCallback((link: Link) => {
+    openDialog(link);
+  }, [openDialog]);
 
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -208,16 +219,42 @@ export function LinksList() {
               siteUrl={siteUrl}
               onDelete={handleLinkDeleted}
               onUpdate={handleLinkUpdated}
-              folders={folders}
+              onEdit={handleEdit}
               viewMode={viewMode}
               tags={tags}
               linkTags={linkTags}
-              editCallbacks={editCallbacks}
               previewStyle={previewStyle}
             />
           ))}
         </div>
       )}
+
+      {/* Singleton edit dialog — shared across all cards */}
+      <EditLinkDialog
+        isOpen={editVm.isOpen}
+        onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
+        editUrl={editVm.editUrl}
+        setEditUrl={editVm.setEditUrl}
+        editSlug={editVm.editSlug}
+        setEditSlug={editVm.setEditSlug}
+        editFolderId={editVm.editFolderId}
+        setEditFolderId={editVm.setEditFolderId}
+        editNote={editVm.editNote}
+        setEditNote={editVm.setEditNote}
+        editScreenshotUrl={editVm.editScreenshotUrl}
+        setEditScreenshotUrl={editVm.setEditScreenshotUrl}
+        isSaving={editVm.isSaving}
+        error={editVm.error}
+        assignedTags={editVm.assignedTags}
+        allTags={tags}
+        assignedTagIds={editVm.assignedTagIds}
+        folders={folders}
+        onSave={editVm.saveEdit}
+        onClose={editVm.closeDialog}
+        onAddTag={editVm.addTag}
+        onRemoveTag={editVm.removeTag}
+        onCreateAndAssignTag={editVm.createAndAssignTag}
+      />
     </div>
   );
 }

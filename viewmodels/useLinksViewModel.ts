@@ -234,13 +234,16 @@ export interface EditLinkCallbacks {
 
 /** ViewModel for the edit-link dialog — manages URL, folder, note & tags */
 export function useEditLinkViewModel(
-  link: Link | null,
+  initialLink: Link | null,
   allTags: Tag[],
   allLinkTags: LinkTag[],
   callbacks: EditLinkCallbacks,
 ) {
   // Dialog open/close
   const [isOpen, setIsOpen] = useState(false);
+
+  // Currently-edited link — set when openDialog is called
+  const [editingLink, setEditingLink] = useState<Link | null>(initialLink);
 
   // Form fields
   const [editUrl, setEditUrl] = useState("");
@@ -253,13 +256,13 @@ export function useEditLinkViewModel(
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Tags assigned to this link
+  // Tags assigned to the currently-edited link
   const assignedTagIds = useMemo(() => {
-    if (!link) return new Set<string>();
+    if (!editingLink) return new Set<string>();
     return new Set(
-      allLinkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId),
+      allLinkTags.filter((lt) => lt.linkId === editingLink.id).map((lt) => lt.tagId),
     );
-  }, [link, allLinkTags]);
+  }, [editingLink, allLinkTags]);
 
   const assignedTags = useMemo(
     () => allTags.filter((t) => assignedTagIds.has(t.id)),
@@ -269,6 +272,7 @@ export function useEditLinkViewModel(
   // Open dialog and populate form with current link data
   const openDialog = useCallback(
     (targetLink: Link) => {
+      setEditingLink(targetLink);
       setEditUrl(targetLink.originalUrl);
       setEditSlug(targetLink.slug);
       setEditFolderId(targetLink.folderId ?? undefined);
@@ -287,7 +291,7 @@ export function useEditLinkViewModel(
 
   // Save URL + folder + slug + note
   const saveEdit = useCallback(async () => {
-    if (!link) return;
+    if (!editingLink) return;
     setIsSaving(true);
     setError("");
 
@@ -297,17 +301,17 @@ export function useEditLinkViewModel(
         originalUrl: editUrl,
         folderId: editFolderId,
       };
-      if (editSlug !== link.slug) {
+      if (editSlug !== editingLink.slug) {
         payload.slug = editSlug;
       }
       // Include screenshotUrl only if changed
-      const currentScreenshotUrl = link.screenshotUrl ?? "";
+      const currentScreenshotUrl = editingLink.screenshotUrl ?? "";
       if (editScreenshotUrl !== currentScreenshotUrl) {
         payload.screenshotUrl = editScreenshotUrl.trim() || null;
       }
 
       // Update link (URL + folder + optional slug)
-      const linkResult = await updateLink(link.id, payload);
+      const linkResult = await updateLink(editingLink.id, payload);
 
       if (!linkResult.success || !linkResult.data) {
         setError(linkResult.error || "Failed to update link");
@@ -316,11 +320,11 @@ export function useEditLinkViewModel(
       }
 
       // Update note (only if changed)
-      const currentNote = link.note ?? "";
+      const currentNote = editingLink.note ?? "";
       let noteSaved = true;
       if (editNote !== currentNote) {
         const noteResult = await updateLinkNote(
-          link.id,
+          editingLink.id,
           editNote.trim() || null,
         );
         if (!noteResult.success) {
@@ -332,7 +336,7 @@ export function useEditLinkViewModel(
       // the primary link update already succeeded on the server.
       const updatedLink: Link = {
         ...linkResult.data,
-        note: noteSaved ? (editNote.trim() || null) : (link.note ?? null),
+        note: noteSaved ? (editNote.trim() || null) : (editingLink.note ?? null),
         screenshotUrl: editScreenshotUrl.trim() || null,
       };
       callbacks.onLinkUpdated(updatedLink);
@@ -347,39 +351,39 @@ export function useEditLinkViewModel(
     } finally {
       setIsSaving(false);
     }
-  }, [link, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
+  }, [editingLink, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
 
   // Tag operations — immediate (optimistic)
   const addTag = useCallback(
     async (tagId: string) => {
-      if (!link) return;
-      callbacks.onLinkTagAdded({ linkId: link.id, tagId });
-      const result = await addTagToLink(link.id, tagId);
+      if (!editingLink) return;
+      callbacks.onLinkTagAdded({ linkId: editingLink.id, tagId });
+      const result = await addTagToLink(editingLink.id, tagId);
       if (!result.success) {
         // Rollback on failure
-        callbacks.onLinkTagRemoved(link.id, tagId);
+        callbacks.onLinkTagRemoved(editingLink.id, tagId);
       }
     },
-    [link, callbacks],
+    [editingLink, callbacks],
   );
 
   const removeTag = useCallback(
     async (tagId: string) => {
-      if (!link) return;
-      callbacks.onLinkTagRemoved(link.id, tagId);
-      const result = await removeTagFromLink(link.id, tagId);
+      if (!editingLink) return;
+      callbacks.onLinkTagRemoved(editingLink.id, tagId);
+      const result = await removeTagFromLink(editingLink.id, tagId);
       if (!result.success) {
         // Rollback on failure
-        callbacks.onLinkTagAdded({ linkId: link.id, tagId });
+        callbacks.onLinkTagAdded({ linkId: editingLink.id, tagId });
       }
     },
-    [link, callbacks],
+    [editingLink, callbacks],
   );
 
   // Create a new tag and immediately assign it to the link
   const createAndAssignTag = useCallback(
     async (name: string) => {
-      if (!link) return;
+      if (!editingLink) return;
       const result = await createTag({ name });
       if (result.success && result.data) {
         callbacks.onTagCreated(result.data);
@@ -388,7 +392,7 @@ export function useEditLinkViewModel(
       }
       return result;
     },
-    [link, callbacks, addTag],
+    [editingLink, callbacks, addTag],
   );
 
   return {

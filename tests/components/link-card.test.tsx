@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LinkCard } from "@/components/dashboard/link-card";
-import type { Link, Tag } from "@/models/types";
+import type { Link, Tag, LinkTag } from "@/models/types";
 import type { AnalyticsStats } from "@/models/types";
 
 const mockVm = {
@@ -24,33 +24,8 @@ const mockVm = {
   previewStyle: "favicon" as "favicon" | "screenshot",
 };
 
-const mockEditVm = {
-  isOpen: false,
-  editUrl: "",
-  setEditUrl: vi.fn(),
-  editSlug: "",
-  setEditSlug: vi.fn(),
-  editFolderId: undefined as string | undefined,
-  setEditFolderId: vi.fn(),
-  editNote: "",
-  setEditNote: vi.fn(),
-  editScreenshotUrl: "",
-  setEditScreenshotUrl: vi.fn(),
-  isSaving: false,
-  error: "",
-  assignedTagIds: new Set<string>(),
-  assignedTags: [] as Tag[],
-  openDialog: vi.fn(),
-  closeDialog: vi.fn(),
-  saveEdit: vi.fn(),
-  addTag: vi.fn(),
-  removeTag: vi.fn(),
-  createAndAssignTag: vi.fn(),
-};
-
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => mockVm,
-  useEditLinkViewModel: () => mockEditVm,
 }));
 
 vi.mock("@/lib/utils", async (importOriginal) => {
@@ -105,6 +80,7 @@ describe("LinkCard", () => {
     siteUrl: "https://zhe.to",
     onDelete: vi.fn(),
     onUpdate: vi.fn(),
+    onEdit: vi.fn(),
   };
 
   beforeEach(() => {
@@ -120,16 +96,6 @@ describe("LinkCard", () => {
     mockVm.isLoadingScreenshot = false;
     mockVm.faviconUrl = null;
     mockVm.previewStyle = "favicon";
-
-    mockEditVm.isOpen = false;
-    mockEditVm.editUrl = "";
-    mockEditVm.editFolderId = undefined;
-    mockEditVm.editNote = "";
-    mockEditVm.editScreenshotUrl = "";
-    mockEditVm.isSaving = false;
-    mockEditVm.error = "";
-    mockEditVm.assignedTagIds = new Set<string>();
-    mockEditVm.assignedTags = [];
   });
 
   it("renders slug in meta row and original URL", () => {
@@ -257,7 +223,7 @@ describe("LinkCard", () => {
     expect(dateTexts.length).toBeGreaterThanOrEqual(1);
   });
 
-  // --- Edit button + dialog ---
+  // --- Edit button ---
 
   it("shows edit button in list mode", () => {
     render(<LinkCard {...defaultProps} />);
@@ -265,74 +231,31 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  it("calls editVm.openDialog when edit button is clicked in list mode", async () => {
+  it("calls onEdit when edit button is clicked in list mode", async () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     await user.click(screen.getByTitle("Edit link"));
 
-    expect(mockEditVm.openDialog).toHaveBeenCalledWith(baseLink);
-  });
-
-  it("does not show edit dialog when isOpen is false", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    // Dialog title "编辑链接" should not be visible
-    expect(screen.queryByText("编辑链接")).not.toBeInTheDocument();
-  });
-
-  it("shows edit dialog when editVm.isOpen is true", () => {
-    mockEditVm.isOpen = true;
-    mockEditVm.editUrl = "https://example.com/very-long-url";
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("编辑链接")).toBeInTheDocument();
-    expect(screen.getByLabelText("目标链接")).toBeInTheDocument();
-    expect(screen.getByLabelText("备注")).toBeInTheDocument();
-    expect(screen.getByText("保存")).toBeInTheDocument();
-    expect(screen.getByText("取消")).toBeInTheDocument();
-  });
-
-  it("shows folder selector in dialog when folders are provided", () => {
-    mockEditVm.isOpen = true;
-
-    const folders = [
-      { id: "f1", userId: "u1", name: "Work", icon: "briefcase", createdAt: new Date() },
-      { id: "f2", userId: "u1", name: "Personal", icon: "folder", createdAt: new Date() },
-    ];
-
-    render(<LinkCard {...defaultProps} folders={folders} />);
-
-    expect(screen.getByLabelText("文件夹")).toBeInTheDocument();
-    expect(screen.getByText("Work")).toBeInTheDocument();
-    expect(screen.getByText("Personal")).toBeInTheDocument();
-  });
-
-  it("shows saving state in dialog", () => {
-    mockEditVm.isOpen = true;
-    mockEditVm.isSaving = true;
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("保存中...")).toBeInTheDocument();
+    expect(defaultProps.onEdit).toHaveBeenCalledWith(baseLink);
   });
 
   // --- Tag badges on card ---
 
   it("displays tag badges when tags are assigned (list mode)", () => {
-    mockEditVm.assignedTagIds = new Set(["t1", "t2"]);
+    const linkTags: LinkTag[] = [
+      { linkId: 1, tagId: "t1" },
+      { linkId: 1, tagId: "t2" },
+    ];
 
-    render(<LinkCard {...defaultProps} tags={sampleTags} />);
+    render(<LinkCard {...defaultProps} tags={sampleTags} linkTags={linkTags} />);
 
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Personal")).toBeInTheDocument();
   });
 
   it("does not display tag section when no tags are assigned", () => {
-    mockEditVm.assignedTagIds = new Set();
-
-    render(<LinkCard {...defaultProps} tags={sampleTags} />);
+    render(<LinkCard {...defaultProps} tags={sampleTags} linkTags={[]} />);
 
     expect(screen.queryByText("Work")).not.toBeInTheDocument();
     expect(screen.queryByText("Personal")).not.toBeInTheDocument();
@@ -484,13 +407,13 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  it("calls editVm.openDialog when edit button is clicked in grid mode", async () => {
+  it("calls onEdit when edit button is clicked in grid mode", async () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
     await user.click(screen.getByTitle("Edit link"));
 
-    expect(mockEditVm.openDialog).toHaveBeenCalledWith(baseLink);
+    expect(defaultProps.onEdit).toHaveBeenCalledWith(baseLink);
   });
 
   it("shows placeholder icon when no screenshot and not loading in grid mode", () => {
@@ -552,9 +475,9 @@ describe("LinkCard", () => {
   });
 
   it("displays tag badges in grid mode when tags are assigned", () => {
-    mockEditVm.assignedTagIds = new Set(["t1"]);
+    const linkTags: LinkTag[] = [{ linkId: 1, tagId: "t1" }];
 
-    render(<LinkCard {...defaultProps} viewMode="grid" tags={sampleTags} />);
+    render(<LinkCard {...defaultProps} viewMode="grid" tags={sampleTags} linkTags={linkTags} />);
 
     expect(screen.getByText("Work")).toBeInTheDocument();
   });
@@ -563,44 +486,6 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} />);
 
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
-  });
-
-  // --- Tags section in dialog ---
-
-  it("shows tag label section in dialog", () => {
-    mockEditVm.isOpen = true;
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("标签")).toBeInTheDocument();
-  });
-
-  it("shows 'Add tag' button in dialog", () => {
-    mockEditVm.isOpen = true;
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByLabelText("Add tag")).toBeInTheDocument();
-  });
-
-  it("shows assigned tags as removable badges in dialog", () => {
-    mockEditVm.isOpen = true;
-    mockEditVm.assignedTags = sampleTags;
-    mockEditVm.assignedTagIds = new Set(["t1", "t2"]);
-
-    render(<LinkCard {...defaultProps} tags={sampleTags} />);
-
-    expect(screen.getByLabelText("Remove tag Work")).toBeInTheDocument();
-    expect(screen.getByLabelText("Remove tag Personal")).toBeInTheDocument();
-  });
-
-  it("shows error in dialog when error is set", () => {
-    mockEditVm.isOpen = true;
-    mockEditVm.error = "Failed to update";
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("Failed to update")).toBeInTheDocument();
   });
 
   // --- Thumbnail placeholder + retry ---
