@@ -123,6 +123,26 @@ describe('ScopedDB', () => {
       expect(links.find(l => l.slug === 'after')).toBeDefined();
       expect(links.find(l => l.slug === 'before')).toBeUndefined();
     });
+
+    it('updateLink updates screenshotUrl', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'ss1' });
+      expect(link.screenshotUrl).toBeNull();
+
+      const updated = await db.updateLink(link.id, { screenshotUrl: 'https://img.example.com/shot.png' });
+      expect(updated).not.toBeNull();
+      expect(updated!.screenshotUrl).toBe('https://img.example.com/shot.png');
+    });
+
+    it('updateLink clears screenshotUrl when set to null', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'ss2' });
+      await db.updateLink(link.id, { screenshotUrl: 'https://img.example.com/shot.png' });
+
+      const cleared = await db.updateLink(link.id, { screenshotUrl: null });
+      expect(cleared).not.toBeNull();
+      expect(cleared!.screenshotUrl).toBeNull();
+    });
   });
 
   // ---- Link Metadata ----------------------------------------
