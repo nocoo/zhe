@@ -60,10 +60,14 @@ export async function getLinkBySlug(slug: string): Promise<Link | null> {
 }
 
 /**
- * Check if a slug exists.
+ * Check if a slug exists (uses COUNT to avoid fetching full row).
  */
 export async function slugExists(slug: string): Promise<boolean> {
-  return (await getLinkBySlug(slug)) !== null;
+  const rows = await executeD1Query<{ cnt: number }>(
+    'SELECT COUNT(1) AS cnt FROM links WHERE slug = ? LIMIT 1',
+    [slug]
+  );
+  return (rows[0]?.cnt ?? 0) > 0;
 }
 
 /**

@@ -63,6 +63,16 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [link] as T[];
       }
       
+      // SELECT COUNT(1) FROM links WHERE slug = ? (slugExists)
+      if (sqlLower.includes('count(1)') && sqlLower.includes('from links') && sqlLower.includes('where slug = ?')) {
+        const [slug] = params;
+        let cnt = 0;
+        for (const [linkSlug] of mockLinks.entries()) {
+          if (linkSlug === slug) { cnt = 1; break; }
+        }
+        return [{ cnt }] as T[];
+      }
+
       // SELECT FROM links WHERE slug = ?
       if (sqlLower.includes('from links') && sqlLower.includes('where slug = ?')) {
         const [slug] = params;
