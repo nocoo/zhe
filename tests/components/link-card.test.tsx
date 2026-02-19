@@ -34,6 +34,8 @@ const mockEditVm = {
   setEditFolderId: vi.fn(),
   editNote: "",
   setEditNote: vi.fn(),
+  editScreenshotUrl: "",
+  setEditScreenshotUrl: vi.fn(),
   isSaving: false,
   error: "",
   assignedTagIds: new Set<string>(),
@@ -123,6 +125,7 @@ describe("LinkCard", () => {
     mockEditVm.editUrl = "";
     mockEditVm.editFolderId = undefined;
     mockEditVm.editNote = "";
+    mockEditVm.editScreenshotUrl = "";
     mockEditVm.isSaving = false;
     mockEditVm.error = "";
     mockEditVm.assignedTagIds = new Set<string>();

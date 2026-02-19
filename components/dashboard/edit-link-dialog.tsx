@@ -39,6 +39,8 @@ interface EditLinkDialogProps {
   setEditFolderId: (id: string | undefined) => void;
   editNote: string;
   setEditNote: (note: string) => void;
+  editScreenshotUrl: string;
+  setEditScreenshotUrl: (url: string) => void;
   isSaving: boolean;
   error: string;
   assignedTags: Tag[];
@@ -63,6 +65,8 @@ export function EditLinkDialog({
   setEditFolderId,
   editNote,
   setEditNote,
+  editScreenshotUrl,
+  setEditScreenshotUrl,
   isSaving,
   error,
   assignedTags,
@@ -173,6 +177,21 @@ export function EditLinkDialog({
               placeholder="添加备注..."
               rows={3}
               className="flex w-full rounded-[10px] border border-border bg-secondary px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary resize-none"
+            />
+          </div>
+
+          {/* Screenshot URL input */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-screenshot-url" className="text-sm text-foreground">
+              截图链接
+            </Label>
+            <Input
+              id="edit-screenshot-url"
+              type="url"
+              value={editScreenshotUrl}
+              onChange={(e) => setEditScreenshotUrl(e.target.value)}
+              placeholder="https://example.com/screenshot.png"
+              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>
 
