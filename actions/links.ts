@@ -161,7 +161,7 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
  */
 export async function updateLink(
   linkId: number,
-  data: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string }
+  data: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; screenshotUrl?: string | null }
 ): Promise<ActionResult<Link>> {
   try {
     const db = await getScopedDB();
@@ -178,11 +178,21 @@ export async function updateLink(
       }
     }
 
+    // Validate screenshotUrl if provided (allow null to clear)
+    if (data.screenshotUrl !== undefined && data.screenshotUrl !== null) {
+      try {
+        new URL(data.screenshotUrl);
+      } catch {
+        return { success: false, error: 'Invalid screenshot URL' };
+      }
+    }
+
     // Validate and sanitize slug if provided
-    const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean } = {
+    const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
       originalUrl: data.originalUrl,
       folderId: data.folderId,
       expiresAt: data.expiresAt,
+      screenshotUrl: data.screenshotUrl,
     };
 
     if (data.slug !== undefined) {

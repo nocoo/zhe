@@ -464,6 +464,37 @@ describe('actions/links — uncovered paths', () => {
       expect(result.success).toBe(true);
       expect(mockUpdateLink).toHaveBeenCalled();
     });
+
+    it('passes screenshotUrl to db.updateLink', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: 'https://img.example.com/shot.png' };
+      mockUpdateLink.mockResolvedValue(updatedLink);
+
+      const result = await updateLink(1, { screenshotUrl: 'https://img.example.com/shot.png' });
+
+      expect(result.success).toBe(true);
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, expect.objectContaining({ screenshotUrl: 'https://img.example.com/shot.png' }));
+    });
+
+    it('allows clearing screenshotUrl with null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: null };
+      mockUpdateLink.mockResolvedValue(updatedLink);
+
+      const result = await updateLink(1, { screenshotUrl: null });
+
+      expect(result.success).toBe(true);
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, expect.objectContaining({ screenshotUrl: null }));
+    });
+
+    it('returns error for invalid screenshotUrl', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const result = await updateLink(1, { screenshotUrl: 'not-a-url' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid screenshot URL');
+    });
   });
 
   // ====================================================================
