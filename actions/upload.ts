@@ -149,11 +149,17 @@ export async function deleteUpload(uploadId: number): Promise<ActionResult> {
       return { success: false, error: 'Upload not found or access denied' };
     }
 
-    // Delete from R2
-    await deleteR2Object(key);
-
-    // Delete from D1
+    // Delete from D1 first (reversible), then R2 (irreversible).
+    // If D1 succeeds but R2 fails, we only leave an orphan R2 object
+    // (cleanable later) instead of a dangling DB record pointing nowhere.
     await ctx.db.deleteUpload(uploadId);
+
+    // Best-effort R2 cleanup — log but don't fail the user action
+    try {
+      await deleteR2Object(key);
+    } catch (r2Error) {
+      console.error('R2 delete failed (orphan object left):', r2Error);
+    }
 
     return { success: true };
   } catch (error) {

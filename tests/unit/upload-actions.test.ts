@@ -333,7 +333,7 @@ describe('actions/upload', () => {
       expect(mockDeleteUpload).not.toHaveBeenCalled();
     });
 
-    it('deletes from R2 and D1 on success', async () => {
+    it('deletes from D1 first, then R2 on success', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
       mockDeleteR2Object.mockResolvedValue(undefined);
@@ -343,20 +343,22 @@ describe('actions/upload', () => {
 
       expect(result).toEqual({ success: true });
       expect(mockGetUploadKey).toHaveBeenCalledWith(1);
-      expect(mockDeleteR2Object).toHaveBeenCalledWith('20260212/abc-def.png');
       expect(mockDeleteUpload).toHaveBeenCalledWith(1);
+      expect(mockDeleteR2Object).toHaveBeenCalledWith('20260212/abc-def.png');
     });
 
-    it('returns error when R2 deletion throws Error', async () => {
+    it('succeeds even when R2 deletion fails (best-effort cleanup)', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockDeleteUpload.mockResolvedValue(true);
       mockDeleteR2Object.mockRejectedValue(new Error('R2 unavailable'));
 
       const result = await deleteUpload(1);
 
-      expect(result).toEqual({ success: false, error: 'R2 unavailable' });
-      // D1 deletion should NOT have been called
-      expect(mockDeleteUpload).not.toHaveBeenCalled();
+      // Should still succeed — R2 failure is logged, not propagated
+      expect(result).toEqual({ success: true });
+      // D1 deletion should have been called (before R2)
+      expect(mockDeleteUpload).toHaveBeenCalledWith(1);
     });
 
     it('returns error when D1 deletion throws Error', async () => {
@@ -370,17 +372,15 @@ describe('actions/upload', () => {
       expect(result).toEqual({ success: false, error: 'D1 constraint' });
     });
 
-    it('returns generic error when thrown value is not an Error', async () => {
+    it('succeeds even when R2 deletion throws non-Error value', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUploadKey.mockResolvedValue('20260212/abc-def.png');
+      mockDeleteUpload.mockResolvedValue(true);
       mockDeleteR2Object.mockRejectedValue('string-error');
 
       const result = await deleteUpload(1);
 
-      expect(result).toEqual({
-        success: false,
-        error: 'Failed to delete upload',
-      });
+      expect(result).toEqual({ success: true });
     });
   });
 });
