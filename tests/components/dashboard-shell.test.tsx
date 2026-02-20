@@ -143,10 +143,10 @@ describe('DashboardShell', () => {
     expect(screen.getByRole('heading', { name: '链接管理' })).toBeInTheDocument();
   });
 
-  it('renders header with 图片管理 title on uploads page', async () => {
+  it('renders header with 文件管理 title on uploads page', async () => {
     mockPathname = '/dashboard/uploads';
     await renderShell();
-    expect(screen.getByRole('heading', { name: '图片管理' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '文件管理' })).toBeInTheDocument();
   });
 
   it('renders header with 概览 title on overview page', async () => {
