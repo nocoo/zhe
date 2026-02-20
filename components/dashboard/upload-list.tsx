@@ -69,7 +69,7 @@ export function UploadList() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">文件管理</h2>
+          <h2 className="text-lg font-semibold text-foreground">文件上传</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             共 {uploads.length} 个文件
           </p>

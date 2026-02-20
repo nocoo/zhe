@@ -447,7 +447,7 @@ describe('UploadList', () => {
 
     render(<UploadList />);
 
-    expect(screen.getByText('文件管理')).toBeInTheDocument();
+    expect(screen.getByText('文件上传')).toBeInTheDocument();
     expect(screen.getByText('共 2 个文件')).toBeInTheDocument();
   });
 
@@ -484,7 +484,7 @@ describe('UploadList', () => {
 
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
-    expect(screen.queryByText('文件管理')).not.toBeInTheDocument();
+    expect(screen.queryByText('文件上传')).not.toBeInTheDocument();
   });
 
   it('renders PNG auto-convert switch', () => {
