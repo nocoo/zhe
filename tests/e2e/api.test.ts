@@ -50,7 +50,7 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.status).toBe('ok');
-    expect(body.version).toBe('0.1.0');
+    expect(body.version).toBe('1.0.0');
     expect(body.timestamp).toBeDefined();
     // Verify timestamp is a valid ISO string
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
