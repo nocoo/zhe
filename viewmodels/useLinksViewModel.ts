@@ -89,6 +89,15 @@ export function useLinkCardViewModel(
     }
   }, [shortUrl]);
 
+  const [copiedOriginalUrl, setCopiedOriginalUrl] = useState(false);
+  const handleCopyOriginalUrl = useCallback(async () => {
+    const success = await copyToClipboard(link.originalUrl);
+    if (success) {
+      setCopiedOriginalUrl(true);
+      setTimeout(() => setCopiedOriginalUrl(false), 2000);
+    }
+  }, [link.originalUrl]);
+
   const handleDelete = useCallback(async () => {
     setIsDeleting(true);
     const result = await deleteLink(link.id);
@@ -149,11 +158,13 @@ export function useLinkCardViewModel(
   return {
     shortUrl,
     copied,
+    copiedOriginalUrl,
     isDeleting,
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
     handleCopy,
+    handleCopyOriginalUrl,
     handleDelete,
     handleToggleAnalytics,
     handleRefreshMetadata,

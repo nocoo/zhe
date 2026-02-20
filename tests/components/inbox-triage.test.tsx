@@ -27,6 +27,14 @@ vi.mock('@/actions/links', () => ({
   deleteLink: vi.fn(),
 }));
 
+vi.mock('@/lib/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils')>();
+  return {
+    ...actual,
+    copyToClipboard: vi.fn().mockResolvedValue(true),
+  };
+});
+
 vi.mock('@/actions/tags', () => ({
   createTag: vi.fn(),
   addTagToLink: vi.fn(),
@@ -201,17 +209,24 @@ describe('InboxTriage', () => {
       setupService({ links: [noTitleLink] });
       render(<InboxTriage />);
 
-      // originalUrl appears as both the title fallback and the URL link
-      const elements = screen.getAllByText('https://notitle.com');
-      expect(elements.length).toBeGreaterThanOrEqual(1);
+      // originalUrl appears as the title link
+      const titleLink = screen.getByRole('link', { name: 'https://notitle.com' });
+      expect(titleLink).toHaveAttribute('href', 'https://notitle.com');
     });
 
-    it('shows original URL as link', () => {
+    it('shows title as link to original URL', () => {
       render(<InboxTriage />);
 
-      const urlLinks = screen.getAllByRole('link');
-      const link1 = urlLinks.find(el => el.getAttribute('href') === 'https://example.com/1');
-      expect(link1).toBeDefined();
+      const titleLink = screen.getByRole('link', { name: 'Inbox Link 1' });
+      expect(titleLink).toHaveAttribute('href', 'https://example.com/1');
+      expect(titleLink).toHaveAttribute('target', '_blank');
+    });
+
+    it('shows copy original URL button next to title', () => {
+      render(<InboxTriage />);
+
+      const copyButtons = screen.getAllByTitle('Copy original URL');
+      expect(copyButtons.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows meta description when present', () => {

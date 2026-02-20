@@ -8,11 +8,13 @@ import type { AnalyticsStats } from "@/models/types";
 const mockVm = {
   shortUrl: "https://zhe.to/abc123",
   copied: false,
+  copiedOriginalUrl: false,
   isDeleting: false,
   showAnalytics: false,
   analyticsStats: null as AnalyticsStats | null,
   isLoadingAnalytics: false,
   handleCopy: vi.fn(),
+  handleCopyOriginalUrl: vi.fn(),
   handleDelete: vi.fn(),
   handleToggleAnalytics: vi.fn(),
   handleRefreshMetadata: vi.fn(),
@@ -87,6 +89,7 @@ describe("LinkCard", () => {
     vi.clearAllMocks();
     mockVm.shortUrl = "https://zhe.to/abc123";
     mockVm.copied = false;
+    mockVm.copiedOriginalUrl = false;
     mockVm.isDeleting = false;
     mockVm.showAnalytics = false;
     mockVm.analyticsStats = null;
@@ -98,33 +101,31 @@ describe("LinkCard", () => {
     mockVm.previewStyle = "favicon";
   });
 
-  it("renders slug in meta row and original URL", () => {
+  it("renders slug in meta row and title links to original URL", () => {
     render(<LinkCard {...defaultProps} />);
 
     // Slug appears in meta row
     expect(screen.getByText("abc123")).toBeInTheDocument();
-    // Original URL appears as both title (span) and link (a)
-    expect(
-      screen.getAllByText("https://example.com/very-long-url").length
-    ).toBeGreaterThanOrEqual(1);
+    // Original URL appears as title link (no separate URL row)
+    const titleLink = screen.getByRole("link", { name: "https://example.com/very-long-url" });
+    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
+    expect(titleLink).toHaveAttribute("target", "_blank");
   });
 
   it("shows originalUrl as title when no metaTitle", () => {
     render(<LinkCard {...defaultProps} />);
 
-    // Title row shows originalUrl when metaTitle is null
-    const titleSpan = screen.getByText("https://example.com/very-long-url", {
-      selector: "span",
-    });
-    expect(titleSpan).toBeInTheDocument();
+    // Title row shows originalUrl as link when metaTitle is null
+    const titleLink = screen.getByRole("link", { name: "https://example.com/very-long-url" });
+    expect(titleLink).toBeInTheDocument();
   });
 
   it("shows metaTitle as title when available", () => {
     const linkWithMeta = { ...baseLink, metaTitle: "Example Page" };
     render(<LinkCard {...defaultProps} link={linkWithMeta} />);
 
-    const titleSpan = screen.getByText("Example Page", { selector: "span" });
-    expect(titleSpan).toBeInTheDocument();
+    const titleLink = screen.getByRole("link", { name: "Example Page" });
+    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
   });
 
   it("shows note + metaTitle as title when both available", () => {
@@ -135,10 +136,8 @@ describe("LinkCard", () => {
     };
     render(<LinkCard {...defaultProps} link={linkWithBoth} />);
 
-    const titleSpan = screen.getByText("Important Example Page", {
-      selector: "span",
-    });
-    expect(titleSpan).toBeInTheDocument();
+    const titleLink = screen.getByRole("link", { name: "Important Example Page" });
+    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
   });
 
   it("shows expiry date when link.expiresAt is set", () => {
@@ -157,7 +156,7 @@ describe("LinkCard", () => {
     expect(screen.queryByText(/过期:/)).not.toBeInTheDocument();
   });
 
-  it("shows copy button", () => {
+  it("shows copy short link button", () => {
     render(<LinkCard {...defaultProps} />);
 
     expect(screen.getByTitle("Copy link")).toBeInTheDocument();
@@ -169,6 +168,21 @@ describe("LinkCard", () => {
 
     const copyButton = screen.getByTitle("Copy link");
     const checkIcon = copyButton.querySelector(".text-success");
+    expect(checkIcon).toBeInTheDocument();
+  });
+
+  it("shows copy original URL button next to title", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByTitle("Copy original URL")).toBeInTheDocument();
+  });
+
+  it("shows Check icon on copy original URL button when copiedOriginalUrl is true", () => {
+    mockVm.copiedOriginalUrl = true;
+    render(<LinkCard {...defaultProps} />);
+
+    const copyBtn = screen.getByTitle("Copy original URL");
+    const checkIcon = copyBtn.querySelector(".text-success");
     expect(checkIcon).toBeInTheDocument();
   });
 
@@ -370,9 +384,10 @@ describe("LinkCard", () => {
 
   // --- Grid mode ---
 
-  it("renders short URL in grid mode", () => {
+  it("renders title as link in grid mode (falls back to short URL when no metaTitle)", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
+    // No metaTitle, so title falls back to stripped shortUrl
     expect(screen.getByText("zhe.to/abc123")).toBeInTheDocument();
   });
 
@@ -441,11 +456,12 @@ describe("LinkCard", () => {
     expect(img).toBeInTheDocument();
   });
 
-  it("shows meta title in grid mode when set", () => {
+  it("shows meta title as link in grid mode when set", () => {
     const linkWithMeta = { ...baseLink, metaTitle: "Grid Title" };
     render(<LinkCard {...defaultProps} link={linkWithMeta} viewMode="grid" />);
 
-    expect(screen.getByText("Grid Title")).toBeInTheDocument();
+    const titleLink = screen.getByRole("link", { name: "Grid Title" });
+    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
   });
 
   it("shows favicon in grid mode when set", () => {

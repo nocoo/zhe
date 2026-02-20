@@ -53,11 +53,13 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
   const {
     shortUrl,
     copied,
+    copiedOriginalUrl,
     isDeleting,
     showAnalytics,
     analyticsStats,
     isLoadingAnalytics,
     handleCopy,
+    handleCopyOriginalUrl,
     handleDelete,
     handleToggleAnalytics,
     handleRefreshMetadata,
@@ -200,19 +202,26 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               />
             )}
             <a
-              href={shortUrl}
+              href={link.originalUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-foreground hover:underline truncate"
             >
-              {stripProtocol(shortUrl)}
+              {link.metaTitle || stripProtocol(shortUrl)}
             </a>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleCopyOriginalUrl(); }}
+              aria-label="Copy original URL"
+              className="shrink-0 flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+              title="Copy original URL"
+            >
+              {copiedOriginalUrl ? (
+                <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
+              ) : (
+                <Copy className="w-3 h-3" strokeWidth={1.5} />
+              )}
+            </button>
           </div>
-          {link.metaTitle && (
-            <p className="text-xs text-foreground/80 truncate">
-              {link.metaTitle}
-            </p>
-          )}
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
@@ -295,7 +304,7 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Title row: [favicon] note + metaTitle | metaTitle | originalUrl */}
+          {/* Title row: [favicon] note + metaTitle | metaTitle | originalUrl — clickable link + copy button */}
           <div className="flex items-center gap-2 mb-1">
             {link.metaFavicon && (
               <Image
@@ -307,24 +316,31 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 unoptimized
               />
             )}
-            <span className="text-sm font-medium text-foreground truncate">
+            <a
+              href={link.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-foreground hover:underline truncate"
+            >
               {link.note && link.metaTitle
                 ? `${link.note} ${link.metaTitle}`
                 : link.metaTitle
                   ? link.metaTitle
                   : link.originalUrl}
-            </span>
+            </a>
+            <button
+              onClick={handleCopyOriginalUrl}
+              aria-label="Copy original URL"
+              className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+              title="Copy original URL"
+            >
+              {copiedOriginalUrl ? (
+                <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
+              ) : (
+                <Copy className="w-3 h-3" strokeWidth={1.5} />
+              )}
+            </button>
           </div>
-
-          {/* Original URL */}
-          <a
-            href={link.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground truncate block"
-          >
-            {link.originalUrl}
-          </a>
 
           {/* Meta description */}
           {link.metaDescription && (

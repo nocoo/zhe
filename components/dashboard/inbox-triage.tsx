@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import {
+  Check,
+  Copy,
   ExternalLink,
   Inbox as InboxIcon,
   Loader2,
@@ -38,6 +40,7 @@ import {
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import { getTagColorClasses } from "@/models/tags";
+import { copyToClipboard } from "@/lib/utils";
 import { deleteLink } from "@/actions/links";
 import type { Link, Tag } from "@/models/types";
 
@@ -76,8 +79,17 @@ function InboxItem({
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   const unassignedTags = allTags.filter((t) => !assignedTagIds.has(t.id));
+
+  const handleCopyOriginalUrl = async () => {
+    const success = await copyToClipboard(link.originalUrl);
+    if (success) {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    }
+  };
 
   const handleSelectTag = (tagId: string) => {
     onAddTag(tagId);
@@ -110,7 +122,7 @@ function InboxItem({
     <div className="rounded-[14px] bg-secondary p-4 space-y-3">
       {/* Top row: link info + actions */}
       <div className="flex items-start gap-3">
-        {/* Favicon + title + URL */}
+        {/* Favicon + title + copy button */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             {link.metaFavicon && (
@@ -123,18 +135,27 @@ function InboxItem({
                 unoptimized
               />
             )}
-            <span className="text-sm font-medium text-foreground truncate">
+            <a
+              href={link.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-foreground hover:underline truncate"
+            >
               {displayTitle}
-            </span>
+            </a>
+            <button
+              onClick={handleCopyOriginalUrl}
+              aria-label="Copy original URL"
+              className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+              title="Copy original URL"
+            >
+              {copiedUrl ? (
+                <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
+              ) : (
+                <Copy className="w-3 h-3" strokeWidth={1.5} />
+              )}
+            </button>
           </div>
-          <a
-            href={link.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground truncate block"
-          >
-            {link.originalUrl}
-          </a>
           {link.metaDescription && (
             <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
               {link.metaDescription}
