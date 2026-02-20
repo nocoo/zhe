@@ -105,10 +105,8 @@ test.describe('Link CRUD', () => {
     });
 
     test('copy short link', async ({ page }) => {
-      // Locate the link-card container that holds our slug
-      const card = page.getByText(testSlug)
-        .locator('xpath=ancestor::div[contains(@class, "rounded-[14px]")]')
-        .first();
+      // Locate the link-card that contains our slug
+      const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
       const copyButton = card.getByRole('button', { name: 'Copy link' }).first();
 
       // Grant clipboard permissions
@@ -133,10 +131,8 @@ test.describe('Link CRUD', () => {
     });
 
     test('edit link', async ({ page }) => {
-      // Locate the link-card container that holds our slug
-      const card = page.getByText(testSlug)
-        .locator('xpath=ancestor::div[contains(@class, "rounded-[14px]")]')
-        .first();
+      // Locate the link-card that contains our slug
+      const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
       const editButton = card.getByRole('button', { name: 'Edit link' }).first();
 
       await editButton.click();
@@ -156,10 +152,8 @@ test.describe('Link CRUD', () => {
     });
 
     test('delete link', async ({ page }) => {
-      // Locate the link-card container that holds our slug
-      const card = page.getByText(testSlug)
-        .locator('xpath=ancestor::div[contains(@class, "rounded-[14px]")]')
-        .first();
+      // Locate the link-card that contains our slug
+      const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
       const deleteButton = card.getByRole('button', { name: 'Delete link' }).first();
 
       await deleteButton.click();

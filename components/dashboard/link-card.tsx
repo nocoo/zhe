@@ -94,7 +94,7 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
 
   if (viewMode === "grid") {
     return (
-      <div className="group rounded-[14px] border-0 bg-secondary shadow-none overflow-hidden transition-colors">
+      <div data-testid="link-card" className="group rounded-[14px] border-0 bg-secondary shadow-none overflow-hidden transition-colors">
         {/* Screenshot — top, full width */}
         <div
           className="relative block w-full aspect-[4/3] bg-accent cursor-pointer"
@@ -275,7 +275,7 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
   }
 
   return (
-    <div className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div data-testid="link-card" className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-stretch gap-4">
         {/* Screenshot/favicon thumbnail — left side, always visible */}
         <div className="group/thumb relative shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
