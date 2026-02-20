@@ -1,12 +1,14 @@
 // Auth setup: Playwright authenticates via the Credentials provider
 // (activated by PLAYWRIGHT=1) and saves the session cookie for reuse.
 import { test as setup, expect } from '@playwright/test';
+import { TEST_USER } from './helpers/d1';
 
 const authFile = 'tests/playwright/.auth/user.json';
 
 setup('authenticate', async ({ page, context }) => {
   // Step 1: Get CSRF token from the auth endpoint
   const csrfRes = await page.request.get('/api/auth/csrf');
+  expect(csrfRes.ok()).toBeTruthy();
   const { csrfToken } = await csrfRes.json();
 
   // Step 2: POST to the credentials callback. This returns a 302
@@ -16,8 +18,8 @@ setup('authenticate', async ({ page, context }) => {
   const callbackRes = await page.request.post('/api/auth/callback/e2e-credentials', {
     form: {
       csrfToken,
-      email: 'e2e@test.local',
-      name: 'E2E Test User',
+      email: TEST_USER.email,
+      name: TEST_USER.name,
     },
     maxRedirects: 0,
   });
