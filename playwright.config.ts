@@ -42,7 +42,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'PLAYWRIGHT=1 AUTH_URL=http://localhost:7005 npm run dev',
+    command: 'PLAYWRIGHT=1 AUTH_URL=http://localhost:7005 bun run dev',
     url: 'http://localhost:7005',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
