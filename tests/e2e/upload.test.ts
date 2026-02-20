@@ -234,7 +234,7 @@ describe('Upload E2E — full lifecycle', () => {
   // Server actions should reject invalid file types/sizes.
   // ============================================================
   describe('validation enforcement', () => {
-    it('rejects unsupported file type', async () => {
+    it('accepts any file type (no whitelist)', async () => {
       authenticatedAs(USER_ID);
       const { getPresignedUploadUrl } = await import('@/actions/upload');
 
@@ -244,9 +244,9 @@ describe('Upload E2E — full lifecycle', () => {
         fileSize: 1024,
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('not allowed');
-      expect(mockCreatePresignedUploadUrl).not.toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(mockCreatePresignedUploadUrl).toHaveBeenCalled();
     });
 
     it('rejects files exceeding size limit', async () => {

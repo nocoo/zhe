@@ -565,13 +565,13 @@ describe('AppSidebar', () => {
       expect(settingsLink.className).toContain('text-foreground');
     });
 
-    it('renders "系统" section below 图片管理 section', () => {
+    it('renders "系统" section below 文件管理 section', () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
-      const uploadsIndex = labels.indexOf('图片管理');
+      const uploadsIndex = labels.indexOf('文件管理');
       const systemIndex = labels.indexOf('系统');
       expect(uploadsIndex).toBeGreaterThanOrEqual(0);
       expect(systemIndex).toBeGreaterThan(uploadsIndex);

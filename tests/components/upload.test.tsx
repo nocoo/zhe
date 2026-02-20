@@ -28,7 +28,7 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 vi.mock('@/models/upload', () => ({
-  ALLOWED_TYPES: ['image/png', 'image/jpeg'],
+  IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif'],
 }));
 
 // Import after mocks
@@ -79,7 +79,7 @@ describe('UploadZone', () => {
     );
 
     expect(screen.getByText('拖拽文件到此处，或点击选择')).toBeInTheDocument();
-    expect(screen.getByText(/支持图片/)).toBeInTheDocument();
+    expect(screen.getByText(/支持所有文件类型/)).toBeInTheDocument();
   });
 
   it('shows drag-over text when isDragOver is true', () => {
@@ -447,7 +447,7 @@ describe('UploadList', () => {
 
     render(<UploadList />);
 
-    expect(screen.getByText('图片管理')).toBeInTheDocument();
+    expect(screen.getByText('文件管理')).toBeInTheDocument();
     expect(screen.getByText('共 2 个文件')).toBeInTheDocument();
   });
 
@@ -484,7 +484,7 @@ describe('UploadList', () => {
 
     const skeleton = document.querySelector('.animate-pulse');
     expect(skeleton).toBeInTheDocument();
-    expect(screen.queryByText('图片管理')).not.toBeInTheDocument();
+    expect(screen.queryByText('文件管理')).not.toBeInTheDocument();
   });
 
   it('renders PNG auto-convert switch', () => {

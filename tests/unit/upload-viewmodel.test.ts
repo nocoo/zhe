@@ -183,17 +183,29 @@ describe('useUploadsViewModel', () => {
       expect(result.current.uploads).toEqual([upload]);
     });
 
-    it('shows error when file type is not allowed', async () => {
+    it('accepts any file type (no whitelist restriction)', async () => {
+      const upload = makeUpload({ id: 99 });
+      mockGetPresignedUploadUrl.mockResolvedValue({
+        success: true,
+        data: {
+          uploadUrl: 'https://r2.example.com/presigned',
+          publicUrl: 'https://s.zhe.to/20260212/uuid.exe',
+          key: '20260212/uuid.exe',
+        },
+      });
+      mockFetch.mockResolvedValue({ ok: true });
+      mockRecordUpload.mockResolvedValue({ success: true, data: upload });
+
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       await act(async () => {
-        result.current.handleFiles([makeFile('virus.exe', 'application/x-msdownload', 100)]);
+        result.current.handleFiles([makeFile('app.exe', 'application/x-msdownload', 100)]);
         await vi.runAllTimersAsync();
       });
 
-      // Should NOT call presigned URL
-      expect(mockGetPresignedUploadUrl).not.toHaveBeenCalled();
+      // Should call presigned URL (type is accepted)
+      expect(mockGetPresignedUploadUrl).toHaveBeenCalled();
     });
 
     it('shows error when file size exceeds limit', async () => {
@@ -377,11 +389,12 @@ describe('useUploadsViewModel', () => {
   describe('dismissUploadingFile', () => {
     it('removes a file from the uploading list', async () => {
       // Set up a failed upload so there's an item in uploadingFiles
+      // Use a file exceeding the size limit (11MB) to trigger a validation error
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       await act(async () => {
-        result.current.handleFiles([makeFile('virus.exe', 'application/x-msdownload', 100)]);
+        result.current.handleFiles([makeFile('huge.bin', 'application/octet-stream', 11 * 1024 * 1024)]);
         await vi.runAllTimersAsync();
       });
 
