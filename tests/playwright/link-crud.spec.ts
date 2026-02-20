@@ -113,7 +113,10 @@ test.describe('Link CRUD', () => {
       await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
       await copyButton.click();
-      // Verify the button is clickable (copy feedback is transient)
+
+      // Verify clipboard contains the short link URL with our slug
+      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipboardText).toContain(testSlug);
     });
 
     test('toggle view mode between list and grid', async ({ page }) => {
