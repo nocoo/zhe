@@ -11,7 +11,6 @@ import {
   replaceExtension,
   normalizeJpegQuality,
   DEFAULT_JPEG_QUALITY,
-  ALLOWED_TYPES,
   MAX_FILE_SIZE,
 } from '@/models/upload';
 import type { UploadRequest } from '@/models/upload';
@@ -43,8 +42,9 @@ describe('models/upload', () => {
       expect(validateUploadRequest(req)).toEqual({ valid: true });
     });
 
-    it('accepts all allowed MIME types', () => {
-      for (const type of ALLOWED_TYPES) {
+    it('accepts any MIME type (no whitelist)', () => {
+      const arbitraryTypes = ['application/zip', 'video/mp4', 'application/x-msdownload', 'text/csv'];
+      for (const type of arbitraryTypes) {
         const result = validateUploadRequest({
           fileName: 'test.file',
           fileType: type,
@@ -76,15 +76,6 @@ describe('models/upload', () => {
       const result = validateUploadRequest({ ...validRequest, fileSize: -1 });
       expect(result.valid).toBe(false);
       if (!result.valid) expect(result.error).toContain('greater than 0');
-    });
-
-    it('rejects disallowed MIME type', () => {
-      const result = validateUploadRequest({
-        ...validRequest,
-        fileType: 'application/zip',
-      });
-      expect(result.valid).toBe(false);
-      if (!result.valid) expect(result.error).toContain('not allowed');
     });
 
     it('rejects file exceeding MAX_FILE_SIZE', () => {
@@ -198,7 +189,7 @@ describe('models/upload', () => {
     });
   });
 
-  // --- isImageType ---
+  // --- isImageType (uses IMAGE_TYPES for UI display logic) ---
   describe('isImageType', () => {
     it('returns true for image/png', () => {
       expect(isImageType('image/png')).toBe(true);

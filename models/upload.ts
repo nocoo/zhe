@@ -1,9 +1,10 @@
 // Pure business logic for upload operations — no React, no server dependencies.
 
 /**
- * Allowed MIME types for image uploads.
+ * Image MIME types — used only for UI display logic (e.g. icon selection),
+ * NOT for upload validation. All file types are accepted.
  */
-export const ALLOWED_IMAGE_TYPES = [
+export const IMAGE_TYPES = [
   'image/jpeg',
   'image/png',
   'image/gif',
@@ -11,23 +12,6 @@ export const ALLOWED_IMAGE_TYPES = [
   'image/svg+xml',
   'image/avif',
 ] as const;
-
-/**
- * Allowed MIME types for document uploads.
- */
-export const ALLOWED_DOC_TYPES = [
-  'application/pdf',
-  'text/markdown',
-  'text/plain',
-] as const;
-
-/**
- * All allowed MIME types.
- */
-export const ALLOWED_TYPES: readonly string[] = [
-  ...ALLOWED_IMAGE_TYPES,
-  ...ALLOWED_DOC_TYPES,
-];
 
 /** Maximum file size in bytes (10 MB). */
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -94,10 +78,6 @@ export function validateUploadRequest(
 ): { valid: true } | { valid: false; error: string } {
   if (!req.fileName || !req.fileType || !req.fileSize) {
     return { valid: false, error: 'Missing required fields' };
-  }
-
-  if (!ALLOWED_TYPES.includes(req.fileType)) {
-    return { valid: false, error: `File type ${req.fileType} is not allowed` };
   }
 
   if (req.fileSize <= 0) {
@@ -232,7 +212,7 @@ export function normalizeJpegQuality(percent: number): number {
 
 /** Check whether a MIME type is an image type. */
 export function isImageType(fileType: string): boolean {
-  return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(fileType);
+  return (IMAGE_TYPES as readonly string[]).includes(fileType);
 }
 
 /** Format bytes into a human-readable string (e.g. "1.5 MB"). */
