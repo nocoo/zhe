@@ -14,7 +14,7 @@ const providers: Provider[] = [
   }),
 ];
 
-if (process.env.PLAYWRIGHT === '1') {
+if (process.env.PLAYWRIGHT === '1' && process.env.NODE_ENV !== 'production') {
   providers.push(
     Credentials({
       id: 'e2e-credentials',
@@ -24,7 +24,8 @@ if (process.env.PLAYWRIGHT === '1') {
         name: { label: 'Name', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        // Only accept the exact E2E test email — defense-in-depth
+        if (credentials?.email !== 'e2e@test.local') return null;
         return {
           id: 'e2e-test-user-id',
           name: (credentials.name as string) || 'E2E Test User',
