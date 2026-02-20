@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +16,7 @@ import { FolderIcon } from "@/components/folder-icon";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
+import { APP_VERSION } from "@/lib/version";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { buildLinkCounts } from "@/models/links";
@@ -267,6 +269,9 @@ export function AppSidebar({
             <span className="text-lg md:text-xl font-semibold text-foreground">
               ZHE.TO
             </span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+              v{APP_VERSION}
+            </Badge>
           </div>
           <button
             onClick={onToggle}

@@ -164,6 +164,11 @@ describe('AppSidebar', () => {
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(5);
     });
+
+    it('does not show version badge in collapsed mode', () => {
+      renderSidebar({ collapsed: true });
+      expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument();
+    });
   });
 
   describe('expanded mode', () => {
@@ -183,6 +188,11 @@ describe('AppSidebar', () => {
     it('displays brand name ZHE.TO', () => {
       renderSidebar({ collapsed: false });
       expect(screen.getByText('ZHE.TO')).toBeInTheDocument();
+    });
+
+    it('displays version badge next to brand name', () => {
+      renderSidebar({ collapsed: false });
+      expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeInTheDocument();
     });
 
     it('displays search button with text', () => {
