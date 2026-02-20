@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
-import type { PreviewStyle } from "@/models/settings";
 import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
-import { buildShortUrl, fetchMicrolinkScreenshot } from "@/models/links";
+import { buildShortUrl, fetchMicrolinkScreenshot, fetchScreenshotDomains } from "@/models/links";
+import type { ScreenshotSource } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
 import { saveScreenshot } from "@/actions/links";
 
@@ -16,7 +17,6 @@ export function useLinkCardViewModel(
   siteUrl: string,
   onDelete: (id: number) => void,
   onUpdate: (link: Link) => void,
-  previewStyle: PreviewStyle = "favicon",
 ) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -27,11 +27,11 @@ export function useLinkCardViewModel(
   // Metadata refresh state
   const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
 
-  // Screenshot state — DB is the primary source; Microlink is fallback
+  // Screenshot state — DB is the primary source
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(
     link.screenshotUrl ?? null
   );
-  const [isLoadingScreenshot, setIsLoadingScreenshot] = useState(false);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
   // Sync local screenshot state when parent prop changes (e.g. after edit-save)
   useEffect(() => {
@@ -58,28 +58,8 @@ export function useLinkCardViewModel(
     return () => { cancelled = true; };
   }, [link.id, skipAutoFetch, onUpdate]);
 
-  // Compute favicon URL: DB screenshotUrl takes absolute priority over previewStyle
-  const faviconUrl = screenshotUrl ? null
-    : previewStyle === "favicon" ? buildFaviconUrl(link.originalUrl)
-    : null;
-
-  // Fetch screenshot from Microlink if not persisted in DB yet (screenshot mode only)
-  useEffect(() => {
-    if (previewStyle === "favicon") return;
-    if (screenshotUrl) return;
-    let cancelled = false;
-    setIsLoadingScreenshot(true);
-    fetchMicrolinkScreenshot(link.originalUrl).then((url) => {
-      if (cancelled) return;
-      setScreenshotUrl(url);
-      setIsLoadingScreenshot(false);
-      // Persist to DB so we never call Microlink again for this link
-      if (url) {
-        void saveScreenshot(link.id, url);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [link.id, link.originalUrl, screenshotUrl, previewStyle]);
+  // Display logic: show screenshotUrl if DB has it, else show favicon
+  const faviconUrl = screenshotUrl ? null : buildFaviconUrl(link.originalUrl);
 
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(shortUrl);
@@ -104,7 +84,7 @@ export function useLinkCardViewModel(
     if (result.success) {
       onDelete(link.id);
     } else {
-      alert(result.error || "Failed to delete link");
+      toast.error("删除失败", { description: result.error || "Failed to delete link" });
     }
     setIsDeleting(false);
   }, [link.id, onDelete]);
@@ -128,16 +108,42 @@ export function useLinkCardViewModel(
     }
   }, [showAnalytics, analyticsStats, isLoadingAnalytics, link.id]);
 
-  const handleRetryScreenshot = useCallback(async () => {
-    if (isLoadingScreenshot) return;
-    setIsLoadingScreenshot(true);
-    const url = await fetchMicrolinkScreenshot(link.originalUrl);
-    setScreenshotUrl(url);
-    setIsLoadingScreenshot(false);
-    if (url) {
-      void saveScreenshot(link.id, url);
+  /** Fetch a preview screenshot from the selected source, persist to R2, and show toast */
+  const handleFetchPreview = useCallback(async (source: ScreenshotSource) => {
+    if (isFetchingPreview) return;
+    setIsFetchingPreview(true);
+
+    const sourceName = source === "microlink" ? "Microlink" : "Screenshot Domains";
+    toast.info("正在抓取预览图...", { description: `来源: ${sourceName}` });
+
+    try {
+      // Step 1: fetch temporary screenshot URL from provider
+      const tempUrl = source === "microlink"
+        ? await fetchMicrolinkScreenshot(link.originalUrl)
+        : await fetchScreenshotDomains(link.originalUrl);
+
+      if (!tempUrl) {
+        toast.error("抓取预览图失败", { description: `${sourceName} 未返回有效截图` });
+        setIsFetchingPreview(false);
+        return;
+      }
+
+      // Step 2: persist to R2 via server action
+      const result = await saveScreenshot(link.id, tempUrl);
+      if (result.success && result.data) {
+        setScreenshotUrl(result.data.screenshotUrl ?? tempUrl);
+        onUpdate(result.data);
+        toast.success("预览图已更新");
+      } else {
+        toast.error("保存预览图失败", { description: result.error || "Unknown error" });
+      }
+    } catch (error) {
+      console.error("Failed to fetch preview:", error);
+      toast.error("抓取预览图出错", { description: "请稍后重试" });
+    } finally {
+      setIsFetchingPreview(false);
     }
-  }, [link.id, link.originalUrl, isLoadingScreenshot]);
+  }, [link.id, link.originalUrl, isFetchingPreview, onUpdate]);
 
   const handleRefreshMetadata = useCallback(async () => {
     setIsRefreshingMetadata(true);
@@ -145,8 +151,9 @@ export function useLinkCardViewModel(
       const result = await refreshLinkMetadata(link.id);
       if (result.success && result.data) {
         onUpdate(result.data);
+        toast.success("元数据已刷新");
       } else {
-        alert(result.error || "Failed to refresh metadata");
+        toast.error("刷新元数据失败", { description: result.error || "Failed to refresh metadata" });
       }
     } catch (error) {
       console.error("Failed to refresh metadata:", error);
@@ -170,10 +177,9 @@ export function useLinkCardViewModel(
     handleRefreshMetadata,
     isRefreshingMetadata,
     screenshotUrl,
-    isLoadingScreenshot,
-    handleRetryScreenshot,
+    isFetchingPreview,
+    handleFetchPreview,
     faviconUrl,
-    previewStyle,
   };
 }
 

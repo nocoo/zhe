@@ -130,7 +130,10 @@ export function buildLinkCounts(links: Link[]): LinkCounts {
   return { total: links.length, uncategorized, byFolder };
 }
 
-// --- Screenshot via Microlink API ---
+// --- Screenshot services ---
+
+/** Screenshot source provider */
+export type ScreenshotSource = "microlink" | "screenshotDomains";
 
 /** Fetch a screenshot URL from Microlink API (no caching — DB handles persistence) */
 export async function fetchMicrolinkScreenshot(targetUrl: string): Promise<string | null> {
@@ -145,6 +148,27 @@ export async function fetchMicrolinkScreenshot(targetUrl: string): Promise<strin
     const json = await res.json();
     const screenshotUrl: string | undefined = json?.data?.screenshot?.url;
     return screenshotUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch a screenshot from screenshot.domains service.
+ * The service returns the image directly (not a JSON API),
+ * so we return the URL itself if a HEAD/GET check succeeds.
+ */
+export async function fetchScreenshotDomains(targetUrl: string): Promise<string | null> {
+  try {
+    const { hostname } = new URL(targetUrl);
+    if (!hostname) return null;
+    const screenshotUrl = `https://screenshot.domains/${hostname}`;
+
+    // Verify the image is actually reachable
+    const res = await fetch(screenshotUrl, { method: "HEAD" });
+    if (!res.ok) return null;
+
+    return screenshotUrl;
   } catch {
     return null;
   }

@@ -1,19 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { importLinks, exportLinks, updatePreviewStyle } from "@/actions/settings";
+import { importLinks, exportLinks } from "@/actions/settings";
 import type { ImportResult } from "@/actions/settings";
-import { useDashboardService } from "@/contexts/dashboard-service";
-import type { PreviewStyle } from "@/models/settings";
 
 /** Return type of useSettingsViewModel — can be used as a prop type */
 export type SettingsViewModel = ReturnType<typeof useSettingsViewModel>;
 
 /**
- * Settings viewmodel — manages export/import state, preview style, and actions.
+ * Settings viewmodel — manages export/import state and actions.
  */
 export function useSettingsViewModel() {
-  const { previewStyle, setPreviewStyle } = useDashboardService();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -70,28 +67,12 @@ export function useSettingsViewModel() {
     setImportResult(null);
   }, []);
 
-  const handlePreviewStyleChange = useCallback(
-    async (newStyle: PreviewStyle) => {
-      const previous = previewStyle;
-      // Optimistic update
-      setPreviewStyle(newStyle);
-      const result = await updatePreviewStyle(newStyle);
-      if (!result.success) {
-        // Rollback on failure
-        setPreviewStyle(previous);
-      }
-    },
-    [previewStyle, setPreviewStyle],
-  );
-
   return {
     isExporting,
     isImporting,
     importResult,
-    previewStyle,
     handleExport,
     handleImport,
     clearImportResult,
-    handlePreviewStyleChange,
   };
 }

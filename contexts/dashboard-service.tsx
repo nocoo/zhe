@@ -9,11 +9,8 @@ import {
   useState,
 } from "react";
 import type { Link, Folder, Tag, LinkTag } from "@/models/types";
-import type { PreviewStyle } from "@/models/settings";
-import { DEFAULT_PREVIEW_STYLE } from "@/models/settings";
 import { getLinks } from "@/actions/links";
 import { getTags, getLinkTags } from "@/actions/tags";
-import { getPreviewStyle } from "@/actions/settings";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -30,8 +27,6 @@ export interface DashboardState {
   loading: boolean;
   /** Site origin for building short URLs */
   siteUrl: string;
-  /** User's preview style preference */
-  previewStyle: PreviewStyle;
 }
 
 // ── Actions interface (stable callback refs) ──
@@ -57,9 +52,6 @@ export interface DashboardActions {
   // Link-Tags — call after server action succeeds to sync memory
   handleLinkTagAdded: (linkTag: LinkTag) => void;
   handleLinkTagRemoved: (linkId: number, tagId: string) => void;
-
-  // Settings — call after server action succeeds to sync memory
-  setPreviewStyle: (style: PreviewStyle) => void;
 }
 
 // ── Combined interface (backward-compatible) ──
@@ -87,28 +79,23 @@ export function DashboardServiceProvider({
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [tags, setTags] = useState<Tag[]>([]);
   const [linkTags, setLinkTags] = useState<LinkTag[]>([]);
-  const [previewStyle, setPreviewStyle] = useState<PreviewStyle>(DEFAULT_PREVIEW_STYLE);
   const [loading, setLoading] = useState(true);
   const siteUrl =
     typeof window !== "undefined" ? window.location.origin : "";
 
-  // Fetch all links, tags, link-tags, and preview style on mount
+  // Fetch all links, tags, and link-tags on mount
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
-      const [linksResult, tagsResult, linkTagsResult, previewStyleResult] = await Promise.all([
+      const [linksResult, tagsResult, linkTagsResult] = await Promise.all([
         getLinks(),
         getTags(),
         getLinkTags(),
-        getPreviewStyle(),
       ]);
       if (cancelled) return;
       setLinks(linksResult.data ?? []);
       setTags(tagsResult.data ?? []);
       setLinkTags(linkTagsResult.data ?? []);
-      if (previewStyleResult.data) {
-        setPreviewStyle(previewStyleResult.data);
-      }
       setLoading(false);
     }
     fetchData();
@@ -198,9 +185,8 @@ export function DashboardServiceProvider({
       linkTags,
       loading,
       siteUrl,
-      previewStyle,
     }),
-    [links, folders, tags, linkTags, loading, siteUrl, previewStyle],
+    [links, folders, tags, linkTags, loading, siteUrl],
   );
 
   // ── Stable actions value (never changes — all callbacks have [] deps) ──
@@ -219,7 +205,6 @@ export function DashboardServiceProvider({
       handleTagUpdated,
       handleLinkTagAdded,
       handleLinkTagRemoved,
-      setPreviewStyle,
     }),
     [
       handleLinkCreated,

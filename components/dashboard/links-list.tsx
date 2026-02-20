@@ -65,7 +65,6 @@ export function LinksList() {
     handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved,
     refreshLinks,
     siteUrl,
-    previewStyle,
   } = useDashboardService();
 
   const editCallbacks = useMemo(() => ({
@@ -223,7 +222,6 @@ export function LinksList() {
               viewMode={viewMode}
               tags={tags}
               linkTags={linkTags}
-              previewStyle={previewStyle}
             />
           ))}
         </div>

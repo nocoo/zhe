@@ -7,18 +7,16 @@ import { buildWebhookDocumentation, RATE_LIMIT_ABSOLUTE_MAX } from "@/models/web
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Download, Upload, CheckCircle, Webhook, Copy, Globe, Camera } from "lucide-react";
+import { Download, Upload, CheckCircle, Webhook, Copy } from "lucide-react";
 
 export function SettingsPage() {
   const {
     isExporting,
     isImporting,
     importResult,
-    previewStyle,
     handleExport,
     handleImport,
     clearImportResult,
-    handlePreviewStyleChange,
   } = useSettingsViewModel();
 
   const {
@@ -53,43 +51,6 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      {/* ── 预览样式 ──────────────────────────────────────────────── */}
-      <Card className="border-0 bg-secondary shadow-none">
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            链接预览
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
-            选择链接卡片中预览图的显示方式。
-          </p>
-          <div className="flex gap-3">
-            <Button
-              variant={previewStyle === "favicon" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handlePreviewStyleChange("favicon")}
-              data-testid="preview-style-favicon"
-              className="gap-1.5"
-            >
-              <Globe className="h-3.5 w-3.5" />
-              Favicon
-            </Button>
-            <Button
-              variant={previewStyle === "screenshot" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handlePreviewStyleChange("screenshot")}
-              data-testid="preview-style-screenshot"
-              className="gap-1.5"
-            >
-              <Camera className="h-3.5 w-3.5" />
-              截图
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
       <Card className="border-0 bg-secondary shadow-none">
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">

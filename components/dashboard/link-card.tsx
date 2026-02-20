@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   Copy,
   ExternalLink,
@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Link2,
   ImageIcon,
+  Camera,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -27,13 +28,21 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
 import { getTagColorClasses } from "@/models/tags";
 import type { Link, Tag, LinkTag } from "@/models/types";
-import type { PreviewStyle } from "@/models/settings";
+import type { ScreenshotSource } from "@/models/links";
 
 type ViewMode = "list" | "grid";
 
@@ -46,10 +55,9 @@ interface LinkCardProps {
   viewMode?: ViewMode;
   tags?: Tag[];
   linkTags?: LinkTag[];
-  previewStyle?: PreviewStyle;
 }
 
-export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], previewStyle: previewStyleProp = "favicon" }: LinkCardProps) {
+export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [] }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -65,10 +73,18 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
     handleRefreshMetadata,
     isRefreshingMetadata,
     screenshotUrl,
-    isLoadingScreenshot,
-    handleRetryScreenshot,
+    isFetchingPreview,
+    handleFetchPreview,
     faviconUrl,
-  } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate, previewStyleProp);
+  } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
+
+  // Screenshot source picker dialog
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+
+  const onSelectSource = (source: ScreenshotSource) => {
+    setPreviewDialogOpen(false);
+    handleFetchPreview(source);
+  };
 
   // Tags assigned to this specific link — derived from linkTags prop
   const assignedTagIds = useMemo(() => {
@@ -103,10 +119,6 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 unoptimized
               />
             </div>
-          ) : isLoadingScreenshot ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
-            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
@@ -115,16 +127,19 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
 
           {/* Hover action overlay */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-            {!screenshotUrl && !faviconUrl && !isLoadingScreenshot && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleRetryScreenshot(); }}
-                aria-label="Retry screenshot"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
-                title="重新抓取图片"
-              >
-                <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setPreviewDialogOpen(true); }}
+              disabled={isFetchingPreview}
+              aria-label="Refresh preview"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+              title="刷新预览图"
+            >
+              {isFetchingPreview ? (
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <Camera className="w-4 h-4" strokeWidth={1.5} />
+              )}
+            </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleCopy(); }}
               aria-label="Copy link"
@@ -247,6 +262,14 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             </div>
           )}
         </div>
+
+        {/* Screenshot source picker dialog */}
+        <ScreenshotSourceDialog
+          open={previewDialogOpen}
+          onOpenChange={setPreviewDialogOpen}
+          onSelect={onSelectSource}
+          isFetching={isFetchingPreview}
+        />
       </div>
     );
   }
@@ -283,23 +306,8 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 unoptimized
               />
             </div>
-          ) : isLoadingScreenshot ? (
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" strokeWidth={1.5} />
           ) : (
             <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
-          )}
-          {/* Hover overlay with retry button — only when no image available */}
-          {!screenshotUrl && !faviconUrl && !isLoadingScreenshot && (
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-              <button
-                onClick={handleRetryScreenshot}
-                aria-label="Retry screenshot"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
-                title="重新抓取图片"
-              >
-                <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            </div>
           )}
         </div>
 
@@ -388,12 +396,25 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             disabled={isRefreshingMetadata}
             aria-label="Refresh metadata"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="Refresh metadata"
+            title="刷新元数据"
           >
             {isRefreshingMetadata ? (
               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
             ) : (
               <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
+          <button
+            onClick={() => setPreviewDialogOpen(true)}
+            disabled={isFetchingPreview}
+            aria-label="Refresh preview"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="刷新预览图"
+          >
+            {isFetchingPreview ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <Camera className="w-4 h-4" strokeWidth={1.5} />
             )}
           </button>
           <button
@@ -512,9 +533,73 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           加载中...
         </div>
       )}
+
+      {/* Screenshot source picker dialog */}
+      <ScreenshotSourceDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        onSelect={onSelectSource}
+        isFetching={isFetchingPreview}
+      />
     </div>
   );
 });
+
+/** Dialog for choosing screenshot source */
+function ScreenshotSourceDialog({
+  open,
+  onOpenChange,
+  onSelect,
+  isFetching,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (source: ScreenshotSource) => void;
+  isFetching: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>选择截图来源</DialogTitle>
+          <DialogDescription>
+            选择一个服务来抓取网页预览截图
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 pt-2">
+          <Button
+            variant="outline"
+            className="justify-start gap-3 h-auto py-3 px-4"
+            onClick={() => onSelect("microlink")}
+            disabled={isFetching}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent shrink-0">
+              <Camera className="h-4 w-4" strokeWidth={1.5} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">Microlink</p>
+              <p className="text-xs text-muted-foreground">通用截图服务，支持大部分网站</p>
+            </div>
+          </Button>
+          <Button
+            variant="outline"
+            className="justify-start gap-3 h-auto py-3 px-4"
+            onClick={() => onSelect("screenshotDomains")}
+            disabled={isFetching}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent shrink-0">
+              <ImageIcon className="h-4 w-4" strokeWidth={1.5} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">Screenshot Domains</p>
+              <p className="text-xs text-muted-foreground">基于域名的截图服务</p>
+            </div>
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function BreakdownSection({
   title,
