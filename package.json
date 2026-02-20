@@ -11,6 +11,8 @@
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**'",
     "test:e2e": "vitest run tests/e2e",
+    "test:e2e:pw": "PLAYWRIGHT=1 npx playwright test",
+    "test:e2e:pw:ui": "PLAYWRIGHT=1 npx playwright test --ui",
     "test:coverage": "vitest run --coverage",
     "generate:logos": "./scripts/generate-logos.sh",
     "prepare": "husky"
@@ -54,6 +56,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
