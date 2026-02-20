@@ -114,8 +114,9 @@ test.describe('Dashboard navigation', () => {
   test('Cmd+K opens search dialog', async ({ page }) => {
     await page.goto('/dashboard');
 
-    // Press Cmd+K (on macOS) or Ctrl+K
-    await page.keyboard.press('Meta+k');
+    // Press Cmd+K on macOS, Ctrl+K on other platforms
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+k`);
 
     // Search dialog should appear
     await expect(page.locator('[role="dialog"]')).toBeVisible();
