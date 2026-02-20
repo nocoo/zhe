@@ -69,7 +69,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = user.id;
       }
       // When using JWT strategy, user id comes from the token
-      if (token?.sub && session.user) {
+      else if (token?.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
