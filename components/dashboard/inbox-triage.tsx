@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
   Check,
@@ -9,6 +9,7 @@ import {
   Inbox as InboxIcon,
   Loader2,
   Plus,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -378,12 +379,23 @@ export function InboxTriage() {
     tags,
     linkTags,
     loading,
+    refreshLinks,
     handleLinkUpdated,
     handleLinkDeleted,
     handleTagCreated,
     handleLinkTagAdded,
     handleLinkTagRemoved,
   } = useDashboardService();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshLinks();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshLinks]);
 
   const callbacks = {
     onLinkUpdated: handleLinkUpdated,
@@ -430,6 +442,17 @@ export function InboxTriage() {
             共 {vm.inboxLinks.length} 条待整理链接
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-[10px]"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          aria-label="刷新链接"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+          刷新
+        </Button>
       </div>
 
       {/* Content */}

@@ -485,4 +485,29 @@ describe('InboxTriage', () => {
       expect(errorElements).toHaveLength(0);
     });
   });
+
+  // ── Refresh button ──
+
+  describe('refresh button', () => {
+    it('shows refresh button in header', () => {
+      render(<InboxTriage />);
+
+      expect(screen.getByRole('button', { name: '刷新链接' })).toBeInTheDocument();
+    });
+
+    it('shows 刷新 text on button', () => {
+      render(<InboxTriage />);
+
+      expect(screen.getByRole('button', { name: '刷新链接' })).toHaveTextContent('刷新');
+    });
+
+    it('calls refreshLinks when clicked', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      await user.click(screen.getByRole('button', { name: '刷新链接' }));
+
+      expect(mockService.refreshLinks).toHaveBeenCalledTimes(1);
+    });
+  });
 });
