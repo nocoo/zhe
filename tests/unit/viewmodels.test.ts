@@ -6,6 +6,12 @@ import type { Link, AnalyticsStats } from '@/models/types';
 // Mocks
 // ---------------------------------------------------------------------------
 
+const mockToast = vi.hoisted(() => ({
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+}));
+
 vi.mock('@/actions/links', () => ({
   getLinks: vi.fn(),
   createLink: vi.fn(),
@@ -32,6 +38,10 @@ vi.mock('@/lib/utils', () => ({
   cn: (...inputs: string[]) => inputs.join(' '),
   formatDate: (d: Date) => d.toISOString(),
   formatNumber: (n: number) => String(n),
+}));
+
+vi.mock('sonner', () => ({
+  toast: mockToast,
 }));
 
 let mockIsMobile = false;
@@ -89,20 +99,21 @@ describe('useLinkCardViewModel', () => {
     vi.useFakeTimers();
     mockOnDelete.mockClear();
     mockOnUpdate.mockClear();
+    mockToast.info.mockClear();
+    mockToast.success.mockClear();
+    mockToast.error.mockClear();
     vi.mocked(copyToClipboard).mockReset();
     vi.mocked(deleteLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
     vi.mocked(refreshLinkMetadata).mockReset();
+    vi.mocked(saveScreenshot).mockReset();
     // Default: auto-fetch metadata resolves with no-op (link has no metadata)
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: link });
-    // Mock window.alert (confirm no longer used — AlertDialog handles confirmation)
-    vi.stubGlobal('alert', vi.fn());
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it('computes shortUrl from siteUrl and slug', () => {
@@ -183,7 +194,7 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete shows alert on failure', async () => {
+  it('handleDelete shows toast on failure', async () => {
     vi.mocked(deleteLink).mockResolvedValue({
       success: false,
       error: 'Not found',
@@ -198,7 +209,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     expect(mockOnDelete).not.toHaveBeenCalled();
-    expect(globalThis.alert).toHaveBeenCalledWith('Not found');
+    expect(mockToast.error).toHaveBeenCalledWith('删除失败', { description: 'Not found' });
     expect(result.current.isDeleting).toBe(false);
   });
 
@@ -213,7 +224,7 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleDelete();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('Failed to delete link');
+    expect(mockToast.error).toHaveBeenCalledWith('删除失败', { description: 'Failed to delete link' });
   });
 
   // --- handleToggleAnalytics ---
@@ -401,10 +412,11 @@ describe('useLinkCardViewModel', () => {
 
     expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+    expect(mockToast.success).toHaveBeenCalledWith('元数据已刷新');
     expect(result.current.isRefreshingMetadata).toBe(false);
   });
 
-  it('handleRefreshMetadata shows alert on failure', async () => {
+  it('handleRefreshMetadata shows toast on failure', async () => {
     vi.mocked(refreshLinkMetadata).mockResolvedValue({
       success: false,
       error: 'Failed to refresh metadata',
@@ -418,7 +430,7 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleRefreshMetadata();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('Failed to refresh metadata');
+    expect(mockToast.error).toHaveBeenCalledWith('刷新元数据失败', { description: 'Failed to refresh metadata' });
     expect(mockOnUpdate).not.toHaveBeenCalled();
     expect(result.current.isRefreshingMetadata).toBe(false);
   });
@@ -434,7 +446,7 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleRefreshMetadata();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('Failed to refresh metadata');
+    expect(mockToast.error).toHaveBeenCalledWith('刷新元数据失败', { description: 'Failed to refresh metadata' });
   });
 
   it('handleRefreshMetadata handles thrown errors gracefully', async () => {
@@ -455,131 +467,148 @@ describe('useLinkCardViewModel', () => {
     consoleSpy.mockRestore();
   });
 
-  // --- handleRetryScreenshot ---
+  // --- handleFetchPreview ---
 
-  it('handleRetryScreenshot calls fetchMicrolinkScreenshot and saves on success', async () => {
-    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+  it('handleFetchPreview with microlink source fetches, saves, and updates', async () => {
+    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
       .mockResolvedValue('https://screenshot.example.com/img.png');
-    vi.mocked(saveScreenshot).mockResolvedValue({ success: true });
+    const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
+    vi.mocked(saveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    // Flush the initial useEffect that also calls fetchMicrolinkScreenshot
+    // Flush auto-fetch metadata effect
     await act(async () => {});
-
-    spy.mockClear();
+    microlinkSpy.mockClear();
+    mockToast.info.mockClear();
 
     await act(async () => {
-      await result.current.handleRetryScreenshot();
+      await result.current.handleFetchPreview('microlink');
     });
 
-    expect(spy).toHaveBeenCalledWith('https://example.com');
-    expect(result.current.screenshotUrl).toBe('https://screenshot.example.com/img.png');
-    expect(result.current.isLoadingScreenshot).toBe(false);
+    expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Microlink' });
+    expect(microlinkSpy).toHaveBeenCalledWith('https://example.com');
     expect(saveScreenshot).toHaveBeenCalledWith(42, 'https://screenshot.example.com/img.png');
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+    expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
+    expect(result.current.isFetchingPreview).toBe(false);
 
-    spy.mockRestore();
+    microlinkSpy.mockRestore();
   });
 
-  it('handleRetryScreenshot sets screenshotUrl to null when fetch returns null', async () => {
-    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+  it('handleFetchPreview with screenshotDomains source fetches, saves, and updates', async () => {
+    const domainsSpy = vi.spyOn(linksModel, 'fetchScreenshotDomains')
+      .mockResolvedValue('https://screenshot.domains/example.com');
+    const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
+    vi.mocked(saveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+    mockToast.info.mockClear();
+
+    await act(async () => {
+      await result.current.handleFetchPreview('screenshotDomains');
+    });
+
+    expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Screenshot Domains' });
+    expect(domainsSpy).toHaveBeenCalledWith('https://example.com');
+    expect(saveScreenshot).toHaveBeenCalledWith(42, 'https://screenshot.domains/example.com');
+    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
+    expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
+    expect(result.current.isFetchingPreview).toBe(false);
+
+    domainsSpy.mockRestore();
+  });
+
+  it('handleFetchPreview shows toast when fetch returns null', async () => {
+    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
       .mockResolvedValue(null);
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    // Flush the initial useEffect
     await act(async () => {});
+    mockToast.error.mockClear();
 
     await act(async () => {
-      await result.current.handleRetryScreenshot();
+      await result.current.handleFetchPreview('microlink');
     });
 
-    expect(result.current.screenshotUrl).toBeNull();
-    expect(result.current.isLoadingScreenshot).toBe(false);
+    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', { description: 'Microlink 未返回有效截图' });
+    expect(saveScreenshot).not.toHaveBeenCalled();
+    expect(result.current.isFetchingPreview).toBe(false);
 
-    spy.mockRestore();
+    microlinkSpy.mockRestore();
   });
 
-  // --- favicon mode (previewStyle) ---
-
-  it('returns faviconUrl when previewStyle is "favicon"', () => {
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
-    );
-
-    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
-    expect(result.current.previewStyle).toBe('favicon');
-  });
-
-  it('returns faviconUrl=null when previewStyle is "screenshot"', () => {
-    vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate, 'screenshot')
-    );
-
-    expect(result.current.faviconUrl).toBeNull();
-    expect(result.current.previewStyle).toBe('screenshot');
-  });
-
-  it('skips Microlink fetch in favicon mode', async () => {
-    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
-
-    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png', screenshotUrl: null });
-
-    renderHook(() =>
-      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
-    );
-
-    await act(async () => {});
-
-    expect(spy).not.toHaveBeenCalled();
-
-    spy.mockRestore();
-  });
-
-  it('fetches Microlink screenshot in screenshot mode when no screenshotUrl', async () => {
-    const spy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
+  it('handleFetchPreview shows toast when saveScreenshot fails', async () => {
+    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
       .mockResolvedValue('https://screenshot.example.com/img.png');
-    vi.mocked(saveScreenshot).mockResolvedValue({ success: true });
+    vi.mocked(saveScreenshot).mockResolvedValue({ success: false, error: 'Upload failed' });
 
-    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png', screenshotUrl: null });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate, 'screenshot')
-    );
-
-    await act(async () => {});
-
-    expect(spy).toHaveBeenCalledWith('https://example.com');
-    expect(result.current.screenshotUrl).toBe('https://screenshot.example.com/img.png');
-
-    spy.mockRestore();
-  });
-
-  it('defaults previewStyle to "favicon" when not provided', () => {
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    expect(result.current.previewStyle).toBe('favicon');
-    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
+    await act(async () => {});
+    mockToast.error.mockClear();
+
+    await act(async () => {
+      await result.current.handleFetchPreview('microlink');
+    });
+
+    expect(mockToast.error).toHaveBeenCalledWith('保存预览图失败', { description: 'Upload failed' });
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+    expect(result.current.isFetchingPreview).toBe(false);
+
+    microlinkSpy.mockRestore();
   });
 
-  it('returns faviconUrl=null in favicon mode when screenshotUrl exists in DB', () => {
-    const linkWithScreenshot = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: 'https://img.example.com/shot.png' });
+  // --- favicon / screenshot display logic ---
+
+  it('returns faviconUrl when no screenshotUrl exists', () => {
+    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: null });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(linkWithScreenshot, SITE_URL, mockOnDelete, mockOnUpdate, 'favicon')
+      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
+    expect(result.current.screenshotUrl).toBeNull();
+  });
+
+  it('returns faviconUrl=null when screenshotUrl exists', () => {
+    const linkWithScreenshot = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: 'https://r2.example.com/shot.png' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(linkWithScreenshot, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     expect(result.current.faviconUrl).toBeNull();
-    expect(result.current.screenshotUrl).toBe('https://img.example.com/shot.png');
-    expect(result.current.previewStyle).toBe('favicon');
+    expect(result.current.screenshotUrl).toBe('https://r2.example.com/shot.png');
+  });
+
+  it('does not auto-fetch screenshot on mount', async () => {
+    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
+    const domainsSpy = vi.spyOn(linksModel, 'fetchScreenshotDomains').mockResolvedValue(null);
+
+    renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+
+    expect(microlinkSpy).not.toHaveBeenCalled();
+    expect(domainsSpy).not.toHaveBeenCalled();
+
+    microlinkSpy.mockRestore();
+    domainsSpy.mockRestore();
   });
 });
 

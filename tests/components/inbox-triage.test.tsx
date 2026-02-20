@@ -60,8 +60,6 @@ const mockService: DashboardService = {
   handleTagUpdated: vi.fn(),
   handleLinkTagAdded: vi.fn(),
   handleLinkTagRemoved: vi.fn(),
-  previewStyle: 'favicon' as const,
-  setPreviewStyle: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({
