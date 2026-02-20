@@ -4,7 +4,7 @@
  * Verifies the public landing page renders correctly and
  * redirects authenticated users to the dashboard.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 // These tests run WITHOUT the shared auth storageState
 test.use({ storageState: { cookies: [], origins: [] } });

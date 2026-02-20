@@ -4,7 +4,7 @@
  * Verifies that unauthenticated users are redirected away from
  * the dashboard, and authenticated users can access it.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 test.describe('Auth guard (unauthenticated)', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
