@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, ImageIcon, Plus, Link2, Inbox, BarChart3, Settings } from "lucide-react";
+import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -58,9 +58,9 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
 /** Nav groups rendered BELOW the 链接管理 section */
 const OTHER_NAV_GROUPS: NavGroup[] = [
   {
-    label: "图片管理",
+    label: "文件管理",
     items: [
-      { title: "图片管理", icon: ImageIcon, href: "/dashboard/uploads" },
+      { title: "文件管理", icon: FileUp, href: "/dashboard/uploads" },
     ],
   },
   {

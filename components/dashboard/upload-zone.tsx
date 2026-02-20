@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { Upload, ImageIcon, FileText } from "lucide-react";
+import { FileUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ALLOWED_TYPES } from "@/models/upload";
 
 interface UploadZoneProps {
   isDragOver: boolean;
@@ -93,23 +92,20 @@ export function UploadZone({
         ref={inputRef}
         type="file"
         multiple
-        accept={ALLOWED_TYPES.join(",")}
         onChange={handleChange}
         className="hidden"
         data-testid="upload-input"
       />
 
       <div className="flex items-center gap-2 mb-3">
-        <Upload className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-        <ImageIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-        <FileText className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+        <FileUp className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
       </div>
 
       <p className="text-sm text-foreground font-medium mb-1">
         {isDragOver ? "释放文件以上传" : "拖拽文件到此处，或点击选择"}
       </p>
       <p className="text-xs text-muted-foreground">
-        支持图片 (JPEG, PNG, GIF, WebP, SVG, AVIF) 和文档 (PDF, Markdown, TXT)，最大 10MB
+        支持所有文件类型，最大 10MB
       </p>
     </div>
   );
