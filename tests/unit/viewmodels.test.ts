@@ -20,7 +20,7 @@ vi.mock('@/actions/links', () => ({
   updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
   refreshLinkMetadata: vi.fn(),
-  saveScreenshot: vi.fn(),
+  fetchAndSaveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/actions/folders', () => ({
@@ -55,9 +55,8 @@ import {
   useCreateLinkViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, saveScreenshot } from '@/actions/links';
+import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
-import * as linksModel from '@/models/links';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,7 +105,7 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(deleteLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
     vi.mocked(refreshLinkMetadata).mockReset();
-    vi.mocked(saveScreenshot).mockReset();
+    vi.mocked(fetchAndSaveScreenshot).mockReset();
     // Default: auto-fetch metadata resolves with no-op (link has no metadata)
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: link });
   });
@@ -469,11 +468,9 @@ describe('useLinkCardViewModel', () => {
 
   // --- handleFetchPreview ---
 
-  it('handleFetchPreview with microlink source fetches, saves, and updates', async () => {
-    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
-      .mockResolvedValue('https://screenshot.example.com/img.png');
+  it('handleFetchPreview with microlink source calls server action and updates', async () => {
     const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
-    vi.mocked(saveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
+    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
@@ -481,7 +478,6 @@ describe('useLinkCardViewModel', () => {
 
     // Flush auto-fetch metadata effect
     await act(async () => {});
-    microlinkSpy.mockClear();
     mockToast.info.mockClear();
 
     await act(async () => {
@@ -489,20 +485,15 @@ describe('useLinkCardViewModel', () => {
     });
 
     expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Microlink' });
-    expect(microlinkSpy).toHaveBeenCalledWith('https://example.com');
-    expect(saveScreenshot).toHaveBeenCalledWith(42, 'https://screenshot.example.com/img.png');
+    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, 'https://example.com', 'microlink');
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
     expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
     expect(result.current.isFetchingPreview).toBe(false);
-
-    microlinkSpy.mockRestore();
   });
 
-  it('handleFetchPreview with screenshotDomains source fetches, saves, and updates', async () => {
-    const domainsSpy = vi.spyOn(linksModel, 'fetchScreenshotDomains')
-      .mockResolvedValue('https://screenshot.domains/example.com');
+  it('handleFetchPreview with screenshotDomains source calls server action and updates', async () => {
     const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
-    vi.mocked(saveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
+    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
@@ -516,18 +507,17 @@ describe('useLinkCardViewModel', () => {
     });
 
     expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Screenshot Domains' });
-    expect(domainsSpy).toHaveBeenCalledWith('https://example.com');
-    expect(saveScreenshot).toHaveBeenCalledWith(42, 'https://screenshot.domains/example.com');
+    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, 'https://example.com', 'screenshotDomains');
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
     expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
     expect(result.current.isFetchingPreview).toBe(false);
-
-    domainsSpy.mockRestore();
   });
 
-  it('handleFetchPreview shows toast when fetch returns null', async () => {
-    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
-      .mockResolvedValue(null);
+  it('handleFetchPreview shows toast when server action returns error', async () => {
+    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({
+      success: false,
+      error: 'Microlink did not return a valid screenshot',
+    });
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
@@ -540,34 +530,30 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleFetchPreview('microlink');
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', { description: 'Microlink 未返回有效截图' });
-    expect(saveScreenshot).not.toHaveBeenCalled();
-    expect(result.current.isFetchingPreview).toBe(false);
-
-    microlinkSpy.mockRestore();
-  });
-
-  it('handleFetchPreview shows toast when saveScreenshot fails', async () => {
-    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot')
-      .mockResolvedValue('https://screenshot.example.com/img.png');
-    vi.mocked(saveScreenshot).mockResolvedValue({ success: false, error: 'Upload failed' });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {});
-    mockToast.error.mockClear();
-
-    await act(async () => {
-      await result.current.handleFetchPreview('microlink');
+    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', {
+      description: 'Microlink did not return a valid screenshot',
     });
-
-    expect(mockToast.error).toHaveBeenCalledWith('保存预览图失败', { description: 'Upload failed' });
     expect(mockOnUpdate).not.toHaveBeenCalled();
     expect(result.current.isFetchingPreview).toBe(false);
+  });
 
-    microlinkSpy.mockRestore();
+  it('handleFetchPreview shows toast when server action fails with upload error', async () => {
+    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: false, error: 'Upload failed' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    await act(async () => {});
+    mockToast.error.mockClear();
+
+    await act(async () => {
+      await result.current.handleFetchPreview('microlink');
+    });
+
+    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', { description: 'Upload failed' });
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+    expect(result.current.isFetchingPreview).toBe(false);
   });
 
   // --- favicon / screenshot display logic ---
@@ -595,20 +581,14 @@ describe('useLinkCardViewModel', () => {
   });
 
   it('does not auto-fetch screenshot on mount', async () => {
-    const microlinkSpy = vi.spyOn(linksModel, 'fetchMicrolinkScreenshot').mockResolvedValue(null);
-    const domainsSpy = vi.spyOn(linksModel, 'fetchScreenshotDomains').mockResolvedValue(null);
-
     renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
     await act(async () => {});
 
-    expect(microlinkSpy).not.toHaveBeenCalled();
-    expect(domainsSpy).not.toHaveBeenCalled();
-
-    microlinkSpy.mockRestore();
-    domainsSpy.mockRestore();
+    // Screenshot fetch is now a server action — it should NOT be called on mount
+    expect(fetchAndSaveScreenshot).not.toHaveBeenCalled();
   });
 });
 

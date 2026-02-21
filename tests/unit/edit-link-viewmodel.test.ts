@@ -7,7 +7,7 @@ import type { Link, Tag, LinkTag } from '@/models/types';
 vi.mock('@/actions/links', () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
-  saveScreenshot: vi.fn(),
+  fetchAndSaveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/actions/tags', () => ({
@@ -25,7 +25,6 @@ vi.mock('@/lib/utils', () => ({
 
 vi.mock('@/models/links', () => ({
   buildShortUrl: (site: string, slug: string) => `${site}/${slug}`,
-  fetchMicrolinkScreenshot: vi.fn().mockResolvedValue(null),
   stripProtocol: (url: string) => url.replace(/^https?:\/\//, ''),
 }));
 

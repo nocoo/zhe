@@ -307,10 +307,47 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
 }
 
 /**
+ * Fetch a screenshot from the given source entirely on the server, upload it
+ * to R2, and persist the permanent URL in the DB.
+ *
+ * This avoids CORS issues that occur when the browser tries to reach
+ * screenshot.domains directly (the CDN redirect lacks Access-Control headers).
+ */
+export async function fetchAndSaveScreenshot(
+  linkId: number,
+  originalUrl: string,
+  source: 'microlink' | 'screenshotDomains',
+): Promise<ActionResult<Link>> {
+  try {
+    const ctx = await getAuthContext();
+    if (!ctx) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Step 1: resolve screenshot URL on the server (no CORS)
+    const { fetchMicrolinkScreenshot, fetchScreenshotDomains } = await import('@/models/links');
+    const tempUrl = source === 'microlink'
+      ? await fetchMicrolinkScreenshot(originalUrl)
+      : await fetchScreenshotDomains(originalUrl);
+
+    if (!tempUrl) {
+      return { success: false, error: `${source === 'microlink' ? 'Microlink' : 'Screenshot Domains'} did not return a valid screenshot` };
+    }
+
+    // Step 2: delegate to saveScreenshot for download → R2 → DB
+    return saveScreenshot(linkId, tempUrl);
+  } catch (error) {
+    console.error('Failed to fetch and save screenshot:', error);
+    return { success: false, error: 'Failed to fetch and save screenshot' };
+  }
+}
+
+/**
  * Download a screenshot from an external URL, upload it to R2, and persist
  * the permanent R2 public URL in the DB.
  *
- * Called by the client after fetching a temporary screenshot URL from Microlink.
+ * Called by the client after fetching a temporary screenshot URL from Microlink,
+ * or internally by fetchAndSaveScreenshot.
  */
 export async function saveScreenshot(
   linkId: number,

@@ -6,10 +6,10 @@ import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
 import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
 import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
-import { buildShortUrl, fetchMicrolinkScreenshot, fetchScreenshotDomains } from "@/models/links";
+import { buildShortUrl } from "@/models/links";
 import type { ScreenshotSource } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
-import { saveScreenshot } from "@/actions/links";
+import { fetchAndSaveScreenshot } from "@/actions/links";
 
 /** ViewModel for a single link card — manages copy, delete, analytics, metadata & screenshot */
 export function useLinkCardViewModel(
@@ -117,25 +117,15 @@ export function useLinkCardViewModel(
     toast.info("正在抓取预览图...", { description: `来源: ${sourceName}` });
 
     try {
-      // Step 1: fetch temporary screenshot URL from provider
-      const tempUrl = source === "microlink"
-        ? await fetchMicrolinkScreenshot(link.originalUrl)
-        : await fetchScreenshotDomains(link.originalUrl);
-
-      if (!tempUrl) {
-        toast.error("抓取预览图失败", { description: `${sourceName} 未返回有效截图` });
-        setIsFetchingPreview(false);
-        return;
-      }
-
-      // Step 2: persist to R2 via server action
-      const result = await saveScreenshot(link.id, tempUrl);
+      // Single server action: fetch screenshot → download → upload to R2 → persist URL
+      // This runs entirely on the server, avoiding CORS issues with screenshot.domains CDN.
+      const result = await fetchAndSaveScreenshot(link.id, link.originalUrl, source);
       if (result.success && result.data) {
-        setScreenshotUrl(result.data.screenshotUrl ?? tempUrl);
+        setScreenshotUrl(result.data.screenshotUrl ?? null);
         onUpdate(result.data);
         toast.success("预览图已更新");
       } else {
-        toast.error("保存预览图失败", { description: result.error || "Unknown error" });
+        toast.error("抓取预览图失败", { description: result.error || "Unknown error" });
       }
     } catch (error) {
       console.error("Failed to fetch preview:", error);
