@@ -9,6 +9,7 @@ import {
   filterLinks,
   buildLinkCounts,
   fetchMicrolinkScreenshot,
+  fetchScreenshotDomains,
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
@@ -701,6 +702,85 @@ describe('models/links', () => {
       expect(calledUrl.origin + calledUrl.pathname).toBe('https://api.microlink.io/');
       expect(calledUrl.searchParams.get('url')).toBe('https://example.com/page');
       expect(calledUrl.searchParams.get('screenshot')).toBe('true');
+    });
+  });
+
+  // --- fetchScreenshotDomains ---
+  describe('fetchScreenshotDomains', () => {
+    /** Create a mock Response with a custom `url` (which is read-only on real Response). */
+    function mockResponse(status: number, url: string): Response {
+      const res = new Response(null, { status });
+      Object.defineProperty(res, 'url', { value: url, writable: false });
+      return res;
+    }
+
+    it('returns the final redirected URL on success', async () => {
+      const finalUrl = 'https://img.screenshot.domains/github.com/123.webp';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        mockResponse(200, finalUrl),
+      );
+
+      const result = await fetchScreenshotDomains('https://github.com');
+      expect(result).toBe(finalUrl);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://screenshot.domains/github.com',
+        expect.objectContaining({ method: 'HEAD' }),
+      );
+    });
+
+    it('returns null when response is not ok', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        mockResponse(404, 'https://screenshot.domains/nonexistent.com'),
+      );
+
+      const result = await fetchScreenshotDomains('https://nonexistent.com');
+      expect(result).toBeNull();
+    });
+
+    it('returns null for invalid URL', async () => {
+      const result = await fetchScreenshotDomains('not-a-url');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when fetch throws (e.g. network error)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network error'));
+
+      const result = await fetchScreenshotDomains('https://example.com');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when fetch times out (AbortError)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+        Object.assign(new Error('aborted'), { name: 'AbortError' }),
+      );
+
+      const result = await fetchScreenshotDomains('https://slow-site.com');
+      expect(result).toBeNull();
+    });
+
+    it('extracts hostname from full URL path', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        mockResponse(200, 'https://img.screenshot.domains/example.com/456.webp'),
+      );
+
+      await fetchScreenshotDomains('https://example.com/some/path?q=1');
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://screenshot.domains/example.com',
+        expect.objectContaining({ method: 'HEAD' }),
+      );
+    });
+
+    it('passes AbortSignal for timeout', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        mockResponse(200, 'https://img.screenshot.domains/example.com/789.webp'),
+      );
+
+      await fetchScreenshotDomains('https://example.com');
+
+      const callArgs = vi.mocked(globalThis.fetch).mock.calls[0];
+      const options = callArgs[1] as RequestInit;
+      expect(options.signal).toBeInstanceOf(AbortSignal);
     });
   });
 });

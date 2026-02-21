@@ -155,8 +155,9 @@ export async function fetchMicrolinkScreenshot(targetUrl: string): Promise<strin
 
 /**
  * Fetch a screenshot from screenshot.domains service.
- * The service returns the image directly (not a JSON API),
- * so we return the URL itself if a HEAD/GET check succeeds.
+ * The service returns a 302 redirect to the actual CDN image URL
+ * (img.screenshot.domains), so we follow the redirect and return
+ * the final resolved URL for reliable server-side download.
  */
 export async function fetchScreenshotDomains(targetUrl: string): Promise<string | null> {
   try {
@@ -164,12 +165,26 @@ export async function fetchScreenshotDomains(targetUrl: string): Promise<string 
     if (!hostname) return null;
     const screenshotUrl = `https://screenshot.domains/${hostname}`;
 
-    // Verify the image is actually reachable
-    const res = await fetch(screenshotUrl, { method: "HEAD" });
-    if (!res.ok) return null;
+    // Verify reachability with a timeout; use HEAD to avoid downloading the image.
+    // fetch() follows redirects by default, so res.url is the final CDN URL.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(screenshotUrl, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-    return screenshotUrl;
-  } catch {
+    if (!res.ok) {
+      console.warn(`screenshot.domains returned ${res.status} for ${hostname}`);
+      return null;
+    }
+
+    // Return the final URL after redirect (e.g. https://img.screenshot.domains/...)
+    return res.url;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`screenshot.domains fetch failed for ${targetUrl}: ${message}`);
     return null;
   }
 }
