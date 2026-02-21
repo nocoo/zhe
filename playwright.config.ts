@@ -3,11 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E configuration.
  *
- * Tests run against the Next.js dev server on port 7005.
- * Auth is handled via a Credentials provider activated by PLAYWRIGHT=1.
- * AUTH_URL is overridden to http://localhost:7005 so NextAuth uses
- * non-secure cookies (no __Secure- / __Host- prefix).
+ * Tests run on a dedicated port (17005) to avoid conflicts with the
+ * regular dev server (7005). The webServer block always starts a fresh
+ * instance with PLAYWRIGHT=1 so the Credentials provider is available.
  */
+const E2E_PORT = 17005;
+const E2E_BASE = `http://localhost:${E2E_PORT}`;
+
 export default defineConfig({
   testDir: './tests/playwright',
   globalSetup: './tests/playwright/global-setup.ts',
@@ -20,7 +22,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:7005',
+    baseURL: E2E_BASE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -42,9 +44,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'PLAYWRIGHT=1 AUTH_URL=http://localhost:7005 bun run dev',
-    url: 'http://localhost:7005',
-    reuseExistingServer: !process.env.CI,
+    command: `PLAYWRIGHT=1 AUTH_URL=${E2E_BASE} bun run next dev --turbopack -p ${E2E_PORT}`,
+    url: E2E_BASE,
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });
