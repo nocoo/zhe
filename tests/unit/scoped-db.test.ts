@@ -1086,4 +1086,120 @@ describe('ScopedDB', () => {
       expect(await dbB.getUserSettings()).toBeNull();
     });
   });
+
+  // ---- Webhook Operations -----------------------------------
+
+  describe('Webhook Operations', () => {
+    it('upsertWebhook creates a new webhook', async () => {
+      const db = new ScopedDB(USER_A);
+      const webhook = await db.upsertWebhook('tok_abc123');
+
+      expect(webhook.userId).toBe(USER_A);
+      expect(webhook.token).toBe('tok_abc123');
+      expect(webhook.rateLimit).toBe(5);
+      expect(webhook.createdAt).toBeInstanceOf(Date);
+      expect(webhook.id).toBeGreaterThan(0);
+    });
+
+    it('upsertWebhook replaces existing webhook token', async () => {
+      const db = new ScopedDB(USER_A);
+      const first = await db.upsertWebhook('tok_old');
+      const second = await db.upsertWebhook('tok_new');
+
+      expect(second.userId).toBe(USER_A);
+      expect(second.token).toBe('tok_new');
+      // Should be the same user's webhook (upsert, not insert)
+      expect(second.id).toBe(first.id);
+    });
+
+    it('upsertWebhook is scoped to user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.upsertWebhook('tok_alice');
+      await dbB.upsertWebhook('tok_bob');
+
+      const webhookA = await dbA.getWebhook();
+      const webhookB = await dbB.getWebhook();
+
+      expect(webhookA).not.toBeNull();
+      expect(webhookA!.token).toBe('tok_alice');
+      expect(webhookB).not.toBeNull();
+      expect(webhookB!.token).toBe('tok_bob');
+    });
+
+    it('getWebhook returns null when no webhook exists', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.getWebhook()).toBeNull();
+    });
+
+    it('updateWebhookRateLimit updates the rate limit', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertWebhook('tok_rate');
+
+      const updated = await db.updateWebhookRateLimit(20);
+
+      expect(updated).not.toBeNull();
+      expect(updated!.rateLimit).toBe(20);
+      expect(updated!.token).toBe('tok_rate');
+    });
+
+    it('updateWebhookRateLimit returns null when no webhook exists', async () => {
+      const db = new ScopedDB(USER_A);
+
+      const result = await db.updateWebhookRateLimit(10);
+
+      expect(result).toBeNull();
+    });
+
+    it('updateWebhookRateLimit is scoped to user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.upsertWebhook('tok_alice');
+
+      // Bob cannot update Alice's webhook rate limit (he has no webhook)
+      const bobResult = await dbB.updateWebhookRateLimit(100);
+      expect(bobResult).toBeNull();
+
+      // Alice can update her own
+      const aliceResult = await dbA.updateWebhookRateLimit(15);
+      expect(aliceResult).not.toBeNull();
+      expect(aliceResult!.rateLimit).toBe(15);
+    });
+
+    it('deleteWebhook removes the webhook', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertWebhook('tok_delete');
+
+      const deleted = await db.deleteWebhook();
+      expect(deleted).toBe(true);
+
+      const webhook = await db.getWebhook();
+      expect(webhook).toBeNull();
+    });
+
+    it('deleteWebhook returns false when no webhook exists', async () => {
+      const db = new ScopedDB(USER_A);
+
+      const result = await db.deleteWebhook();
+      expect(result).toBe(false);
+    });
+
+    it('deleteWebhook is scoped to user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.upsertWebhook('tok_alice');
+      await dbB.upsertWebhook('tok_bob');
+
+      // Delete Alice's webhook
+      expect(await dbA.deleteWebhook()).toBe(true);
+      expect(await dbA.getWebhook()).toBeNull();
+
+      // Bob's webhook should still exist
+      expect(await dbB.getWebhook()).not.toBeNull();
+      expect((await dbB.getWebhook())!.token).toBe('tok_bob');
+    });
+  });
 });

@@ -6,8 +6,9 @@ import {
   deleteLinkById,
   updateLink,
   getFolderByUserAndName,
+  getWebhookByToken,
 } from '@/lib/db';
-import { clearMockStorage, getMockFolders } from '../mocks/db-storage';
+import { clearMockStorage, getMockFolders, getMockWebhooks } from '../mocks/db-storage';
 
 describe('Link DB Operations', () => {
   beforeEach(() => {
@@ -449,6 +450,78 @@ describe('Link DB Operations', () => {
     it('should return null when no folders exist', async () => {
       const folder = await getFolderByUserAndName('user-1', '工作');
       expect(folder).toBeNull();
+    });
+  });
+
+  describe('getWebhookByToken', () => {
+    function seedWebhook(userId: string, token: string, rateLimit = 5) {
+      const mockWebhooks = getMockWebhooks();
+      mockWebhooks.set(userId, {
+        id: mockWebhooks.size + 1,
+        user_id: userId,
+        token,
+        rate_limit: rateLimit,
+        created_at: Date.now(),
+      } as unknown as import('@/lib/db/schema').Webhook);
+    }
+
+    it('should find a webhook by its token', async () => {
+      seedWebhook('user-1', 'tok_abc123');
+
+      const webhook = await getWebhookByToken('tok_abc123');
+
+      expect(webhook).not.toBeNull();
+      expect(webhook!.token).toBe('tok_abc123');
+      expect(webhook!.userId).toBe('user-1');
+    });
+
+    it('should return null when token does not exist', async () => {
+      seedWebhook('user-1', 'tok_abc123');
+
+      const webhook = await getWebhookByToken('tok_nonexistent');
+
+      expect(webhook).toBeNull();
+    });
+
+    it('should return null when no webhooks exist', async () => {
+      const webhook = await getWebhookByToken('tok_nothing');
+      expect(webhook).toBeNull();
+    });
+
+    it('should map row through rowToWebhook correctly', async () => {
+      seedWebhook('user-1', 'tok_mapped', 10);
+
+      const webhook = await getWebhookByToken('tok_mapped');
+
+      expect(webhook).not.toBeNull();
+      expect(webhook!.id).toBeTypeOf('number');
+      expect(webhook!.userId).toBe('user-1');
+      expect(webhook!.token).toBe('tok_mapped');
+      expect(webhook!.rateLimit).toBe(10);
+      expect(webhook!.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('should return the correct webhook when multiple exist', async () => {
+      seedWebhook('user-1', 'tok_first');
+      seedWebhook('user-2', 'tok_second');
+
+      const first = await getWebhookByToken('tok_first');
+      const second = await getWebhookByToken('tok_second');
+
+      expect(first).not.toBeNull();
+      expect(first!.userId).toBe('user-1');
+
+      expect(second).not.toBeNull();
+      expect(second!.userId).toBe('user-2');
+    });
+
+    it('should default rateLimit to 5 when not explicitly set', async () => {
+      seedWebhook('user-1', 'tok_default');
+
+      const webhook = await getWebhookByToken('tok_default');
+
+      expect(webhook).not.toBeNull();
+      expect(webhook!.rateLimit).toBe(5);
     });
   });
 });

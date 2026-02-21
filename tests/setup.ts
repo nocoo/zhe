@@ -790,14 +790,14 @@ vi.mock('@/lib/db/d1-client', async () => {
       // ---- Webhooks ----
 
       // SELECT FROM webhooks WHERE user_id = ?
-      if (sqlLower.includes('from webhooks') && sqlLower.includes('where user_id = ?')) {
+      if (sqlLower.startsWith('select') && sqlLower.includes('from webhooks') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
         const webhook = mockWebhooks.get(userId as string);
         return webhook ? [webhook] as T[] : [];
       }
 
       // SELECT FROM webhooks WHERE token = ?
-      if (sqlLower.includes('from webhooks') && sqlLower.includes('where token = ?')) {
+      if (sqlLower.startsWith('select') && sqlLower.includes('from webhooks') && sqlLower.includes('where token = ?')) {
         const [token] = params;
         for (const webhook of mockWebhooks.values()) {
           const raw = webhook as unknown as Record<string, unknown>;
