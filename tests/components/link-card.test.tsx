@@ -595,4 +595,177 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("刷新元数据")).toBeInTheDocument();
     expect(screen.getByTitle("刷新预览图")).toBeInTheDocument();
   });
+
+  // --- Copy button callbacks ---
+
+  it("calls handleCopy when copy link button is clicked in list mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Copy link"));
+
+    expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls handleCopyOriginalUrl when copy original URL button is clicked in list mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Copy original URL"));
+
+    expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls handleCopy when copy link button is clicked in grid mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    await user.click(screen.getByTitle("Copy link"));
+
+    expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls handleCopyOriginalUrl when copy original URL button is clicked in grid mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    await user.click(screen.getByTitle("Copy original URL"));
+
+    expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
+  });
+
+  // --- Refresh metadata callback ---
+
+  it("calls handleRefreshMetadata when refresh metadata button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("刷新元数据"));
+
+    expect(mockVm.handleRefreshMetadata).toHaveBeenCalledTimes(1);
+  });
+
+  // --- Analytics toggle callback ---
+
+  it("calls handleToggleAnalytics when analytics button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    const analyticsButton = screen.getByText(/次点击/);
+    await user.click(analyticsButton);
+
+    expect(mockVm.handleToggleAnalytics).toHaveBeenCalledTimes(1);
+  });
+
+  // --- BreakdownSection rendering ---
+
+  it("shows country entries without counts in analytics panel", () => {
+    mockVm.showAnalytics = true;
+    mockVm.analyticsStats = {
+      totalClicks: 100,
+      uniqueCountries: ["US", "CN", "JP"],
+      deviceBreakdown: { desktop: 60, mobile: 40 },
+      browserBreakdown: { chrome: 50, safari: 30, firefox: 20 },
+      osBreakdown: { windows: 40, macos: 35, linux: 25 },
+    };
+
+    render(<LinkCard {...defaultProps} />);
+
+    // Country entries should be visible (showCount=false, so no count numbers for countries)
+    expect(screen.getByText("US")).toBeInTheDocument();
+    expect(screen.getByText("CN")).toBeInTheDocument();
+    expect(screen.getByText("JP")).toBeInTheDocument();
+  });
+
+  it("shows device breakdown entries with counts", () => {
+    mockVm.showAnalytics = true;
+    mockVm.analyticsStats = {
+      totalClicks: 100,
+      uniqueCountries: ["US"],
+      deviceBreakdown: { desktop: 60, mobile: 35 },
+      browserBreakdown: { chrome: 50 },
+      osBreakdown: { windows: 45 },
+    };
+
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByText("desktop")).toBeInTheDocument();
+    expect(screen.getByText("60")).toBeInTheDocument();
+    expect(screen.getByText("mobile")).toBeInTheDocument();
+    expect(screen.getByText("35")).toBeInTheDocument();
+  });
+
+  it("shows '+N more' text when countries exceed displayed entries", () => {
+    mockVm.showAnalytics = true;
+    mockVm.analyticsStats = {
+      totalClicks: 100,
+      uniqueCountries: ["US", "CN", "JP", "UK", "DE", "FR", "BR", "IN"],
+      deviceBreakdown: {},
+      browserBreakdown: {},
+      osBreakdown: {},
+    };
+
+    render(<LinkCard {...defaultProps} />);
+
+    // 8 countries total, showing 5, so "+3 more" should appear
+    expect(screen.getByText("+3 more")).toBeInTheDocument();
+  });
+
+  it("shows 'No data' when device breakdown is empty", () => {
+    mockVm.showAnalytics = true;
+    mockVm.analyticsStats = {
+      totalClicks: 0,
+      uniqueCountries: [],
+      deviceBreakdown: {},
+      browserBreakdown: {},
+      osBreakdown: {},
+    };
+
+    render(<LinkCard {...defaultProps} />);
+
+    const noDataElements = screen.getAllByText("No data");
+    expect(noDataElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // --- Screenshot source picker dialog ---
+
+  it("opens screenshot source picker dialog when refresh preview is clicked in list mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Refresh preview"));
+
+    expect(screen.getByText("选择截图来源")).toBeInTheDocument();
+    expect(screen.getByText("Microlink")).toBeInTheDocument();
+    expect(screen.getByText("Screenshot Domains")).toBeInTheDocument();
+  });
+
+  it("calls handleFetchPreview with 'microlink' when Microlink source is selected", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Refresh preview"));
+    await user.click(screen.getByText("Microlink"));
+
+    expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("microlink");
+  });
+
+  it("calls handleFetchPreview with 'screenshotDomains' when Screenshot Domains source is selected", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByLabelText("Refresh preview"));
+    await user.click(screen.getByText("Screenshot Domains"));
+
+    expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("screenshotDomains");
+  });
+
+  it("opens screenshot source picker dialog when refresh preview is clicked in grid mode", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    await user.click(screen.getByLabelText("Refresh preview"));
+
+    expect(screen.getByText("选择截图来源")).toBeInTheDocument();
+  });
 });
