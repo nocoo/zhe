@@ -149,6 +149,65 @@ describe('SettingsPage', () => {
     expect(mockClearImportResult).toHaveBeenCalled();
   });
 
+  it('resets file input after file selection (onFileChange)', () => {
+    render(<SettingsPage />);
+
+    const fileInput = screen.getByTestId('import-file-input') as HTMLInputElement;
+    const file = new File(['{}'], 'data.json', { type: 'application/json' });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(mockHandleImport).toHaveBeenCalledWith(file);
+    // After onFileChange, the file input value should be reset to ""
+    expect(fileInput.value).toBe('');
+  });
+
+  it('does not call handleImport when no file selected (onFileChange)', () => {
+    render(<SettingsPage />);
+
+    const fileInput = screen.getByTestId('import-file-input');
+
+    fireEvent.change(fileInput, { target: { files: [] } });
+
+    expect(mockHandleImport).not.toHaveBeenCalled();
+  });
+
+  it('copies token to clipboard when copy token button clicked', () => {
+    mockWebhookVm.token = 'test-token-xyz';
+    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/test-token-xyz';
+
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(<SettingsPage />);
+
+    const copyButtons = screen.getAllByRole('button', { name: /复制/ });
+    // First copy button is for the token
+    fireEvent.click(copyButtons[0]);
+
+    expect(writeTextMock).toHaveBeenCalledWith('test-token-xyz');
+  });
+
+  it('copies webhook URL to clipboard when copy URL button clicked', () => {
+    mockWebhookVm.token = 'test-token-xyz';
+    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/test-token-xyz';
+
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(<SettingsPage />);
+
+    const copyButtons = screen.getAllByRole('button', { name: /复制/ });
+    // Second copy button is for the webhook URL
+    fireEvent.click(copyButtons[1]);
+
+    expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/webhook/test-token-xyz');
+  });
+
   // ====================================================================
   // Webhook card
   // ====================================================================
