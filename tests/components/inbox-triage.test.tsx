@@ -507,5 +507,279 @@ describe('InboxTriage', () => {
 
       expect(mockService.refreshLinks).toHaveBeenCalledTimes(1);
     });
+
+    it('disables button while refreshing', async () => {
+      // Make refreshLinks block so we can inspect the disabled state
+      let resolveRefresh!: () => void;
+      (mockService.refreshLinks as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise<void>((r) => { resolveRefresh = r; }),
+      );
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const btn = screen.getByRole('button', { name: '刷新链接' });
+      await user.click(btn);
+
+      // Button should be disabled while refreshing
+      expect(btn).toBeDisabled();
+
+      // Resolve the promise and wait for state update
+      resolveRefresh();
+      await vi.waitFor(() => {
+        expect(btn).not.toBeDisabled();
+      });
+    });
+  });
+
+  // ── Copy original URL ──
+
+  describe('copy original URL', () => {
+    it('calls copyToClipboard with original URL when copy button is clicked', async () => {
+      const { copyToClipboard } = await import('@/lib/utils');
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const copyButtons = screen.getAllByTitle('Copy original URL');
+      await user.click(copyButtons[0]);
+
+      expect(copyToClipboard).toHaveBeenCalledWith('https://example.com/1');
+    });
+
+    it('shows check icon temporarily after successful copy', async () => {
+      const { copyToClipboard } = await import('@/lib/utils');
+      (copyToClipboard as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const copyButtons = screen.getAllByTitle('Copy original URL');
+      await user.click(copyButtons[0]);
+
+      // Check icon should appear (has class text-success)
+      const checkIcon = copyButtons[0].querySelector('.text-success');
+      expect(checkIcon).toBeInTheDocument();
+    });
+  });
+
+  // ── Folder selector onChange ──
+
+  describe('folder selector onChange', () => {
+    it('updates folder selection when a folder is chosen', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const selects = screen.getAllByRole('combobox');
+      await user.selectOptions(selects[0], 'f1');
+
+      expect(selects[0]).toHaveValue('f1');
+    });
+
+    it('resets to Inbox when empty option is selected', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const selects = screen.getAllByRole('combobox');
+      // Select a folder first
+      await user.selectOptions(selects[0], 'f1');
+      expect(selects[0]).toHaveValue('f1');
+
+      // Reset to Inbox
+      await user.selectOptions(selects[0], '');
+      expect(selects[0]).toHaveValue('');
+    });
+  });
+
+  // ── Note input onChange ──
+
+  describe('note input onChange', () => {
+    it('updates note value as user types', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const inputs = screen.getAllByPlaceholderText('添加备注...');
+      await user.type(inputs[0], 'hello world');
+
+      expect(inputs[0]).toHaveValue('hello world');
+    });
+  });
+
+  // ── Screenshot URL input onChange ──
+
+  describe('screenshot URL input onChange', () => {
+    it('updates screenshot URL value as user types', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const inputs = screen.getAllByPlaceholderText('https://...');
+      await user.type(inputs[0], 'https://screenshot.example.com/img.png');
+
+      expect(inputs[0]).toHaveValue('https://screenshot.example.com/img.png');
+    });
+  });
+
+  // ── Save button click ──
+
+  describe('save button click', () => {
+    it('triggers save action when clicked', async () => {
+      const { updateLink } = await import('@/actions/links');
+      (updateLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { ...inboxLink1, folderId: null } });
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const saveButtons = screen.getAllByRole('button', { name: '保存' });
+      await user.click(saveButtons[0]);
+
+      expect(updateLink).toHaveBeenCalled();
+    });
+  });
+
+  // ── Tag remove button click ──
+
+  describe('tag remove', () => {
+    it('calls removeTagFromLink when tag remove button is clicked', async () => {
+      const { removeTagFromLink } = await import('@/actions/tags');
+      (removeTagFromLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+
+      const linkTags: LinkTag[] = [
+        { linkId: 1, tagId: 't1' },
+      ];
+      setupService({ linkTags });
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const removeBtn = screen.getByLabelText('Remove tag Important');
+      await user.click(removeBtn);
+
+      // Should trigger optimistic removal through the VM
+      expect(mockService.handleLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
+    });
+  });
+
+  // ── Tag picker ──
+
+  describe('tag picker', () => {
+    it('opens tag picker popover when add tag button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const addButtons = screen.getAllByLabelText('Add tag');
+      await user.click(addButtons[0]);
+
+      expect(screen.getByPlaceholderText('搜索或创建标签...')).toBeInTheDocument();
+    });
+
+    it('selects an existing tag from picker', async () => {
+      const { addTagToLink } = await import('@/actions/tags');
+      (addTagToLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      // Open the tag picker for the first inbox link
+      const addButtons = screen.getAllByLabelText('Add tag');
+      await user.click(addButtons[0]);
+
+      // Click on a tag in the picker
+      const tagOption = screen.getByText('Important');
+      await user.click(tagOption);
+
+      // Should call onLinkTagAdded optimistically
+      expect(mockService.handleLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
+    });
+
+    it('creates a new tag when user types a non-existing name and selects create', async () => {
+      const { createTag } = await import('@/actions/tags');
+      (createTag as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        data: { id: 't-new', userId: 'u1', name: 'NewTag', color: 'gray', createdAt: new Date() },
+      });
+
+      const { addTagToLink } = await import('@/actions/tags');
+      (addTagToLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const addButtons = screen.getAllByLabelText('Add tag');
+      await user.click(addButtons[0]);
+
+      // Type a non-existing tag name
+      const searchInput = screen.getByPlaceholderText('搜索或创建标签...');
+      await user.type(searchInput, 'NewTag');
+
+      // The "创建" option should appear
+      const createOption = screen.getByText(/创建/);
+      await user.click(createOption);
+
+      expect(createTag).toHaveBeenCalledWith({ name: 'NewTag' });
+    });
+  });
+
+  // ── Delete confirmation ──
+
+  describe('delete confirmation action', () => {
+    it('calls deleteLink and handleLinkDeleted on successful delete', async () => {
+      const { deleteLink } = await import('@/actions/links');
+      (deleteLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      // Open delete dialog
+      const deleteButtons = screen.getAllByLabelText('Delete link');
+      await user.click(deleteButtons[0]);
+
+      // Click confirm
+      const confirmBtn = screen.getByRole('button', { name: '删除' });
+      await user.click(confirmBtn);
+
+      expect(deleteLink).toHaveBeenCalledWith(1);
+      await vi.waitFor(() => {
+        expect(mockService.handleLinkDeleted).toHaveBeenCalledWith(1);
+      });
+    });
+
+    it('shows alert on delete failure', async () => {
+      const { deleteLink } = await import('@/actions/links');
+      (deleteLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: false, error: 'Delete failed' });
+
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const deleteButtons = screen.getAllByLabelText('Delete link');
+      await user.click(deleteButtons[0]);
+
+      const confirmBtn = screen.getByRole('button', { name: '删除' });
+      await user.click(confirmBtn);
+
+      await vi.waitFor(() => {
+        expect(alertSpy).toHaveBeenCalledWith('Delete failed');
+      });
+
+      alertSpy.mockRestore();
+    });
+
+    it('closes dialog on cancel', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      const deleteButtons = screen.getAllByLabelText('Delete link');
+      await user.click(deleteButtons[0]);
+
+      // Dialog is open
+      expect(screen.getByText('确认删除')).toBeInTheDocument();
+
+      // Cancel
+      await user.click(screen.getByRole('button', { name: '取消' }));
+
+      // Dialog should close
+      await vi.waitFor(() => {
+        expect(screen.queryByText('确认删除')).not.toBeInTheDocument();
+      });
+    });
   });
 });
