@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-02-23
+
+### Added
+- Fixed preview image for GitHub repository pages — all `github.com/{owner}/{repo}` URLs use a unified screenshot instead of per-link fetching
+- On-demand preview fetch via toast-driven UI (replaced auto-screenshot)
+- Refresh button in inbox header
+- Playwright E2E test infrastructure with D1 global setup/teardown
+- Playwright specs for landing, auth guard, navigation, and link CRUD
+- Three-layer test coverage: page route tests, component interaction tests, and model unit tests
+
+### Changed
+- Unify link card display logic across list and grid modes (favicon, title, note, description, thumbnail)
+- Replace raw URL display with clickable title and copy button
+- Move screenshot fetch to server action to avoid CORS blocking
+- Grid mode meta row now shows slug, click count, and date consistently
+
+### Fixed
+- Restore slug display in grid mode meta row
+- Return final redirect URL from screenshot.domains for reliable server-side download
+- Isolate E2E tests on dedicated port 17005 to avoid dev server conflicts
+- Use platform-aware modifier key for Cmd+K test
+- Harden E2E credentials provider with email pin and production guard
+- Use else-if in session callback to prevent id overwrite
+
 ## [1.0.0] - 2026-02-20
 
 ### Added

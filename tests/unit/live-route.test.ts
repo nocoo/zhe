@@ -68,7 +68,7 @@ describe('GET /api/live', () => {
     expect(body.version).toBe('1.2.3');
   });
 
-  it('falls back to 1.0.0 when npm_package_version is unset', async () => {
+  it('falls back to 1.1.0 when npm_package_version is unset', async () => {
     vi.resetModules();
     delete process.env.npm_package_version;
 
@@ -76,7 +76,7 @@ describe('GET /api/live', () => {
     const response = await GET();
     const body = await response.json();
 
-    expect(body.version).toBe('1.0.0');
+    expect(body.version).toBe('1.1.0');
   });
 
   it('does not include uptime (unavailable in Edge Runtime)', async () => {
