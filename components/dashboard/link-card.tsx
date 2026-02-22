@@ -38,7 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
-import { stripProtocol } from "@/models/links";
+import { extractHostname } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
 import { getTagColorClasses } from "@/models/tags";
 import type { Link, Tag, LinkTag } from "@/models/types";
@@ -76,6 +76,8 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
     isFetchingPreview,
     handleFetchPreview,
     faviconUrl,
+    faviconError,
+    handleFaviconError,
   } = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
 
   // Screenshot source picker dialog
@@ -91,6 +93,13 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
     return new Set(linkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId));
   }, [linkTags, link.id]);
   const cardTags = tags.filter((t) => assignedTagIds.has(t.id));
+
+  // --- Shared display logic (unified across list & grid) ---
+  const hostname = extractHostname(link.originalUrl);
+  // Favicon: show metaFavicon image unless it errored (404), else show bg+icon placeholder
+  const showFaviconImage = !!link.metaFavicon && !faviconError;
+  // Title text after the note (if any): metaTitle or hostname fallback
+  const titleText = link.metaTitle || hostname;
 
   if (viewMode === "grid") {
     return (
@@ -205,16 +214,22 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
 
         {/* Compact info */}
         <div className="p-3 space-y-1">
+          {/* Unified title row: [favicon] note | title/hostname */}
           <div className="flex items-center gap-1.5">
-            {link.metaFavicon && (
+            {showFaviconImage ? (
               <Image
-                src={link.metaFavicon}
+                src={link.metaFavicon!}
                 alt="favicon"
                 width={14}
                 height={14}
                 className="w-3.5 h-3.5 shrink-0 rounded-sm"
                 unoptimized
+                onError={handleFaviconError}
               />
+            ) : (
+              <div className="w-3.5 h-3.5 shrink-0 rounded-sm bg-accent flex items-center justify-center">
+                <Link2 className="w-2.5 h-2.5 text-muted-foreground/60" strokeWidth={2} />
+              </div>
             )}
             <a
               href={link.originalUrl}
@@ -222,7 +237,13 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               rel="noopener noreferrer"
               className="text-sm font-medium text-foreground hover:underline truncate"
             >
-              {link.metaTitle || stripProtocol(shortUrl)}
+              {link.note ? (
+                <>
+                  <span>{link.note}</span>
+                  <span className="mx-1.5 text-border">|</span>
+                  <span className="text-muted-foreground">{titleText}</span>
+                </>
+              ) : titleText}
             </a>
             <button
               onClick={(e) => { e.stopPropagation(); handleCopyOriginalUrl(); }}
@@ -237,6 +258,23 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               )}
             </button>
           </div>
+
+          {/* Unified description */}
+          {link.metaDescription ? (
+            <p className="text-xs text-muted-foreground/70 truncate">{link.metaDescription}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground/40 truncate">
+              未抓取描述 ·{" "}
+              <button
+                onClick={handleRefreshMetadata}
+                disabled={isRefreshingMetadata}
+                className="hover:text-muted-foreground underline underline-offset-2 transition-colors"
+              >
+                {isRefreshingMetadata ? "抓取中..." : "点击抓取"}
+              </button>
+            </p>
+          )}
+
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
@@ -277,8 +315,8 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
   return (
     <div data-testid="link-card" className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-stretch gap-4">
-        {/* Screenshot/favicon thumbnail — left side, always visible */}
-        <div className="group/thumb relative shrink-0 hidden sm:flex w-[120px] self-stretch rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
+        {/* Screenshot/favicon thumbnail — left side, 118x62 (≈19:10), object-top crop */}
+        <div className="group/thumb relative shrink-0 hidden sm:flex w-[118px] h-[62px] rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
           {screenshotUrl ? (
             <a
               href={link.originalUrl}
@@ -289,9 +327,9 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               <Image
                 src={screenshotUrl}
                 alt="Screenshot"
-                width={120}
-                height={90}
-                className="w-full h-full object-cover aspect-[4/3]"
+                width={118}
+                height={62}
+                className="w-full h-full object-cover object-top"
                 unoptimized
               />
             </a>
@@ -312,17 +350,22 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Title row: [favicon] note + metaTitle | metaTitle | originalUrl — clickable link + copy button */}
+          {/* Unified title row: [favicon/placeholder] note | title/hostname — clickable link + copy button */}
           <div className="flex items-center gap-2 mb-1">
-            {link.metaFavicon && (
+            {showFaviconImage ? (
               <Image
-                src={link.metaFavicon}
+                src={link.metaFavicon!}
                 alt="favicon"
                 width={16}
                 height={16}
                 className="w-4 h-4 shrink-0 rounded-sm"
                 unoptimized
+                onError={handleFaviconError}
               />
+            ) : (
+              <div className="w-4 h-4 shrink-0 rounded-sm bg-accent flex items-center justify-center">
+                <Link2 className="w-3 h-3 text-muted-foreground/60" strokeWidth={2} />
+              </div>
             )}
             <a
               href={link.originalUrl}
@@ -330,11 +373,13 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               rel="noopener noreferrer"
               className="text-sm font-medium text-foreground hover:underline truncate"
             >
-              {link.note && link.metaTitle
-                ? `${link.note} ${link.metaTitle}`
-                : link.metaTitle
-                  ? link.metaTitle
-                  : link.originalUrl}
+              {link.note ? (
+                <>
+                  <span>{link.note}</span>
+                  <span className="mx-1.5 text-border">|</span>
+                  <span className="text-muted-foreground">{titleText}</span>
+                </>
+              ) : titleText}
             </a>
             <button
               onClick={handleCopyOriginalUrl}
@@ -350,10 +395,21 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             </button>
           </div>
 
-          {/* Meta description */}
-          {link.metaDescription && (
+          {/* Unified description: show metaDescription or unfetched hint */}
+          {link.metaDescription ? (
             <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
               {link.metaDescription}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground/40 truncate mt-0.5">
+              未抓取描述 ·{" "}
+              <button
+                onClick={handleRefreshMetadata}
+                disabled={isRefreshingMetadata}
+                className="hover:text-muted-foreground underline underline-offset-2 transition-colors"
+              >
+                {isRefreshingMetadata ? "抓取中..." : "点击抓取"}
+              </button>
             </p>
           )}
 

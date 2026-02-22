@@ -23,6 +23,8 @@ const mockVm = {
   isFetchingPreview: false,
   handleFetchPreview: vi.fn(),
   faviconUrl: null as string | null,
+  faviconError: false,
+  handleFaviconError: vi.fn(),
 };
 
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
@@ -39,7 +41,13 @@ vi.mock("@/lib/utils", async (importOriginal) => {
 });
 
 vi.mock("@/models/links", () => ({
-  stripProtocol: (url: string) => url.replace(/^https?:\/\//, ""),
+  extractHostname: (url: string) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url;
+    }
+  },
   topBreakdownEntries: (breakdown: Record<string, number>, n: number) =>
     Object.entries(breakdown)
       .sort((a, b) => b[1] - a[1])
@@ -97,28 +105,21 @@ describe("LinkCard", () => {
     mockVm.screenshotUrl = null;
     mockVm.isFetchingPreview = false;
     mockVm.faviconUrl = null;
+    mockVm.faviconError = false;
   });
 
-  it("renders slug in meta row and title links to original URL", () => {
+  // --- Unified title logic ---
+
+  it("shows hostname as title when no metaTitle (list mode)", () => {
     render(<LinkCard {...defaultProps} />);
 
-    // Slug appears in meta row
-    expect(screen.getByText("abc123")).toBeInTheDocument();
-    // Original URL appears as title link (no separate URL row)
-    const titleLink = screen.getByRole("link", { name: "https://example.com/very-long-url" });
+    // No metaTitle → title falls back to hostname
+    const titleLink = screen.getByRole("link", { name: "example.com" });
     expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
     expect(titleLink).toHaveAttribute("target", "_blank");
   });
 
-  it("shows originalUrl as title when no metaTitle", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    // Title row shows originalUrl as link when metaTitle is null
-    const titleLink = screen.getByRole("link", { name: "https://example.com/very-long-url" });
-    expect(titleLink).toBeInTheDocument();
-  });
-
-  it("shows metaTitle as title when available", () => {
+  it("shows metaTitle as title when available (list mode)", () => {
     const linkWithMeta = { ...baseLink, metaTitle: "Example Page" };
     render(<LinkCard {...defaultProps} link={linkWithMeta} />);
 
@@ -126,7 +127,7 @@ describe("LinkCard", () => {
     expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
   });
 
-  it("shows note + metaTitle as title when both available", () => {
+  it("shows note | metaTitle as title when both available (list mode)", () => {
     const linkWithBoth = {
       ...baseLink,
       note: "Important",
@@ -134,9 +135,30 @@ describe("LinkCard", () => {
     };
     render(<LinkCard {...defaultProps} link={linkWithBoth} />);
 
-    const titleLink = screen.getByRole("link", { name: "Important Example Page" });
-    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
+    // Note and title separated by | divider
+    expect(screen.getByText("Important")).toBeInTheDocument();
+    expect(screen.getByText("Example Page")).toBeInTheDocument();
+    expect(screen.getByText("|")).toBeInTheDocument();
   });
+
+  it("shows note | hostname when note exists but no metaTitle (list mode)", () => {
+    const linkWithNote = { ...baseLink, note: "My note" };
+    render(<LinkCard {...defaultProps} link={linkWithNote} />);
+
+    expect(screen.getByText("My note")).toBeInTheDocument();
+    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getByText("|")).toBeInTheDocument();
+  });
+
+  // --- Slug in meta row ---
+
+  it("renders slug in meta row", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByText("abc123")).toBeInTheDocument();
+  });
+
+  // --- Expiry ---
 
   it("shows expiry date when link.expiresAt is set", () => {
     const expiringLink = {
@@ -153,6 +175,8 @@ describe("LinkCard", () => {
 
     expect(screen.queryByText(/过期:/)).not.toBeInTheDocument();
   });
+
+  // --- Copy buttons ---
 
   it("shows copy short link button", () => {
     render(<LinkCard {...defaultProps} />);
@@ -183,6 +207,8 @@ describe("LinkCard", () => {
     const checkIcon = copyBtn.querySelector(".text-success");
     expect(checkIcon).toBeInTheDocument();
   });
+
+  // --- Analytics ---
 
   it("shows analytics panel with breakdown sections when showAnalytics + stats", () => {
     mockVm.showAnalytics = true;
@@ -222,6 +248,8 @@ describe("LinkCard", () => {
     expect(screen.getByText("加载中...")).toBeInTheDocument();
   });
 
+  // --- Counts & dates ---
+
   it("renders click count with formatNumber", () => {
     render(<LinkCard {...defaultProps} />);
 
@@ -252,7 +280,7 @@ describe("LinkCard", () => {
     expect(defaultProps.onEdit).toHaveBeenCalledWith(baseLink);
   });
 
-  // --- Tag badges on card ---
+  // --- Tag badges ---
 
   it("displays tag badges when tags are assigned (list mode)", () => {
     const linkTags: LinkTag[] = [
@@ -273,9 +301,9 @@ describe("LinkCard", () => {
     expect(screen.queryByText("Personal")).not.toBeInTheDocument();
   });
 
-  // --- Metadata display ---
+  // --- Unified favicon display ---
 
-  it("shows favicon when metaFavicon is set", () => {
+  it("shows favicon image when metaFavicon is set (list mode)", () => {
     const linkWithMeta = {
       ...baseLink,
       metaFavicon: "https://example.com/favicon.ico",
@@ -287,11 +315,31 @@ describe("LinkCard", () => {
     expect(favicon).toHaveAttribute("src", "https://example.com/favicon.ico");
   });
 
-  it("does not show favicon when metaFavicon is null", () => {
-    render(<LinkCard {...defaultProps} />);
+  it("shows placeholder icon when metaFavicon is null (list mode)", () => {
+    const { container } = render(<LinkCard {...defaultProps} />);
 
+    // No favicon image, but placeholder div with Link2 icon exists
     expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
+    // Placeholder should exist (bg-accent div)
+    const placeholders = container.querySelectorAll(".bg-accent");
+    expect(placeholders.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("shows placeholder icon when metaFavicon errors (404 fallback)", () => {
+    mockVm.faviconError = true;
+    const linkWithMeta = {
+      ...baseLink,
+      metaFavicon: "https://example.com/broken-favicon.ico",
+    };
+    const { container } = render(<LinkCard {...defaultProps} link={linkWithMeta} />);
+
+    // faviconError=true → shows placeholder, not the image
+    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
+    const placeholders = container.querySelectorAll(".bg-accent");
+    expect(placeholders.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // --- Meta title ---
 
   it("shows meta title when metaTitle is set", () => {
     const linkWithMeta = {
@@ -303,11 +351,14 @@ describe("LinkCard", () => {
     expect(screen.getByText("Example Page Title")).toBeInTheDocument();
   });
 
-  it("does not show meta title when metaTitle is null", () => {
+  it("shows hostname when metaTitle is null", () => {
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.queryByText("Example Page Title")).not.toBeInTheDocument();
+    // Hostname fallback
+    expect(screen.getByText("example.com")).toBeInTheDocument();
   });
+
+  // --- Unified description ---
 
   it("shows meta description when metaDescription is set", () => {
     const linkWithMeta = {
@@ -318,6 +369,22 @@ describe("LinkCard", () => {
 
     expect(screen.getByText("A description of the page")).toBeInTheDocument();
   });
+
+  it("shows unfetched hint when metaDescription is null (list mode)", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByText(/未抓取描述/)).toBeInTheDocument();
+    expect(screen.getByText("点击抓取")).toBeInTheDocument();
+  });
+
+  it("shows '抓取中...' in description hint when isRefreshingMetadata is true", () => {
+    mockVm.isRefreshingMetadata = true;
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.getByText("抓取中...")).toBeInTheDocument();
+  });
+
+  // --- Refresh metadata ---
 
   it("shows refresh metadata button", () => {
     render(<LinkCard {...defaultProps} />);
@@ -334,7 +401,7 @@ describe("LinkCard", () => {
     expect(spinner).toBeInTheDocument();
   });
 
-  // --- Delete confirmation dialog ---
+  // --- Delete confirmation ---
 
   it("shows delete button with trash icon", () => {
     render(<LinkCard {...defaultProps} />);
@@ -382,11 +449,20 @@ describe("LinkCard", () => {
 
   // --- Grid mode ---
 
-  it("renders title as link in grid mode (falls back to short URL when no metaTitle)", () => {
+  it("shows hostname as title in grid mode when no metaTitle", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    // No metaTitle, so title falls back to stripped shortUrl
-    expect(screen.getByText("zhe.to/abc123")).toBeInTheDocument();
+    // No metaTitle → falls back to hostname
+    expect(screen.getByText("example.com")).toBeInTheDocument();
+  });
+
+  it("shows note | hostname in grid mode when note exists but no metaTitle", () => {
+    const linkWithNote = { ...baseLink, note: "Grid note" };
+    render(<LinkCard {...defaultProps} link={linkWithNote} viewMode="grid" />);
+
+    expect(screen.getByText("Grid note")).toBeInTheDocument();
+    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getByText("|")).toBeInTheDocument();
   });
 
   it("shows click count in grid mode", () => {
@@ -408,10 +484,10 @@ describe("LinkCard", () => {
     expect(screen.queryByText(/次点击/)).not.toBeInTheDocument();
   });
 
-  it("does not show refresh metadata button in grid mode", () => {
+  it("shows unfetched description hint in grid mode when no metaDescription", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.queryByTitle("Refresh metadata")).not.toBeInTheDocument();
+    expect(screen.getByText(/未抓取描述/)).toBeInTheDocument();
   });
 
   it("shows edit button in grid mode overlay", () => {
@@ -470,6 +546,16 @@ describe("LinkCard", () => {
     expect(favicon).toBeInTheDocument();
   });
 
+  it("shows favicon placeholder in grid mode when no metaFavicon", () => {
+    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    // No favicon image
+    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
+    // Placeholder exists
+    const placeholders = container.querySelectorAll(".bg-accent");
+    expect(placeholders.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("shows hover overlay actions (copy, open, edit, delete) in grid mode", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
@@ -502,14 +588,13 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  // --- Thumbnail placeholder + retry ---
+  // --- Thumbnail placeholder ---
 
   it("shows placeholder icon in list mode when no screenshot and not loading", () => {
     mockVm.screenshotUrl = null;
     mockVm.isFetchingPreview = false;
     const { container } = render(<LinkCard {...defaultProps} />);
 
-    // ImageIcon should be present in the thumbnail area
     const thumbArea = container.querySelector(".group\\/thumb");
     expect(thumbArea).toBeInTheDocument();
     const svgs = thumbArea!.querySelectorAll("svg");
@@ -537,7 +622,7 @@ describe("LinkCard", () => {
     expect(spinner).toBeInTheDocument();
   });
 
-  // --- Favicon display (simplified logic: favicon when no screenshotUrl) ---
+  // --- Favicon display in thumbnail area ---
 
   it("shows favicon image in list mode when faviconUrl is set", () => {
     mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
@@ -591,7 +676,6 @@ describe("LinkCard", () => {
   it("shows Refresh metadata button with correct title in list mode", () => {
     render(<LinkCard {...defaultProps} />);
 
-    // "Refresh metadata" aria-label exists (already tested), also check title
     expect(screen.getByTitle("刷新元数据")).toBeInTheDocument();
     expect(screen.getByTitle("刷新预览图")).toBeInTheDocument();
   });
@@ -671,7 +755,6 @@ describe("LinkCard", () => {
 
     render(<LinkCard {...defaultProps} />);
 
-    // Country entries should be visible (showCount=false, so no count numbers for countries)
     expect(screen.getByText("US")).toBeInTheDocument();
     expect(screen.getByText("CN")).toBeInTheDocument();
     expect(screen.getByText("JP")).toBeInTheDocument();
@@ -707,7 +790,6 @@ describe("LinkCard", () => {
 
     render(<LinkCard {...defaultProps} />);
 
-    // 8 countries total, showing 5, so "+3 more" should appear
     expect(screen.getByText("+3 more")).toBeInTheDocument();
   });
 
@@ -767,5 +849,26 @@ describe("LinkCard", () => {
     await user.click(screen.getByLabelText("Refresh preview"));
 
     expect(screen.getByText("选择截图来源")).toBeInTheDocument();
+  });
+
+  // --- List mode thumbnail dimensions ---
+
+  it("renders list mode thumbnail with 118x62 dimensions", () => {
+    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
+    const { container } = render(<LinkCard {...defaultProps} />);
+
+    const thumbArea = container.querySelector(".group\\/thumb");
+    expect(thumbArea).toBeInTheDocument();
+    expect(thumbArea).toHaveClass("w-[118px]");
+    expect(thumbArea).toHaveClass("h-[62px]");
+  });
+
+  it("renders list mode screenshot with object-top positioning", () => {
+    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
+    render(<LinkCard {...defaultProps} />);
+
+    const img = screen.getByAltText("Screenshot");
+    expect(img).toHaveClass("object-cover");
+    expect(img).toHaveClass("object-top");
   });
 });

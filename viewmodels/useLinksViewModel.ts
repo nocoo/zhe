@@ -61,6 +61,17 @@ export function useLinkCardViewModel(
   // Display logic: show screenshotUrl if DB has it, else show favicon
   const faviconUrl = screenshotUrl ? null : buildFaviconUrl(link.originalUrl);
 
+  // Track favicon load failure (e.g. 404) so the component can fall back to a placeholder icon
+  const [faviconError, setFaviconError] = useState(false);
+  // Reset error state when the favicon URL changes (e.g. after metadata refresh)
+  useEffect(() => {
+    setFaviconError(false);
+  }, [link.metaFavicon]);
+
+  const handleFaviconError = useCallback(() => {
+    setFaviconError(true);
+  }, []);
+
   const handleCopy = useCallback(async () => {
     const success = await copyToClipboard(shortUrl);
     if (success) {
@@ -170,6 +181,8 @@ export function useLinkCardViewModel(
     isFetchingPreview,
     handleFetchPreview,
     faviconUrl,
+    faviconError,
+    handleFaviconError,
   };
 }
 

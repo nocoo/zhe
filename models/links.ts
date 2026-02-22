@@ -12,6 +12,15 @@ export function stripProtocol(url: string): string {
   return url.replace(/^https?:\/\//, "");
 }
 
+/** Extract hostname from a URL: "https://example.com/path" → "example.com". Returns the raw URL on parse failure. */
+export function extractHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
 /** Check if a link has expired */
 export function isLinkExpired(link: Link): boolean {
   if (!link.expiresAt) return false;

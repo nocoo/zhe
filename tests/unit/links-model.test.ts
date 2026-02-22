@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   buildShortUrl,
   stripProtocol,
+  extractHostname,
   isLinkExpired,
   sortLinksByDate,
   topBreakdownEntries,
@@ -71,6 +72,29 @@ describe('models/links', () => {
 
     it('returns empty string for empty input', () => {
       expect(stripProtocol('')).toBe('');
+    });
+  });
+
+  // --- extractHostname ---
+  describe('extractHostname', () => {
+    it('extracts hostname from https URL', () => {
+      expect(extractHostname('https://example.com/path')).toBe('example.com');
+    });
+
+    it('extracts hostname from http URL', () => {
+      expect(extractHostname('http://github.com/user/repo')).toBe('github.com');
+    });
+
+    it('extracts hostname with subdomain', () => {
+      expect(extractHostname('https://docs.google.com/doc/123')).toBe('docs.google.com');
+    });
+
+    it('returns raw URL on parse failure', () => {
+      expect(extractHostname('not-a-url')).toBe('not-a-url');
+    });
+
+    it('returns raw URL for empty string', () => {
+      expect(extractHostname('')).toBe('');
     });
   });
 
