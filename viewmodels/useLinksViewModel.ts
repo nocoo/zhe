@@ -7,6 +7,7 @@ import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, 
 import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
+import { isGitHubRepoUrl, GITHUB_REPO_PREVIEW_URL } from "@/models/links";
 import type { ScreenshotSource } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
 import { fetchAndSaveScreenshot } from "@/actions/links";
@@ -58,8 +59,11 @@ export function useLinkCardViewModel(
     return () => { cancelled = true; };
   }, [link.id, skipAutoFetch, onUpdate]);
 
-  // Display logic: show screenshotUrl if DB has it, else show favicon
-  const faviconUrl = screenshotUrl ? null : buildFaviconUrl(link.originalUrl);
+  // Display logic: GitHub repo pages use a fixed preview image;
+  // otherwise show screenshotUrl from DB, else favicon.
+  const isGitHubRepo = isGitHubRepoUrl(link.originalUrl);
+  const displayScreenshotUrl = isGitHubRepo ? GITHUB_REPO_PREVIEW_URL : screenshotUrl;
+  const faviconUrl = (isGitHubRepo || displayScreenshotUrl) ? null : buildFaviconUrl(link.originalUrl);
 
   // Track favicon load failure (e.g. 404) so the component can fall back to a placeholder icon
   const [faviconError, setFaviconError] = useState(false);
@@ -177,7 +181,7 @@ export function useLinkCardViewModel(
     handleToggleAnalytics,
     handleRefreshMetadata,
     isRefreshingMetadata,
-    screenshotUrl,
+    screenshotUrl: displayScreenshotUrl,
     isFetchingPreview,
     handleFetchPreview,
     faviconUrl,

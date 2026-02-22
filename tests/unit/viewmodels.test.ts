@@ -580,6 +580,44 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.screenshotUrl).toBe('https://r2.example.com/shot.png');
   });
 
+  it('overrides screenshotUrl with fixed preview for GitHub repo URLs', () => {
+    const githubLink = makeLink({ id: 42, slug: 'gh-repo', originalUrl: 'https://github.com/nocoo/zhe' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.screenshotUrl).toBe('https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg');
+    expect(result.current.faviconUrl).toBeNull();
+  });
+
+  it('overrides screenshotUrl for GitHub repo even if DB has a different screenshot', () => {
+    const githubLink = makeLink({
+      id: 42, slug: 'gh-repo',
+      originalUrl: 'https://github.com/microsoft/playwright',
+      screenshotUrl: 'https://r2.example.com/old-shot.png',
+    });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    expect(result.current.screenshotUrl).toBe('https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg');
+    expect(result.current.faviconUrl).toBeNull();
+  });
+
+  it('does not override for GitHub user profile URLs (single segment)', () => {
+    const profileLink = makeLink({ id: 42, slug: 'gh-user', originalUrl: 'https://github.com/nocoo' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(profileLink, SITE_URL, mockOnDelete, mockOnUpdate)
+    );
+
+    // Should NOT use the fixed preview — it's a profile page, not a repo
+    expect(result.current.screenshotUrl).toBeNull();
+    expect(result.current.faviconUrl).toBe('https://favicon.im/github.com?larger=true');
+  });
+
   it('does not auto-fetch screenshot on mount', async () => {
     renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)

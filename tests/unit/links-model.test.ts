@@ -11,6 +11,8 @@ import {
   buildLinkCounts,
   fetchMicrolinkScreenshot,
   fetchScreenshotDomains,
+  isGitHubRepoUrl,
+  GITHUB_REPO_PREVIEW_URL,
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
@@ -805,6 +807,54 @@ describe('models/links', () => {
       const callArgs = vi.mocked(globalThis.fetch).mock.calls[0];
       const options = callArgs[1] as RequestInit;
       expect(options.signal).toBeInstanceOf(AbortSignal);
+    });
+  });
+
+  describe('isGitHubRepoUrl', () => {
+    it('matches github.com/owner/repo', () => {
+      expect(isGitHubRepoUrl('https://github.com/nocoo/zhe')).toBe(true);
+    });
+
+    it('matches github.com/owner/repo with trailing slash', () => {
+      expect(isGitHubRepoUrl('https://github.com/nocoo/zhe/')).toBe(true);
+    });
+
+    it('matches github.com/owner/repo with deeper path segments', () => {
+      expect(isGitHubRepoUrl('https://github.com/microsoft/playwright/tree/main/docs')).toBe(true);
+    });
+
+    it('matches www.github.com/owner/repo', () => {
+      expect(isGitHubRepoUrl('https://www.github.com/nocoo/zhe')).toBe(true);
+    });
+
+    it('matches http:// scheme', () => {
+      expect(isGitHubRepoUrl('http://github.com/nocoo/zhe')).toBe(true);
+    });
+
+    it('does NOT match bare github.com', () => {
+      expect(isGitHubRepoUrl('https://github.com')).toBe(false);
+    });
+
+    it('does NOT match github.com/user (profile page, single segment)', () => {
+      expect(isGitHubRepoUrl('https://github.com/nocoo')).toBe(false);
+    });
+
+    it('does NOT match non-github domains', () => {
+      expect(isGitHubRepoUrl('https://gitlab.com/owner/repo')).toBe(false);
+    });
+
+    it('does NOT match subdomains other than www', () => {
+      expect(isGitHubRepoUrl('https://api.github.com/repos/nocoo/zhe')).toBe(false);
+    });
+
+    it('returns false for invalid URLs', () => {
+      expect(isGitHubRepoUrl('not-a-url')).toBe(false);
+    });
+  });
+
+  describe('GITHUB_REPO_PREVIEW_URL', () => {
+    it('is a valid URL string', () => {
+      expect(GITHUB_REPO_PREVIEW_URL).toMatch(/^https:\/\//);
     });
   });
 });

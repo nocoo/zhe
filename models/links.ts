@@ -139,6 +139,30 @@ export function buildLinkCounts(links: Link[]): LinkCounts {
   return { total: links.length, uncategorized, byFolder };
 }
 
+// --- Domain-specific preview overrides ---
+
+/** Fixed preview image for GitHub repository pages (they all look the same) */
+export const GITHUB_REPO_PREVIEW_URL =
+  "https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg";
+
+/**
+ * Check if a URL points to a GitHub repository page.
+ * Matches `github.com/{owner}/{repo}` with optional trailing segments.
+ * Does NOT match bare `github.com`, `github.com/{user}` (profile),
+ * or non-github.com domains.
+ */
+export function isGitHubRepoUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname !== "github.com" && hostname !== "www.github.com") return false;
+    // pathname must have at least two non-empty segments: /owner/repo
+    const segments = pathname.split("/").filter(Boolean);
+    return segments.length >= 2;
+  } catch {
+    return false;
+  }
+}
+
 // --- Screenshot services ---
 
 /** Screenshot source provider */
