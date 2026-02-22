@@ -465,10 +465,16 @@ describe("LinkCard", () => {
     expect(screen.getByText("|")).toBeInTheDocument();
   });
 
-  it("shows click count in grid mode", () => {
+  it("shows slug in grid mode meta row", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.getByText(/num:42/)).toBeInTheDocument();
+    expect(screen.getByText("abc123")).toBeInTheDocument();
+  });
+
+  it("shows click count with '次点击' in grid mode", () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    expect(screen.getByText(/num:42 次点击/)).toBeInTheDocument();
   });
 
   it("shows created date in grid mode", () => {
@@ -478,10 +484,11 @@ describe("LinkCard", () => {
     expect(dateTexts.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("does not show analytics toggle in grid mode", () => {
+  it("does not show analytics toggle button in grid mode", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.queryByText(/次点击/)).not.toBeInTheDocument();
+    // Grid mode shows "次点击" as static text, not as a clickable toggle button
+    expect(screen.queryByRole("button", { name: /次点击/ })).not.toBeInTheDocument();
   });
 
   it("shows unfetched description hint in grid mode when no metaDescription", () => {

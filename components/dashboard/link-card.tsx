@@ -276,9 +276,18 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           )}
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <a
+              href={shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Link2 className="w-3 h-3" strokeWidth={1.5} />
+              <span>{link.slug}</span>
+            </a>
             <span className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
-              {formatNumber(link.clicks ?? 0)}
+              {formatNumber(link.clicks ?? 0)} 次点击
             </span>
             <span>{formatDate(link.createdAt)}</span>
           </div>
