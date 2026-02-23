@@ -26,7 +26,7 @@ export function WebhookPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <Card className="border-0 bg-secondary shadow-none">
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -102,7 +102,7 @@ export function WebhookPage() {
               </div>
 
               {/* Rate limit slider */}
-              <div className="space-y-2">
+              <div className="max-w-2xl space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">速率限制</p>
                   <p className="text-xs font-medium" data-testid="rate-limit-value">

@@ -68,7 +68,7 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
   {
     label: "系统",
     items: [
-      { title: "存储", icon: HardDrive, href: "/dashboard/storage" },
+      { title: "存储管理", icon: HardDrive, href: "/dashboard/storage" },
       { title: "数据管理", icon: Database, href: "/dashboard/data-management" },
       { title: "Webhook", icon: Webhook, href: "/dashboard/webhook" },
     ],
