@@ -160,9 +160,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 3 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 4 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(6);
+      expect(navLinks.length).toBe(7);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -459,9 +459,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 3 static = 8
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 4 static = 9
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(8);
+      expect(navLinks.length).toBe(9);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -558,21 +558,38 @@ describe('AppSidebar', () => {
       expect(screen.getByText('系统')).toBeInTheDocument();
     });
 
-    it('renders "设置" link in expanded mode', () => {
+    it('renders "数据管理" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      const settingsLink = screen.getByRole('link', { name: '设置' });
-      expect(settingsLink).toBeInTheDocument();
-      expect(settingsLink.getAttribute('href')).toBe('/dashboard/settings');
+      const dataLink = screen.getByRole('link', { name: '数据管理' });
+      expect(dataLink).toBeInTheDocument();
+      expect(dataLink.getAttribute('href')).toBe('/dashboard/data-management');
     });
 
-    it('highlights "设置" when on settings page', () => {
-      mockPathname = '/dashboard/settings';
+    it('highlights "数据管理" when on data management page', () => {
+      mockPathname = '/dashboard/data-management';
       renderSidebar({ collapsed: false });
 
-      const settingsLink = screen.getByRole('link', { name: '设置' });
-      expect(settingsLink.className).toContain('bg-accent');
-      expect(settingsLink.className).toContain('text-foreground');
+      const dataLink = screen.getByRole('link', { name: '数据管理' });
+      expect(dataLink.className).toContain('bg-accent');
+      expect(dataLink.className).toContain('text-foreground');
+    });
+
+    it('renders "Webhook" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      const webhookLink = screen.getByRole('link', { name: 'Webhook' });
+      expect(webhookLink).toBeInTheDocument();
+      expect(webhookLink.getAttribute('href')).toBe('/dashboard/webhook');
+    });
+
+    it('highlights "Webhook" when on webhook page', () => {
+      mockPathname = '/dashboard/webhook';
+      renderSidebar({ collapsed: false });
+
+      const webhookLink = screen.getByRole('link', { name: 'Webhook' });
+      expect(webhookLink.className).toContain('bg-accent');
+      expect(webhookLink.className).toContain('text-foreground');
     });
 
     it('renders "系统" section below 文件管理 section', () => {
@@ -587,12 +604,12 @@ describe('AppSidebar', () => {
       expect(systemIndex).toBeGreaterThan(uploadsIndex);
     });
 
-    it('renders settings link in collapsed mode', () => {
+    it('renders data-management and webhook links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include settings + storage links: 1 overview + 2 folder nav + 1 uploads + 1 storage + 1 settings = 6
+      // Should include: 1 overview + 2 folder nav + 1 uploads + 1 storage + 1 data-management + 1 webhook = 7
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(6);
+      expect(navLinks.length).toBe(7);
     });
   });
 

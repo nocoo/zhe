@@ -25,7 +25,8 @@ test.describe('Dashboard navigation', () => {
     await expect(sidebar.locator('a:has-text("全部链接")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Inbox")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("文件上传")')).toBeVisible();
-    await expect(sidebar.locator('a:has-text("设置")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("数据管理")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("Webhook")')).toBeVisible();
   });
 
   test('sidebar shows user info', async ({ page }) => {
@@ -53,13 +54,22 @@ test.describe('Dashboard navigation', () => {
     await expect(page.locator('main h1')).toContainText('概览');
   });
 
-  test('navigate to Settings page', async ({ page }) => {
+  test('navigate to Data Management page', async ({ page }) => {
     await page.goto('/dashboard');
 
-    await page.locator('a:has-text("设置")').click();
-    await page.waitForURL('**/dashboard/settings');
+    await page.locator('a:has-text("数据管理")').click();
+    await page.waitForURL('**/dashboard/data-management');
 
-    await expect(page.locator('main h1')).toContainText('设置');
+    await expect(page.locator('main h1')).toContainText('数据管理');
+  });
+
+  test('navigate to Webhook page', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    await page.locator('a:has-text("Webhook")').click();
+    await page.waitForURL('**/dashboard/webhook');
+
+    await expect(page.locator('main h1')).toContainText('Webhook');
   });
 
   test('navigate to Uploads page', async ({ page }) => {
@@ -72,7 +82,7 @@ test.describe('Dashboard navigation', () => {
   });
 
   test('navigate back to Links page', async ({ page }) => {
-    await page.goto('/dashboard/settings');
+    await page.goto('/dashboard/data-management');
 
     await page.locator('a:has-text("全部链接")').click();
     await page.waitForURL((url) =>

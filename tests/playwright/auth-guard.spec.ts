@@ -21,12 +21,12 @@ test.describe('Auth guard (unauthenticated)', () => {
     await expect(page.locator('text=就是这')).toBeVisible();
   });
 
-  test('redirects /dashboard/settings to landing', async ({ page }) => {
-    await page.goto('/dashboard/settings');
+  test('redirects /dashboard/data-management to landing', async ({ page }) => {
+    await page.goto('/dashboard/data-management');
     await page.waitForURL((url) => url.pathname === '/' || url.pathname === '');
 
     const url = new URL(page.url());
-    expect(url.searchParams.get('callbackUrl')).toBe('/dashboard/settings');
+    expect(url.searchParams.get('callbackUrl')).toBe('/dashboard/data-management');
   });
 
   test('redirects /dashboard/overview to landing', async ({ page }) => {

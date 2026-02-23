@@ -155,10 +155,16 @@ describe('DashboardShell', () => {
     expect(screen.getByRole('heading', { name: '概览' })).toBeInTheDocument();
   });
 
-  it('renders header with 设置 title on settings page', async () => {
-    mockPathname = '/dashboard/settings';
+  it('renders header with 数据管理 title on data management page', async () => {
+    mockPathname = '/dashboard/data-management';
     await renderShell();
-    expect(screen.getByRole('heading', { name: '设置' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '数据管理' })).toBeInTheDocument();
+  });
+
+  it('renders header with Webhook title on webhook page', async () => {
+    mockPathname = '/dashboard/webhook';
+    await renderShell();
+    expect(screen.getByRole('heading', { name: 'Webhook' })).toBeInTheDocument();
   });
 
   it('renders ThemeToggle in header', async () => {
@@ -289,9 +295,9 @@ describe('DashboardShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 3 static = 7
+      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 4 static = 8
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(7);
+      expect(navLinks.length).toBe(8);
     });
 
     it('passes folders to mobile sidebar when open', async () => {
