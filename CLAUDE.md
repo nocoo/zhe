@@ -4,7 +4,25 @@ README.md
 
 ### Single Source of Truth
 
-The **only** authoritative version number lives in `package.json` `"version"` field. All runtime references must read from `process.env.npm_package_version` (auto-injected by npm/bun at runtime) with the current `package.json` version as fallback. **Never hardcode version strings elsewhere.**
+The **only** authoritative version number lives in `package.json` `"version"` field (format: `1.2.3`).
+
+- **Storage format**: bare semver `1.2.3` (in `package.json`, fallback strings, test assertions)
+- **Display format**: `v1.2.3` (git tags, GitHub releases, CHANGELOG headers, UI/docs)
+- All runtime references must read from `process.env.npm_package_version` (auto-injected by npm/bun) with the current `package.json` version as fallback
+
+### Version References Checklist
+
+All of the following **must** be updated in lockstep on every version bump:
+
+| File | What to update |
+|------|---------------|
+| `package.json` | `"version"` field |
+| `app/api/health/route.ts` | fallback string in `?? 'x.y.z'` |
+| `app/api/live/route.ts` | fallback string in `?? 'x.y.z'` |
+| `tests/unit/live-route.test.ts` | fallback test assertion |
+| `tests/e2e/api.test.ts` | version assertion |
+
+Before committing, run `rg 'OLD_VERSION' --glob '*.ts' --glob '*.tsx'` to catch any stragglers.
 
 ### Semantic Versioning (SemVer)
 
@@ -14,27 +32,29 @@ Follow strict [SemVer 2.0.0](https://semver.org/):
 |------|------|---------|
 | **major** (X.0.0) | Breaking change to public API, DB schema migration, auth flow change | 1.0.0 -> 2.0.0 |
 | **minor** (x.Y.0) | New feature, new API endpoint, new page/module | 1.0.0 -> 1.1.0 |
-| **patch** (x.y.Z) | Bug fix, typo, refactor, dependency update, UI text change | 1.0.0 -> 1.0.1 |
+| **patch** (x.y.Z) | Bug fix, typo, refactor, dependency update, docs/config change | 1.0.0 -> 1.0.1 |
+
+**Default**: If the user does not specify a bump level, default to **patch** (`x.y.Z`).
 
 ### Release Workflow
 
 When the user requests a version bump (do NOT proactively suggest or create version bumps):
 
-1. **Update version** in `package.json` via `npm version <major|minor|patch> --no-git-tag-version`
-2. **Update fallback** version strings in `app/api/health/route.ts` and `app/api/live/route.ts` to match
-3. **Update test assertions** that reference the fallback version
-4. **Update CHANGELOG.md** — prepend a new `## [x.y.z] - YYYY-MM-DD` section (see format below)
-5. **Commit**: `chore: bump version to x.y.z`
-6. **Tag**: `git tag -a vx.y.z -m "vx.y.z"` (annotated tag, prefixed with `v`)
-7. **Push**: `git push && git push --tags`
-8. **GitHub Release**: `gh release create vx.y.z --title "vx.y.z" --notes-file -` piping the changelog section
+1. **Determine version**: Read current version from `package.json`. Apply the requested bump (default: patch). E.g. `1.2.0` -> `1.2.1`
+2. **Search & update all version references**: Update every file in the checklist above. Verify with `rg` that no old version remains in source files
+3. **Update CHANGELOG.md**: Prepend a new `## [vx.y.z] - YYYY-MM-DD` section. Content is derived from `git log` commits since the last tag
+4. **Commit**: `chore: bump version to x.y.z`
+5. **Push**: `git push` — triggers Vercel/Railway auto-deploy if configured
+6. **Tag**: `git tag -a vx.y.z -m "vx.y.z"` (annotated, `v`-prefixed)
+7. **Push tag**: `git push --tags`
+8. **GitHub Release**: `gh release create vx.y.z --title "vx.y.z"` with CHANGELOG section as release notes
 
 ### CHANGELOG.md Format
 
 Follow [Keep a Changelog](https://keepachangelog.com/) convention:
 
 ```markdown
-## [x.y.z] - YYYY-MM-DD
+## [vx.y.z] - YYYY-MM-DD
 
 ### Added
 - New features
@@ -50,12 +70,6 @@ Follow [Keep a Changelog](https://keepachangelog.com/) convention:
 ```
 
 Only include sections that have entries. Use imperative mood ("add", not "added").
-
-### Tag & Release Naming
-
-- Git tag: `vx.y.z` (e.g., `v1.0.0`)
-- GitHub release title: `vx.y.z`
-- GitHub release body: copy the CHANGELOG.md section for that version
 
 ## Retrospective
 

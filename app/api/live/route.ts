@@ -39,7 +39,7 @@ export async function GET() {
   const body: Record<string, unknown> = {
     status: healthy ? 'ok' : 'error',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version ?? '1.2.0',
+    version: process.env.npm_package_version ?? '1.2.1',
     // NOTE: process.uptime() is unavailable in Edge Runtime
     dependencies: {
       database: db,
