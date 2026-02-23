@@ -160,9 +160,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 2 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 3 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(5);
+      expect(navLinks.length).toBe(6);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -459,9 +459,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 2 static = 7
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 3 static = 8
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(7);
+      expect(navLinks.length).toBe(8);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -590,9 +590,9 @@ describe('AppSidebar', () => {
     it('renders settings link in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include settings link: 1 overview + 2 folder nav + 1 uploads + 1 settings = 5
+      // Should include settings + storage links: 1 overview + 2 folder nav + 1 uploads + 1 storage + 1 settings = 6
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(5);
+      expect(navLinks.length).toBe(6);
     });
   });
 
