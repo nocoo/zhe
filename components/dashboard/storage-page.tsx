@@ -17,6 +17,7 @@ import {
   ImageIcon,
   FileText,
   File,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -216,6 +217,22 @@ function R2FileRow({
           linked
         </Badge>
       )}
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 shrink-0"
+        asChild
+      >
+        <a
+          href={`https://s.zhe.to/${file.key}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`打开 ${getFileName(file.key)}`}
+        >
+          <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </a>
+      </Button>
     </div>
   );
 }
