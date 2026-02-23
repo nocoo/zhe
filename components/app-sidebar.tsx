@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Settings } from "lucide-react";
+import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Settings, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -68,6 +68,7 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
   {
     label: "系统",
     items: [
+      { title: "存储", icon: HardDrive, href: "/dashboard/storage" },
       { title: "设置", icon: Settings, href: "/dashboard/settings" },
     ],
   },

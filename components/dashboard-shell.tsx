@@ -14,6 +14,7 @@ import type { Folder } from "@/models/types";
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard/overview": "概览",
   "/dashboard/uploads": "文件管理",
+  "/dashboard/storage": "存储",
   "/dashboard/settings": "设置",
 };
 
