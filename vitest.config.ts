@@ -16,6 +16,7 @@ export default defineConfig({
       include: [
         'lib/**/*.ts',
         'models/links.ts',
+        'models/backy.ts',
         'actions/**/*.ts',
         'middleware.ts',
         'viewmodels/**/*.ts',
