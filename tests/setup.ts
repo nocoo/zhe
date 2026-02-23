@@ -874,9 +874,29 @@ vi.mock('@/lib/db/d1-client', async () => {
 
       // INSERT INTO user_settings ... ON CONFLICT ... DO UPDATE (upsert)
       if (sqlLower.startsWith('insert into user_settings')) {
-        const [userId, previewStyle] = params;
         const mockSettings = getMockUserSettings();
-        const settings = { user_id: userId as string, preview_style: previewStyle as string };
+        // Backy settings upsert: (user_id, preview_style, backy_webhook_url, backy_api_key)
+        if (sqlLower.includes('backy_webhook_url')) {
+          const [userId, , webhookUrl, apiKey] = params;
+          const existing = mockSettings.get(userId as string);
+          const settings = {
+            user_id: userId as string,
+            preview_style: existing?.preview_style ?? 'favicon',
+            backy_webhook_url: webhookUrl as string | null,
+            backy_api_key: apiKey as string | null,
+          };
+          mockSettings.set(userId as string, settings);
+          return [settings] as T[];
+        }
+        // Preview style upsert: (user_id, preview_style)
+        const [userId, previewStyle] = params;
+        const existing = mockSettings.get(userId as string);
+        const settings = {
+          user_id: userId as string,
+          preview_style: previewStyle as string,
+          backy_webhook_url: existing?.backy_webhook_url ?? null,
+          backy_api_key: existing?.backy_api_key ?? null,
+        };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];
       }

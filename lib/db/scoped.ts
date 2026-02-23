@@ -103,6 +103,8 @@ function rowToUserSettings(row: Record<string, unknown>): UserSettings {
   return {
     userId: row.user_id as string,
     previewStyle: row.preview_style as string,
+    backyWebhookUrl: (row.backy_webhook_url as string) ?? null,
+    backyApiKey: (row.backy_api_key as string) ?? null,
   };
 }
 
@@ -751,6 +753,27 @@ export class ScopedDB {
        ON CONFLICT (user_id) DO UPDATE SET preview_style = excluded.preview_style
        RETURNING *`,
       [this.userId, previewStyle],
+    );
+    return rowToUserSettings(rows[0]);
+  }
+
+  // ---- Backy remote backup ----------------------------------
+
+  /** Get Backy config (webhook URL + API key) for this user, or null if not configured. */
+  async getBackySettings(): Promise<{ webhookUrl: string; apiKey: string } | null> {
+    const settings = await this.getUserSettings();
+    if (!settings?.backyWebhookUrl || !settings?.backyApiKey) return null;
+    return { webhookUrl: settings.backyWebhookUrl, apiKey: settings.backyApiKey };
+  }
+
+  /** Save Backy config (webhook URL and/or API key). Creates user_settings row if needed. */
+  async upsertBackySettings(data: { webhookUrl: string; apiKey: string }): Promise<UserSettings> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO user_settings (user_id, preview_style, backy_webhook_url, backy_api_key)
+       VALUES (?, 'favicon', ?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET backy_webhook_url = excluded.backy_webhook_url, backy_api_key = excluded.backy_api_key
+       RETURNING *`,
+      [this.userId, data.webhookUrl, data.apiKey],
     );
     return rowToUserSettings(rows[0]);
   }

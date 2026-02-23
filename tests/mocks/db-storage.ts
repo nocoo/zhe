@@ -15,6 +15,8 @@ export interface MockLinkTag {
 export interface MockUserSettings {
   user_id: string;
   preview_style: string;
+  backy_webhook_url?: string | null;
+  backy_api_key?: string | null;
 }
 
 // In-memory storage

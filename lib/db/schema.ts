@@ -120,6 +120,8 @@ export const linkTags = sqliteTable('link_tags', {
 export const userSettings = sqliteTable('user_settings', {
   userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   previewStyle: text('preview_style').notNull().default('favicon'),
+  backyWebhookUrl: text('backy_webhook_url'),
+  backyApiKey: text('backy_api_key'),
 });
 
 // ============================================
