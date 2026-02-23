@@ -1,11 +1,18 @@
 /**
- * Cloudflare R2 client — S3-compatible API for presigned URL generation and object deletion.
+ * Cloudflare R2 client — S3-compatible API for presigned URL generation,
+ * object listing, and deletion.
  *
  * Environment variables required:
  *   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME
  */
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 /** Presigned URL expiration in seconds (5 minutes). */
@@ -109,6 +116,90 @@ export async function deleteR2Object(key: string): Promise<void> {
       Key: key,
     }),
   );
+}
+
+/** An object returned from R2 listing. */
+export interface R2Object {
+  key: string;
+  size: number;
+  lastModified: string;
+}
+
+/**
+ * List all objects in R2, optionally filtered by prefix.
+ * Handles pagination automatically (1000 objects per page).
+ */
+export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
+  const client = getR2Client();
+  const { bucket } = getR2Config();
+
+  const objects: R2Object[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      MaxKeys: 1000,
+      ContinuationToken: continuationToken,
+    });
+
+    const response = await client.send(command);
+
+    if (response.Contents) {
+      for (const obj of response.Contents) {
+        if (obj.Key && obj.Size !== undefined) {
+          objects.push({
+            key: obj.Key,
+            size: obj.Size,
+            lastModified: obj.LastModified?.toISOString() ?? '',
+          });
+        }
+      }
+    }
+
+    continuationToken = response.IsTruncated
+      ? response.NextContinuationToken
+      : undefined;
+  } while (continuationToken);
+
+  return objects;
+}
+
+/**
+ * Delete multiple objects from R2 in a single request.
+ * S3 DeleteObjects supports up to 1000 keys per call; this function
+ * auto-batches larger lists.
+ *
+ * @returns number of objects successfully deleted
+ */
+export async function deleteR2Objects(keys: string[]): Promise<number> {
+  if (keys.length === 0) return 0;
+
+  const client = getR2Client();
+  const { bucket } = getR2Config();
+
+  let deleted = 0;
+  const BATCH_SIZE = 1000;
+
+  for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+    const batch = keys.slice(i, i + BATCH_SIZE);
+
+    const command = new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: {
+        Objects: batch.map((key) => ({ Key: key })),
+        Quiet: true,
+      },
+    });
+
+    const response = await client.send(command);
+    // Errors array only populated when Quiet=true and individual deletes fail
+    const errors = response.Errors?.length ?? 0;
+    deleted += batch.length - errors;
+  }
+
+  return deleted;
 }
 
 /** Reset the cached S3 client (for testing). */
