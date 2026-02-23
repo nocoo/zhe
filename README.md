@@ -19,176 +19,163 @@
 
 ---
 
-## ✨ 功能特点
+## Features
 
-- 🔗 **短链接管理** — 创建、编辑、删除短链接，支持自定义 slug
-- 📊 **访问分析** — 实时追踪点击量、来源、设备等统计数据
-- 🧠 **元数据自动抓取** — 创建链接时自动获取标题、描述、favicon
-- 📁 **文件夹整理** — 通过文件夹分类管理链接
-- 📤 **文件上传** — 通过 S3 兼容存储分享文件，生成短链接
-- 🔍 **快捷搜索** — `Cmd+K` 全局搜索链接和文件夹
-- 🌗 **深色模式** — 自动跟随系统主题切换
-- 🔒 **Google OAuth** — 安全的身份认证，仅授权用户可管理
-- ⚡ **边缘部署** — 基于 Cloudflare D1，全球低延迟访问
+- **Short link management** — create, edit, delete short links with custom slugs
+- **Analytics** — real-time click tracking, referrer, device and browser breakdown
+- **Auto metadata** — fetch title, description, favicon on link creation
+- **Folders** — organize links into folders
+- **File uploads** — share files via S3-compatible storage with generated short links
+- **Inbox triage** — review and organize newly created links
+- **Storage management** — R2/D1 usage overview, orphan file detection and batch cleanup
+- **Overview dashboard** — stat cards, click trends, top links, device/browser/file-type charts
+- **Global search** — `Cmd+K` to search links and folders
+- **Dark mode** — follows system theme
+- **Google OAuth** — only authorized users can manage links
+- **Edge deployment** — Cloudflare D1 for global low-latency access
 
-## 🚀 快速开始
+## Quick Start
 
-### 1️⃣ 安装依赖
+### 1. Install dependencies
 
 ```bash
 bun install
 ```
 
-### 2️⃣ 配置环境变量
+### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
 ```
 
-编辑 `.env.local`，配置必要的环境变量（详见 [环境搭建文档](docs/02-getting-started.md)）。
+Edit `.env.local` with the required variables (see [Getting Started](docs/02-getting-started.md)).
 
-### 3️⃣ 启动开发服务器
+### 3. Start dev server
 
 ```bash
 bun dev
 ```
 
-访问 👉 [http://localhost:7005](http://localhost:7005)
+Visit [http://localhost:7005](http://localhost:7005)
 
-### 4️⃣ 运行测试
+### 4. Run tests
 
 ```bash
-npx vitest run          # 全部测试
-bun run test:coverage   # 覆盖率报告
+bun run test:run            # all unit/integration/component tests
+bun run test:e2e:pw         # Playwright E2E (27 specs)
+bun run test:coverage       # coverage report
 ```
 
-## 🛠️ 技术栈
+## Tech Stack
 
-| 组件 | 选型 |
-|------|------|
-| ⚡ 运行时 | [Bun](https://bun.sh) |
-| 🖥️ 框架 | [Next.js 15](https://nextjs.org)（App Router） |
-| 📝 语言 | TypeScript（strict mode） |
-| 🗄️ 数据库 | [Cloudflare D1](https://developers.cloudflare.com/d1/) + [Drizzle ORM](https://orm.drizzle.team) |
-| 🎨 UI | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| 🔐 认证 | [Auth.js v5](https://authjs.dev)（Google OAuth） |
-| 📦 存储 | Cloudflare R2（S3 兼容，文件上传） |
-| 🧪 测试 | [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com) |
+| Layer | Choice |
+|-------|--------|
+| Runtime | [Bun](https://bun.sh) |
+| Framework | [Next.js 15](https://nextjs.org) (App Router) |
+| Language | TypeScript (strict mode) |
+| Database | [Cloudflare D1](https://developers.cloudflare.com/d1/) + [Drizzle ORM](https://orm.drizzle.team) (schema only) |
+| UI | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
+| Auth | [Auth.js v5](https://authjs.dev) (Google OAuth) |
+| Storage | Cloudflare R2 (S3-compatible, file uploads & screenshots) |
+| Unit/Integration | [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com) |
+| E2E | [Playwright](https://playwright.dev) |
+| Deployment | [Vercel](https://vercel.com) |
 
-## 📋 常用命令
+## Commands
 
-| 命令 | 说明 |
-|------|------|
-| `bun dev` | 启动开发服务器（端口 7005） |
-| `bun run build` | 生产构建 |
-| `bun run lint` | ESLint 检查（零警告策略） |
-| `npx vitest run` | 运行全部测试 |
-| `bun run test:coverage` | 覆盖率报告 |
+| Command | Description |
+|---------|-------------|
+| `bun dev` | Dev server (port 7005) |
+| `bun run build` | Production build |
+| `bun run lint` | ESLint (zero-warning policy) |
+| `bun run test:run` | All unit/integration/component tests |
+| `bun run test:unit` | Unit tests only |
+| `bun run test:e2e:pw` | Playwright E2E (27 specs, port 17005) |
+| `bun run test:e2e:pw:ui` | Playwright UI mode |
+| `bun run test:coverage` | Coverage report |
 
-## 📚 文档目录
-
-| 文档 | 内容 |
-|------|------|
-| [架构概览](docs/01-architecture.md) | 分层设计、数据流、核心设计模式 |
-| [环境搭建](docs/02-getting-started.md) | 安装依赖、环境变量、启动开发 |
-| [功能详解](docs/03-features.md) | 短链接、元数据抓取、文件上传、分析等 |
-| [数据库设计](docs/04-database.md) | Schema、ScopedDB、迁移管理 |
-| [测试策略](docs/05-testing.md) | 覆盖率目标、Mock 策略、TDD 流程 |
-| [部署配置](docs/06-deployment.md) | Vercel、D1、安全头、域名 |
-| [开发规范](docs/07-contributing.md) | Commit 约定、代码质量、文档维护 |
-
----
-
-## 🤖 Agent 开发指南
-
-> 本节面向 AI 编程助手（Cursor、Claude Code、Copilot 等），帮助快速上手本项目。
-
-### 项目概述
-
-Zhe 是一个基于 Next.js 15 + Cloudflare D1 的极简 URL 缩短服务，部署在 Vercel 上。生产域名为 `zhe.to`。
-
-### 目录结构
+## Project Structure
 
 ```
 zhe/
-├── actions/        # Server Actions（'use server'）
-├── app/            # Next.js App Router 页面
-├── components/     # React 组件
-│   ├── dashboard/  # Dashboard 页面组件
-│   └── ui/         # shadcn/ui 基础组件（自动生成，勿手动修改）
-├── contexts/       # React Context（DashboardService）
-├── hooks/          # 通用 React Hooks
-├── lib/            # 共享工具库
-│   ├── db/         # 数据库层（D1 客户端、ScopedDB、Schema）
-│   └── r2/         # R2 存储客户端
-├── models/         # 纯业务逻辑（无 React 依赖）
-├── viewmodels/     # MVVM ViewModel 钩子
-├── tests/          # 测试文件
-│   ├── unit/       # 单元测试
-│   ├── integration/# 集成测试
-│   ├── components/ # 组件测试
-│   ├── e2e/        # API E2E 测试
-│   └── mocks/      # 共享 Mock
-├── drizzle/        # 数据库迁移文件
-├── docs/           # 项目文档
-└── scripts/        # 构建脚本
+├── actions/          # Server Actions ('use server')
+├── app/              # Next.js App Router pages
+│   ├── (dashboard)/  # Dashboard route group
+│   └── api/          # API routes (health, live, lookup, webhook)
+├── components/       # React components
+│   ├── dashboard/    # Page-level components (links, overview, settings, storage, uploads, inbox)
+│   └── ui/           # shadcn/ui primitives (auto-generated, do not edit)
+├── contexts/         # React Context (DashboardService)
+├── hooks/            # Shared React hooks
+├── lib/              # Shared utilities
+│   ├── db/           # Database layer (D1 client, ScopedDB, schema)
+│   └── r2/           # R2 storage client
+├── models/           # Pure business logic (no React dependency)
+├── viewmodels/       # MVVM ViewModel hooks
+├── tests/
+│   ├── unit/         # Unit tests
+│   ├── integration/  # Integration tests
+│   ├── components/   # Component tests
+│   ├── e2e/          # Vitest-based API E2E tests
+│   └── playwright/   # Playwright browser E2E specs
+├── drizzle/          # Database migrations
+├── docs/             # Project documentation
+└── scripts/          # Build scripts
 ```
 
-### 架构分层
+## Architecture
 
 ```
-models/ (纯逻辑) → lib/db/ (数据访问) → actions/ (Server Actions)
-→ viewmodels/ (ViewModel) → components/ (UI)
+models/ (pure logic) → lib/db/ (data access) → actions/ (Server Actions)
+→ viewmodels/ (ViewModel hooks) → components/ (UI)
 ```
 
-关键点：
-- 运行时使用原生 SQL 查询 D1，**不使用** Drizzle 查询构建器
-- `ScopedDB` 类实现代码层行级安全（自动注入 `user_id`）
-- `lib/db/index.ts` 处理公开查询（slug 查找）；`lib/db/scoped.ts` 处理鉴权查询
+Key design decisions:
 
-### 开发服务器
+- **MVVM** — models hold pure logic, viewmodels manage state, components render UI
+- **Raw SQL at runtime** — D1 queries use raw SQL via HTTP API, not the Drizzle query builder (Drizzle is schema-only)
+- **ScopedDB** — code-level row security that auto-injects `user_id` into every query
+- **Server Actions** — authenticated mutations go through `actions/`, not API routes
 
-```bash
-bun dev    # http://localhost:7005
-```
+## Documentation
 
-### 测试要求
+| Doc | Content |
+|-----|---------|
+| [Architecture](docs/01-architecture.md) | Layered design, data flow, core patterns |
+| [Getting Started](docs/02-getting-started.md) | Dependencies, env vars, dev setup |
+| [Features](docs/03-features.md) | Short links, metadata, uploads, analytics |
+| [Database](docs/04-database.md) | Schema, ScopedDB, migrations |
+| [Testing](docs/05-testing.md) | Coverage targets, mock strategy, TDD |
+| [Deployment](docs/06-deployment.md) | Vercel, D1, security headers, domains |
+| [Contributing](docs/07-contributing.md) | Commit conventions, code quality |
 
-```bash
-npx vitest run    # ⚠️ 必须用 npx vitest，不要用 bun test
-```
+## Testing
 
-- **覆盖率目标**：语句 ≥ 90%，函数 ≥ 85%，分支 ≥ 80%
-- **TDD 流程**：先写测试（红）→ 实现（绿）→ 重构
-- **零警告策略**：ESLint `--max-warnings=0`
+- **Coverage target**: statements >= 90%, functions >= 85%, branches >= 80%
+- **Zero-warning policy**: ESLint `--max-warnings=0`
+- **Git hooks** (husky):
+  - pre-commit: unit tests + lint-staged
+  - pre-push: full test suite + lint + Playwright E2E
 
-### 提交要求
+| Port | Purpose |
+|------|---------|
+| 7005 | Development server |
+| 17005 | Playwright E2E (auto-managed, isolated) |
 
-- **原子化 Commit**：每个 commit 仅包含一个逻辑变更
-- **格式**：`<type>: <description>`（如 `feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`）
-- 变更后自动提交，无需请求确认
-- 每次 commit 后代码必须能通过全部测试
+## Agent Guide
 
-### 文档要求
+> For AI coding assistants (Cursor, Claude Code, Copilot, etc.)
 
-**更新代码时必须同步更新相关文档。** 文档位于 `docs/` 目录，编号格式 `01-xxx.md`。
+- **Test runner**: always use `npx vitest run`, not `bun test`
+- **Atomic commits**: one logical change per commit, format `<type>: <description>`
+- **Auto-commit**: commit after changes without asking for confirmation
+- **Every commit must pass all tests**
+- **Update docs when changing code**: docs live in `docs/`, numbered `01-xxx.md`
+- **`components/ui/`** is auto-generated by shadcn — do not edit manually
+- **Use `next/image`** `<Image>` component, not `<img>`
+- **Metadata fetch** uses `void (async () => { ... })()` pattern (fire-and-forget)
+- **D1 mocking** in tests uses in-memory SQL simulator (see `tests/setup.ts`)
 
-### Git Hooks
-
-| Hook | 内容 |
-|------|------|
-| pre-commit | 单元测试 + lint-staged |
-| pre-push | 全量测试 + 全量 ESLint |
-
-### 注意事项
-
-- 使用 `next/image` 的 `<Image>` 组件而非 `<img>`（避免 ESLint 警告）
-- `components/ui/` 是 shadcn/ui 自动生成的，不要手动修改
-- 元数据抓取使用 `void (async () => { ... })()` 模式（fire-and-forget）
-- 测试中 Mock D1 使用内存 SQL 模拟器（见 `tests/setup.ts`）
-
----
-
-## 📄 License
+## License
 
 [MIT](LICENSE) © 2026
