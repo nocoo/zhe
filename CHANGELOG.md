@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-02-23
+
+### Added
+- Storage management page (`/dashboard/storage`) with R2 and D1 usage overview
+- Orphan file detection — identify R2 objects not referenced by any D1 record
+- Batch orphan cleanup with server-side double-validation before deletion
+- Multi-select checkboxes with "select all orphans" capability
+- R2 file list with CDN open button (`https://s.zhe.to/{key}`)
+- Sort controls for R2 files by upload time and file size
+- Summary cards showing total storage, database status, orphan count, and health
+- D1 table stats with row counts
+- `listR2Objects` and `deleteR2Objects` operations in R2 client
+- `warning` and `success` badge variants
+- Checkbox UI component (shadcn)
+
 ## [1.1.0] - 2026-02-23
 
 ### Added
