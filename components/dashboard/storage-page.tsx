@@ -18,6 +18,9 @@ import {
   FileText,
   File,
   ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -237,6 +240,11 @@ function R2FileRow({
   );
 }
 
+// ── Sort types ──
+
+type SortField = "time" | "size";
+type SortDirection = "asc" | "desc";
+
 // ── R2 section ──
 
 function R2Section({
@@ -256,6 +264,9 @@ function R2Section({
   onDeleteSelected: () => void;
   cleaning: boolean;
 }) {
+  const [sortField, setSortField] = useState<SortField>("time");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+
   const hasOrphans = data.summary.orphanFiles > 0;
 
   // Compute selected size
@@ -263,13 +274,39 @@ function R2Section({
     .filter((f) => selectedKeys.has(f.key))
     .reduce((sum, f) => sum + f.size, 0);
 
-  // Sort: orphans first, then by lastModified desc
+  const toggleSort = useCallback((field: SortField) => {
+    setSortField((prev) => {
+      if (prev === field) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("desc");
+      return field;
+    });
+  }, []);
+
+  // Sort: orphans first, then by selected field + direction
   const sortedFiles = [...data.files].sort((a, b) => {
     if (a.isReferenced !== b.isReferenced) {
       return a.isReferenced ? 1 : -1;
     }
-    return b.lastModified.localeCompare(a.lastModified);
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortField === "size") {
+      return (a.size - b.size) * dir;
+    }
+    return a.lastModified.localeCompare(b.lastModified) * dir;
   });
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3" strokeWidth={1.5} />;
+    }
+    return sortDir === "asc" ? (
+      <ArrowUp className="h-3 w-3" strokeWidth={1.5} />
+    ) : (
+      <ArrowDown className="h-3 w-3" strokeWidth={1.5} />
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -320,27 +357,51 @@ function R2Section({
               )}
             </div>
 
-            {selectedKeys.size > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">
-                  已选 {selectedKeys.size} 个文件 ({formatBytes(selectedSize)})
-                </span>
+            <div className="flex items-center gap-2">
+              {/* Sort controls */}
+              <div className="flex items-center gap-1">
                 <Button
-                  variant="destructive"
+                  variant={sortField === "time" ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={onDeleteSelected}
-                  disabled={cleaning}
-                  className="gap-1.5"
+                  onClick={() => toggleSort("time")}
+                  className="gap-1 text-xs h-7 px-2"
                 >
-                  {cleaning ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  )}
-                  删除选中
+                  时间
+                  <SortIcon field="time" />
+                </Button>
+                <Button
+                  variant={sortField === "size" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => toggleSort("size")}
+                  className="gap-1 text-xs h-7 px-2"
+                >
+                  大小
+                  <SortIcon field="size" />
                 </Button>
               </div>
-            )}
+
+              {selectedKeys.size > 0 && (
+                <Fragment>
+                  <span className="text-xs text-muted-foreground">
+                    已选 {selectedKeys.size} 个文件 ({formatBytes(selectedSize)})
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onDeleteSelected}
+                    disabled={cleaning}
+                    className="gap-1.5"
+                  >
+                    {cleaning ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    )}
+                    删除选中
+                  </Button>
+                </Fragment>
+              )}
+            </div>
           </div>
 
           {/* File list */}
