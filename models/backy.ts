@@ -28,7 +28,7 @@ export interface BackyBackupEntry {
   created_at: string;
 }
 
-/** Result of a push-backup operation */
+/** Result of a push-backup operation (from Backy API response) */
 export interface BackyPushResult {
   id: string;
   project_name: string;
@@ -37,6 +37,24 @@ export interface BackyPushResult {
   file_size: number;
   is_single_json: number;
   created_at: string;
+}
+
+/** Detailed push result with request metadata and timing */
+export interface BackyPushDetail {
+  ok: boolean;
+  message: string;
+  /** Duration of the push in milliseconds */
+  durationMs?: number;
+  request?: {
+    tag: string;
+    fileName: string;
+    fileSizeBytes: number;
+    backupStats: Record<string, number>;
+  };
+  response?: {
+    status: number;
+    body: unknown;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -121,4 +139,21 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ---------------------------------------------------------------------------
+// Time formatting
+// ---------------------------------------------------------------------------
+
+/** Format a date string as a relative time (e.g. "3 天前") */
+export function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins} 分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} 天前`;
+  return `${Math.floor(days / 30)} 个月前`;
 }

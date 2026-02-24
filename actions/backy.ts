@@ -9,7 +9,7 @@ import {
   getBackyEnvironment,
   buildBackyTag,
   type BackyHistoryResponse,
-  type BackyPushResult,
+  type BackyPushDetail,
 } from '@/models/backy';
 import { serializeLinksForExport } from '@/models/settings';
 
@@ -147,7 +147,7 @@ export async function fetchBackyHistory(): Promise<{
 /** Export all data and push a backup to Backy. */
 export async function pushBackup(): Promise<{
   success: boolean;
-  data?: BackyPushResult;
+  data?: BackyPushDetail;
   error?: string;
 }> {
   try {
@@ -156,6 +156,8 @@ export async function pushBackup(): Promise<{
 
     const config = await db.getBackySettings();
     if (!config) return { success: false, error: 'Backy 未配置' };
+
+    const start = Date.now();
 
     // Gather data for export
     const [links, folders, tags] = await Promise.all([
@@ -166,6 +168,7 @@ export async function pushBackup(): Promise<{
 
     const exported = serializeLinksForExport(links);
     const backupData = { links: exported, folders, tags };
+    const json = JSON.stringify(backupData);
 
     // Build tag
     const tag = buildBackyTag(APP_VERSION, {
@@ -174,12 +177,25 @@ export async function pushBackup(): Promise<{
       tags: tags.length,
     });
 
+    const fileName = `zhe-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
     // Push to Backy as multipart/form-data
     const form = new FormData();
-    const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
-    form.append('file', blob, 'backup.json');
+    const blob = new Blob([json], { type: 'application/json' });
+    form.append('file', blob, fileName);
     form.append('environment', getBackyEnvironment());
     form.append('tag', tag);
+
+    const requestMeta = {
+      tag,
+      fileName,
+      fileSizeBytes: json.length,
+      backupStats: {
+        links: links.length,
+        folders: folders.length,
+        tags: tags.length,
+      } as Record<string, number>,
+    };
 
     const res = await fetch(config.webhookUrl, {
       method: 'POST',
@@ -187,12 +203,36 @@ export async function pushBackup(): Promise<{
       body: form,
     });
 
+    const durationMs = Date.now() - start;
+
     if (!res.ok) {
-      return { success: false, error: `推送失败 (${res.status})` };
+      let body: unknown;
+      const text = await res.text().catch(() => '');
+      try { body = JSON.parse(text); } catch { body = text || null; }
+      return {
+        success: false,
+        data: {
+          ok: false,
+          message: `推送失败 (${res.status})`,
+          durationMs,
+          request: requestMeta,
+          response: { status: res.status, body },
+        },
+        error: `推送失败 (${res.status})`,
+      };
     }
 
-    const result: BackyPushResult = await res.json();
-    return { success: true, data: result };
+    // Success — response body consumed but not needed; detail is built from request metadata
+    await res.json();
+    return {
+      success: true,
+      data: {
+        ok: true,
+        message: `推送成功 (${durationMs}ms)`,
+        durationMs,
+        request: requestMeta,
+      },
+    };
   } catch (error) {
     console.error('Failed to push backup:', error);
     return { success: false, error: '推送备份失败' };

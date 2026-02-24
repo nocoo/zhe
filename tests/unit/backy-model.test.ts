@@ -6,6 +6,7 @@ import {
   getBackyEnvironment,
   buildBackyTag,
   formatFileSize,
+  formatTimeAgo,
 } from '@/models/backy';
 
 describe('backy model', () => {
@@ -191,6 +192,41 @@ describe('backy model', () => {
 
     it('formats boundary value (1024*1024 - 1)', () => {
       expect(formatFileSize(1024 * 1024 - 1)).toBe('1024.0 KB');
+    });
+  });
+
+  // ==================================================================
+  // formatTimeAgo
+  // ==================================================================
+  describe('formatTimeAgo', () => {
+    it('returns "刚刚" for just now', () => {
+      const now = new Date().toISOString();
+      expect(formatTimeAgo(now)).toBe('刚刚');
+    });
+
+    it('returns minutes for < 60 minutes', () => {
+      const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      expect(formatTimeAgo(thirtyMinsAgo)).toBe('30 分钟前');
+    });
+
+    it('returns hours for < 24 hours', () => {
+      const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+      expect(formatTimeAgo(threeHoursAgo)).toBe('3 小时前');
+    });
+
+    it('returns days for < 30 days', () => {
+      const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatTimeAgo(fiveDaysAgo)).toBe('5 天前');
+    });
+
+    it('returns months for >= 30 days', () => {
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+      expect(formatTimeAgo(sixtyDaysAgo)).toBe('2 个月前');
+    });
+
+    it('returns "1 分钟前" for exactly 1 minute ago', () => {
+      const oneMinAgo = new Date(Date.now() - 60 * 1000).toISOString();
+      expect(formatTimeAgo(oneMinAgo)).toBe('1 分钟前');
     });
   });
 });

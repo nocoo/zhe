@@ -352,7 +352,17 @@ describe('backy actions', () => {
 
       const result = await pushBackup();
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockPushResult);
+      expect(result.data).toMatchObject({
+        ok: true,
+        message: expect.stringContaining('推送成功'),
+        durationMs: expect.any(Number),
+        request: {
+          tag: expect.stringContaining('v1.2.3'),
+          fileName: expect.stringContaining('zhe-backup-'),
+          fileSizeBytes: expect.any(Number),
+          backupStats: { links: 1, folders: 1, tags: 1 },
+        },
+      });
 
       // Verify fetch was called with correct args
       expect(mockFetch).toHaveBeenCalledWith(
@@ -374,7 +384,7 @@ describe('backy actions', () => {
       expect(body.get('tag')).toContain('1tag');
     });
 
-    it('returns error when POST fails', async () => {
+    it('returns error with detail when POST fails', async () => {
       mockGetBackySettings.mockResolvedValue({
         webhookUrl: 'https://backy.example.com/webhook',
         apiKey: 'sk-1234567890abcdef',
@@ -383,11 +393,21 @@ describe('backy actions', () => {
       mockGetFolders.mockResolvedValue(mockFoldersData);
       mockGetTags.mockResolvedValue(mockTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
-      mockFetch.mockResolvedValue({ ok: false, status: 413 });
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 413,
+        text: () => Promise.resolve('{"error":"too large"}'),
+      });
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
       expect(result.error).toContain('413');
+      expect(result.data).toMatchObject({
+        ok: false,
+        durationMs: expect.any(Number),
+        request: expect.objectContaining({ tag: expect.stringContaining('v1.2.3') }),
+        response: { status: 413, body: { error: 'too large' } },
+      });
     });
 
     it('returns error when not configured', async () => {
