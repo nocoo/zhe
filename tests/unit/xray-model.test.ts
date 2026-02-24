@@ -8,9 +8,28 @@ import {
   formatCount,
   formatTweetDate,
   MOCK_TWEET_RESPONSE,
+  XRAY_PRESETS,
+  XRAY_DEFAULT_URL,
 } from '@/models/xray';
 
 describe('xray model', () => {
+  // ==================================================================
+  // Constants
+  // ==================================================================
+  describe('XRAY_PRESETS', () => {
+    it('has Production and Development presets', () => {
+      expect(XRAY_PRESETS).toHaveLength(2);
+      expect(XRAY_PRESETS[0].label).toBe('Production');
+      expect(XRAY_PRESETS[0].url).toBe('https://xray.hexly.ai');
+      expect(XRAY_PRESETS[1].label).toBe('Development');
+      expect(XRAY_PRESETS[1].url).toBe('https://xray.dev.hexly.ai');
+    });
+
+    it('XRAY_DEFAULT_URL points to Production', () => {
+      expect(XRAY_DEFAULT_URL).toBe('https://xray.hexly.ai');
+    });
+  });
+
   // ==================================================================
   // extractTweetId
   // ==================================================================
@@ -105,7 +124,7 @@ describe('xray model', () => {
   describe('validateXrayConfig', () => {
     it('accepts valid config', () => {
       const result = validateXrayConfig({
-        apiUrl: 'http://localhost:7027',
+        apiUrl: 'https://xray.hexly.ai',
         apiToken: 'sk-1234567890abcdef',
       });
       expect(result.valid).toBe(true);
@@ -129,14 +148,14 @@ describe('xray model', () => {
     });
 
     it('rejects missing apiToken', () => {
-      const result = validateXrayConfig({ apiUrl: 'http://localhost:7027' });
+      const result = validateXrayConfig({ apiUrl: 'https://xray.hexly.ai' });
       expect(result.valid).toBe(false);
       if (!result.valid) expect(result.error).toContain('Token');
     });
 
     it('rejects empty apiToken', () => {
       const result = validateXrayConfig({
-        apiUrl: 'http://localhost:7027',
+        apiUrl: 'https://xray.hexly.ai',
         apiToken: '   ',
       });
       expect(result.valid).toBe(false);
@@ -174,21 +193,21 @@ describe('xray model', () => {
   // buildTweetApiUrl
   // ==================================================================
   describe('buildTweetApiUrl', () => {
-    it('builds correct URL', () => {
-      expect(buildTweetApiUrl('http://localhost:7027', '123456789')).toBe(
-        'http://localhost:7027/twitter/tweets/123456789',
+    it('builds correct URL with /api prefix', () => {
+      expect(buildTweetApiUrl('https://xray.hexly.ai', '123456789')).toBe(
+        'https://xray.hexly.ai/api/twitter/tweets/123456789',
       );
     });
 
     it('strips trailing slash from base URL', () => {
-      expect(buildTweetApiUrl('http://localhost:7027/', '123456789')).toBe(
-        'http://localhost:7027/twitter/tweets/123456789',
+      expect(buildTweetApiUrl('https://xray.hexly.ai/', '123456789')).toBe(
+        'https://xray.hexly.ai/api/twitter/tweets/123456789',
       );
     });
 
     it('strips multiple trailing slashes', () => {
-      expect(buildTweetApiUrl('http://localhost:7027///', '123456789')).toBe(
-        'http://localhost:7027/twitter/tweets/123456789',
+      expect(buildTweetApiUrl('https://xray.hexly.ai///', '123456789')).toBe(
+        'https://xray.hexly.ai/api/twitter/tweets/123456789',
       );
     });
   });
@@ -239,10 +258,23 @@ describe('xray model', () => {
   describe('MOCK_TWEET_RESPONSE', () => {
     it('has expected structure', () => {
       expect(MOCK_TWEET_RESPONSE.success).toBe(true);
-      expect(MOCK_TWEET_RESPONSE.data.id).toBe('2026125563673612595');
-      expect(MOCK_TWEET_RESPONSE.data.author.username).toBe('QingQ77');
+      expect(MOCK_TWEET_RESPONSE.data.id).toBe('2026360908398862478');
+      expect(MOCK_TWEET_RESPONSE.data.author.username).toBe('karpathy');
       expect(MOCK_TWEET_RESPONSE.data.metrics).toBeDefined();
       expect(MOCK_TWEET_RESPONSE.data.entities).toBeDefined();
+    });
+
+    it('contains media array', () => {
+      expect(MOCK_TWEET_RESPONSE.data.media).toBeDefined();
+      expect(MOCK_TWEET_RESPONSE.data.media!.length).toBeGreaterThan(0);
+      expect(MOCK_TWEET_RESPONSE.data.media![0].type).toBe('PHOTO');
+    });
+
+    it('contains quoted_tweet', () => {
+      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet).toBeDefined();
+      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.author.username).toBe('SuhailKakar');
+      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.media).toBeDefined();
+      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.media![0].type).toBe('VIDEO');
     });
   });
 });

@@ -124,7 +124,7 @@ export async function fetchTweet(tweetUrl: string): Promise<{
       method: 'GET',
       headers: {
         'accept': 'application/json',
-        'Authorization': `Bearer ${config.apiToken}`,
+        'X-Webhook-Key': config.apiToken,
       },
     });
 

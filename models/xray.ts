@@ -1,6 +1,19 @@
 // Pure business logic for xray (Twitter/X) API integration — no React, no DOM.
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Predefined xray API base URL presets */
+export const XRAY_PRESETS = [
+  { label: 'Production', url: 'https://xray.hexly.ai' },
+  { label: 'Development', url: 'https://xray.dev.hexly.ai' },
+] as const;
+
+/** Default base URL when none is configured */
+export const XRAY_DEFAULT_URL = XRAY_PRESETS[0].url;
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -37,6 +50,14 @@ export interface XrayTweetEntities {
   urls: string[];
 }
 
+/** Media attachment */
+export interface XrayTweetMedia {
+  id: string;
+  type: 'PHOTO' | 'VIDEO' | 'GIF';
+  url: string;
+  thumbnail_url?: string;
+}
+
 /** Tweet data returned by the API */
 export interface XrayTweetData {
   id: string;
@@ -50,6 +71,9 @@ export interface XrayTweetData {
   is_reply: boolean;
   lang: string;
   entities: XrayTweetEntities;
+  media?: XrayTweetMedia[];
+  quoted_tweet?: XrayTweetData;
+  reply_to_id?: string;
 }
 
 /** Full API response envelope */
@@ -143,12 +167,12 @@ export function maskToken(token: string): string {
 
 /**
  * Build the full API endpoint URL for fetching a tweet.
- * @param baseUrl  The xray API base URL (e.g. "http://localhost:7027")
+ * @param baseUrl  The xray API base URL (e.g. "https://xray.hexly.ai")
  * @param tweetId  The numeric tweet ID
  */
 export function buildTweetApiUrl(baseUrl: string, tweetId: string): string {
   const base = baseUrl.replace(/\/+$/, '');
-  return `${base}/twitter/tweets/${tweetId}`;
+  return `${base}/api/twitter/tweets/${tweetId}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,35 +183,83 @@ export function buildTweetApiUrl(baseUrl: string, tweetId: string): string {
 export const MOCK_TWEET_RESPONSE: XrayTweetResponse = {
   success: true,
   data: {
-    id: '2026125563673612595',
-    text: 'GitHub 2天 500+ \n\nKalshi-Claw\n一个 Kalshi 交易平台的自动化工具,用TypeScript写的，主要功能是自动分析市场趋势、执行事件驱动型交易。\n\nhttps://t.co/DjyKxfAQfY',
+    id: '2026360908398862478',
+    text: 'CLIs are super exciting precisely because they are a "legacy" technology, which means AI agents can natively and easily use them, combine them, interact with them via the entire terminal toolkit.\n\nIt\'s 2026. Build. For. Agents.',
     author: {
-      id: '1998006140286935041',
-      username: 'QingQ77',
-      name: 'Geek Lite',
+      id: '33836629',
+      username: 'karpathy',
+      name: 'Andrej Karpathy',
       profile_image_url:
-        'https://pbs.twimg.com/profile_images/2004028412730789892/4IFUGOl2_normal.jpg',
-      followers_count: 8056,
+        'https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg',
+      followers_count: 1826708,
       is_verified: true,
     },
-    created_at: '2026-02-24T02:42:32.000Z',
-    url: 'https://x.com/QingQ77/status/2026125563673612595',
+    created_at: '2026-02-24T18:17:43.000Z',
+    url: 'https://x.com/karpathy/status/2026360908398862478',
     metrics: {
-      retweet_count: 3,
-      like_count: 25,
-      reply_count: 0,
-      quote_count: 0,
-      view_count: 1625,
-      bookmark_count: 30,
+      retweet_count: 443,
+      like_count: 5460,
+      reply_count: 340,
+      quote_count: 143,
+      view_count: 611214,
+      bookmark_count: 4292,
     },
     is_retweet: false,
-    is_quote: false,
+    is_quote: true,
     is_reply: false,
-    lang: 'zh',
+    lang: 'en',
+    media: [
+      {
+        id: '2026360493238304768',
+        type: 'PHOTO',
+        url: 'https://pbs.twimg.com/media/HB8UIepawAAbVKf.jpg',
+      },
+    ],
     entities: {
       hashtags: [],
       mentioned_users: [],
-      urls: ['https://github.com/Kirubel125/Kalshi-Claw'],
+      urls: [],
+    },
+    quoted_tweet: {
+      id: '2026305257257775524',
+      text: 'introducing polymarket cli - the fastest way for ai agents to access prediction markets\n\nbuilt with rust.',
+      author: {
+        id: '1019566485000347648',
+        username: 'SuhailKakar',
+        name: 'Suhail Kakar',
+        profile_image_url:
+          'https://pbs.twimg.com/profile_images/1707618622812934144/1WdTsnMV_normal.jpg',
+        followers_count: 66009,
+        is_verified: true,
+      },
+      created_at: '2026-02-24T14:36:34.000Z',
+      url: 'https://x.com/SuhailKakar/status/2026305257257775524',
+      metrics: {
+        retweet_count: 156,
+        like_count: 3436,
+        reply_count: 189,
+        quote_count: 55,
+        view_count: 583358,
+        bookmark_count: 3658,
+      },
+      is_retweet: false,
+      is_quote: false,
+      is_reply: false,
+      lang: 'en',
+      media: [
+        {
+          id: '2026305106740977664',
+          type: 'VIDEO',
+          url: 'https://video.twimg.com/amplify_video/2026305106740977664/vid/avc1/1650x1080/IiR917mFOQjpB5Lw.mp4?tag=21',
+          thumbnail_url:
+            'https://pbs.twimg.com/amplify_video_thumb/2026305106740977664/img/Tr3drOC72lGb_pPq.jpg',
+        },
+      ],
+      entities: {
+        hashtags: [],
+        mentioned_users: [],
+        urls: [],
+      },
     },
   },
 };

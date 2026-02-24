@@ -1,7 +1,14 @@
 "use client";
 
 import { useXrayViewModel } from "@/viewmodels/useXrayViewModel";
-import { formatCount, formatTweetDate } from "@/models/xray";
+import {
+  formatCount,
+  formatTweetDate,
+  XRAY_PRESETS,
+  type XrayTweetData,
+  type XrayTweetMedia,
+} from "@/models/xray";
+import type { UrlMode } from "@/viewmodels/useXrayViewModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +33,8 @@ import {
   CheckCircle,
   BadgeCheck,
   ExternalLink,
+  Image as ImageIcon,
+  Play,
 } from "lucide-react";
 
 export function XrayPage() {
@@ -47,6 +56,11 @@ export function XrayPage() {
 // ---------------------------------------------------------------------------
 
 function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
+  const urlModes: { label: UrlMode; display: string }[] = [
+    ...XRAY_PRESETS.map((p) => ({ label: p.label as UrlMode, display: `${p.label}` })),
+    { label: "custom" as UrlMode, display: "Custom" },
+  ];
+
   return (
     <Card className="border-0 bg-secondary shadow-none">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
@@ -59,7 +73,7 @@ function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
       </CardHeader>
       <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
         <p className="mb-4 text-sm text-muted-foreground">
-          配置 xray API 的地址和认证 Token，用于获取 Twitter/X 帖子内容。
+          配置 xray API 的地址和认证 Key，用于获取 Twitter/X 帖子内容。
         </p>
         <Separator className="mb-4" />
 
@@ -68,28 +82,47 @@ function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
         ) : !vm.isConfigured || vm.isEditing ? (
           /* ── Config form ─────────────────────────────────── */
           <div className="max-w-lg space-y-4">
+            {/* URL mode selector */}
             <div className="space-y-1">
-              <Label htmlFor="xray-url" className="text-sm">
-                API URL
-              </Label>
-              <Input
-                id="xray-url"
-                data-testid="xray-api-url"
-                placeholder="http://localhost:7027"
-                value={vm.apiUrl}
-                onChange={(e) => vm.setApiUrl(e.target.value)}
-                className="h-9"
-              />
+              <Label className="text-sm">API URL</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {urlModes.map((mode) => (
+                  <Button
+                    key={mode.label}
+                    variant={vm.urlMode === mode.label ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => vm.handleUrlModeChange(mode.label)}
+                  >
+                    {mode.display}
+                  </Button>
+                ))}
+              </div>
+              {vm.urlMode === "custom" ? (
+                <Input
+                  id="xray-url"
+                  data-testid="xray-api-url"
+                  placeholder="https://your-xray-api.example.com"
+                  value={vm.apiUrl}
+                  onChange={(e) => vm.setApiUrl(e.target.value)}
+                  className="mt-1.5 h-9"
+                />
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {vm.apiUrl}
+                </p>
+              )}
             </div>
+
             <div className="space-y-1">
               <Label htmlFor="xray-token" className="text-sm">
-                Token
+                API Key
               </Label>
               <Input
                 id="xray-token"
                 data-testid="xray-api-token"
                 type="password"
-                placeholder="输入 API Token"
+                placeholder="输入 API Key"
                 value={vm.apiToken}
                 onChange={(e) => vm.setApiToken(e.target.value)}
                 className="h-9"
@@ -136,7 +169,7 @@ function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
               </code>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Token:</span>
+              <span className="text-xs text-muted-foreground">Key:</span>
               <code className="rounded bg-accent px-2 py-0.5 text-xs">
                 {vm.maskedToken}
               </code>
@@ -260,159 +293,7 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
             )}
 
             {/* Tweet card */}
-            <div className="rounded-lg border bg-background p-4 space-y-3">
-              {/* Author row */}
-              <div className="flex items-center gap-3">
-                <a
-                  href={`https://x.com/${vm.tweetResult.data.author.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={vm.tweetResult.data.author.profile_image_url}
-                    alt={vm.tweetResult.data.author.name}
-                    className="h-10 w-10 rounded-full transition-opacity hover:opacity-80"
-                  />
-                </a>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <a
-                      href={`https://x.com/${vm.tweetResult.data.author.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-semibold truncate hover:underline"
-                    >
-                      {vm.tweetResult.data.author.name}
-                    </a>
-                    {vm.tweetResult.data.author.is_verified && (
-                      <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <a
-                      href={`https://x.com/${vm.tweetResult.data.author.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      @{vm.tweetResult.data.author.username}
-                    </a>
-                    <span>·</span>
-                    <span>
-                      {formatCount(vm.tweetResult.data.author.followers_count)}{" "}
-                      followers
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tweet text */}
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {vm.tweetResult.data.text}
-              </p>
-
-              {/* Entities: URLs */}
-              {vm.tweetResult.data.entities.urls.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {vm.tweetResult.data.entities.urls.map((url) => (
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline dark:text-blue-400 break-all"
-                    >
-                      {url}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* Entities: Hashtags */}
-              {vm.tweetResult.data.entities.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {vm.tweetResult.data.entities.hashtags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Timestamp + lang */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{formatTweetDate(vm.tweetResult.data.created_at)}</span>
-                <span>·</span>
-                <span className="uppercase">{vm.tweetResult.data.lang}</span>
-                {vm.tweetResult.data.is_retweet && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    转推
-                  </Badge>
-                )}
-                {vm.tweetResult.data.is_quote && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    引用
-                  </Badge>
-                )}
-                {vm.tweetResult.data.is_reply && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    回复
-                  </Badge>
-                )}
-              </div>
-
-              {/* Metrics bar */}
-              <Separator />
-              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <MetricItem
-                  icon={Eye}
-                  value={vm.tweetResult.data.metrics.view_count}
-                  label="浏览"
-                />
-                <MetricItem
-                  icon={Heart}
-                  value={vm.tweetResult.data.metrics.like_count}
-                  label="喜欢"
-                />
-                <MetricItem
-                  icon={Repeat2}
-                  value={vm.tweetResult.data.metrics.retweet_count}
-                  label="转推"
-                />
-                <MetricItem
-                  icon={MessageCircle}
-                  value={vm.tweetResult.data.metrics.reply_count}
-                  label="回复"
-                />
-                <MetricItem
-                  icon={Quote}
-                  value={vm.tweetResult.data.metrics.quote_count}
-                  label="引用"
-                />
-                <MetricItem
-                  icon={Bookmark}
-                  value={vm.tweetResult.data.metrics.bookmark_count}
-                  label="收藏"
-                />
-              </div>
-
-              {/* View original tweet */}
-              <Separator />
-              <div>
-                <a
-                  href={vm.tweetResult.data.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm" className="text-xs">
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                    查看原帖
-                  </Button>
-                </a>
-              </div>
-            </div>
+            <TweetCard tweet={vm.tweetResult.data} />
 
             {/* Raw JSON toggle */}
             <Button
@@ -437,6 +318,240 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tweet card — renders a single tweet with author, text, media, metrics
+// ---------------------------------------------------------------------------
+
+function TweetCard({ tweet }: { tweet: XrayTweetData }) {
+  return (
+    <div className="rounded-lg border bg-background p-4 space-y-3">
+      {/* Author row */}
+      <div className="flex items-center gap-3">
+        <a
+          href={`https://x.com/${tweet.author.username}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={tweet.author.profile_image_url}
+            alt={tweet.author.name}
+            className="h-10 w-10 rounded-full transition-opacity hover:opacity-80"
+          />
+        </a>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <a
+              href={`https://x.com/${tweet.author.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold truncate hover:underline"
+            >
+              {tweet.author.name}
+            </a>
+            {tweet.author.is_verified && (
+              <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" />
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <a
+              href={`https://x.com/${tweet.author.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              @{tweet.author.username}
+            </a>
+            <span>·</span>
+            <span>
+              {formatCount(tweet.author.followers_count)} followers
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tweet text */}
+      <p className="text-sm whitespace-pre-wrap leading-relaxed">
+        {tweet.text}
+      </p>
+
+      {/* Media */}
+      {tweet.media && tweet.media.length > 0 && (
+        <MediaGrid media={tweet.media} />
+      )}
+
+      {/* Entities: URLs */}
+      {tweet.entities.urls.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tweet.entities.urls.map((url) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline dark:text-blue-400 break-all"
+            >
+              {url}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Entities: Hashtags */}
+      {tweet.entities.hashtags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tweet.entities.hashtags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              #{tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Entities: Mentioned users */}
+      {tweet.entities.mentioned_users.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tweet.entities.mentioned_users.map((user) => (
+            <a
+              key={user}
+              href={`https://x.com/${user}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            >
+              @{user}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Timestamp + lang + flags */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>{formatTweetDate(tweet.created_at)}</span>
+        <span>·</span>
+        <span className="uppercase">{tweet.lang}</span>
+        {tweet.is_retweet && (
+          <Badge variant="secondary" className="text-[10px]">
+            转推
+          </Badge>
+        )}
+        {tweet.is_quote && (
+          <Badge variant="secondary" className="text-[10px]">
+            引用
+          </Badge>
+        )}
+        {tweet.is_reply && (
+          <Badge variant="secondary" className="text-[10px]">
+            回复
+          </Badge>
+        )}
+      </div>
+
+      {/* Metrics bar */}
+      <Separator />
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <MetricItem icon={Eye} value={tweet.metrics.view_count} label="浏览" />
+        <MetricItem icon={Heart} value={tweet.metrics.like_count} label="喜欢" />
+        <MetricItem icon={Repeat2} value={tweet.metrics.retweet_count} label="转推" />
+        <MetricItem icon={MessageCircle} value={tweet.metrics.reply_count} label="回复" />
+        <MetricItem icon={Quote} value={tweet.metrics.quote_count} label="引用" />
+        <MetricItem icon={Bookmark} value={tweet.metrics.bookmark_count} label="收藏" />
+      </div>
+
+      {/* Quoted tweet */}
+      {tweet.quoted_tweet && (
+        <>
+          <Separator />
+          <div className="pl-3 border-l-2 border-muted-foreground/20">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+              引用推文
+            </p>
+            <TweetCard tweet={tweet.quoted_tweet} />
+          </div>
+        </>
+      )}
+
+      {/* View original tweet */}
+      <Separator />
+      <div>
+        <a
+          href={tweet.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button variant="outline" size="sm" className="text-xs">
+            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+            查看原帖
+          </Button>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Media grid — renders photos and video thumbnails
+// ---------------------------------------------------------------------------
+
+function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
+  return (
+    <div
+      className={`grid gap-2 ${
+        media.length === 1
+          ? "grid-cols-1"
+          : media.length === 2
+            ? "grid-cols-2"
+            : media.length === 3
+              ? "grid-cols-2"
+              : "grid-cols-2"
+      }`}
+    >
+      {media.map((item) => (
+        <div key={item.id} className="relative overflow-hidden rounded-lg">
+          {item.type === "PHOTO" ? (
+            <a href={item.url} target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.url}
+                alt="Media"
+                className="w-full h-auto max-h-72 object-cover rounded-lg transition-opacity hover:opacity-90"
+              />
+            </a>
+          ) : (
+            /* VIDEO or GIF — show thumbnail with play overlay */
+            <a href={item.url} target="_blank" rel="noopener noreferrer">
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.thumbnail_url ?? item.url}
+                  alt="Video thumbnail"
+                  className="w-full h-auto max-h-72 object-cover rounded-lg"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60">
+                    <Play className="h-5 w-5 text-white" fill="white" />
+                  </div>
+                </div>
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {item.type === "VIDEO" ? (
+                      <Play className="mr-1 h-2.5 w-2.5" />
+                    ) : (
+                      <ImageIcon className="mr-1 h-2.5 w-2.5" />
+                    )}
+                    {item.type}
+                  </Badge>
+                </div>
+              </div>
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
