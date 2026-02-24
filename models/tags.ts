@@ -31,6 +31,21 @@ export function randomTagColor(): TagColor {
 }
 
 /**
+ * Derive a deterministic tag color from its name.
+ * Uses a simple char-code hash (handles CJK/emoji) so the same name
+ * always produces the same color — no DB lookup required.
+ */
+export function tagColorFromName(name: string): TagColor {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    // djb2-style: hash * 31 + charCode
+    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  }
+  const index = ((hash % TAG_COLORS.length) + TAG_COLORS.length) % TAG_COLORS.length;
+  return TAG_COLORS[index];
+}
+
+/**
  * Validate and sanitize a tag name.
  * Returns the trimmed name if valid, or null if invalid.
  */
@@ -61,4 +76,12 @@ export const TAG_COLOR_MAP: Record<TagColor, { badge: string; dot: string }> = {
 /** Get Tailwind classes for a tag color, with fallback to slate */
 export function getTagColorClasses(color: string): { badge: string; dot: string } {
   return TAG_COLOR_MAP[color as TagColor] ?? TAG_COLOR_MAP.slate;
+}
+
+/**
+ * Get Tailwind classes derived from a tag's name (deterministic).
+ * This is the primary API — always prefer over getTagColorClasses(tag.color).
+ */
+export function getTagColorClassesByName(name: string): { badge: string; dot: string } {
+  return TAG_COLOR_MAP[tagColorFromName(name)];
 }
