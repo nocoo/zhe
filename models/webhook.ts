@@ -21,6 +21,20 @@ export interface RateLimitResult {
   retryAfterMs?: number;
 }
 
+/** Summary stats returned by GET /api/webhook/[token]. */
+export interface WebhookStats {
+  totalLinks: number;
+  totalClicks: number;
+  recentLinks: WebhookRecentLink[];
+}
+
+export interface WebhookRecentLink {
+  slug: string;
+  originalUrl: string;
+  clicks: number;
+  createdAt: string; // ISO 8601
+}
+
 // ---------------------------------------------------------------------------
 // Payload validation
 // ---------------------------------------------------------------------------
@@ -160,15 +174,20 @@ export interface WebhookDocError {
   description: string;
 }
 
+export interface WebhookMethodDoc {
+  method: string;
+  description: string;
+  headers?: Record<string, string>;
+  body?: Record<string, WebhookDocParam>;
+  response?: Record<string, WebhookDocParam>;
+  example?: { curl: string };
+}
+
 export interface WebhookDocumentation {
   endpoint: string;
-  method: string;
-  headers: Record<string, string>;
-  body: Record<string, WebhookDocParam>;
-  response: Record<string, WebhookDocParam>;
+  methods: WebhookMethodDoc[];
   rateLimit: { maxRequests: number; windowMs: number };
   notes: string[];
-  example: { curl: string };
   errors: WebhookDocError[];
 }
 
@@ -179,44 +198,95 @@ export function buildWebhookDocumentation(
 ): WebhookDocumentation {
   return {
     endpoint: webhookUrl,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: {
-      url: {
-        type: "string",
-        required: true,
-        description: "The original URL to shorten (must be a valid URL)",
+    methods: [
+      {
+        method: "HEAD",
+        description: "Test connection. Returns 200 if the token is valid, 404 otherwise. No response body.",
+        example: {
+          curl: `curl -I ${webhookUrl}`,
+        },
       },
-      customSlug: {
-        type: "string",
-        required: false,
-        description:
-          "Optional custom slug (1-50 alphanumeric/dash/underscore chars). Auto-generated if omitted.",
+      {
+        method: "GET",
+        description: "Retrieve webhook status, usage stats (total links, total clicks, recent links), and API documentation.",
+        response: {
+          status: {
+            type: "string",
+            required: true,
+            description: "Webhook status (\"active\")",
+          },
+          createdAt: {
+            type: "string",
+            required: true,
+            description: "ISO 8601 timestamp of when the webhook was created",
+          },
+          rateLimit: {
+            type: "number",
+            required: true,
+            description: "Current rate limit (requests per minute)",
+          },
+          stats: {
+            type: "object",
+            required: true,
+            description: "Usage stats: totalLinks, totalClicks, recentLinks[]",
+          },
+          docs: {
+            type: "object",
+            required: true,
+            description: "This documentation object",
+          },
+        },
+        example: {
+          curl: `curl ${webhookUrl}`,
+        },
       },
-      folder: {
-        type: "string",
-        required: false,
-        description:
-          "Optional folder name (case-insensitive match). Link is placed in the matched folder, or left uncategorized if not found.",
+      {
+        method: "POST",
+        description: "Create a short link. Rate-limited.",
+        headers: { "Content-Type": "application/json" },
+        body: {
+          url: {
+            type: "string",
+            required: true,
+            description: "The original URL to shorten (must be a valid URL)",
+          },
+          customSlug: {
+            type: "string",
+            required: false,
+            description:
+              "Optional custom slug (1-50 alphanumeric/dash/underscore chars). Auto-generated if omitted.",
+          },
+          folder: {
+            type: "string",
+            required: false,
+            description:
+              "Optional folder name (case-insensitive match). Link is placed in the matched folder, or left uncategorized if not found.",
+          },
+        },
+        response: {
+          slug: {
+            type: "string",
+            required: true,
+            description: "The generated or custom slug",
+          },
+          shortUrl: {
+            type: "string",
+            required: true,
+            description: "The full short URL",
+          },
+          originalUrl: {
+            type: "string",
+            required: true,
+            description: "The original URL that was shortened",
+          },
+        },
+        example: {
+          curl: `curl -X POST ${webhookUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com/long-page"}'`,
+        },
       },
-    },
-    response: {
-      slug: {
-        type: "string",
-        required: true,
-        description: "The generated or custom slug",
-      },
-      shortUrl: {
-        type: "string",
-        required: true,
-        description: "The full short URL",
-      },
-      originalUrl: {
-        type: "string",
-        required: true,
-        description: "The original URL that was shortened",
-      },
-    },
+    ],
     rateLimit: {
       maxRequests,
       windowMs: RATE_LIMIT_WINDOW_MS,
@@ -225,11 +295,6 @@ export function buildWebhookDocumentation(
       "Idempotent: if the same URL has already been shortened under your account, the existing short link is returned (200) instead of creating a duplicate (201).",
       "When an existing link is returned, the customSlug and folder parameters are ignored.",
     ],
-    example: {
-      curl: `curl -X POST ${webhookUrl} \\
-  -H "Content-Type: application/json" \\
-  -d '{"url": "https://example.com/long-page"}'`,
-    },
     errors: [
       { status: 400, description: "Invalid request body or slug format" },
       { status: 404, description: "Invalid webhook token" },

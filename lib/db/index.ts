@@ -332,3 +332,35 @@ export async function getWebhookByToken(token: string): Promise<Webhook | null> 
   );
   return rows[0] ? rowToWebhook(rows[0]) : null;
 }
+
+/**
+ * Get stats for a webhook user: total links, total clicks, 5 most recent links.
+ * Used by GET /api/webhook/[token] to return useful summary info.
+ */
+export async function getWebhookStats(userId: string): Promise<{
+  totalLinks: number;
+  totalClicks: number;
+  recentLinks: { slug: string; originalUrl: string; clicks: number; createdAt: string }[];
+}> {
+  const [countRows, recentRows] = await Promise.all([
+    executeD1Query<Record<string, unknown>>(
+      'SELECT COUNT(*) AS cnt, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?',
+      [userId],
+    ),
+    executeD1Query<Record<string, unknown>>(
+      'SELECT slug, original_url, clicks, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
+      [userId],
+    ),
+  ]);
+
+  return {
+    totalLinks: (countRows[0]?.cnt as number) ?? 0,
+    totalClicks: (countRows[0]?.total_clicks as number) ?? 0,
+    recentLinks: recentRows.map((r) => ({
+      slug: r.slug as string,
+      originalUrl: r.original_url as string,
+      clicks: r.clicks as number,
+      createdAt: new Date(r.created_at as number).toISOString(),
+    })),
+  };
+}

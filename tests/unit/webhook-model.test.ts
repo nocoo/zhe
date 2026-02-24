@@ -311,34 +311,56 @@ describe("webhook model", () => {
   describe("buildWebhookDocumentation", () => {
     const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
 
-    it("returns an object with endpoint, method, and headers", () => {
+    it("returns an object with endpoint and methods array", () => {
       const docs = buildWebhookDocumentation(baseUrl);
       expect(docs.endpoint).toBe(baseUrl);
-      expect(docs.method).toBe("POST");
-      expect(docs.headers).toEqual({ "Content-Type": "application/json" });
+      expect(docs.methods).toHaveLength(3);
+      expect(docs.methods.map((m: { method: string }) => m.method)).toEqual(["HEAD", "GET", "POST"]);
     });
 
-    it("includes request body parameters with descriptions", () => {
+    it("includes HEAD method for connection testing", () => {
       const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.body).toHaveProperty("url");
-      expect(docs.body).toHaveProperty("customSlug");
-      expect(docs.body).toHaveProperty("folder");
-      expect(docs.body.url.required).toBe(true);
-      expect(docs.body.customSlug.required).toBe(false);
-      expect(docs.body.folder.required).toBe(false);
+      const head = docs.methods.find((m: { method: string }) => m.method === "HEAD");
+      expect(head).toBeDefined();
+      expect(head!.description).toContain("Test connection");
+      expect(head!.example?.curl).toContain("curl -I");
     });
 
-    it("includes a curl example containing the webhook URL", () => {
+    it("includes GET method for status and stats", () => {
       const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.example.curl).toContain(baseUrl);
-      expect(docs.example.curl).toContain("curl");
+      const get = docs.methods.find((m: { method: string }) => m.method === "GET");
+      expect(get).toBeDefined();
+      expect(get!.description).toContain("stats");
+      expect(get!.response).toHaveProperty("status");
+      expect(get!.response).toHaveProperty("stats");
     });
 
-    it("includes response schema with all fields", () => {
+    it("includes POST method with request body parameters", () => {
       const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.response).toHaveProperty("slug");
-      expect(docs.response).toHaveProperty("shortUrl");
-      expect(docs.response).toHaveProperty("originalUrl");
+      const post = docs.methods.find((m: { method: string }) => m.method === "POST");
+      expect(post).toBeDefined();
+      expect(post!.body).toHaveProperty("url");
+      expect(post!.body).toHaveProperty("customSlug");
+      expect(post!.body).toHaveProperty("folder");
+      expect(post!.body!.url.required).toBe(true);
+      expect(post!.body!.customSlug.required).toBe(false);
+      expect(post!.body!.folder.required).toBe(false);
+    });
+
+    it("includes curl examples for all methods", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      for (const m of docs.methods) {
+        expect(m.example?.curl).toContain(baseUrl);
+        expect(m.example?.curl).toContain("curl");
+      }
+    });
+
+    it("includes POST response schema with all fields", () => {
+      const docs = buildWebhookDocumentation(baseUrl);
+      const post = docs.methods.find((m: { method: string }) => m.method === "POST");
+      expect(post!.response).toHaveProperty("slug");
+      expect(post!.response).toHaveProperty("shortUrl");
+      expect(post!.response).toHaveProperty("originalUrl");
     });
 
     it("includes rate limit information", () => {
