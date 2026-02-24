@@ -327,7 +327,7 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
 
 function TweetCard({ tweet }: { tweet: XrayTweetData }) {
   return (
-    <div className="rounded-lg border bg-background p-4 space-y-3">
+    <div className="max-w-xl rounded-lg border bg-background p-4 space-y-3">
       {/* Author row */}
       <div className="flex items-center gap-3">
         <a
@@ -518,7 +518,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
               <img
                 src={item.url}
                 alt="Media"
-                className="w-full h-auto max-h-72 object-cover rounded-lg transition-opacity hover:opacity-90"
+                className="w-full h-auto rounded-lg transition-opacity hover:opacity-90"
               />
             </a>
           ) : (
@@ -529,7 +529,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
                 <img
                   src={item.thumbnail_url ?? item.url}
                   alt="Video thumbnail"
-                  className="w-full h-auto max-h-72 object-cover rounded-lg"
+                  className="w-full h-auto rounded-lg"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60">
