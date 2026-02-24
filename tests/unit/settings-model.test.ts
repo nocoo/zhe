@@ -6,6 +6,7 @@ import {
   parsePreviewStyle,
   DEFAULT_PREVIEW_STYLE,
   PREVIEW_STYLES,
+  BACKUP_SCHEMA_VERSION,
   type ExportedLink,
 } from '@/models/settings';
 import type { Link } from '@/models/types';
@@ -43,6 +44,13 @@ describe('models/settings', () => {
         isCustom: true,
         clicks: 42,
         createdAt: new Date('2026-02-01T12:00:00.000Z'),
+        folderId: 'folder-1',
+        expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+        metaTitle: 'Page Title',
+        metaDescription: 'A description',
+        metaFavicon: 'https://example.com/favicon.ico',
+        screenshotUrl: 'https://shots.example.com/abc.png',
+        note: 'My note',
       });
       const result = serializeLinksForExport([link]);
       expect(result).toEqual([
@@ -52,29 +60,28 @@ describe('models/settings', () => {
           isCustom: true,
           clicks: 42,
           createdAt: '2026-02-01T12:00:00.000Z',
+          folderId: 'folder-1',
+          expiresAt: '2027-01-01T00:00:00.000Z',
+          metaTitle: 'Page Title',
+          metaDescription: 'A description',
+          metaFavicon: 'https://example.com/favicon.ico',
+          screenshotUrl: 'https://shots.example.com/abc.png',
+          note: 'My note',
         },
       ]);
     });
 
-    it('strips internal fields (id, userId, folderId, meta*, expiresAt)', () => {
-      const link = makeLink({
-        id: 99,
-        userId: 'secret-user',
-        folderId: 'folder-1',
-        metaTitle: 'Title',
-        metaDescription: 'Desc',
-        metaFavicon: 'favicon.ico',
-        expiresAt: new Date('2027-01-01'),
-      });
+    it('exports null for missing optional fields', () => {
+      const link = makeLink();
       const result = serializeLinksForExport([link]);
       const exported = result[0];
-      expect(exported).not.toHaveProperty('id');
-      expect(exported).not.toHaveProperty('userId');
-      expect(exported).not.toHaveProperty('folderId');
-      expect(exported).not.toHaveProperty('metaTitle');
-      expect(exported).not.toHaveProperty('metaDescription');
-      expect(exported).not.toHaveProperty('metaFavicon');
-      expect(exported).not.toHaveProperty('expiresAt');
+      expect(exported.folderId).toBeNull();
+      expect(exported.expiresAt).toBeNull();
+      expect(exported.metaTitle).toBeNull();
+      expect(exported.metaDescription).toBeNull();
+      expect(exported.metaFavicon).toBeNull();
+      expect(exported.screenshotUrl).toBeNull();
+      expect(exported.note).toBeNull();
     });
 
     it('serializes multiple links preserving order', () => {
@@ -119,6 +126,13 @@ describe('models/settings', () => {
           isCustom: false,
           clicks: 10,
           createdAt: '2026-01-15T00:00:00.000Z',
+          folderId: null,
+          expiresAt: null,
+          metaTitle: null,
+          metaDescription: null,
+          metaFavicon: null,
+          screenshotUrl: null,
+          note: null,
         },
       ];
       const result = parseImportPayload(payload);
@@ -163,6 +177,44 @@ describe('models/settings', () => {
       expect(result.data![0].isCustom).toBe(false);
     });
 
+    it('defaults optional fields to null when missing', () => {
+      const payload = [{ originalUrl: 'https://example.com', slug: 'abc' }];
+      const result = parseImportPayload(payload);
+      expect(result.success).toBe(true);
+      const entry = result.data![0];
+      expect(entry.folderId).toBeNull();
+      expect(entry.expiresAt).toBeNull();
+      expect(entry.metaTitle).toBeNull();
+      expect(entry.metaDescription).toBeNull();
+      expect(entry.metaFavicon).toBeNull();
+      expect(entry.screenshotUrl).toBeNull();
+      expect(entry.note).toBeNull();
+    });
+
+    it('preserves optional string fields when present', () => {
+      const payload = [{
+        originalUrl: 'https://example.com',
+        slug: 'abc',
+        folderId: 'folder-1',
+        expiresAt: '2027-01-01T00:00:00.000Z',
+        metaTitle: 'Title',
+        metaDescription: 'Desc',
+        metaFavicon: 'https://example.com/fav.ico',
+        screenshotUrl: 'https://shots.example.com/abc.png',
+        note: 'A note',
+      }];
+      const result = parseImportPayload(payload);
+      expect(result.success).toBe(true);
+      const entry = result.data![0];
+      expect(entry.folderId).toBe('folder-1');
+      expect(entry.expiresAt).toBe('2027-01-01T00:00:00.000Z');
+      expect(entry.metaTitle).toBe('Title');
+      expect(entry.metaDescription).toBe('Desc');
+      expect(entry.metaFavicon).toBe('https://example.com/fav.ico');
+      expect(entry.screenshotUrl).toBe('https://shots.example.com/abc.png');
+      expect(entry.note).toBe('A note');
+    });
+
     it('reports the index of the first invalid entry', () => {
       const payload = [
         { originalUrl: 'https://good.com', slug: 'ok', isCustom: false, clicks: 0, createdAt: '2026-01-01' },
@@ -175,8 +227,8 @@ describe('models/settings', () => {
 
     it('parses multiple valid entries', () => {
       const payload: ExportedLink[] = [
-        { originalUrl: 'https://a.com', slug: 'a', isCustom: false, clicks: 1, createdAt: '2026-01-01' },
-        { originalUrl: 'https://b.com', slug: 'b', isCustom: true, clicks: 2, createdAt: '2026-02-01' },
+        { originalUrl: 'https://a.com', slug: 'a', isCustom: false, clicks: 1, createdAt: '2026-01-01', folderId: null, expiresAt: null, metaTitle: null, metaDescription: null, metaFavicon: null, screenshotUrl: null, note: null },
+        { originalUrl: 'https://b.com', slug: 'b', isCustom: true, clicks: 2, createdAt: '2026-02-01', folderId: 'f1', expiresAt: null, metaTitle: 'Title', metaDescription: null, metaFavicon: null, screenshotUrl: null, note: null },
       ];
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
@@ -253,6 +305,12 @@ describe('models/settings', () => {
   describe('DEFAULT_PREVIEW_STYLE', () => {
     it('is "favicon"', () => {
       expect(DEFAULT_PREVIEW_STYLE).toBe('favicon');
+    });
+  });
+
+  describe('BACKUP_SCHEMA_VERSION', () => {
+    it('is 2', () => {
+      expect(BACKUP_SCHEMA_VERSION).toBe(2);
     });
   });
 });

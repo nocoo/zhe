@@ -11,7 +11,7 @@ import {
   type BackyHistoryResponse,
   type BackyPushDetail,
 } from '@/models/backy';
-import { serializeLinksForExport } from '@/models/settings';
+import { serializeLinksForExport, BACKUP_SCHEMA_VERSION, type BackupEnvelope } from '@/models/settings';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -160,14 +160,35 @@ export async function pushBackup(): Promise<{
     const start = Date.now();
 
     // Gather data for export
-    const [links, folders, tags] = await Promise.all([
+    const [links, folders, tags, linkTags] = await Promise.all([
       db.getLinks(),
       db.getFolders(),
       db.getTags(),
+      db.getLinkTags(),
     ]);
 
     const exported = serializeLinksForExport(links);
-    const backupData = { links: exported, folders, tags };
+    const backupData: BackupEnvelope = {
+      schemaVersion: BACKUP_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      links: exported,
+      folders: folders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        icon: f.icon,
+        createdAt: new Date(f.createdAt).toISOString(),
+      })),
+      tags: tags.map((t) => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        createdAt: new Date(t.createdAt).toISOString(),
+      })),
+      linkTags: linkTags.map((lt) => ({
+        linkId: lt.linkId,
+        tagId: lt.tagId,
+      })),
+    };
     const json = JSON.stringify(backupData);
 
     // Build tag
@@ -194,6 +215,7 @@ export async function pushBackup(): Promise<{
         links: links.length,
         folders: folders.length,
         tags: tags.length,
+        linkTags: linkTags.length,
       } as Record<string, number>,
     };
 

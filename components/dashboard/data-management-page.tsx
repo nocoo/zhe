@@ -30,6 +30,7 @@ const STAT_LABELS: Record<string, string> = {
   links: "链接",
   folders: "文件夹",
   tags: "标签",
+  linkTags: "关联",
 };
 
 export function DataManagementPage() {

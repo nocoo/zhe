@@ -38,16 +38,42 @@ export function parsePreviewStyle(value: unknown): PreviewStyle {
   return DEFAULT_PREVIEW_STYLE;
 }
 
-/** Exported link shape — stripped of internal fields */
+/** Current backup schema version. Bump when the backup format changes. */
+export const BACKUP_SCHEMA_VERSION = 2;
+
+/** Exported link shape — includes all meaningful fields for backup */
 export interface ExportedLink {
   originalUrl: string;
   slug: string;
   isCustom: boolean;
   clicks: number;
   createdAt: string; // ISO 8601
+  folderId: string | null;
+  expiresAt: string | null; // ISO 8601
+  metaTitle: string | null;
+  metaDescription: string | null;
+  metaFavicon: string | null;
+  screenshotUrl: string | null;
+  note: string | null;
 }
 
-/** Serialize links for JSON export, stripping internal fields */
+/** Exported link-tag association */
+export interface ExportedLinkTag {
+  linkId: number;
+  tagId: string;
+}
+
+/** Top-level backup envelope */
+export interface BackupEnvelope {
+  schemaVersion: number;
+  exportedAt: string; // ISO 8601
+  links: ExportedLink[];
+  folders: Array<{ id: string; name: string; icon: string; createdAt: string }>;
+  tags: Array<{ id: string; name: string; color: string; createdAt: string }>;
+  linkTags: ExportedLinkTag[];
+}
+
+/** Serialize links for JSON export, including all meaningful fields */
 export function serializeLinksForExport(links: Link[]): ExportedLink[] {
   return links.map((link) => ({
     originalUrl: link.originalUrl,
@@ -55,6 +81,13 @@ export function serializeLinksForExport(links: Link[]): ExportedLink[] {
     isCustom: link.isCustom ?? false,
     clicks: link.clicks ?? 0,
     createdAt: new Date(link.createdAt).toISOString(),
+    folderId: link.folderId ?? null,
+    expiresAt: link.expiresAt ? new Date(link.expiresAt).toISOString() : null,
+    metaTitle: link.metaTitle ?? null,
+    metaDescription: link.metaDescription ?? null,
+    metaFavicon: link.metaFavicon ?? null,
+    screenshotUrl: link.screenshotUrl ?? null,
+    note: link.note ?? null,
   }));
 }
 
@@ -112,6 +145,13 @@ export function parseImportPayload(payload: unknown): ParseResult {
       isCustom: typeof entry.isCustom === "boolean" ? entry.isCustom : false,
       clicks: typeof entry.clicks === "number" ? entry.clicks : 0,
       createdAt: entry.createdAt ?? new Date().toISOString(),
+      folderId: typeof entry.folderId === "string" ? entry.folderId : null,
+      expiresAt: typeof entry.expiresAt === "string" ? entry.expiresAt : null,
+      metaTitle: typeof entry.metaTitle === "string" ? entry.metaTitle : null,
+      metaDescription: typeof entry.metaDescription === "string" ? entry.metaDescription : null,
+      metaFavicon: typeof entry.metaFavicon === "string" ? entry.metaFavicon : null,
+      screenshotUrl: typeof entry.screenshotUrl === "string" ? entry.screenshotUrl : null,
+      note: typeof entry.note === "string" ? entry.note : null,
     });
   }
 

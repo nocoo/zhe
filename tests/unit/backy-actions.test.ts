@@ -18,6 +18,7 @@ const mockUpsertBackySettings = vi.fn();
 const mockGetLinks = vi.fn();
 const mockGetFolders = vi.fn();
 const mockGetTags = vi.fn();
+const mockGetLinkTags = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(() => ({
@@ -26,6 +27,7 @@ vi.mock('@/lib/db/scoped', () => ({
     getLinks: mockGetLinks,
     getFolders: mockGetFolders,
     getTags: mockGetTags,
+    getLinkTags: mockGetLinkTags,
   })),
 }));
 
@@ -38,6 +40,7 @@ vi.mock('@/lib/version', () => ({
 const mockSerializeLinksForExport = vi.fn();
 vi.mock('@/models/settings', () => ({
   serializeLinksForExport: (...args: unknown[]) => mockSerializeLinksForExport(...args),
+  BACKUP_SCHEMA_VERSION: 2,
 }));
 
 // Mock global fetch
@@ -322,8 +325,9 @@ describe('backy actions', () => {
     const mockLinks = [
       { id: 1, slug: 'test', originalUrl: 'https://example.com', clicks: 5 },
     ];
-    const mockFoldersData = [{ id: 'f1', name: 'Work' }];
-    const mockTagsData = [{ id: 't1', name: 'important', color: '#ff0000' }];
+    const mockFoldersData = [{ id: 'f1', name: 'Work', icon: 'folder', createdAt: new Date('2026-01-01') }];
+    const mockTagsData = [{ id: 't1', name: 'important', color: 'blue', createdAt: new Date('2026-01-01') }];
+    const mockLinkTagsData = [{ linkId: 1, tagId: 't1' }];
     const mockSerialized = [{ slug: 'test', originalUrl: 'https://example.com' }];
 
     const mockPushResult = {
@@ -344,6 +348,7 @@ describe('backy actions', () => {
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
       mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
       mockFetch.mockResolvedValue({
         ok: true,
@@ -360,7 +365,7 @@ describe('backy actions', () => {
           tag: expect.stringContaining('v1.2.3'),
           fileName: expect.stringContaining('zhe-backup-'),
           fileSizeBytes: expect.any(Number),
-          backupStats: { links: 1, folders: 1, tags: 1 },
+          backupStats: { links: 1, folders: 1, tags: 1, linkTags: 1 },
         },
       });
 
@@ -392,6 +397,7 @@ describe('backy actions', () => {
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
       mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
       mockFetch.mockResolvedValue({
         ok: false,
@@ -435,6 +441,7 @@ describe('backy actions', () => {
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
       mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
       mockFetch.mockRejectedValue(new Error('Network error'));
 
