@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
-import { validateTagName, isValidTagColor, randomTagColor } from '@/models/tags';
+import { validateTagName, isValidTagColor, tagColorFromName } from '@/models/tags';
 import type { Tag, LinkTag } from '@/lib/db/schema';
 import type { ActionResult } from '@/actions/links';
 
@@ -60,7 +60,7 @@ export async function createTag(input: CreateTagInput): Promise<ActionResult<Tag
       return { success: false, error: 'Invalid tag name' };
     }
 
-    const color = input.color ?? randomTagColor();
+    const color = input.color ?? tagColorFromName(validName);
     if (!isValidTagColor(color)) {
       return { success: false, error: 'Invalid tag color' };
     }

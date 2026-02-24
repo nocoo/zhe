@@ -150,12 +150,12 @@ describe('actions/tags', () => {
       expect(mockCreateTag).toHaveBeenCalledWith({ name: 'work', color: 'blue' });
     });
 
-    it('creates tag with random color when color is omitted', async () => {
+    it('creates tag with deterministic color when color is omitted', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateTag.mockResolvedValue(FAKE_TAG);
       const result = await createTag({ name: 'work' });
       expect(result.success).toBe(true);
-      // Verify createTag was called with a valid color
+      // Verify createTag was called with a valid color derived from name
       const call = mockCreateTag.mock.calls[0][0];
       expect(call.name).toBe('work');
       expect(typeof call.color).toBe('string');

@@ -488,14 +488,15 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(result.data!.name).toBe('trimmed');
     });
 
-    it('assigns random color when none specified', async () => {
+    it('assigns deterministic color from name when none specified', async () => {
       const { createTag } = await import('@/actions/tags');
-      const { TAG_COLORS } = await import('@/models/tags');
+      const { TAG_COLORS, tagColorFromName } = await import('@/models/tags');
 
       const result = await createTag({ name: 'auto-color' });
 
       expect(result.success).toBe(true);
       expect(TAG_COLORS).toContain(result.data!.color);
+      expect(result.data!.color).toBe(tagColorFromName('auto-color'));
     });
   });
 
