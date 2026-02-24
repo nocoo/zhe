@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock DB modules
 const mockGetWebhookByToken = vi.fn();
+const mockGetWebhookStats = vi.fn();
 const mockGetLinkByUserAndUrl = vi.fn();
 const mockGetFolderByUserAndName = vi.fn();
 const mockSlugExists = vi.fn();
@@ -9,6 +10,7 @@ const mockCreateLink = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   getWebhookByToken: (...args: unknown[]) => mockGetWebhookByToken(...args),
+  getWebhookStats: (...args: unknown[]) => mockGetWebhookStats(...args),
   getLinkByUserAndUrl: (...args: unknown[]) => mockGetLinkByUserAndUrl(...args),
   getFolderByUserAndName: (...args: unknown[]) => mockGetFolderByUserAndName(...args),
   slugExists: (...args: unknown[]) => mockSlugExists(...args),
@@ -33,7 +35,7 @@ vi.mock("@/lib/slug", () => ({
   sanitizeSlug: (...args: unknown[]) => mockSanitizeSlug(...args),
 }));
 
-import { POST, GET } from "@/app/api/webhook/[token]/route";
+import { POST, GET, HEAD } from "@/app/api/webhook/[token]/route";
 
 function makeRequest(
   token: string,
@@ -493,6 +495,11 @@ describe("POST /api/webhook/[token]", () => {
 describe("GET /api/webhook/[token]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetWebhookStats.mockResolvedValue({
+      totalLinks: 0,
+      totalClicks: 0,
+      recentLinks: [],
+    });
   });
 
   it("returns 404 for invalid token", async () => {
@@ -507,12 +514,20 @@ describe("GET /api/webhook/[token]", () => {
     expect(json.error).toBeDefined();
   });
 
-  it("returns documentation JSON for valid token", async () => {
+  it("returns status, stats, and docs for valid token", async () => {
     mockGetWebhookByToken.mockResolvedValue({
       id: 1,
       userId: "user-1",
       token: "valid-token",
-      createdAt: new Date(),
+      rateLimit: 5,
+      createdAt: new Date("2026-01-15T00:00:00.000Z"),
+    });
+    mockGetWebhookStats.mockResolvedValue({
+      totalLinks: 42,
+      totalClicks: 1337,
+      recentLinks: [
+        { slug: "abc", originalUrl: "https://example.com", clicks: 10, createdAt: "2026-02-20T00:00:00.000Z" },
+      ],
     });
 
     const req = new Request("http://localhost/api/webhook/valid-token", {
@@ -521,14 +536,22 @@ describe("GET /api/webhook/[token]", () => {
     const res = await GET(req, makeParams("valid-token"));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.endpoint).toContain("valid-token");
-    expect(json.method).toBe("POST");
-    expect(json.headers).toEqual({ "Content-Type": "application/json" });
-    expect(json.body).toBeDefined();
-    expect(json.response).toBeDefined();
-    expect(json.rateLimit).toBeDefined();
-    expect(json.example).toBeDefined();
-    expect(json.errors).toBeDefined();
+
+    // Status info
+    expect(json.status).toBe("active");
+    expect(json.createdAt).toBe("2026-01-15T00:00:00.000Z");
+    expect(json.rateLimit).toBe(5);
+
+    // Stats
+    expect(json.stats.totalLinks).toBe(42);
+    expect(json.stats.totalClicks).toBe(1337);
+    expect(json.stats.recentLinks).toHaveLength(1);
+    expect(json.stats.recentLinks[0].slug).toBe("abc");
+
+    // Docs
+    expect(json.docs).toBeDefined();
+    expect(json.docs.endpoint).toContain("valid-token");
+    expect(json.docs.methods).toHaveLength(3);
   });
 
   it("builds endpoint URL from request origin", async () => {
@@ -536,6 +559,7 @@ describe("GET /api/webhook/[token]", () => {
       id: 1,
       userId: "user-1",
       token: "my-token",
+      rateLimit: 5,
       createdAt: new Date(),
     });
 
@@ -544,6 +568,92 @@ describe("GET /api/webhook/[token]", () => {
     });
     const res = await GET(req, makeParams("my-token"));
     const json = await res.json();
-    expect(json.endpoint).toBe("https://zhe.example.com/api/webhook/my-token");
+    expect(json.docs.endpoint).toBe("https://zhe.example.com/api/webhook/my-token");
+  });
+
+  it("calls getWebhookStats with the webhook user id", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-42",
+      token: "valid-token",
+      rateLimit: 5,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "GET",
+    });
+    await GET(req, makeParams("valid-token"));
+    expect(mockGetWebhookStats).toHaveBeenCalledWith("user-42");
+  });
+
+  it("returns empty stats when user has no links", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      rateLimit: 5,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "GET",
+    });
+    const res = await GET(req, makeParams("valid-token"));
+    const json = await res.json();
+    expect(json.stats.totalLinks).toBe(0);
+    expect(json.stats.totalClicks).toBe(0);
+    expect(json.stats.recentLinks).toHaveLength(0);
+  });
+});
+
+describe("HEAD /api/webhook/[token]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 200 for valid token", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      rateLimit: 5,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "HEAD",
+    });
+    const res = await HEAD(req, makeParams("valid-token"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("");
+  });
+
+  it("returns 404 for invalid token", async () => {
+    mockGetWebhookByToken.mockResolvedValue(null);
+
+    const req = new Request("http://localhost/api/webhook/bad-token", {
+      method: "HEAD",
+    });
+    const res = await HEAD(req, makeParams("bad-token"));
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("");
+  });
+
+  it("does not return a JSON body", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      rateLimit: 5,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://localhost/api/webhook/valid-token", {
+      method: "HEAD",
+    });
+    const res = await HEAD(req, makeParams("valid-token"));
+    const body = await res.text();
+    expect(body).toBe("");
   });
 });

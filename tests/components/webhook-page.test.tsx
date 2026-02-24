@@ -227,7 +227,7 @@ describe('WebhookPage', () => {
       mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
       render(<WebhookPage />);
 
-      expect(screen.getByText('响应格式')).toBeInTheDocument();
+      expect(screen.getByText('POST 响应格式')).toBeInTheDocument();
     });
 
     it('shows rate limit info', () => {

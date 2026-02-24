@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getWebhookByToken, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
+import { getWebhookByToken, getWebhookStats, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
 import {
   validateWebhookPayload,
   checkRateLimit,
@@ -8,10 +8,31 @@ import {
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
 
 /**
+ * HEAD /api/webhook/[token]
+ *
+ * Test connection endpoint. Verifies the token is valid and the webhook is
+ * reachable. Returns 200 with no body on success, 404 if token is invalid.
+ */
+export async function HEAD(
+  _request: Request,
+  context: { params: Promise<{ token: string }> },
+) {
+  const { token } = await context.params;
+
+  const webhook = await getWebhookByToken(token);
+  if (!webhook) {
+    return new Response(null, { status: 404 });
+  }
+
+  return new Response(null, { status: 200 });
+}
+
+/**
  * GET /api/webhook/[token]
  *
- * Self-documentation endpoint. Returns a JSON object describing how to use
- * the webhook API, including parameters, curl examples, and error codes.
+ * Returns webhook status, usage stats, and API documentation.
+ * Includes total link count, total clicks, 5 most recent links,
+ * rate limit config, and full API documentation.
  */
 export async function GET(
   request: Request,
@@ -28,9 +49,25 @@ export async function GET(
   }
 
   const webhookUrl = `${new URL(request.url).origin}/api/webhook/${token}`;
-  const docs = buildWebhookDocumentation(webhookUrl, webhook.rateLimit);
+  const [stats, docs] = await Promise.all([
+    getWebhookStats(webhook.userId),
+    Promise.resolve(buildWebhookDocumentation(webhookUrl, webhook.rateLimit)),
+  ]);
 
-  return NextResponse.json(docs, { status: 200 });
+  return NextResponse.json(
+    {
+      status: "active",
+      createdAt: webhook.createdAt.toISOString(),
+      rateLimit: webhook.rateLimit,
+      stats: {
+        totalLinks: stats.totalLinks,
+        totalClicks: stats.totalClicks,
+        recentLinks: stats.recentLinks,
+      },
+      docs,
+    },
+    { status: 200 },
+  );
 }
 
 /**

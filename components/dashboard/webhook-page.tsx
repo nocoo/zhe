@@ -145,63 +145,92 @@ export function WebhookPage() {
 
 function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateLimit: number }) {
   const docs = buildWebhookDocumentation(webhookUrl, rateLimit);
+  const postMethod = docs.methods.find((m) => m.method === "POST");
 
   return (
     <div className="space-y-4 border-t border-border/50 pt-4">
       <p className="text-xs font-medium text-foreground">使用说明</p>
 
-      {/* Curl example */}
+      {/* Supported methods */}
       <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground">请求示例</p>
-        <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
-          {docs.example.curl}
-        </pre>
-      </div>
-
-      {/* Request parameters */}
-      <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground">请求参数</p>
+        <p className="text-xs text-muted-foreground">支持的方法</p>
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border/50 text-left text-muted-foreground">
-              <th className="pb-1.5 pr-3 font-medium">参数</th>
-              <th className="pb-1.5 pr-3 font-medium">类型</th>
-              <th className="pb-1.5 pr-3 font-medium">必填</th>
+              <th className="pb-1.5 pr-3 font-medium">方法</th>
               <th className="pb-1.5 font-medium">说明</th>
             </tr>
           </thead>
           <tbody>
-            {Object.entries(docs.body).map(([name, param]) => (
-              <tr key={name} className="border-b border-border/30">
-                <td className="py-1.5 pr-3 font-mono">{name}</td>
-                <td className="py-1.5 pr-3 text-muted-foreground">{param.type}</td>
-                <td className="py-1.5 pr-3">{param.required ? "是" : "否"}</td>
-                <td className="py-1.5 text-muted-foreground">{param.description}</td>
+            {docs.methods.map((m) => (
+              <tr key={m.method} className="border-b border-border/30">
+                <td className="py-1.5 pr-3 font-mono">{m.method}</td>
+                <td className="py-1.5 text-muted-foreground">{m.description}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Response format */}
+      {/* Curl examples */}
       <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground">响应格式</p>
+        <p className="text-xs text-muted-foreground">请求示例</p>
         <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
-          {JSON.stringify(
-            Object.fromEntries(
-              Object.entries(docs.response).map(([k, v]) => [k, `(${v.type}) ${v.description}`]),
-            ),
-            null,
-            2,
-          )}
+          {docs.methods
+            .filter((m) => m.example)
+            .map((m) => `# ${m.method}\n${m.example!.curl}`)
+            .join("\n\n")}
         </pre>
       </div>
+
+      {/* POST request parameters */}
+      {postMethod?.body && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">POST 请求参数</p>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border/50 text-left text-muted-foreground">
+                <th className="pb-1.5 pr-3 font-medium">参数</th>
+                <th className="pb-1.5 pr-3 font-medium">类型</th>
+                <th className="pb-1.5 pr-3 font-medium">必填</th>
+                <th className="pb-1.5 font-medium">说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(postMethod.body).map(([name, param]) => (
+                <tr key={name} className="border-b border-border/30">
+                  <td className="py-1.5 pr-3 font-mono">{name}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{param.type}</td>
+                  <td className="py-1.5 pr-3">{param.required ? "是" : "否"}</td>
+                  <td className="py-1.5 text-muted-foreground">{param.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* POST response format */}
+      {postMethod?.response && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">POST 响应格式</p>
+          <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+            {JSON.stringify(
+              Object.fromEntries(
+                Object.entries(postMethod.response).map(([k, v]) => [k, `(${v.type}) ${v.description}`]),
+              ),
+              null,
+              2,
+            )}
+          </pre>
+        </div>
+      )}
 
       {/* Rate limit */}
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">速率限制</p>
         <p className="text-xs text-muted-foreground">
-          每个令牌最多 <strong className="text-foreground">{docs.rateLimit.maxRequests}</strong> 次请求 / 分钟
+          每个令牌最多 <strong className="text-foreground">{docs.rateLimit.maxRequests}</strong> 次请求 / 分钟（仅限 POST）
         </p>
       </div>
 
