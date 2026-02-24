@@ -295,9 +295,9 @@ describe('DashboardShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 4 static = 8
+      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 5 static = 9
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(8);
+      expect(navLinks.length).toBe(9);
     });
 
     it('passes folders to mobile sidebar when open', async () => {

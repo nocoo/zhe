@@ -122,6 +122,8 @@ export const userSettings = sqliteTable('user_settings', {
   previewStyle: text('preview_style').notNull().default('favicon'),
   backyWebhookUrl: text('backy_webhook_url'),
   backyApiKey: text('backy_api_key'),
+  xrayApiUrl: text('xray_api_url'),
+  xrayApiToken: text('xray_api_token'),
 });
 
 // ============================================

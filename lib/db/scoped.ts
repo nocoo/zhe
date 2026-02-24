@@ -105,6 +105,8 @@ function rowToUserSettings(row: Record<string, unknown>): UserSettings {
     previewStyle: row.preview_style as string,
     backyWebhookUrl: (row.backy_webhook_url as string) ?? null,
     backyApiKey: (row.backy_api_key as string) ?? null,
+    xrayApiUrl: (row.xray_api_url as string) ?? null,
+    xrayApiToken: (row.xray_api_token as string) ?? null,
   };
 }
 
@@ -774,6 +776,27 @@ export class ScopedDB {
        ON CONFLICT (user_id) DO UPDATE SET backy_webhook_url = excluded.backy_webhook_url, backy_api_key = excluded.backy_api_key
        RETURNING *`,
       [this.userId, data.webhookUrl, data.apiKey],
+    );
+    return rowToUserSettings(rows[0]);
+  }
+
+  // ---- xray API settings ------------------------------------
+
+  /** Get xray API config (URL + token) for this user, or null if not configured. */
+  async getXraySettings(): Promise<{ apiUrl: string; apiToken: string } | null> {
+    const settings = await this.getUserSettings();
+    if (!settings?.xrayApiUrl || !settings?.xrayApiToken) return null;
+    return { apiUrl: settings.xrayApiUrl, apiToken: settings.xrayApiToken };
+  }
+
+  /** Save xray API config (URL and token). Creates user_settings row if needed. */
+  async upsertXraySettings(data: { apiUrl: string; apiToken: string }): Promise<UserSettings> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO user_settings (user_id, preview_style, xray_api_url, xray_api_token)
+       VALUES (?, 'favicon', ?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET xray_api_url = excluded.xray_api_url, xray_api_token = excluded.xray_api_token
+       RETURNING *`,
+      [this.userId, data.apiUrl, data.apiToken],
     );
     return rowToUserSettings(rows[0]);
   }
