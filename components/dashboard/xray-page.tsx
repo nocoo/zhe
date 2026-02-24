@@ -25,6 +25,7 @@ import {
   Quote,
   CheckCircle,
   BadgeCheck,
+  ExternalLink,
 } from "lucide-react";
 
 export function XrayPage() {
@@ -262,23 +263,42 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
             <div className="rounded-lg border bg-background p-4 space-y-3">
               {/* Author row */}
               <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={vm.tweetResult.data.author.profile_image_url}
-                  alt={vm.tweetResult.data.author.name}
-                  className="h-10 w-10 rounded-full"
-                />
+                <a
+                  href={`https://x.com/${vm.tweetResult.data.author.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={vm.tweetResult.data.author.profile_image_url}
+                    alt={vm.tweetResult.data.author.name}
+                    className="h-10 w-10 rounded-full transition-opacity hover:opacity-80"
+                  />
+                </a>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold truncate">
+                    <a
+                      href={`https://x.com/${vm.tweetResult.data.author.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold truncate hover:underline"
+                    >
                       {vm.tweetResult.data.author.name}
-                    </span>
+                    </a>
                     {vm.tweetResult.data.author.is_verified && (
                       <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" />
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>@{vm.tweetResult.data.author.username}</span>
+                    <a
+                      href={`https://x.com/${vm.tweetResult.data.author.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      @{vm.tweetResult.data.author.username}
+                    </a>
                     <span>·</span>
                     <span>
                       {formatCount(vm.tweetResult.data.author.followers_count)}{" "}
@@ -376,6 +396,21 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
                   value={vm.tweetResult.data.metrics.bookmark_count}
                   label="收藏"
                 />
+              </div>
+
+              {/* View original tweet */}
+              <Separator />
+              <div>
+                <a
+                  href={vm.tweetResult.data.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm" className="text-xs">
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                    查看原帖
+                  </Button>
+                </a>
               </div>
             </div>
 
