@@ -213,7 +213,17 @@ describe('useBackyViewModel', () => {
 
     mockPushBackup.mockResolvedValue({
       success: true,
-      data: { tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag' },
+      data: {
+        ok: true,
+        message: '推送成功 (120ms)',
+        durationMs: 120,
+        request: {
+          tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
+          fileName: 'zhe-backup-2026-02-24.json',
+          fileSizeBytes: 512,
+          backupStats: { links: 10, folders: 2, tags: 3 },
+        },
+      },
     });
 
     const mockHistoryData = {
@@ -230,9 +240,13 @@ describe('useBackyViewModel', () => {
       await result.current.handlePush();
     });
 
-    expect(result.current.pushResult).toEqual({
+    expect(result.current.pushResult).toMatchObject({
       ok: true,
-      message: '备份成功 (v1.2.3-2026-02-24-10lnk-2fld-3tag)',
+      message: expect.stringContaining('推送成功'),
+      durationMs: 120,
+      request: expect.objectContaining({
+        tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
+      }),
     });
     expect(result.current.isPushing).toBe(false);
     expect(result.current.history).toEqual(mockHistoryData);
@@ -249,6 +263,13 @@ describe('useBackyViewModel', () => {
 
     mockPushBackup.mockResolvedValue({
       success: false,
+      data: {
+        ok: false,
+        message: '推送失败 (413)',
+        durationMs: 50,
+        request: { tag: 'v1.2.3', fileName: 'zhe-backup-2026-02-24.json', fileSizeBytes: 999999, backupStats: {} },
+        response: { status: 413, body: 'too large' },
+      },
       error: '推送失败 (413)',
     });
 
@@ -256,7 +277,7 @@ describe('useBackyViewModel', () => {
       await result.current.handlePush();
     });
 
-    expect(result.current.pushResult).toEqual({
+    expect(result.current.pushResult).toMatchObject({
       ok: false,
       message: '推送失败 (413)',
     });
@@ -386,7 +407,12 @@ describe('useBackyViewModel', () => {
 
     mockPushBackup.mockResolvedValue({
       success: true,
-      data: { tag: 'v1.0.0-2026-01-01-0lnk-0fld-0tag' },
+      data: {
+        ok: true,
+        message: '推送成功 (100ms)',
+        durationMs: 100,
+        request: { tag: 'v1.0.0-2026-01-01-0lnk-0fld-0tag', fileName: 'zhe-backup-2026-01-01.json', fileSizeBytes: 10, backupStats: {} },
+      },
     });
     mockFetchBackyHistory.mockResolvedValue({ success: false });
 

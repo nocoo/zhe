@@ -8,7 +8,8 @@ import {
   pushBackup,
   fetchBackyHistory,
 } from "@/actions/backy";
-import type { BackyHistoryResponse } from "@/models/backy";
+import type { BackyHistoryResponse, BackyPushDetail } from "@/models/backy";
+import { getBackyEnvironment } from "@/models/backy";
 
 /** Return type of useBackyViewModel — can be used as a prop type */
 export type BackyViewModel = ReturnType<typeof useBackyViewModel>;
@@ -34,7 +35,7 @@ export function useBackyViewModel() {
 
   // Result states
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [pushResult, setPushResult] = useState<BackyPushDetail | null>(null);
   const [history, setHistory] = useState<BackyHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,12 +97,14 @@ export function useBackyViewModel() {
     setPushResult(null);
     try {
       const result = await pushBackup();
-      setPushResult({
-        ok: result.success,
-        message: result.success
-          ? `备份成功 (${result.data?.tag ?? ""})`
-          : (result.error ?? "推送失败"),
-      });
+      if (result.data) {
+        setPushResult(result.data);
+      } else {
+        setPushResult({
+          ok: false,
+          message: result.error ?? "推送失败",
+        });
+      }
       // Refresh history after successful push
       if (result.success) {
         const historyResult = await fetchBackyHistory();
@@ -144,6 +147,9 @@ export function useBackyViewModel() {
   const clearTestResult = useCallback(() => setTestResult(null), []);
   const clearPushResult = useCallback(() => setPushResult(null), []);
 
+  // Environment
+  const environment = getBackyEnvironment();
+
   return {
     // Config
     webhookUrl,
@@ -153,6 +159,7 @@ export function useBackyViewModel() {
     maskedApiKey,
     isConfigured,
     isEditing,
+    environment,
 
     // Loading
     isLoading,

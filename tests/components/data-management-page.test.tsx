@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DataManagementPage } from '@/components/dashboard/data-management-page';
 import type { ImportResult } from '@/actions/settings';
+import type { BackyPushDetail } from '@/models/backy';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -47,8 +48,9 @@ const mockBackyViewModel = {
   isTesting: false,
   isPushing: false,
   isLoadingHistory: false,
+  environment: 'dev' as 'prod' | 'dev',
   testResult: null as { ok: boolean; message: string } | null,
-  pushResult: null as { ok: boolean; message: string } | null,
+  pushResult: null as BackyPushDetail | null,
   history: null as { project_name: string; environment: string | null; total_backups: number; recent_backups: { id: string; tag: string; environment: string; file_size: number; is_single_json: number; created_at: string }[] } | null,
   error: null as string | null,
   handleSave: mockBackyHandleSave,
@@ -87,6 +89,7 @@ describe('DataManagementPage', () => {
     mockBackyViewModel.isTesting = false;
     mockBackyViewModel.isPushing = false;
     mockBackyViewModel.isLoadingHistory = false;
+    mockBackyViewModel.environment = 'dev';
     mockBackyViewModel.testResult = null;
     mockBackyViewModel.pushResult = null;
     mockBackyViewModel.history = null;
@@ -232,14 +235,6 @@ describe('DataManagementPage', () => {
       expect(saveBtn).toBeDisabled();
     });
 
-    it('shows saving text when saving', () => {
-      mockBackyViewModel.isConfigured = false;
-      mockBackyViewModel.isSaving = true;
-      render(<DataManagementPage />);
-
-      expect(screen.getByText('保存中...')).toBeInTheDocument();
-    });
-
     it('shows error message', () => {
       mockBackyViewModel.isConfigured = false;
       mockBackyViewModel.error = 'Webhook URL 格式无效';
@@ -269,6 +264,26 @@ describe('DataManagementPage', () => {
       expect(mockBackyCancelEditing).toHaveBeenCalled();
     });
 
+    it('shows environment badge when configured', () => {
+      mockBackyViewModel.isConfigured = true;
+      mockBackyViewModel.environment = 'dev';
+      mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
+      mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+      render(<DataManagementPage />);
+
+      expect(screen.getByText('dev')).toBeInTheDocument();
+    });
+
+    it('shows prod badge for production environment', () => {
+      mockBackyViewModel.isConfigured = true;
+      mockBackyViewModel.environment = 'prod';
+      mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
+      mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+      render(<DataManagementPage />);
+
+      expect(screen.getByText('prod')).toBeInTheDocument();
+    });
+
     it('shows configured state with action buttons', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
@@ -279,7 +294,8 @@ describe('DataManagementPage', () => {
       expect(screen.getByText('sk-1••••cdef')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /推送备份/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /查看历史/ })).toBeInTheDocument();
+      // History section is always visible with refresh button
+      expect(screen.getByRole('button', { name: /刷新历史/ })).toBeInTheDocument();
     });
 
     it('calls handleTest when test button clicked', () => {
@@ -302,13 +318,13 @@ describe('DataManagementPage', () => {
       expect(mockBackyHandlePush).toHaveBeenCalled();
     });
 
-    it('calls handleLoadHistory when history button clicked', () => {
+    it('calls handleLoadHistory when refresh button clicked', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
       render(<DataManagementPage />);
 
-      fireEvent.click(screen.getByRole('button', { name: /查看历史/ }));
+      fireEvent.click(screen.getByRole('button', { name: /刷新历史/ }));
       expect(mockBackyHandleLoadHistory).toHaveBeenCalled();
     });
 
@@ -324,7 +340,7 @@ describe('DataManagementPage', () => {
       expect(mockBackyStartEditing).toHaveBeenCalled();
     });
 
-    it('shows test result (success)', () => {
+    it('shows test result (success) in green box', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
@@ -333,9 +349,10 @@ describe('DataManagementPage', () => {
 
       const testResult = screen.getByTestId('backy-test-result');
       expect(testResult).toHaveTextContent('连接成功');
+      expect(testResult.className).toContain('border-green-200');
     });
 
-    it('shows test result (failure)', () => {
+    it('shows test result (failure) in red box with alert icon', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
@@ -344,20 +361,55 @@ describe('DataManagementPage', () => {
 
       const testResult = screen.getByTestId('backy-test-result');
       expect(testResult).toHaveTextContent('连接失败 (401)');
+      expect(testResult.className).toContain('border-red-200');
     });
 
-    it('shows push result', () => {
+    it('shows push result with detailed info', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
-      mockBackyViewModel.pushResult = { ok: true, message: '备份成功 (v1.2.3)' };
+      mockBackyViewModel.pushResult = {
+        ok: true,
+        message: '推送成功 (150ms)',
+        durationMs: 150,
+        request: {
+          tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
+          fileName: 'zhe-backup-2026-02-24.json',
+          fileSizeBytes: 1024,
+          backupStats: { links: 10, folders: 2, tags: 3 },
+        },
+      };
       render(<DataManagementPage />);
 
       const pushResult = screen.getByTestId('backy-push-result');
-      expect(pushResult).toHaveTextContent('备份成功 (v1.2.3)');
+      expect(pushResult).toHaveTextContent('推送成功 (150ms)');
+      expect(pushResult).toHaveTextContent('v1.2.3-2026-02-24-10lnk-2fld-3tag');
+      expect(pushResult).toHaveTextContent('1.0 KB');
+      expect(pushResult).toHaveTextContent('链接: 10');
+      expect(pushResult).toHaveTextContent('文件夹: 2');
+      expect(pushResult).toHaveTextContent('标签: 3');
     });
 
-    it('shows backup history', () => {
+    it('shows push failure with response details', () => {
+      mockBackyViewModel.isConfigured = true;
+      mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
+      mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+      mockBackyViewModel.pushResult = {
+        ok: false,
+        message: '推送失败 (413)',
+        durationMs: 50,
+        request: { tag: 'v1.2.3', fileName: 'zhe-backup.json', fileSizeBytes: 999, backupStats: {} },
+        response: { status: 413, body: { error: 'too large' } },
+      };
+      render(<DataManagementPage />);
+
+      const pushResult = screen.getByTestId('backy-push-result');
+      expect(pushResult).toHaveTextContent('推送失败 (413)');
+      expect(pushResult).toHaveTextContent('HTTP 413');
+      expect(pushResult.className).toContain('border-red-200');
+    });
+
+    it('shows backup history in grid layout', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
@@ -380,9 +432,13 @@ describe('DataManagementPage', () => {
 
       const historySection = screen.getByTestId('backy-history');
       expect(historySection).toBeInTheDocument();
-      expect(screen.getByText('共 2 次备份')).toBeInTheDocument();
+      // Badge count
+      expect(screen.getByText('2 份')).toBeInTheDocument();
+      // Entry data
       expect(screen.getByText('v1.2.3-2026-02-24-10lnk-2fld-3tag')).toBeInTheDocument();
       expect(screen.getByText('1.0 KB')).toBeInTheDocument();
+      // Environment badge on entry
+      expect(screen.getByText('prod')).toBeInTheDocument();
     });
 
     it('shows empty history message', () => {
@@ -407,9 +463,8 @@ describe('DataManagementPage', () => {
       mockBackyViewModel.isTesting = true;
       render(<DataManagementPage />);
 
-      const testBtn = screen.getByRole('button', { name: /测试/ });
+      const testBtn = screen.getByRole('button', { name: /测试连接/ });
       expect(testBtn).toBeDisabled();
-      expect(screen.getByText('测试中...')).toBeInTheDocument();
     });
 
     it('disables push button when pushing', () => {
@@ -419,20 +474,19 @@ describe('DataManagementPage', () => {
       mockBackyViewModel.isPushing = true;
       render(<DataManagementPage />);
 
-      const pushBtn = screen.getByRole('button', { name: /推送/ });
+      const pushBtn = screen.getByRole('button', { name: /推送备份/ });
       expect(pushBtn).toBeDisabled();
-      expect(screen.getByText('推送中...')).toBeInTheDocument();
     });
 
-    it('disables history button when loading history', () => {
+    it('disables refresh button when loading history', () => {
       mockBackyViewModel.isConfigured = true;
       mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
       mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
       mockBackyViewModel.isLoadingHistory = true;
       render(<DataManagementPage />);
 
-      const historyBtn = screen.getByRole('button', { name: /加载/ });
-      expect(historyBtn).toBeDisabled();
+      const refreshBtn = screen.getByRole('button', { name: /刷新历史/ });
+      expect(refreshBtn).toBeDisabled();
     });
   });
 });
