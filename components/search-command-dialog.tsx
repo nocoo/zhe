@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { buildShortUrl, stripProtocol, filterLinks } from "@/models/links";
+import { getTagColorClassesByName } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
 export interface SearchCommandDialogProps {
@@ -117,18 +118,18 @@ export function SearchCommandDialog({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {linkTags?.slice(0, 2).map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${tag.color}20`,
-                          color: tag.color,
-                        }}
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
+                    {linkTags?.slice(0, 2).map((tag) => {
+                      const colors = getTagColorClassesByName(tag.name);
+                      return (
+                        <span
+                          key={tag.id}
+                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
+                        >
+                          <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
+                          {tag.name}
+                        </span>
+                      );
+                    })}
                     {folderName && (
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <FolderOpen className="h-3 w-3" />

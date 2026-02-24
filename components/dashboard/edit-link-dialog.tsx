@@ -25,7 +25,7 @@ import {
   CommandEmpty,
   CommandGroup,
 } from "@/components/ui/command";
-import { getTagColorClasses } from "@/models/tags";
+import { getTagColorClassesByName } from "@/models/tags";
 import type { Tag, Folder } from "@/models/types";
 
 interface EditLinkDialogProps {
@@ -202,7 +202,7 @@ export function EditLinkDialog({
             {/* Assigned tags */}
             <div className="flex flex-wrap gap-1.5">
               {assignedTags.map((tag) => {
-                const colors = getTagColorClasses(tag.color);
+                const colors = getTagColorClassesByName(tag.name);
                 return (
                   <span
                     key={tag.id}
@@ -256,7 +256,7 @@ export function EditLinkDialog({
                               .includes(tagSearch.toLowerCase()),
                           )
                           .map((tag) => {
-                            const colors = getTagColorClasses(tag.color);
+                            const colors = getTagColorClassesByName(tag.name);
                             return (
                               <CommandItem
                                 key={tag.id}

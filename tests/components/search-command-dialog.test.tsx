@@ -38,6 +38,13 @@ vi.mock("@/contexts/dashboard-service", () => ({
   useDashboardService: () => mockService,
 }));
 
+vi.mock("@/models/tags", () => ({
+  getTagColorClassesByName: (name: string) => ({
+    badge: `mock-badge-${name}`,
+    dot: `mock-dot-${name}`,
+  }),
+}));
+
 import { SearchCommandDialog } from "@/components/search-command-dialog";
 
 // ── Helpers ──
@@ -545,16 +552,16 @@ describe("SearchCommandDialog", () => {
       expect(screen.getByText("Solo")).toBeInTheDocument();
     });
 
-    it("renders tag badges with correct inline styles", () => {
+    it("renders tag badges with Tailwind color classes from name", () => {
       mockService.links = [makeLink({ id: 1, slug: "styled" })];
       mockService.tags = [
-        { id: "t1", userId: "user-1", name: "Styled", color: "#ff5733", createdAt: new Date() },
+        { id: "t1", userId: "user-1", name: "Styled", color: "blue", createdAt: new Date() },
       ];
       mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
 
       const badge = screen.getByText("Styled");
-      expect(badge).toHaveStyle({ backgroundColor: "#ff573320", color: "#ff5733" });
+      expect(badge.className).toContain("mock-badge-Styled");
     });
   });
 });

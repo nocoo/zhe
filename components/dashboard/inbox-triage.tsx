@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/command";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
-import { getTagColorClasses } from "@/models/tags";
+import { getTagColorClassesByName } from "@/models/tags";
 import { copyToClipboard } from "@/lib/utils";
 import { deleteLink } from "@/actions/links";
 import type { Link, Tag } from "@/models/types";
@@ -280,7 +280,7 @@ function InboxItem({
       {/* Tags row */}
       <div className="flex flex-wrap items-center gap-1.5">
         {assignedTags.map((tag) => {
-          const colors = getTagColorClasses(tag.color);
+          const colors = getTagColorClassesByName(tag.name);
           return (
             <span
               key={tag.id}
@@ -329,7 +329,7 @@ function InboxItem({
                       t.name.toLowerCase().includes(tagSearch.toLowerCase()),
                     )
                     .map((tag) => {
-                      const colors = getTagColorClasses(tag.color);
+                      const colors = getTagColorClassesByName(tag.name);
                       return (
                         <CommandItem
                           key={tag.id}

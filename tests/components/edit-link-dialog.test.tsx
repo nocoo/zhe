@@ -5,9 +5,9 @@ import { EditLinkDialog } from "@/components/dashboard/edit-link-dialog";
 import type { Tag, Folder } from "@/models/types";
 
 vi.mock("@/models/tags", () => ({
-  getTagColorClasses: (color: string) => ({
-    badge: `mock-badge-${color}`,
-    dot: `mock-dot-${color}`,
+  getTagColorClassesByName: (name: string) => ({
+    badge: `mock-badge-${name}`,
+    dot: `mock-dot-${name}`,
   }),
 }));
 

@@ -55,9 +55,9 @@ vi.mock("@/models/links", () => ({
 }));
 
 vi.mock("@/models/tags", () => ({
-  getTagColorClasses: (color: string) => ({
-    badge: `mock-badge-${color}`,
-    dot: `mock-dot-${color}`,
+  getTagColorClassesByName: (name: string) => ({
+    badge: `mock-badge-${name}`,
+    dot: `mock-dot-${name}`,
   }),
 }));
 

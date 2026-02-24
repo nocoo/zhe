@@ -40,7 +40,7 @@ import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { extractHostname } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
-import { getTagColorClasses } from "@/models/tags";
+import { getTagColorClassesByName } from "@/models/tags";
 import type { Link, Tag, LinkTag } from "@/models/types";
 import type { ScreenshotSource } from "@/models/links";
 
@@ -295,7 +295,7 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           {cardTags.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
               {cardTags.map((tag) => {
-                const colors = getTagColorClasses(tag.color);
+                const colors = getTagColorClassesByName(tag.name);
                 return (
                   <span
                     key={tag.id}
@@ -451,6 +451,18 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 过期: {formatDate(link.expiresAt)}
               </span>
             )}
+            {cardTags.map((tag) => {
+              const colors = getTagColorClassesByName(tag.name);
+              return (
+                <span
+                  key={tag.id}
+                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium ${colors.badge}`}
+                >
+                  <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
+                  {tag.name}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -542,24 +554,6 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           </AlertDialog>
         </div>
       </div>
-
-      {/* Tag badges */}
-      {cardTags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border">
-          {cardTags.map((tag) => {
-            const colors = getTagColorClasses(tag.color);
-            return (
-              <span
-                key={tag.id}
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colors.badge}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-                {tag.name}
-              </span>
-            );
-          })}
-        </div>
-      )}
 
       {/* Analytics panel */}
       {showAnalytics && analyticsStats && (
