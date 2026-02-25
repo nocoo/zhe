@@ -126,6 +126,20 @@ export const userSettings = sqliteTable('user_settings', {
   xrayApiToken: text('xray_api_token'),
 });
 
+export const tweetCache = sqliteTable('tweet_cache', {
+  tweetId: text('tweet_id').primaryKey(),
+  authorUsername: text('author_username').notNull(),
+  authorName: text('author_name').notNull(),
+  authorAvatar: text('author_avatar').notNull(),
+  tweetText: text('tweet_text').notNull(),
+  tweetUrl: text('tweet_url').notNull(),
+  lang: text('lang'),
+  tweetCreatedAt: text('tweet_created_at').notNull(),
+  rawData: text('raw_data').notNull(),
+  fetchedAt: integer('fetched_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
 // ============================================
 // Type exports
 // ============================================
@@ -156,3 +170,6 @@ export type NewLinkTag = typeof linkTags.$inferInsert;
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type NewUserSettings = typeof userSettings.$inferInsert;
+
+export type TweetCache = typeof tweetCache.$inferSelect;
+export type NewTweetCache = typeof tweetCache.$inferInsert;
