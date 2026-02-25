@@ -141,6 +141,30 @@ export class ScopedDB {
     return rows[0] ? rowToLink(rows[0]) : null;
   }
 
+  /**
+   * Get multiple links by IDs, only if owned by this user.
+   * Automatically chunks into batches to stay within D1's parameter limit.
+   */
+  async getLinksByIds(ids: number[]): Promise<Link[]> {
+    if (ids.length === 0) return [];
+
+    // D1 has a ~100 parameter limit per query; chunk to stay safe.
+    const CHUNK_SIZE = 90;
+    const results: Link[] = [];
+
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+      const chunk = ids.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = await executeD1Query<Record<string, unknown>>(
+        `SELECT * FROM links WHERE id IN (${placeholders}) AND user_id = ?`,
+        [...chunk, this.userId],
+      );
+      results.push(...rows.map(rowToLink));
+    }
+
+    return results;
+  }
+
   /** Create a new link owned by this user. */
   async createLink(
     data: Omit<NewLink, 'id' | 'createdAt' | 'userId'>,

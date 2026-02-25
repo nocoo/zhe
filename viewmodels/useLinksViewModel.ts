@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
-import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
+import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata, batchRefreshLinkMetadata } from "@/actions/links";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
 import { isGitHubRepoUrl, GITHUB_REPO_PREVIEW_URL } from "@/models/links";
@@ -12,6 +12,7 @@ import { buildFaviconUrl } from "@/models/settings";
 import { fetchAndSaveScreenshot } from "@/actions/links";
 import { useLinkMutations } from "@/viewmodels/useLinkMutations";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
+import { useRef } from "react";
 
 /** ViewModel for a single link card — manages copy, delete, analytics, metadata & screenshot */
 export function useLinkCardViewModel(
@@ -41,24 +42,6 @@ export function useLinkCardViewModel(
   }, [link.screenshotUrl]);
 
   const shortUrl = buildShortUrl(siteUrl, link.slug);
-
-  // Auto-fetch text metadata (title/description/favicon) if all missing.
-  // Skip if user already wrote a note — they have their own description intent.
-  const hasMetadata = !!(link.metaTitle || link.metaDescription || link.metaFavicon);
-  const skipAutoFetch = hasMetadata || !!link.note;
-  useEffect(() => {
-    if (skipAutoFetch) return;
-    let cancelled = false;
-    setIsRefreshingMetadata(true);
-    refreshLinkMetadata(link.id).then((result) => {
-      if (cancelled) return;
-      if (result.success && result.data) {
-        onUpdate(result.data);
-      }
-      setIsRefreshingMetadata(false);
-    });
-    return () => { cancelled = true; };
-  }, [link.id, skipAutoFetch, onUpdate]);
 
   // Display logic: GitHub repo pages use a fixed preview image;
   // otherwise show screenshotUrl from DB, else favicon.
@@ -189,6 +172,59 @@ export function useLinkCardViewModel(
     faviconError,
     handleFaviconError,
   };
+}
+
+/** Determine whether a link needs auto-fetched metadata. */
+function linkNeedsMetadata(link: Link): boolean {
+  const hasMetadata = !!(link.metaTitle || link.metaDescription || link.metaFavicon);
+  return !hasMetadata && !link.note;
+}
+
+/**
+ * Hook that batch-refreshes metadata for all links that need it.
+ *
+ * Replaces the per-card `useEffect` that caused N+1 server action calls.
+ * Should be called once at the list level (e.g. in `LinksList`).
+ *
+ * @param links      - The current list of links.
+ * @param onUpdate   - Callback to update individual links in parent state.
+ */
+export function useAutoRefreshMetadata(
+  links: Link[],
+  onUpdate: (link: Link) => void,
+) {
+  // Track which batch we've already kicked off to avoid re-triggering
+  const processedRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    // Collect links that need metadata and haven't been processed yet
+    const needsRefresh = links.filter(
+      (link) => linkNeedsMetadata(link) && !processedRef.current.has(link.id),
+    );
+
+    if (needsRefresh.length === 0) return;
+
+    // Mark as processed immediately to prevent duplicate calls
+    const ids = needsRefresh.map((l) => l.id);
+    for (const id of ids) {
+      processedRef.current.add(id);
+    }
+
+    let cancelled = false;
+
+    batchRefreshLinkMetadata(ids).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data) {
+        for (const updatedLink of result.data) {
+          onUpdate(updatedLink);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [links, onUpdate]);
 }
 
 /** ViewModel for the create-link modal */

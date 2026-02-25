@@ -281,6 +281,74 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
 }
 
 /**
+ * Batch-refresh metadata for multiple links in a single server action call.
+ *
+ * Replaces the N+1 pattern where each LinkCard independently calls
+ * `refreshLinkMetadata` on mount. Instead, the parent collects all link IDs
+ * that need metadata and calls this once.
+ *
+ * - 1x auth call (vs N)
+ * - 1x batch DB fetch (vs N individual getLinkById)
+ * - Concurrent enrichment with a concurrency limit to avoid overwhelming
+ *   external sites
+ * - 1x batch DB re-fetch for updated links
+ */
+export async function batchRefreshLinkMetadata(
+  linkIds: number[],
+): Promise<ActionResult<Link[]>> {
+  if (linkIds.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  try {
+    const ctx = await getAuthContext();
+    if (!ctx) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    const { db, userId } = ctx;
+
+    // Batch fetch all links
+    const links = await db.getLinksByIds(linkIds);
+    if (links.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Enrich each link using the strategy registry with concurrency limit
+    const { refreshLinkEnrichment } = await import('@/actions/enrichment');
+    const CONCURRENCY = 5;
+    const queue = [...links];
+    const settled: number[] = []; // IDs that were processed (success or fail)
+
+    async function processNext(): Promise<void> {
+      while (queue.length > 0) {
+        const link = queue.shift()!;
+        try {
+          await refreshLinkEnrichment(link.originalUrl, link.id, userId);
+        } catch {
+          // Metadata is best-effort — log but continue
+          console.error('Batch enrichment failed for link', link.id);
+        }
+        settled.push(link.id);
+      }
+    }
+
+    // Launch workers up to concurrency limit
+    const workers = Array.from(
+      { length: Math.min(CONCURRENCY, links.length) },
+      () => processNext(),
+    );
+    await Promise.all(workers);
+
+    // Re-fetch all processed links to get updated metadata
+    const updatedLinks = await db.getLinksByIds(settled);
+    return { success: true, data: updatedLinks };
+  } catch (error) {
+    console.error('Failed to batch refresh metadata:', error);
+    return { success: false, error: 'Failed to batch refresh metadata' };
+  }
+}
+
+/**
  * Fetch a screenshot from the given source entirely on the server, upload it
  * to R2, and persist the permanent URL in the DB.
  *

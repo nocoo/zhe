@@ -10,6 +10,7 @@ import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
+import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
 import type { Link } from "@/models/types";
 
 type ViewMode = "list" | "grid";
@@ -81,6 +82,9 @@ export function LinksList() {
   const handleEdit = useCallback((link: Link) => {
     openDialog(link);
   }, [openDialog]);
+
+  // Batch-refresh metadata for links missing it (replaces per-card N+1 auto-fetch)
+  useAutoRefreshMetadata(links, handleLinkUpdated);
 
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
   const [isRefreshing, setIsRefreshing] = useState(false);

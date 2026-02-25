@@ -20,6 +20,7 @@ vi.mock('@/actions/links', () => ({
   updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
   refreshLinkMetadata: vi.fn(),
+  batchRefreshLinkMetadata: vi.fn(),
   fetchAndSaveScreenshot: vi.fn(),
 }));
 
@@ -53,9 +54,10 @@ vi.mock('@/hooks/use-mobile', () => ({
 import {
   useLinkCardViewModel,
   useCreateLinkViewModel,
+  useAutoRefreshMetadata,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
+import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, batchRefreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -105,9 +107,8 @@ describe('useLinkCardViewModel', () => {
     vi.mocked(deleteLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
     vi.mocked(refreshLinkMetadata).mockReset();
+    vi.mocked(batchRefreshLinkMetadata).mockReset();
     vi.mocked(fetchAndSaveScreenshot).mockReset();
-    // Default: auto-fetch metadata resolves with no-op (link has no metadata)
-    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: link });
   });
 
   afterEach(() => {
@@ -321,73 +322,18 @@ describe('useLinkCardViewModel', () => {
 
   // --- handleRefreshMetadata ---
 
-  it('auto-fetches metadata when all metadata fields are null', async () => {
+  it('does NOT auto-fetch metadata (auto-fetch moved to useAutoRefreshMetadata)', async () => {
     const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updatedLink = { ...noMetaLink, metaTitle: 'Fetched Title', metaFavicon: 'https://example.com/icon.png' };
-    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: updatedLink });
 
     renderHook(() =>
       useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    // Flush the auto-fetch useEffect
     await act(async () => {});
 
-    expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
-    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-  });
-
-  it('does not auto-fetch metadata when metaTitle is present', async () => {
-    vi.mocked(refreshLinkMetadata).mockClear();
-
-    renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {});
-
+    // useLinkCardViewModel no longer calls refreshLinkMetadata on mount
     expect(refreshLinkMetadata).not.toHaveBeenCalled();
-  });
-
-  it('does not auto-fetch metadata when only metaFavicon is present', async () => {
-    vi.mocked(refreshLinkMetadata).mockClear();
-    const faviconOnlyLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: 'https://example.com/icon.png' });
-
-    renderHook(() =>
-      useLinkCardViewModel(faviconOnlyLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {});
-
-    expect(refreshLinkMetadata).not.toHaveBeenCalled();
-  });
-
-  it('does not auto-fetch metadata when link has a user note', async () => {
-    vi.mocked(refreshLinkMetadata).mockClear();
-    const noteLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null, note: 'My personal note' });
-
-    renderHook(() =>
-      useLinkCardViewModel(noteLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {});
-
-    expect(refreshLinkMetadata).not.toHaveBeenCalled();
-  });
-
-  it('auto-fetch metadata handles failure gracefully', async () => {
-    const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
-    vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false, error: 'Failed' });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    await act(async () => {});
-
-    expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
-    expect(mockOnUpdate).not.toHaveBeenCalled();
-    expect(result.current.isRefreshingMetadata).toBe(false);
+    expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
   it('handleRefreshMetadata calls refreshLinkMetadata and onUpdate on success', async () => {
@@ -627,6 +573,136 @@ describe('useLinkCardViewModel', () => {
 
     // Screenshot fetch is now a server action — it should NOT be called on mount
     expect(fetchAndSaveScreenshot).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useAutoRefreshMetadata
+// ---------------------------------------------------------------------------
+
+describe('useAutoRefreshMetadata', () => {
+  const mockOnUpdate = vi.fn();
+
+  beforeEach(() => {
+    mockOnUpdate.mockClear();
+    vi.mocked(batchRefreshLinkMetadata).mockReset();
+  });
+
+  it('calls batchRefreshLinkMetadata for links missing metadata', async () => {
+    const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const link2 = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated1 = { ...link1, metaTitle: 'Title 1' };
+    const updated2 = { ...link2, metaTitle: 'Title 2' };
+
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+      success: true,
+      data: [updated1, updated2],
+    });
+
+    renderHook(() => useAutoRefreshMetadata([link1, link2], mockOnUpdate));
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([1, 2]);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updated1);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updated2);
+  });
+
+  it('skips links that already have metadata', async () => {
+    const withMeta = makeLink({ id: 1, metaTitle: 'Has Title' });
+    const withoutMeta = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated2 = { ...withoutMeta, metaTitle: 'Fetched' };
+
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+      success: true,
+      data: [updated2],
+    });
+
+    renderHook(() => useAutoRefreshMetadata([withMeta, withoutMeta], mockOnUpdate));
+
+    await act(async () => {});
+
+    // Only link 2 should be in the batch
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([2]);
+  });
+
+  it('skips links that have a user note', async () => {
+    const withNote = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null, note: 'My note' });
+    const withoutMeta = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated2 = { ...withoutMeta, metaTitle: 'Fetched' };
+
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+      success: true,
+      data: [updated2],
+    });
+
+    renderHook(() => useAutoRefreshMetadata([withNote, withoutMeta], mockOnUpdate));
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([2]);
+  });
+
+  it('does nothing when all links have metadata', async () => {
+    const link1 = makeLink({ id: 1, metaTitle: 'Title' });
+    const link2 = makeLink({ id: 2, metaFavicon: 'https://example.com/icon.png' });
+
+    renderHook(() => useAutoRefreshMetadata([link1, link2], mockOnUpdate));
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for empty links array', async () => {
+    renderHook(() => useAutoRefreshMetadata([], mockOnUpdate));
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
+  it('does not re-process already-processed links on re-render', async () => {
+    const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated1 = { ...link1, metaTitle: 'Title 1' };
+
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+      success: true,
+      data: [updated1],
+    });
+
+    const { rerender } = renderHook(
+      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
+      { initialProps: { links: [link1] } },
+    );
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledTimes(1);
+
+    // Re-render with the same links — should NOT call again
+    vi.mocked(batchRefreshLinkMetadata).mockClear();
+    rerender({ links: [link1] });
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
+  });
+
+  it('handles batch failure gracefully without calling onUpdate', async () => {
+    const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
+
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+      success: false,
+      error: 'Batch failed',
+    });
+
+    renderHook(() => useAutoRefreshMetadata([link1], mockOnUpdate));
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([1]);
+    expect(mockOnUpdate).not.toHaveBeenCalled();
   });
 });
 

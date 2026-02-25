@@ -31,6 +31,7 @@ const mockUpdateLink = vi.fn();
 const mockGetAnalyticsStats = vi.fn();
 const mockUpdateLinkMetadata = vi.fn();
 const mockGetLinkById = vi.fn();
+const mockGetLinksByIds = vi.fn();
 const mockUpdateLinkScreenshot = vi.fn();
 const mockUpdateLinkNote = vi.fn();
 
@@ -43,6 +44,7 @@ vi.mock('@/lib/db/scoped', () => ({
     getAnalyticsStats: mockGetAnalyticsStats,
     updateLinkMetadata: mockUpdateLinkMetadata,
     getLinkById: mockGetLinkById,
+    getLinksByIds: mockGetLinksByIds,
     updateLinkScreenshot: mockUpdateLinkScreenshot,
     updateLinkNote: mockUpdateLinkNote,
   })),
@@ -83,6 +85,7 @@ import {
   updateLink,
   getAnalyticsStats,
   refreshLinkMetadata,
+  batchRefreshLinkMetadata,
   updateLinkNote,
   saveScreenshot,
 } from '@/actions/links';
@@ -667,6 +670,92 @@ describe('actions/links — uncovered paths', () => {
       expect(result).toEqual({
         success: false,
         error: 'Failed to refresh metadata',
+      });
+    });
+  });
+
+  // ====================================================================
+  // batchRefreshLinkMetadata
+  // ====================================================================
+  describe('batchRefreshLinkMetadata', () => {
+    it('returns empty array for empty input', async () => {
+      const result = await batchRefreshLinkMetadata([]);
+
+      expect(result).toEqual({ success: true, data: [] });
+      // Should not even call auth
+      expect(mockAuth).not.toHaveBeenCalled();
+    });
+
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await batchRefreshLinkMetadata([1, 2]);
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns empty array when no links found', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinksByIds.mockResolvedValue([]);
+
+      const result = await batchRefreshLinkMetadata([999, 1000]);
+
+      expect(result).toEqual({ success: true, data: [] });
+    });
+
+    it('enriches multiple links and returns updated versions', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const link1 = { ...FAKE_LINK, id: 1 };
+      const link2 = { ...FAKE_LINK, id: 2 };
+      const updated1 = { ...link1, metaTitle: 'Title 1' };
+      const updated2 = { ...link2, metaTitle: 'Title 2' };
+
+      // First call: batch fetch originals; second call: batch re-fetch updated
+      mockGetLinksByIds
+        .mockResolvedValueOnce([link1, link2])
+        .mockResolvedValueOnce([updated1, updated2]);
+      mockRefreshLinkEnrichment.mockResolvedValue({ success: true });
+
+      const result = await batchRefreshLinkMetadata([1, 2]);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([updated1, updated2]);
+      expect(mockRefreshLinkEnrichment).toHaveBeenCalledTimes(2);
+      expect(mockRefreshLinkEnrichment).toHaveBeenCalledWith('https://example.com', 1, FAKE_USER_ID);
+      expect(mockRefreshLinkEnrichment).toHaveBeenCalledWith('https://example.com', 2, FAKE_USER_ID);
+    });
+
+    it('continues when individual enrichment fails', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const link1 = { ...FAKE_LINK, id: 1 };
+      const link2 = { ...FAKE_LINK, id: 2 };
+      const updated2 = { ...link2, metaTitle: 'Title 2' };
+
+      mockGetLinksByIds
+        .mockResolvedValueOnce([link1, link2])
+        .mockResolvedValueOnce([link1, updated2]);
+
+      // First enrichment throws, second succeeds
+      mockRefreshLinkEnrichment
+        .mockRejectedValueOnce(new Error('network timeout'))
+        .mockResolvedValueOnce({ success: true });
+
+      const result = await batchRefreshLinkMetadata([1, 2]);
+
+      // Should still succeed overall — enrichment is best-effort
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([link1, updated2]);
+    });
+
+    it('returns error when batch fetch throws', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinksByIds.mockRejectedValue(new Error('DB error'));
+
+      const result = await batchRefreshLinkMetadata([1, 2]);
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to batch refresh metadata',
       });
     });
   });
