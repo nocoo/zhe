@@ -1,6 +1,6 @@
 # 08 - Dashboard Performance Optimization
 
-> Status: **In Progress**
+> Status: **Complete**
 > Created: 2026-02-26
 > Last Updated: 2026-02-26
 
@@ -17,9 +17,9 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 | 3 | Reduce unnecessary context subscriptions | **Done** | -3 (re-renders) |
 | 4 | SSR prefetch in `page.tsx` via server data functions | **Done** | -1 (page-level) |
 | 5 | Backy page: inline history on push, skip refresh on failure | **Done** | -1 |
-| 6 | Links N+1: batch `refreshLinkMetadata` | Pending | -(N-1) |
-| 7 | Add Suspense boundaries | Pending | 0 |
-| 8 | Minor fixes (Storage, Data Management, Overview) | Pending | varies |
+| 6 | Links N+1: batch `refreshLinkMetadata` | **Done** | -(N-1) |
+| 7 | Add Suspense boundaries | **Done** | 0 (UX) |
+| 8 | Minor fixes (Storage, Overview) | **Done** | -1 |
 
 ## Detailed Phases
 
@@ -167,38 +167,57 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 
 ### Phase 6: Links N+1 Batch
 
-**Problem:** Each LinkCard fires `refreshLinkMetadata(linkId)` independently in useEffect. 50 missing = 50 server actions.
+**Problem:** Each LinkCard fires `refreshLinkMetadata(linkId)` independently in useEffect. 50 missing = 50 server actions (50 auth calls + 150 D1 queries + 50 HTTP fetches).
 
 **Changes:**
-- Create `batchRefreshLinkMetadata(linkIds[])` server action with D1 parameter chunking
-- Viewmodel collects IDs missing metadata, fires single batch call
+- Add `ScopedDB.getLinksByIds()` with automatic chunking (90 IDs per query) to `lib/db/scoped.ts`
+- Create `batchRefreshLinkMetadata(linkIds[])` server action in `actions/links.ts`: 1x auth, batch fetch, concurrent enrichment (limit 5), batch re-fetch
+- Remove per-card auto-refresh `useEffect` from `useLinkCardViewModel` (lines 49-61)
+- Create `useAutoRefreshMetadata(links, onUpdate)` hook: collects links needing metadata, calls batch action once, tracks processed IDs via ref to prevent re-triggers
+- Integrate batch hook in `links-list.tsx` at list level
+- Manual single-link refresh (`handleRefreshMetadata`) preserved unchanged
 
 **Files Modified:**
-- `actions/enrichment.ts`
-- `viewmodels/useLinksViewModel.ts`
+- `lib/db/scoped.ts` (added `getLinksByIds`)
+- `actions/links.ts` (added `batchRefreshLinkMetadata`)
+- `viewmodels/useLinksViewModel.ts` (removed per-card auto-fetch, added `useAutoRefreshMetadata`)
+- `components/dashboard/links-list.tsx` (integrated batch hook)
+- `tests/unit/actions.test.ts` (added 6 batch action tests)
+- `tests/unit/viewmodels.test.ts` (replaced 5 old auto-fetch tests with 1 + added 7 `useAutoRefreshMetadata` tests)
 
-**Status:** Pending
+**Status:** Done (commit `5e594df`)
 
 ---
 
 ### Phase 7: Suspense Boundaries
 
-**Changes:**
-- Add `<Suspense>` wrappers for data-dependent sections
-- Add `loading.tsx` for key routes
+**Problem:** Navigating between async dashboard pages shows the previous page lingering until the new page's SSR data finishes loading. No visual feedback during transition.
 
-**Status:** Pending
+**Changes:**
+- Add `app/(dashboard)/dashboard/loading.tsx` — shared loading skeleton for all dashboard sub-pages
+- Provides a generic card grid skeleton that matches the content panel structure
+- Each page component retains its own internal skeleton for client-side loading states
+- `DashboardServiceProvider` persists in parent `DashboardShell`, unaffected by Suspense boundaries around children
+
+**Files Created:**
+- `app/(dashboard)/dashboard/loading.tsx`
+
+**Status:** Done (commit `12e6559`)
 
 ---
 
 ### Phase 8: Minor Fixes
 
 **Changes:**
-- Storage: `handleCleanup` reuses cleanup result, avoids re-scan
-- Data Management: `importLinks()` uses batch insert with conflict handling
-- Overview: remove redundant stats object field-by-field copy
+- **8a - Storage cleanup optimization**: After `cleanupOrphanFiles()` succeeds, locally remove deleted keys from state and recompute summary via `computeSummary()`. Eliminates a full re-scan (1 auth + 6 D1 COUNT queries + R2 listObjects).
+- **8b - Data Management batch import**: Cancelled. The sequential insert-or-skip pattern is correct for D1 (no multi-statement batch support via HTTP API, and each insert needs individual UNIQUE constraint detection).
+- **8c - Overview stats copy simplification**: Replace field-by-field stats copy with direct `setStats(result.data)`.
 
-**Status:** Pending
+**Files Modified:**
+- `components/dashboard/storage-page.tsx` (local state update after cleanup, import `computeSummary`)
+- `viewmodels/useOverviewViewModel.ts` (direct assignment)
+
+**Status:** Done (commit `09b5582`)
 
 ---
 
