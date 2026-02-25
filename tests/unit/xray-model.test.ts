@@ -6,13 +6,14 @@ import {
   validateXrayConfig,
   maskToken,
   buildTweetApiUrl,
+  buildBookmarksApiUrl,
   formatCount,
   formatTweetDate,
   MOCK_TWEET_RESPONSE,
   XRAY_PRESETS,
   XRAY_DEFAULT_URL,
 } from '@/models/xray';
-import type { XrayTweetData } from '@/models/xray';
+import type { XrayTweetData, XrayBookmarksResponse } from '@/models/xray';
 
 describe('xray model', () => {
   // ==================================================================
@@ -300,6 +301,70 @@ describe('xray model', () => {
       expect(buildTweetApiUrl('https://xray.hexly.ai///', '123456789')).toBe(
         'https://xray.hexly.ai/api/twitter/tweets/123456789',
       );
+    });
+  });
+
+  // ==================================================================
+  // buildBookmarksApiUrl
+  // ==================================================================
+  describe('buildBookmarksApiUrl', () => {
+    it('builds correct bookmarks URL', () => {
+      expect(buildBookmarksApiUrl('https://xray.hexly.ai')).toBe(
+        'https://xray.hexly.ai/api/twitter/me/bookmarks',
+      );
+    });
+
+    it('strips trailing slash from base URL', () => {
+      expect(buildBookmarksApiUrl('https://xray.hexly.ai/')).toBe(
+        'https://xray.hexly.ai/api/twitter/me/bookmarks',
+      );
+    });
+
+    it('strips multiple trailing slashes', () => {
+      expect(buildBookmarksApiUrl('https://xray.hexly.ai///')).toBe(
+        'https://xray.hexly.ai/api/twitter/me/bookmarks',
+      );
+    });
+  });
+
+  // ==================================================================
+  // XrayBookmarksResponse type
+  // ==================================================================
+  describe('XrayBookmarksResponse type', () => {
+    it('accepts valid bookmarks response shape', () => {
+      const response: XrayBookmarksResponse = {
+        success: true,
+        data: [
+          {
+            id: '123',
+            text: 'test tweet',
+            author: {
+              id: '1',
+              username: 'user',
+              name: 'User',
+              profile_image_url: 'https://example.com/avatar.jpg',
+              followers_count: 100,
+              is_verified: false,
+            },
+            created_at: '2026-01-01T00:00:00.000Z',
+            url: 'https://x.com/user/status/123',
+            metrics: { retweet_count: 0, like_count: 0, reply_count: 0, quote_count: 0, view_count: 0, bookmark_count: 0 },
+            is_retweet: false,
+            is_quote: false,
+            is_reply: false,
+            lang: 'en',
+            entities: { hashtags: [], mentioned_users: [], urls: [] },
+          },
+        ],
+      };
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+      expect(response.data[0].id).toBe('123');
+    });
+
+    it('accepts empty data array', () => {
+      const response: XrayBookmarksResponse = { success: true, data: [] };
+      expect(response.data).toHaveLength(0);
     });
   });
 

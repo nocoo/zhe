@@ -9,9 +9,11 @@ import {
   extractTweetId,
   extractTweetImageUrl,
   buildTweetApiUrl,
+  buildBookmarksApiUrl,
   MOCK_TWEET_RESPONSE,
   type XrayTweetResponse,
   type XrayTweetData,
+  type XrayBookmarksResponse,
 } from '@/models/xray';
 
 // ---------------------------------------------------------------------------
@@ -149,6 +151,45 @@ export async function fetchTweet(tweetUrl: string): Promise<{
   } catch (error) {
     console.error('Failed to fetch tweet:', error);
     return { success: false, error: '获取推文失败' };
+  }
+}
+
+/** Fetch the authenticated user's bookmarks via the xray API. */
+export async function fetchBookmarks(): Promise<{
+  success: boolean;
+  data?: XrayBookmarksResponse;
+  error?: string;
+}> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    const config = await db.getXraySettings();
+    if (!config) {
+      return { success: false, error: '请先配置 xray API' };
+    }
+
+    const apiUrl = buildBookmarksApiUrl(config.apiUrl);
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'X-Webhook-Key': config.apiToken,
+      },
+    });
+
+    if (!res.ok) {
+      return {
+        success: false,
+        error: `API 请求失败 (${res.status})`,
+      };
+    }
+
+    const data: XrayBookmarksResponse = await res.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to fetch bookmarks:', error);
+    return { success: false, error: '获取书签失败' };
   }
 }
 

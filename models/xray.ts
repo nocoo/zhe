@@ -76,10 +76,16 @@ export interface XrayTweetData {
   reply_to_id?: string;
 }
 
-/** Full API response envelope */
+/** Full API response envelope (single tweet) */
 export interface XrayTweetResponse {
   success: boolean;
   data: XrayTweetData;
+}
+
+/** API response envelope for bookmarks (array of tweets) */
+export interface XrayBookmarksResponse {
+  success: boolean;
+  data: XrayTweetData[];
 }
 
 // ---------------------------------------------------------------------------
@@ -197,6 +203,15 @@ export function maskToken(token: string): string {
 export function buildTweetApiUrl(baseUrl: string, tweetId: string): string {
   const base = baseUrl.replace(/\/+$/, '');
   return `${base}/api/twitter/tweets/${tweetId}`;
+}
+
+/**
+ * Build the full API endpoint URL for fetching the authenticated user's bookmarks.
+ * @param baseUrl  The xray API base URL (e.g. "https://xray.hexly.ai")
+ */
+export function buildBookmarksApiUrl(baseUrl: string): string {
+  const base = baseUrl.replace(/\/+$/, '');
+  return `${base}/api/twitter/me/bookmarks`;
 }
 
 // ---------------------------------------------------------------------------

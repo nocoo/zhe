@@ -41,7 +41,7 @@ vi.mock('@/actions/links', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-import { fetchAndCacheTweet, forceRefreshTweetCache } from '@/actions/xray';
+import { fetchAndCacheTweet, forceRefreshTweetCache, fetchBookmarks } from '@/actions/xray';
 import type { XrayTweetData } from '@/models/xray';
 
 // ---------------------------------------------------------------------------
@@ -434,5 +434,96 @@ describe('forceRefreshTweetCache', () => {
     );
 
     expect(mockSaveScreenshot).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchBookmarks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockAuth.mockResolvedValue(null);
+    const result = await fetchBookmarks();
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('returns error when API is not configured', async () => {
+    mockGetXraySettings.mockResolvedValue(null);
+    const result = await fetchBookmarks();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('配置');
+  });
+
+  it('calls correct bookmarks endpoint with auth header', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [SAMPLE_TWEET_DATA] }),
+    });
+
+    await fetchBookmarks();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://xray.hexly.ai/api/twitter/me/bookmarks',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'X-Webhook-Key': 'test-token-123',
+          'accept': 'application/json',
+        }),
+      }),
+    );
+  });
+
+  it('returns bookmarks data on success', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    const bookmarksResponse = { success: true, data: [SAMPLE_TWEET_DATA] };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(bookmarksResponse),
+    });
+
+    const result = await fetchBookmarks();
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(bookmarksResponse);
+    expect(result.data!.data).toHaveLength(1);
+    expect(result.data!.data[0].id).toBe('2026360908398862478');
+  });
+
+  it('returns error when API request fails', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue({ ok: false, status: 403 });
+
+    const result = await fetchBookmarks();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('403');
+  });
+
+  it('returns error on network failure', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const result = await fetchBookmarks();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('书签');
+  });
+
+  it('handles empty bookmarks list', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [] }),
+    });
+
+    const result = await fetchBookmarks();
+
+    expect(result.success).toBe(true);
+    expect(result.data!.data).toHaveLength(0);
   });
 });

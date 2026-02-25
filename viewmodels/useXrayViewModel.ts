@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getXrayConfig, saveXrayConfig, fetchTweet } from "@/actions/xray";
+import { getXrayConfig, saveXrayConfig, fetchTweet, fetchBookmarks } from "@/actions/xray";
+import { createLink } from "@/actions/links";
 import {
   extractTweetId,
   XRAY_PRESETS,
   XRAY_DEFAULT_URL,
   type XrayTweetResponse,
+  type XrayTweetData,
 } from "@/models/xray";
 
 /** URL selection mode: a preset label or 'custom' for manual input */
@@ -53,6 +55,17 @@ export function useXrayViewModel() {
   // ── Error state ───────────────────────────────────────────────
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // ── Bookmarks state ──────────────────────────────────────────
+  const [bookmarks, setBookmarks] = useState<XrayTweetData[]>([]);
+  const [isFetchingBookmarks, setIsFetchingBookmarks] = useState(false);
+  const [bookmarksError, setBookmarksError] = useState<string | null>(null);
+  const [addingBookmarkIds, setAddingBookmarkIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [addedBookmarkIds, setAddedBookmarkIds] = useState<Set<string>>(
+    new Set()
+  );
 
   // ── Load config on mount ──────────────────────────────────────
   useEffect(() => {
@@ -155,6 +168,40 @@ export function useXrayViewModel() {
     setShowRawJson((prev) => !prev);
   }, []);
 
+  // ── Bookmarks actions ────────────────────────────────────────
+  const handleFetchBookmarks = useCallback(async () => {
+    setIsFetchingBookmarks(true);
+    setBookmarksError(null);
+    try {
+      const result = await fetchBookmarks();
+      if (!result.success) {
+        setBookmarksError(result.error ?? "获取书签失败");
+        return;
+      }
+      if (result.data) {
+        setBookmarks(result.data.data);
+      }
+    } finally {
+      setIsFetchingBookmarks(false);
+    }
+  }, []);
+
+  const handleAddBookmark = useCallback(async (tweetUrl: string, tweetId: string) => {
+    setAddingBookmarkIds((prev) => new Set(prev).add(tweetId));
+    try {
+      const result = await createLink({ originalUrl: tweetUrl });
+      if (result.success) {
+        setAddedBookmarkIds((prev) => new Set(prev).add(tweetId));
+      }
+    } finally {
+      setAddingBookmarkIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tweetId);
+        return next;
+      });
+    }
+  }, []);
+
   return {
     // Config
     apiUrl,
@@ -184,6 +231,13 @@ export function useXrayViewModel() {
     error,
     fetchError,
 
+    // Bookmarks
+    bookmarks,
+    isFetchingBookmarks,
+    bookmarksError,
+    addingBookmarkIds,
+    addedBookmarkIds,
+
     // Actions
     handleSave,
     startEditing,
@@ -191,5 +245,7 @@ export function useXrayViewModel() {
     handleFetchTweet,
     clearResult,
     toggleRawJson,
+    handleFetchBookmarks,
+    handleAddBookmark,
   };
 }
