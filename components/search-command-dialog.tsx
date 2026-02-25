@@ -138,7 +138,7 @@ export function SearchCommandDialog({
         {/* When input is empty, show a hint instead of empty state */}
         {!hasQuery ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Search className="h-8 w-8 mb-3 text-muted-foreground/40" />
+            <Search className="h-6 w-6 mb-3 text-muted-foreground/40" />
             <p className="text-sm">输入关键词搜索链接</p>
             <p className="text-xs text-muted-foreground/60 mt-1">
               支持搜索短链、URL、标题、描述、备注、标签
@@ -158,7 +158,7 @@ export function SearchCommandDialog({
                   <CommandItem
                     key={link.id}
                     value={link.slug}
-                    className="flex items-start gap-3 py-2.5"
+                    className="flex items-start gap-2.5 py-2"
                     onSelect={() => handleOpenOriginalUrl(link.originalUrl)}
                   >
                     {/* Favicon */}
@@ -167,32 +167,30 @@ export function SearchCommandDialog({
                         <Image
                           src={link.metaFavicon}
                           alt=""
-                          width={16}
-                          height={16}
-                          className="w-4 h-4 rounded-sm"
+                          width={14}
+                          height={14}
+                          className="w-3.5 h-3.5 rounded-[3px]"
                           unoptimized
                         />
                       ) : (
-                        <div className="w-4 h-4 rounded-sm bg-accent flex items-center justify-center">
-                          <Link2 className="w-3 h-3 text-muted-foreground/60" strokeWidth={2} />
+                        <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
+                          <Link2 className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
                         </div>
                       )}
                     </div>
 
                     {/* Content */}
                     <div className="min-w-0 flex-1">
-                      {/* Title row */}
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium">
-                          <HighlightText
-                            segments={highlightMatches(titleText, trimmedQuery)}
-                          />
-                        </p>
-                      </div>
+                      {/* Title */}
+                      <p className="truncate text-sm font-medium leading-tight">
+                        <HighlightText
+                          segments={highlightMatches(titleText, trimmedQuery)}
+                        />
+                      </p>
 
                       {/* Description (if available) */}
                       {link.metaDescription && (
-                        <p className="truncate text-xs text-muted-foreground/70 mt-0.5">
+                        <p className="truncate text-xs text-muted-foreground/70 mt-0.5 leading-tight">
                           <HighlightText
                             segments={highlightMatches(
                               link.metaDescription,
@@ -204,17 +202,17 @@ export function SearchCommandDialog({
 
                       {/* Note (if available) */}
                       {link.note && (
-                        <p className="truncate text-xs text-muted-foreground/60 mt-0.5 italic">
+                        <p className="truncate text-xs text-muted-foreground/60 mt-0.5 italic leading-tight">
                           <HighlightText
                             segments={highlightMatches(link.note, trimmedQuery)}
                           />
                         </p>
                       )}
 
-                      {/* Slug row with copy button */}
-                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
+                      {/* Meta row: slug + copy, folder, tags — all in one line */}
+                      <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
                         <span className="flex items-center gap-0.5 shrink-0">
-                          <Link2 className="h-3 w-3" strokeWidth={1.5} />
+                          <Link2 className="h-2.5 w-2.5" strokeWidth={1.5} />
                           <HighlightText
                             segments={highlightMatches(
                               link.slug,
@@ -225,7 +223,7 @@ export function SearchCommandDialog({
                         <button
                           type="button"
                           aria-label={`Copy ${buildShortUrl(siteUrl, link.slug)}`}
-                          className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          className="shrink-0 rounded-sm p-px text-muted-foreground/50 hover:text-foreground transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyShortUrl(link.slug);
@@ -237,14 +235,12 @@ export function SearchCommandDialog({
                             }
                           }}
                         >
-                          <Copy className="h-3 w-3" />
+                          <Copy className="h-2.5 w-2.5" />
                         </button>
-                      </div>
 
-                      {/* Folder and tags row */}
-                      {(folderName || (linkTagList && linkTagList.length > 0)) && (
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          {folderName && link.folderId && (
+                        {folderName && link.folderId && (
+                          <>
+                            <span className="text-border">·</span>
                             <button
                               type="button"
                               className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -259,35 +255,37 @@ export function SearchCommandDialog({
                                 }
                               }}
                             >
-                              <FolderOpen className="h-3 w-3" />
+                              <FolderOpen className="h-2.5 w-2.5" />
                               {folderName}
                             </button>
-                          )}
-                          {linkTagList && linkTagList.length > 0 && (
-                            <>
-                              {linkTagList.slice(0, 3).map((tag) => {
-                                const colors = getTagColorClassesByName(tag.name);
-                                return (
+                          </>
+                        )}
+
+                        {linkTagList && linkTagList.length > 0 && (
+                          <>
+                            <span className="text-border">·</span>
+                            {linkTagList.slice(0, 3).map((tag) => {
+                              const colors = getTagColorClassesByName(tag.name);
+                              return (
+                                <span
+                                  key={tag.id}
+                                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium leading-normal ${colors.badge}`}
+                                >
                                   <span
-                                    key={tag.id}
-                                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
-                                  >
-                                    <span
-                                      className={`h-1 w-1 rounded-full ${colors.dot}`}
-                                    />
-                                    {tag.name}
-                                  </span>
-                                );
-                              })}
-                              {linkTagList.length > 3 && (
-                                <span className="text-[10px] text-muted-foreground">
-                                  +{linkTagList.length - 3}
+                                    className={`h-1 w-1 rounded-full ${colors.dot}`}
+                                  />
+                                  {tag.name}
                                 </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
+                              );
+                            })}
+                            {linkTagList.length > 3 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{linkTagList.length - 3}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </CommandItem>
                 );
