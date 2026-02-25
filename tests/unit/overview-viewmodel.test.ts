@@ -88,6 +88,35 @@ describe('useOverviewViewModel', () => {
     expect(result.current.stats).toBeNull();
   });
 
+  // ==================================================================
+  // SSR prefetch (initialData)
+  // ==================================================================
+
+  it('skips fetch and uses initialData when provided', () => {
+    const prefetched: Parameters<typeof useOverviewViewModel>[0] = {
+      totalLinks: 42,
+      totalClicks: 999,
+      totalUploads: 10,
+      totalStorageBytes: 2048,
+      clickTrend: [],
+      uploadTrend: [],
+      topLinks: [],
+      deviceBreakdown: {},
+      browserBreakdown: {},
+      osBreakdown: {},
+      fileTypeBreakdown: {},
+    };
+
+    const { result } = renderHook(() => useOverviewViewModel(prefetched));
+
+    // Loading should be false immediately
+    expect(result.current.loading).toBe(false);
+    expect(result.current.stats).toEqual(prefetched);
+    expect(result.current.error).toBeNull();
+    // Server action should NOT be called
+    expect(getOverviewStats).not.toHaveBeenCalled();
+  });
+
   it('passes pre-aggregated trend data through to stats', async () => {
     const mockStats = {
       totalLinks: 1,

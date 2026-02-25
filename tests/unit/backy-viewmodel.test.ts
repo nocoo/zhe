@@ -35,6 +35,52 @@ describe('useBackyViewModel', () => {
   });
 
   // ==================================================================
+  // SSR prefetch (initialData)
+  // ==================================================================
+
+  it('skips fetch and uses initialData when provided', () => {
+    const prefetched = {
+      webhookUrl: 'https://backy.example.com/webhook',
+      maskedApiKey: 'sk-1••••cdef',
+      history: {
+        project_name: 'zhe',
+        environment: null,
+        total_backups: 2,
+        recent_backups: [
+          { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+        ],
+      },
+    };
+
+    const { result } = renderHook(() => useBackyViewModel(prefetched));
+
+    // Loading should be false immediately
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isConfigured).toBe(true);
+    expect(result.current.webhookUrl).toBe('https://backy.example.com/webhook');
+    expect(result.current.maskedApiKey).toBe('sk-1••••cdef');
+    expect(result.current.history).toEqual(prefetched.history);
+    expect(result.current.error).toBeNull();
+    // Server actions should NOT be called
+    expect(mockGetBackyConfig).not.toHaveBeenCalled();
+    expect(mockFetchBackyHistory).not.toHaveBeenCalled();
+  });
+
+  it('skips fetch when initialData provided without history', () => {
+    const prefetched = {
+      webhookUrl: 'https://backy.example.com/webhook',
+      maskedApiKey: 'sk-1••••cdef',
+    };
+
+    const { result } = renderHook(() => useBackyViewModel(prefetched));
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isConfigured).toBe(true);
+    expect(result.current.history).toBeNull();
+    expect(mockGetBackyConfig).not.toHaveBeenCalled();
+  });
+
+  // ==================================================================
   // Initial state
   // ==================================================================
   it('returns initial loading state', () => {

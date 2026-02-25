@@ -20,9 +20,9 @@ const AUTO_CONVERT_PNG_KEY = "autoConvertPng";
 const JPEG_QUALITY_KEY = "jpegQuality";
 
 /** ViewModel for the uploads list page — fetches data client-side on mount */
-export function useUploadsViewModel() {
-  const [uploads, setUploads] = useState<Upload[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useUploadsViewModel(initialUploads?: Upload[]) {
+  const [uploads, setUploads] = useState<Upload[]>(initialUploads ?? []);
+  const [loading, setLoading] = useState(!initialUploads);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [autoConvertPng, setAutoConvertPngState] = useState(() => {
@@ -65,6 +65,8 @@ export function useUploadsViewModel() {
   }, []);
 
   useEffect(() => {
+    if (initialUploads) return;
+
     let cancelled = false;
     async function fetchData() {
       const result = await fetchUploads();
@@ -76,7 +78,7 @@ export function useUploadsViewModel() {
     }
     fetchData();
     return () => { cancelled = true; };
-  }, []);
+  }, [initialUploads]);
 
   /**
    * Upload a single file via presigned URL flow:

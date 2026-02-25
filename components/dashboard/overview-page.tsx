@@ -297,8 +297,8 @@ function TopLinksList({ links }: { links: TopLinkEntry[] }) {
 
 // ── Overview Page ────────────────────────────────────────────────────────────
 
-export function OverviewPage() {
-  const { loading, error, stats } = useOverviewViewModel();
+export function OverviewPage({ initialData }: { initialData?: import('@/models/overview').OverviewStats }) {
+  const { loading, error, stats } = useOverviewViewModel(initialData);
 
   if (loading) {
     return (

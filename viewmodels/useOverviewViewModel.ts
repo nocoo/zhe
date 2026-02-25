@@ -10,14 +10,16 @@ export interface OverviewViewModelState {
 
 /**
  * ViewModel for the overview / dashboard page.
- * Fetches pre-aggregated stats on mount.
+ * When `initialData` is provided (SSR prefetch), skips the client-side fetch.
  */
-export function useOverviewViewModel(): OverviewViewModelState {
-  const [loading, setLoading] = useState(true);
+export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewModelState {
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<OverviewStats | null>(null);
+  const [stats, setStats] = useState<OverviewStats | null>(initialData ?? null);
 
   useEffect(() => {
+    if (initialData) return;
+
     let cancelled = false;
 
     async function load() {
@@ -63,7 +65,7 @@ export function useOverviewViewModel(): OverviewViewModelState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData]);
 
   return { loading, error, stats };
 }

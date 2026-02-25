@@ -44,7 +44,7 @@ function UploadListSkeleton() {
   );
 }
 
-export function UploadList() {
+export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/db/schema').Upload[] }) {
   const {
     uploads,
     loading,
@@ -58,7 +58,7 @@ export function UploadList() {
     handleFiles,
     handleDelete,
     dismissUploadingFile,
-  } = useUploadsViewModel();
+  } = useUploadsViewModel(initialUploads);
 
   if (loading) {
     return <UploadListSkeleton />;

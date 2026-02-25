@@ -9,24 +9,34 @@ import {
 } from "@/actions/webhook";
 import { RATE_LIMIT_DEFAULT_MAX } from "@/models/webhook";
 
+/** Initial data from SSR prefetch */
+export interface WebhookInitialData {
+  token: string;
+  createdAt: string;
+  rateLimit?: number;
+}
+
 /** Return type of useWebhookViewModel — can be used as a prop type */
 export type WebhookViewModel = ReturnType<typeof useWebhookViewModel>;
 
 /**
  * Webhook viewmodel — manages webhook token state and lifecycle actions.
+ * When `initialData` is provided (SSR prefetch), skips the client-side fetch.
  */
-export function useWebhookViewModel() {
+export function useWebhookViewModel(initialData?: WebhookInitialData) {
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
-  const [token, setToken] = useState<string | null>(null);
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
-  const [rateLimit, setRateLimit] = useState<number>(RATE_LIMIT_DEFAULT_MAX);
-  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(initialData?.token ?? null);
+  const [createdAt, setCreatedAt] = useState<string | null>(initialData ? String(initialData.createdAt) : null);
+  const [rateLimit, setRateLimit] = useState<number>(initialData?.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
 
   // Load token on mount
   useEffect(() => {
+    if (initialData) return;
+
     let cancelled = false;
     (async () => {
       const result = await getWebhookToken();
@@ -42,7 +52,7 @@ export function useWebhookViewModel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);

@@ -26,20 +26,27 @@ function deriveUrlMode(url: string): UrlMode {
   return preset ? preset.label : "custom";
 }
 
+/** Initial data from SSR prefetch */
+export interface XrayInitialData {
+  apiUrl: string;
+  maskedToken: string;
+}
+
 /**
  * xray viewmodel — manages API config, tweet fetching, and result display.
+ * When `initialData` is provided (SSR prefetch), skips the client-side config fetch.
  */
-export function useXrayViewModel() {
+export function useXrayViewModel(initialData?: XrayInitialData) {
   // ── Config state ──────────────────────────────────────────────
-  const [apiUrl, setApiUrl] = useState<string>(XRAY_DEFAULT_URL);
-  const [urlMode, setUrlMode] = useState<UrlMode>("Production");
+  const [apiUrl, setApiUrl] = useState<string>(initialData?.apiUrl ?? XRAY_DEFAULT_URL);
+  const [urlMode, setUrlMode] = useState<UrlMode>(initialData ? deriveUrlMode(initialData.apiUrl) : "Production");
   const [apiToken, setApiToken] = useState("");
-  const [maskedToken, setMaskedToken] = useState<string | null>(null);
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [maskedToken, setMaskedToken] = useState<string | null>(initialData?.maskedToken ?? null);
+  const [isConfigured, setIsConfigured] = useState(!!initialData);
   const [isEditing, setIsEditing] = useState(false);
 
   // ── Loading states ────────────────────────────────────────────
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
@@ -69,6 +76,8 @@ export function useXrayViewModel() {
 
   // ── Load config on mount ──────────────────────────────────────
   useEffect(() => {
+    if (initialData) return;
+
     let cancelled = false;
     (async () => {
       const result = await getXrayConfig();
@@ -84,7 +93,7 @@ export function useXrayViewModel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData]);
 
   // ── Live tweet ID extraction ──────────────────────────────────
   useEffect(() => {

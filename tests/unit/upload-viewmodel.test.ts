@@ -99,6 +99,18 @@ describe('useUploadsViewModel', () => {
     vi.unstubAllGlobals();
   });
 
+  it('skips fetch and uses initialUploads when provided', () => {
+    const prefetched = [makeUpload({ id: 10 }), makeUpload({ id: 20 })];
+
+    const { result } = renderHook(() => useUploadsViewModel(prefetched));
+
+    // Loading should be false immediately
+    expect(result.current.loading).toBe(false);
+    expect(result.current.uploads).toEqual(prefetched);
+    // Server action should NOT be called
+    expect(mockFetchUploads).not.toHaveBeenCalled();
+  });
+
   it('returns loading=true initially, then loads data', async () => {
     const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
     mockFetchUploads.mockResolvedValue({ success: true, data: uploads });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useBackyViewModel } from "@/viewmodels/useBackyViewModel";
+import { useBackyViewModel, type BackyInitialData } from "@/viewmodels/useBackyViewModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,8 +28,8 @@ const STAT_LABELS: Record<string, string> = {
   linkTags: "关联",
 };
 
-export function BackyPage() {
-  const vm = useBackyViewModel();
+export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
+  const vm = useBackyViewModel(initialData);
 
   return (
     <div className="space-y-6">

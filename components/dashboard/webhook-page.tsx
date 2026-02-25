@@ -1,13 +1,13 @@
 "use client";
 
-import { useWebhookViewModel } from "@/viewmodels/useWebhookViewModel";
+import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
 import { buildWebhookDocumentation, RATE_LIMIT_ABSOLUTE_MAX } from "@/models/webhook";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Webhook, Copy } from "lucide-react";
 
-export function WebhookPage() {
+export function WebhookPage({ initialData }: { initialData?: WebhookInitialData }) {
   const {
     token,
     isLoading: webhookLoading,
@@ -19,7 +19,7 @@ export function WebhookPage() {
     handleGenerate,
     handleRevoke,
     handleRateLimitChange,
-  } = useWebhookViewModel();
+  } = useWebhookViewModel(initialData);
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);

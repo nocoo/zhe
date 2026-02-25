@@ -11,23 +11,31 @@ import {
 import type { BackyHistoryResponse, BackyPushDetail } from "@/models/backy";
 import { getBackyEnvironment } from "@/models/backy";
 
+/** Initial data from SSR prefetch */
+export interface BackyInitialData {
+  webhookUrl: string;
+  maskedApiKey: string;
+  history?: BackyHistoryResponse;
+}
+
 /** Return type of useBackyViewModel — can be used as a prop type */
 export type BackyViewModel = ReturnType<typeof useBackyViewModel>;
 
 /**
  * Backy viewmodel — manages remote backup config, connection testing,
  * backup push, and history retrieval.
+ * When `initialData` is provided (SSR prefetch), skips the client-side config+history fetch.
  */
-export function useBackyViewModel() {
+export function useBackyViewModel(initialData?: BackyInitialData) {
   // Config state
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState(initialData?.webhookUrl ?? "");
   const [apiKey, setApiKey] = useState("");
-  const [maskedApiKey, setMaskedApiKey] = useState<string | null>(null);
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [maskedApiKey, setMaskedApiKey] = useState<string | null>(initialData?.maskedApiKey ?? null);
+  const [isConfigured, setIsConfigured] = useState(!!initialData);
   const [isEditing, setIsEditing] = useState(false);
 
   // Loading states
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -36,11 +44,13 @@ export function useBackyViewModel() {
   // Result states
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [pushResult, setPushResult] = useState<BackyPushDetail | null>(null);
-  const [history, setHistory] = useState<BackyHistoryResponse | null>(null);
+  const [history, setHistory] = useState<BackyHistoryResponse | null>(initialData?.history ?? null);
   const [error, setError] = useState<string | null>(null);
 
   // Load config (and history if configured) on mount
   useEffect(() => {
+    if (initialData) return;
+
     let cancelled = false;
     (async () => {
       const result = await getBackyConfig();
@@ -61,7 +71,7 @@ export function useBackyViewModel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialData]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);

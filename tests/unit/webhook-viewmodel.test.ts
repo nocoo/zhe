@@ -31,6 +31,41 @@ describe('useWebhookViewModel', () => {
   });
 
   // ====================================================================
+  // SSR prefetch (initialData)
+  // ====================================================================
+
+  it('skips fetch and uses initialData when provided', () => {
+    const prefetched = {
+      token: 'prefetched-token',
+      createdAt: '2026-01-15T00:00:00.000Z',
+      rateLimit: 8,
+    };
+
+    const { result } = renderHook(() => useWebhookViewModel(prefetched));
+
+    // Loading should be false immediately
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.token).toBe('prefetched-token');
+    expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
+    expect(result.current.rateLimit).toBe(8);
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/prefetched-token');
+    // Server action should NOT be called
+    expect(mockGetWebhookToken).not.toHaveBeenCalled();
+  });
+
+  it('uses default rateLimit when initialData omits it', () => {
+    const prefetched = {
+      token: 'prefetched-token',
+      createdAt: '2026-01-15T00:00:00.000Z',
+    };
+
+    const { result } = renderHook(() => useWebhookViewModel(prefetched));
+
+    expect(result.current.rateLimit).toBe(5);
+    expect(mockGetWebhookToken).not.toHaveBeenCalled();
+  });
+
+  // ====================================================================
   // Initial state & loading
   // ====================================================================
 

@@ -457,9 +457,9 @@ function StorageSkeleton() {
 
 // ── Main component ──
 
-export function StoragePage() {
-  const [data, setData] = useState<StorageScanResult | null>(null);
-  const [loading, setLoading] = useState(true);
+export function StoragePage({ initialData }: { initialData?: StorageScanResult }) {
+  const [data, setData] = useState<StorageScanResult | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [cleaning, setCleaning] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -482,8 +482,9 @@ export function StoragePage() {
   }, []);
 
   useEffect(() => {
+    if (initialData) return;
     scan();
-  }, [scan]);
+  }, [scan, initialData]);
 
   const toggleKey = useCallback((key: string) => {
     setSelectedKeys((prev) => {

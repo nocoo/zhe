@@ -1,6 +1,6 @@
 "use client";
 
-import { useXrayViewModel, type UrlMode, type XrayViewModel } from "@/viewmodels/useXrayViewModel";
+import { useXrayViewModel, type UrlMode, type XrayViewModel, type XrayInitialData } from "@/viewmodels/useXrayViewModel";
 import {
   formatCount,
   formatTweetDate,
@@ -40,8 +40,8 @@ import {
   BookmarkIcon,
 } from "lucide-react";
 
-export function XrayPage() {
-  const vm = useXrayViewModel();
+export function XrayPage({ initialData }: { initialData?: XrayInitialData }) {
+  const vm = useXrayViewModel(initialData);
 
   return (
     <div className="space-y-6">
