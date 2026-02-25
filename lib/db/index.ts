@@ -4,7 +4,7 @@
  */
 
 import { executeD1Query } from './d1-client';
-import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook } from './schema';
+import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook, TweetCache } from './schema';
 
 // ============================================
 // Type Conversion Helpers
@@ -363,4 +363,104 @@ export async function getWebhookStats(userId: string): Promise<{
       createdAt: new Date(r.created_at as number).toISOString(),
     })),
   };
+}
+
+// ============================================
+// Tweet Cache Operations (public — shared across users)
+// ============================================
+
+function rowToTweetCache(row: Record<string, unknown>): TweetCache {
+  return {
+    tweetId: row.tweet_id as string,
+    authorUsername: row.author_username as string,
+    authorName: row.author_name as string,
+    authorAvatar: row.author_avatar as string,
+    tweetText: row.tweet_text as string,
+    tweetUrl: row.tweet_url as string,
+    lang: (row.lang as string) ?? null,
+    tweetCreatedAt: row.tweet_created_at as string,
+    rawData: row.raw_data as string,
+    fetchedAt: row.fetched_at as number,
+    updatedAt: row.updated_at as number,
+  };
+}
+
+/**
+ * Get a cached tweet by its tweet ID.
+ */
+export async function getTweetCacheById(tweetId: string): Promise<TweetCache | null> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    'SELECT * FROM tweet_cache WHERE tweet_id = ? LIMIT 1',
+    [tweetId]
+  );
+  return rows[0] ? rowToTweetCache(rows[0]) : null;
+}
+
+/**
+ * Get multiple cached tweets by their IDs.
+ * Returns a Map keyed by tweet ID for O(1) lookup.
+ */
+export async function getTweetCacheByIds(tweetIds: string[]): Promise<Map<string, TweetCache>> {
+  if (tweetIds.length === 0) return new Map();
+
+  const placeholders = tweetIds.map(() => '?').join(', ');
+  const rows = await executeD1Query<Record<string, unknown>>(
+    `SELECT * FROM tweet_cache WHERE tweet_id IN (${placeholders})`,
+    tweetIds
+  );
+
+  const map = new Map<string, TweetCache>();
+  for (const row of rows) {
+    const cached = rowToTweetCache(row);
+    map.set(cached.tweetId, cached);
+  }
+  return map;
+}
+
+/**
+ * Upsert a tweet into the cache.
+ * Inserts if new, updates all fields if the tweet_id already exists.
+ */
+export async function upsertTweetCache(data: {
+  tweetId: string;
+  authorUsername: string;
+  authorName: string;
+  authorAvatar: string;
+  tweetText: string;
+  tweetUrl: string;
+  lang: string | null;
+  tweetCreatedAt: string;
+  rawData: string;
+}): Promise<TweetCache> {
+  const now = Date.now();
+  const rows = await executeD1Query<Record<string, unknown>>(
+    `INSERT INTO tweet_cache (tweet_id, author_username, author_name, author_avatar, tweet_text, tweet_url, lang, tweet_created_at, raw_data, fetched_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(tweet_id) DO UPDATE SET
+       author_username = excluded.author_username,
+       author_name = excluded.author_name,
+       author_avatar = excluded.author_avatar,
+       tweet_text = excluded.tweet_text,
+       tweet_url = excluded.tweet_url,
+       lang = excluded.lang,
+       tweet_created_at = excluded.tweet_created_at,
+       raw_data = excluded.raw_data,
+       updated_at = excluded.updated_at
+     RETURNING *`,
+    [
+      data.tweetId,
+      data.authorUsername,
+      data.authorName,
+      data.authorAvatar,
+      data.tweetText,
+      data.tweetUrl,
+      data.lang,
+      data.tweetCreatedAt,
+      data.rawData,
+      now,
+      now,
+    ]
+  );
+
+  return rowToTweetCache(rows[0]);
 }
