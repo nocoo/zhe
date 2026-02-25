@@ -453,7 +453,7 @@ function BookmarkAddButton({
 
 function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-background p-4 space-y-3">
+    <div className="rounded-lg border bg-white p-4 space-y-3 dark:bg-neutral-900">
       {/* Author row */}
       <div className="flex items-center gap-3">
         <a
