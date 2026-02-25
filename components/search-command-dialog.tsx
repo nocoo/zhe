@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Link2, FolderOpen, Copy } from "lucide-react";
+import Image from "next/image";
+import { Link2, FolderOpen, Copy, BarChart3, Search } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,13 +13,47 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useDashboardState } from "@/contexts/dashboard-service";
-import { buildShortUrl, stripProtocol, filterLinks } from "@/models/links";
+import {
+  buildShortUrl,
+  stripProtocol,
+  filterLinks,
+  extractHostname,
+  highlightMatches,
+} from "@/models/links";
+import type { HighlightSegment } from "@/models/links";
 import { getTagColorClassesByName } from "@/models/tags";
+import { formatDate, formatNumber } from "@/lib/utils";
 import type { Tag } from "@/models/types";
 
 export interface SearchCommandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+/** Render text with highlighted keyword matches */
+function HighlightText({
+  segments,
+  className,
+}: {
+  segments: HighlightSegment[];
+  className?: string;
+}) {
+  return (
+    <span className={className}>
+      {segments.map((seg, i) =>
+        seg.highlight ? (
+          <mark
+            key={i}
+            className="bg-yellow-200/60 text-foreground rounded-sm px-0.5 dark:bg-yellow-500/30"
+          >
+            {seg.text}
+          </mark>
+        ) : (
+          <span key={i}>{seg.text}</span>
+        ),
+      )}
+    </span>
+  );
 }
 
 export function SearchCommandDialog({
@@ -28,6 +63,8 @@ export function SearchCommandDialog({
   const { links, folders, tags, linkTags, siteUrl } = useDashboardState();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const trimmedQuery = searchQuery.trim();
 
   /** Filter links using substring match instead of cmdk fuzzy matching */
   const filteredLinks = useMemo(
@@ -85,6 +122,8 @@ export function SearchCommandDialog({
     [siteUrl, onOpenChange],
   );
 
+  const hasQuery = trimmedQuery.length > 0;
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
@@ -93,72 +132,174 @@ export function SearchCommandDialog({
         onValueChange={setSearchQuery}
       />
       <CommandList>
-        <CommandEmpty>没有找到匹配的链接</CommandEmpty>
-        <CommandGroup heading="链接">
-          {filteredLinks.map((link) => {
-            const folderName = getFolderName(link.folderId);
-            const shortUrl = buildShortUrl(siteUrl, link.slug);
-            const linkTags = tagsByLinkId.get(link.id);
+        {/* When input is empty, show a hint instead of empty state */}
+        {!hasQuery ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Search className="h-8 w-8 mb-3 text-muted-foreground/40" />
+            <p className="text-sm">输入关键词搜索链接</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              支持搜索短链、URL、标题、描述、备注、标签
+            </p>
+          </div>
+        ) : (
+          <>
+            <CommandEmpty>没有找到匹配的链接</CommandEmpty>
+            <CommandGroup heading={`链接 (${filteredLinks.length})`}>
+              {filteredLinks.map((link) => {
+                const folderName = getFolderName(link.folderId);
+                const shortUrl = buildShortUrl(siteUrl, link.slug);
+                const linkTagList = tagsByLinkId.get(link.id);
+                const hostname = extractHostname(link.originalUrl);
+                const titleText = link.metaTitle || hostname;
 
-            return (
-              <CommandItem
-                key={link.id}
-                value={link.slug}
-                className="flex items-center justify-between gap-2"
-                onSelect={() => handleNavigateToFolder(link.folderId)}
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">
-                      {stripProtocol(shortUrl)}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {link.metaTitle ?? stripProtocol(link.originalUrl)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {linkTags?.slice(0, 2).map((tag) => {
-                      const colors = getTagColorClassesByName(tag.name);
-                      return (
-                        <span
-                          key={tag.id}
-                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
-                        >
-                          <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
-                          {tag.name}
+                return (
+                  <CommandItem
+                    key={link.id}
+                    value={link.slug}
+                    className="flex items-start gap-3 py-2.5"
+                    onSelect={() => handleNavigateToFolder(link.folderId)}
+                  >
+                    {/* Favicon */}
+                    <div className="mt-0.5 shrink-0">
+                      {link.metaFavicon ? (
+                        <Image
+                          src={link.metaFavicon}
+                          alt=""
+                          width={16}
+                          height={16}
+                          className="w-4 h-4 rounded-sm"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-4 h-4 rounded-sm bg-accent flex items-center justify-center">
+                          <Link2 className="w-3 h-3 text-muted-foreground/60" strokeWidth={2} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      {/* Title row */}
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium">
+                          <HighlightText
+                            segments={highlightMatches(titleText, trimmedQuery)}
+                          />
+                        </p>
+                      </div>
+
+                      {/* Description (if available) */}
+                      {link.metaDescription && (
+                        <p className="truncate text-xs text-muted-foreground/70 mt-0.5">
+                          <HighlightText
+                            segments={highlightMatches(
+                              link.metaDescription,
+                              trimmedQuery,
+                            )}
+                          />
+                        </p>
+                      )}
+
+                      {/* Note (if available and different from title) */}
+                      {link.note && (
+                        <p className="truncate text-xs text-muted-foreground/60 mt-0.5 italic">
+                          <HighlightText
+                            segments={highlightMatches(link.note, trimmedQuery)}
+                          />
+                        </p>
+                      )}
+
+                      {/* Meta row: short URL, original URL, clicks, date, folder, tags */}
+                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-0.5 shrink-0">
+                          <Link2 className="h-3 w-3" strokeWidth={1.5} />
+                          <HighlightText
+                            segments={highlightMatches(
+                              stripProtocol(shortUrl),
+                              trimmedQuery,
+                            )}
+                          />
                         </span>
-                      );
-                    })}
-                    {folderName && (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <FolderOpen className="h-3 w-3" />
-                        {folderName}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`Copy ${shortUrl}`}
-                  className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCopyShortUrl(link.slug);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.stopPropagation();
-                      handleCopyShortUrl(link.slug);
-                    }
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
+                        <span className="text-border">·</span>
+                        <span className="truncate">
+                          <HighlightText
+                            segments={highlightMatches(
+                              stripProtocol(link.originalUrl),
+                              trimmedQuery,
+                            )}
+                          />
+                        </span>
+                        <span className="text-border">·</span>
+                        <span className="flex items-center gap-0.5 shrink-0">
+                          <BarChart3 className="h-3 w-3" strokeWidth={1.5} />
+                          {formatNumber(link.clicks ?? 0)}
+                        </span>
+                        <span className="text-border">·</span>
+                        <span className="shrink-0">
+                          {formatDate(link.createdAt)}
+                        </span>
+
+                        {folderName && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span className="flex items-center gap-0.5 shrink-0">
+                              <FolderOpen className="h-3 w-3" />
+                              {folderName}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Tags */}
+                      {linkTagList && linkTagList.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5">
+                          {linkTagList.slice(0, 3).map((tag) => {
+                            const colors = getTagColorClassesByName(tag.name);
+                            return (
+                              <span
+                                key={tag.id}
+                                className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
+                              >
+                                <span
+                                  className={`h-1 w-1 rounded-full ${colors.dot}`}
+                                />
+                                {tag.name}
+                              </span>
+                            );
+                          })}
+                          {linkTagList.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{linkTagList.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Copy button */}
+                    <button
+                      type="button"
+                      aria-label={`Copy ${shortUrl}`}
+                      className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyShortUrl(link.slug);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.stopPropagation();
+                          handleCopyShortUrl(link.slug);
+                        }
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   );
