@@ -19,7 +19,7 @@ test.describe('Dashboard navigation', () => {
     await expect(sidebar.getByText('概览').first()).toBeVisible();
     await expect(sidebar.getByText('链接管理').first()).toBeVisible();
     await expect(sidebar.getByText('系统集成').first()).toBeVisible();
-    await expect(sidebar.getByText('系统')).toBeVisible();
+    await expect(sidebar.getByText('系统', { exact: true })).toBeVisible();
 
     // Nav items (links)
     await expect(sidebar.locator('a:has-text("全部链接")')).toBeVisible();
