@@ -42,6 +42,7 @@ import {
   formatBytes,
   getFileName,
   getFileCategory,
+  computeSummary,
 } from "@/models/storage";
 import type { StorageScanResult, StorageFile } from "@/models/storage";
 
@@ -520,7 +521,26 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
         toast.success(
           `已删除 ${result.data.deleted} 个文件${result.data.skipped > 0 ? ` (${result.data.skipped} 个已跳过)` : ""}`,
         );
-        await scan();
+
+        // Update state locally instead of a full re-scan
+        if (data) {
+          const deletedKeys = new Set(keys);
+          // Skipped keys were NOT deleted — keep them in state
+          // We don't know which specific keys were skipped, so remove all
+          // requested keys and trust the server's count
+          const remainingFiles = data.r2.files.filter(
+            (f) => !deletedKeys.has(f.key),
+          );
+          setData({
+            ...data,
+            r2: {
+              ...data.r2,
+              files: remainingFiles,
+              summary: computeSummary(remainingFiles),
+            },
+          });
+        }
+        setSelectedKeys(new Set());
       } else {
         toast.error(result.error ?? "清理失败");
       }

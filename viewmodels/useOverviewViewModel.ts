@@ -31,21 +31,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
           setError(result.error ?? '加载概览数据失败');
           setStats(null);
         } else {
-          const raw = result.data;
-
-          setStats({
-            totalLinks: raw.totalLinks,
-            totalClicks: raw.totalClicks,
-            totalUploads: raw.totalUploads,
-            totalStorageBytes: raw.totalStorageBytes,
-            clickTrend: raw.clickTrend,
-            uploadTrend: raw.uploadTrend,
-            topLinks: raw.topLinks,
-            deviceBreakdown: raw.deviceBreakdown,
-            browserBreakdown: raw.browserBreakdown,
-            osBreakdown: raw.osBreakdown,
-            fileTypeBreakdown: raw.fileTypeBreakdown,
-          });
+          setStats(result.data);
           setError(null);
         }
       } catch {
