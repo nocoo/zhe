@@ -14,15 +14,8 @@ import { getBotFromDB } from "@/lib/bot";
  */
 export async function POST(request: Request): Promise<Response> {
   try {
-    // Clone the request so we can read the body for logging
-    // while still passing the original to the SDK
-    const cloned = request.clone();
-    const rawBody = await cloned.text();
-    console.log("[webhook] Incoming POST body:", rawBody.slice(0, 500));
-
     const bot = await getBotFromDB();
     if (!bot) {
-      console.log("[webhook] No bot configured in DB");
       return NextResponse.json(
         { error: "Discord bot not configured" },
         { status: 503 },
@@ -30,15 +23,12 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Initialize bot before processing — registers handlers with adapters
-    console.log("[webhook] Initializing bot...");
     await bot.initialize();
-    console.log("[webhook] Bot initialized, calling bot.webhooks.discord()...");
 
     const response = await bot.webhooks.discord(request, {
       waitUntil: (p) => after(() => p),
     });
 
-    console.log("[webhook] bot.webhooks.discord() returned status:", response.status);
     return response;
   } catch (error) {
     console.error("Discord webhook error:", error);
