@@ -429,7 +429,7 @@ function TweetCard({ tweet }: { tweet: XrayTweetData }) {
         </div>
       )}
 
-      {/* Timestamp + lang + flags */}
+      {/* Timestamp + lang + flags + original link */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{formatTweetDate(tweet.created_at)}</span>
         <span>·</span>
@@ -449,6 +449,16 @@ function TweetCard({ tweet }: { tweet: XrayTweetData }) {
             回复
           </Badge>
         )}
+        <span>·</span>
+        <a
+          href={tweet.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          原帖
+          <ExternalLink className="h-3 w-3" />
+        </a>
       </div>
 
       {/* Metrics bar */}
@@ -475,20 +485,6 @@ function TweetCard({ tweet }: { tweet: XrayTweetData }) {
         </>
       )}
 
-      {/* View original tweet */}
-      <Separator />
-      <div>
-        <a
-          href={tweet.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Button variant="outline" size="sm" className="text-xs">
-            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-            查看原帖
-          </Button>
-        </a>
-      </div>
     </div>
   );
 }
