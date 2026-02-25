@@ -3,7 +3,8 @@
 import { useState, useCallback, useMemo } from "react";
 import type { Link, Tag, LinkTag, Folder } from "@/models/types";
 import { updateLink, updateLinkNote } from "@/actions/links";
-import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
+import { useLinkMutations } from "@/viewmodels/useLinkMutations";
+import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
 
 /** Per-link draft state for inline triage editing */
 export interface InboxItemDraft {
@@ -15,13 +16,10 @@ export interface InboxItemDraft {
   error: string;
 }
 
-/** Callbacks for syncing triage mutations back to the parent service */
-export interface InboxCallbacks {
-  onLinkUpdated: (link: Link) => void;
-  onTagCreated: (tag: Tag) => void;
-  onLinkTagAdded: (linkTag: LinkTag) => void;
-  onLinkTagRemoved: (linkId: number, tagId: string) => void;
-}
+/** Callbacks for syncing triage mutations back to the parent service.
+ *  Alias for the shared LinkMutationCallbacks interface.
+ */
+export type InboxCallbacks = LinkMutationCallbacks;
 
 /** ViewModel for the Inbox triage view — manages inline editing of uncategorized links */
 export function useInboxViewModel(
@@ -171,62 +169,15 @@ export function useInboxViewModel(
     [inboxLinks, getDraft, updateDraft, callbacks],
   );
 
-  // ── Tag helpers (per-link, same optimistic pattern as edit dialog) ──
-
-  /** Get tags assigned to a specific link */
-  const getAssignedTagIds = useCallback(
-    (linkId: number): Set<string> => {
-      return new Set(
-        allLinkTags.filter((lt) => lt.linkId === linkId).map((lt) => lt.tagId),
-      );
-    },
-    [allLinkTags],
-  );
-
-  const getAssignedTags = useCallback(
-    (linkId: number): Tag[] => {
-      const ids = getAssignedTagIds(linkId);
-      return allTags.filter((t) => ids.has(t.id));
-    },
-    [allTags, getAssignedTagIds],
-  );
-
-  /** Add a tag to a link (optimistic) */
-  const addTag = useCallback(
-    async (linkId: number, tagId: string) => {
-      callbacks.onLinkTagAdded({ linkId, tagId });
-      const result = await addTagToLink(linkId, tagId);
-      if (!result.success) {
-        callbacks.onLinkTagRemoved(linkId, tagId);
-      }
-    },
-    [callbacks],
-  );
-
-  /** Remove a tag from a link (optimistic) */
-  const removeTag = useCallback(
-    async (linkId: number, tagId: string) => {
-      callbacks.onLinkTagRemoved(linkId, tagId);
-      const result = await removeTagFromLink(linkId, tagId);
-      if (!result.success) {
-        callbacks.onLinkTagAdded({ linkId, tagId });
-      }
-    },
-    [callbacks],
-  );
-
-  /** Create a new tag and immediately assign it to a link */
-  const createAndAssignTag = useCallback(
-    async (linkId: number, name: string) => {
-      const result = await createTag({ name });
-      if (result.success && result.data) {
-        callbacks.onTagCreated(result.data);
-        await addTag(linkId, result.data.id);
-      }
-      return result;
-    },
-    [callbacks, addTag],
-  );
+  // ── Tag helpers — delegated to shared useLinkMutations hook ──
+  const {
+    getAssignedTagIds,
+    getAssignedTags,
+    getUnassignedTags,
+    addTag,
+    removeTag,
+    createAndAssignTag,
+  } = useLinkMutations(allTags, allLinkTags, callbacks);
 
   return {
     inboxLinks,
@@ -239,6 +190,7 @@ export function useInboxViewModel(
     saveItem,
     getAssignedTagIds,
     getAssignedTags,
+    getUnassignedTags,
     addTag,
     removeTag,
     createAndAssignTag,

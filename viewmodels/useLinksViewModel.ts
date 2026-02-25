@@ -4,13 +4,14 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import type { Link, Tag, LinkTag, AnalyticsStats } from "@/models/types";
 import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata } from "@/actions/links";
-import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl } from "@/models/links";
 import { isGitHubRepoUrl, GITHUB_REPO_PREVIEW_URL } from "@/models/links";
 import type { ScreenshotSource } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
 import { fetchAndSaveScreenshot } from "@/actions/links";
+import { useLinkMutations } from "@/viewmodels/useLinkMutations";
+import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
 
 /** ViewModel for a single link card — manages copy, delete, analytics, metadata & screenshot */
 export function useLinkCardViewModel(
@@ -248,13 +249,10 @@ export function useCreateLinkViewModel(
   };
 }
 
-/** Callbacks for syncing edit-dialog mutations back to the parent service */
-export interface EditLinkCallbacks {
-  onLinkUpdated: (link: Link) => void;
-  onTagCreated: (tag: Tag) => void;
-  onLinkTagAdded: (linkTag: LinkTag) => void;
-  onLinkTagRemoved: (linkId: number, tagId: string) => void;
-}
+/** Callbacks for syncing edit-dialog mutations back to the parent service.
+ *  Alias for the shared LinkMutationCallbacks interface.
+ */
+export type EditLinkCallbacks = LinkMutationCallbacks;
 
 /** ViewModel for the edit-link dialog — manages URL, folder, note & tags */
 export function useEditLinkViewModel(
@@ -280,13 +278,14 @@ export function useEditLinkViewModel(
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Tags assigned to the currently-edited link
+  // ── Tag helpers — delegated to shared useLinkMutations hook ──
+  const mutations = useLinkMutations(allTags, allLinkTags, callbacks);
+
+  // Tags assigned to the currently-edited link (derived from shared hook)
   const assignedTagIds = useMemo(() => {
     if (!editingLink) return new Set<string>();
-    return new Set(
-      allLinkTags.filter((lt) => lt.linkId === editingLink.id).map((lt) => lt.tagId),
-    );
-  }, [editingLink, allLinkTags]);
+    return mutations.getAssignedTagIds(editingLink.id);
+  }, [editingLink, mutations]);
 
   const assignedTags = useMemo(
     () => allTags.filter((t) => assignedTagIds.has(t.id)),
@@ -377,46 +376,30 @@ export function useEditLinkViewModel(
     }
   }, [editingLink, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
 
-  // Tag operations — immediate (optimistic)
+  // Tag operations — thin wrappers that bind editingLink.id to the shared hook.
+  // External API stays (tagId) only, so callers don't need to pass linkId.
   const addTag = useCallback(
     async (tagId: string) => {
       if (!editingLink) return;
-      callbacks.onLinkTagAdded({ linkId: editingLink.id, tagId });
-      const result = await addTagToLink(editingLink.id, tagId);
-      if (!result.success) {
-        // Rollback on failure
-        callbacks.onLinkTagRemoved(editingLink.id, tagId);
-      }
+      await mutations.addTag(editingLink.id, tagId);
     },
-    [editingLink, callbacks],
+    [editingLink, mutations],
   );
 
   const removeTag = useCallback(
     async (tagId: string) => {
       if (!editingLink) return;
-      callbacks.onLinkTagRemoved(editingLink.id, tagId);
-      const result = await removeTagFromLink(editingLink.id, tagId);
-      if (!result.success) {
-        // Rollback on failure
-        callbacks.onLinkTagAdded({ linkId: editingLink.id, tagId });
-      }
+      await mutations.removeTag(editingLink.id, tagId);
     },
-    [editingLink, callbacks],
+    [editingLink, mutations],
   );
 
-  // Create a new tag and immediately assign it to the link
   const createAndAssignTag = useCallback(
     async (name: string) => {
       if (!editingLink) return;
-      const result = await createTag({ name });
-      if (result.success && result.data) {
-        callbacks.onTagCreated(result.data);
-        // Assign to current link
-        await addTag(result.data.id);
-      }
-      return result;
+      return mutations.createAndAssignTag(editingLink.id, name);
     },
-    [editingLink, callbacks, addTag],
+    [editingLink, mutations],
   );
 
   return {
