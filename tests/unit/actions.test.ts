@@ -48,9 +48,11 @@ vi.mock('@/lib/db/scoped', () => ({
   })),
 }));
 
-const mockFetchMetadata = vi.fn();
-vi.mock('@/lib/metadata', () => ({
-  fetchMetadata: (...args: unknown[]) => mockFetchMetadata(...args),
+const mockEnrichLink = vi.fn();
+const mockRefreshLinkEnrichment = vi.fn();
+vi.mock('@/actions/enrichment', () => ({
+  enrichLink: (...args: unknown[]) => mockEnrichLink(...args),
+  refreshLinkEnrichment: (...args: unknown[]) => mockRefreshLinkEnrichment(...args),
 }));
 
 const mockUploadBufferToR2 = vi.fn();
@@ -540,71 +542,47 @@ describe('actions/links — uncovered paths', () => {
   });
 
   // ====================================================================
-  // createLink — async metadata fetch
+  // createLink — async enrichment
   // ====================================================================
-  describe('createLink — metadata fetch', () => {
-    it('triggers async metadata fetch after successful creation', async () => {
+  describe('createLink — enrichment', () => {
+    it('triggers async enrichment after successful creation', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGenerateUniqueSlug.mockResolvedValue('slug1');
       const createdLink = { ...FAKE_LINK, id: 10, slug: 'slug1' };
       mockCreateLink.mockResolvedValue(createdLink);
-      mockFetchMetadata.mockResolvedValue({
-        title: 'Example',
-        description: 'A page',
-        favicon: 'https://example.com/favicon.ico',
-      });
-      mockUpdateLinkMetadata.mockResolvedValue(createdLink);
+      mockEnrichLink.mockResolvedValue(undefined);
 
       const result = await createLink({ originalUrl: 'https://example.com' });
 
       expect(result.success).toBe(true);
-      // Metadata fetch should have been called with the original URL
-      expect(mockFetchMetadata).toHaveBeenCalledWith('https://example.com');
-      // updateLinkMetadata should have been called with fetched values
-      expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(10, {
-        metaTitle: 'Example',
-        metaDescription: 'A page',
-        metaFavicon: 'https://example.com/favicon.ico',
+      // Flush the fire-and-forget microtask (dynamic import + enrichLink)
+      await vi.waitFor(() => {
+        expect(mockEnrichLink).toHaveBeenCalledWith(
+          'https://example.com',
+          10,
+          FAKE_USER_ID,
+        );
       });
     });
 
-    it('still returns success even if metadata fetch fails', async () => {
+    it('still returns success even if enrichment fails', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGenerateUniqueSlug.mockResolvedValue('slug2');
       const createdLink = { ...FAKE_LINK, id: 11, slug: 'slug2' };
       mockCreateLink.mockResolvedValue(createdLink);
-      mockFetchMetadata.mockRejectedValue(new Error('network error'));
+      mockEnrichLink.mockRejectedValue(new Error('enrichment error'));
 
       const result = await createLink({ originalUrl: 'https://example.com' });
 
       expect(result.success).toBe(true);
       expect(result.data?.slug).toBe('slug2');
-      // fetch was attempted
-      expect(mockFetchMetadata).toHaveBeenCalled();
-      // updateLinkMetadata should NOT have been called since fetch failed
-      expect(mockUpdateLinkMetadata).not.toHaveBeenCalled();
-    });
-
-    it('does not update metadata when all values are null', async () => {
-      mockAuth.mockResolvedValue(authenticatedSession());
-      mockGenerateUniqueSlug.mockResolvedValue('slug3');
-      const createdLink = { ...FAKE_LINK, id: 12, slug: 'slug3' };
-      mockCreateLink.mockResolvedValue(createdLink);
-      mockFetchMetadata.mockResolvedValue({
-        title: null,
-        description: null,
-        favicon: null,
+      // Flush the fire-and-forget microtask (dynamic import + enrichLink)
+      await vi.waitFor(() => {
+        expect(mockEnrichLink).toHaveBeenCalled();
       });
-
-      const result = await createLink({ originalUrl: 'https://example.com' });
-
-      expect(result.success).toBe(true);
-      expect(mockFetchMetadata).toHaveBeenCalled();
-      // No point updating if everything is null
-      expect(mockUpdateLinkMetadata).not.toHaveBeenCalled();
     });
 
-    it('does not fetch metadata when link creation fails', async () => {
+    it('does not enrich when link creation fails', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGenerateUniqueSlug.mockResolvedValue('slug4');
       mockCreateLink.mockRejectedValue(new Error('DB down'));
@@ -612,7 +590,7 @@ describe('actions/links — uncovered paths', () => {
       const result = await createLink({ originalUrl: 'https://example.com' });
 
       expect(result.success).toBe(false);
-      expect(mockFetchMetadata).not.toHaveBeenCalled();
+      expect(mockEnrichLink).not.toHaveBeenCalled();
     });
   });
 
@@ -640,88 +618,49 @@ describe('actions/links — uncovered paths', () => {
       });
     });
 
-    it('fetches metadata and updates the link on success', async () => {
+    it('delegates to enrichment strategy and returns updated link', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       const existingLink = { ...FAKE_LINK, id: 5 };
-      mockGetLinkById.mockResolvedValue(existingLink);
-      mockFetchMetadata.mockResolvedValue({
-        title: 'Refreshed Title',
-        description: 'Refreshed Desc',
-        favicon: 'https://example.com/icon.png',
-      });
       const updatedLink = {
         ...existingLink,
         metaTitle: 'Refreshed Title',
         metaDescription: 'Refreshed Desc',
         metaFavicon: 'https://example.com/icon.png',
       };
-      mockUpdateLinkMetadata.mockResolvedValue(updatedLink);
+      // First call: initial lookup; second call: re-fetch after enrichment
+      mockGetLinkById.mockResolvedValueOnce(existingLink).mockResolvedValueOnce(updatedLink);
+      mockRefreshLinkEnrichment.mockResolvedValue({ success: true });
 
       const result = await refreshLinkMetadata(5);
 
       expect(result).toEqual({ success: true, data: updatedLink });
-      expect(mockFetchMetadata).toHaveBeenCalledWith('https://example.com');
-      expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(5, {
-        metaTitle: 'Refreshed Title',
-        metaDescription: 'Refreshed Desc',
-        metaFavicon: 'https://example.com/icon.png',
-      });
+      expect(mockRefreshLinkEnrichment).toHaveBeenCalledWith(
+        'https://example.com',
+        5,
+        FAKE_USER_ID,
+      );
     });
 
-    it('still updates with null values when metadata fetch returns all nulls', async () => {
-      mockAuth.mockResolvedValue(authenticatedSession());
-      const existingLink = {
-        ...FAKE_LINK,
-        id: 6,
-        metaTitle: 'Old Title',
-      };
-      mockGetLinkById.mockResolvedValue(existingLink);
-      mockFetchMetadata.mockResolvedValue({
-        title: null,
-        description: null,
-        favicon: null,
-      });
-      const updatedLink = {
-        ...existingLink,
-        metaTitle: null,
-        metaDescription: null,
-        metaFavicon: null,
-      };
-      mockUpdateLinkMetadata.mockResolvedValue(updatedLink);
-
-      const result = await refreshLinkMetadata(6);
-
-      // Should still update — user explicitly asked to refresh, so clear stale data
-      expect(result).toEqual({ success: true, data: updatedLink });
-      expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(6, {
-        metaTitle: null,
-        metaDescription: null,
-        metaFavicon: null,
-      });
-    });
-
-    it('returns error when fetchMetadata throws', async () => {
+    it('returns error when enrichment strategy fails', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetLinkById.mockResolvedValue({ ...FAKE_LINK, id: 7 });
-      mockFetchMetadata.mockRejectedValue(new Error('timeout'));
+      mockRefreshLinkEnrichment.mockResolvedValue({
+        success: false,
+        error: 'Strategy error',
+      });
 
       const result = await refreshLinkMetadata(7);
 
       expect(result).toEqual({
         success: false,
-        error: 'Failed to refresh metadata',
+        error: 'Strategy error',
       });
     });
 
-    it('returns error when updateLinkMetadata throws', async () => {
+    it('returns error when enrichment throws', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetLinkById.mockResolvedValue({ ...FAKE_LINK, id: 8 });
-      mockFetchMetadata.mockResolvedValue({
-        title: 'T',
-        description: 'D',
-        favicon: 'F',
-      });
-      mockUpdateLinkMetadata.mockRejectedValue(new Error('DB error'));
+      mockRefreshLinkEnrichment.mockRejectedValue(new Error('network timeout'));
 
       const result = await refreshLinkMetadata(8);
 

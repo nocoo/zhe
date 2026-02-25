@@ -4,10 +4,8 @@ import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
 import { slugExists, getLinkBySlug } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
-import { fetchMetadata } from '@/lib/metadata';
 import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
-import { isTwitterUrl } from '@/models/links';
 import type { Link } from '@/lib/db/schema';
 
 /**
@@ -50,10 +48,11 @@ export interface ActionResult<T = void> {
  */
 export async function createLink(input: CreateLinkInput): Promise<ActionResult<Link>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
+    const { db, userId } = ctx;
 
     // Validate URL
     try {
@@ -90,24 +89,12 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       expiresAt: input.expiresAt,
     });
 
-    // Fire-and-forget: fetch metadata and update the link asynchronously.
+    // Fire-and-forget: enrich the link with metadata asynchronously.
     // Metadata failure must never block link creation.
     void (async () => {
       try {
-        if (isTwitterUrl(input.originalUrl)) {
-          // X links: use xray API + cache instead of generic metadata fetch
-          const { fetchAndCacheTweet } = await import('@/actions/xray');
-          await fetchAndCacheTweet(input.originalUrl, link.id);
-        } else {
-          const meta = await fetchMetadata(input.originalUrl);
-          if (meta.title || meta.description || meta.favicon) {
-            await db.updateLinkMetadata(link.id, {
-              metaTitle: meta.title,
-              metaDescription: meta.description,
-              metaFavicon: meta.favicon,
-            });
-          }
-        }
+        const { enrichLink } = await import('@/actions/enrichment');
+        await enrichLink(input.originalUrl, link.id, userId);
       } catch (err) {
         // Metadata is best-effort — log for observability but never block
         console.error('Failed to fetch/persist metadata for link', link.id, err);
@@ -285,39 +272,30 @@ export async function getAnalyticsStats(linkId: number): Promise<ActionResult<An
 
 /**
  * Manually refresh metadata for a link.
- * Re-fetches title, description, and favicon from the original URL.
+ * Delegates to the enrichment strategy registry so URL-specific handlers
+ * (e.g. Twitter/xray) are selected automatically.
  */
 export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<Link>> {
   try {
-    const db = await getScopedDB();
-    if (!db) {
+    const ctx = await getAuthContext();
+    if (!ctx) {
       return { success: false, error: 'Unauthorized' };
     }
+    const { db, userId } = ctx;
 
     const link = await db.getLinkById(linkId);
     if (!link) {
       return { success: false, error: 'Link not found or access denied' };
     }
 
-    if (isTwitterUrl(link.originalUrl)) {
-      // X links: force-refresh via xray API + cache
-      const { forceRefreshTweetCache } = await import('@/actions/xray');
-      const result = await forceRefreshTweetCache(link.originalUrl, linkId);
-      if (!result.success) {
-        return { success: false, error: result.error ?? 'Failed to refresh tweet metadata' };
-      }
-      // Re-fetch the updated link
-      const updated = await db.getLinkById(linkId);
-      return { success: true, data: updated! };
+    const { refreshLinkEnrichment } = await import('@/actions/enrichment');
+    const result = await refreshLinkEnrichment(link.originalUrl, linkId, userId);
+    if (!result.success) {
+      return { success: false, error: result.error ?? 'Failed to refresh metadata' };
     }
 
-    const meta = await fetchMetadata(link.originalUrl);
-    const updated = await db.updateLinkMetadata(linkId, {
-      metaTitle: meta.title,
-      metaDescription: meta.description,
-      metaFavicon: meta.favicon,
-    });
-
+    // Re-fetch the updated link
+    const updated = await db.getLinkById(linkId);
     return { success: true, data: updated! };
   } catch (error) {
     console.error('Failed to refresh metadata:', error);
