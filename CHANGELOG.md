@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.3.0] - 2026-02-25
+
+### Added
+- Xray bookmarks page with masonry layout and one-click link creation
+- Sidebar reorganization into "系统集成" group with Backy, Xray, and file upload pages
+
+### Changed
+- Refactor xray actions: extract `xrayFetch()`, `buildCachePayload()`, `updateLinkFromTweet()` helpers to eliminate 4x duplicated fetch calls, 2x duplicated cache payloads, and 3x duplicated metadata/screenshot blocks
+- Use masonry layout for bookmarks with inline add button
+- Use white background for tweet cards instead of theme-dependent grey
+
+### Fixed
+- Auto-refresh backy history on mount and after push
+- Restore correct `@radix-ui/react-scroll-area` version (1.2.10)
+- Remove dead code: `clearResult`, `clearTestResult`, `clearPushResult`, `tweetToLinkMetadata`, unused `tweetId` return field
+- Fix save button showing double icons during loading
+- Fix redundant history conditional check
+- Simplify MediaGrid ternary, merge UrlMode import, fix template literal
+
 ## [v1.2.2] - 2026-02-25
 
 ### Added
