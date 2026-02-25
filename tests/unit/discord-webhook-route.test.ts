@@ -38,6 +38,7 @@ describe("POST /api/webhooks/discord", () => {
       new Response(JSON.stringify({ type: 1 }), { status: 200 }),
     );
     const mockBot = {
+      initialize: vi.fn().mockResolvedValue(undefined),
       webhooks: {
         discord: mockDiscordWebhook,
       },
@@ -48,6 +49,7 @@ describe("POST /api/webhooks/discord", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
+    expect(mockBot.initialize).toHaveBeenCalledTimes(1);
     expect(mockDiscordWebhook).toHaveBeenCalledTimes(1);
     // First arg should be the request
     expect(mockDiscordWebhook.mock.calls[0][0]).toBeInstanceOf(Request);
@@ -60,6 +62,7 @@ describe("POST /api/webhooks/discord", () => {
       new Response(null, { status: 200 }),
     );
     const mockBot = {
+      initialize: vi.fn().mockResolvedValue(undefined),
       webhooks: {
         discord: mockDiscordWebhook,
       },
@@ -77,6 +80,7 @@ describe("POST /api/webhooks/discord", () => {
       new Error("Discord SDK error"),
     );
     const mockBot = {
+      initialize: vi.fn().mockResolvedValue(undefined),
       webhooks: {
         discord: mockDiscordWebhook,
       },

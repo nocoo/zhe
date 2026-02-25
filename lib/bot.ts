@@ -28,8 +28,19 @@ export function createBot(config: BotConfig): Chat {
 
   // Phase 1: echo handler — reply with the received message text
   bot.onNewMention(async (thread, message) => {
+    console.log("[bot] onNewMention fired!", {
+      messageText: message.text,
+      messageId: message.id,
+      threadId: thread.id,
+    });
     const text = message.text || "(empty message)";
-    await thread.post(`Echo: ${text}`);
+    try {
+      const result = await thread.post(`Echo: ${text}`);
+      console.log("[bot] thread.post() succeeded:", result);
+    } catch (err) {
+      console.error("[bot] thread.post() failed:", err);
+      throw err;
+    }
   });
 
   return bot;
