@@ -75,8 +75,14 @@ describe("GET /api/discord/gateway", () => {
   });
 
   it("initializes bot, gets adapter, and starts gateway listener", async () => {
-    const mockStartGatewayListener = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ status: "listening" }), { status: 200 }),
+    const mockStartGatewayListener = vi.fn().mockImplementation(
+      (options: { waitUntil: (p: Promise<unknown>) => void }) => {
+        // Simulate SDK behavior: pass a resolved promise to waitUntil
+        options.waitUntil(Promise.resolve());
+        return Promise.resolve(
+          new Response(JSON.stringify({ status: "listening" }), { status: 200 }),
+        );
+      },
     );
     const mockAdapter = {
       startGatewayListener: mockStartGatewayListener,
@@ -96,8 +102,11 @@ describe("GET /api/discord/gateway", () => {
   });
 
   it("passes correct durationMs to startGatewayListener", async () => {
-    const mockStartGatewayListener = vi.fn().mockResolvedValue(
-      new Response(null, { status: 200 }),
+    const mockStartGatewayListener = vi.fn().mockImplementation(
+      (options: { waitUntil: (p: Promise<unknown>) => void }) => {
+        options.waitUntil(Promise.resolve());
+        return Promise.resolve(new Response(null, { status: 200 }));
+      },
     );
     const mockAdapter = {
       startGatewayListener: mockStartGatewayListener,
@@ -123,8 +132,11 @@ describe("GET /api/discord/gateway", () => {
 
   it("constructs webhookUrl from BASE_URL env var when available", async () => {
     vi.stubEnv("BASE_URL", "https://zhe.example.com");
-    const mockStartGatewayListener = vi.fn().mockResolvedValue(
-      new Response(null, { status: 200 }),
+    const mockStartGatewayListener = vi.fn().mockImplementation(
+      (options: { waitUntil: (p: Promise<unknown>) => void }) => {
+        options.waitUntil(Promise.resolve());
+        return Promise.resolve(new Response(null, { status: 200 }));
+      },
     );
     const mockAdapter = { startGatewayListener: mockStartGatewayListener };
     const mockBot = { initialize: vi.fn().mockResolvedValue(undefined) };
@@ -139,8 +151,11 @@ describe("GET /api/discord/gateway", () => {
 
   it("falls back to request origin for webhookUrl when BASE_URL not set", async () => {
     vi.stubEnv("BASE_URL", "");
-    const mockStartGatewayListener = vi.fn().mockResolvedValue(
-      new Response(null, { status: 200 }),
+    const mockStartGatewayListener = vi.fn().mockImplementation(
+      (options: { waitUntil: (p: Promise<unknown>) => void }) => {
+        options.waitUntil(Promise.resolve());
+        return Promise.resolve(new Response(null, { status: 200 }));
+      },
     );
     const mockAdapter = { startGatewayListener: mockStartGatewayListener };
     const mockBot = { initialize: vi.fn().mockResolvedValue(undefined) };
