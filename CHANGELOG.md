@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.3.1] - 2026-02-26
+
+### Added
+- Dashboard performance optimization (8 phases): unified auth helpers with `cache()` wrap, merged provider actions into single `getDashboardData()` call, SSR prefetch for 6 dashboard routes, batch metadata refresh, loading skeleton for page transitions
+- Discord bot integration: model, actions, viewmodel, config page, webhook route, gateway route with cron-based WebSocket listener
+- LinkCard children slot for extensibility
+- Dockerfile and standalone output for Railway deployment
+
+### Changed
+- Reduce unnecessary dashboard context subscriptions (webhook, folders, sidebar, search dialog)
+- Inline backy history on push success, skip refresh on failure
+- Avoid full re-scan after storage cleanup (local state update with `computeSummary`)
+- Simplify overview stats assignment (direct `setStats` instead of field-by-field copy)
+- Replace InboxItem with LinkCard in inbox triage
+- Centralize version via `APP_VERSION`, eliminate hardcoded fallbacks
+- Remove Chat SDK integration and Bot page (replaced by webhook-based approach)
+- Remove 4 unused radix-ui dependencies and dead context-menu component
+- Remove debug logging from bot and webhook route
+
+### Fixed
+- Batch metadata refresh to eliminate N+1 per-card auto-fetch (50 links = 1 auth + 1 batch query instead of 50 auth + 150 queries)
+- Await gateway listener promise directly instead of using `after()`
+- Externalize zlib-sync for Vercel serverless compatibility
+- Change gateway cron to daily (Vercel Hobby plan limitation)
+
 ## [v1.3.0] - 2026-02-25
 
 ### Added
