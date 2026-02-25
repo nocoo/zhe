@@ -1,5 +1,5 @@
 import { XrayPage } from '@/components/dashboard/xray-page';
 
-export default function XrayApiRoute() {
+export default function XrayRoute() {
   return <XrayPage />;
 }

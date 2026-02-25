@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Database, Webhook, HardDrive, Radar } from "lucide-react";
+import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Database, Webhook, HardDrive, Radar, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -60,9 +60,11 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
 /** Nav groups rendered BELOW the 链接管理 section */
 const OTHER_NAV_GROUPS: NavGroup[] = [
   {
-    label: "文件管理",
+    label: "系统集成",
     items: [
       { title: "文件上传", icon: FileUp, href: "/dashboard/uploads" },
+      { title: "Backy", icon: CloudUpload, href: "/dashboard/backy" },
+      { title: "Xray", icon: Radar, href: "/dashboard/xray" },
     ],
   },
   {
@@ -71,7 +73,6 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
       { title: "存储管理", icon: HardDrive, href: "/dashboard/storage" },
       { title: "数据管理", icon: Database, href: "/dashboard/data-management" },
       { title: "Webhook", icon: Webhook, href: "/dashboard/webhook" },
-      { title: "xray API", icon: Radar, href: "/dashboard/xray-api" },
     ],
   },
 ];

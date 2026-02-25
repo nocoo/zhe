@@ -18,13 +18,15 @@ test.describe('Dashboard navigation', () => {
     // "概览" appears as both a section label and a nav link — check at least 2
     await expect(sidebar.getByText('概览').first()).toBeVisible();
     await expect(sidebar.getByText('链接管理').first()).toBeVisible();
-    await expect(sidebar.getByText('文件管理').first()).toBeVisible();
+    await expect(sidebar.getByText('系统集成').first()).toBeVisible();
     await expect(sidebar.getByText('系统')).toBeVisible();
 
     // Nav items (links)
     await expect(sidebar.locator('a:has-text("全部链接")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Inbox")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("文件上传")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("Backy")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("Xray")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("数据管理")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Webhook")')).toBeVisible();
   });
@@ -78,7 +80,25 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("文件上传")').click();
     await page.waitForURL('**/dashboard/uploads');
 
-    await expect(page.locator('main h1')).toContainText('文件管理');
+    await expect(page.locator('main h1')).toContainText('系统集成');
+  });
+
+  test('navigate to Backy page', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    await page.locator('a:has-text("Backy")').click();
+    await page.waitForURL('**/dashboard/backy');
+
+    await expect(page.locator('main h1')).toContainText('Backy');
+  });
+
+  test('navigate to Xray page', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    await page.locator('a:has-text("Xray")').click();
+    await page.waitForURL('**/dashboard/xray');
+
+    await expect(page.locator('main h1')).toContainText('Xray');
   });
 
   test('navigate back to Links page', async ({ page }) => {

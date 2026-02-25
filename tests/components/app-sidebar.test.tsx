@@ -160,9 +160,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 5 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 6 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(8);
+      expect(navLinks.length).toBe(9);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -459,9 +459,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 5 static = 10
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 6 static = 11
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(10);
+      expect(navLinks.length).toBe(11);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -551,6 +551,48 @@ describe('AppSidebar', () => {
     });
   });
 
+  describe('系统集成 nav group', () => {
+    it('renders "系统集成" section label in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      expect(screen.getByText('系统集成')).toBeInTheDocument();
+    });
+
+    it('renders "Backy" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      const backyLink = screen.getByRole('link', { name: 'Backy' });
+      expect(backyLink).toBeInTheDocument();
+      expect(backyLink.getAttribute('href')).toBe('/dashboard/backy');
+    });
+
+    it('highlights "Backy" when on backy page', () => {
+      mockPathname = '/dashboard/backy';
+      renderSidebar({ collapsed: false });
+
+      const backyLink = screen.getByRole('link', { name: 'Backy' });
+      expect(backyLink.className).toContain('bg-accent');
+      expect(backyLink.className).toContain('text-foreground');
+    });
+
+    it('renders "Xray" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      const xrayLink = screen.getByRole('link', { name: 'Xray' });
+      expect(xrayLink).toBeInTheDocument();
+      expect(xrayLink.getAttribute('href')).toBe('/dashboard/xray');
+    });
+
+    it('highlights "Xray" when on xray page', () => {
+      mockPathname = '/dashboard/xray';
+      renderSidebar({ collapsed: false });
+
+      const xrayLink = screen.getByRole('link', { name: 'Xray' });
+      expect(xrayLink.className).toContain('bg-accent');
+      expect(xrayLink.className).toContain('text-foreground');
+    });
+  });
+
   describe('system nav group', () => {
     it('renders "系统" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
@@ -592,24 +634,24 @@ describe('AppSidebar', () => {
       expect(webhookLink.className).toContain('text-foreground');
     });
 
-    it('renders "系统" section below 文件管理 section', () => {
+    it('renders "系统" section below 系统集成 section', () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
-      const uploadsIndex = labels.indexOf('文件管理');
+      const integrationIndex = labels.indexOf('系统集成');
       const systemIndex = labels.indexOf('系统');
-      expect(uploadsIndex).toBeGreaterThanOrEqual(0);
-      expect(systemIndex).toBeGreaterThan(uploadsIndex);
+      expect(integrationIndex).toBeGreaterThanOrEqual(0);
+      expect(systemIndex).toBeGreaterThan(integrationIndex);
     });
 
-    it('renders data-management and webhook links in collapsed mode', () => {
+    it('renders all nav links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include: 1 overview + 2 folder nav + 1 uploads + 1 storage + 1 data-management + 1 webhook + 1 xray-api = 8
+      // Should include: 1 overview + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 3 系统 (storage+data-management+webhook) = 9
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(8);
+      expect(navLinks.length).toBe(9);
     });
   });
 

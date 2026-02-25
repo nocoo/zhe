@@ -143,10 +143,22 @@ describe('DashboardShell', () => {
     expect(screen.getByRole('heading', { name: '链接管理' })).toBeInTheDocument();
   });
 
-  it('renders header with 文件管理 title on uploads page', async () => {
+  it('renders header with 系统集成 title on uploads page', async () => {
     mockPathname = '/dashboard/uploads';
     await renderShell();
-    expect(screen.getByRole('heading', { name: '文件管理' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '系统集成' })).toBeInTheDocument();
+  });
+
+  it('renders header with Backy title on backy page', async () => {
+    mockPathname = '/dashboard/backy';
+    await renderShell();
+    expect(screen.getByRole('heading', { name: 'Backy' })).toBeInTheDocument();
+  });
+
+  it('renders header with Xray title on xray page', async () => {
+    mockPathname = '/dashboard/xray';
+    await renderShell();
+    expect(screen.getByRole('heading', { name: 'Xray' })).toBeInTheDocument();
   });
 
   it('renders header with 概览 title on overview page', async () => {
@@ -295,9 +307,9 @@ describe('DashboardShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 5 static = 9
+      // In collapsed mode, all items are links: 1 overview + 2 folder nav + 1 dynamic + 6 static = 10
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(9);
+      expect(navLinks.length).toBe(10);
     });
 
     it('passes folders to mobile sidebar when open', async () => {
