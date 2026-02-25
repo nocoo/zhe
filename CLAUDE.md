@@ -6,23 +6,23 @@ README.md
 
 The **only** authoritative version number lives in `package.json` `"version"` field (format: `1.2.3`).
 
-- **Storage format**: bare semver `1.2.3` (in `package.json`, fallback strings, test assertions)
+- **Storage format**: bare semver `1.2.3` (in `package.json`)
 - **Display format**: `v1.2.3` (git tags, GitHub releases, CHANGELOG headers, UI/docs)
-- All runtime references must read from `process.env.npm_package_version` (auto-injected by npm/bun) with the current `package.json` version as fallback
+- All runtime references import `APP_VERSION` from `lib/version.ts`, which reads `package.json` at build time
+- **No hardcoded version strings anywhere** — `package.json` is the only place to update
 
-### Version References Checklist
+### Version References
 
-All of the following **must** be updated in lockstep on every version bump:
+| File | Role |
+|------|------|
+| `package.json` | `"version"` field — **the only place to update** |
+| `lib/version.ts` | Reads `package.json` and exports `APP_VERSION` |
+| `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated) |
+| `app/api/live/route.ts` | Uses `APP_VERSION` (auto-updated) |
+| `tests/unit/live-route.test.ts` | Asserts against `APP_VERSION` (auto-updated) |
+| `tests/e2e/api.test.ts` | Asserts against `APP_VERSION` (auto-updated) |
 
-| File | What to update |
-|------|---------------|
-| `package.json` | `"version"` field |
-| `app/api/health/route.ts` | fallback string in `?? 'x.y.z'` |
-| `app/api/live/route.ts` | fallback string in `?? 'x.y.z'` |
-| `tests/unit/live-route.test.ts` | fallback test assertion |
-| `tests/e2e/api.test.ts` | version assertion |
-
-Before committing, run `rg 'OLD_VERSION' --glob '*.ts' --glob '*.tsx'` to catch any stragglers.
+Before committing a version bump, run `rg 'OLD_VERSION' --glob '*.ts' --glob '*.tsx'` to catch any stragglers.
 
 ### Semantic Versioning (SemVer)
 

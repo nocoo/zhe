@@ -10,6 +10,7 @@
  * - Response includes version, timestamp, dependencies
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { APP_VERSION } from '@/lib/version';
 
 // Keep a handle so we can restore per-test overrides
 let originalEnv: NodeJS.ProcessEnv;
@@ -57,26 +58,12 @@ describe('GET /api/live', () => {
     expect(typeof body.version).toBe('string');
   });
 
-  it('uses npm_package_version env var when available', async () => {
-    vi.resetModules();
-    process.env.npm_package_version = '1.2.3';
-
+  it('uses version from package.json via APP_VERSION', async () => {
     const { GET } = await import('@/app/api/live/route');
     const response = await GET();
     const body = await response.json();
 
-    expect(body.version).toBe('1.2.3');
-  });
-
-  it('falls back to 1.3.0 when npm_package_version is unset', async () => {
-    vi.resetModules();
-    delete process.env.npm_package_version;
-
-    const { GET } = await import('@/app/api/live/route');
-    const response = await GET();
-    const body = await response.json();
-
-    expect(body.version).toBe('1.3.0');
+    expect(body.version).toBe(APP_VERSION);
   });
 
   it('does not include uptime (unavailable in Edge Runtime)', async () => {

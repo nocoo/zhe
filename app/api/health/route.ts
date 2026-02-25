@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { APP_VERSION } from '@/lib/version';
 
 export const runtime = 'edge';
 
@@ -6,6 +7,6 @@ export async function GET() {
   return NextResponse.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version ?? '1.3.0',
+    version: APP_VERSION,
   });
 }

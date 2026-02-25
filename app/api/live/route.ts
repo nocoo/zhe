@@ -7,6 +7,7 @@
  */
 import { NextResponse } from 'next/server';
 import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
+import { APP_VERSION } from '@/lib/version';
 
 export const runtime = 'edge';
 
@@ -39,7 +40,7 @@ export async function GET() {
   const body: Record<string, unknown> = {
     status: healthy ? 'ok' : 'error',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version ?? '1.3.0',
+    version: APP_VERSION,
     // NOTE: process.uptime() is unavailable in Edge Runtime
     dependencies: {
       database: db,

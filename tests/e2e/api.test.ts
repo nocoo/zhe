@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { clearMockStorage } from '../setup';
+import { APP_VERSION } from '@/lib/version';
 
 // Seed a link into mock storage before tests
 async function seedLink(slug: string, originalUrl: string, userId = 'user-e2e') {
@@ -50,7 +51,7 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.status).toBe('ok');
-    expect(body.version).toBe('1.3.0');
+    expect(body.version).toBe(APP_VERSION);
     expect(body.timestamp).toBeDefined();
     // Verify timestamp is a valid ISO string
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
