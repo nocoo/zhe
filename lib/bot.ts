@@ -1,5 +1,5 @@
 import { Chat } from "chat";
-import { createDiscordAdapter } from "@chat-adapter/discord";
+import { createDiscordAdapter, DiscordAdapter } from "@chat-adapter/discord";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { getDiscordBotConfig } from "@/lib/db";
 
@@ -48,6 +48,6 @@ export async function getBotFromDB(): Promise<Chat | null> {
 /**
  * Get the Discord adapter from a bot instance.
  */
-export function getDiscordAdapter(bot: Chat) {
-  return bot.getAdapter("discord");
+export function getDiscordAdapter(bot: Chat): DiscordAdapter {
+  return bot.getAdapter("discord") as DiscordAdapter;
 }
