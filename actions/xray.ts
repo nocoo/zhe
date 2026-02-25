@@ -27,6 +27,47 @@ async function getScopedDB(): Promise<ScopedDB | null> {
   return new ScopedDB(userId);
 }
 
+/** Authenticated GET request to the xray API. */
+function xrayFetch(url: string, token: string): Promise<Response> {
+  return fetch(url, {
+    method: 'GET',
+    headers: { 'accept': 'application/json', 'X-Webhook-Key': token },
+  });
+}
+
+/** Map XrayTweetData to the shape expected by upsertTweetCache. */
+function buildCachePayload(tweet: XrayTweetData) {
+  return {
+    tweetId: tweet.id,
+    authorUsername: tweet.author.username,
+    authorName: tweet.author.name,
+    authorAvatar: tweet.author.profile_image_url,
+    tweetText: tweet.text,
+    tweetUrl: tweet.url,
+    lang: tweet.lang,
+    tweetCreatedAt: tweet.created_at,
+    rawData: JSON.stringify(tweet),
+  };
+}
+
+/** Update link metadata + screenshot from tweet data (fire-and-forget). */
+async function updateLinkFromTweet(
+  db: ScopedDB,
+  linkId: number,
+  tweet: XrayTweetData,
+): Promise<void> {
+  await db.updateLinkMetadata(linkId, {
+    metaTitle: `@${tweet.author.username} posted on x.com`,
+    metaDescription: tweet.text,
+    metaFavicon: tweet.author.profile_image_url,
+  });
+  const imageUrl = extractTweetImageUrl(tweet);
+  if (imageUrl) {
+    const { saveScreenshot } = await import('@/actions/links');
+    saveScreenshot(linkId, imageUrl).catch(() => {});
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
@@ -97,7 +138,6 @@ export async function saveXrayConfig(config: {
 export async function fetchTweet(tweetUrl: string): Promise<{
   success: boolean;
   data?: XrayTweetResponse;
-  tweetId?: string;
   mock?: boolean;
   error?: string;
 }> {
@@ -118,25 +158,17 @@ export async function fetchTweet(tweetUrl: string): Promise<{
       return {
         success: true,
         data: MOCK_TWEET_RESPONSE,
-        tweetId,
         mock: true,
       };
     }
 
     // Call the real API
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'X-Webhook-Key': config.apiToken,
-      },
-    });
+    const res = await xrayFetch(apiUrl, config.apiToken);
 
     if (!res.ok) {
       return {
         success: false,
-        tweetId,
         error: `API 请求失败 (${res.status})`,
       };
     }
@@ -145,7 +177,6 @@ export async function fetchTweet(tweetUrl: string): Promise<{
     return {
       success: true,
       data,
-      tweetId,
       mock: false,
     };
   } catch (error) {
@@ -170,13 +201,7 @@ export async function fetchBookmarks(): Promise<{
     }
 
     const apiUrl = buildBookmarksApiUrl(config.apiUrl);
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'X-Webhook-Key': config.apiToken,
-      },
-    });
+    const res = await xrayFetch(apiUrl, config.apiToken);
 
     if (!res.ok) {
       return {
@@ -196,22 +221,6 @@ export async function fetchBookmarks(): Promise<{
 // ---------------------------------------------------------------------------
 // Cache-aware tweet fetching (for link integration)
 // ---------------------------------------------------------------------------
-
-/**
- * Build link metadata fields from tweet data.
- * Used by both fetchAndCacheTweet and forceRefreshTweetCache.
- */
-function tweetToLinkMetadata(tweet: XrayTweetData): {
-  metaTitle: string;
-  metaDescription: string;
-  metaFavicon: string;
-} {
-  return {
-    metaTitle: `@${tweet.author.username} posted on x.com`,
-    metaDescription: tweet.text,
-    metaFavicon: tweet.author.profile_image_url,
-  };
-}
 
 /**
  * Fetch a tweet and cache it. If cached, returns immediately without API call.
@@ -236,15 +245,7 @@ export async function fetchAndCacheTweet(
       // Cache hit — update link metadata from cache if linkId provided
       if (linkId) {
         const tweet: XrayTweetData = JSON.parse(cached.rawData);
-        const meta = tweetToLinkMetadata(tweet);
-        await db.updateLinkMetadata(linkId, meta);
-
-        // Upload first tweet image as preview (fire-and-forget)
-        const imageUrl = extractTweetImageUrl(tweet);
-        if (imageUrl) {
-          const { saveScreenshot } = await import('@/actions/links');
-          saveScreenshot(linkId, imageUrl).catch(() => {});
-        }
+        await updateLinkFromTweet(db, linkId, tweet);
       }
       return { success: true };
     }
@@ -254,13 +255,7 @@ export async function fetchAndCacheTweet(
     if (!config) return { success: false, error: 'xray API not configured' };
 
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'X-Webhook-Key': config.apiToken,
-      },
-    });
+    const res = await xrayFetch(apiUrl, config.apiToken);
 
     if (!res.ok) {
       return { success: false, error: `API request failed (${res.status})` };
@@ -270,29 +265,11 @@ export async function fetchAndCacheTweet(
     const tweet = response.data;
 
     // Write to cache
-    await upsertTweetCache({
-      tweetId: tweet.id,
-      authorUsername: tweet.author.username,
-      authorName: tweet.author.name,
-      authorAvatar: tweet.author.profile_image_url,
-      tweetText: tweet.text,
-      tweetUrl: tweet.url,
-      lang: tweet.lang,
-      tweetCreatedAt: tweet.created_at,
-      rawData: JSON.stringify(tweet),
-    });
+    await upsertTweetCache(buildCachePayload(tweet));
 
     // Update link metadata if linkId provided
     if (linkId) {
-      const meta = tweetToLinkMetadata(tweet);
-      await db.updateLinkMetadata(linkId, meta);
-
-      // Upload first tweet image as preview (fire-and-forget)
-      const imageUrl = extractTweetImageUrl(tweet);
-      if (imageUrl) {
-        const { saveScreenshot } = await import('@/actions/links');
-        saveScreenshot(linkId, imageUrl).catch(() => {});
-      }
+      await updateLinkFromTweet(db, linkId, tweet);
     }
 
     return { success: true };
@@ -323,13 +300,7 @@ export async function forceRefreshTweetCache(
     if (!config) return { success: false, error: 'xray API not configured' };
 
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'X-Webhook-Key': config.apiToken,
-      },
-    });
+    const res = await xrayFetch(apiUrl, config.apiToken);
 
     if (!res.ok) {
       return { success: false, error: `API request failed (${res.status})` };
@@ -339,28 +310,10 @@ export async function forceRefreshTweetCache(
     const tweet = response.data;
 
     // Update cache (upsert)
-    await upsertTweetCache({
-      tweetId: tweet.id,
-      authorUsername: tweet.author.username,
-      authorName: tweet.author.name,
-      authorAvatar: tweet.author.profile_image_url,
-      tweetText: tweet.text,
-      tweetUrl: tweet.url,
-      lang: tweet.lang,
-      tweetCreatedAt: tweet.created_at,
-      rawData: JSON.stringify(tweet),
-    });
+    await upsertTweetCache(buildCachePayload(tweet));
 
-    // Update link metadata
-    const meta = tweetToLinkMetadata(tweet);
-    await db.updateLinkMetadata(linkId, meta);
-
-    // Upload first tweet image as preview (fire-and-forget)
-    const imageUrl = extractTweetImageUrl(tweet);
-    if (imageUrl) {
-      const { saveScreenshot } = await import('@/actions/links');
-      saveScreenshot(linkId, imageUrl).catch(() => {});
-    }
+    // Update link metadata + screenshot
+    await updateLinkFromTweet(db, linkId, tweet);
 
     return { success: true };
   } catch (error) {

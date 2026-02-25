@@ -157,13 +157,6 @@ export function useXrayViewModel() {
     }
   }, [tweetInput]);
 
-  const clearResult = useCallback(() => {
-    setTweetResult(null);
-    setFetchError(null);
-    setIsMockResult(false);
-    setShowRawJson(false);
-  }, []);
-
   const toggleRawJson = useCallback(() => {
     setShowRawJson((prev) => !prev);
   }, []);
@@ -243,7 +236,6 @@ export function useXrayViewModel() {
     startEditing,
     cancelEditing,
     handleFetchTweet,
-    clearResult,
     toggleRawJson,
     handleFetchBookmarks,
     handleAddBookmark,

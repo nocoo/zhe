@@ -1,6 +1,6 @@
 "use client";
 
-import { useXrayViewModel } from "@/viewmodels/useXrayViewModel";
+import { useXrayViewModel, type UrlMode, type XrayViewModel } from "@/viewmodels/useXrayViewModel";
 import {
   formatCount,
   formatTweetDate,
@@ -8,7 +8,6 @@ import {
   type XrayTweetData,
   type XrayTweetMedia,
 } from "@/models/xray";
-import type { UrlMode } from "@/viewmodels/useXrayViewModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,9 +61,9 @@ export function XrayPage() {
 // Config section
 // ---------------------------------------------------------------------------
 
-function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
+function ConfigSection({ vm }: { vm: XrayViewModel }) {
   const urlModes: { label: UrlMode; display: string }[] = [
-    ...XRAY_PRESETS.map((p) => ({ label: p.label as UrlMode, display: `${p.label}` })),
+    ...XRAY_PRESETS.map((p) => ({ label: p.label as UrlMode, display: p.label })),
     { label: "custom" as UrlMode, display: "Custom" },
   ];
 
@@ -201,7 +200,7 @@ function ConfigSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
 // Test section
 // ---------------------------------------------------------------------------
 
-function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
+function TestSection({ vm }: { vm: XrayViewModel }) {
   return (
     <Card className="border-0 bg-secondary shadow-none">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
@@ -332,7 +331,7 @@ function TestSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
 // Bookmarks section — shows the user's X bookmarks with "add to system" button
 // ---------------------------------------------------------------------------
 
-function BookmarksSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
+function BookmarksSection({ vm }: { vm: XrayViewModel }) {
   return (
     <Card className="border-0 bg-secondary shadow-none">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
@@ -630,15 +629,7 @@ function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.Rea
 function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
   return (
     <div
-      className={`grid gap-2 ${
-        media.length === 1
-          ? "grid-cols-1"
-          : media.length === 2
-            ? "grid-cols-2"
-            : media.length === 3
-              ? "grid-cols-2"
-              : "grid-cols-2"
-      }`}
+      className={`grid gap-2 ${media.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
     >
       {media.map((item) => (
         <div key={item.id} className="relative overflow-hidden rounded-lg">

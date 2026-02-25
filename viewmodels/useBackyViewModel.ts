@@ -148,9 +148,6 @@ export function useBackyViewModel() {
     setError(null);
   }, []);
 
-  const clearTestResult = useCallback(() => setTestResult(null), []);
-  const clearPushResult = useCallback(() => setPushResult(null), []);
-
   // Environment
   const environment = getBackyEnvironment();
 
@@ -185,7 +182,5 @@ export function useBackyViewModel() {
     handleLoadHistory,
     startEditing,
     cancelEditing,
-    clearTestResult,
-    clearPushResult,
   };
 }

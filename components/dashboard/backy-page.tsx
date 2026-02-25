@@ -101,8 +101,11 @@ export function BackyPage() {
                   variant="outline"
                   size="sm"
                 >
-                  {vm.isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Save className="mr-2 h-4 w-4" />
+                  {vm.isSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
                   保存
                 </Button>
                 {vm.isEditing && (
@@ -266,34 +269,36 @@ export function BackyPage() {
                   </Button>
                 </div>
 
-                {vm.history && vm.history.recent_backups.length > 0 ? (
-                  <div className="grid gap-2 sm:grid-cols-2" data-testid="backy-history">
-                    {vm.history.recent_backups.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="space-y-1 rounded-md border bg-muted/50 p-3 text-xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <Badge variant={entry.environment === "prod" ? "success" : "warning"}>
-                            {entry.environment}
-                          </Badge>
-                          <span className="text-muted-foreground">
-                            {formatFileSize(entry.file_size)}
-                          </span>
+                {vm.history ? (
+                  vm.history.recent_backups.length > 0 ? (
+                    <div className="grid gap-2 sm:grid-cols-2" data-testid="backy-history">
+                      {vm.history.recent_backups.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="space-y-1 rounded-md border bg-muted/50 p-3 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <Badge variant={entry.environment === "prod" ? "success" : "warning"}>
+                              {entry.environment}
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              {formatFileSize(entry.file_size)}
+                            </span>
+                          </div>
+                          <p className="truncate text-muted-foreground" title={entry.tag}>
+                            {entry.tag}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {formatTimeAgo(entry.created_at)}
+                          </p>
                         </div>
-                        <p className="truncate text-muted-foreground" title={entry.tag}>
-                          {entry.tag}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {formatTimeAgo(entry.created_at)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : vm.history && vm.history.recent_backups.length === 0 ? (
-                  <p className="text-xs text-muted-foreground" data-testid="backy-history">
-                    暂无备份记录
-                  </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground" data-testid="backy-history">
+                      暂无备份记录
+                    </p>
+                  )
                 ) : null}
               </div>
             </div>
