@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import {
   Copy,
   ExternalLink,
@@ -44,9 +44,11 @@ interface LinkCardProps {
   viewMode?: ViewMode;
   tags?: Tag[];
   linkTags?: LinkTag[];
+  /** Optional slot rendered below the card content (e.g. Inbox triage controls) */
+  children?: ReactNode;
 }
 
-export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [] }: LinkCardProps) {
+export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], children }: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -273,6 +275,9 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             </div>
           )}
         </div>
+
+        {/* Extension slot (e.g. Inbox triage controls) */}
+        {children}
 
         {/* Screenshot source picker dialog */}
         <ScreenshotSourceDialog
@@ -531,6 +536,9 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           加载中...
         </div>
       )}
+
+      {/* Extension slot (e.g. Inbox triage controls) */}
+      {children}
 
       {/* Screenshot source picker dialog */}
       <ScreenshotSourceDialog
