@@ -6,7 +6,7 @@ import {
   updateFolder,
   deleteFolder,
 } from "@/actions/folders";
-import { useDashboardService } from "@/contexts/dashboard-service";
+import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
 
 /** Return type of useFoldersViewModel — can be used as a prop type */
 export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
@@ -18,12 +18,12 @@ export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
  * Must be used inside DashboardServiceProvider.
  */
 export function useFoldersViewModel() {
+  const { folders } = useDashboardState();
   const {
-    folders,
     handleFolderCreated,
     handleFolderDeleted,
     handleFolderUpdated,
-  } = useDashboardService();
+  } = useDashboardActions();
 
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);

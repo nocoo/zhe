@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import type { DashboardService } from '@/contexts/dashboard-service';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -16,31 +15,6 @@ vi.mock('@/actions/webhook', () => ({
   createWebhookToken: (...args: unknown[]) => mockCreateWebhookToken(...args),
   revokeWebhookToken: (...args: unknown[]) => mockRevokeWebhookToken(...args),
   updateWebhookRateLimit: (...args: unknown[]) => mockUpdateWebhookRateLimit(...args),
-}));
-
-const mockService: DashboardService = {
-  links: [],
-  folders: [],
-  tags: [],
-  linkTags: [],
-  loading: false,
-  siteUrl: 'https://zhe.example.com',
-  handleLinkCreated: vi.fn(),
-  handleLinkDeleted: vi.fn(),
-  handleLinkUpdated: vi.fn(),
-  refreshLinks: vi.fn().mockResolvedValue(undefined),
-  handleFolderCreated: vi.fn(),
-  handleFolderDeleted: vi.fn(),
-  handleFolderUpdated: vi.fn(),
-  handleTagCreated: vi.fn(),
-  handleTagDeleted: vi.fn(),
-  handleTagUpdated: vi.fn(),
-  handleLinkTagAdded: vi.fn(),
-  handleLinkTagRemoved: vi.fn(),
-};
-
-vi.mock('@/contexts/dashboard-service', () => ({
-  useDashboardService: () => mockService,
 }));
 
 // Import after mocks
@@ -88,7 +62,7 @@ describe('useWebhookViewModel', () => {
 
     expect(result.current.token).toBe('abc-123');
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('https://zhe.example.com/api/webhook/abc-123');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/abc-123');
   });
 
   it('sets token to null when no token exists', async () => {
@@ -137,7 +111,7 @@ describe('useWebhookViewModel', () => {
     expect(mockCreateWebhookToken).toHaveBeenCalledOnce();
     expect(result.current.token).toBe('new-token-456');
     expect(result.current.createdAt).toBe('2026-02-01T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('https://zhe.example.com/api/webhook/new-token-456');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/new-token-456');
     expect(result.current.isGenerating).toBe(false);
   });
 
@@ -272,7 +246,7 @@ describe('useWebhookViewModel', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.webhookUrl).toBe('https://zhe.example.com/api/webhook/my-token');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/my-token');
   });
 
   // ====================================================================

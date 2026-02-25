@@ -11,7 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useDashboardService } from "@/contexts/dashboard-service";
+import { useDashboardState } from "@/contexts/dashboard-service";
 import { buildShortUrl, stripProtocol, filterLinks } from "@/models/links";
 import { getTagColorClassesByName } from "@/models/tags";
 import type { Tag } from "@/models/types";
@@ -25,7 +25,7 @@ export function SearchCommandDialog({
   open,
   onOpenChange,
 }: SearchCommandDialogProps) {
-  const { links, folders, tags, linkTags, siteUrl } = useDashboardService();
+  const { links, folders, tags, linkTags, siteUrl } = useDashboardState();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 

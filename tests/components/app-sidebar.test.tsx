@@ -39,25 +39,13 @@ import type { Link } from '@/models/types';
 let mockLinks: Link[] = [];
 
 vi.mock('@/contexts/dashboard-service', () => ({
-  useDashboardService: () => ({
+  useDashboardState: () => ({
     get links() { return mockLinks; },
     folders: [],
     tags: [],
     linkTags: [],
     loading: false,
     siteUrl: 'https://zhe.to',
-    handleLinkCreated: vi.fn(),
-    handleLinkDeleted: vi.fn(),
-    handleLinkUpdated: vi.fn(),
-    refreshLinks: vi.fn().mockResolvedValue(undefined),
-    handleFolderCreated: vi.fn(),
-    handleFolderDeleted: vi.fn(),
-    handleFolderUpdated: vi.fn(),
-    handleTagCreated: vi.fn(),
-    handleTagDeleted: vi.fn(),
-    handleTagUpdated: vi.fn(),
-    handleLinkTagAdded: vi.fn(),
-    handleLinkTagRemoved: vi.fn(),
   }),
 }));
 

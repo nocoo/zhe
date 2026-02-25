@@ -18,7 +18,7 @@ import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
 import { APP_VERSION } from "@/lib/version";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
-import { useDashboardService } from "@/contexts/dashboard-service";
+import { useDashboardState } from "@/contexts/dashboard-service";
 import { buildLinkCounts } from "@/models/links";
 
 /** Nav items for folder filtering — rendered as <Link> */
@@ -99,7 +99,7 @@ export function AppSidebar({
   const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
 
   const foldersVm = useFoldersViewModel();
-  const { links } = useDashboardService();
+  const { links } = useDashboardState();
   const linkCounts = useMemo(() => buildLinkCounts(links), [links]);
 
   // Search dialog state (pure UI — not in service)

@@ -7,7 +7,6 @@ import {
   revokeWebhookToken,
   updateWebhookRateLimit as updateRateLimitAction,
 } from "@/actions/webhook";
-import { useDashboardService } from "@/contexts/dashboard-service";
 import { RATE_LIMIT_DEFAULT_MAX } from "@/models/webhook";
 
 /** Return type of useWebhookViewModel — can be used as a prop type */
@@ -17,7 +16,7 @@ export type WebhookViewModel = ReturnType<typeof useWebhookViewModel>;
  * Webhook viewmodel — manages webhook token state and lifecycle actions.
  */
 export function useWebhookViewModel() {
-  const { siteUrl } = useDashboardService();
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const [token, setToken] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);

@@ -53,6 +53,27 @@ vi.mock('@/contexts/dashboard-service', () => ({
     handleLinkTagAdded: vi.fn(),
     handleLinkTagRemoved: vi.fn(),
   }),
+  useDashboardState: () => ({
+    links: [],
+    folders: [],
+    tags: [],
+    linkTags: [],
+    loading: false,
+  }),
+  useDashboardActions: () => ({
+    handleLinkCreated: vi.fn(),
+    handleLinkDeleted: vi.fn(),
+    handleLinkUpdated: vi.fn(),
+    refreshLinks: vi.fn().mockResolvedValue(undefined),
+    handleFolderCreated: vi.fn(),
+    handleFolderDeleted: vi.fn(),
+    handleFolderUpdated: vi.fn(),
+    handleTagCreated: vi.fn(),
+    handleTagDeleted: vi.fn(),
+    handleTagUpdated: vi.fn(),
+    handleLinkTagAdded: vi.fn(),
+    handleLinkTagRemoved: vi.fn(),
+  }),
   DashboardServiceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

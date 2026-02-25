@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Link, Folder } from "@/models/types";
-import type { DashboardService } from "@/contexts/dashboard-service";
 
 // ── Mocks ──
 
@@ -13,29 +12,19 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock DashboardService context
-const mockService: DashboardService = {
+import type { DashboardState } from "@/contexts/dashboard-service";
+
+const mockState: DashboardState = {
   links: [],
   folders: [],
   tags: [],
   linkTags: [],
   loading: false,
   siteUrl: "https://zhe.to",
-  handleLinkCreated: vi.fn(),
-  handleLinkDeleted: vi.fn(),
-  handleLinkUpdated: vi.fn(),
-  refreshLinks: vi.fn().mockResolvedValue(undefined),
-  handleFolderCreated: vi.fn(),
-  handleFolderDeleted: vi.fn(),
-  handleFolderUpdated: vi.fn(),
-  handleTagCreated: vi.fn(),
-  handleTagDeleted: vi.fn(),
-  handleTagUpdated: vi.fn(),
-  handleLinkTagAdded: vi.fn(),
-  handleLinkTagRemoved: vi.fn(),
 };
 
 vi.mock("@/contexts/dashboard-service", () => ({
-  useDashboardService: () => mockService,
+  useDashboardState: () => mockState,
 }));
 
 vi.mock("@/models/tags", () => ({
@@ -94,11 +83,11 @@ function renderDialog(props: { open?: boolean; onOpenChange?: () => void } = {})
 describe("SearchCommandDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockService.links = [];
-    mockService.folders = [];
-    mockService.tags = [];
-    mockService.linkTags = [];
-    mockService.siteUrl = "https://zhe.to";
+    mockState.links = [];
+    mockState.folders = [];
+    mockState.tags = [];
+    mockState.linkTags = [];
+    mockState.siteUrl = "https://zhe.to";
   });
 
   afterEach(() => {
@@ -124,7 +113,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("renders link items with short URL and original URL", () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com/page" }),
       ];
       renderDialog();
@@ -134,7 +123,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("renders multiple links", () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "first", originalUrl: "https://one.com" }),
         makeLink({ id: 2, slug: "second", originalUrl: "https://two.com" }),
       ];
@@ -145,15 +134,15 @@ describe("SearchCommandDialog", () => {
     });
 
     it("shows folder name for links in a folder", () => {
-      mockService.folders = [makeFolder({ id: "f1", name: "Work" })];
-      mockService.links = [makeLink({ id: 1, folderId: "f1" })];
+      mockState.folders = [makeFolder({ id: "f1", name: "Work" })];
+      mockState.links = [makeLink({ id: 1, folderId: "f1" })];
       renderDialog();
 
       expect(screen.getByText("Work")).toBeInTheDocument();
     });
 
     it("does not show folder name for uncategorized links", () => {
-      mockService.links = [makeLink({ id: 1, folderId: null })];
+      mockState.links = [makeLink({ id: 1, folderId: null })];
       renderDialog();
 
       // "Work" should not appear — no folder association
@@ -162,7 +151,7 @@ describe("SearchCommandDialog", () => {
 
     it("handles missing folder gracefully", () => {
       // Link references a folder that doesn't exist in service
-      mockService.links = [makeLink({ id: 1, folderId: "nonexistent" })];
+      mockState.links = [makeLink({ id: 1, folderId: "nonexistent" })];
       renderDialog();
 
       // Should render without crashing, no folder name shown
@@ -174,7 +163,7 @@ describe("SearchCommandDialog", () => {
 
   describe("navigate to folder", () => {
     it("navigates to folder page when selecting a link with folderId", () => {
-      mockService.links = [makeLink({ id: 1, folderId: "f1" })];
+      mockState.links = [makeLink({ id: 1, folderId: "f1" })];
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
@@ -188,7 +177,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("navigates to uncategorized when selecting a link without folderId", () => {
-      mockService.links = [makeLink({ id: 1, folderId: null })];
+      mockState.links = [makeLink({ id: 1, folderId: null })];
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
@@ -204,7 +193,7 @@ describe("SearchCommandDialog", () => {
 
   describe("copy short URL", () => {
     it("renders copy button for each link", () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "abc" }),
         makeLink({ id: 2, slug: "xyz" }),
       ];
@@ -215,7 +204,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("copies short URL to clipboard when copy button clicked", async () => {
-      mockService.links = [makeLink({ id: 1, slug: "test-slug" })];
+      mockState.links = [makeLink({ id: 1, slug: "test-slug" })];
       const onOpenChange = vi.fn();
 
       // Mock clipboard API
@@ -233,7 +222,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("has correct aria-label on copy button", () => {
-      mockService.links = [makeLink({ id: 1, slug: "my-link" })];
+      mockState.links = [makeLink({ id: 1, slug: "my-link" })];
       renderDialog();
 
       expect(
@@ -264,7 +253,7 @@ describe("SearchCommandDialog", () => {
 
   describe("search filtering", () => {
     beforeEach(() => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
         makeLink({ id: 2, slug: "xyz", originalUrl: "https://google.com/search" }),
         makeLink({ id: 3, slug: "hello", originalUrl: "https://world.org" }),
@@ -327,7 +316,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("filters links by metaTitle substring", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "react-docs", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
         makeLink({ id: 2, slug: "vue-guide", originalUrl: "https://vuejs.org", metaTitle: "Vue.js Guide" }),
       ];
@@ -340,7 +329,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("filters links by note substring", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "ref", originalUrl: "https://a.com", note: "Important reference" }),
         makeLink({ id: 2, slug: "temp", originalUrl: "https://b.com", note: "Temporary" }),
       ];
@@ -353,15 +342,15 @@ describe("SearchCommandDialog", () => {
     });
 
     it("filters links by tag name", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "design", originalUrl: "https://figma.com" }),
         makeLink({ id: 2, slug: "code", originalUrl: "https://github.com" }),
       ];
-      mockService.tags = [
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "UI", color: "#ff0000", createdAt: new Date() },
         { id: "t2", userId: "user-1", name: "Dev", color: "#0000ff", createdAt: new Date() },
       ];
-      mockService.linkTags = [
+      mockState.linkTags = [
         { linkId: 1, tagId: "t1" },
         { linkId: 2, tagId: "t2" },
       ];
@@ -378,24 +367,24 @@ describe("SearchCommandDialog", () => {
 
   describe("tag badge rendering", () => {
     it("shows tag badges on links that have tags", () => {
-      mockService.links = [makeLink({ id: 1, slug: "tagged" })];
-      mockService.tags = [
+      mockState.links = [makeLink({ id: 1, slug: "tagged" })];
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "Frontend", color: "#ff0000", createdAt: new Date() },
       ];
-      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
 
       expect(screen.getByText("Frontend")).toBeInTheDocument();
     });
 
     it("shows at most 2 tag badges per link", () => {
-      mockService.links = [makeLink({ id: 1, slug: "multi-tag" })];
-      mockService.tags = [
+      mockState.links = [makeLink({ id: 1, slug: "multi-tag" })];
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "Tag1", color: "#ff0000", createdAt: new Date() },
         { id: "t2", userId: "user-1", name: "Tag2", color: "#00ff00", createdAt: new Date() },
         { id: "t3", userId: "user-1", name: "Tag3", color: "#0000ff", createdAt: new Date() },
       ];
-      mockService.linkTags = [
+      mockState.linkTags = [
         { linkId: 1, tagId: "t1" },
         { linkId: 1, tagId: "t2" },
         { linkId: 1, tagId: "t3" },
@@ -408,7 +397,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("shows metaTitle instead of URL when metaTitle is available", () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: "API Reference" }),
       ];
       renderDialog();
@@ -419,7 +408,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("falls back to original URL when metaTitle is null", () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: null }),
       ];
       renderDialog();
@@ -432,7 +421,7 @@ describe("SearchCommandDialog", () => {
 
   describe("copy button behavior", () => {
     beforeEach(() => {
-      mockService.links = [makeLink({ id: 1, slug: "test-slug" })];
+      mockState.links = [makeLink({ id: 1, slug: "test-slug" })];
       Object.assign(navigator, {
         clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
       });
@@ -476,7 +465,7 @@ describe("SearchCommandDialog", () => {
 
   describe("search filtering edge cases", () => {
     it("filters links by metaDescription substring", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "lib", originalUrl: "https://a.com", metaDescription: "A library for building UIs" }),
         makeLink({ id: 2, slug: "server", originalUrl: "https://b.com", metaDescription: "Server-side rendering" }),
       ];
@@ -489,7 +478,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("does not match protocol prefix in URL", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "site", originalUrl: "https://example.com" }),
       ];
       renderDialog();
@@ -501,7 +490,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("searches Chinese characters correctly", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "docs", originalUrl: "https://a.com", metaTitle: "前端开发指南" }),
         makeLink({ id: 2, slug: "api", originalUrl: "https://b.com", metaTitle: "API Reference" }),
       ];
@@ -514,7 +503,7 @@ describe("SearchCommandDialog", () => {
     });
 
     it("trims whitespace from search query", async () => {
-      mockService.links = [
+      mockState.links = [
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
         makeLink({ id: 2, slug: "xyz", originalUrl: "https://other.com" }),
       ];
@@ -531,33 +520,33 @@ describe("SearchCommandDialog", () => {
 
   describe("tag badge edge cases", () => {
     it("does not render tag badge elements for link with no tags", () => {
-      mockService.links = [makeLink({ id: 1, slug: "no-tags" })];
-      mockService.tags = [
+      mockState.links = [makeLink({ id: 1, slug: "no-tags" })];
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "SomeTag", color: "#ff0000", createdAt: new Date() },
       ];
-      mockService.linkTags = []; // no link-tag associations
+      mockState.linkTags = []; // no link-tag associations
       renderDialog();
 
       expect(screen.queryByText("SomeTag")).not.toBeInTheDocument();
     });
 
     it("renders exactly 1 badge for link with 1 tag", () => {
-      mockService.links = [makeLink({ id: 1, slug: "one-tag" })];
-      mockService.tags = [
+      mockState.links = [makeLink({ id: 1, slug: "one-tag" })];
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "Solo", color: "#ff0000", createdAt: new Date() },
       ];
-      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
 
       expect(screen.getByText("Solo")).toBeInTheDocument();
     });
 
     it("renders tag badges with Tailwind color classes from name", () => {
-      mockService.links = [makeLink({ id: 1, slug: "styled" })];
-      mockService.tags = [
+      mockState.links = [makeLink({ id: 1, slug: "styled" })];
+      mockState.tags = [
         { id: "t1", userId: "user-1", name: "Styled", color: "blue", createdAt: new Date() },
       ];
-      mockService.linkTags = [{ linkId: 1, tagId: "t1" }];
+      mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
 
       const badge = screen.getByText("Styled");
