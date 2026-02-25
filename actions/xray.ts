@@ -164,11 +164,8 @@ function tweetToLinkMetadata(tweet: XrayTweetData): {
   metaDescription: string;
   metaFavicon: string;
 } {
-  const truncatedText = tweet.text.length > 80
-    ? tweet.text.slice(0, 80) + '…'
-    : tweet.text;
   return {
-    metaTitle: `@${tweet.author.username}: ${truncatedText}`,
+    metaTitle: `@${tweet.author.username} posted on x.com`,
     metaDescription: tweet.text,
     metaFavicon: tweet.author.profile_image_url,
   };

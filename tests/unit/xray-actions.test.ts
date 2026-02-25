@@ -136,7 +136,7 @@ describe('fetchAndCacheTweet', () => {
 
     expect(result.success).toBe(true);
     expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(42, {
-      metaTitle: expect.stringContaining('@karpathy:'),
+      metaTitle: '@karpathy posted on x.com',
       metaDescription: SAMPLE_TWEET_DATA.text,
       metaFavicon: SAMPLE_TWEET_DATA.author.profile_image_url,
     });
@@ -204,7 +204,7 @@ describe('fetchAndCacheTweet', () => {
     );
 
     expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(99, {
-      metaTitle: expect.stringContaining('@karpathy:'),
+      metaTitle: '@karpathy posted on x.com',
       metaDescription: SAMPLE_TWEET_DATA.text,
       metaFavicon: SAMPLE_TWEET_DATA.author.profile_image_url,
     });
@@ -231,7 +231,7 @@ describe('fetchAndCacheTweet', () => {
     expect(result.error).toContain('API request failed');
   });
 
-  it('truncates metaTitle at 80 chars with ellipsis', async () => {
+  it('uses fixed title format regardless of tweet length', async () => {
     const longTweet = {
       ...SAMPLE_TWEET_DATA,
       text: 'A'.repeat(200),
@@ -244,9 +244,7 @@ describe('fetchAndCacheTweet', () => {
     await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 1);
 
     const metaCall = mockUpdateLinkMetadata.mock.calls[0];
-    const metaTitle = metaCall[1].metaTitle;
-    // @karpathy: + 80 chars + ellipsis
-    expect(metaTitle).toBe(`@karpathy: ${'A'.repeat(80)}…`);
+    expect(metaCall[1].metaTitle).toBe('@karpathy posted on x.com');
     // metaDescription should be the full text
     expect(metaCall[1].metaDescription).toBe('A'.repeat(200));
   });
@@ -304,7 +302,7 @@ describe('forceRefreshTweetCache', () => {
       }),
     );
     expect(mockUpdateLinkMetadata).toHaveBeenCalledWith(42, {
-      metaTitle: expect.stringContaining('@karpathy:'),
+      metaTitle: '@karpathy posted on x.com',
       metaDescription: SAMPLE_TWEET_DATA.text,
       metaFavicon: SAMPLE_TWEET_DATA.author.profile_image_url,
     });
