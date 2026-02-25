@@ -39,7 +39,7 @@ export function useBackyViewModel() {
   const [history, setHistory] = useState<BackyHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load config on mount
+  // Load config (and history if configured) on mount
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -49,6 +49,12 @@ export function useBackyViewModel() {
         setWebhookUrl(result.data.webhookUrl);
         setMaskedApiKey(result.data.maskedApiKey);
         setIsConfigured(true);
+
+        // Auto-load history when config exists
+        const historyResult = await fetchBackyHistory();
+        if (!cancelled && historyResult.success && historyResult.data) {
+          setHistory(historyResult.data);
+        }
       }
       setIsLoading(false);
     })();
@@ -105,15 +111,13 @@ export function useBackyViewModel() {
           message: result.error ?? "推送失败",
         });
       }
-      // Refresh history after successful push
-      if (result.success) {
-        const historyResult = await fetchBackyHistory();
-        if (historyResult.success && historyResult.data) {
-          setHistory(historyResult.data);
-        }
-      }
     } finally {
       setIsPushing(false);
+      // Always refresh history after push (success or failure)
+      const historyResult = await fetchBackyHistory();
+      if (historyResult.success && historyResult.data) {
+        setHistory(historyResult.data);
+      }
     }
   }, []);
 

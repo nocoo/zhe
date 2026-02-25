@@ -30,6 +30,8 @@ describe('useBackyViewModel', () => {
     vi.clearAllMocks();
     // Default: no config
     mockGetBackyConfig.mockResolvedValue({ success: true, data: undefined });
+    // Default: history not available (safe for tests that trigger auto-load)
+    mockFetchBackyHistory.mockResolvedValue({ success: false });
   });
 
   // ==================================================================
@@ -60,6 +62,7 @@ describe('useBackyViewModel', () => {
         maskedApiKey: 'sk-1••••cdef',
       },
     });
+    mockFetchBackyHistory.mockResolvedValue({ success: false });
 
     const { result } = renderHook(() => useBackyViewModel());
 
@@ -70,6 +73,41 @@ describe('useBackyViewModel', () => {
     expect(result.current.isConfigured).toBe(true);
     expect(result.current.webhookUrl).toBe('https://backy.example.com/webhook');
     expect(result.current.maskedApiKey).toBe('sk-1••••cdef');
+  });
+
+  it('auto-loads history on mount when configured', async () => {
+    mockGetBackyConfig.mockResolvedValue({
+      success: true,
+      data: {
+        webhookUrl: 'https://backy.example.com/webhook',
+        maskedApiKey: 'sk-1••••cdef',
+      },
+    });
+    const mockHistoryData = {
+      project_name: 'zhe',
+      environment: null,
+      total_backups: 3,
+      recent_backups: [
+        { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+      ],
+    };
+    mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
+
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    expect(mockFetchBackyHistory).toHaveBeenCalledOnce();
+    expect(result.current.history).toEqual(mockHistoryData);
+  });
+
+  it('does not auto-load history on mount when not configured', async () => {
+    mockGetBackyConfig.mockResolvedValue({ success: true, data: undefined });
+
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    expect(mockFetchBackyHistory).not.toHaveBeenCalled();
+    expect(result.current.history).toBeNull();
   });
 
   it('loads without config on mount when not configured', async () => {
@@ -252,11 +290,13 @@ describe('useBackyViewModel', () => {
     expect(result.current.history).toEqual(mockHistoryData);
   });
 
-  it('shows error on push failure', async () => {
+  it('shows error on push failure and still refreshes history', async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
       data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
     });
+    // Drain mount history call
+    mockFetchBackyHistory.mockResolvedValue({ success: false });
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
@@ -273,6 +313,16 @@ describe('useBackyViewModel', () => {
       error: '推送失败 (413)',
     });
 
+    const mockHistoryData = {
+      project_name: 'zhe',
+      environment: null,
+      total_backups: 5,
+      recent_backups: [
+        { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+      ],
+    };
+    mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
+
     await act(async () => {
       await result.current.handlePush();
     });
@@ -281,6 +331,8 @@ describe('useBackyViewModel', () => {
       ok: false,
       message: '推送失败 (413)',
     });
+    // History should be refreshed even after failure
+    expect(result.current.history).toEqual(mockHistoryData);
   });
 
   // ==================================================================
