@@ -212,7 +212,7 @@ export function SearchCommandDialog({
                       {/* Meta row: slug + copy, folder, tags — all in one line */}
                       <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
                         <span className="flex items-center gap-0.5 shrink-0">
-                          <Link2 className="h-2.5 w-2.5" strokeWidth={1.5} />
+                          <Link2 className="h-[9px] w-[9px] text-muted-foreground/60" strokeWidth={1.5} />
                           <HighlightText
                             segments={highlightMatches(
                               link.slug,
@@ -223,7 +223,7 @@ export function SearchCommandDialog({
                         <button
                           type="button"
                           aria-label={`Copy ${buildShortUrl(siteUrl, link.slug)}`}
-                          className="shrink-0 rounded-sm p-px text-muted-foreground/50 hover:text-foreground transition-colors"
+                          className="shrink-0 rounded-sm p-px text-muted-foreground/60 hover:text-foreground transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyShortUrl(link.slug);
@@ -235,7 +235,7 @@ export function SearchCommandDialog({
                             }
                           }}
                         >
-                          <Copy className="h-2.5 w-2.5" />
+                          <Copy className="h-[9px] w-[9px]" />
                         </button>
 
                         {folderName && link.folderId && (
@@ -243,7 +243,7 @@ export function SearchCommandDialog({
                             <span className="text-border">·</span>
                             <button
                               type="button"
-                              className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              className="flex items-center gap-0.5 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleNavigateToFolder(link.folderId!);
@@ -255,7 +255,7 @@ export function SearchCommandDialog({
                                 }
                               }}
                             >
-                              <FolderOpen className="h-2.5 w-2.5" />
+                              <FolderOpen className="h-[9px] w-[9px]" />
                               {folderName}
                             </button>
                           </>
