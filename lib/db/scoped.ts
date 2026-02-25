@@ -107,9 +107,6 @@ function rowToUserSettings(row: Record<string, unknown>): UserSettings {
     backyApiKey: (row.backy_api_key as string) ?? null,
     xrayApiUrl: (row.xray_api_url as string) ?? null,
     xrayApiToken: (row.xray_api_token as string) ?? null,
-    discordBotToken: (row.discord_bot_token as string) ?? null,
-    discordPublicKey: (row.discord_public_key as string) ?? null,
-    discordApplicationId: (row.discord_application_id as string) ?? null,
   };
 }
 
@@ -804,36 +801,4 @@ export class ScopedDB {
     return rowToUserSettings(rows[0]);
   }
 
-  // ---- Discord Bot settings ---------------------------------
-
-  /** Discord Bot config shape returned from DB. */
-  async getDiscordBotSettings(): Promise<{
-    botToken: string;
-    publicKey: string;
-    applicationId: string;
-  } | null> {
-    const settings = await this.getUserSettings();
-    if (!settings?.discordBotToken || !settings?.discordPublicKey || !settings?.discordApplicationId) return null;
-    return {
-      botToken: settings.discordBotToken,
-      publicKey: settings.discordPublicKey,
-      applicationId: settings.discordApplicationId,
-    };
-  }
-
-  /** Save Discord Bot config. Creates user_settings row if needed. */
-  async upsertDiscordBotSettings(data: {
-    botToken: string;
-    publicKey: string;
-    applicationId: string;
-  }): Promise<UserSettings> {
-    const rows = await executeD1Query<Record<string, unknown>>(
-      `INSERT INTO user_settings (user_id, preview_style, discord_bot_token, discord_public_key, discord_application_id)
-       VALUES (?, 'favicon', ?, ?, ?)
-       ON CONFLICT (user_id) DO UPDATE SET discord_bot_token = excluded.discord_bot_token, discord_public_key = excluded.discord_public_key, discord_application_id = excluded.discord_application_id
-       RETURNING *`,
-      [this.userId, data.botToken, data.publicKey, data.applicationId],
-    );
-    return rowToUserSettings(rows[0]);
-  }
 }

@@ -465,33 +465,4 @@ export async function upsertTweetCache(data: {
   return rowToTweetCache(rows[0]);
 }
 
-// ============================================
-// Discord Bot Operations (unscoped — for API routes)
-// ============================================
 
-/**
- * Get Discord bot config for the first user who has it configured.
- * Unscoped — called by webhook/gateway routes without a session.
- */
-export async function getDiscordBotConfig(): Promise<{
-  userId: string;
-  botToken: string;
-  publicKey: string;
-  applicationId: string;
-} | null> {
-  const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT user_id, discord_bot_token, discord_public_key, discord_application_id
-     FROM user_settings
-     WHERE discord_bot_token IS NOT NULL
-       AND discord_public_key IS NOT NULL
-       AND discord_application_id IS NOT NULL
-     LIMIT 1`
-  );
-  if (!rows[0]) return null;
-  return {
-    userId: rows[0].user_id as string,
-    botToken: rows[0].discord_bot_token as string,
-    publicKey: rows[0].discord_public_key as string,
-    applicationId: rows[0].discord_application_id as string,
-  };
-}

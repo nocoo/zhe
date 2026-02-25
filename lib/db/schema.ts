@@ -124,9 +124,6 @@ export const userSettings = sqliteTable('user_settings', {
   backyApiKey: text('backy_api_key'),
   xrayApiUrl: text('xray_api_url'),
   xrayApiToken: text('xray_api_token'),
-  discordBotToken: text('discord_bot_token'),
-  discordPublicKey: text('discord_public_key'),
-  discordApplicationId: text('discord_application_id'),
 });
 
 export const tweetCache = sqliteTable('tweet_cache', {
