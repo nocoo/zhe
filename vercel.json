@@ -5,7 +5,7 @@
   "crons": [
     {
       "path": "/api/discord/gateway",
-      "schedule": "*/9 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [
