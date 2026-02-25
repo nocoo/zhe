@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.2.2] - 2026-02-25
+
+### Added
+- Xray API page for tweet content fetching with media, quoted tweets, and preset URL selection
+- Tweet cache system with D1 schema, migration, CRUD operations, and auto-integration into link creation and metadata refresh
+- Auto-upload tweet images to R2 as link preview screenshots
+- Backy remote backup feature: config, connection test, push, and history UI on data management page
+- Backy server actions, viewmodel, and model with types, validation, masking, and tag builder
+- Backy settings columns migration on user_settings table
+- Webhook HEAD handler and enhanced GET with multi-method documentation
+- Webhook stats types for richer endpoint responses
+- Shared link UI components: DeleteLinkDialog, TagBadge, TagPicker, CopyUrlButton
+- Shared `useLinkMutations` hook for unified tag query and mutation operations
+- Link enrichment strategy pattern decoupling Twitter-specific logic from core CRUD
+- Deterministic `tagColorFromName()` hash for name-based tag coloring
+- Enhanced backup format with schema version, full link fields, and link-tag associations
+- BackyPushDetail type with timing and request metadata
+
+### Changed
+- Refactor inbox-triage, link-card, and edit-link-dialog to use shared components (-334 lines)
+- Refactor all tag UI to name-based coloring, fix search-command-dialog, inline list-mode tags
+- Refactor tweet card: inline original tweet link, constrain max-width, preserve full image aspect ratio
+- Split settings page into separate data-management and webhook pages
+- Rename storage title and remove card width constraints
+- Align backy UI with surety design system
+- Rewrite README to reflect current project state
+
+### Fixed
+- Simplify tweet metaTitle to '@username posted on x.com'
+
 ## [v1.2.1] - 2026-02-23
 
 ### Changed
