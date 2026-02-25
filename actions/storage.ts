@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-context';
 import { executeD1Query } from '@/lib/db/d1-client';
 import { listR2Objects, deleteR2Objects } from '@/lib/r2/client';
 import {
@@ -14,12 +14,6 @@ interface ActionResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
-}
-
-/** Verify the current user is authenticated. */
-async function requireAuth(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
 }
 
 // ============================================

@@ -1,34 +1,11 @@
 'use server';
 
-import { auth } from '@/auth';
-import { ScopedDB } from '@/lib/db/scoped';
+import { getScopedDB, getAuthContext } from '@/lib/auth-context';
 import { slugExists, getLinkBySlug } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
 import type { Link } from '@/lib/db/schema';
-
-/**
- * Get a ScopedDB instance for the current authenticated user.
- * Returns null if not authenticated.
- */
-async function getScopedDB(): Promise<ScopedDB | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return new ScopedDB(userId);
-}
-
-/**
- * Get a ScopedDB instance and userId for the current authenticated user.
- * Returns null if not authenticated.
- */
-async function getAuthContext(): Promise<{ db: ScopedDB; userId: string } | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return { db: new ScopedDB(userId), userId };
-}
 
 export interface CreateLinkInput {
   originalUrl: string;

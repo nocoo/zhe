@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/auth';
+import { getSession } from '@/lib/auth-context';
 import { ScopedDB } from '@/lib/db/scoped';
 
 interface OverviewRawStats {
@@ -29,7 +29,7 @@ interface ActionResult<T = void> {
  */
 export async function getOverviewStats(): Promise<ActionResult<OverviewRawStats>> {
   try {
-    const session = await auth();
+    const session = await getSession();
     const userId = session?.user?.id;
     if (!userId) {
       return { success: false, error: 'Unauthorized' };

@@ -1,7 +1,6 @@
 'use server';
 
-import { auth } from '@/auth';
-import { ScopedDB } from '@/lib/db/scoped';
+import { getScopedDB } from '@/lib/auth-context';
 import { APP_VERSION } from '@/lib/version';
 import {
   validateBackyConfig,
@@ -12,17 +11,6 @@ import {
   type BackyPushDetail,
 } from '@/models/backy';
 import { serializeLinksForExport, BACKUP_SCHEMA_VERSION, type BackupEnvelope } from '@/models/settings';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function getScopedDB(): Promise<ScopedDB | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return new ScopedDB(userId);
-}
 
 // ---------------------------------------------------------------------------
 // Actions

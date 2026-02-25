@@ -1,7 +1,6 @@
 'use server';
 
-import { auth } from '@/auth';
-import { ScopedDB } from '@/lib/db/scoped';
+import { getAuthContext } from '@/lib/auth-context';
 import { createPresignedUploadUrl } from '@/lib/r2/client';
 import { deleteR2Object } from '@/lib/r2/client';
 import {
@@ -17,17 +16,6 @@ interface ActionResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
-}
-
-/**
- * Get a ScopedDB instance and userId for the current authenticated user.
- * Returns null if not authenticated.
- */
-async function getAuthContext(): Promise<{ db: ScopedDB; userId: string } | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return { db: new ScopedDB(userId), userId };
 }
 
 /**

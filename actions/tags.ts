@@ -1,21 +1,9 @@
 'use server';
 
-import { auth } from '@/auth';
-import { ScopedDB } from '@/lib/db/scoped';
+import { getScopedDB } from '@/lib/auth-context';
 import { validateTagName, isValidTagColor, tagColorFromName } from '@/models/tags';
 import type { Tag, LinkTag } from '@/lib/db/schema';
 import type { ActionResult } from '@/actions/links';
-
-/**
- * Get a ScopedDB instance for the current authenticated user.
- * Returns null if not authenticated.
- */
-async function getScopedDB(): Promise<ScopedDB | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return new ScopedDB(userId);
-}
 
 export interface CreateTagInput {
   name: string;

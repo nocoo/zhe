@@ -1,23 +1,12 @@
 "use server";
 
-import { auth } from "@/auth";
-import { ScopedDB } from "@/lib/db/scoped";
+import { getScopedDB } from "@/lib/auth-context";
 import { generateWebhookToken as generateToken } from "@/models/webhook.server";
 import {
   clampRateLimit,
   isValidRateLimit,
   RATE_LIMIT_DEFAULT_MAX,
 } from "@/models/webhook";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function getScopedDB(): Promise<ScopedDB | null> {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return new ScopedDB(session.user.id);
-}
 
 // ---------------------------------------------------------------------------
 // Actions

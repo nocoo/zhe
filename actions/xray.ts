@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/auth';
+import { getScopedDB } from '@/lib/auth-context';
 import { ScopedDB } from '@/lib/db/scoped';
 import { getTweetCacheById, upsertTweetCache } from '@/lib/db';
 import {
@@ -15,17 +15,6 @@ import {
   type XrayTweetData,
   type XrayBookmarksResponse,
 } from '@/models/xray';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function getScopedDB(): Promise<ScopedDB | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-  return new ScopedDB(userId);
-}
 
 /** Authenticated GET request to the xray API. */
 function xrayFetch(url: string, token: string): Promise<Response> {
