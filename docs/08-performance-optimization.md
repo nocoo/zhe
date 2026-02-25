@@ -15,7 +15,7 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 | 1 | Unify auth helpers + `cache()` wrap | **Done** | -1 (layout) |
 | 2 | Merge 3 provider actions into 1 `getDashboardData()` | **Done** | -2 |
 | 3 | Reduce unnecessary context subscriptions | **Done** | -3 (re-renders) |
-| 4 | SSR prefetch in `page.tsx` via server data functions | Pending | -1 (page-level) |
+| 4 | SSR prefetch in `page.tsx` via server data functions | **Done** | -1 (page-level) |
 | 5 | Backy page: merge config+history, optimize push flow | Pending | -1 |
 | 6 | Links N+1: batch `refreshLinkMetadata` | Pending | -(N-1) |
 | 7 | Add Suspense boundaries | Pending | 0 |
@@ -98,21 +98,48 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 **Problem:** All `page.tsx` server components are empty shells. Data fetched client-side via `useEffect` causes loading flashes.
 
 **Changes:**
-- Create `lib/dashboard-data.ts` with pure server-side read functions
-- Each `page.tsx` prefetches its data and passes as `initialData` prop
-- Viewmodels accept `initialData` and skip `useEffect` fetch when present
+- Each `page.tsx` made `async`, calls server actions directly to prefetch data
+- Data passed as `initialData` prop to client component
+- Each viewmodel accepts optional `initialData` param — when provided, `useState` initializes with data, `loading` starts as `false`, and `useEffect` early-returns with `if (initialData) return;`
+- No separate `lib/dashboard-data.ts` needed — server actions are callable directly from server components
+
+**Pages converted (6 of 6):**
+- Overview: `getOverviewStats()` → `initialData?: OverviewStats`
+- Xray: `getXrayConfig()` → `initialData?: XrayInitialData`
+- Backy: `getBackyConfig()` + `fetchBackyHistory()` → `initialData?: BackyInitialData`
+- Webhook: `getWebhookToken()` → `initialData?: WebhookInitialData`
+- Uploads: `getUploads()` → `initialUploads?: Upload[]`
+- Storage: `scanStorage()` → `initialData?: StorageScanResult`
 
 **Files Modified:**
-- `lib/dashboard-data.ts` (new)
-- `app/(dashboard)/dashboard/backy/page.tsx`
 - `app/(dashboard)/dashboard/overview/page.tsx`
-- `app/(dashboard)/dashboard/uploads/page.tsx`
 - `app/(dashboard)/dashboard/xray/page.tsx`
-- `app/(dashboard)/dashboard/storage/page.tsx`
+- `app/(dashboard)/dashboard/backy/page.tsx`
 - `app/(dashboard)/dashboard/webhook/page.tsx`
-- Corresponding viewmodels and page components
+- `app/(dashboard)/dashboard/uploads/page.tsx`
+- `app/(dashboard)/dashboard/storage/page.tsx`
+- `viewmodels/useOverviewViewModel.ts`
+- `viewmodels/useXrayViewModel.ts`
+- `viewmodels/useBackyViewModel.ts`
+- `viewmodels/useWebhookViewModel.ts`
+- `viewmodels/useUploadViewModel.ts`
+- `components/dashboard/overview-page.tsx`
+- `components/dashboard/xray-page.tsx`
+- `components/dashboard/backy-page.tsx`
+- `components/dashboard/webhook-page.tsx`
+- `components/dashboard/upload-list.tsx`
+- `components/dashboard/storage-page.tsx`
+- `tests/components/overview-route.test.tsx`
+- `tests/components/xray-route.test.tsx`
+- `tests/components/backy-route.test.tsx`
+- `tests/components/webhook-route.test.tsx`
+- `tests/components/uploads-route.test.tsx`
+- `tests/unit/overview-viewmodel.test.ts`
+- `tests/unit/backy-viewmodel.test.ts`
+- `tests/unit/webhook-viewmodel.test.ts`
+- `tests/unit/upload-viewmodel.test.ts`
 
-**Status:** Pending
+**Status:** Done (commit `60d187c`)
 
 ---
 
