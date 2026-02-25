@@ -119,6 +119,30 @@ export function extractTweetId(input: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Tweet image extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the best preview image URL from tweet media.
+ *
+ * Priority: first PHOTO url, then first VIDEO/GIF thumbnail_url.
+ * Returns null if no usable image is found.
+ */
+export function extractTweetImageUrl(tweet: XrayTweetData): string | null {
+  if (!tweet.media?.length) return null;
+
+  // Prefer PHOTO type — direct image URL
+  const photo = tweet.media.find((m) => m.type === 'PHOTO');
+  if (photo) return photo.url;
+
+  // Fall back to VIDEO/GIF thumbnail
+  const withThumb = tweet.media.find((m) => m.thumbnail_url);
+  if (withThumb?.thumbnail_url) return withThumb.thumbnail_url;
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 

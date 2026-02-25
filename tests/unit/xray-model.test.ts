@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   extractTweetId,
+  extractTweetImageUrl,
   isValidApiUrl,
   validateXrayConfig,
   maskToken,
@@ -11,6 +12,7 @@ import {
   XRAY_PRESETS,
   XRAY_DEFAULT_URL,
 } from '@/models/xray';
+import type { XrayTweetData } from '@/models/xray';
 
 describe('xray model', () => {
   // ==================================================================
@@ -90,6 +92,95 @@ describe('xray model', () => {
 
     it('returns null for URL with non-numeric ID', () => {
       expect(extractTweetId('https://x.com/user/status/abc')).toBeNull();
+    });
+  });
+
+  // ==================================================================
+  // extractTweetImageUrl
+  // ==================================================================
+  describe('extractTweetImageUrl', () => {
+    const baseTweet: XrayTweetData = {
+      id: '123',
+      text: 'test',
+      author: {
+        id: '1',
+        username: 'user',
+        name: 'User',
+        profile_image_url: 'https://pbs.twimg.com/avatar.jpg',
+        followers_count: 0,
+        is_verified: false,
+      },
+      created_at: '2026-01-01T00:00:00.000Z',
+      url: 'https://x.com/user/status/123',
+      metrics: { retweet_count: 0, like_count: 0, reply_count: 0, quote_count: 0, view_count: 0, bookmark_count: 0 },
+      is_retweet: false,
+      is_quote: false,
+      is_reply: false,
+      lang: 'en',
+      entities: { hashtags: [], mentioned_users: [], urls: [] },
+    };
+
+    it('returns null when no media', () => {
+      expect(extractTweetImageUrl(baseTweet)).toBeNull();
+    });
+
+    it('returns null when media is empty array', () => {
+      expect(extractTweetImageUrl({ ...baseTweet, media: [] })).toBeNull();
+    });
+
+    it('returns PHOTO url', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [{ id: '1', type: 'PHOTO' as const, url: 'https://pbs.twimg.com/media/photo.jpg' }],
+      };
+      expect(extractTweetImageUrl(tweet)).toBe('https://pbs.twimg.com/media/photo.jpg');
+    });
+
+    it('returns first PHOTO url when multiple media items', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [
+          { id: '1', type: 'VIDEO' as const, url: 'https://video.twimg.com/v.mp4', thumbnail_url: 'https://pbs.twimg.com/thumb.jpg' },
+          { id: '2', type: 'PHOTO' as const, url: 'https://pbs.twimg.com/media/photo1.jpg' },
+          { id: '3', type: 'PHOTO' as const, url: 'https://pbs.twimg.com/media/photo2.jpg' },
+        ],
+      };
+      expect(extractTweetImageUrl(tweet)).toBe('https://pbs.twimg.com/media/photo1.jpg');
+    });
+
+    it('returns VIDEO thumbnail_url when no PHOTO', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [{ id: '1', type: 'VIDEO' as const, url: 'https://video.twimg.com/v.mp4', thumbnail_url: 'https://pbs.twimg.com/thumb.jpg' }],
+      };
+      expect(extractTweetImageUrl(tweet)).toBe('https://pbs.twimg.com/thumb.jpg');
+    });
+
+    it('returns GIF thumbnail_url when no PHOTO', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [{ id: '1', type: 'GIF' as const, url: 'https://video.twimg.com/g.mp4', thumbnail_url: 'https://pbs.twimg.com/gif-thumb.jpg' }],
+      };
+      expect(extractTweetImageUrl(tweet)).toBe('https://pbs.twimg.com/gif-thumb.jpg');
+    });
+
+    it('returns null when VIDEO has no thumbnail_url and no PHOTO', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [{ id: '1', type: 'VIDEO' as const, url: 'https://video.twimg.com/v.mp4' }],
+      };
+      expect(extractTweetImageUrl(tweet)).toBeNull();
+    });
+
+    it('prefers PHOTO over VIDEO thumbnail', () => {
+      const tweet = {
+        ...baseTweet,
+        media: [
+          { id: '1', type: 'VIDEO' as const, url: 'https://video.twimg.com/v.mp4', thumbnail_url: 'https://pbs.twimg.com/thumb.jpg' },
+          { id: '2', type: 'PHOTO' as const, url: 'https://pbs.twimg.com/media/photo.jpg' },
+        ],
+      };
+      expect(extractTweetImageUrl(tweet)).toBe('https://pbs.twimg.com/media/photo.jpg');
     });
   });
 

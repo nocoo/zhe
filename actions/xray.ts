@@ -7,6 +7,7 @@ import {
   validateXrayConfig,
   maskToken,
   extractTweetId,
+  extractTweetImageUrl,
   buildTweetApiUrl,
   MOCK_TWEET_RESPONSE,
   type XrayTweetResponse,
@@ -196,6 +197,13 @@ export async function fetchAndCacheTweet(
         const tweet: XrayTweetData = JSON.parse(cached.rawData);
         const meta = tweetToLinkMetadata(tweet);
         await db.updateLinkMetadata(linkId, meta);
+
+        // Upload first tweet image as preview (fire-and-forget)
+        const imageUrl = extractTweetImageUrl(tweet);
+        if (imageUrl) {
+          const { saveScreenshot } = await import('@/actions/links');
+          saveScreenshot(linkId, imageUrl).catch(() => {});
+        }
       }
       return { success: true };
     }
@@ -237,6 +245,13 @@ export async function fetchAndCacheTweet(
     if (linkId) {
       const meta = tweetToLinkMetadata(tweet);
       await db.updateLinkMetadata(linkId, meta);
+
+      // Upload first tweet image as preview (fire-and-forget)
+      const imageUrl = extractTweetImageUrl(tweet);
+      if (imageUrl) {
+        const { saveScreenshot } = await import('@/actions/links');
+        saveScreenshot(linkId, imageUrl).catch(() => {});
+      }
     }
 
     return { success: true };
@@ -298,6 +313,13 @@ export async function forceRefreshTweetCache(
     // Update link metadata
     const meta = tweetToLinkMetadata(tweet);
     await db.updateLinkMetadata(linkId, meta);
+
+    // Upload first tweet image as preview (fire-and-forget)
+    const imageUrl = extractTweetImageUrl(tweet);
+    if (imageUrl) {
+      const { saveScreenshot } = await import('@/actions/links');
+      saveScreenshot(linkId, imageUrl).catch(() => {});
+    }
 
     return { success: true };
   } catch (error) {

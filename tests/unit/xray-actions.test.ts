@@ -31,6 +31,12 @@ vi.mock('@/lib/db', () => ({
   upsertTweetCache: (...args: unknown[]) => mockUpsertTweetCache(...args),
 }));
 
+// saveScreenshot mock (dynamically imported by actions/xray)
+const mockSaveScreenshot = vi.fn();
+vi.mock('@/actions/links', () => ({
+  saveScreenshot: (...args: unknown[]) => mockSaveScreenshot(...args),
+}));
+
 // Global fetch mock
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -68,6 +74,13 @@ const SAMPLE_TWEET_DATA: XrayTweetData = {
   is_reply: false,
   lang: 'en',
   entities: { hashtags: [], mentioned_users: [], urls: [] },
+};
+
+const SAMPLE_TWEET_WITH_PHOTO: XrayTweetData = {
+  ...SAMPLE_TWEET_DATA,
+  media: [
+    { id: 'media-1', type: 'PHOTO', url: 'https://pbs.twimg.com/media/HB8UIepawAAbVKf.jpg' },
+  ],
 };
 
 const XRAY_CONFIG = {
@@ -248,6 +261,74 @@ describe('fetchAndCacheTweet', () => {
     // metaDescription should be the full text
     expect(metaCall[1].metaDescription).toBe('A'.repeat(200));
   });
+
+  it('calls saveScreenshot when tweet has PHOTO media (cache miss)', async () => {
+    mockGetTweetCacheById.mockResolvedValue(null);
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_WITH_PHOTO));
+    mockUpsertTweetCache.mockResolvedValue({});
+    mockSaveScreenshot.mockResolvedValue({ success: true });
+
+    await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 42);
+
+    expect(mockSaveScreenshot).toHaveBeenCalledWith(
+      42,
+      'https://pbs.twimg.com/media/HB8UIepawAAbVKf.jpg',
+    );
+  });
+
+  it('calls saveScreenshot when tweet has PHOTO media (cache hit)', async () => {
+    mockGetTweetCacheById.mockResolvedValue({
+      tweetId: '2026360908398862478',
+      rawData: JSON.stringify(SAMPLE_TWEET_WITH_PHOTO),
+    });
+    mockSaveScreenshot.mockResolvedValue({ success: true });
+
+    await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 42);
+
+    expect(mockSaveScreenshot).toHaveBeenCalledWith(
+      42,
+      'https://pbs.twimg.com/media/HB8UIepawAAbVKf.jpg',
+    );
+  });
+
+  it('does NOT call saveScreenshot when tweet has no media', async () => {
+    mockGetTweetCacheById.mockResolvedValue(null);
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_DATA));
+    mockUpsertTweetCache.mockResolvedValue({});
+
+    await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 42);
+
+    expect(mockSaveScreenshot).not.toHaveBeenCalled();
+  });
+
+  it('does NOT call saveScreenshot when no linkId', async () => {
+    mockGetTweetCacheById.mockResolvedValue(null);
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_WITH_PHOTO));
+    mockUpsertTweetCache.mockResolvedValue({});
+
+    await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478');
+
+    expect(mockSaveScreenshot).not.toHaveBeenCalled();
+  });
+
+  it('does not fail when saveScreenshot rejects (fire-and-forget)', async () => {
+    mockGetTweetCacheById.mockResolvedValue(null);
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_WITH_PHOTO));
+    mockUpsertTweetCache.mockResolvedValue({});
+    mockSaveScreenshot.mockRejectedValue(new Error('R2 upload failed'));
+
+    const result = await fetchAndCacheTweet(
+      'https://x.com/karpathy/status/2026360908398862478',
+      42,
+    );
+
+    // Should still succeed — screenshot upload is fire-and-forget
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('forceRefreshTweetCache', () => {
@@ -323,5 +404,35 @@ describe('forceRefreshTweetCache', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('API request failed');
+  });
+
+  it('calls saveScreenshot when tweet has PHOTO media', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_WITH_PHOTO));
+    mockUpsertTweetCache.mockResolvedValue({});
+    mockSaveScreenshot.mockResolvedValue({ success: true });
+
+    await forceRefreshTweetCache(
+      'https://x.com/karpathy/status/2026360908398862478',
+      42,
+    );
+
+    expect(mockSaveScreenshot).toHaveBeenCalledWith(
+      42,
+      'https://pbs.twimg.com/media/HB8UIepawAAbVKf.jpg',
+    );
+  });
+
+  it('does NOT call saveScreenshot when tweet has no media', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_DATA));
+    mockUpsertTweetCache.mockResolvedValue({});
+
+    await forceRefreshTweetCache(
+      'https://x.com/karpathy/status/2026360908398862478',
+      42,
+    );
+
+    expect(mockSaveScreenshot).not.toHaveBeenCalled();
   });
 });
