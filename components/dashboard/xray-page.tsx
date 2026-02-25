@@ -380,19 +380,21 @@ function BookmarksSection({ vm }: { vm: ReturnType<typeof useXrayViewModel> }) {
             点击「加载书签」获取您的 X 书签列表。
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
             {vm.bookmarks.map((tweet) => (
-              <div key={tweet.id} className="relative">
-                <TweetCard tweet={tweet} />
-                <div className="mt-2 flex justify-end">
-                  <BookmarkAddButton
-                    tweetId={tweet.id}
-                    tweetUrl={tweet.url}
-                    isAdding={vm.addingBookmarkIds.has(tweet.id)}
-                    isAdded={vm.addedBookmarkIds.has(tweet.id)}
-                    onAdd={vm.handleAddBookmark}
-                  />
-                </div>
+              <div key={tweet.id} className="mb-4 break-inside-avoid">
+                <TweetCard
+                  tweet={tweet}
+                  action={
+                    <BookmarkAddButton
+                      tweetId={tweet.id}
+                      tweetUrl={tweet.url}
+                      isAdding={vm.addingBookmarkIds.has(tweet.id)}
+                      isAdded={vm.addedBookmarkIds.has(tweet.id)}
+                      onAdd={vm.handleAddBookmark}
+                    />
+                  }
+                />
               </div>
             ))}
           </div>
@@ -449,9 +451,9 @@ function BookmarkAddButton({
 // Tweet card — renders a single tweet with author, text, media, metrics
 // ---------------------------------------------------------------------------
 
-function TweetCard({ tweet }: { tweet: XrayTweetData }) {
+function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="max-w-xl rounded-lg border bg-background p-4 space-y-3">
+    <div className="rounded-lg border bg-background p-4 space-y-3">
       {/* Author row */}
       <div className="flex items-center gap-3">
         <a
@@ -606,6 +608,14 @@ function TweetCard({ tweet }: { tweet: XrayTweetData }) {
             </p>
             <TweetCard tweet={tweet.quoted_tweet} />
           </div>
+        </>
+      )}
+
+      {/* Optional action slot (e.g. bookmark add button) */}
+      {action && (
+        <>
+          <Separator />
+          <div className="flex justify-end">{action}</div>
         </>
       )}
 
