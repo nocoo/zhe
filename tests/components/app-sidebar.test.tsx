@@ -160,9 +160,9 @@ describe('AppSidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 6 static) are now <Link> (rendered as <a>)
+      // All items (1 overview + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(9);
+      expect(navLinks.length).toBe(10);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -459,9 +459,9 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 6 static = 11
+      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 7 static = 12
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(11);
+      expect(navLinks.length).toBe(12);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -649,9 +649,9 @@ describe('AppSidebar', () => {
     it('renders all nav links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include: 1 overview + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 3 系统 (storage+data-management+webhook) = 9
+      // Should include: 1 overview + 2 folder nav + 4 系统集成 (uploads+backy+xray+bot) + 3 系统 (storage+data-management+webhook) = 10
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(9);
+      expect(navLinks.length).toBe(10);
     });
   });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Database, Webhook, HardDrive, Radar, CloudUpload } from "lucide-react";
+import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Database, Webhook, HardDrive, Radar, CloudUpload, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -65,6 +65,7 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
       { title: "文件上传", icon: FileUp, href: "/dashboard/uploads" },
       { title: "Backy", icon: CloudUpload, href: "/dashboard/backy" },
       { title: "Xray", icon: Radar, href: "/dashboard/xray" },
+      { title: "Bot", icon: Bot, href: "/dashboard/bot" },
     ],
   },
   {

@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/uploads": "系统集成",
   "/dashboard/backy": "Backy",
   "/dashboard/xray": "Xray",
+  "/dashboard/bot": "Bot",
   "/dashboard/storage": "存储管理",
   "/dashboard/data-management": "数据管理",
   "/dashboard/webhook": "Webhook",
