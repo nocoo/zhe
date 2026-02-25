@@ -139,6 +139,26 @@ export function buildLinkCounts(links: Link[]): LinkCounts {
   return { total: links.length, uncategorized, byFolder };
 }
 
+// --- Domain-specific URL detection ---
+
+/**
+ * Check if a URL points to a Twitter/X tweet.
+ * Matches `x.com/{user}/status/{id}` and `twitter.com/{user}/status/{id}`
+ * with optional www/mobile subdomains and trailing segments.
+ * Does NOT match bare x.com, profile pages, or non-tweet paths.
+ */
+export function isTwitterUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^(www|mobile)\./, '');
+    if (host !== 'x.com' && host !== 'twitter.com') return false;
+    // pathname must match /<username>/status/<id>
+    return /^\/[^/]+\/status\/\d+/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 // --- Domain-specific preview overrides ---
 
 /** Fixed preview image for GitHub repository pages (they all look the same) */

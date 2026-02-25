@@ -12,6 +12,7 @@ import {
   fetchMicrolinkScreenshot,
   fetchScreenshotDomains,
   isGitHubRepoUrl,
+  isTwitterUrl,
   GITHUB_REPO_PREVIEW_URL,
 } from '@/models/links';
 import type { Link } from '@/models/types';
@@ -855,6 +856,68 @@ describe('models/links', () => {
   describe('GITHUB_REPO_PREVIEW_URL', () => {
     it('is a valid URL string', () => {
       expect(GITHUB_REPO_PREVIEW_URL).toMatch(/^https:\/\//);
+    });
+  });
+
+  describe('isTwitterUrl', () => {
+    it('matches x.com tweet URL', () => {
+      expect(isTwitterUrl('https://x.com/karpathy/status/2026360908398862478')).toBe(true);
+    });
+
+    it('matches twitter.com tweet URL', () => {
+      expect(isTwitterUrl('https://twitter.com/elonmusk/status/123456789')).toBe(true);
+    });
+
+    it('matches www.x.com tweet URL', () => {
+      expect(isTwitterUrl('https://www.x.com/user/status/999')).toBe(true);
+    });
+
+    it('matches www.twitter.com tweet URL', () => {
+      expect(isTwitterUrl('https://www.twitter.com/user/status/999')).toBe(true);
+    });
+
+    it('matches mobile.twitter.com tweet URL', () => {
+      expect(isTwitterUrl('https://mobile.twitter.com/user/status/999')).toBe(true);
+    });
+
+    it('matches tweet URL with trailing segments (photo/1)', () => {
+      expect(isTwitterUrl('https://x.com/user/status/123/photo/1')).toBe(true);
+    });
+
+    it('matches tweet URL with query params', () => {
+      expect(isTwitterUrl('https://x.com/user/status/123?s=20&t=abc')).toBe(true);
+    });
+
+    it('does NOT match bare x.com', () => {
+      expect(isTwitterUrl('https://x.com')).toBe(false);
+    });
+
+    it('does NOT match x.com profile page', () => {
+      expect(isTwitterUrl('https://x.com/karpathy')).toBe(false);
+    });
+
+    it('does NOT match x.com non-status paths', () => {
+      expect(isTwitterUrl('https://x.com/karpathy/likes')).toBe(false);
+    });
+
+    it('does NOT match non-twitter domains', () => {
+      expect(isTwitterUrl('https://example.com/user/status/123')).toBe(false);
+    });
+
+    it('does NOT match github.com', () => {
+      expect(isTwitterUrl('https://github.com/user/status/123')).toBe(false);
+    });
+
+    it('returns false for invalid URLs', () => {
+      expect(isTwitterUrl('not-a-url')).toBe(false);
+    });
+
+    it('returns false for empty string', () => {
+      expect(isTwitterUrl('')).toBe(false);
+    });
+
+    it('matches http (non-https) tweet URL', () => {
+      expect(isTwitterUrl('http://x.com/user/status/123')).toBe(true);
     });
   });
 });

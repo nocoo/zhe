@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import { ScopedDB } from '@/lib/db/scoped';
+import { getTweetCacheById, upsertTweetCache } from '@/lib/db';
 import {
   validateXrayConfig,
   maskToken,
@@ -9,6 +10,7 @@ import {
   buildTweetApiUrl,
   MOCK_TWEET_RESPONSE,
   type XrayTweetResponse,
+  type XrayTweetData,
 } from '@/models/xray';
 
 // ---------------------------------------------------------------------------
@@ -146,5 +148,163 @@ export async function fetchTweet(tweetUrl: string): Promise<{
   } catch (error) {
     console.error('Failed to fetch tweet:', error);
     return { success: false, error: '获取推文失败' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cache-aware tweet fetching (for link integration)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build link metadata fields from tweet data.
+ * Used by both fetchAndCacheTweet and forceRefreshTweetCache.
+ */
+function tweetToLinkMetadata(tweet: XrayTweetData): {
+  metaTitle: string;
+  metaDescription: string;
+  metaFavicon: string;
+} {
+  const truncatedText = tweet.text.length > 80
+    ? tweet.text.slice(0, 80) + '…'
+    : tweet.text;
+  return {
+    metaTitle: `@${tweet.author.username}: ${truncatedText}`,
+    metaDescription: tweet.text,
+    metaFavicon: tweet.author.profile_image_url,
+  };
+}
+
+/**
+ * Fetch a tweet and cache it. If cached, returns immediately without API call.
+ * Optionally updates link metadata if linkId is provided.
+ *
+ * Called as fire-and-forget from createLink() for X links.
+ */
+export async function fetchAndCacheTweet(
+  tweetUrl: string,
+  linkId?: number,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    const tweetId = extractTweetId(tweetUrl);
+    if (!tweetId) return { success: false, error: 'Invalid tweet URL' };
+
+    // Check cache first
+    const cached = await getTweetCacheById(tweetId);
+    if (cached) {
+      // Cache hit — update link metadata from cache if linkId provided
+      if (linkId) {
+        const tweet: XrayTweetData = JSON.parse(cached.rawData);
+        const meta = tweetToLinkMetadata(tweet);
+        await db.updateLinkMetadata(linkId, meta);
+      }
+      return { success: true };
+    }
+
+    // Cache miss — fetch from API
+    const config = await db.getXraySettings();
+    if (!config) return { success: false, error: 'xray API not configured' };
+
+    const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'X-Webhook-Key': config.apiToken,
+      },
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `API request failed (${res.status})` };
+    }
+
+    const response: XrayTweetResponse = await res.json();
+    const tweet = response.data;
+
+    // Write to cache
+    await upsertTweetCache({
+      tweetId: tweet.id,
+      authorUsername: tweet.author.username,
+      authorName: tweet.author.name,
+      authorAvatar: tweet.author.profile_image_url,
+      tweetText: tweet.text,
+      tweetUrl: tweet.url,
+      lang: tweet.lang,
+      tweetCreatedAt: tweet.created_at,
+      rawData: JSON.stringify(tweet),
+    });
+
+    // Update link metadata if linkId provided
+    if (linkId) {
+      const meta = tweetToLinkMetadata(tweet);
+      await db.updateLinkMetadata(linkId, meta);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to fetch and cache tweet:', error);
+    return { success: false, error: 'Failed to fetch tweet' };
+  }
+}
+
+/**
+ * Force-refresh a tweet from the API, bypassing cache.
+ * Always calls the API and updates both cache and link metadata.
+ *
+ * Called from refreshLinkMetadata() for X links.
+ */
+export async function forceRefreshTweetCache(
+  tweetUrl: string,
+  linkId: number,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    const tweetId = extractTweetId(tweetUrl);
+    if (!tweetId) return { success: false, error: 'Invalid tweet URL' };
+
+    const config = await db.getXraySettings();
+    if (!config) return { success: false, error: 'xray API not configured' };
+
+    const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
+    const res = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'X-Webhook-Key': config.apiToken,
+      },
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `API request failed (${res.status})` };
+    }
+
+    const response: XrayTweetResponse = await res.json();
+    const tweet = response.data;
+
+    // Update cache (upsert)
+    await upsertTweetCache({
+      tweetId: tweet.id,
+      authorUsername: tweet.author.username,
+      authorName: tweet.author.name,
+      authorAvatar: tweet.author.profile_image_url,
+      tweetText: tweet.text,
+      tweetUrl: tweet.url,
+      lang: tweet.lang,
+      tweetCreatedAt: tweet.created_at,
+      rawData: JSON.stringify(tweet),
+    });
+
+    // Update link metadata
+    const meta = tweetToLinkMetadata(tweet);
+    await db.updateLinkMetadata(linkId, meta);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to force refresh tweet cache:', error);
+    return { success: false, error: 'Failed to refresh tweet' };
   }
 }

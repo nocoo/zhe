@@ -23,7 +23,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
   return {
     isD1Configured: () => true,
@@ -899,6 +899,90 @@ vi.mock('@/lib/db/d1-client', async () => {
         };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];
+      }
+
+      // ---- Tweet Cache ----
+
+      // SELECT FROM tweet_cache WHERE tweet_id = ?
+      if (sqlLower.includes('from tweet_cache') && sqlLower.includes('where tweet_id = ?') && !sqlLower.includes('in (')) {
+        const [tweetId] = params;
+        const mockCache = getMockTweetCache();
+        const cached = mockCache.get(tweetId as string);
+        if (cached) {
+          return [{
+            tweet_id: cached.tweetId,
+            author_username: cached.authorUsername,
+            author_name: cached.authorName,
+            author_avatar: cached.authorAvatar,
+            tweet_text: cached.tweetText,
+            tweet_url: cached.tweetUrl,
+            lang: cached.lang,
+            tweet_created_at: cached.tweetCreatedAt,
+            raw_data: cached.rawData,
+            fetched_at: cached.fetchedAt,
+            updated_at: cached.updatedAt,
+          }] as T[];
+        }
+        return [];
+      }
+
+      // SELECT FROM tweet_cache WHERE tweet_id IN (...)
+      if (sqlLower.includes('from tweet_cache') && sqlLower.includes('in (')) {
+        const mockCache = getMockTweetCache();
+        const results: unknown[] = [];
+        for (const id of params) {
+          const cached = mockCache.get(id as string);
+          if (cached) {
+            results.push({
+              tweet_id: cached.tweetId,
+              author_username: cached.authorUsername,
+              author_name: cached.authorName,
+              author_avatar: cached.authorAvatar,
+              tweet_text: cached.tweetText,
+              tweet_url: cached.tweetUrl,
+              lang: cached.lang,
+              tweet_created_at: cached.tweetCreatedAt,
+              raw_data: cached.rawData,
+              fetched_at: cached.fetchedAt,
+              updated_at: cached.updatedAt,
+            });
+          }
+        }
+        return results as T[];
+      }
+
+      // INSERT INTO tweet_cache ... ON CONFLICT ... DO UPDATE (upsert)
+      if (sqlLower.startsWith('insert into tweet_cache')) {
+        const [tweetId, authorUsername, authorName, authorAvatar, tweetText, tweetUrl, lang, tweetCreatedAt, rawData, fetchedAt, updatedAt] = params;
+        const mockCache = getMockTweetCache();
+        const existing = mockCache.get(tweetId as string);
+        const cached = {
+          tweetId: tweetId as string,
+          authorUsername: authorUsername as string,
+          authorName: authorName as string,
+          authorAvatar: authorAvatar as string,
+          tweetText: tweetText as string,
+          tweetUrl: tweetUrl as string,
+          lang: lang as string | null,
+          tweetCreatedAt: tweetCreatedAt as string,
+          rawData: rawData as string,
+          fetchedAt: existing ? existing.fetchedAt : fetchedAt as number,
+          updatedAt: updatedAt as number,
+        };
+        mockCache.set(tweetId as string, cached as unknown as import('@/lib/db/schema').TweetCache);
+        return [{
+          tweet_id: cached.tweetId,
+          author_username: cached.authorUsername,
+          author_name: cached.authorName,
+          author_avatar: cached.authorAvatar,
+          tweet_text: cached.tweetText,
+          tweet_url: cached.tweetUrl,
+          lang: cached.lang,
+          tweet_created_at: cached.tweetCreatedAt,
+          raw_data: cached.rawData,
+          fetched_at: cached.fetchedAt,
+          updated_at: cached.updatedAt,
+        }] as T[];
       }
 
       console.warn('Unhandled SQL in mock:', sql);

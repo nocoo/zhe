@@ -3,7 +3,7 @@
  * This is used by vitest to mock the D1 client.
  */
 
-import type { Link, Analytics, Upload, Folder, Webhook, Tag } from '@/lib/db/schema';
+import type { Link, Analytics, Upload, Folder, Webhook, Tag, TweetCache } from '@/lib/db/schema';
 
 // LinkTag raw row shape (matches D1 column names)
 export interface MockLinkTag {
@@ -28,6 +28,7 @@ const mockWebhooks = new Map<string, Webhook>(); // keyed by userId
 const mockTags = new Map<string, Tag>();
 const mockLinkTags: MockLinkTag[] = [];
 const mockUserSettings = new Map<string, MockUserSettings>(); // keyed by userId
+const mockTweetCache = new Map<string, TweetCache>(); // keyed by tweetId
 let nextLinkId = 1;
 let nextAnalyticsId = 1;
 let nextUploadId = 1;
@@ -42,6 +43,7 @@ export function clearMockStorage(): void {
   mockTags.clear();
   mockLinkTags.length = 0;
   mockUserSettings.clear();
+  mockTweetCache.clear();
   nextLinkId = 1;
   nextAnalyticsId = 1;
   nextUploadId = 1;
@@ -78,6 +80,10 @@ export function getMockLinkTags(): MockLinkTag[] {
 
 export function getMockUserSettings(): Map<string, MockUserSettings> {
   return mockUserSettings;
+}
+
+export function getMockTweetCache(): Map<string, TweetCache> {
+  return mockTweetCache;
 }
 
 export function getNextLinkId(): number {
