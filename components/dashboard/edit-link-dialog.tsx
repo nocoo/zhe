@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Loader2, Plus, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,20 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandEmpty,
-  CommandGroup,
-} from "@/components/ui/command";
-import { getTagColorClassesByName } from "@/models/tags";
+import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
 import type { Tag, Folder } from "@/models/types";
 
 interface EditLinkDialogProps {
@@ -79,25 +65,6 @@ export function EditLinkDialog({
   onRemoveTag,
   onCreateAndAssignTag,
 }: EditLinkDialogProps) {
-  const [tagPickerOpen, setTagPickerOpen] = useState(false);
-  const [tagSearch, setTagSearch] = useState("");
-
-  const unassignedTags = allTags.filter((t) => !assignedTagIds.has(t.id));
-
-  const handleCreateTag = () => {
-    const trimmed = tagSearch.trim();
-    if (!trimmed) return;
-    onCreateAndAssignTag(trimmed);
-    setTagSearch("");
-    setTagPickerOpen(false);
-  };
-
-  const handleSelectTag = (tagId: string) => {
-    onAddTag(tagId);
-    setTagSearch("");
-    setTagPickerOpen(false);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
@@ -201,104 +168,19 @@ export function EditLinkDialog({
 
             {/* Assigned tags */}
             <div className="flex flex-wrap gap-1.5">
-              {assignedTags.map((tag) => {
-                const colors = getTagColorClassesByName(tag.name);
-                return (
-                  <span
-                    key={tag.id}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${colors.badge}`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${colors.dot}`}
-                    />
-                    {tag.name}
-                    <button
-                      type="button"
-                      onClick={() => onRemoveTag(tag.id)}
-                      className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                      aria-label={`Remove tag ${tag.name}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                );
-              })}
+              {assignedTags.map((tag) => (
+                <TagBadge key={tag.id} tag={tag} onRemove={onRemoveTag} />
+              ))}
 
               {/* Add tag button + popover */}
-              <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                    aria-label="Add tag"
-                  >
-                    <Plus className="h-3 w-3" />
-                    添加标签
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="搜索或创建标签..."
-                      value={tagSearch}
-                      onValueChange={setTagSearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
-                        未找到标签
-                      </CommandEmpty>
-                      {/* Existing unassigned tags filtered by search */}
-                      <CommandGroup>
-                        {unassignedTags
-                          .filter((t) =>
-                            t.name
-                              .toLowerCase()
-                              .includes(tagSearch.toLowerCase()),
-                          )
-                          .map((tag) => {
-                            const colors = getTagColorClassesByName(tag.name);
-                            return (
-                              <CommandItem
-                                key={tag.id}
-                                value={tag.id}
-                                onSelect={() => handleSelectTag(tag.id)}
-                                className="flex items-center gap-2"
-                              >
-                                <span
-                                  className={`h-2 w-2 rounded-full ${colors.dot}`}
-                                />
-                                <span>{tag.name}</span>
-                                {assignedTagIds.has(tag.id) && (
-                                  <Check className="ml-auto h-3.5 w-3.5" />
-                                )}
-                              </CommandItem>
-                            );
-                          })}
-                      </CommandGroup>
-
-                      {/* Create new tag option */}
-                      {tagSearch.trim() &&
-                        !allTags.some(
-                          (t) =>
-                            t.name.toLowerCase() ===
-                            tagSearch.trim().toLowerCase(),
-                        ) && (
-                          <CommandGroup>
-                            <CommandItem
-                              onSelect={handleCreateTag}
-                              className="flex items-center gap-2"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span>
-                                创建 &ldquo;{tagSearch.trim()}&rdquo;
-                              </span>
-                            </CommandItem>
-                          </CommandGroup>
-                        )}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <TagPicker
+                allTags={allTags}
+                assignedTagIds={assignedTagIds}
+                onSelectTag={onAddTag}
+                onCreateTag={onCreateAndAssignTag}
+                triggerLabel="添加标签"
+                popoverWidth="w-64"
+              />
             </div>
           </div>
 

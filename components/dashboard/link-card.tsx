@@ -18,17 +18,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -40,7 +29,7 @@ import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { extractHostname } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
-import { getTagColorClassesByName } from "@/models/tags";
+import { DeleteLinkDialog, TagBadge } from "@/components/dashboard/shared-link-components";
 import type { Link, Tag, LinkTag } from "@/models/types";
 import type { ScreenshotSource } from "@/models/links";
 
@@ -179,8 +168,8 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
             </button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <DeleteLinkDialog
+              trigger={
                 <button
                   onClick={(e) => e.stopPropagation()}
                   aria-label="Delete link"
@@ -189,26 +178,10 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 >
                   <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                 </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>确认删除</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    此操作不可撤销，确定要删除这条链接吗？
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {isDeleting ? "删除中..." : "删除"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+              isDeleting={isDeleting}
+              onConfirm={handleDelete}
+            />
           </div>
         </div>
 
@@ -294,18 +267,9 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           {/* Tag badges in grid mode */}
           {cardTags.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
-              {cardTags.map((tag) => {
-                const colors = getTagColorClassesByName(tag.name);
-                return (
-                  <span
-                    key={tag.id}
-                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium ${colors.badge}`}
-                  >
-                    <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
-                    {tag.name}
-                  </span>
-                );
-              })}
+              {cardTags.map((tag) => (
+                <TagBadge key={tag.id} tag={tag} size="sm" />
+              ))}
             </div>
           )}
         </div>
@@ -451,18 +415,9 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
                 过期: {formatDate(link.expiresAt)}
               </span>
             )}
-            {cardTags.map((tag) => {
-              const colors = getTagColorClassesByName(tag.name);
-              return (
-                <span
-                  key={tag.id}
-                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium ${colors.badge}`}
-                >
-                  <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
-                  {tag.name}
-                </span>
-              );
-            })}
+            {cardTags.map((tag) => (
+              <TagBadge key={tag.id} tag={tag} size="sm" />
+            ))}
           </div>
         </div>
 
@@ -523,8 +478,8 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           >
             <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
           </a>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <DeleteLinkDialog
+            trigger={
               <button
                 aria-label="Delete link"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -532,26 +487,10 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               >
                 <Trash2 className="w-4 h-4" strokeWidth={1.5} />
               </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>确认删除</AlertDialogTitle>
-                <AlertDialogDescription>
-                  此操作不可撤销，确定要删除这条链接吗？
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>取消</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isDeleting ? "删除中..." : "删除"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            }
+            isDeleting={isDeleting}
+            onConfirm={handleDelete}
+          />
         </div>
       </div>
 

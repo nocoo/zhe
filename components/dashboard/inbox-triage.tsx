@@ -3,46 +3,17 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
-  Check,
-  Copy,
   ExternalLink,
   Inbox as InboxIcon,
   Loader2,
-  Plus,
   RefreshCw,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandEmpty,
-  CommandGroup,
-} from "@/components/ui/command";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
-import { getTagColorClassesByName } from "@/models/tags";
-import { copyToClipboard } from "@/lib/utils";
 import { deleteLink } from "@/actions/links";
+import { DeleteLinkDialog, TagBadge, TagPicker, CopyUrlButton } from "@/components/dashboard/shared-link-components";
 import type { Link, Tag } from "@/models/types";
 
 /** A single inbox item row with inline triage controls */
@@ -77,34 +48,7 @@ function InboxItem({
   onCreateAndAssignTag: (name: string) => void;
   onDelete: () => void;
 }) {
-  const [tagPickerOpen, setTagPickerOpen] = useState(false);
-  const [tagSearch, setTagSearch] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-
-  const unassignedTags = allTags.filter((t) => !assignedTagIds.has(t.id));
-
-  const handleCopyOriginalUrl = async () => {
-    const success = await copyToClipboard(link.originalUrl);
-    if (success) {
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2000);
-    }
-  };
-
-  const handleSelectTag = (tagId: string) => {
-    onAddTag(tagId);
-    setTagSearch("");
-    setTagPickerOpen(false);
-  };
-
-  const handleCreateTag = () => {
-    const trimmed = tagSearch.trim();
-    if (!trimmed) return;
-    onCreateAndAssignTag(trimmed);
-    setTagSearch("");
-    setTagPickerOpen(false);
-  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -144,18 +88,7 @@ function InboxItem({
             >
               {displayTitle}
             </a>
-            <button
-              onClick={handleCopyOriginalUrl}
-              aria-label="Copy original URL"
-              className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-              title="Copy original URL"
-            >
-              {copiedUrl ? (
-                <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
-              ) : (
-                <Copy className="w-3 h-3" strokeWidth={1.5} />
-              )}
-            </button>
+            <CopyUrlButton url={link.originalUrl} className="h-5 w-5" />
           </div>
           {link.metaDescription && (
             <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
@@ -175,8 +108,8 @@ function InboxItem({
           >
             <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
           </a>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          <DeleteLinkDialog
+            trigger={
               <button
                 aria-label="Delete link"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -184,26 +117,10 @@ function InboxItem({
               >
                 <Trash2 className="w-4 h-4" strokeWidth={1.5} />
               </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>确认删除</AlertDialogTitle>
-                <AlertDialogDescription>
-                  此操作不可撤销，确定要删除这条链接吗？
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>取消</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isDeleting ? "删除中..." : "删除"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            }
+            isDeleting={isDeleting}
+            onConfirm={handleDelete}
+          />
         </div>
       </div>
 
@@ -279,88 +196,16 @@ function InboxItem({
 
       {/* Tags row */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {assignedTags.map((tag) => {
-          const colors = getTagColorClassesByName(tag.name);
-          return (
-            <span
-              key={tag.id}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colors.badge}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-              {tag.name}
-              <button
-                type="button"
-                onClick={() => onRemoveTag(tag.id)}
-                className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                aria-label={`Remove tag ${tag.name}`}
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </span>
-          );
-        })}
+        {assignedTags.map((tag) => (
+          <TagBadge key={tag.id} tag={tag} onRemove={onRemoveTag} />
+        ))}
 
-        {/* Add tag popover */}
-        <Popover open={tagPickerOpen} onOpenChange={setTagPickerOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-              aria-label="Add tag"
-            >
-              <Plus className="h-3 w-3" />
-              标签
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-0" align="start">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="搜索或创建标签..."
-                value={tagSearch}
-                onValueChange={setTagSearch}
-              />
-              <CommandList>
-                <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
-                  未找到标签
-                </CommandEmpty>
-                <CommandGroup>
-                  {unassignedTags
-                    .filter((t) =>
-                      t.name.toLowerCase().includes(tagSearch.toLowerCase()),
-                    )
-                    .map((tag) => {
-                      const colors = getTagColorClassesByName(tag.name);
-                      return (
-                        <CommandItem
-                          key={tag.id}
-                          value={tag.id}
-                          onSelect={() => handleSelectTag(tag.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <span className={`h-2 w-2 rounded-full ${colors.dot}`} />
-                          <span>{tag.name}</span>
-                        </CommandItem>
-                      );
-                    })}
-                </CommandGroup>
-                {tagSearch.trim() &&
-                  !allTags.some(
-                    (t) => t.name.toLowerCase() === tagSearch.trim().toLowerCase(),
-                  ) && (
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={handleCreateTag}
-                        className="flex items-center gap-2"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span>创建 &ldquo;{tagSearch.trim()}&rdquo;</span>
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <TagPicker
+          allTags={allTags}
+          assignedTagIds={assignedTagIds}
+          onSelectTag={onAddTag}
+          onCreateTag={onCreateAndAssignTag}
+        />
       </div>
 
       {/* Error message */}
