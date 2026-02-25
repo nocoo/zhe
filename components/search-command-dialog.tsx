@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Link2, FolderOpen, Copy, BarChart3, Search } from "lucide-react";
+import { Link2, FolderOpen, Copy, Search } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -15,14 +15,12 @@ import {
 import { useDashboardState } from "@/contexts/dashboard-service";
 import {
   buildShortUrl,
-  stripProtocol,
   filterLinks,
   extractHostname,
   highlightMatches,
 } from "@/models/links";
 import type { HighlightSegment } from "@/models/links";
 import { getTagColorClassesByName } from "@/models/tags";
-import { formatDate, formatNumber } from "@/lib/utils";
 import type { Tag } from "@/models/types";
 
 export interface SearchCommandDialogProps {
@@ -99,17 +97,22 @@ export function SearchCommandDialog({
     [folders],
   );
 
-  /** Navigate to the link's folder (or "all links" if uncategorized) */
+  /** Navigate to the link's folder */
   const handleNavigateToFolder = useCallback(
-    (folderId: string | null) => {
+    (folderId: string) => {
       onOpenChange(false);
-      if (folderId) {
-        router.push(`/dashboard?folder=${folderId}`);
-      } else {
-        router.push("/dashboard?folder=uncategorized");
-      }
+      router.push(`/dashboard?folder=${folderId}`);
     },
     [onOpenChange, router],
+  );
+
+  /** Open the original URL in a new tab */
+  const handleOpenOriginalUrl = useCallback(
+    (url: string) => {
+      window.open(url, "_blank", "noopener,noreferrer");
+      onOpenChange(false);
+    },
+    [onOpenChange],
   );
 
   /** Copy the short URL to clipboard */
@@ -147,7 +150,6 @@ export function SearchCommandDialog({
             <CommandGroup heading={`链接 (${filteredLinks.length})`}>
               {filteredLinks.map((link) => {
                 const folderName = getFolderName(link.folderId);
-                const shortUrl = buildShortUrl(siteUrl, link.slug);
                 const linkTagList = tagsByLinkId.get(link.id);
                 const hostname = extractHostname(link.originalUrl);
                 const titleText = link.metaTitle || hostname;
@@ -157,7 +159,7 @@ export function SearchCommandDialog({
                     key={link.id}
                     value={link.slug}
                     className="flex items-start gap-3 py-2.5"
-                    onSelect={() => handleNavigateToFolder(link.folderId)}
+                    onSelect={() => handleOpenOriginalUrl(link.originalUrl)}
                   >
                     {/* Favicon */}
                     <div className="mt-0.5 shrink-0">
@@ -200,7 +202,7 @@ export function SearchCommandDialog({
                         </p>
                       )}
 
-                      {/* Note (if available and different from title) */}
+                      {/* Note (if available) */}
                       {link.note && (
                         <p className="truncate text-xs text-muted-foreground/60 mt-0.5 italic">
                           <HighlightText
@@ -209,91 +211,84 @@ export function SearchCommandDialog({
                         </p>
                       )}
 
-                      {/* Meta row: short URL, original URL, clicks, date, folder, tags */}
-                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
+                      {/* Slug row with copy button */}
+                      <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-0.5 shrink-0">
                           <Link2 className="h-3 w-3" strokeWidth={1.5} />
                           <HighlightText
                             segments={highlightMatches(
-                              stripProtocol(shortUrl),
+                              link.slug,
                               trimmedQuery,
                             )}
                           />
                         </span>
-                        <span className="text-border">·</span>
-                        <span className="truncate">
-                          <HighlightText
-                            segments={highlightMatches(
-                              stripProtocol(link.originalUrl),
-                              trimmedQuery,
-                            )}
-                          />
-                        </span>
-                        <span className="text-border">·</span>
-                        <span className="flex items-center gap-0.5 shrink-0">
-                          <BarChart3 className="h-3 w-3" strokeWidth={1.5} />
-                          {formatNumber(link.clicks ?? 0)}
-                        </span>
-                        <span className="text-border">·</span>
-                        <span className="shrink-0">
-                          {formatDate(link.createdAt)}
-                        </span>
-
-                        {folderName && (
-                          <>
-                            <span className="text-border">·</span>
-                            <span className="flex items-center gap-0.5 shrink-0">
-                              <FolderOpen className="h-3 w-3" />
-                              {folderName}
-                            </span>
-                          </>
-                        )}
+                        <button
+                          type="button"
+                          aria-label={`Copy ${buildShortUrl(siteUrl, link.slug)}`}
+                          className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyShortUrl(link.slug);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.stopPropagation();
+                              handleCopyShortUrl(link.slug);
+                            }
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
                       </div>
 
-                      {/* Tags */}
-                      {linkTagList && linkTagList.length > 0 && (
-                        <div className="flex items-center gap-1 mt-1.5">
-                          {linkTagList.slice(0, 3).map((tag) => {
-                            const colors = getTagColorClassesByName(tag.name);
-                            return (
-                              <span
-                                key={tag.id}
-                                className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
-                              >
-                                <span
-                                  className={`h-1 w-1 rounded-full ${colors.dot}`}
-                                />
-                                {tag.name}
-                              </span>
-                            );
-                          })}
-                          {linkTagList.length > 3 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              +{linkTagList.length - 3}
-                            </span>
+                      {/* Folder and tags row */}
+                      {(folderName || (linkTagList && linkTagList.length > 0)) && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          {folderName && link.folderId && (
+                            <button
+                              type="button"
+                              className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigateToFolder(link.folderId!);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  handleNavigateToFolder(link.folderId!);
+                                }
+                              }}
+                            >
+                              <FolderOpen className="h-3 w-3" />
+                              {folderName}
+                            </button>
+                          )}
+                          {linkTagList && linkTagList.length > 0 && (
+                            <>
+                              {linkTagList.slice(0, 3).map((tag) => {
+                                const colors = getTagColorClassesByName(tag.name);
+                                return (
+                                  <span
+                                    key={tag.id}
+                                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.badge}`}
+                                  >
+                                    <span
+                                      className={`h-1 w-1 rounded-full ${colors.dot}`}
+                                    />
+                                    {tag.name}
+                                  </span>
+                                );
+                              })}
+                              {linkTagList.length > 3 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  +{linkTagList.length - 3}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
                     </div>
-
-                    {/* Copy button */}
-                    <button
-                      type="button"
-                      aria-label={`Copy ${shortUrl}`}
-                      className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyShortUrl(link.slug);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          handleCopyShortUrl(link.slug);
-                        }
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
                   </CommandItem>
                 );
               })}

@@ -157,7 +157,7 @@ describe("SearchCommandDialog", () => {
       expect(screen.getByText("没有找到匹配的链接")).toBeInTheDocument();
     });
 
-    it("renders link items with title and short URL when query matches", async () => {
+    it("renders link items with title and slug when query matches", async () => {
       mockState.links = [
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com/page", metaTitle: "Example Page" }),
       ];
@@ -165,8 +165,11 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
-      expectItemWithText("abc", "zhe.to/abc");
+      expectItemWithText("abc", "abc");
       expectItemWithText("abc", "Example Page");
+      // Should NOT show full short URL (zhe.to/abc), only the slug
+      const item = getCmdkItem("abc");
+      expect(item!.textContent).not.toContain("zhe.to/");
     });
 
     it("shows folder name for links in a folder", async () => {
@@ -194,7 +197,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
-      expectItemWithText("abc123", "zhe.to/abc123");
+      expectItemWithText("abc123", "abc123");
     });
 
     it("renders metaDescription when available", async () => {
@@ -220,10 +223,49 @@ describe("SearchCommandDialog", () => {
     });
   });
 
-  // ── Navigation action ──
+  // ── Click action: open original URL ──
 
-  describe("navigate to folder", () => {
-    it("navigates to folder page when selecting a link with folderId", async () => {
+  describe("open original URL on click", () => {
+    it("opens original URL in new tab when selecting a link", async () => {
+      const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+      mockState.links = [makeLink({ id: 1, slug: "abc123", originalUrl: "https://example.com/page" })];
+      const onOpenChange = vi.fn();
+      renderDialog({ onOpenChange });
+
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "abc");
+
+      const item = getCmdkItem("abc123");
+      expect(item).toBeTruthy();
+      fireEvent.click(item!);
+
+      expect(windowOpenSpy).toHaveBeenCalledWith("https://example.com/page", "_blank", "noopener,noreferrer");
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      windowOpenSpy.mockRestore();
+    });
+
+    it("does not navigate to folder when clicking an item", async () => {
+      const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+      mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "f1" })];
+      renderDialog();
+
+      const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
+      await userEvent.type(input, "abc");
+
+      const item = getCmdkItem("abc123");
+      fireEvent.click(item!);
+
+      expect(mockPush).not.toHaveBeenCalled();
+      windowOpenSpy.mockRestore();
+    });
+  });
+
+  // ── Folder click navigation ──
+
+  describe("folder click navigation", () => {
+    it("navigates to folder page when clicking the folder button", async () => {
+      const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+      mockState.folders = [makeFolder({ id: "f1", name: "Work" })];
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "f1" })];
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
@@ -231,35 +273,34 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
-      const item = getCmdkItem("abc123");
-      expect(item).toBeTruthy();
-      fireEvent.click(item!);
+      const folderButton = screen.getByText("Work");
+      fireEvent.click(folderButton);
 
       expect(mockPush).toHaveBeenCalledWith("/dashboard?folder=f1");
       expect(onOpenChange).toHaveBeenCalledWith(false);
+      // Should NOT open the original URL when clicking folder
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+      windowOpenSpy.mockRestore();
     });
 
-    it("navigates to uncategorized when selecting a link without folderId", async () => {
+    it("folder button does not appear for uncategorized links", async () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: null })];
-      const onOpenChange = vi.fn();
-      renderDialog({ onOpenChange });
+      renderDialog();
 
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
-      const item = getCmdkItem("abc123");
-      expect(item).toBeTruthy();
-      fireEvent.click(item!);
-
-      expect(mockPush).toHaveBeenCalledWith("/dashboard?folder=uncategorized");
-      expect(onOpenChange).toHaveBeenCalledWith(false);
+      // No folder button should exist
+      const folderButtons = document.querySelectorAll("button");
+      const folderBtn = Array.from(folderButtons).find((b) => b.textContent?.includes("Work"));
+      expect(folderBtn).toBeUndefined();
     });
   });
 
   // ── Copy action ──
 
   describe("copy short URL", () => {
-    it("renders copy button for each link", async () => {
+    it("renders copy button for each link next to slug", async () => {
       mockState.links = [
         makeLink({ id: 1, slug: "abc" }),
         makeLink({ id: 2, slug: "xyz" }),
@@ -345,7 +386,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "abc");
 
-      expectItemWithText("abc", "zhe.to/abc");
+      expectItemWithText("abc", "abc");
       expectNoItem("xyz");
       expectNoItem("hello");
     });
@@ -355,7 +396,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "google");
 
-      expectItemWithText("xyz", "zhe.to/xyz");
+      expectItemWithText("xyz", "xyz");
       expectNoItem("abc");
       expectNoItem("hello");
     });
@@ -383,7 +424,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "HELLO");
 
-      expectItemWithText("hello", "zhe.to/hello");
+      expectItemWithText("hello", "hello");
       expectNoItem("abc");
     });
 
@@ -396,7 +437,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "documentation");
 
-      expectItemWithText("react-docs", "zhe.to/react-docs");
+      expectItemWithText("react-docs", "react-docs");
       expectNoItem("vue-guide");
     });
 
@@ -409,7 +450,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "important");
 
-      expectItemWithText("ref", "zhe.to/ref");
+      expectItemWithText("ref", "ref");
       expectNoItem("temp");
     });
 
@@ -430,7 +471,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "UI");
 
-      expectItemWithText("design", "zhe.to/design");
+      expectItemWithText("design", "design");
       expectNoItem("code");
     });
   });
@@ -510,7 +551,8 @@ describe("SearchCommandDialog", () => {
       });
     });
 
-    it("does not trigger navigation when copy button is clicked", async () => {
+    it("does not open original URL when copy button is clicked", async () => {
+      const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
@@ -521,7 +563,8 @@ describe("SearchCommandDialog", () => {
       fireEvent.click(copyBtn);
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://zhe.to/test-slug");
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+      windowOpenSpy.mockRestore();
     });
 
     it("closes dialog after copying", async () => {
@@ -537,7 +580,8 @@ describe("SearchCommandDialog", () => {
       await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     });
 
-    it("copies on Enter keydown without triggering navigation", async () => {
+    it("copies on Enter keydown without opening original URL", async () => {
+      const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
@@ -548,7 +592,8 @@ describe("SearchCommandDialog", () => {
       fireEvent.keyDown(copyBtn, { key: "Enter" });
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://zhe.to/test-slug");
-      expect(mockPush).not.toHaveBeenCalled();
+      expect(windowOpenSpy).not.toHaveBeenCalled();
+      windowOpenSpy.mockRestore();
     });
   });
 
@@ -564,7 +609,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "building");
 
-      expectItemWithText("lib", "zhe.to/lib");
+      expectItemWithText("lib", "lib");
       expectNoItem("server");
     });
 
@@ -589,7 +634,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "前端");
 
-      expectItemWithText("docs", "zhe.to/docs");
+      expectItemWithText("docs", "docs");
       expectNoItem("api");
     });
 
@@ -602,7 +647,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "  abc  ");
 
-      expectItemWithText("abc", "zhe.to/abc");
+      expectItemWithText("abc", "abc");
       expectNoItem("xyz");
     });
   });
@@ -681,7 +726,7 @@ describe("SearchCommandDialog", () => {
       expect(markTexts).toContain("building");
     });
 
-    it("highlights matching keyword in short URL", async () => {
+    it("highlights matching keyword in slug", async () => {
       mockState.links = [
         makeLink({ id: 1, slug: "my-link", originalUrl: "https://example.com" }),
       ];
