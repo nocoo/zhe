@@ -5,17 +5,16 @@ import type { DashboardService } from "@/contexts/dashboard-service";
 
 // ── Mocks ──
 
+vi.mock("@/actions/dashboard", () => ({
+  getDashboardData: vi.fn(),
+}));
+
 vi.mock("@/actions/links", () => ({
   getLinks: vi.fn(),
 }));
 
-vi.mock("@/actions/tags", () => ({
-  getTags: vi.fn(),
-  getLinkTags: vi.fn(),
-}));
-
+import { getDashboardData } from "@/actions/dashboard";
 import { getLinks } from "@/actions/links";
-import { getTags, getLinkTags } from "@/actions/tags";
 import {
   DashboardServiceProvider,
   useDashboardService,
@@ -99,15 +98,34 @@ async function renderService(opts?: { initialFolders?: Folder[] }) {
   return hook;
 }
 
+/**
+ * Helper to set up getDashboardData mock with specific links/tags/linkTags.
+ * Merges provided data with empty defaults.
+ */
+function mockDashboardData(data: {
+  links?: Link[];
+  tags?: Tag[];
+  linkTags?: LinkTag[];
+} = {}) {
+  vi.mocked(getDashboardData).mockResolvedValue({
+    success: true,
+    data: {
+      links: data.links ?? [],
+      tags: data.tags ?? [],
+      linkTags: data.linkTags ?? [],
+    },
+  });
+}
+
 // ── Tests ──
 
 describe("DashboardService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: all fetches resolve with empty arrays
+    // Default: getDashboardData resolves with empty arrays
+    mockDashboardData();
+    // Default: getLinks (used by refreshLinks) resolves with empty array
     vi.mocked(getLinks).mockResolvedValue({ success: true, data: [] });
-    vi.mocked(getTags).mockResolvedValue({ success: true, data: [] });
-    vi.mocked(getLinkTags).mockResolvedValue({ success: true, data: [] });
   });
 
   afterEach(() => {
@@ -142,8 +160,8 @@ describe("DashboardService", () => {
     });
 
     it("starts with loading=true and empty links", () => {
-      // Make getLinks hang (never resolve) — special case, don't use renderService
-      vi.mocked(getLinks).mockReturnValue(new Promise(() => {}));
+      // Make getDashboardData hang (never resolve) — special case, don't use renderService
+      vi.mocked(getDashboardData).mockReturnValue(new Promise(() => {}));
       const { result } = renderHook(() => useDashboardService(), {
         wrapper: wrapper(),
       });
@@ -153,16 +171,16 @@ describe("DashboardService", () => {
 
     it("fetches links on mount and sets loading=false", async () => {
       const links = [makeLink(), makeLink({ id: 2, slug: "xyz" })];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService();
 
       expect(result.current.links).toEqual(links);
-      expect(getLinks).toHaveBeenCalledOnce();
+      expect(getDashboardData).toHaveBeenCalledOnce();
     });
 
-    it("sets links=[] and loading=false when getLinks fails", async () => {
-      vi.mocked(getLinks).mockResolvedValue({
+    it("sets links=[] and loading=false when getDashboardData fails", async () => {
+      vi.mocked(getDashboardData).mockResolvedValue({
         success: false,
         error: "Unauthorized",
       });
@@ -171,8 +189,8 @@ describe("DashboardService", () => {
       expect(result.current.links).toEqual([]);
     });
 
-    it("sets links=[] when getLinks returns no data", async () => {
-      vi.mocked(getLinks).mockResolvedValue({ success: true });
+    it("sets links=[] when getDashboardData returns no data", async () => {
+      vi.mocked(getDashboardData).mockResolvedValue({ success: true });
 
       const { result } = await renderService();
       expect(result.current.links).toEqual([]);
@@ -189,10 +207,7 @@ describe("DashboardService", () => {
   describe("links CRUD", () => {
     it("handleLinkCreated prepends a link to the list", async () => {
       const existing = makeLink({ id: 1, slug: "old" });
-      vi.mocked(getLinks).mockResolvedValue({
-        success: true,
-        data: [existing],
-      });
+      mockDashboardData({ links: [existing] });
 
       const { result } = await renderService();
 
@@ -212,7 +227,7 @@ describe("DashboardService", () => {
         makeLink({ id: 2, slug: "b" }),
         makeLink({ id: 3, slug: "c" }),
       ];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService();
 
@@ -226,7 +241,7 @@ describe("DashboardService", () => {
 
     it("handleLinkDeleted is a no-op for non-existent id", async () => {
       const links = [makeLink({ id: 1 })];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService();
 
@@ -239,10 +254,7 @@ describe("DashboardService", () => {
 
     it("handleLinkUpdated replaces a link by id", async () => {
       const original = makeLink({ id: 1, originalUrl: "https://old.com" });
-      vi.mocked(getLinks).mockResolvedValue({
-        success: true,
-        data: [original],
-      });
+      mockDashboardData({ links: [original] });
 
       const { result } = await renderService();
 
@@ -256,7 +268,7 @@ describe("DashboardService", () => {
 
     it("handleLinkUpdated is a no-op for non-existent id", async () => {
       const links = [makeLink({ id: 1, originalUrl: "https://example.com" })];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService();
 
@@ -309,7 +321,7 @@ describe("DashboardService", () => {
         makeLink({ id: 2, folderId: "f2" }),
         makeLink({ id: 3, folderId: null }),
       ];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService({ initialFolders: folders });
 
@@ -330,7 +342,7 @@ describe("DashboardService", () => {
         makeLink({ id: 1, folderId: "f1" }),
         makeLink({ id: 2, folderId: "f2" }),
       ];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService({
         initialFolders: [
@@ -378,17 +390,17 @@ describe("DashboardService", () => {
   // ── Tags CRUD ──
 
   describe("tags CRUD", () => {
-    it("fetches tags on mount", async () => {
+    it("fetches tags on mount via getDashboardData", async () => {
       const tags = [makeTag(), makeTag({ id: "tag-2", name: "urgent" })];
-      vi.mocked(getTags).mockResolvedValue({ success: true, data: tags });
+      mockDashboardData({ tags });
 
       const { result } = await renderService();
       expect(result.current.tags).toEqual(tags);
-      expect(getTags).toHaveBeenCalledOnce();
+      expect(getDashboardData).toHaveBeenCalledOnce();
     });
 
-    it("sets tags=[] when getTags fails", async () => {
-      vi.mocked(getTags).mockResolvedValue({ success: false, error: "fail" });
+    it("sets tags=[] when getDashboardData fails", async () => {
+      vi.mocked(getDashboardData).mockResolvedValue({ success: false, error: "fail" });
       const { result } = await renderService();
       expect(result.current.tags).toEqual([]);
     });
@@ -402,9 +414,8 @@ describe("DashboardService", () => {
     });
 
     it("handleTagDeleted removes a tag by id", async () => {
-      vi.mocked(getTags).mockResolvedValue({
-        success: true,
-        data: [makeTag({ id: "t1" }), makeTag({ id: "t2" })],
+      mockDashboardData({
+        tags: [makeTag({ id: "t1" }), makeTag({ id: "t2" })],
       });
       const { result } = await renderService();
 
@@ -414,13 +425,9 @@ describe("DashboardService", () => {
     });
 
     it("handleTagDeleted cascades: removes link-tags for deleted tag", async () => {
-      vi.mocked(getTags).mockResolvedValue({
-        success: true,
-        data: [makeTag({ id: "t1" })],
-      });
-      vi.mocked(getLinkTags).mockResolvedValue({
-        success: true,
-        data: [
+      mockDashboardData({
+        tags: [makeTag({ id: "t1" })],
+        linkTags: [
           makeLinkTag({ linkId: 1, tagId: "t1" }),
           makeLinkTag({ linkId: 2, tagId: "t2" }),
         ],
@@ -434,9 +441,8 @@ describe("DashboardService", () => {
     });
 
     it("handleTagUpdated replaces a tag by id", async () => {
-      vi.mocked(getTags).mockResolvedValue({
-        success: true,
-        data: [makeTag({ id: "t1", name: "old" })],
+      mockDashboardData({
+        tags: [makeTag({ id: "t1", name: "old" })],
       });
       const { result } = await renderService();
 
@@ -452,17 +458,17 @@ describe("DashboardService", () => {
   // ── Link-Tags CRUD ──
 
   describe("link-tags CRUD", () => {
-    it("fetches linkTags on mount", async () => {
+    it("fetches linkTags on mount via getDashboardData", async () => {
       const lts = [makeLinkTag({ linkId: 1, tagId: "t1" })];
-      vi.mocked(getLinkTags).mockResolvedValue({ success: true, data: lts });
+      mockDashboardData({ linkTags: lts });
 
       const { result } = await renderService();
       expect(result.current.linkTags).toEqual(lts);
-      expect(getLinkTags).toHaveBeenCalledOnce();
+      expect(getDashboardData).toHaveBeenCalledOnce();
     });
 
-    it("sets linkTags=[] when getLinkTags fails", async () => {
-      vi.mocked(getLinkTags).mockResolvedValue({ success: false, error: "fail" });
+    it("sets linkTags=[] when getDashboardData fails", async () => {
+      vi.mocked(getDashboardData).mockResolvedValue({ success: false, error: "fail" });
       const { result } = await renderService();
       expect(result.current.linkTags).toEqual([]);
     });
@@ -476,9 +482,8 @@ describe("DashboardService", () => {
     });
 
     it("handleLinkTagRemoved removes by linkId+tagId", async () => {
-      vi.mocked(getLinkTags).mockResolvedValue({
-        success: true,
-        data: [
+      mockDashboardData({
+        linkTags: [
           makeLinkTag({ linkId: 1, tagId: "t1" }),
           makeLinkTag({ linkId: 1, tagId: "t2" }),
           makeLinkTag({ linkId: 2, tagId: "t1" }),
@@ -565,7 +570,7 @@ describe("DashboardService", () => {
 
     it("supports updating a link's folderId then deleting that folder", async () => {
       const links = [makeLink({ id: 1, folderId: null })];
-      vi.mocked(getLinks).mockResolvedValue({ success: true, data: links });
+      mockDashboardData({ links });
 
       const { result } = await renderService({
         initialFolders: [makeFolder({ id: "f1" })],

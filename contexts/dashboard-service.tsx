@@ -9,8 +9,8 @@ import {
   useState,
 } from "react";
 import type { Link, Folder, Tag, LinkTag } from "@/models/types";
+import { getDashboardData } from "@/actions/dashboard";
 import { getLinks } from "@/actions/links";
-import { getTags, getLinkTags } from "@/actions/tags";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -83,20 +83,23 @@ export function DashboardServiceProvider({
   const siteUrl =
     typeof window !== "undefined" ? window.location.origin : "";
 
-  // Fetch all links, tags, and link-tags on mount
+  // Fetch all links, tags, and link-tags in a single server action call
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
-      const [linksResult, tagsResult, linkTagsResult] = await Promise.all([
-        getLinks(),
-        getTags(),
-        getLinkTags(),
-      ]);
-      if (cancelled) return;
-      setLinks(linksResult.data ?? []);
-      setTags(tagsResult.data ?? []);
-      setLinkTags(linkTagsResult.data ?? []);
-      setLoading(false);
+      try {
+        const result = await getDashboardData();
+        if (cancelled) return;
+        if (result.success && result.data) {
+          setLinks(result.data.links);
+          setTags(result.data.tags);
+          setLinkTags(result.data.linkTags);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     fetchData();
     return () => {
