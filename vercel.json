@@ -2,6 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["sfo1"],
+  "crons": [
+    {
+      "path": "/api/discord/gateway",
+      "schedule": "*/9 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
