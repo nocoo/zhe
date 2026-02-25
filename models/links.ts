@@ -63,6 +63,9 @@ export interface FilterContext {
  * Filter links by substring match on slug, original URL, meta title,
  * meta description, note, or tag name (case-insensitive).
  *
+ * Returns an empty array when the query is empty or whitespace-only
+ * (to avoid returning the entire dataset as a no-op).
+ *
  * When `ctx` is provided, tag names associated with each link are also searched.
  */
 export function filterLinks(
@@ -71,7 +74,7 @@ export function filterLinks(
   ctx?: FilterContext,
 ): Link[] {
   const trimmed = query.trim().toLowerCase();
-  if (trimmed === "") return links;
+  if (trimmed === "") return [];
 
   // Pre-build a linkId → tag names lookup for O(1) access per link
   let tagNamesByLinkId: Map<number, string[]> | undefined;
@@ -111,6 +114,44 @@ export function filterLinks(
     }
     return false;
   });
+}
+
+/**
+ * Split `text` around every occurrence of `query` (case-insensitive),
+ * returning an array of `{ text, highlight }` segments.
+ *
+ * Used by UI components to render keyword highlights.
+ */
+export interface HighlightSegment {
+  text: string;
+  highlight: boolean;
+}
+
+export function highlightMatches(
+  text: string,
+  query: string,
+): HighlightSegment[] {
+  if (!query) return [{ text, highlight: false }];
+
+  const lower = text.toLowerCase();
+  const q = query.toLowerCase();
+  const segments: HighlightSegment[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const idx = lower.indexOf(q, cursor);
+    if (idx === -1) {
+      segments.push({ text: text.slice(cursor), highlight: false });
+      break;
+    }
+    if (idx > cursor) {
+      segments.push({ text: text.slice(cursor, idx), highlight: false });
+    }
+    segments.push({ text: text.slice(idx, idx + q.length), highlight: true });
+    cursor = idx + q.length;
+  }
+
+  return segments.length === 0 ? [{ text, highlight: false }] : segments;
 }
 
 /** Link count breakdown for sidebar badges */

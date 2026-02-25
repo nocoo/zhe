@@ -8,6 +8,7 @@ import {
   topBreakdownEntries,
   hasAnalyticsData,
   filterLinks,
+  highlightMatches,
   buildLinkCounts,
   fetchMicrolinkScreenshot,
   fetchScreenshotDomains,
@@ -240,12 +241,12 @@ describe('models/links', () => {
       makeLink({ id: 4, slug: 'test', originalUrl: 'https://abc-site.com' }),
     ];
 
-    it('returns all links when query is empty', () => {
-      expect(filterLinks(links, '')).toEqual(links);
+    it('returns empty array when query is empty', () => {
+      expect(filterLinks(links, '')).toEqual([]);
     });
 
-    it('returns all links when query is whitespace', () => {
-      expect(filterLinks(links, '   ')).toEqual(links);
+    it('returns empty array when query is whitespace', () => {
+      expect(filterLinks(links, '   ')).toEqual([]);
     });
 
     it('matches by slug substring (case-insensitive)', () => {
@@ -594,6 +595,72 @@ describe('models/links', () => {
       // "alpha" matches link 1 (slug), link 2 (metaDescription), link 3 (note)
       const result = filterLinks(mixedLinks, 'alpha');
       expect(result.map((l) => l.id)).toEqual([1, 2, 3]);
+    });
+  });
+
+  // --- highlightMatches ---
+  describe('highlightMatches', () => {
+    it('returns single non-highlighted segment when no query', () => {
+      expect(highlightMatches('hello world', '')).toEqual([
+        { text: 'hello world', highlight: false },
+      ]);
+    });
+
+    it('highlights a single match at the start', () => {
+      expect(highlightMatches('hello world', 'hello')).toEqual([
+        { text: 'hello', highlight: true },
+        { text: ' world', highlight: false },
+      ]);
+    });
+
+    it('highlights a single match at the end', () => {
+      expect(highlightMatches('hello world', 'world')).toEqual([
+        { text: 'hello ', highlight: false },
+        { text: 'world', highlight: true },
+      ]);
+    });
+
+    it('highlights a match in the middle', () => {
+      expect(highlightMatches('the quick fox', 'quick')).toEqual([
+        { text: 'the ', highlight: false },
+        { text: 'quick', highlight: true },
+        { text: ' fox', highlight: false },
+      ]);
+    });
+
+    it('highlights multiple occurrences', () => {
+      expect(highlightMatches('abcabcabc', 'abc')).toEqual([
+        { text: 'abc', highlight: true },
+        { text: 'abc', highlight: true },
+        { text: 'abc', highlight: true },
+      ]);
+    });
+
+    it('is case-insensitive', () => {
+      expect(highlightMatches('Hello World', 'hello')).toEqual([
+        { text: 'Hello', highlight: true },
+        { text: ' World', highlight: false },
+      ]);
+    });
+
+    it('returns non-highlighted when no match found', () => {
+      expect(highlightMatches('hello', 'xyz')).toEqual([
+        { text: 'hello', highlight: false },
+      ]);
+    });
+
+    it('handles entire string as match', () => {
+      expect(highlightMatches('abc', 'abc')).toEqual([
+        { text: 'abc', highlight: true },
+      ]);
+    });
+
+    it('handles Chinese characters', () => {
+      expect(highlightMatches('前端开发指南', '开发')).toEqual([
+        { text: '前端', highlight: false },
+        { text: '开发', highlight: true },
+        { text: '指南', highlight: false },
+      ]);
     });
   });
 
