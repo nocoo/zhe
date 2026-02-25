@@ -1,220 +1,19 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Image from "next/image";
+import { useState, useCallback, useMemo } from "react";
 import {
-  ExternalLink,
   Inbox as InboxIcon,
   Loader2,
   RefreshCw,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LinkCard } from "@/components/dashboard/link-card";
+import { EditLinkDialog } from "@/components/dashboard/edit-link-dialog";
+import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
-import { deleteLink } from "@/actions/links";
-import { DeleteLinkDialog, TagBadge, TagPicker, CopyUrlButton } from "@/components/dashboard/shared-link-components";
-import type { Link, Tag } from "@/models/types";
-
-/** A single inbox item row with inline triage controls */
-function InboxItem({
-  link,
-  draft,
-  folders,
-  allTags,
-  assignedTags,
-  assignedTagIds,
-  onSetFolderId,
-  onSetNote,
-  onSetScreenshotUrl,
-  onSave,
-  onAddTag,
-  onRemoveTag,
-  onCreateAndAssignTag,
-  onDelete,
-}: {
-  link: Link;
-  draft: { folderId: string | undefined; note: string; screenshotUrl: string; isSaving: boolean; error: string };
-  folders: { id: string; name: string }[];
-  allTags: Tag[];
-  assignedTags: Tag[];
-  assignedTagIds: Set<string>;
-  onSetFolderId: (folderId: string | undefined) => void;
-  onSetNote: (note: string) => void;
-  onSetScreenshotUrl: (url: string) => void;
-  onSave: () => void;
-  onAddTag: (tagId: string) => void;
-  onRemoveTag: (tagId: string) => void;
-  onCreateAndAssignTag: (name: string) => void;
-  onDelete: () => void;
-}) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    const result = await deleteLink(link.id);
-    if (result.success) {
-      onDelete();
-    } else {
-      alert(result.error || "Failed to delete link");
-    }
-    setIsDeleting(false);
-  };
-
-  const displayTitle = link.metaTitle || link.originalUrl;
-
-  return (
-    <div className="rounded-[14px] bg-secondary p-4 space-y-3">
-      {/* Top row: link info + actions */}
-      <div className="flex items-start gap-3">
-        {/* Favicon + title + copy button */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            {link.metaFavicon && (
-              <Image
-                src={link.metaFavicon}
-                alt="favicon"
-                width={16}
-                height={16}
-                className="w-4 h-4 shrink-0 rounded-sm"
-                unoptimized
-              />
-            )}
-            <a
-              href={link.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-foreground hover:underline truncate"
-            >
-              {displayTitle}
-            </a>
-            <CopyUrlButton url={link.originalUrl} className="h-5 w-5" />
-          </div>
-          {link.metaDescription && (
-            <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
-              {link.metaDescription}
-            </p>
-          )}
-        </div>
-
-        {/* Quick actions */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          <a
-            href={link.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="打开链接"
-          >
-            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
-          </a>
-          <DeleteLinkDialog
-            trigger={
-              <button
-                aria-label="Delete link"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                disabled={isDeleting}
-              >
-                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            }
-            isDeleting={isDeleting}
-            onConfirm={handleDelete}
-          />
-        </div>
-      </div>
-
-      {/* Triage controls row */}
-      <div className="flex flex-wrap items-end gap-3">
-        {/* Folder selector */}
-        <div className="space-y-1">
-          <label htmlFor={`folder-${link.id}`} className="text-xs text-muted-foreground">
-            文件夹
-          </label>
-          <select
-            id={`folder-${link.id}`}
-            value={draft.folderId ?? ""}
-            onChange={(e) => onSetFolderId(e.target.value || undefined)}
-            className="flex h-8 w-40 rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-          >
-            <option value="">Inbox</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Note input */}
-        <div className="space-y-1 flex-1 min-w-[200px]">
-          <label htmlFor={`note-${link.id}`} className="text-xs text-muted-foreground">
-            备注
-          </label>
-          <input
-            id={`note-${link.id}`}
-            type="text"
-            value={draft.note}
-            onChange={(e) => onSetNote(e.target.value)}
-            placeholder="添加备注..."
-            className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-          />
-        </div>
-
-        {/* Screenshot URL input */}
-        <div className="space-y-1 flex-1 min-w-[200px]">
-          <label htmlFor={`screenshot-url-${link.id}`} className="text-xs text-muted-foreground">
-            截图链接
-          </label>
-          <input
-            id={`screenshot-url-${link.id}`}
-            type="url"
-            value={draft.screenshotUrl}
-            onChange={(e) => onSetScreenshotUrl(e.target.value)}
-            placeholder="https://..."
-            className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-          />
-        </div>
-
-        {/* Save button */}
-        <Button
-          size="sm"
-          className="h-8 rounded-[8px] text-xs"
-          onClick={onSave}
-          disabled={draft.isSaving}
-        >
-          {draft.isSaving ? (
-            <>
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
-              保存中
-            </>
-          ) : (
-            "保存"
-          )}
-        </Button>
-      </div>
-
-      {/* Tags row */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        {assignedTags.map((tag) => (
-          <TagBadge key={tag.id} tag={tag} onRemove={onRemoveTag} />
-        ))}
-
-        <TagPicker
-          allTags={allTags}
-          assignedTagIds={assignedTagIds}
-          onSelectTag={onAddTag}
-          onCreateTag={onCreateAndAssignTag}
-        />
-      </div>
-
-      {/* Error message */}
-      {draft.error && (
-        <p className="text-xs text-destructive">{draft.error}</p>
-      )}
-    </div>
-  );
-}
+import { useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
+import type { Link } from "@/models/types";
 
 /** Inbox triage view — shows uncategorized links with inline editing controls */
 export function InboxTriage() {
@@ -225,6 +24,7 @@ export function InboxTriage() {
     linkTags,
     loading,
     refreshLinks,
+    siteUrl,
     handleLinkUpdated,
     handleLinkDeleted,
     handleTagCreated,
@@ -242,14 +42,22 @@ export function InboxTriage() {
     }
   }, [refreshLinks]);
 
-  const callbacks = {
+  const callbacks = useMemo(() => ({
     onLinkUpdated: handleLinkUpdated,
     onTagCreated: handleTagCreated,
     onLinkTagAdded: handleLinkTagAdded,
     onLinkTagRemoved: handleLinkTagRemoved,
-  };
+  }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, callbacks);
+
+  // Singleton edit dialog — shared across all LinkCards (same pattern as links-list.tsx)
+  const editVm = useEditLinkViewModel(null, tags, linkTags, callbacks);
+  const { openDialog } = editVm;
+
+  const handleEdit = useCallback((link: Link) => {
+    openDialog(link);
+  }, [openDialog]);
 
   if (loading) {
     return (
@@ -313,34 +121,132 @@ export function InboxTriage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {vm.inboxLinks.map((link) => {
             const draft = vm.getDraft(link.id);
             const assignedTagIds = vm.getAssignedTagIds(link.id);
             const assignedTags = vm.getAssignedTags(link.id);
 
             return (
-              <InboxItem
+              <LinkCard
                 key={link.id}
                 link={link}
-                draft={draft}
-                folders={vm.folders}
-                allTags={vm.allTags}
-                assignedTags={assignedTags}
-                assignedTagIds={assignedTagIds}
-                onSetFolderId={(fId) => vm.setDraftFolderId(link.id, fId)}
-                onSetNote={(note) => vm.setDraftNote(link.id, note)}
-                onSetScreenshotUrl={(url) => vm.setDraftScreenshotUrl(link.id, url)}
-                onSave={() => vm.saveItem(link.id)}
-                onAddTag={(tagId) => vm.addTag(link.id, tagId)}
-                onRemoveTag={(tagId) => vm.removeTag(link.id, tagId)}
-                onCreateAndAssignTag={(name) => vm.createAndAssignTag(link.id, name)}
-                onDelete={() => handleLinkDeleted(link.id)}
-              />
+                siteUrl={siteUrl}
+                onDelete={handleLinkDeleted}
+                onUpdate={handleLinkUpdated}
+                onEdit={handleEdit}
+                viewMode="list"
+                tags={tags}
+                linkTags={linkTags}
+              >
+                {/* Triage controls — layered on top of LinkCard */}
+                <div className="px-4 pb-4 space-y-3">
+                  {/* Triage controls row */}
+                  <div className="flex flex-wrap items-end gap-3 pt-2 border-t border-border">
+                    {/* Folder selector */}
+                    <div className="space-y-1">
+                      <label htmlFor={`folder-${link.id}`} className="text-xs text-muted-foreground">
+                        文件夹
+                      </label>
+                      <select
+                        id={`folder-${link.id}`}
+                        value={draft.folderId ?? ""}
+                        onChange={(e) => vm.setDraftFolderId(link.id, e.target.value || undefined)}
+                        className="flex h-8 w-40 rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                      >
+                        <option value="">Inbox</option>
+                        {vm.folders.map((folder) => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Note input */}
+                    <div className="space-y-1 flex-1 min-w-[200px]">
+                      <label htmlFor={`note-${link.id}`} className="text-xs text-muted-foreground">
+                        备注
+                      </label>
+                      <input
+                        id={`note-${link.id}`}
+                        type="text"
+                        value={draft.note}
+                        onChange={(e) => vm.setDraftNote(link.id, e.target.value)}
+                        placeholder="添加备注..."
+                        className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                      />
+                    </div>
+
+                    {/* Save button */}
+                    <Button
+                      size="sm"
+                      className="h-8 rounded-[8px] text-xs"
+                      onClick={() => vm.saveItem(link.id)}
+                      disabled={draft.isSaving}
+                    >
+                      {draft.isSaving ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
+                          保存中
+                        </>
+                      ) : (
+                        "保存"
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Tags row */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {assignedTags.map((tag) => (
+                      <TagBadge key={tag.id} tag={tag} onRemove={(tagId) => vm.removeTag(link.id, tagId)} />
+                    ))}
+
+                    <TagPicker
+                      allTags={vm.allTags}
+                      assignedTagIds={assignedTagIds}
+                      onSelectTag={(tagId) => vm.addTag(link.id, tagId)}
+                      onCreateTag={(name) => vm.createAndAssignTag(link.id, name)}
+                    />
+                  </div>
+
+                  {/* Error message */}
+                  {draft.error && (
+                    <p className="text-xs text-destructive">{draft.error}</p>
+                  )}
+                </div>
+              </LinkCard>
             );
           })}
         </div>
       )}
+
+      {/* Singleton edit dialog — shared across all cards */}
+      <EditLinkDialog
+        isOpen={editVm.isOpen}
+        onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
+        editUrl={editVm.editUrl}
+        setEditUrl={editVm.setEditUrl}
+        editSlug={editVm.editSlug}
+        setEditSlug={editVm.setEditSlug}
+        editFolderId={editVm.editFolderId}
+        setEditFolderId={editVm.setEditFolderId}
+        editNote={editVm.editNote}
+        setEditNote={editVm.setEditNote}
+        editScreenshotUrl={editVm.editScreenshotUrl}
+        setEditScreenshotUrl={editVm.setEditScreenshotUrl}
+        isSaving={editVm.isSaving}
+        error={editVm.error}
+        assignedTags={editVm.assignedTags}
+        allTags={tags}
+        assignedTagIds={editVm.assignedTagIds}
+        folders={folders}
+        onSave={editVm.saveEdit}
+        onClose={editVm.closeDialog}
+        onAddTag={editVm.addTag}
+        onRemoveTag={editVm.removeTag}
+        onCreateAndAssignTag={editVm.createAndAssignTag}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
@@ -25,6 +25,9 @@ vi.mock('@/actions/links', () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
   deleteLink: vi.fn(),
+  refreshLinkMetadata: vi.fn(),
+  getAnalyticsStats: vi.fn(),
+  fetchAndSaveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/lib/utils', async (importOriginal) => {
@@ -32,6 +35,8 @@ vi.mock('@/lib/utils', async (importOriginal) => {
   return {
     ...actual,
     copyToClipboard: vi.fn().mockResolvedValue(true),
+    formatDate: (date: Date | string) => `formatted:${String(date)}`,
+    formatNumber: (n: number) => `num:${n}`,
   };
 });
 
@@ -39,6 +44,28 @@ vi.mock('@/actions/tags', () => ({
   createTag: vi.fn(),
   addTagToLink: vi.fn(),
   removeTagFromLink: vi.fn(),
+}));
+
+vi.mock('@/models/links', () => ({
+  extractHostname: (url: string) => {
+    try { return new URL(url).hostname; } catch { return url; }
+  },
+  buildShortUrl: (siteUrl: string, slug: string) => `${siteUrl}/${slug}`,
+  topBreakdownEntries: (breakdown: Record<string, number>, n: number) =>
+    Object.entries(breakdown).sort((a, b) => b[1] - a[1]).slice(0, n) as [string, number][],
+  isGitHubRepoUrl: () => false,
+  GITHUB_REPO_PREVIEW_URL: 'https://github.com/preview.png',
+}));
+
+vi.mock('@/models/settings', () => ({
+  buildFaviconUrl: () => null,
+}));
+
+vi.mock('@/models/tags', () => ({
+  getTagColorClassesByName: (name: string) => ({
+    badge: `mock-badge-${name}`,
+    dot: `mock-dot-${name}`,
+  }),
 }));
 
 const mockService: DashboardService = {
@@ -192,69 +219,21 @@ describe('InboxTriage', () => {
     });
   });
 
-  // ── Renders inbox items ──
+  // ── Renders inbox items using LinkCard ──
 
   describe('inbox items rendering', () => {
-    it('shows metaTitle as display title', () => {
+    it('renders LinkCard for each inbox link', () => {
       render(<InboxTriage />);
 
-      expect(screen.getByText('Inbox Link 1')).toBeInTheDocument();
-      expect(screen.getByText('Inbox Link 2')).toBeInTheDocument();
+      const cards = screen.getAllByTestId('link-card');
+      expect(cards).toHaveLength(2);
     });
 
-    it('falls back to originalUrl when metaTitle is null', () => {
-      const noTitleLink = makeLink({ id: 10, metaTitle: null, originalUrl: 'https://notitle.com' });
-      setupService({ links: [noTitleLink] });
+    it('does not render LinkCard for categorized links', () => {
       render(<InboxTriage />);
 
-      // originalUrl appears as the title link
-      const titleLink = screen.getByRole('link', { name: 'https://notitle.com' });
-      expect(titleLink).toHaveAttribute('href', 'https://notitle.com');
-    });
-
-    it('shows title as link to original URL', () => {
-      render(<InboxTriage />);
-
-      const titleLink = screen.getByRole('link', { name: 'Inbox Link 1' });
-      expect(titleLink).toHaveAttribute('href', 'https://example.com/1');
-      expect(titleLink).toHaveAttribute('target', '_blank');
-    });
-
-    it('shows copy original URL button next to title', () => {
-      render(<InboxTriage />);
-
-      const copyButtons = screen.getAllByTitle('Copy original URL');
-      expect(copyButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows meta description when present', () => {
-      render(<InboxTriage />);
-
-      expect(screen.getByText('A description')).toBeInTheDocument();
-    });
-
-    it('does not show description when null', () => {
-      // inboxLink2 has metaDescription: null
-      setupService({ links: [inboxLink2] });
-      render(<InboxTriage />);
-
-      expect(screen.queryByText('A description')).not.toBeInTheDocument();
-    });
-
-    it('shows favicon when present', () => {
-      render(<InboxTriage />);
-
-      const favicons = screen.getAllByAltText('favicon');
-      expect(favicons.length).toBeGreaterThanOrEqual(1);
-      expect(favicons[0]).toHaveAttribute('src', 'https://example.com/favicon.ico');
-    });
-
-    it('does not show favicon when null', () => {
-      // inboxLink2 has metaFavicon: null
-      setupService({ links: [inboxLink2] });
-      render(<InboxTriage />);
-
-      expect(screen.queryByAltText('favicon')).not.toBeInTheDocument();
+      const cards = screen.getAllByTestId('link-card');
+      expect(cards).toHaveLength(2); // only 2 inbox links, not the categorized one
     });
   });
 
@@ -264,9 +243,8 @@ describe('InboxTriage', () => {
     it('only shows links with folderId === null', () => {
       render(<InboxTriage />);
 
-      expect(screen.getByText('Inbox Link 1')).toBeInTheDocument();
-      expect(screen.getByText('Inbox Link 2')).toBeInTheDocument();
-      expect(screen.queryByText('Categorized Link')).not.toBeInTheDocument();
+      const cards = screen.getAllByTestId('link-card');
+      expect(cards).toHaveLength(2);
     });
   });
 
@@ -285,15 +263,18 @@ describe('InboxTriage', () => {
 
       const selects = screen.getAllByRole('combobox');
       expect(selects[0]).toHaveValue('');
-      expect(within(selects[0]).getByText('Inbox')).toBeInTheDocument();
     });
 
     it('shows folder options in select', () => {
       render(<InboxTriage />);
 
+      // Each select has "Inbox", "Work", "Personal"
       const selects = screen.getAllByRole('combobox');
-      expect(within(selects[0]).getByText('Work')).toBeInTheDocument();
-      expect(within(selects[0]).getByText('Personal')).toBeInTheDocument();
+      const options = selects[0].querySelectorAll('option');
+      const optionTexts = Array.from(options).map(o => o.textContent);
+      expect(optionTexts).toContain('Inbox');
+      expect(optionTexts).toContain('Work');
+      expect(optionTexts).toContain('Personal');
     });
 
     it('shows folder label', () => {
@@ -332,46 +313,6 @@ describe('InboxTriage', () => {
     });
   });
 
-  // ── Screenshot URL input ──
-
-  describe('screenshot URL input', () => {
-    it('shows screenshot URL input with placeholder', () => {
-      render(<InboxTriage />);
-
-      const inputs = screen.getAllByPlaceholderText('https://...');
-      expect(inputs.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows screenshot URL label', () => {
-      render(<InboxTriage />);
-
-      const labels = screen.getAllByText('截图链接');
-      expect(labels.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('allows typing into screenshot URL input', async () => {
-      const user = userEvent.setup();
-      render(<InboxTriage />);
-
-      const inputs = screen.getAllByPlaceholderText('https://...');
-      await user.type(inputs[0], 'https://img.example.com/shot.png');
-
-      expect(inputs[0]).toHaveValue('https://img.example.com/shot.png');
-    });
-
-    it('pre-fills screenshot URL from existing link data', () => {
-      const linkWithScreenshot = makeLink({
-        id: 10,
-        screenshotUrl: 'https://img.example.com/existing.png',
-      });
-      setupService({ links: [linkWithScreenshot] });
-      render(<InboxTriage />);
-
-      const inputs = screen.getAllByPlaceholderText('https://...');
-      expect(inputs[0]).toHaveValue('https://img.example.com/existing.png');
-    });
-  });
-
   // ── Save button ──
 
   describe('save button', () => {
@@ -386,26 +327,15 @@ describe('InboxTriage', () => {
   // ── Tags display ──
 
   describe('tags display', () => {
-    it('shows assigned tags', () => {
+    it('shows assigned tags in triage controls', () => {
       const linkTags: LinkTag[] = [
         { linkId: 1, tagId: 't1' },
       ];
       setupService({ linkTags });
       render(<InboxTriage />);
 
-      expect(screen.getByText('Important')).toBeInTheDocument();
-    });
-
-    it('shows remove button for each assigned tag', () => {
-      const linkTags: LinkTag[] = [
-        { linkId: 1, tagId: 't1' },
-        { linkId: 1, tagId: 't2' },
-      ];
-      setupService({ linkTags });
-      render(<InboxTriage />);
-
+      // "Important" tag appears in triage controls with remove button
       expect(screen.getByLabelText('Remove tag Important')).toBeInTheDocument();
-      expect(screen.getByLabelText('Remove tag Read Later')).toBeInTheDocument();
     });
 
     it('shows add tag button', () => {
@@ -414,23 +344,12 @@ describe('InboxTriage', () => {
       const addButtons = screen.getAllByLabelText('Add tag');
       expect(addButtons.length).toBeGreaterThanOrEqual(1);
     });
-
-    it('does not show tags for categorized links', () => {
-      const linkTags: LinkTag[] = [
-        { linkId: 3, tagId: 't1' }, // categorizedLink has id: 3
-      ];
-      setupService({ linkTags });
-      render(<InboxTriage />);
-
-      // Tag is assigned to categorized link only, which shouldn't render
-      expect(screen.queryByText('Important')).not.toBeInTheDocument();
-    });
   });
 
-  // ── Delete button ──
+  // ── Delete button (from LinkCard) ──
 
   describe('delete button', () => {
-    it('shows delete button with correct aria-label', () => {
+    it('shows delete button from LinkCard', () => {
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
@@ -457,19 +376,6 @@ describe('InboxTriage', () => {
 
       expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '删除' })).toBeInTheDocument();
-    });
-  });
-
-  // ── External link ──
-
-  describe('external link', () => {
-    it('renders external links that open in new tab', () => {
-      render(<InboxTriage />);
-
-      const externalLinks = screen.getAllByTitle('打开链接');
-      expect(externalLinks.length).toBeGreaterThanOrEqual(1);
-      expect(externalLinks[0]).toHaveAttribute('target', '_blank');
-      expect(externalLinks[0]).toHaveAttribute('rel', 'noopener noreferrer');
     });
   });
 
@@ -532,36 +438,6 @@ describe('InboxTriage', () => {
     });
   });
 
-  // ── Copy original URL ──
-
-  describe('copy original URL', () => {
-    it('calls copyToClipboard with original URL when copy button is clicked', async () => {
-      const { copyToClipboard } = await import('@/lib/utils');
-      const user = userEvent.setup();
-      render(<InboxTriage />);
-
-      const copyButtons = screen.getAllByTitle('Copy original URL');
-      await user.click(copyButtons[0]);
-
-      expect(copyToClipboard).toHaveBeenCalledWith('https://example.com/1');
-    });
-
-    it('shows check icon temporarily after successful copy', async () => {
-      const { copyToClipboard } = await import('@/lib/utils');
-      (copyToClipboard as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-
-      const user = userEvent.setup();
-      render(<InboxTriage />);
-
-      const copyButtons = screen.getAllByTitle('Copy original URL');
-      await user.click(copyButtons[0]);
-
-      // Check icon should appear (has class text-success)
-      const checkIcon = copyButtons[0].querySelector('.text-success');
-      expect(checkIcon).toBeInTheDocument();
-    });
-  });
-
   // ── Folder selector onChange ──
 
   describe('folder selector onChange', () => {
@@ -601,20 +477,6 @@ describe('InboxTriage', () => {
       await user.type(inputs[0], 'hello world');
 
       expect(inputs[0]).toHaveValue('hello world');
-    });
-  });
-
-  // ── Screenshot URL input onChange ──
-
-  describe('screenshot URL input onChange', () => {
-    it('updates screenshot URL value as user types', async () => {
-      const user = userEvent.setup();
-      render(<InboxTriage />);
-
-      const inputs = screen.getAllByPlaceholderText('https://...');
-      await user.type(inputs[0], 'https://screenshot.example.com/img.png');
-
-      expect(inputs[0]).toHaveValue('https://screenshot.example.com/img.png');
     });
   });
 
@@ -741,28 +603,6 @@ describe('InboxTriage', () => {
       });
     });
 
-    it('shows alert on delete failure', async () => {
-      const { deleteLink } = await import('@/actions/links');
-      (deleteLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: false, error: 'Delete failed' });
-
-      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-      const user = userEvent.setup();
-      render(<InboxTriage />);
-
-      const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(deleteButtons[0]);
-
-      const confirmBtn = screen.getByRole('button', { name: '删除' });
-      await user.click(confirmBtn);
-
-      await vi.waitFor(() => {
-        expect(alertSpy).toHaveBeenCalledWith('Delete failed');
-      });
-
-      alertSpy.mockRestore();
-    });
-
     it('closes dialog on cancel', async () => {
       const user = userEvent.setup();
       render(<InboxTriage />);
@@ -780,6 +620,42 @@ describe('InboxTriage', () => {
       await vi.waitFor(() => {
         expect(screen.queryByText('确认删除')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  // ── Edit button (from LinkCard) ──
+
+  describe('edit button', () => {
+    it('shows edit button from LinkCard', () => {
+      render(<InboxTriage />);
+
+      const editButtons = screen.getAllByLabelText('Edit link');
+      expect(editButtons).toHaveLength(2);
+    });
+  });
+
+  // ── LinkCard capabilities inherited ──
+
+  describe('LinkCard capabilities', () => {
+    it('shows refresh metadata button from LinkCard', () => {
+      render(<InboxTriage />);
+
+      const refreshButtons = screen.getAllByLabelText('Refresh metadata');
+      expect(refreshButtons).toHaveLength(2);
+    });
+
+    it('shows refresh preview button from LinkCard', () => {
+      render(<InboxTriage />);
+
+      const previewButtons = screen.getAllByLabelText('Refresh preview');
+      expect(previewButtons).toHaveLength(2);
+    });
+
+    it('shows copy link button from LinkCard', () => {
+      render(<InboxTriage />);
+
+      const copyButtons = screen.getAllByLabelText('Copy link');
+      expect(copyButtons).toHaveLength(2);
     });
   });
 });
