@@ -16,7 +16,7 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 | 2 | Merge 3 provider actions into 1 `getDashboardData()` | **Done** | -2 |
 | 3 | Reduce unnecessary context subscriptions | **Done** | -3 (re-renders) |
 | 4 | SSR prefetch in `page.tsx` via server data functions | **Done** | -1 (page-level) |
-| 5 | Backy page: merge config+history, optimize push flow | Pending | -1 |
+| 5 | Backy page: inline history on push, skip refresh on failure | **Done** | -1 |
 | 6 | Links N+1: batch `refreshLinkMetadata` | Pending | -(N-1) |
 | 7 | Add Suspense boundaries | Pending | 0 |
 | 8 | Minor fixes (Storage, Data Management, Overview) | Pending | varies |
@@ -145,18 +145,23 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 
 ### Phase 5: Backy Page Optimization
 
-**Problem:** Mount waterfall (config then history sequentially), push refreshes history even on failure, redundant auth+DB reads.
+**Problem:** After a successful push, the viewmodel called `fetchBackyHistory()` separately in a `finally` block — an extra auth + DB + external API round-trip. History was also refreshed on push failure (unnecessary).
 
 **Changes:**
-- Create `getBackyConfigAndHistory()` combined server action
-- `pushBackup()` returns updated history inline
-- Only refresh history on push success
+- Add `history?: BackyHistoryResponse` field to `BackyPushDetail` type
+- `pushBackup()` fetches history inline via GET after successful POST (reuses same `config` — no extra auth/DB call)
+- Viewmodel `handlePush` sets history from inline response on success; no `fetchBackyHistory()` call after push
+- On push failure, history is NOT refreshed (eliminates wasted round-trip)
+- History fetch failure is non-critical — push still succeeds, client can manually refresh
 
 **Files Modified:**
-- `actions/backy.ts`
-- `viewmodels/useBackyViewModel.ts`
+- `models/backy.ts` (added `history` field to `BackyPushDetail`)
+- `actions/backy.ts` (inline history fetch on success)
+- `viewmodels/useBackyViewModel.ts` (use inline history, remove `finally` block)
+- `tests/unit/backy-viewmodel.test.ts` (updated push tests for new behavior)
+- `tests/unit/backy-actions.test.ts` (added inline history tests, failure assertion)
 
-**Status:** Pending
+**Status:** Done
 
 ---
 

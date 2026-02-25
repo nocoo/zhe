@@ -115,6 +115,10 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
       const result = await pushBackup();
       if (result.data) {
         setPushResult(result.data);
+        // Use inline history from push response (avoids extra round-trip)
+        if (result.data.history) {
+          setHistory(result.data.history);
+        }
       } else {
         setPushResult({
           ok: false,
@@ -123,11 +127,6 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
       }
     } finally {
       setIsPushing(false);
-      // Always refresh history after push (success or failure)
-      const historyResult = await fetchBackyHistory();
-      if (historyResult.success && historyResult.data) {
-        setHistory(historyResult.data);
-      }
     }
   }, []);
 

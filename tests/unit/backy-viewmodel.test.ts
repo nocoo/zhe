@@ -286,7 +286,7 @@ describe('useBackyViewModel', () => {
   // ==================================================================
   // handlePush
   // ==================================================================
-  it('pushes backup successfully and refreshes history', async () => {
+  it('pushes backup successfully and updates history from inline response', async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
       data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
@@ -294,6 +294,18 @@ describe('useBackyViewModel', () => {
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
+
+    // Clear the mount-time fetchBackyHistory call count
+    mockFetchBackyHistory.mockClear();
+
+    const mockHistoryData = {
+      project_name: 'zhe',
+      environment: null,
+      total_backups: 1,
+      recent_backups: [
+        { id: '1', tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag', environment: 'dev', file_size: 512, is_single_json: 1, created_at: '2026-02-24T00:00:00Z' },
+      ],
+    };
 
     mockPushBackup.mockResolvedValue({
       success: true,
@@ -307,18 +319,9 @@ describe('useBackyViewModel', () => {
           fileSizeBytes: 512,
           backupStats: { links: 10, folders: 2, tags: 3 },
         },
+        history: mockHistoryData,
       },
     });
-
-    const mockHistoryData = {
-      project_name: 'zhe',
-      environment: null,
-      total_backups: 1,
-      recent_backups: [
-        { id: '1', tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag', environment: 'dev', file_size: 512, is_single_json: 1, created_at: '2026-02-24T00:00:00Z' },
-      ],
-    };
-    mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
 
     await act(async () => {
       await result.current.handlePush();
@@ -333,10 +336,12 @@ describe('useBackyViewModel', () => {
       }),
     });
     expect(result.current.isPushing).toBe(false);
+    // History comes from inline push response, NOT from separate fetchBackyHistory call
     expect(result.current.history).toEqual(mockHistoryData);
+    expect(mockFetchBackyHistory).not.toHaveBeenCalled();
   });
 
-  it('shows error on push failure and still refreshes history', async () => {
+  it('does not refresh history on push failure', async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
       data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
@@ -346,6 +351,9 @@ describe('useBackyViewModel', () => {
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
+
+    // Clear the mount-time fetchBackyHistory call count
+    mockFetchBackyHistory.mockClear();
 
     mockPushBackup.mockResolvedValue({
       success: false,
@@ -359,16 +367,6 @@ describe('useBackyViewModel', () => {
       error: '推送失败 (413)',
     });
 
-    const mockHistoryData = {
-      project_name: 'zhe',
-      environment: null,
-      total_backups: 5,
-      recent_backups: [
-        { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
-      ],
-    };
-    mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
-
     await act(async () => {
       await result.current.handlePush();
     });
@@ -377,8 +375,8 @@ describe('useBackyViewModel', () => {
       ok: false,
       message: '推送失败 (413)',
     });
-    // History should be refreshed even after failure
-    expect(result.current.history).toEqual(mockHistoryData);
+    // History should NOT be refreshed on failure
+    expect(mockFetchBackyHistory).not.toHaveBeenCalled();
   });
 
   // ==================================================================

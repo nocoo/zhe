@@ -350,10 +350,26 @@ describe('backy actions', () => {
       mockGetTags.mockResolvedValue(mockTagsData);
       mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockPushResult),
-      });
+
+      const mockHistory = {
+        project_name: 'zhe',
+        environment: null,
+        total_backups: 1,
+        recent_backups: [
+          { id: 'backup-1', tag: 'v1.2.3-2026-02-24-1lnk-1fld-1tag', environment: 'dev', file_size: 512, is_single_json: 1, created_at: '2026-02-24T12:00:00Z' },
+        ],
+      };
+
+      // First call = POST (push), second call = GET (history)
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockPushResult),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockHistory),
+        });
 
       const result = await pushBackup();
       expect(result.success).toBe(true);
@@ -367,18 +383,29 @@ describe('backy actions', () => {
           fileSizeBytes: expect.any(Number),
           backupStats: { links: 1, folders: 1, tags: 1, linkTags: 1 },
         },
+        history: mockHistory,
       });
 
-      // Verify fetch was called with correct args
-      expect(mockFetch).toHaveBeenCalledWith(
+      // Verify two fetch calls: POST then GET
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
         'https://backy.example.com/webhook',
         expect.objectContaining({
           method: 'POST',
           headers: { Authorization: 'Bearer sk-1234567890abcdef' },
         }),
       );
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        'https://backy.example.com/webhook',
+        expect.objectContaining({
+          method: 'GET',
+          headers: { Authorization: 'Bearer sk-1234567890abcdef' },
+        }),
+      );
 
-      // Verify FormData body
+      // Verify FormData body on POST call
       const fetchCall = mockFetch.mock.calls[0];
       const body = fetchCall[1].body;
       expect(body).toBeInstanceOf(FormData);
@@ -387,6 +414,34 @@ describe('backy actions', () => {
       expect(body.get('tag')).toContain('1lnk');
       expect(body.get('tag')).toContain('1fld');
       expect(body.get('tag')).toContain('1tag');
+    });
+
+    it('returns success without history when inline history fetch fails', async () => {
+      mockGetBackySettings.mockResolvedValue({
+        webhookUrl: 'https://backy.example.com/webhook',
+        apiKey: 'sk-1234567890abcdef',
+      });
+      mockGetLinks.mockResolvedValue(mockLinks);
+      mockGetFolders.mockResolvedValue(mockFoldersData);
+      mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
+      mockSerializeLinksForExport.mockReturnValue(mockSerialized);
+
+      // POST succeeds, GET fails
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockPushResult),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+        });
+
+      const result = await pushBackup();
+      expect(result.success).toBe(true);
+      expect(result.data?.ok).toBe(true);
+      expect(result.data?.history).toBeUndefined();
     });
 
     it('returns error with detail when POST fails', async () => {
@@ -414,6 +469,8 @@ describe('backy actions', () => {
         request: expect.objectContaining({ tag: expect.stringContaining('v1.2.3') }),
         response: { status: 413, body: { error: 'too large' } },
       });
+      // On failure, no inline history GET should be attempted
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     it('returns error when not configured', async () => {

@@ -55,6 +55,8 @@ export interface BackyPushDetail {
     status: number;
     body: unknown;
   };
+  /** Backup history fetched inline on push success (avoids extra round-trip) */
+  history?: BackyHistoryResponse;
 }
 
 // ---------------------------------------------------------------------------

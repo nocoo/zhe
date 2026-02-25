@@ -232,8 +232,23 @@ export async function pushBackup(): Promise<{
       };
     }
 
-    // Success — response body consumed but not needed; detail is built from request metadata
+    // Success — consume the POST response, then fetch history inline to avoid
+    // the client making a separate round-trip (saves 1 auth + DB + API call).
     await res.json();
+
+    let history: BackyHistoryResponse | undefined;
+    try {
+      const historyRes = await fetch(config.webhookUrl, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      });
+      if (historyRes.ok) {
+        history = await historyRes.json();
+      }
+    } catch {
+      // Non-critical — history will be undefined; client can still load it manually
+    }
+
     return {
       success: true,
       data: {
@@ -241,6 +256,7 @@ export async function pushBackup(): Promise<{
         message: `推送成功 (${durationMs}ms)`,
         durationMs,
         request: requestMeta,
+        history,
       },
     };
   } catch (error) {
