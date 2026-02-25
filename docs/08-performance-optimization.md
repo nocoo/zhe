@@ -12,9 +12,9 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 
 | Phase | Description | Status | Auth Calls Saved |
 |-------|-------------|--------|-----------------|
-| 1 | Unify auth helpers + `cache()` wrap | Pending | -1 (layout) |
-| 2 | Merge 3 provider actions into 1 `getDashboardData()` | Pending | -2 |
-| 3 | Lazy-load provider data + sidebar `getLinkCounts()` | Pending | -3 (for 6/7 pages) |
+| 1 | Unify auth helpers + `cache()` wrap | **Done** | -1 (layout) |
+| 2 | Merge 3 provider actions into 1 `getDashboardData()` | **Done** | -2 |
+| 3 | Reduce unnecessary context subscriptions | **Done** | -3 (re-renders) |
 | 4 | SSR prefetch in `page.tsx` via server data functions | Pending | -1 (page-level) |
 | 5 | Backy page: merge config+history, optimize push flow | Pending | -1 |
 | 6 | Links N+1: batch `refreshLinkMetadata` | Pending | -(N-1) |
@@ -46,7 +46,7 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 - `actions/storage.ts`
 - `actions/overview.ts`
 
-**Status:** Pending
+**Status:** Done (commit `354078e`)
 
 ---
 
@@ -63,29 +63,33 @@ Every dashboard page triggers 5-6+ redundant `auth()` calls (each hitting Cloudf
 - `actions/dashboard.ts` (new)
 - `contexts/dashboard-service.tsx`
 
-**Status:** Pending
+**Status:** Done (commit `a2e125d`)
 
 ---
 
-### Phase 3: Lazy-Load Provider Data
+### Phase 3: Reduce Unnecessary Context Subscriptions
 
-**Problem:** All 7 pages load links+tags+linkTags on mount, but only Links List needs them. Sidebar reads `links` for badge counts; Search dialog reads links/tags/linkTags.
+**Problem:** Components subscribed to the full `useDashboardService` context (state + actions), causing unnecessary re-renders when any part of the context changed. Webhook viewmodel pulled the entire dashboard context just for `siteUrl`.
 
 **Changes:**
-- Create `getLinkCounts()` server action returning only counts (not full arrays)
-- Sidebar: use `linkCounts` instead of `links.length`
-- Search dialog: lazy-load data only when opened
-- Provider: don't fetch links/tags/linkTags eagerly; expose `ensureDataLoaded()` for consumers
-- Links List page: call `ensureDataLoaded()` on mount
+- Webhook viewmodel: use `window.location.origin` directly, eliminating dashboard context dependency entirely
+- Folders viewmodel: use granular `useDashboardState` + `useDashboardActions` hooks instead of monolithic `useDashboardService`
+- App sidebar: subscribe to `useDashboardState` only (reads `links` for counts, doesn't need actions)
+- Search command dialog: subscribe to `useDashboardState` only (reads state, no actions)
+- Update all corresponding test mocks to match new hook usage
 
 **Files Modified:**
-- `actions/dashboard.ts`
-- `contexts/dashboard-service.tsx`
+- `viewmodels/useWebhookViewModel.ts`
+- `viewmodels/useFoldersViewModel.ts`
 - `components/app-sidebar.tsx`
 - `components/search-command-dialog.tsx`
-- `components/dashboard/links-list.tsx`
+- `tests/unit/webhook-viewmodel.test.ts`
+- `tests/unit/folder-viewmodel.test.ts`
+- `tests/components/app-sidebar.test.tsx`
+- `tests/components/search-command-dialog.test.tsx`
+- `tests/components/dashboard-shell.test.tsx`
 
-**Status:** Pending
+**Status:** Done (commit `eca10c3`)
 
 ---
 
