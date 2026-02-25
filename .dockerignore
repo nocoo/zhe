@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+tests
+drizzle
+.husky
+.vscode
+playwright.config.ts
+vitest.config.ts
+CHANGELOG.md
+CLAUDE.md
+README.md

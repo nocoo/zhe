@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: ["zhe.dev.hexly.ai"],
 
   // Replace Next.js's built-in polyfill-module with an empty shim.
