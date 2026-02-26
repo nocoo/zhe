@@ -27,32 +27,3 @@ export interface AnalyticsStats {
   osBreakdown: Record<string, number>;
 }
 
-/** Input for creating a new link */
-export interface CreateLinkInput {
-  originalUrl: string;
-  customSlug?: string;
-  folderId?: string;
-  expiresAt?: Date;
-}
-
-/** Generic server action result */
-export interface ActionResult<T = void> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-/** Sidebar navigation item */
-export interface NavItem {
-  title: string;
-  icon: React.ElementType;
-  href: string;
-  badge?: number;
-}
-
-/** Sidebar navigation group */
-export interface NavGroup {
-  label: string;
-  items: NavItem[];
-  defaultOpen?: boolean;
-}
