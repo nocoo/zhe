@@ -6,6 +6,7 @@ import {
   buildWebhookDocumentation,
 } from "@/models/webhook";
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
+import { resolvePublicOrigin } from "@/lib/url";
 
 /**
  * HEAD /api/webhook/[token]
@@ -48,7 +49,7 @@ export async function GET(
     );
   }
 
-  const webhookUrl = `${new URL(request.url).origin}/api/webhook/${token}`;
+  const webhookUrl = `${resolvePublicOrigin(request)}/api/webhook/${token}`;
   const [stats, docs] = await Promise.all([
     getWebhookStats(webhook.userId),
     Promise.resolve(buildWebhookDocumentation(webhookUrl, webhook.rateLimit)),
@@ -135,7 +136,7 @@ export async function POST(
   // 4. Idempotency check — if same URL already exists for this user, return it
   const existingLink = await getLinkByUserAndUrl(webhook.userId, url);
   if (existingLink) {
-    const origin = new URL(request.url).origin;
+    const origin = resolvePublicOrigin(request);
     return NextResponse.json(
       {
         slug: existingLink.slug,
@@ -190,8 +191,8 @@ export async function POST(
     clicks: 0,
   });
 
-  // 8. Build short URL from the request origin
-  const origin = new URL(request.url).origin;
+  // 8. Build short URL from the public-facing origin
+  const origin = resolvePublicOrigin(request);
   const shortUrl = `${origin}/${link.slug}`;
 
   return NextResponse.json(

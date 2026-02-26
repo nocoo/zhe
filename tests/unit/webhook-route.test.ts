@@ -149,6 +149,40 @@ describe("POST /api/webhook/[token]", () => {
     expect(json.originalUrl).toBe("https://example.com/long-page");
   });
 
+  it("returns public domain in shortUrl when behind reverse proxy", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "valid-token",
+      createdAt: new Date(),
+    });
+    mockGenerateUniqueSlug.mockResolvedValue("xyz789");
+    mockCreateLink.mockResolvedValue({
+      id: 12,
+      userId: "user-1",
+      slug: "xyz789",
+      originalUrl: "https://example.com/behind-proxy",
+      isCustom: false,
+      clicks: 0,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://0.0.0.0:7005/api/webhook/valid-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "zhe.to",
+      },
+      body: JSON.stringify({ url: "https://example.com/behind-proxy" }),
+    });
+
+    const res = await POST(req, makeParams("valid-token"));
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.shortUrl).toBe("https://zhe.to/xyz789");
+  });
+
   it("creates a link with custom slug", async () => {
     mockGetWebhookByToken.mockResolvedValue({
       id: 1,
@@ -554,7 +588,7 @@ describe("GET /api/webhook/[token]", () => {
     expect(json.docs.methods).toHaveLength(3);
   });
 
-  it("builds endpoint URL from request origin", async () => {
+  it("builds endpoint URL from request origin (no proxy headers)", async () => {
     mockGetWebhookByToken.mockResolvedValue({
       id: 1,
       userId: "user-1",
@@ -569,6 +603,27 @@ describe("GET /api/webhook/[token]", () => {
     const res = await GET(req, makeParams("my-token"));
     const json = await res.json();
     expect(json.docs.endpoint).toBe("https://zhe.example.com/api/webhook/my-token");
+  });
+
+  it("builds endpoint URL from x-forwarded headers behind proxy", async () => {
+    mockGetWebhookByToken.mockResolvedValue({
+      id: 1,
+      userId: "user-1",
+      token: "my-token",
+      rateLimit: 5,
+      createdAt: new Date(),
+    });
+
+    const req = new Request("http://0.0.0.0:7005/api/webhook/my-token", {
+      method: "GET",
+      headers: {
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "zhe.to",
+      },
+    });
+    const res = await GET(req, makeParams("my-token"));
+    const json = await res.json();
+    expect(json.docs.endpoint).toBe("https://zhe.to/api/webhook/my-token");
   });
 
   it("calls getWebhookStats with the webhook user id", async () => {
