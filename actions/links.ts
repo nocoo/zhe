@@ -293,11 +293,20 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
  *   external sites
  * - 1x batch DB re-fetch for updated links
  */
+const BATCH_REFRESH_MAX = 500;
+
 export async function batchRefreshLinkMetadata(
   linkIds: number[],
 ): Promise<ActionResult<Link[]>> {
   if (linkIds.length === 0) {
     return { success: true, data: [] };
+  }
+
+  if (linkIds.length > BATCH_REFRESH_MAX) {
+    return {
+      success: false,
+      error: `Too many link IDs (${linkIds.length}). Maximum is ${BATCH_REFRESH_MAX}.`,
+    };
   }
 
   try {

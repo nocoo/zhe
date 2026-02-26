@@ -686,6 +686,31 @@ describe('actions/links — uncovered paths', () => {
       expect(mockAuth).not.toHaveBeenCalled();
     });
 
+    it('returns error when too many link IDs are provided', async () => {
+      const tooManyIds = Array.from({ length: 501 }, (_, i) => i + 1);
+
+      const result = await batchRefreshLinkMetadata(tooManyIds);
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Too many link IDs (501). Maximum is 500.',
+      });
+      // Should not even call auth
+      expect(mockAuth).not.toHaveBeenCalled();
+    });
+
+    it('accepts exactly 500 link IDs', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinksByIds.mockResolvedValue([]);
+      const maxIds = Array.from({ length: 500 }, (_, i) => i + 1);
+
+      const result = await batchRefreshLinkMetadata(maxIds);
+
+      // Should proceed (returns empty because no links found)
+      expect(result).toEqual({ success: true, data: [] });
+      expect(mockAuth).toHaveBeenCalled();
+    });
+
     it('returns Unauthorized when not authenticated', async () => {
       mockAuth.mockResolvedValue(null);
 
