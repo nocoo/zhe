@@ -6,7 +6,7 @@ import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
 
 /**
  * Shared callback interface for link mutation operations.
- * Used by both Inbox triage and the Edit-link dialog.
+ * Used by both Inbox triage and the inline link editor.
  */
 export interface LinkMutationCallbacks {
   onLinkUpdated: (link: Link) => void;
@@ -21,7 +21,7 @@ export interface LinkMutationCallbacks {
  * Provides optimistic add/remove/create-and-assign tag helpers,
  * plus tag lookup utilities (assigned IDs / assigned Tag objects).
  *
- * Both `useInboxViewModel` and `useEditLinkViewModel` delegate here
+ * Both `useInboxViewModel` and `useInlineLinkEditViewModel` delegate here
  * to eliminate duplicated tag logic.
  */
 export function useLinkMutations(

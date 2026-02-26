@@ -38,21 +38,14 @@ export function InboxTriage() {
     }
   }, [refreshLinks]);
 
-  const callbacks = useMemo(() => ({
-    onLinkUpdated: handleLinkUpdated,
-    onTagCreated: handleTagCreated,
-    onLinkTagAdded: handleLinkTagAdded,
-    onLinkTagRemoved: handleLinkTagRemoved,
-  }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
-
-  const vm = useInboxViewModel(links, folders, tags, linkTags, callbacks);
-
   const editCallbacks: EditLinkCallbacks = useMemo(() => ({
     onLinkUpdated: handleLinkUpdated,
     onTagCreated: handleTagCreated,
     onLinkTagAdded: handleLinkTagAdded,
     onLinkTagRemoved: handleLinkTagRemoved,
   }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
+
+  const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
 
   if (loading) {
     return (
