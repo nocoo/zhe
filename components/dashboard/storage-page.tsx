@@ -524,10 +524,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
 
         // Update state locally instead of a full re-scan
         if (data) {
-          const deletedKeys = new Set(keys);
-          // Skipped keys were NOT deleted — keep them in state
-          // We don't know which specific keys were skipped, so remove all
-          // requested keys and trust the server's count
+          const deletedKeys = new Set(result.data.deletedKeys);
           const remainingFiles = data.r2.files.filter(
             (f) => !deletedKeys.has(f.key),
           );

@@ -373,7 +373,7 @@ describe('StoragePage', () => {
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({
       success: true,
-      data: { deleted: 1, skipped: 0 },
+      data: { deleted: 1, skipped: 0, deletedKeys: ['user/20260103/orphan.png'] },
     });
 
     render(<StoragePage initialData={data} />);
@@ -410,7 +410,7 @@ describe('StoragePage', () => {
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({
       success: true,
-      data: { deleted: 0, skipped: 1 },
+      data: { deleted: 0, skipped: 1, deletedKeys: [] },
     });
 
     render(<StoragePage initialData={data} />);

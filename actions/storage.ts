@@ -136,7 +136,7 @@ export async function scanStorage(): Promise<ActionResult<StorageScanResult>> {
  */
 export async function cleanupOrphanFiles(
   keys: string[],
-): Promise<ActionResult<{ deleted: number; skipped: number }>> {
+): Promise<ActionResult<{ deleted: number; skipped: number; deletedKeys: string[] }>> {
   const userId = await requireAuth();
   if (!userId) {
     return { success: false, error: 'Unauthorized' };
@@ -188,6 +188,7 @@ export async function cleanupOrphanFiles(
       data: {
         deleted,
         skipped: keys.length - confirmedOrphans.length,
+        deletedKeys: confirmedOrphans,
       },
     };
   } catch (error) {

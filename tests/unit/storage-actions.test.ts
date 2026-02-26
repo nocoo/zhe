@@ -180,6 +180,7 @@ describe('cleanupOrphanFiles', () => {
     expect(result.success).toBe(true);
     expect(result.data!.deleted).toBe(2);
     expect(result.data!.skipped).toBe(1); // 'referenced.png' is in uploadKeys
+    expect(result.data!.deletedKeys).toEqual(['orphan1.png', 'orphan2.png']);
 
     // deleteR2Objects should only receive confirmed orphans
     expect(mockDeleteR2Objects).toHaveBeenCalledWith(['orphan1.png', 'orphan2.png']);
@@ -196,6 +197,7 @@ describe('cleanupOrphanFiles', () => {
     expect(result.success).toBe(true);
     expect(result.data!.deleted).toBe(0);
     expect(result.data!.skipped).toBe(2);
+    expect(result.data!.deletedKeys).toEqual([]);
     expect(mockDeleteR2Objects).not.toHaveBeenCalled();
   });
 
