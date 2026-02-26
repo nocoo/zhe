@@ -28,17 +28,6 @@ export interface BackyBackupEntry {
   created_at: string;
 }
 
-/** Result of a push-backup operation (from Backy API response) */
-export interface BackyPushResult {
-  id: string;
-  project_name: string;
-  tag: string;
-  environment: string;
-  file_size: number;
-  is_single_json: number;
-  created_at: string;
-}
-
 /** Detailed push result with request metadata and timing */
 export interface BackyPushDetail {
   ok: boolean;
