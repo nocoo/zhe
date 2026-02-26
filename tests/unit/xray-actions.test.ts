@@ -11,12 +11,14 @@ vi.mock('@/auth', () => ({
 
 // ScopedDB mock
 const mockGetXraySettings = vi.fn();
+const mockUpsertXraySettings = vi.fn();
 const mockUpdateLinkMetadata = vi.fn();
 const mockGetLinkById = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(() => ({
     getXraySettings: mockGetXraySettings,
+    upsertXraySettings: mockUpsertXraySettings,
     updateLinkMetadata: mockUpdateLinkMetadata,
     getLinkById: mockGetLinkById,
   })),
@@ -41,8 +43,15 @@ vi.mock('@/actions/links', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-import { fetchAndCacheTweet, forceRefreshTweetCache, fetchBookmarks } from '@/actions/xray';
-import type { XrayTweetData } from '@/models/xray';
+import {
+  getXrayConfig,
+  saveXrayConfig,
+  fetchTweet,
+  fetchAndCacheTweet,
+  forceRefreshTweetCache,
+  fetchBookmarks,
+} from '@/actions/xray';
+import { MOCK_TWEET_RESPONSE, type XrayTweetData } from '@/models/xray';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -96,7 +105,213 @@ function mockApiResponse(tweet: XrayTweetData) {
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// Tests — getXrayConfig, saveXrayConfig, fetchTweet
+// ---------------------------------------------------------------------------
+
+describe('getXrayConfig', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockAuth.mockResolvedValue(null);
+    const result = await getXrayConfig();
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('returns undefined data when no config is saved', async () => {
+    mockGetXraySettings.mockResolvedValue(null);
+    const result = await getXrayConfig();
+    expect(result.success).toBe(true);
+    expect(result.data).toBeUndefined();
+  });
+
+  it('returns config with masked token', async () => {
+    mockGetXraySettings.mockResolvedValue({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'abcdefghijklmnopqrst',
+    });
+
+    const result = await getXrayConfig();
+
+    expect(result.success).toBe(true);
+    expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
+    // maskToken: first 4 + (length - 8) dots + last 4 = 4 + 12 + 4 = 20
+    expect(result.data!.maskedToken).toBe('abcd••••••••••••qrst');
+  });
+
+  it('returns error on unexpected exception', async () => {
+    mockGetXraySettings.mockRejectedValue(new Error('DB crashed'));
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await getXrayConfig();
+    spy.mockRestore();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to load xray config');
+  });
+});
+
+describe('saveXrayConfig', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockAuth.mockResolvedValue(null);
+    const result = await saveXrayConfig({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'token-123',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('returns validation error for empty URL', async () => {
+    const result = await saveXrayConfig({ apiUrl: '', apiToken: 'token' });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('URL');
+  });
+
+  it('returns validation error for empty token', async () => {
+    const result = await saveXrayConfig({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: '',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Token');
+  });
+
+  it('returns validation error for invalid URL', async () => {
+    const result = await saveXrayConfig({
+      apiUrl: 'not-a-valid-url',
+      apiToken: 'token',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('URL');
+  });
+
+  it('saves valid config and returns masked token', async () => {
+    mockUpsertXraySettings.mockResolvedValue({});
+
+    const result = await saveXrayConfig({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'abcdefghijklmnopqrst',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
+    expect(result.data!.maskedToken).toBe('abcd••••••••••••qrst');
+    expect(mockUpsertXraySettings).toHaveBeenCalledWith({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'abcdefghijklmnopqrst',
+    });
+  });
+
+  it('trims whitespace from URL and token', async () => {
+    mockUpsertXraySettings.mockResolvedValue({});
+
+    await saveXrayConfig({
+      apiUrl: '  https://xray.hexly.ai  ',
+      apiToken: '  abcdefghijklmnopqrst  ',
+    });
+
+    expect(mockUpsertXraySettings).toHaveBeenCalledWith({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'abcdefghijklmnopqrst',
+    });
+  });
+
+  it('returns error on unexpected exception', async () => {
+    mockUpsertXraySettings.mockRejectedValue(new Error('DB error'));
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await saveXrayConfig({
+      apiUrl: 'https://xray.hexly.ai',
+      apiToken: 'abcdefghijklmnopqrst',
+    });
+    spy.mockRestore();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Failed to save xray config');
+  });
+});
+
+describe('fetchTweet', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockAuth.mockResolvedValue(null);
+    const result = await fetchTweet('https://x.com/user/status/123');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unauthorized');
+  });
+
+  it('returns error for invalid tweet URL', async () => {
+    const result = await fetchTweet('https://example.com/not-a-tweet');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Tweet ID');
+  });
+
+  it('returns mock data when API is not configured', async () => {
+    mockGetXraySettings.mockResolvedValue(null);
+
+    const result = await fetchTweet('https://x.com/karpathy/status/2026360908398862478');
+
+    expect(result.success).toBe(true);
+    expect(result.mock).toBe(true);
+    expect(result.data).toEqual(MOCK_TWEET_RESPONSE);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('calls the real API when configured', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue(mockApiResponse(SAMPLE_TWEET_DATA));
+
+    const result = await fetchTweet('https://x.com/karpathy/status/2026360908398862478');
+
+    expect(result.success).toBe(true);
+    expect(result.mock).toBe(false);
+    expect(result.data!.data.id).toBe('2026360908398862478');
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://xray.hexly.ai/api/twitter/tweets/2026360908398862478',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Webhook-Key': 'test-token-123' }),
+      }),
+    );
+  });
+
+  it('returns error when API returns non-ok status', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockResolvedValue({ ok: false, status: 500 });
+
+    const result = await fetchTweet('https://x.com/user/status/123');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('500');
+  });
+
+  it('returns error on network failure', async () => {
+    mockGetXraySettings.mockResolvedValue(XRAY_CONFIG);
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await fetchTweet('https://x.com/user/status/123');
+    spy.mockRestore();
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('获取推文失败');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests — fetchAndCacheTweet, forceRefreshTweetCache, fetchBookmarks
 // ---------------------------------------------------------------------------
 
 describe('fetchAndCacheTweet', () => {
