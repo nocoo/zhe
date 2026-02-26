@@ -51,8 +51,10 @@ test.describe('Link CRUD', () => {
       // Wait for dialog to close (link created)
       await expect(page.getByText('创建短链接')).toBeHidden({ timeout: 15_000 });
 
-      // Verify the link appears in the list
-      await expect(page.getByText('playwright.dev')).toBeVisible({ timeout: 10_000 });
+      // Verify the link appears in the list (title may be enriched metadata or hostname fallback)
+      await expect(
+        page.locator('[data-testid="link-card"] a[href="https://playwright.dev/docs/intro"]'),
+      ).toBeVisible({ timeout: 10_000 });
     });
 
     test('create link with custom slug', async ({ page }) => {
