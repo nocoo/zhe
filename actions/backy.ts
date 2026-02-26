@@ -238,10 +238,14 @@ export async function pushBackup(): Promise<{
 
     let history: BackyHistoryResponse | undefined;
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const historyRes = await fetch(config.webhookUrl, {
         method: 'GET',
         headers: { Authorization: `Bearer ${config.apiKey}` },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (historyRes.ok) {
         history = await historyRes.json();
       }

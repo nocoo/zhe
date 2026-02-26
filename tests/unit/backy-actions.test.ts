@@ -444,6 +444,67 @@ describe('backy actions', () => {
       expect(result.data?.history).toBeUndefined();
     });
 
+    it('returns success without history when inline history fetch times out', async () => {
+      mockGetBackySettings.mockResolvedValue({
+        webhookUrl: 'https://backy.example.com/webhook',
+        apiKey: 'sk-1234567890abcdef',
+      });
+      mockGetLinks.mockResolvedValue(mockLinks);
+      mockGetFolders.mockResolvedValue(mockFoldersData);
+      mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
+      mockSerializeLinksForExport.mockReturnValue(mockSerialized);
+
+      // POST succeeds, GET rejects with AbortError (simulating timeout)
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockPushResult),
+        })
+        .mockRejectedValueOnce(new DOMException('The operation was aborted', 'AbortError'));
+
+      const result = await pushBackup();
+      expect(result.success).toBe(true);
+      expect(result.data?.ok).toBe(true);
+      expect(result.data?.history).toBeUndefined();
+    });
+
+    it('passes AbortSignal to inline history fetch', async () => {
+      mockGetBackySettings.mockResolvedValue({
+        webhookUrl: 'https://backy.example.com/webhook',
+        apiKey: 'sk-1234567890abcdef',
+      });
+      mockGetLinks.mockResolvedValue(mockLinks);
+      mockGetFolders.mockResolvedValue(mockFoldersData);
+      mockGetTags.mockResolvedValue(mockTagsData);
+      mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
+      mockSerializeLinksForExport.mockReturnValue(mockSerialized);
+
+      const mockHistory = {
+        project_name: 'zhe',
+        environment: null,
+        total_backups: 1,
+        recent_backups: [mockPushResult],
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockPushResult),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockHistory),
+        });
+
+      await pushBackup();
+
+      // Second call (GET history) should include signal
+      const secondCall = mockFetch.mock.calls[1];
+      expect(secondCall[1]).toHaveProperty('signal');
+      expect(secondCall[1].signal).toBeInstanceOf(AbortSignal);
+    });
+
     it('returns error with detail when POST fails', async () => {
       mockGetBackySettings.mockResolvedValue({
         webhookUrl: 'https://backy.example.com/webhook',
