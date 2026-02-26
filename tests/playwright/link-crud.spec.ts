@@ -141,7 +141,7 @@ test.describe('Link CRUD', () => {
       await editButton.click();
 
       // Inline edit area should appear inside the card (note input becomes visible)
-      const noteInput = card.locator('textarea[id^="edit-note-"]');
+      const noteInput = card.locator('input[id^="edit-note-"]');
       await expect(noteInput).toBeVisible({ timeout: 5_000 });
 
       // Modify the note
