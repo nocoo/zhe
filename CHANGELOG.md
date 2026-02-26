@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.0] - 2026-02-26
+
+### Added
+- Enhanced search dialog with rich UI, favicon, keyword highlights, and empty state
+- `highlightMatches` utility with empty query guard for search filtering
+- Unit tests for storage actions, dashboard actions, xray actions (including `fetchTweet`), R2 client (`listR2Objects`, `deleteR2Objects`), xray viewmodel, xray page, storage page, and storage route — all from 0% to covered
+- Retrospective lessons for HighlightText DOM splitting and eslint-disable placement
+
+### Changed
+- Switch auth session strategy from `database` to `jwt` to eliminate per-request D1 HTTP calls for session validation, addressing p99 response time spikes
+- Simplify search card layout with slug-only display, clickable folder, and merged meta row
+- Replace EditLinkDialog with inline edit mode in inbox-triage and links-list
+- Reduce meta row icon sizes to 9px for visual consistency
+- Update search dialog tests for HighlightText DOM splitting
+
+### Removed
+- Unused draft state from `useInboxViewModel`
+- Dead code: `edit-link-dialog.tsx` and its test (replaced by inline edit)
+- Unused D1 debug script, PWA icons, `package-lock.json`, `vercel.json`
+- Unused exports: `D1Response` type, chart palette exports, `BackyPushResult` interface, type exports from `models/types.ts`
+
+### Fixed
+- Use href selector for create-link E2E test (title may be enriched)
+- Use input selector for note field in E2E edit test
+- Update E2E tests for inline edit mode (no more dialog)
+- Resolve lint warning and test collision in link-card after inline edit refactor
+
 ## [v1.3.1] - 2026-02-26
 
 ### Added
