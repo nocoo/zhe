@@ -52,8 +52,9 @@ test.describe('Link CRUD', () => {
       await expect(page.getByText('创建短链接')).toBeHidden({ timeout: 15_000 });
 
       // Verify the link appears in the list (title may be enriched metadata or hostname fallback)
+      // Use .first() because previous test runs may leave duplicate links
       await expect(
-        page.locator('[data-testid="link-card"] a[href="https://playwright.dev/docs/intro"]'),
+        page.locator('[data-testid="link-card"] a[href="https://playwright.dev/docs/intro"]').first(),
       ).toBeVisible({ timeout: 10_000 });
     });
 
