@@ -79,7 +79,7 @@ bun run test:coverage       # coverage report
 | Storage | Cloudflare R2 (S3-compatible, file uploads & screenshots) |
 | Unit/Integration | [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com) |
 | E2E | [Playwright](https://playwright.dev) |
-| Deployment | [Vercel](https://vercel.com) |
+| Deployment | [Railway](https://railway.com) |
 
 ## Commands
 
@@ -146,8 +146,9 @@ Key design decisions:
 | [Features](docs/03-features.md) | Short links, metadata, uploads, analytics |
 | [Database](docs/04-database.md) | Schema, ScopedDB, migrations |
 | [Testing](docs/05-testing.md) | Coverage targets, mock strategy, TDD |
-| [Deployment](docs/06-deployment.md) | Vercel, D1, security headers, domains |
+| [Deployment](docs/06-deployment.md) | Railway, D1, security headers, domains |
 | [Contributing](docs/07-contributing.md) | Commit conventions, code quality |
+| [Performance](docs/08-performance-optimization.md) | Caching, bundle optimization, runtime perf |
 
 ## Testing
 
