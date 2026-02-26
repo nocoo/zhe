@@ -140,25 +140,31 @@ test.describe('Link CRUD', () => {
 
       await editButton.click();
 
-      // Edit dialog should open
-      await expect(page.getByText('编辑链接')).toBeVisible();
+      // Inline edit area should appear inside the card (note input becomes visible)
+      const noteInput = card.locator('textarea[id^="edit-note-"]');
+      await expect(noteInput).toBeVisible({ timeout: 5_000 });
 
       // Modify the note
-      const noteInput = page.locator('#edit-note');
       await noteInput.fill('E2E test note');
 
       // Save
-      await page.locator('button:has-text("保存")').click();
+      await card.locator('button:has-text("保存")').click();
 
-      // Dialog should close
-      await expect(page.getByText('编辑链接')).toBeHidden({ timeout: 10_000 });
+      // Edit area should collapse after save (note input hidden)
+      await expect(noteInput).toBeHidden({ timeout: 10_000 });
     });
 
     test('delete link', async ({ page }) => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
-      const deleteButton = card.getByRole('button', { name: 'Delete link' }).first();
 
+      // Enter edit mode first — delete button is inside the inline edit area
+      const editButton = card.getByRole('button', { name: 'Edit link' }).first();
+      await editButton.click();
+
+      // Wait for edit area to appear, then click delete
+      const deleteButton = card.getByRole('button', { name: 'Delete link' }).first();
+      await expect(deleteButton).toBeVisible({ timeout: 5_000 });
       await deleteButton.click();
 
       // Confirmation dialog
