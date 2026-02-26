@@ -3,17 +3,13 @@
 import { useState, useCallback, useMemo } from "react";
 import {
   Inbox as InboxIcon,
-  Loader2,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LinkCard } from "@/components/dashboard/link-card";
-import { EditLinkDialog } from "@/components/dashboard/edit-link-dialog";
-import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
-import { useEditLinkViewModel } from "@/viewmodels/useLinksViewModel";
-import type { Link } from "@/models/types";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 
 /** Inbox triage view — shows uncategorized links with inline editing controls */
 export function InboxTriage() {
@@ -51,13 +47,12 @@ export function InboxTriage() {
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, callbacks);
 
-  // Singleton edit dialog — shared across all LinkCards (same pattern as links-list.tsx)
-  const editVm = useEditLinkViewModel(null, tags, linkTags, callbacks);
-  const { openDialog } = editVm;
-
-  const handleEdit = useCallback((link: Link) => {
-    openDialog(link);
-  }, [openDialog]);
+  const editCallbacks: EditLinkCallbacks = useMemo(() => ({
+    onLinkUpdated: handleLinkUpdated,
+    onTagCreated: handleTagCreated,
+    onLinkTagAdded: handleLinkTagAdded,
+    onLinkTagRemoved: handleLinkTagRemoved,
+  }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
 
   if (loading) {
     return (
@@ -122,131 +117,23 @@ export function InboxTriage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {vm.inboxLinks.map((link) => {
-            const draft = vm.getDraft(link.id);
-            const assignedTagIds = vm.getAssignedTagIds(link.id);
-            const assignedTags = vm.getAssignedTags(link.id);
-
-            return (
-              <LinkCard
-                key={link.id}
-                link={link}
-                siteUrl={siteUrl}
-                onDelete={handleLinkDeleted}
-                onUpdate={handleLinkUpdated}
-                onEdit={handleEdit}
-                viewMode="list"
-                tags={tags}
-                linkTags={linkTags}
-              >
-                {/* Triage controls — layered on top of LinkCard */}
-                <div className="px-4 pb-4 space-y-3">
-                  {/* Triage controls row */}
-                  <div className="flex flex-wrap items-end gap-3 pt-2 border-t border-border">
-                    {/* Folder selector */}
-                    <div className="space-y-1">
-                      <label htmlFor={`folder-${link.id}`} className="text-xs text-muted-foreground">
-                        文件夹
-                      </label>
-                      <select
-                        id={`folder-${link.id}`}
-                        value={draft.folderId ?? ""}
-                        onChange={(e) => vm.setDraftFolderId(link.id, e.target.value || undefined)}
-                        className="flex h-8 w-40 rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                      >
-                        <option value="">Inbox</option>
-                        {vm.folders.map((folder) => (
-                          <option key={folder.id} value={folder.id}>
-                            {folder.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Note input */}
-                    <div className="space-y-1 flex-1 min-w-[200px]">
-                      <label htmlFor={`note-${link.id}`} className="text-xs text-muted-foreground">
-                        备注
-                      </label>
-                      <input
-                        id={`note-${link.id}`}
-                        type="text"
-                        value={draft.note}
-                        onChange={(e) => vm.setDraftNote(link.id, e.target.value)}
-                        placeholder="添加备注..."
-                        className="flex h-8 w-full rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                      />
-                    </div>
-
-                    {/* Save button */}
-                    <Button
-                      size="sm"
-                      className="h-8 rounded-[8px] text-xs"
-                      onClick={() => vm.saveItem(link.id)}
-                      disabled={draft.isSaving}
-                    >
-                      {draft.isSaving ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
-                          保存中
-                        </>
-                      ) : (
-                        "保存"
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Tags row */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {assignedTags.map((tag) => (
-                      <TagBadge key={tag.id} tag={tag} onRemove={(tagId) => vm.removeTag(link.id, tagId)} />
-                    ))}
-
-                    <TagPicker
-                      allTags={vm.allTags}
-                      assignedTagIds={assignedTagIds}
-                      onSelectTag={(tagId) => vm.addTag(link.id, tagId)}
-                      onCreateTag={(name) => vm.createAndAssignTag(link.id, name)}
-                    />
-                  </div>
-
-                  {/* Error message */}
-                  {draft.error && (
-                    <p className="text-xs text-destructive">{draft.error}</p>
-                  )}
-                </div>
-              </LinkCard>
-            );
-          })}
+          {vm.inboxLinks.map((link) => (
+            <LinkCard
+              key={link.id}
+              link={link}
+              siteUrl={siteUrl}
+              onDelete={handleLinkDeleted}
+              onUpdate={handleLinkUpdated}
+              viewMode="list"
+              tags={tags}
+              linkTags={linkTags}
+              folders={folders}
+              defaultEditing
+              editCallbacks={editCallbacks}
+            />
+          ))}
         </div>
       )}
-
-      {/* Singleton edit dialog — shared across all cards */}
-      <EditLinkDialog
-        isOpen={editVm.isOpen}
-        onOpenChange={(open) => { if (!open) editVm.closeDialog(); }}
-        editUrl={editVm.editUrl}
-        setEditUrl={editVm.setEditUrl}
-        editSlug={editVm.editSlug}
-        setEditSlug={editVm.setEditSlug}
-        editFolderId={editVm.editFolderId}
-        setEditFolderId={editVm.setEditFolderId}
-        editNote={editVm.editNote}
-        setEditNote={editVm.setEditNote}
-        editScreenshotUrl={editVm.editScreenshotUrl}
-        setEditScreenshotUrl={editVm.setEditScreenshotUrl}
-        isSaving={editVm.isSaving}
-        error={editVm.error}
-        assignedTags={editVm.assignedTags}
-        allTags={tags}
-        assignedTagIds={editVm.assignedTagIds}
-        folders={folders}
-        onSave={editVm.saveEdit}
-        onClose={editVm.closeDialog}
-        onAddTag={editVm.addTag}
-        onRemoveTag={editVm.removeTag}
-        onCreateAndAssignTag={editVm.createAndAssignTag}
-      />
     </div>
   );
 }
