@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Use vi.hoisted so mock fns are available inside vi.mock factories
-const { mockSend, mockS3Client, mockPutObjectCommand, mockDeleteObjectCommand, mockGetSignedUrl } = vi.hoisted(() => {
+const { mockSend, mockS3Client, mockPutObjectCommand, mockDeleteObjectCommand, mockListObjectsV2Command, mockDeleteObjectsCommand, mockGetSignedUrl } = vi.hoisted(() => {
   const mockSend = vi.fn().mockResolvedValue({});
   return {
     mockSend,
     mockS3Client: vi.fn().mockImplementation(() => ({ send: mockSend })),
     mockPutObjectCommand: vi.fn(),
     mockDeleteObjectCommand: vi.fn(),
+    mockListObjectsV2Command: vi.fn(),
+    mockDeleteObjectsCommand: vi.fn(),
     mockGetSignedUrl: vi.fn().mockResolvedValue('https://presigned.example.com/upload'),
   };
 });
@@ -16,6 +18,8 @@ vi.mock('@aws-sdk/client-s3', () => ({
   S3Client: mockS3Client,
   PutObjectCommand: mockPutObjectCommand,
   DeleteObjectCommand: mockDeleteObjectCommand,
+  ListObjectsV2Command: mockListObjectsV2Command,
+  DeleteObjectsCommand: mockDeleteObjectsCommand,
 }));
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -26,6 +30,8 @@ import {
   createPresignedUploadUrl,
   uploadBufferToR2,
   deleteR2Object,
+  listR2Objects,
+  deleteR2Objects,
   resetR2Client,
 } from '@/lib/r2/client';
 
@@ -225,6 +231,205 @@ describe('R2 Client', () => {
 
     it('throws when env vars are missing', async () => {
       await expect(deleteR2Object('key.png')).rejects.toThrow(
+        'Missing R2 configuration',
+      );
+    });
+  });
+
+  // ---- listR2Objects ----
+
+  describe('listR2Objects', () => {
+    it('returns empty array when no objects exist', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({
+        Contents: undefined,
+        IsTruncated: false,
+      });
+
+      const result = await listR2Objects();
+
+      expect(result).toEqual([]);
+      expect(mockListObjectsV2Command).toHaveBeenCalledWith({
+        Bucket: 'test-bucket',
+        Prefix: undefined,
+        MaxKeys: 1000,
+        ContinuationToken: undefined,
+      });
+    });
+
+    it('returns mapped R2Object array', async () => {
+      setR2Env();
+      const date = new Date('2026-01-15T10:00:00Z');
+      mockSend.mockResolvedValueOnce({
+        Contents: [
+          { Key: 'file1.png', Size: 1024, LastModified: date },
+          { Key: 'file2.jpg', Size: 2048, LastModified: date },
+        ],
+        IsTruncated: false,
+      });
+
+      const result = await listR2Objects();
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        key: 'file1.png',
+        size: 1024,
+        lastModified: '2026-01-15T10:00:00.000Z',
+      });
+      expect(result[1]).toEqual({
+        key: 'file2.jpg',
+        size: 2048,
+        lastModified: '2026-01-15T10:00:00.000Z',
+      });
+    });
+
+    it('passes prefix to ListObjectsV2Command', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({
+        Contents: [],
+        IsTruncated: false,
+      });
+
+      await listR2Objects('uploads/');
+
+      expect(mockListObjectsV2Command).toHaveBeenCalledWith(
+        expect.objectContaining({ Prefix: 'uploads/' }),
+      );
+    });
+
+    it('handles pagination with continuation token', async () => {
+      setR2Env();
+      const date = new Date('2026-01-15T10:00:00Z');
+
+      // First page - truncated
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'file1.png', Size: 100, LastModified: date }],
+        IsTruncated: true,
+        NextContinuationToken: 'token-page-2',
+      });
+      // Second page - final
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'file2.png', Size: 200, LastModified: date }],
+        IsTruncated: false,
+      });
+
+      const result = await listR2Objects();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].key).toBe('file1.png');
+      expect(result[1].key).toBe('file2.png');
+      expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+
+    it('skips objects without Key or Size', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({
+        Contents: [
+          { Key: 'valid.png', Size: 100, LastModified: new Date() },
+          { Key: undefined, Size: 200, LastModified: new Date() },
+          { Key: 'no-size.png', Size: undefined, LastModified: new Date() },
+        ],
+        IsTruncated: false,
+      });
+
+      const result = await listR2Objects();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('valid.png');
+    });
+
+    it('uses empty string for lastModified when LastModified is undefined', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({
+        Contents: [{ Key: 'no-date.png', Size: 50, LastModified: undefined }],
+        IsTruncated: false,
+      });
+
+      const result = await listR2Objects();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].lastModified).toBe('');
+    });
+
+    it('throws when env vars are missing', async () => {
+      await expect(listR2Objects()).rejects.toThrow('Missing R2 configuration');
+    });
+  });
+
+  // ---- deleteR2Objects ----
+
+  describe('deleteR2Objects', () => {
+    it('returns 0 for empty keys array', async () => {
+      setR2Env();
+
+      const result = await deleteR2Objects([]);
+
+      expect(result).toBe(0);
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('deletes a batch of keys', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({ Errors: undefined });
+
+      const result = await deleteR2Objects(['file1.png', 'file2.png']);
+
+      expect(result).toBe(2);
+      expect(mockDeleteObjectsCommand).toHaveBeenCalledWith({
+        Bucket: 'test-bucket',
+        Delete: {
+          Objects: [{ Key: 'file1.png' }, { Key: 'file2.png' }],
+          Quiet: true,
+        },
+      });
+    });
+
+    it('subtracts errors from deleted count', async () => {
+      setR2Env();
+      mockSend.mockResolvedValueOnce({
+        Errors: [{ Key: 'file2.png', Code: 'NoSuchKey' }],
+      });
+
+      const result = await deleteR2Objects(['file1.png', 'file2.png', 'file3.png']);
+
+      // 3 keys - 1 error = 2 deleted
+      expect(result).toBe(2);
+    });
+
+    it('batches keys in groups of 1000', async () => {
+      setR2Env();
+      // Create 1500 keys
+      const keys = Array.from({ length: 1500 }, (_, i) => `file-${i}.png`);
+
+      // First batch (1000 keys) - no errors
+      mockSend.mockResolvedValueOnce({ Errors: undefined });
+      // Second batch (500 keys) - no errors
+      mockSend.mockResolvedValueOnce({ Errors: undefined });
+
+      const result = await deleteR2Objects(keys);
+
+      expect(result).toBe(1500);
+      expect(mockSend).toHaveBeenCalledTimes(2);
+      // First batch should have 1000 keys
+      expect(mockDeleteObjectsCommand).toHaveBeenNthCalledWith(1, {
+        Bucket: 'test-bucket',
+        Delete: {
+          Objects: keys.slice(0, 1000).map((k) => ({ Key: k })),
+          Quiet: true,
+        },
+      });
+      // Second batch should have 500 keys
+      expect(mockDeleteObjectsCommand).toHaveBeenNthCalledWith(2, {
+        Bucket: 'test-bucket',
+        Delete: {
+          Objects: keys.slice(1000).map((k) => ({ Key: k })),
+          Quiet: true,
+        },
+      });
+    });
+
+    it('throws when env vars are missing', async () => {
+      await expect(deleteR2Objects(['key.png'])).rejects.toThrow(
         'Missing R2 configuration',
       );
     });
