@@ -37,15 +37,16 @@ if (process.env.PLAYWRIGHT === '1' && process.env.NODE_ENV !== 'production') {
   );
 }
 
-// When PLAYWRIGHT=1 is set, force JWT strategy and skip adapter
-// so tests run without D1 dependency for auth.
+// When PLAYWRIGHT=1 is set, skip adapter so tests run without D1.
+// The adapter is still used in production for OAuth user creation/linking,
+// but session strategy is always JWT to avoid per-request D1 session lookups.
 const useAdapter = isD1Configured() && process.env.PLAYWRIGHT !== '1';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   adapter: useAdapter ? D1Adapter() : undefined,
   session: {
-    strategy: useAdapter ? 'database' : 'jwt',
+    strategy: 'jwt',
   },
   providers,
   pages: {
@@ -63,13 +64,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       
       return true;
     },
-    session({ session, user, token }) {
-      // When using database strategy, user comes from the database
-      if (user && session.user) {
-        session.user.id = user.id;
+    jwt({ token, user }) {
+      // On sign-in, persist the database user id into the JWT
+      if (user) {
+        token.sub = user.id;
       }
-      // When using JWT strategy, user id comes from the token
-      else if (token?.sub && session.user) {
+      return token;
+    },
+    session({ session, token }) {
+      // JWT strategy: user id always comes from the token
+      if (token?.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;

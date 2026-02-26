@@ -4,8 +4,8 @@ import { ScopedDB } from '@/lib/db/scoped';
 
 /**
  * Deduplicated auth() — cached within a single React server render.
- * For server components and layout renders this avoids multiple D1 session
- * lookups. Server Actions are separate requests so each still calls once.
+ * With JWT strategy, session validation is local (no D1 call), but
+ * caching still avoids redundant JWT verification within a render pass.
  */
 export const getSession = cache(() => auth());
 
