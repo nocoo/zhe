@@ -3,7 +3,7 @@
  * Used by both the main db module and Auth.js adapter.
  */
 
-export interface D1Response<T> {
+interface D1Response<T> {
   success: boolean;
   result: Array<{
     results: T[];
