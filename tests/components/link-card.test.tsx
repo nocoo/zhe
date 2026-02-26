@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LinkCard } from "@/components/dashboard/link-card";
-import type { Link, Tag, LinkTag } from "@/models/types";
+import type { Link, Tag, LinkTag, Folder } from "@/models/types";
 import type { AnalyticsStats } from "@/models/types";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 
 const mockVm = {
   shortUrl: "https://zhe.to/abc123",
@@ -27,8 +28,30 @@ const mockVm = {
   handleFaviconError: vi.fn(),
 };
 
+const mockEditVm = {
+  editUrl: "https://example.com/very-long-url",
+  setEditUrl: vi.fn(),
+  editSlug: "abc123",
+  setEditSlug: vi.fn(),
+  editFolderId: undefined as string | undefined,
+  setEditFolderId: vi.fn(),
+  editNote: "",
+  setEditNote: vi.fn(),
+  editScreenshotUrl: "",
+  setEditScreenshotUrl: vi.fn(),
+  isSaving: false,
+  error: "",
+  assignedTagIds: new Set<string>(),
+  assignedTags: [] as Tag[],
+  saveEdit: vi.fn().mockResolvedValue(true),
+  addTag: vi.fn(),
+  removeTag: vi.fn(),
+  createAndAssignTag: vi.fn(),
+};
+
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => mockVm,
+  useInlineLinkEditViewModel: () => mockEditVm,
 }));
 
 vi.mock("@/lib/utils", async (importOriginal) => {
@@ -83,13 +106,25 @@ const sampleTags: Tag[] = [
   { id: "t2", userId: "user-1", name: "Personal", color: "emerald", createdAt: new Date() },
 ];
 
+const sampleFolders: Folder[] = [
+  { id: "f1", userId: "user-1", name: "Work", icon: "briefcase", createdAt: new Date() },
+];
+
+const editCallbacks: EditLinkCallbacks = {
+  onLinkUpdated: vi.fn(),
+  onTagCreated: vi.fn(),
+  onLinkTagAdded: vi.fn(),
+  onLinkTagRemoved: vi.fn(),
+};
+
 describe("LinkCard", () => {
   const defaultProps = {
     link: baseLink,
     siteUrl: "https://zhe.to",
     onDelete: vi.fn(),
     onUpdate: vi.fn(),
-    onEdit: vi.fn(),
+    editCallbacks,
+    folders: sampleFolders,
   };
 
   beforeEach(() => {
@@ -106,6 +141,10 @@ describe("LinkCard", () => {
     mockVm.isFetchingPreview = false;
     mockVm.faviconUrl = null;
     mockVm.faviconError = false;
+    mockEditVm.isSaving = false;
+    mockEditVm.error = "";
+    mockEditVm.assignedTagIds = new Set();
+    mockEditVm.assignedTags = [];
   });
 
   // --- Unified title logic ---
@@ -113,7 +152,6 @@ describe("LinkCard", () => {
   it("shows hostname as title when no metaTitle (list mode)", () => {
     render(<LinkCard {...defaultProps} />);
 
-    // No metaTitle → title falls back to hostname
     const titleLink = screen.getByRole("link", { name: "example.com" });
     expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
     expect(titleLink).toHaveAttribute("target", "_blank");
@@ -135,7 +173,6 @@ describe("LinkCard", () => {
     };
     render(<LinkCard {...defaultProps} link={linkWithBoth} />);
 
-    // Note and title separated by | divider
     expect(screen.getByText("Important")).toBeInTheDocument();
     expect(screen.getByText("Example Page")).toBeInTheDocument();
     expect(screen.getByText("|")).toBeInTheDocument();
@@ -271,13 +308,20 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  it("calls onEdit when edit button is clicked in list mode", async () => {
+  it("toggles inline edit area when edit button is clicked in list mode", async () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    // Edit area not visible initially
+    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
 
-    expect(defaultProps.onEdit).toHaveBeenCalledWith(baseLink);
+    // Click edit to open
+    await user.click(screen.getByTitle("Edit link"));
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+
+    // Click edit again to close
+    await user.click(screen.getByTitle("Edit link"));
+    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
   });
 
   // --- Tag badges ---
@@ -318,9 +362,7 @@ describe("LinkCard", () => {
   it("shows placeholder icon when metaFavicon is null (list mode)", () => {
     const { container } = render(<LinkCard {...defaultProps} />);
 
-    // No favicon image, but placeholder div with Link2 icon exists
     expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
-    // Placeholder should exist (bg-accent div)
     const placeholders = container.querySelectorAll(".bg-accent");
     expect(placeholders.length).toBeGreaterThanOrEqual(1);
   });
@@ -333,7 +375,6 @@ describe("LinkCard", () => {
     };
     const { container } = render(<LinkCard {...defaultProps} link={linkWithMeta} />);
 
-    // faviconError=true → shows placeholder, not the image
     expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
     const placeholders = container.querySelectorAll(".bg-accent");
     expect(placeholders.length).toBeGreaterThanOrEqual(1);
@@ -354,7 +395,6 @@ describe("LinkCard", () => {
   it("shows hostname when metaTitle is null", () => {
     render(<LinkCard {...defaultProps} />);
 
-    // Hostname fallback
     expect(screen.getByText("example.com")).toBeInTheDocument();
   });
 
@@ -401,18 +441,30 @@ describe("LinkCard", () => {
     expect(spinner).toBeInTheDocument();
   });
 
-  // --- Delete confirmation ---
+  // --- Delete confirmation (inside edit mode) ---
 
-  it("shows delete button with trash icon", () => {
+  it("shows delete button inside edit area when editing", async () => {
+    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
+    // Open edit mode
+    await user.click(screen.getByTitle("Edit link"));
+
     expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
+  });
+
+  it("does not show delete button when not in edit mode", () => {
+    render(<LinkCard {...defaultProps} />);
+
+    expect(screen.queryByLabelText("Delete link")).not.toBeInTheDocument();
   });
 
   it("opens AlertDialog with confirmation text when delete button is clicked", async () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
+    // Open edit mode first
+    await user.click(screen.getByTitle("Edit link"));
     await user.click(screen.getByLabelText("Delete link"));
 
     expect(screen.getByText("确认删除")).toBeInTheDocument();
@@ -423,6 +475,7 @@ describe("LinkCard", () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
+    await user.click(screen.getByTitle("Edit link"));
     await user.click(screen.getByLabelText("Delete link"));
     await user.click(screen.getByText("取消"));
 
@@ -433,15 +486,24 @@ describe("LinkCard", () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
+    await user.click(screen.getByTitle("Edit link"));
     await user.click(screen.getByLabelText("Delete link"));
-    await user.click(screen.getByText("删除"));
+
+    // The AlertDialog confirm button — find within the dialog, not the trigger
+    const confirmButtons = screen.getAllByRole("button", { name: "删除" });
+    // The last one is the AlertDialogAction inside the dialog
+    await user.click(confirmButtons[confirmButtons.length - 1]);
 
     expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
   });
 
-  it("disables delete button when isDeleting is true", () => {
+  it("disables delete button when isDeleting is true", async () => {
     mockVm.isDeleting = true;
+    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
+
+    // Open edit mode
+    await user.click(screen.getByTitle("Edit link"));
 
     const deleteBtn = screen.getByLabelText("Delete link");
     expect(deleteBtn).toBeDisabled();
@@ -452,7 +514,6 @@ describe("LinkCard", () => {
   it("shows hostname as title in grid mode when no metaTitle", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    // No metaTitle → falls back to hostname
     expect(screen.getByText("example.com")).toBeInTheDocument();
   });
 
@@ -487,7 +548,6 @@ describe("LinkCard", () => {
   it("does not show analytics toggle button in grid mode", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    // Grid mode shows "次点击" as static text, not as a clickable toggle button
     expect(screen.queryByRole("button", { name: /次点击/ })).not.toBeInTheDocument();
   });
 
@@ -503,13 +563,14 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  it("calls onEdit when edit button is clicked in grid mode", async () => {
+  it("toggles inline edit area when edit button is clicked in grid mode", async () => {
     const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
 
-    expect(defaultProps.onEdit).toHaveBeenCalledWith(baseLink);
+    await user.click(screen.getByTitle("Edit link"));
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
   it("shows placeholder icon when no screenshot and not loading in grid mode", () => {
@@ -556,29 +617,16 @@ describe("LinkCard", () => {
   it("shows favicon placeholder in grid mode when no metaFavicon", () => {
     const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    // No favicon image
     expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
-    // Placeholder exists
     const placeholders = container.querySelectorAll(".bg-accent");
     expect(placeholders.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows hover overlay actions (copy, open, edit, delete) in grid mode", () => {
+  it("shows hover overlay actions (refresh preview, edit) in grid mode", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.getByTitle("Copy link")).toBeInTheDocument();
-    expect(screen.getByTitle("Open link")).toBeInTheDocument();
+    expect(screen.getByLabelText("Refresh preview")).toBeInTheDocument();
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
-    expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
-  });
-
-  it("opens delete dialog from grid mode hover overlay", async () => {
-    const user = userEvent.setup();
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    await user.click(screen.getByLabelText("Delete link"));
-
-    expect(screen.getByText("确认删除")).toBeInTheDocument();
   });
 
   it("displays tag badges in grid mode when tags are assigned", () => {
@@ -877,5 +925,52 @@ describe("LinkCard", () => {
     const img = screen.getByAltText("Screenshot");
     expect(img).toHaveClass("object-cover");
     expect(img).toHaveClass("object-top");
+  });
+
+  // --- Inline edit mode ---
+
+  it("shows defaultEditing cards with edit area always open", () => {
+    render(<LinkCard {...defaultProps} defaultEditing />);
+
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+  });
+
+  it("defaultEditing cards cannot collapse edit area via edit button", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} defaultEditing />);
+
+    // Edit area is open
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+
+    // Click edit button — should NOT close
+    await user.click(screen.getByTitle("Edit link"));
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+  });
+
+  it("does not show edit area when editCallbacks is not provided", () => {
+    const { editCallbacks: _, ...propsWithoutCallbacks } = defaultProps;
+    render(<LinkCard {...propsWithoutCallbacks} />);
+
+    // Even if we somehow had isEditing=true, without editCallbacks the area won't render
+    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
+  });
+
+  it("shows save button inside edit area", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Edit link"));
+
+    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
+  });
+
+  it("calls saveEdit when save button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Edit link"));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(mockEditVm.saveEdit).toHaveBeenCalledTimes(1);
   });
 });

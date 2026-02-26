@@ -29,7 +29,7 @@ vi.mock('@/models/links', () => ({
 }));
 
 import {
-  useEditLinkViewModel,
+  useInlineLinkEditViewModel,
   type EditLinkCallbacks,
 } from '@/viewmodels/useLinksViewModel';
 import { updateLink, updateLinkNote } from '@/actions/links';
@@ -79,7 +79,7 @@ function makeCallbacks(): EditLinkCallbacks {
 
 // ── Tests ──
 
-describe('useEditLinkViewModel', () => {
+describe('useInlineLinkEditViewModel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -87,28 +87,36 @@ describe('useEditLinkViewModel', () => {
   // ── Initial state ──
 
   describe('initial state', () => {
-    it('starts with dialog closed and empty form', () => {
+    it('initialises form fields from the link', () => {
+      const link = makeLink({
+        originalUrl: 'https://test.com',
+        slug: 'my-slug',
+        folderId: 'f1',
+        note: 'my note',
+        screenshotUrl: 'https://img.example.com/shot.png',
+      });
       const { result } = renderHook(() =>
-        useEditLinkViewModel(null, [], [], makeCallbacks()),
+        useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
       );
 
-      expect(result.current.isOpen).toBe(false);
-      expect(result.current.editUrl).toBe('');
-      expect(result.current.editSlug).toBe('');
-      expect(result.current.editFolderId).toBeUndefined();
-      expect(result.current.editNote).toBe('');
-      expect(result.current.editScreenshotUrl).toBe('');
+      expect(result.current.editUrl).toBe('https://test.com');
+      expect(result.current.editSlug).toBe('my-slug');
+      expect(result.current.editFolderId).toBe('f1');
+      expect(result.current.editNote).toBe('my note');
+      expect(result.current.editScreenshotUrl).toBe('https://img.example.com/shot.png');
       expect(result.current.isSaving).toBe(false);
       expect(result.current.error).toBe('');
     });
 
-    it('has empty assigned tags when link is null', () => {
+    it('handles null folderId, note, and screenshotUrl gracefully', () => {
+      const link = makeLink({ folderId: null, note: null, screenshotUrl: null });
       const { result } = renderHook(() =>
-        useEditLinkViewModel(null, [makeTag()], [], makeCallbacks()),
+        useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
       );
 
-      expect(result.current.assignedTagIds.size).toBe(0);
-      expect(result.current.assignedTags).toEqual([]);
+      expect(result.current.editFolderId).toBeUndefined();
+      expect(result.current.editNote).toBe('');
+      expect(result.current.editScreenshotUrl).toBe('');
     });
   });
 
@@ -125,7 +133,7 @@ describe('useEditLinkViewModel', () => {
       ];
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, tags, linkTags, makeCallbacks()),
+        useInlineLinkEditViewModel(link, tags, linkTags, makeCallbacks()),
       );
 
       expect(result.current.assignedTagIds).toEqual(new Set(['t1', 't3']));
@@ -138,7 +146,7 @@ describe('useEditLinkViewModel', () => {
       const linkTags: LinkTag[] = [{ linkId: 99, tagId: 't1' }];
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, tags, linkTags, makeCallbacks()),
+        useInlineLinkEditViewModel(link, tags, linkTags, makeCallbacks()),
       );
 
       expect(result.current.assignedTagIds.size).toBe(0);
@@ -146,63 +154,10 @@ describe('useEditLinkViewModel', () => {
     });
   });
 
-  // ── Dialog open/close ──
-
-  describe('dialog open/close', () => {
-    it('openDialog populates form and opens dialog', () => {
-      const link = makeLink({
-        originalUrl: 'https://test.com',
-        folderId: 'f1',
-        note: 'my note',
-        screenshotUrl: 'https://img.example.com/shot.png',
-      });
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], makeCallbacks()),
-      );
-
-      act(() => { result.current.openDialog(link); });
-
-      expect(result.current.isOpen).toBe(true);
-      expect(result.current.editUrl).toBe('https://test.com');
-      expect(result.current.editSlug).toBe('abc123');
-      expect(result.current.editFolderId).toBe('f1');
-      expect(result.current.editNote).toBe('my note');
-      expect(result.current.editScreenshotUrl).toBe('https://img.example.com/shot.png');
-      expect(result.current.error).toBe('');
-    });
-
-    it('openDialog handles null folderId, note, and screenshotUrl', () => {
-      const link = makeLink({ folderId: null, note: null, screenshotUrl: null });
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], makeCallbacks()),
-      );
-
-      act(() => { result.current.openDialog(link); });
-
-      expect(result.current.editFolderId).toBeUndefined();
-      expect(result.current.editNote).toBe('');
-      expect(result.current.editScreenshotUrl).toBe('');
-    });
-
-    it('closeDialog closes dialog and clears error', () => {
-      const link = makeLink();
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], makeCallbacks()),
-      );
-
-      act(() => { result.current.openDialog(link); });
-      expect(result.current.isOpen).toBe(true);
-
-      act(() => { result.current.closeDialog(); });
-      expect(result.current.isOpen).toBe(false);
-      expect(result.current.error).toBe('');
-    });
-  });
-
   // ── Save edit ──
 
   describe('saveEdit', () => {
-    it('updates link and note, calls onLinkUpdated, closes dialog', async () => {
+    it('updates link and note, calls onLinkUpdated', async () => {
       const link = makeLink({ id: 1, note: 'old note' });
       const cbs = makeCallbacks();
       const updatedLink = makeLink({ id: 1, originalUrl: 'https://new.com' });
@@ -211,10 +166,9 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(updateLinkNote).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditUrl('https://new.com'); });
       act(() => { result.current.setEditNote('new note'); });
 
@@ -230,7 +184,6 @@ describe('useEditLinkViewModel', () => {
         note: 'new note',
         screenshotUrl: null,
       });
-      expect(result.current.isOpen).toBe(false);
       expect(result.current.isSaving).toBe(false);
     });
 
@@ -242,10 +195,9 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditSlug('new-slug'); });
 
       await act(async () => { await result.current.saveEdit(); });
@@ -262,10 +214,9 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: makeLink({ id: 1 }) });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       // Do NOT change slug
 
       await act(async () => { await result.current.saveEdit(); });
@@ -284,10 +235,9 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       // Note remains 'same' — no change
 
       await act(async () => { await result.current.saveEdit(); });
@@ -306,15 +256,12 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
-
-      act(() => { result.current.openDialog(link); });
 
       await act(async () => { await result.current.saveEdit(); });
 
       expect(result.current.error).toBe('Invalid URL');
-      expect(result.current.isOpen).toBe(true); // stays open
       expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
@@ -332,10 +279,9 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditNote('new note'); });
 
       await act(async () => { await result.current.saveEdit(); });
@@ -345,21 +291,8 @@ describe('useEditLinkViewModel', () => {
       // Updated link should keep original note since note save failed
       const updatedLink = vi.mocked(cbs.onLinkUpdated).mock.calls[0][0];
       expect(updatedLink.note).toBeNull();
-      // Dialog closes but error is shown
-      expect(result.current.isOpen).toBe(false);
+      // Error is shown
       expect(result.current.error).toBe('Link saved but note update failed');
-    });
-
-    it('does nothing when link is null', async () => {
-      const cbs = makeCallbacks();
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(null, [], [], cbs),
-      );
-
-      await act(async () => { await result.current.saveEdit(); });
-
-      expect(updateLink).not.toHaveBeenCalled();
-      expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
     it('clears note to null when edit note is empty/whitespace', async () => {
@@ -373,10 +306,9 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(updateLinkNote).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditNote('   '); });
 
       await act(async () => { await result.current.saveEdit(); });
@@ -397,10 +329,9 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditScreenshotUrl('https://img.example.com/shot.png'); });
 
       await act(async () => { await result.current.saveEdit(); });
@@ -423,10 +354,9 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       // Do NOT change screenshotUrl
 
       await act(async () => { await result.current.saveEdit(); });
@@ -445,10 +375,9 @@ describe('useEditLinkViewModel', () => {
       });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
-      act(() => { result.current.openDialog(link); });
       act(() => { result.current.setEditScreenshotUrl(''); });
 
       await act(async () => { await result.current.saveEdit(); });
@@ -472,7 +401,7 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.addTag('t1'); });
@@ -488,7 +417,7 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(addTagToLink).mockResolvedValue({ success: false, error: 'fail' });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.addTag('t1'); });
@@ -505,7 +434,7 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(removeTagFromLink).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.removeTag('t1'); });
@@ -521,25 +450,13 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(removeTagFromLink).mockResolvedValue({ success: false, error: 'fail' });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.removeTag('t1'); });
 
       expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
       expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
-    });
-
-    it('addTag does nothing when link is null', async () => {
-      const cbs = makeCallbacks();
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(null, [], [], cbs),
-      );
-
-      await act(async () => { await result.current.addTag('t1'); });
-
-      expect(addTagToLink).not.toHaveBeenCalled();
-      expect(cbs.onLinkTagAdded).not.toHaveBeenCalled();
     });
   });
 
@@ -555,7 +472,7 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.createAndAssignTag('work'); });
@@ -573,24 +490,13 @@ describe('useEditLinkViewModel', () => {
       vi.mocked(createTag).mockResolvedValue({ success: false, error: 'Invalid name' });
 
       const { result } = renderHook(() =>
-        useEditLinkViewModel(link, [], [], cbs),
+        useInlineLinkEditViewModel(link, [], [], cbs),
       );
 
       await act(async () => { await result.current.createAndAssignTag(''); });
 
       expect(cbs.onTagCreated).not.toHaveBeenCalled();
       expect(cbs.onLinkTagAdded).not.toHaveBeenCalled();
-    });
-
-    it('does nothing when link is null', async () => {
-      const cbs = makeCallbacks();
-      const { result } = renderHook(() =>
-        useEditLinkViewModel(null, [], [], cbs),
-      );
-
-      await act(async () => { await result.current.createAndAssignTag('test'); });
-
-      expect(createTag).not.toHaveBeenCalled();
     });
   });
 });
