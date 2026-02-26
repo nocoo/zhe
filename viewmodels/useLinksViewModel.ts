@@ -212,14 +212,27 @@ export function useAutoRefreshMetadata(
 
     let cancelled = false;
 
-    batchRefreshLinkMetadata(ids).then((result) => {
-      if (cancelled) return;
-      if (result.success && result.data) {
-        for (const updatedLink of result.data) {
-          onUpdate(updatedLink);
+    batchRefreshLinkMetadata(ids)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.success && result.data) {
+          for (const updatedLink of result.data) {
+            onUpdate(updatedLink);
+          }
+        } else {
+          // Batch failed — remove IDs so they can be retried on next render
+          for (const id of ids) {
+            processedRef.current.delete(id);
+          }
         }
-      }
-    });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Network/unexpected error — allow retry on next render
+        for (const id of ids) {
+          processedRef.current.delete(id);
+        }
+      });
 
     return () => {
       cancelled = true;

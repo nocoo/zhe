@@ -689,20 +689,65 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
-  it('handles batch failure gracefully without calling onUpdate', async () => {
+  it('handles batch failure gracefully and allows retry', async () => {
     const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated1 = { ...link1, metaTitle: 'Title 1' };
 
-    vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValueOnce({
       success: false,
       error: 'Batch failed',
     });
 
-    renderHook(() => useAutoRefreshMetadata([link1], mockOnUpdate));
+    const { rerender } = renderHook(
+      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
+      { initialProps: { links: [link1] } },
+    );
 
     await act(async () => {});
 
     expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([1]);
     expect(mockOnUpdate).not.toHaveBeenCalled();
+
+    // Retry on re-render — IDs should have been removed from processedRef
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValueOnce({
+      success: true,
+      data: [updated1],
+    });
+    rerender({ links: [link1] });
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledTimes(2);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updated1);
+  });
+
+  it('handles promise rejection gracefully and allows retry', async () => {
+    const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
+    const updated1 = { ...link1, metaTitle: 'Title 1' };
+
+    vi.mocked(batchRefreshLinkMetadata).mockRejectedValueOnce(new Error('Network error'));
+
+    const { rerender } = renderHook(
+      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
+      { initialProps: { links: [link1] } },
+    );
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([1]);
+    expect(mockOnUpdate).not.toHaveBeenCalled();
+
+    // Retry on re-render
+    vi.mocked(batchRefreshLinkMetadata).mockResolvedValueOnce({
+      success: true,
+      data: [updated1],
+    });
+    rerender({ links: [link1] });
+
+    await act(async () => {});
+
+    expect(batchRefreshLinkMetadata).toHaveBeenCalledTimes(2);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updated1);
   });
 });
 
