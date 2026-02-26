@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.1] - 2026-02-26
+
+### Fixed
+- Return `deletedKeys` from `cleanupOrphanFiles` to prevent UI desync when some keys are skipped
+- Allow retry on batch metadata refresh failure and add `.catch()` to prevent unhandled promise rejection in `useAutoRefreshMetadata`
+- Add 500-item upper bound to `batchRefreshLinkMetadata` to prevent unbounded input
+- Add 5s AbortController timeout to `pushBackup` inline history fetch to prevent hanging requests
+
 ## [v1.4.0] - 2026-02-26
 
 ### Added
