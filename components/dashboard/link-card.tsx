@@ -3,7 +3,6 @@
 import { memo, useMemo, useState, type ReactNode } from "react";
 import {
   Copy,
-  ExternalLink,
   Trash2,
   Check,
   ChevronDown,
@@ -25,13 +24,17 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 import { extractHostname } from "@/models/links";
 import { topBreakdownEntries } from "@/models/links";
-import { DeleteLinkDialog, TagBadge } from "@/components/dashboard/shared-link-components";
-import type { Link, Tag, LinkTag } from "@/models/types";
+import { DeleteLinkDialog, TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
+import type { Link, Tag, LinkTag, Folder } from "@/models/types";
 import type { ScreenshotSource } from "@/models/links";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 
 type ViewMode = "list" | "grid";
 
@@ -40,15 +43,28 @@ interface LinkCardProps {
   siteUrl: string;
   onDelete: (id: number) => void;
   onUpdate: (link: Link) => void;
-  onEdit: (link: Link) => void;
   viewMode?: ViewMode;
   tags?: Tag[];
   linkTags?: LinkTag[];
-  /** Optional slot rendered below the card content (e.g. Inbox triage controls) */
-  children?: ReactNode;
+  folders?: Folder[];
+  /** When true the inline edit area is shown immediately (e.g. Inbox page) */
+  defaultEditing?: boolean;
+  /** Callbacks for syncing edit mutations to the parent service */
+  editCallbacks?: EditLinkCallbacks;
 }
 
-export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpdate, onEdit, viewMode = "list", tags = [], linkTags = [], children }: LinkCardProps) {
+export const LinkCard = memo(function LinkCard({
+  link,
+  siteUrl,
+  onDelete,
+  onUpdate,
+  viewMode = "list",
+  tags = [],
+  linkTags = [],
+  folders = [],
+  defaultEditing = false,
+  editCallbacks,
+}: LinkCardProps) {
   const {
     shortUrl,
     copied,
@@ -77,6 +93,15 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
   const onSelectSource = (source: ScreenshotSource) => {
     setPreviewDialogOpen(false);
     handleFetchPreview(source);
+  };
+
+  // --- Edit mode ---
+  const [isEditing, setIsEditing] = useState(defaultEditing);
+
+  const handleToggleEdit = () => {
+    // defaultEditing cards are always open — ignore toggle
+    if (defaultEditing) return;
+    setIsEditing((prev) => !prev);
   };
 
   // Tags assigned to this specific link — derived from linkTags prop
@@ -141,49 +166,13 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
               )}
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-              aria-label="Copy link"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
-              title="Copy link"
-            >
-              {copied ? (
-                <Check className="w-4 h-4" strokeWidth={1.5} />
-              ) : (
-                <Copy className="w-4 h-4" strokeWidth={1.5} />
-              )}
-            </button>
-            <a
-              href={link.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
-              title="Open link"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
-            </a>
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(link); }}
+              onClick={(e) => { e.stopPropagation(); handleToggleEdit(); }}
               aria-label="Edit link"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
               title="Edit link"
             >
               <Pencil className="w-4 h-4" strokeWidth={1.5} />
             </button>
-            <DeleteLinkDialog
-              trigger={
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Delete link"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              }
-              isDeleting={isDeleting}
-              onConfirm={handleDelete}
-            />
           </div>
         </div>
 
@@ -251,15 +240,29 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           )}
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <a
-              href={shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-            >
+            <span className="flex items-center gap-1">
               <Link2 className="w-3 h-3" strokeWidth={1.5} />
-              <span>{link.slug}</span>
-            </a>
+              <a
+                href={shortUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                {link.slug}
+              </a>
+              <button
+                onClick={handleCopy}
+                aria-label="Copy link"
+                className="flex h-3.5 w-3.5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-2.5 h-2.5 text-success" strokeWidth={1.5} />
+                ) : (
+                  <Copy className="w-2.5 h-2.5" strokeWidth={1.5} />
+                )}
+              </button>
+            </span>
             <span className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
               {formatNumber(link.clicks ?? 0)} 次点击
@@ -276,8 +279,20 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           )}
         </div>
 
-        {/* Extension slot (e.g. Inbox triage controls) */}
-        {children}
+        {/* Inline edit mode */}
+        {isEditing && editCallbacks && (
+          <InlineEditArea
+            link={link}
+            tags={tags}
+            linkTags={linkTags}
+            folders={folders}
+            editCallbacks={editCallbacks}
+            isDeleting={isDeleting}
+            handleDelete={handleDelete}
+            defaultEditing={defaultEditing}
+            onCloseEdit={() => setIsEditing(false)}
+          />
+        )}
 
         {/* Screenshot source picker dialog */}
         <ScreenshotSourceDialog
@@ -393,15 +408,29 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
 
           {/* Meta row */}
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-            <a
-              href={shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-            >
+            <span className="flex items-center gap-1">
               <Link2 className="w-3 h-3" strokeWidth={1.5} />
-              <span>{link.slug}</span>
-            </a>
+              <a
+                href={shortUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                {link.slug}
+              </a>
+              <button
+                onClick={handleCopy}
+                aria-label="Copy link"
+                className="flex h-3.5 w-3.5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-2.5 h-2.5 text-success" strokeWidth={1.5} />
+                ) : (
+                  <Copy className="w-2.5 h-2.5" strokeWidth={1.5} />
+                )}
+              </button>
+            </span>
             <button
               onClick={handleToggleAnalytics}
               className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -426,7 +455,7 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions — simplified: refresh metadata, refresh preview, edit toggle */}
         <div className="flex items-center gap-0.5">
           <button
             onClick={handleRefreshMetadata}
@@ -455,47 +484,17 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
             )}
           </button>
           <button
-            onClick={handleCopy}
-            aria-label="Copy link"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="Copy link"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-success" strokeWidth={1.5} />
-            ) : (
-              <Copy className="w-4 h-4" strokeWidth={1.5} />
-            )}
-          </button>
-          <button
-            onClick={() => onEdit(link)}
+            onClick={handleToggleEdit}
             aria-label="Edit link"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              isEditing
+                ? "text-foreground bg-accent"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            }`}
             title="Edit link"
           >
             <Pencil className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <a
-            href={link.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="Open link"
-          >
-            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
-          </a>
-          <DeleteLinkDialog
-            trigger={
-              <button
-                aria-label="Delete link"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                disabled={isDeleting}
-              >
-                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            }
-            isDeleting={isDeleting}
-            onConfirm={handleDelete}
-          />
         </div>
       </div>
 
@@ -537,8 +536,20 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
         </div>
       )}
 
-      {/* Extension slot (e.g. Inbox triage controls) */}
-      {children}
+      {/* Inline edit mode */}
+      {isEditing && editCallbacks && (
+        <InlineEditArea
+          link={link}
+          tags={tags}
+          linkTags={linkTags}
+          folders={folders}
+          editCallbacks={editCallbacks}
+          isDeleting={isDeleting}
+          handleDelete={handleDelete}
+          defaultEditing={defaultEditing}
+          onCloseEdit={() => setIsEditing(false)}
+        />
+      )}
 
       {/* Screenshot source picker dialog */}
       <ScreenshotSourceDialog
@@ -550,6 +561,174 @@ export const LinkCard = memo(function LinkCard({ link, siteUrl, onDelete, onUpda
     </div>
   );
 });
+
+/** Inline edit area rendered below the card content when edit mode is active */
+function InlineEditArea({
+  link,
+  tags,
+  linkTags,
+  folders,
+  editCallbacks,
+  isDeleting,
+  handleDelete,
+  defaultEditing,
+  onCloseEdit,
+}: {
+  link: Link;
+  tags: Tag[];
+  linkTags: LinkTag[];
+  folders: Folder[];
+  editCallbacks: EditLinkCallbacks;
+  isDeleting: boolean;
+  handleDelete: () => void;
+  defaultEditing: boolean;
+  onCloseEdit: () => void;
+}) {
+  const editVm = useInlineLinkEditViewModel(link, tags, linkTags, editCallbacks);
+
+  const handleSave = async () => {
+    const success = await editVm.saveEdit();
+    // Close edit mode on success (unless defaultEditing — those stay open)
+    if (success && !defaultEditing) {
+      onCloseEdit();
+    }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border px-0 pb-0 space-y-3" data-testid="edit-area">
+      {/* Row 1: URL + Slug */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1 flex-1 min-w-[200px]">
+          <Label htmlFor={`edit-url-${link.id}`} className="text-xs text-muted-foreground">
+            目标链接
+          </Label>
+          <Input
+            id={`edit-url-${link.id}`}
+            type="url"
+            value={editVm.editUrl}
+            onChange={(e) => editVm.setEditUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="h-8 rounded-[8px] border-border bg-background text-xs"
+          />
+        </div>
+        <div className="space-y-1 w-40">
+          <Label htmlFor={`edit-slug-${link.id}`} className="text-xs text-muted-foreground">
+            短链接
+          </Label>
+          <Input
+            id={`edit-slug-${link.id}`}
+            type="text"
+            value={editVm.editSlug}
+            onChange={(e) => editVm.setEditSlug(e.target.value)}
+            placeholder="custom-slug"
+            className="h-8 rounded-[8px] border-border bg-background text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Folder + Note */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label htmlFor={`edit-folder-${link.id}`} className="text-xs text-muted-foreground">
+            文件夹
+          </Label>
+          <select
+            id={`edit-folder-${link.id}`}
+            value={editVm.editFolderId ?? ""}
+            onChange={(e) => editVm.setEditFolderId(e.target.value || undefined)}
+            className="flex h-8 w-40 rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          >
+            <option value="">Inbox</option>
+            {folders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1 flex-1 min-w-[200px]">
+          <Label htmlFor={`edit-note-${link.id}`} className="text-xs text-muted-foreground">
+            备注
+          </Label>
+          <Input
+            id={`edit-note-${link.id}`}
+            type="text"
+            value={editVm.editNote}
+            onChange={(e) => editVm.setEditNote(e.target.value)}
+            placeholder="添加备注..."
+            className="h-8 rounded-[8px] border-border bg-background text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Screenshot URL */}
+      <div className="space-y-1">
+        <Label htmlFor={`edit-screenshot-${link.id}`} className="text-xs text-muted-foreground">
+          截图链接
+        </Label>
+        <Input
+          id={`edit-screenshot-${link.id}`}
+          type="url"
+          value={editVm.editScreenshotUrl}
+          onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
+          placeholder="https://example.com/screenshot.png"
+          className="h-8 rounded-[8px] border-border bg-background text-xs"
+        />
+      </div>
+
+      {/* Tags row */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {editVm.assignedTags.map((tag) => (
+          <TagBadge key={tag.id} tag={tag} onRemove={editVm.removeTag} />
+        ))}
+        <TagPicker
+          allTags={tags}
+          assignedTagIds={editVm.assignedTagIds}
+          onSelectTag={editVm.addTag}
+          onCreateTag={editVm.createAndAssignTag}
+        />
+      </div>
+
+      {/* Error message */}
+      {editVm.error && (
+        <p className="text-xs text-destructive">{editVm.error}</p>
+      )}
+
+      {/* Toolbar: Save + Delete */}
+      <div className="flex items-center justify-between">
+        <DeleteLinkDialog
+          trigger={
+            <button
+              aria-label="Delete link"
+              className="flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              disabled={isDeleting}
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              {isDeleting ? "删除中..." : "删除"}
+            </button>
+          }
+          isDeleting={isDeleting}
+          onConfirm={handleDelete}
+        />
+        <Button
+          size="sm"
+          className="h-8 rounded-[8px] text-xs"
+          onClick={handleSave}
+          disabled={editVm.isSaving}
+        >
+          {editVm.isSaving ? (
+            <>
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
+              保存中
+            </>
+          ) : (
+            "保存"
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /** Dialog for choosing screenshot source */
 function ScreenshotSourceDialog({

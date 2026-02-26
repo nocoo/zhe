@@ -285,30 +285,37 @@ export function useCreateLinkViewModel(
   };
 }
 
-/** Callbacks for syncing edit-dialog mutations back to the parent service.
+/** Callbacks for syncing edit mutations back to the parent service.
  *  Alias for the shared LinkMutationCallbacks interface.
  */
 export type EditLinkCallbacks = LinkMutationCallbacks;
 
-/** ViewModel for the edit-link dialog — manages URL, folder, note & tags */
-export function useEditLinkViewModel(
-  initialLink: Link | null,
+/** ViewModel for inline link editing — manages URL, folder, note, tags & save.
+ *
+ *  Used directly inside LinkCard when edit mode is active.
+ *  Form fields are initialised from `link` and re-synced when the link prop changes.
+ */
+export function useInlineLinkEditViewModel(
+  link: Link,
   allTags: Tag[],
   allLinkTags: LinkTag[],
   callbacks: EditLinkCallbacks,
 ) {
-  // Dialog open/close
-  const [isOpen, setIsOpen] = useState(false);
+  // Form fields — initialised from the link
+  const [editUrl, setEditUrl] = useState(link.originalUrl);
+  const [editSlug, setEditSlug] = useState(link.slug);
+  const [editFolderId, setEditFolderId] = useState<string | undefined>(link.folderId ?? undefined);
+  const [editNote, setEditNote] = useState(link.note ?? "");
+  const [editScreenshotUrl, setEditScreenshotUrl] = useState(link.screenshotUrl ?? "");
 
-  // Currently-edited link — set when openDialog is called
-  const [editingLink, setEditingLink] = useState<Link | null>(initialLink);
-
-  // Form fields
-  const [editUrl, setEditUrl] = useState("");
-  const [editSlug, setEditSlug] = useState("");
-  const [editFolderId, setEditFolderId] = useState<string | undefined>(undefined);
-  const [editNote, setEditNote] = useState("");
-  const [editScreenshotUrl, setEditScreenshotUrl] = useState("");
+  // Re-sync form fields when the underlying link data changes (e.g. after metadata refresh)
+  useEffect(() => {
+    setEditUrl(link.originalUrl);
+    setEditSlug(link.slug);
+    setEditFolderId(link.folderId ?? undefined);
+    setEditNote(link.note ?? "");
+    setEditScreenshotUrl(link.screenshotUrl ?? "");
+  }, [link.id, link.originalUrl, link.slug, link.folderId, link.note, link.screenshotUrl]);
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -317,40 +324,18 @@ export function useEditLinkViewModel(
   // ── Tag helpers — delegated to shared useLinkMutations hook ──
   const mutations = useLinkMutations(allTags, allLinkTags, callbacks);
 
-  // Tags assigned to the currently-edited link (derived from shared hook)
+  // Tags assigned to this link (derived from shared hook)
   const assignedTagIds = useMemo(() => {
-    if (!editingLink) return new Set<string>();
-    return mutations.getAssignedTagIds(editingLink.id);
-  }, [editingLink, mutations]);
+    return mutations.getAssignedTagIds(link.id);
+  }, [link.id, mutations]);
 
   const assignedTags = useMemo(
     () => allTags.filter((t) => assignedTagIds.has(t.id)),
     [allTags, assignedTagIds],
   );
 
-  // Open dialog and populate form with current link data
-  const openDialog = useCallback(
-    (targetLink: Link) => {
-      setEditingLink(targetLink);
-      setEditUrl(targetLink.originalUrl);
-      setEditSlug(targetLink.slug);
-      setEditFolderId(targetLink.folderId ?? undefined);
-      setEditNote(targetLink.note ?? "");
-      setEditScreenshotUrl(targetLink.screenshotUrl ?? "");
-      setError("");
-      setIsOpen(true);
-    },
-    [],
-  );
-
-  const closeDialog = useCallback(() => {
-    setIsOpen(false);
-    setError("");
-  }, []);
-
-  // Save URL + folder + slug + note
+  // Save URL + folder + slug + note + screenshotUrl
   const saveEdit = useCallback(async () => {
-    if (!editingLink) return;
     setIsSaving(true);
     setError("");
 
@@ -360,30 +345,30 @@ export function useEditLinkViewModel(
         originalUrl: editUrl,
         folderId: editFolderId,
       };
-      if (editSlug !== editingLink.slug) {
+      if (editSlug !== link.slug) {
         payload.slug = editSlug;
       }
       // Include screenshotUrl only if changed
-      const currentScreenshotUrl = editingLink.screenshotUrl ?? "";
+      const currentScreenshotUrl = link.screenshotUrl ?? "";
       if (editScreenshotUrl !== currentScreenshotUrl) {
         payload.screenshotUrl = editScreenshotUrl.trim() || null;
       }
 
       // Update link (URL + folder + optional slug)
-      const linkResult = await updateLink(editingLink.id, payload);
+      const linkResult = await updateLink(link.id, payload);
 
       if (!linkResult.success || !linkResult.data) {
         setError(linkResult.error || "Failed to update link");
         setIsSaving(false);
-        return;
+        return true; // indicates save attempted (for caller to decide on edit mode)
       }
 
       // Update note (only if changed)
-      const currentNote = editingLink.note ?? "";
+      const currentNote = link.note ?? "";
       let noteSaved = true;
       if (editNote !== currentNote) {
         const noteResult = await updateLinkNote(
-          editingLink.id,
+          link.id,
           editNote.trim() || null,
         );
         if (!noteResult.success) {
@@ -395,51 +380,48 @@ export function useEditLinkViewModel(
       // the primary link update already succeeded on the server.
       const updatedLink: Link = {
         ...linkResult.data,
-        note: noteSaved ? (editNote.trim() || null) : (editingLink.note ?? null),
+        note: noteSaved ? (editNote.trim() || null) : (link.note ?? null),
         screenshotUrl: editScreenshotUrl.trim() || null,
       };
       callbacks.onLinkUpdated(updatedLink);
-      setIsOpen(false);
 
-      // Show note error after closing dialog so the list still updates
+      // Show note error so the list still updates
       if (!noteSaved) {
         setError("Link saved but note update failed");
       }
+
+      return true; // save succeeded
     } catch {
       setError("An unexpected error occurred");
+      return false;
     } finally {
       setIsSaving(false);
     }
-  }, [editingLink, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
+  }, [link, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
 
-  // Tag operations — thin wrappers that bind editingLink.id to the shared hook.
-  // External API stays (tagId) only, so callers don't need to pass linkId.
+  // Tag operations — thin wrappers that bind link.id to the shared hook.
   const addTag = useCallback(
     async (tagId: string) => {
-      if (!editingLink) return;
-      await mutations.addTag(editingLink.id, tagId);
+      await mutations.addTag(link.id, tagId);
     },
-    [editingLink, mutations],
+    [link.id, mutations],
   );
 
   const removeTag = useCallback(
     async (tagId: string) => {
-      if (!editingLink) return;
-      await mutations.removeTag(editingLink.id, tagId);
+      await mutations.removeTag(link.id, tagId);
     },
-    [editingLink, mutations],
+    [link.id, mutations],
   );
 
   const createAndAssignTag = useCallback(
     async (name: string) => {
-      if (!editingLink) return;
-      return mutations.createAndAssignTag(editingLink.id, name);
+      return mutations.createAndAssignTag(link.id, name);
     },
-    [editingLink, mutations],
+    [link.id, mutations],
   );
 
   return {
-    isOpen,
     editUrl,
     setEditUrl,
     editSlug,
@@ -454,8 +436,6 @@ export function useEditLinkViewModel(
     error,
     assignedTagIds,
     assignedTags,
-    openDialog,
-    closeDialog,
     saveEdit,
     addTag,
     removeTag,
