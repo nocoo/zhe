@@ -25,9 +25,7 @@ export { clearMockStorage } from './mocks/db-storage';
 vi.mock('@/lib/db/d1-client', async () => {
   const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
-  return {
-    isD1Configured: () => true,
-    executeD1Query: async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
+  const queryFn = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
       const mockLinks = getMockLinks();
       const mockAnalytics = getMockAnalytics();
       const mockUploads = getMockUploads();
@@ -1061,6 +1059,18 @@ vi.mock('@/lib/db/d1-client', async () => {
 
       console.warn('Unhandled SQL in mock:', sql);
       return [];
+    };
+
+  return {
+    isD1Configured: () => true,
+    executeD1Query: queryFn,
+    executeD1Batch: async <T>(statements: { sql: string; params?: unknown[] }[]): Promise<T[][]> => {
+      const results: T[][] = [];
+      for (const stmt of statements) {
+        const rows = await queryFn<T>(stmt.sql, stmt.params ?? []);
+        results.push(rows);
+      }
+      return results;
     },
   };
 });

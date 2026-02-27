@@ -3,7 +3,7 @@
  * Uses D1 HTTP API for Vercel deployment.
  */
 
-import { executeD1Query } from './d1-client';
+import { executeD1Query, executeD1Batch } from './d1-client';
 import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook, TweetCache } from './schema';
 
 // ============================================
@@ -187,30 +187,30 @@ export async function recordClick(
 ): Promise<Analytics> {
   const now = Date.now();
 
-  // Insert analytics record
-  const rows = await executeD1Query<Record<string, unknown>>(
-    `INSERT INTO analytics (link_id, country, city, device, browser, os, referer, created_at)
+  // Batch: insert analytics record + increment click count in a single D1 request
+  const [insertRows] = await executeD1Batch<Record<string, unknown>>([
+    {
+      sql: `INSERT INTO analytics (link_id, country, city, device, browser, os, referer, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
-    [
-      data.linkId,
-      data.country ?? null,
-      data.city ?? null,
-      data.device ?? null,
-      data.browser ?? null,
-      data.os ?? null,
-      data.referer ?? null,
-      now,
-    ]
-  );
+      params: [
+        data.linkId,
+        data.country ?? null,
+        data.city ?? null,
+        data.device ?? null,
+        data.browser ?? null,
+        data.os ?? null,
+        data.referer ?? null,
+        now,
+      ],
+    },
+    {
+      sql: 'UPDATE links SET clicks = clicks + 1 WHERE id = ?',
+      params: [data.linkId],
+    },
+  ]);
 
-  // Increment click count on the link
-  await executeD1Query(
-    'UPDATE links SET clicks = clicks + 1 WHERE id = ?',
-    [data.linkId]
-  );
-
-  return rowToAnalytics(rows[0]);
+  return rowToAnalytics(insertRows[0]);
 }
 
 /**
