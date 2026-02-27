@@ -1,7 +1,7 @@
 vi.unmock('@/lib/db/d1-client');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
+import { executeD1Query, executeD1Batch, isD1Configured } from '@/lib/db/d1-client';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -189,6 +189,7 @@ describe('executeD1Query', () => {
     expect(init.headers).toEqual({
       Authorization: 'Bearer test-api-token',
       'Content-Type': 'application/json',
+      Connection: 'keep-alive',
     });
     expect(JSON.parse(init.body)).toEqual({ sql, params });
   });
@@ -245,5 +246,152 @@ describe('isD1Configured', () => {
     process.env.CLOUDFLARE_API_TOKEN = '';
 
     expect(isD1Configured()).toBe(false);
+  });
+});
+
+describe('executeD1Batch', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    clearEnv();
+  });
+
+  it('returns empty array for empty statements', async () => {
+    setEnv();
+    const result = await executeD1Batch([]);
+    expect(result).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('throws when credentials are missing', async () => {
+    await expect(
+      executeD1Batch([{ sql: 'SELECT 1' }])
+    ).rejects.toThrow('D1 credentials not configured');
+  });
+
+  it('sends batch payload as array of statements', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: [
+          { results: [{ id: 1 }] },
+          { results: [] },
+        ],
+        errors: [],
+      }),
+    });
+
+    const statements = [
+      { sql: 'INSERT INTO analytics (link_id) VALUES (?)', params: [42] },
+      { sql: 'UPDATE links SET clicks = clicks + 1 WHERE id = ?', params: [42] },
+    ];
+
+    const results = await executeD1Batch(statements);
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, init] = mockFetch.mock.calls[0];
+
+    expect(url).toBe(
+      'https://api.cloudflare.com/client/v4/accounts/test-account-id/d1/database/test-database-id/query'
+    );
+    expect(init.method).toBe('POST');
+    expect(init.headers).toEqual({
+      Authorization: 'Bearer test-api-token',
+      'Content-Type': 'application/json',
+      Connection: 'keep-alive',
+    });
+    expect(JSON.parse(init.body)).toEqual([
+      { sql: statements[0].sql, params: [42] },
+      { sql: statements[1].sql, params: [42] },
+    ]);
+
+    expect(results).toEqual([[{ id: 1 }], []]);
+  });
+
+  it('defaults params to empty array when omitted', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: [{ results: [] }],
+        errors: [],
+      }),
+    });
+
+    await executeD1Batch([{ sql: 'SELECT 1' }]);
+
+    const [, init] = mockFetch.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual([{ sql: 'SELECT 1', params: [] }]);
+  });
+
+  it('throws sanitized error when response is not ok', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      text: async () => 'Internal Server Error',
+    });
+
+    await expect(
+      executeD1Batch([{ sql: 'SELECT 1' }])
+    ).rejects.toThrow('D1 batch query failed');
+  });
+
+  it('throws sanitized error when data.success is false', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        result: [],
+        errors: [{ message: 'syntax error' }],
+      }),
+    });
+
+    await expect(
+      executeD1Batch([{ sql: 'BAD SQL' }])
+    ).rejects.toThrow('D1 batch query failed');
+  });
+
+  it('preserves UNIQUE constraint errors', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        result: [],
+        errors: [{ message: 'UNIQUE constraint failed: links.slug' }],
+      }),
+    });
+
+    await expect(
+      executeD1Batch([{ sql: 'INSERT INTO links ...' }])
+    ).rejects.toThrow('UNIQUE constraint failed');
+  });
+
+  it('handles results with missing results field gracefully', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: [
+          { results: [{ id: 1 }] },
+          { /* no results key */ },
+        ],
+        errors: [],
+      }),
+    });
+
+    const results = await executeD1Batch([
+      { sql: 'SELECT 1' },
+      { sql: 'UPDATE foo SET bar = 1' },
+    ]);
+
+    expect(results).toEqual([[{ id: 1 }], []]);
   });
 });
