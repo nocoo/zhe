@@ -206,49 +206,10 @@ export function LinksList() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 space-y-1">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{headerTitle}</h2>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
-              <button
-                onClick={() => handleViewModeChange("list")}
-                aria-label="List view"
-                className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                  viewMode === "list"
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <LayoutList className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={() => handleViewModeChange("grid")}
-                aria-label="Grid view"
-                className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-[10px] h-7 w-7 p-0"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              aria-label="刷新链接"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-            </Button>
-            <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <h2 className="text-lg font-semibold text-foreground shrink-0">{headerTitle}</h2>
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
+          <p className="text-sm text-muted-foreground whitespace-nowrap">
             {hasActiveFilters
               ? `${linkCount} / ${links.length} 条链接`
               : `共 ${linkCount} 条链接`}
@@ -263,6 +224,41 @@ export function LinksList() {
             onClear={handleClearFilters}
             showFolderFilter={!selectedFolderId}
           />
+          <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+            <button
+              onClick={() => handleViewModeChange("list")}
+              aria-label="List view"
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                viewMode === "list"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutList className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={() => handleViewModeChange("grid")}
+              aria-label="Grid view"
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                viewMode === "grid"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-[10px] h-7 w-7 p-0"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="刷新链接"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+          </Button>
+          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
         </div>
       </div>
 
