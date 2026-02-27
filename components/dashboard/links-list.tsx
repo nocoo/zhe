@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
 import { InboxTriage } from "./inbox-triage";
 import { CreateLinkModal } from "./create-link-modal";
+import { LinkFilterBar } from "./link-filter-bar";
 import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -78,6 +79,8 @@ export function LinksList() {
 
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterFolderId, setFilterFolderId] = useState<string | null>(null);
+  const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -114,12 +117,41 @@ export function LinksList() {
   const emptyLinkTags: typeof linkTags = useMemo(() => [], []);
 
   const filteredLinks = useMemo(() => {
-    if (!selectedFolderId) return links;
-    if (selectedFolderId === "uncategorized") {
-      return links.filter((link) => link.folderId === null);
+    let result = links;
+
+    // 1. Sidebar folder filter (URL param)
+    if (selectedFolderId) {
+      if (selectedFolderId === "uncategorized") {
+        result = result.filter((link) => link.folderId === null);
+      } else {
+        result = result.filter((link) => link.folderId === selectedFolderId);
+      }
     }
-    return links.filter((link) => link.folderId === selectedFolderId);
-  }, [links, selectedFolderId]);
+
+    // 2. Filter-bar folder filter (only when sidebar hasn't selected a folder)
+    if (!selectedFolderId && filterFolderId) {
+      if (filterFolderId === "uncategorized") {
+        result = result.filter((link) => link.folderId === null);
+      } else {
+        result = result.filter((link) => link.folderId === filterFolderId);
+      }
+    }
+
+    // 3. Tag filter — link must have ALL selected tags (intersection)
+    if (filterTagIds.size > 0) {
+      result = result.filter((link) => {
+        const lt = linkTagsByLinkId.get(link.id);
+        if (!lt) return false;
+        const linkTagIdSet = new Set(lt.map((t) => t.tagId));
+        for (const tagId of filterTagIds) {
+          if (!linkTagIdSet.has(tagId)) return false;
+        }
+        return true;
+      });
+    }
+
+    return result;
+  }, [links, selectedFolderId, filterFolderId, filterTagIds, linkTagsByLinkId]);
 
   const selectedFolder = useMemo(() => {
     if (!selectedFolderId) return null;
@@ -133,6 +165,24 @@ export function LinksList() {
       ? selectedFolder.name
       : "全部链接";
   const linkCount = filteredLinks.length;
+  const hasActiveFilters = filterFolderId !== null || filterTagIds.size > 0;
+
+  const handleToggleFilterTag = useCallback((tagId: string) => {
+    setFilterTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilterFolderId(null);
+    setFilterTagIds(new Set());
+  }, []);
 
   if (loading) {
     return (
@@ -160,7 +210,9 @@ export function LinksList() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">{headerTitle}</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            共 {linkCount} 条链接
+            {hasActiveFilters
+              ? `${linkCount} / ${links.length} 条链接`
+              : `共 ${linkCount} 条链接`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -191,17 +243,28 @@ export function LinksList() {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-[10px]"
+            className="rounded-[10px] h-8 w-8 p-0"
             onClick={handleRefresh}
             disabled={isRefreshing}
             aria-label="刷新链接"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-            刷新
           </Button>
           <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
         </div>
       </div>
+
+      {/* Filter bar */}
+      <LinkFilterBar
+        folders={folders}
+        tags={tags}
+        filterFolderId={filterFolderId}
+        filterTagIds={filterTagIds}
+        onFolderChange={setFilterFolderId}
+        onToggleTag={handleToggleFilterTag}
+        onClear={handleClearFilters}
+        showFolderFilter={!selectedFolderId}
+      />
 
       {/* Content */}
       {filteredLinks.length === 0 ? (

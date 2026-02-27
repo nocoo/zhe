@@ -45,9 +45,9 @@ describe("CreateLinkModal", () => {
     mockVm.handleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
   });
 
-  it("renders trigger button with text '新建链接'", () => {
+  it("renders trigger button with aria-label '新建链接'", () => {
     render(<CreateLinkModal {...defaultProps} />);
-    expect(screen.getByText("新建链接")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新建链接" })).toBeInTheDocument();
   });
 
   it("opens dialog when trigger clicked", async () => {
