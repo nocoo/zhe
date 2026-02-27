@@ -498,50 +498,52 @@ export class ScopedDB {
     osBreakdown: Record<string, number>;
     fileTypeBreakdown: Record<string, number>;
   }> {
-    // Fetch links and uploads for basic counts (already small result sets)
-    const [links, uploads] = await Promise.all([
-      this.getLinks(),
-      this.getUploads(),
-    ]);
-
-    // Aggregate link stats
-    const totalLinks = links.length;
-    const totalClicks = links.reduce((sum, l) => sum + (l.clicks ?? 0), 0);
-
-    // Top links sorted by clicks descending
-    const topLinks = [...links]
-      .sort((a, b) => (b.clicks ?? 0) - (a.clicks ?? 0))
-      .map(l => ({ slug: l.slug, originalUrl: l.originalUrl, clicks: l.clicks ?? 0 }));
-
-    // Upload stats
-    const totalUploads = uploads.length;
-    const totalStorageBytes = uploads.reduce((sum, u) => sum + u.fileSize, 0);
-
-    // Upload trend: GROUP BY date in JS (uploads are already fetched, typically small)
-    const uploadDateCounts = new Map<string, number>();
-    for (const u of uploads) {
-      const date = u.createdAt.toISOString().slice(0, 10);
-      uploadDateCounts.set(date, (uploadDateCounts.get(date) ?? 0) + 1);
-    }
-    const uploadTrend = Array.from(uploadDateCounts.entries())
-      .map(([date, count]) => ({ date, uploads: count }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    // File type breakdown from already-fetched uploads
-    const fileTypes: Record<string, number> = {};
-    for (const upload of uploads) {
-      fileTypes[upload.fileType] = (fileTypes[upload.fileType] || 0) + 1;
-    }
-
-    // Analytics aggregations — all done in SQL via JOINs for ownership
+    // All aggregation via SQL — no raw row fetching
     const analyticsJoin = 'FROM analytics a JOIN links l ON a.link_id = l.id WHERE l.user_id = ?';
     const analyticsParams = [this.userId];
 
-    const [clickTrendRows, deviceRows, browserRows, osRows] = await Promise.all([
+    const [
+      linkStatsRows,
+      topLinkRows,
+      uploadStatsRows,
+      uploadTrendRows,
+      fileTypeRows,
+      clickTrendRows,
+      deviceRows,
+      browserRows,
+      osRows,
+    ] = await Promise.all([
+      // Link aggregates: total count + total clicks
+      executeD1Query<Record<string, unknown>>(
+        'SELECT COUNT(*) AS total_links, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?',
+        [this.userId],
+      ),
+      // Top links by clicks (descending)
+      executeD1Query<Record<string, unknown>>(
+        'SELECT slug, original_url, clicks FROM links WHERE user_id = ? ORDER BY clicks DESC',
+        [this.userId],
+      ),
+      // Upload aggregates: total count + total storage bytes
+      executeD1Query<Record<string, unknown>>(
+        'SELECT COUNT(*) AS total_uploads, COALESCE(SUM(file_size), 0) AS total_storage FROM uploads WHERE user_id = ?',
+        [this.userId],
+      ),
+      // Upload trend: GROUP BY date in SQL
+      executeD1Query<Record<string, unknown>>(
+        `SELECT date(created_at / 1000, 'unixepoch') as date, COUNT(*) as uploads FROM uploads WHERE user_id = ? GROUP BY date ORDER BY date ASC`,
+        [this.userId],
+      ),
+      // File type breakdown
+      executeD1Query<Record<string, unknown>>(
+        'SELECT file_type, COUNT(*) as count FROM uploads WHERE user_id = ? GROUP BY file_type',
+        [this.userId],
+      ),
+      // Click trend: GROUP BY date
       executeD1Query<Record<string, unknown>>(
         `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
         analyticsParams,
       ),
+      // Analytics breakdowns
       executeD1Query<Record<string, unknown>>(
         `SELECT a.device, COUNT(*) as count ${analyticsJoin} AND a.device IS NOT NULL GROUP BY a.device`,
         analyticsParams,
@@ -556,11 +558,38 @@ export class ScopedDB {
       ),
     ]);
 
+    // Link stats
+    const totalLinks = (linkStatsRows[0]?.total_links as number) ?? 0;
+    const totalClicks = (linkStatsRows[0]?.total_clicks as number) ?? 0;
+
+    // Top links
+    const topLinks = topLinkRows.map(r => ({
+      slug: r.slug as string,
+      originalUrl: r.original_url as string,
+      clicks: (r.clicks as number) ?? 0,
+    }));
+
+    // Upload stats
+    const totalUploads = (uploadStatsRows[0]?.total_uploads as number) ?? 0;
+    const totalStorageBytes = (uploadStatsRows[0]?.total_storage as number) ?? 0;
+
+    // Upload trend
+    const uploadTrend = uploadTrendRows.map(r => ({
+      date: r.date as string,
+      uploads: r.uploads as number,
+    }));
+
+    // File type breakdown
+    const fileTypeBreakdown: Record<string, number> = {};
+    for (const r of fileTypeRows) fileTypeBreakdown[r.file_type as string] = r.count as number;
+
+    // Click trend
     const clickTrend = clickTrendRows.map(r => ({
       date: r.date as string,
       clicks: r.clicks as number,
     }));
 
+    // Analytics breakdowns
     const deviceBreakdown: Record<string, number> = {};
     for (const r of deviceRows) deviceBreakdown[r.device as string] = r.count as number;
 
@@ -581,7 +610,7 @@ export class ScopedDB {
       deviceBreakdown,
       browserBreakdown,
       osBreakdown,
-      fileTypeBreakdown: fileTypes,
+      fileTypeBreakdown,
     };
   }
 

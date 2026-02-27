@@ -99,6 +99,35 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // SELECT COUNT(*) AS total_links, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?
+      if (sqlLower.includes('count(*)') && sqlLower.includes('total_links') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
+        const [userId] = params;
+        let totalLinks = 0;
+        let totalClicks = 0;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) {
+            totalLinks++;
+            totalClicks += (rawLink.clicks as number) ?? 0;
+          }
+        }
+        return [{ total_links: totalLinks, total_clicks: totalClicks }] as T[];
+      }
+
+      // SELECT slug, original_url, clicks FROM links WHERE user_id = ? ORDER BY clicks DESC
+      if (sqlLower.includes('from links') && sqlLower.includes('where user_id = ?') && sqlLower.includes('order by clicks desc')) {
+        const [userId] = params;
+        const results: unknown[] = [];
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) {
+            results.push({ slug: rawLink.slug, original_url: rawLink.original_url, clicks: (rawLink.clicks as number) ?? 0 });
+          }
+        }
+        results.sort((a, b) => ((b as Record<string, unknown>).clicks as number) - ((a as Record<string, unknown>).clicks as number));
+        return results as T[];
+      }
+
       // SELECT FROM links WHERE user_id = ?
       if (sqlLower.startsWith('select') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
@@ -474,6 +503,51 @@ vi.mock('@/lib/db/d1-client', async () => {
         };
         mockUploads.set(id, upload as unknown as import('@/lib/db/schema').Upload);
         return [upload] as T[];
+      }
+
+      // SELECT COUNT(*) AS total_uploads, COALESCE(SUM(file_size), 0) AS total_storage FROM uploads WHERE user_id = ?
+      if (sqlLower.includes('count(*)') && sqlLower.includes('total_uploads') && sqlLower.includes('from uploads') && sqlLower.includes('where user_id = ?')) {
+        const [userId] = params;
+        let totalUploads = 0;
+        let totalStorage = 0;
+        for (const upload of mockUploads.values()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            totalUploads++;
+            totalStorage += (raw.file_size as number) ?? 0;
+          }
+        }
+        return [{ total_uploads: totalUploads, total_storage: totalStorage }] as T[];
+      }
+
+      // SELECT date(...) as date, COUNT(*) as uploads FROM uploads WHERE user_id = ? GROUP BY date ORDER BY date ASC
+      if (sqlLower.includes('count(*)') && sqlLower.includes('from uploads') && sqlLower.includes('where user_id = ?') && sqlLower.includes('group by date')) {
+        const [userId] = params;
+        const dateCounts: Record<string, number> = {};
+        for (const upload of mockUploads.values()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            const date = new Date(raw.created_at as number).toISOString().slice(0, 10);
+            dateCounts[date] = (dateCounts[date] || 0) + 1;
+          }
+        }
+        return Object.entries(dateCounts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, uploads]) => ({ date, uploads })) as T[];
+      }
+
+      // SELECT file_type, COUNT(*) as count FROM uploads WHERE user_id = ? GROUP BY file_type
+      if (sqlLower.includes('count(*)') && sqlLower.includes('file_type') && sqlLower.includes('from uploads') && sqlLower.includes('where user_id = ?') && sqlLower.includes('group by file_type')) {
+        const [userId] = params;
+        const fileTypes: Record<string, number> = {};
+        for (const upload of mockUploads.values()) {
+          const raw = upload as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            const ft = raw.file_type as string;
+            fileTypes[ft] = (fileTypes[ft] || 0) + 1;
+          }
+        }
+        return Object.entries(fileTypes).map(([file_type, count]) => ({ file_type, count })) as T[];
       }
 
       // SELECT FROM uploads WHERE user_id = ?
