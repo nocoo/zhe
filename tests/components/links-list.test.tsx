@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Link, Folder } from '@/models/types';
+import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 
 let mockSearchParamsFolder: string | null = null;
@@ -119,9 +119,30 @@ const mockFolders: Folder[] = [
   { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
 ];
 
-function setupService(links: Link[] = mockLinks, folders: Folder[] = mockFolders, loading = false) {
+const mockTags: Tag[] = [
+  { id: 't1', userId: 'u1', name: 'dev', color: 'cobalt', createdAt: new Date('2026-01-01') },
+  { id: 't2', userId: 'u1', name: 'design', color: 'rose', createdAt: new Date('2026-01-02') },
+  { id: 't3', userId: 'u1', name: 'blog', color: 'green', createdAt: new Date('2026-01-03') },
+];
+
+const mockLinkTags: LinkTag[] = [
+  { linkId: 1, tagId: 't1' }, // link 1 (abc) has tag "dev"
+  { linkId: 1, tagId: 't2' }, // link 1 (abc) has tag "design"
+  { linkId: 2, tagId: 't2' }, // link 2 (def) has tag "design"
+  { linkId: 3, tagId: 't3' }, // link 3 (ghi) has tag "blog"
+];
+
+function setupService(
+  links: Link[] = mockLinks,
+  folders: Folder[] = mockFolders,
+  loading = false,
+  tags: Tag[] = mockTags,
+  linkTags: LinkTag[] = mockLinkTags,
+) {
   mockService.links = links;
   mockService.folders = folders;
+  mockService.tags = tags;
+  mockService.linkTags = linkTags;
   mockService.loading = loading;
 }
 
@@ -328,5 +349,170 @@ describe('LinksList', () => {
     await user.click(screen.getByLabelText('刷新链接'));
 
     expect(screen.getByLabelText('刷新链接')).toBeDisabled();
+  });
+
+  // --- Filter bar ---
+
+  describe('filter bar', () => {
+    it('renders folder and tag filter buttons', () => {
+      render(<LinksList />);
+
+      expect(screen.getByText('文件夹')).toBeInTheDocument();
+      expect(screen.getByText('标签')).toBeInTheDocument();
+    });
+
+    it('hides folder filter when sidebar has selected a folder', () => {
+      mockSearchParamsFolder = 'f1';
+      render(<LinksList />);
+
+      expect(screen.queryByText('文件夹')).not.toBeInTheDocument();
+      // Tag filter should still be visible
+      expect(screen.getByText('标签')).toBeInTheDocument();
+    });
+
+    it('filters links by folder via filter bar', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Open folder dropdown
+      await user.click(screen.getByText('文件夹'));
+      // Select "工作" folder
+      await user.click(screen.getByText('工作'));
+
+      // Should show only link 1 (abc)
+      expect(screen.getByText('abc')).toBeInTheDocument();
+      expect(screen.queryByText('def')).not.toBeInTheDocument();
+      expect(screen.queryByText('ghi')).not.toBeInTheDocument();
+      // Should show filtered count
+      expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
+    });
+
+    it('filters links by Inbox (uncategorized) via filter bar', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      await user.click(screen.getByText('文件夹'));
+      await user.click(screen.getByText('Inbox'));
+
+      // Should show only link 3 (ghi) which has folderId=null
+      expect(screen.getByText('ghi')).toBeInTheDocument();
+      expect(screen.queryByText('abc')).not.toBeInTheDocument();
+      expect(screen.queryByText('def')).not.toBeInTheDocument();
+    });
+
+    it('resets folder filter when "全部文件夹" is selected', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Select a folder first
+      await user.click(screen.getByText('文件夹'));
+      await user.click(screen.getByText('工作'));
+      expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
+
+      // Now reset to all
+      await user.click(screen.getByText('工作')); // trigger shows selected folder name
+      await user.click(screen.getByText('全部文件夹'));
+      expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
+    });
+
+    it('filters links by tag', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Open tag dropdown
+      await user.click(screen.getByText('标签'));
+      // Select "dev" tag — use the command item (dropdown), not the tag badge on LinkCard
+      const devItems = screen.getAllByText('dev');
+      const devDropdownItem = devItems.find(el => el.closest('[cmdk-item]'));
+      expect(devDropdownItem).toBeTruthy();
+      await user.click(devDropdownItem!);
+
+      // Only link 1 (abc) has the "dev" tag
+      expect(screen.getByText('abc')).toBeInTheDocument();
+      expect(screen.queryByText('def')).not.toBeInTheDocument();
+      expect(screen.queryByText('ghi')).not.toBeInTheDocument();
+      expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
+    });
+
+    it('filters links by multiple tags (intersection)', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Select "dev" tag
+      await user.click(screen.getByText('标签'));
+      const devItems = screen.getAllByText('dev');
+      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+
+      // Select "design" tag too (reopen)
+      await user.click(screen.getByText('标签 (1)'));
+      const designItems = screen.getAllByText('design');
+      await user.click(designItems.find(el => el.closest('[cmdk-item]'))!);
+
+      // Only link 1 (abc) has both "dev" AND "design"
+      expect(screen.getByText('abc')).toBeInTheDocument();
+      expect(screen.queryByText('def')).not.toBeInTheDocument();
+      expect(screen.queryByText('ghi')).not.toBeInTheDocument();
+    });
+
+    it('removes tag filter via badge X button', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Select "blog" tag to narrow to link 3 only
+      await user.click(screen.getByText('标签'));
+      const blogItems = screen.getAllByText('blog');
+      await user.click(blogItems.find(el => el.closest('[cmdk-item]'))!);
+      expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
+
+      // Remove it via X on the badge
+      await user.click(screen.getByLabelText('Remove filter blog'));
+      expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
+    });
+
+    it('clears all filters via "清除筛选" button', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Apply folder + tag filters
+      await user.click(screen.getByText('文件夹'));
+      await user.click(screen.getByText('工作'));
+      await user.click(screen.getByText('标签'));
+      const devItems = screen.getAllByText('dev');
+      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+
+      // Clear all
+      await user.click(screen.getByText('清除筛选'));
+      expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
+      expect(screen.queryByText('清除筛选')).not.toBeInTheDocument();
+    });
+
+    it('combines folder and tag filters', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      // Filter by folder "个人" (link 2 only) then by tag "design" (link 1, 2)
+      await user.click(screen.getByText('文件夹'));
+      await user.click(screen.getByText('个人'));
+
+      await user.click(screen.getByText('标签'));
+      const designItems = screen.getAllByText('design');
+      await user.click(designItems.find(el => el.closest('[cmdk-item]'))!);
+
+      // Only link 2 (def) is in folder "个人" AND has tag "design"
+      expect(screen.getByText('def')).toBeInTheDocument();
+      expect(screen.queryByText('abc')).not.toBeInTheDocument();
+      expect(screen.queryByText('ghi')).not.toBeInTheDocument();
+    });
+
+    it('shows tag count on tag button when tags are selected', async () => {
+      const user = userEvent.setup();
+      render(<LinksList />);
+
+      await user.click(screen.getByText('标签'));
+      const devItems = screen.getAllByText('dev');
+      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+
+      expect(screen.getByText('标签 (1)')).toBeInTheDocument();
+    });
   });
 });
