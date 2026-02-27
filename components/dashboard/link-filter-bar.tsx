@@ -51,7 +51,7 @@ export function LinkFilterBar({
   const selectedTags = tags.filter((t) => filterTagIds.has(t.id));
 
   return (
-    <div className="flex items-center gap-2 mb-4 flex-wrap">
+    <>
       {/* Folder filter */}
       {showFolderFilter && (
         <FolderFilter
@@ -102,7 +102,7 @@ export function LinkFilterBar({
           清除筛选
         </button>
       )}
-    </div>
+    </>
   );
 }
 
