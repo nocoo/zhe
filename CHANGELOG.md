@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.3] - 2026-02-27
+
+### Added
+- `executeD1Batch()` function in D1 client for batching multiple SQL statements into a single HTTP request
+- Shared `getD1Headers()` and `getD1Credentials()` helpers in D1 client
+- HTTP keep-alive headers (`Connection: keep-alive`) for D1 client requests
+- In-memory LRU cache for slug lookups in middleware (1000 entries, 60s TTL) to reduce D1 round-trips
+
+### Changed
+- Replace in-memory aggregation in `getOverviewStats()` with 9 parallel SQL-level queries using `COUNT(*)`, `SUM()`, `GROUP BY`, and `ORDER BY`
+- Batch `recordClick()` INSERT + UPDATE into a single `executeD1Batch()` call instead of two sequential HTTP requests
+- Pre-group `linkTags` by `linkId` in `LinksList` and `InboxTriage` parent components, eliminating O(N×M) per-card `.filter()` on every render
+
+### Fixed
+- Resolve public origin from `x-forwarded-*` headers in webhook route
+
 ## [v1.4.2] - 2026-02-26
 
 ### Changed
