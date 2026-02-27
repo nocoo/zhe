@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.4.4] - 2026-02-28
+
+### Added
+- Folder/tag filter bar on "全部链接" page with folder single-select, tag multi-select (AND intersection logic), active tag badges, and clear button
+- 11 filter bar tests covering folder dropdown, tag multi-select, intersection, clear, and combined filtering
+- Basalt 24-color palette for tag badges with FNV-1a hash-based color assignment
+
+### Changed
+- Shrink header buttons (refresh, create link) to icon-only `h-7 w-7`, matching view-toggle size
+- Merge header into single row: title, link count, filter dropdowns, view toggle, and action buttons all inline
+- `LinkFilterBar` renders as Fragment instead of wrapper div for flexible parent layout
+
 ## [v1.4.3] - 2026-02-27
 
 ### Added
