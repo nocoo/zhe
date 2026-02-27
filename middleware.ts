@@ -4,6 +4,48 @@ import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { extractClickMetadata } from '@/lib/analytics';
 import { getLinkBySlug, recordClick } from '@/lib/db';
+import type { Link } from '@/lib/db/schema';
+
+// ─── In-memory LRU cache for slug lookups ──────────────────────────────────
+// Avoids a D1 HTTP round-trip on every redirect for popular short links.
+// Entries expire after SLUG_CACHE_TTL_MS; cache size is bounded by SLUG_CACHE_MAX.
+
+const SLUG_CACHE_TTL_MS = 60_000; // 60 seconds
+const SLUG_CACHE_MAX = 1_000;
+
+interface CacheEntry {
+  link: Link | null;
+  expiresAt: number;
+}
+
+const slugCache = new Map<string, CacheEntry>();
+
+/** Get a cached slug lookup, returning undefined on miss/expiry. */
+function getCachedSlug(slug: string): Link | null | undefined {
+  const entry = slugCache.get(slug);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    slugCache.delete(slug);
+    return undefined;
+  }
+  // Move to end for LRU ordering (Map preserves insertion order)
+  slugCache.delete(slug);
+  slugCache.set(slug, entry);
+  return entry.link;
+}
+
+/** Cache a slug lookup result. Evicts oldest entry when at capacity. */
+function setCachedSlug(slug: string, link: Link | null): void {
+  // Evict oldest if at capacity
+  if (slugCache.size >= SLUG_CACHE_MAX && !slugCache.has(slug)) {
+    const oldest = slugCache.keys().next().value;
+    if (oldest !== undefined) slugCache.delete(oldest);
+  }
+  slugCache.set(slug, { link, expiresAt: Date.now() + SLUG_CACHE_TTL_MS });
+}
+
+// Export for testing
+export { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX };
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
@@ -30,9 +72,16 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // Look up the short link directly via D1 (no self-fetch)
+  // Look up the short link — check cache first, then D1
   try {
-    const link = await getLinkBySlug(slug);
+    let link = getCachedSlug(slug);
+
+    if (link === undefined) {
+      // Cache miss — query D1 and cache the result
+      const dbLink = await getLinkBySlug(slug);
+      setCachedSlug(slug, dbLink);
+      link = dbLink;
+    }
 
     // Not found
     if (!link) {
