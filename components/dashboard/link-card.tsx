@@ -104,10 +104,12 @@ export const LinkCard = memo(function LinkCard({
     setIsEditing((prev) => !prev);
   };
 
-  // Tags assigned to this specific link — derived from linkTags prop
+  // Tags assigned to this specific link — derived from linkTags prop.
+  // Parent components pre-group linkTags by linkId, so this array only contains
+  // entries for this link. The Set is built without a .filter() scan.
   const assignedTagIds = useMemo(() => {
-    return new Set(linkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId));
-  }, [linkTags, link.id]);
+    return new Set(linkTags.map((lt) => lt.tagId));
+  }, [linkTags]);
   const cardTags = tags.filter((t) => assignedTagIds.has(t.id));
 
   // --- Shared display logic (unified across list & grid) ---

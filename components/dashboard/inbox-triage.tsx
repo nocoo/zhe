@@ -10,6 +10,7 @@ import { LinkCard } from "@/components/dashboard/link-card";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import type { LinkTag } from "@/models/types";
 
 /** Inbox triage view — shows uncategorized links with inline editing controls */
 export function InboxTriage() {
@@ -46,6 +47,23 @@ export function InboxTriage() {
   }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
+
+  // Pre-group linkTags by linkId so each LinkCard receives only its own tags — O(M) once
+  // instead of O(N×M) when every card filters the entire array on each render.
+  const linkTagsByLinkId = useMemo(() => {
+    const map = new Map<number, LinkTag[]>();
+    for (const lt of linkTags) {
+      const arr = map.get(lt.linkId);
+      if (arr) {
+        arr.push(lt);
+      } else {
+        map.set(lt.linkId, [lt]);
+      }
+    }
+    return map;
+  }, [linkTags]);
+
+  const emptyLinkTags: LinkTag[] = useMemo(() => [], []);
 
   if (loading) {
     return (
@@ -119,7 +137,7 @@ export function InboxTriage() {
               onUpdate={handleLinkUpdated}
               viewMode="list"
               tags={tags}
-              linkTags={linkTags}
+              linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
               folders={folders}
               defaultEditing
               editCallbacks={editCallbacks}

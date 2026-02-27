@@ -96,6 +96,23 @@ export function LinksList() {
   const searchParams = useSearchParams();
   const selectedFolderId = searchParams.get("folder") ?? null;
 
+  // Pre-group linkTags by linkId so each LinkCard receives only its own tags — O(M) once
+  // instead of O(N×M) when every card filters the entire array on each render.
+  const linkTagsByLinkId = useMemo(() => {
+    const map = new Map<number, typeof linkTags>();
+    for (const lt of linkTags) {
+      const arr = map.get(lt.linkId);
+      if (arr) {
+        arr.push(lt);
+      } else {
+        map.set(lt.linkId, [lt]);
+      }
+    }
+    return map;
+  }, [linkTags]);
+
+  const emptyLinkTags: typeof linkTags = useMemo(() => [], []);
+
   const filteredLinks = useMemo(() => {
     if (!selectedFolderId) return links;
     if (selectedFolderId === "uncategorized") {
@@ -214,7 +231,7 @@ export function LinksList() {
               onUpdate={handleLinkUpdated}
               viewMode={viewMode}
               tags={tags}
-              linkTags={linkTags}
+              linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
               folders={folders}
               editCallbacks={editCallbacks}
             />
