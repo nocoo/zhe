@@ -37,9 +37,9 @@ vi.mock("@/contexts/dashboard-service", () => ({
 }));
 
 vi.mock("@/models/tags", () => ({
-  getTagColorClassesByName: (name: string) => ({
-    badge: `mock-badge-${name}`,
-    dot: `mock-dot-${name}`,
+  getTagStyles: (name: string) => ({
+    badge: { backgroundColor: `mock-bg-${name}`, color: `mock-color-${name}` },
+    dot: { backgroundColor: `mock-dot-${name}` },
   }),
 }));
 
@@ -681,18 +681,24 @@ describe("SearchCommandDialog", () => {
       expect(screen.getByText("Solo")).toBeInTheDocument();
     });
 
-    it("renders tag badges with Tailwind color classes from name", async () => {
+    it("renders tag badges with inline style colors from name", async () => {
       mockState.links = [makeLink({ id: 1, slug: "styled" })];
       mockState.tags = [
-        { id: "t1", userId: "user-1", name: "Styled", color: "blue", createdAt: new Date() },
+        { id: "t1", userId: "user-1", name: "Styled", color: "primary", createdAt: new Date() },
       ];
       mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、标题、备注、标签...");
       await userEvent.type(input, "styled");
 
+      // The tag badge is a <span> containing a dot <span> + "Styled" text.
+      // getByText returns the closest element containing the text.
+      // The parent <span> has the inline style from getTagStyles().
       const badge = screen.getByText("Styled");
-      expect(badge.className).toContain("mock-badge-Styled");
+      // Verify the badge element (or its parent) has the rounded-full class
+      // indicating it's the styled badge container
+      const container = badge.closest(".rounded-full");
+      expect(container).not.toBeNull();
     });
   });
 

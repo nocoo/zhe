@@ -1,48 +1,84 @@
 // Pure business logic for tag operations — no React, no DOM.
 
-/** Predefined Tailwind color names for tag styling */
-export const TAG_COLORS = [
-  'slate',
-  'red',
-  'orange',
-  'amber',
-  'emerald',
-  'teal',
-  'cyan',
-  'blue',
-  'indigo',
-  'violet',
-  'pink',
-  'rose',
+/**
+ * 24 semantic color names matching the basalt chart palette (--chart-1 … --chart-24).
+ * Order must stay in sync with CSS custom properties in basalt/src/index.css.
+ */
+export const TAG_PALETTE = [
+  'primary',   // --chart-1   217 91% 60%   brand blue
+  'sky',       // --chart-2   200 90% 55%
+  'teal',      // --chart-3   186 80% 45%
+  'jade',      // --chart-4   166 72% 44%
+  'green',     // --chart-5   142 71% 45%
+  'lime',      // --chart-6   84 65% 46%
+  'amber',     // --chart-7   45 93% 47%
+  'orange',    // --chart-8   30 90% 55%
+  'vermilion', // --chart-9   15 85% 52%
+  'red',       // --chart-10  0 72% 51%
+  'rose',      // --chart-11  340 82% 55%
+  'magenta',   // --chart-12  320 70% 55%
+  'orchid',    // --chart-13  290 65% 55%
+  'purple',    // --chart-14  270 70% 60%
+  'indigo',    // --chart-15  250 65% 58%
+  'cobalt',    // --chart-16  230 70% 56%
+  'steel',     // --chart-17  210 55% 50%
+  'cadet',     // --chart-18  195 45% 55%
+  'seafoam',   // --chart-19  160 50% 50%
+  'olive',     // --chart-20  100 50% 48%
+  'gold',      // --chart-21  60 65% 45%
+  'tangerine', // --chart-22  22 80% 50%
+  'crimson',   // --chart-23  350 65% 50%
+  'gray',      // --chart-24  0 0% 25%
 ] as const;
 
-export type TagColor = (typeof TAG_COLORS)[number];
+export type TagPaletteColor = (typeof TAG_PALETTE)[number];
 
 const MAX_TAG_NAME_LENGTH = 30;
+const PALETTE_SIZE = TAG_PALETTE.length; // 24
 
-/** Check if a string is a valid tag color */
-export function isValidTagColor(color: string): color is TagColor {
-  return (TAG_COLORS as readonly string[]).includes(color);
+/** Check if a string is a valid palette color name */
+export function isValidTagColor(color: string): color is TagPaletteColor {
+  return (TAG_PALETTE as readonly string[]).includes(color);
 }
 
 /** Pick a random color from the palette */
-export function randomTagColor(): TagColor {
-  return TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+export function randomTagColor(): TagPaletteColor {
+  return TAG_PALETTE[Math.floor(Math.random() * PALETTE_SIZE)];
 }
 
 /**
- * Derive a deterministic tag color from its name.
- * Uses a simple char-code hash (handles CJK/emoji) so the same name
- * always produces the same color — no DB lookup required.
+ * Stable FNV-1a-inspired hash that works with any Unicode string (CJK, emoji, etc.).
+ * Returns a non-negative 32-bit integer.
+ *
+ * Why FNV-1a over djb2?
+ * – Better avalanche (fewer collisions on short strings)
+ * – XOR-then-multiply reduces clustering when modding by small N
+ * – Deterministic and fast — no crypto overhead
  */
-export function tagColorFromName(name: string): TagColor {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    // djb2-style: hash * 31 + charCode
-    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+function fnv1aHash(str: string): number {
+  let h = 0x811c9dc5; // FNV offset basis (32-bit)
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193); // FNV prime (32-bit)
   }
-  const index = ((hash % TAG_COLORS.length) + TAG_COLORS.length) % TAG_COLORS.length;
-  return TAG_COLORS[index];
+  return h >>> 0; // ensure unsigned
+}
+
+/**
+ * Derive a deterministic palette color from a tag name.
+ * Same name → same color, everywhere, always.
+ */
+export function tagColorFromName(name: string): TagPaletteColor {
+  return TAG_PALETTE[fnv1aHash(name) % PALETTE_SIZE];
+}
+
+/**
+ * Get the CSS variable token for a palette color (1-indexed).
+ * e.g. "primary" → "chart-1", "sky" → "chart-2"
+ */
+export function tagColorToken(name: string): string {
+  const idx = TAG_PALETTE.indexOf(tagColorFromName(name));
+  return `chart-${idx + 1}`;
 }
 
 /**
@@ -57,31 +93,45 @@ export function validateTagName(name: string): string | null {
   return trimmed;
 }
 
-/** Tailwind class sets for each tag color (bg + text for light & dark) */
-export const TAG_COLOR_MAP: Record<TagColor, { badge: string; dot: string }> = {
-  slate:   { badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',   dot: 'bg-slate-500' },
-  red:     { badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',           dot: 'bg-red-500' },
-  orange:  { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', dot: 'bg-orange-500' },
-  amber:   { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',   dot: 'bg-amber-500' },
-  emerald: { badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300', dot: 'bg-emerald-500' },
-  teal:    { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',       dot: 'bg-teal-500' },
-  cyan:    { badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',       dot: 'bg-cyan-500' },
-  blue:    { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',       dot: 'bg-blue-500' },
-  indigo:  { badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300', dot: 'bg-indigo-500' },
-  violet:  { badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300', dot: 'bg-violet-500' },
-  pink:    { badge: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',       dot: 'bg-pink-500' },
-  rose:    { badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300',       dot: 'bg-rose-500' },
-};
-
-/** Get Tailwind classes for a tag color, with fallback to slate */
-export function getTagColorClasses(color: string): { badge: string; dot: string } {
-  return TAG_COLOR_MAP[color as TagColor] ?? TAG_COLOR_MAP.slate;
+/** Inline style objects for tag badge rendering using CSS variables. */
+export interface TagColorStyles {
+  /** Style for the badge container (background + text color) */
+  badge: React.CSSProperties;
+  /** Style for the dot indicator */
+  dot: React.CSSProperties;
 }
 
 /**
- * Get Tailwind classes derived from a tag's name (deterministic).
- * This is the primary API — always prefer over getTagColorClasses(tag.color).
+ * Get inline style objects for a tag, derived deterministically from its name.
+ * Uses basalt --chart-N CSS variables so colors auto-adapt to light/dark theme.
+ *
+ * This is the primary API — use this everywhere tags are rendered.
  */
-export function getTagColorClassesByName(name: string): { badge: string; dot: string } {
-  return TAG_COLOR_MAP[tagColorFromName(name)];
+export function getTagStyles(name: string): TagColorStyles {
+  const token = tagColorToken(name);
+  return {
+    badge: {
+      backgroundColor: `hsl(var(--${token}) / 0.12)`,
+      color: `hsl(var(--${token}))`,
+    },
+    dot: {
+      backgroundColor: `hsl(var(--${token}))`,
+    },
+  };
+}
+
+// ── Backward-compat aliases (deprecated — migrate to getTagStyles) ──
+
+/** @deprecated Use TAG_PALETTE instead */
+export const TAG_COLORS = TAG_PALETTE;
+/** @deprecated Use TagPaletteColor instead */
+export type TagColor = TagPaletteColor;
+/** @deprecated Use getTagStyles(name) instead */
+export function getTagColorClassesByName(_name: string): { badge: string; dot: string } {
+  // Return empty strings — callers should migrate to getTagStyles()
+  return { badge: '', dot: '' };
+}
+/** @deprecated Use getTagStyles(name) instead */
+export function getTagColorClasses(_color: string): { badge: string; dot: string } {
+  return { badge: '', dot: '' };
 }

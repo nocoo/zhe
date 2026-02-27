@@ -61,7 +61,7 @@ const FAKE_TAG = {
   id: 'tag-uuid-1',
   userId: FAKE_USER_ID,
   name: 'work',
-  color: 'blue',
+  color: 'cobalt',
   createdAt: new Date(),
 };
 
@@ -145,9 +145,9 @@ describe('actions/tags', () => {
     it('creates tag with name and specified color', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateTag.mockResolvedValue(FAKE_TAG);
-      const result = await createTag({ name: 'work', color: 'blue' });
+      const result = await createTag({ name: 'work', color: 'cobalt' });
       expect(result).toEqual({ success: true, data: FAKE_TAG });
-      expect(mockCreateTag).toHaveBeenCalledWith({ name: 'work', color: 'blue' });
+      expect(mockCreateTag).toHaveBeenCalledWith({ name: 'work', color: 'cobalt' });
     });
 
     it('creates tag with deterministic color when color is omitted', async () => {
@@ -234,11 +234,11 @@ describe('actions/tags', () => {
 
     it('updates both name and color on success', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      const updated = { ...FAKE_TAG, name: 'new', color: 'emerald' };
+      const updated = { ...FAKE_TAG, name: 'new', color: 'green' };
       mockUpdateTag.mockResolvedValue(updated);
-      const result = await updateTag('tag-uuid-1', { name: 'new', color: 'emerald' });
+      const result = await updateTag('tag-uuid-1', { name: 'new', color: 'green' });
       expect(result).toEqual({ success: true, data: updated });
-      expect(mockUpdateTag).toHaveBeenCalledWith('tag-uuid-1', { name: 'new', color: 'emerald' });
+      expect(mockUpdateTag).toHaveBeenCalledWith('tag-uuid-1', { name: 'new', color: 'green' });
     });
 
     it('trims whitespace from name', async () => {

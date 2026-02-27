@@ -20,7 +20,7 @@ import {
   highlightMatches,
 } from "@/models/links";
 import type { HighlightSegment } from "@/models/links";
-import { getTagColorClassesByName } from "@/models/tags";
+import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
 export interface SearchCommandDialogProps {
@@ -265,14 +265,16 @@ export function SearchCommandDialog({
                           <>
                             <span className="text-border">·</span>
                             {linkTagList.slice(0, 3).map((tag) => {
-                              const colors = getTagColorClassesByName(tag.name);
+                              const styles = getTagStyles(tag.name);
                               return (
                                 <span
                                   key={tag.id}
-                                  className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium leading-normal ${colors.badge}`}
+                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium leading-normal"
+                                  style={styles.badge}
                                 >
                                   <span
-                                    className={`h-1 w-1 rounded-full ${colors.dot}`}
+                                    className="h-1 w-1 rounded-full"
+                                    style={styles.dot}
                                   />
                                   {tag.name}
                                 </span>

@@ -26,7 +26,7 @@ import {
   CommandEmpty,
   CommandGroup,
 } from "@/components/ui/command";
-import { getTagColorClassesByName } from "@/models/tags";
+import { getTagStyles } from "@/models/tags";
 import { copyToClipboard } from "@/lib/utils";
 import type { Tag } from "@/models/types";
 
@@ -78,14 +78,15 @@ interface TagBadgeProps {
 
 /** A single tag badge with optional remove button */
 export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
-  const colors = getTagColorClassesByName(tag.name);
+  const styles = getTagStyles(tag.name);
 
   if (size === "sm") {
     return (
       <span
-        className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium ${colors.badge}`}
+        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium"
+        style={styles.badge}
       >
-        <span className={`h-1 w-1 rounded-full ${colors.dot}`} />
+        <span className="h-1 w-1 rounded-full" style={styles.dot} />
         {tag.name}
       </span>
     );
@@ -93,9 +94,10 @@ export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${colors.badge}`}
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={styles.badge}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
+      <span className="h-1.5 w-1.5 rounded-full" style={styles.dot} />
       {tag.name}
       {onRemove && (
         <button
@@ -181,7 +183,7 @@ export function TagPicker({
                   t.name.toLowerCase().includes(search.toLowerCase()),
                 )
                 .map((tag) => {
-                  const colors = getTagColorClassesByName(tag.name);
+                  const styles = getTagStyles(tag.name);
                   return (
                     <CommandItem
                       key={tag.id}
@@ -189,7 +191,7 @@ export function TagPicker({
                       onSelect={() => handleSelect(tag.id)}
                       className="flex items-center gap-2"
                     >
-                      <span className={`h-2 w-2 rounded-full ${colors.dot}`} />
+                      <span className="h-2 w-2 rounded-full" style={styles.dot} />
                       <span>{tag.name}</span>
                     </CommandItem>
                   );
