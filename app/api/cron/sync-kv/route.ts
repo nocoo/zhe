@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAllLinksForKV } from '@/lib/db';
 import { kvBulkPutLinks, isKVConfigured } from '@/lib/kv/client';
+import { recordCronResult } from '@/lib/cron-history';
 
 /**
  * POST /api/cron/sync-kv
@@ -52,7 +53,17 @@ export async function POST(request: Request) {
   try {
     links = await getAllLinksForKV();
   } catch (err) {
+    const durationMs = Date.now() - startTime;
     console.error('sync-kv: failed to fetch links from D1:', err);
+    recordCronResult({
+      timestamp: new Date().toISOString(),
+      status: 'error',
+      synced: 0,
+      failed: 0,
+      total: 0,
+      durationMs,
+      error: 'Failed to fetch links from D1',
+    });
     return NextResponse.json(
       { error: 'Failed to fetch links from D1' },
       { status: 500 },
@@ -75,6 +86,15 @@ export async function POST(request: Request) {
   console.log(
     `sync-kv: synced ${result.success} links, ${result.failed} failed, ${durationMs}ms`,
   );
+
+  recordCronResult({
+    timestamp: new Date().toISOString(),
+    status: result.failed > 0 ? 'error' : 'success',
+    synced: result.success,
+    failed: result.failed,
+    total: links.length,
+    durationMs,
+  });
 
   return NextResponse.json({
     synced: result.success,

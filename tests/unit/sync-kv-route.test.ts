@@ -1,8 +1,10 @@
 vi.unmock('@/lib/kv/client');
 vi.unmock('@/lib/db');
+vi.unmock('@/lib/cron-history');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '@/app/api/cron/sync-kv/route';
+import { getCronHistory, clearCronHistory } from '@/lib/cron-history';
 
 const mockGetAllLinksForKV = vi.fn();
 const mockKvBulkPutLinks = vi.fn();
@@ -40,6 +42,7 @@ describe('POST /api/cron/sync-kv', () => {
     mockGetAllLinksForKV.mockReset();
     mockKvBulkPutLinks.mockReset();
     mockIsKVConfigured.mockReset();
+    clearCronHistory();
     process.env.WORKER_SECRET = WORKER_SECRET;
   });
 
@@ -170,5 +173,73 @@ describe('POST /api/cron/sync-kv', () => {
     expect(body.failed).toBe(0);
     expect(body.total).toBe(0);
     consoleSpy.mockRestore();
+  });
+
+  // ---- Cron history recording ----
+
+  it('records successful sync in cron history', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
+
+    await POST(makeRequest({ secret: WORKER_SECRET }));
+
+    const history = getCronHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0].status).toBe('success');
+    expect(history[0].synced).toBe(1);
+    expect(history[0].failed).toBe(0);
+    expect(history[0].total).toBe(1);
+    expect(history[0].durationMs).toBeTypeOf('number');
+    expect(history[0].timestamp).toBeTruthy();
+    consoleSpy.mockRestore();
+  });
+
+  it('records D1 fetch error in cron history', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockRejectedValue(new Error('D1 down'));
+
+    await POST(makeRequest({ secret: WORKER_SECRET }));
+
+    const history = getCronHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0].status).toBe('error');
+    expect(history[0].synced).toBe(0);
+    expect(history[0].error).toBe('Failed to fetch links from D1');
+    consoleSpy.mockRestore();
+  });
+
+  it('records partial failure as error in cron history', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 1 });
+
+    await POST(makeRequest({ secret: WORKER_SECRET }));
+
+    const history = getCronHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0].status).toBe('error');
+    expect(history[0].failed).toBe(1);
+    consoleSpy.mockRestore();
+  });
+
+  it('does not record history for auth/config failures', async () => {
+    // Auth failure
+    delete process.env.WORKER_SECRET;
+    await POST(makeRequest({ secret: 'anything' }));
+    expect(getCronHistory()).toHaveLength(0);
+
+    // KV not configured
+    process.env.WORKER_SECRET = WORKER_SECRET;
+    mockIsKVConfigured.mockReturnValue(false);
+    await POST(makeRequest({ secret: WORKER_SECRET }));
+    expect(getCronHistory()).toHaveLength(0);
   });
 });
