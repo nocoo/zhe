@@ -91,6 +91,9 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
  * Execute multiple SQL statements in a single D1 HTTP batch request.
  * All statements run inside an implicit transaction — if any fails, all are rolled back.
  * Returns an array of result arrays, one per statement in order.
+ *
+ * The D1 REST API accepts multiple statements as semicolon-joined SQL in a single
+ * `sql` field, with `params` as an array of arrays (one per statement).
  */
 export async function executeD1Batch<T = Record<string, unknown>>(
   statements: D1BatchStatement[],
@@ -99,14 +102,16 @@ export async function executeD1Batch<T = Record<string, unknown>>(
 
   const { accountId, databaseId, token } = getD1Credentials();
 
+  // Join SQL statements with "; " and nest params as array of arrays
+  const sql = statements.map((s) => s.sql).join('; ');
+  const params = statements.map((s) => s.params ?? []);
+
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
     {
       method: 'POST',
       headers: getD1Headers(token),
-      body: JSON.stringify(
-        statements.map((s) => ({ sql: s.sql, params: s.params ?? [] })),
-      ),
+      body: JSON.stringify({ sql, params }),
       signal: AbortSignal.timeout(D1_FETCH_TIMEOUT_MS),
     }
   );

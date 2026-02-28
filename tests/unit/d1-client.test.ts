@@ -295,7 +295,7 @@ describe('executeD1Batch', () => {
     ).rejects.toThrow('D1 credentials not configured');
   });
 
-  it('sends batch payload as array of statements', async () => {
+  it('sends batch payload as semicolon-joined SQL with nested params', async () => {
     setEnv();
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -328,10 +328,11 @@ describe('executeD1Batch', () => {
       'Content-Type': 'application/json',
       Connection: 'keep-alive',
     });
-    expect(JSON.parse(init.body)).toEqual([
-      { sql: statements[0].sql, params: [42] },
-      { sql: statements[1].sql, params: [42] },
-    ]);
+    // D1 REST API batch: semicolon-joined SQL, params as array of arrays
+    expect(JSON.parse(init.body)).toEqual({
+      sql: 'INSERT INTO analytics (link_id) VALUES (?); UPDATE links SET clicks = clicks + 1 WHERE id = ?',
+      params: [[42], [42]],
+    });
     expect(init.signal).toBeInstanceOf(AbortSignal);
 
     expect(results).toEqual([[{ id: 1 }], []]);
@@ -351,7 +352,7 @@ describe('executeD1Batch', () => {
     await executeD1Batch([{ sql: 'SELECT 1' }]);
 
     const [, init] = mockFetch.mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual([{ sql: 'SELECT 1', params: [] }]);
+    expect(JSON.parse(init.body)).toEqual({ sql: 'SELECT 1', params: [[]] });
   });
 
   it('throws sanitized error when response is not ok', async () => {
