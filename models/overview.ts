@@ -1,5 +1,7 @@
 // Pure business logic for overview / dashboard stats — no React, no server dependencies.
 
+import type { CronHistoryEntry } from '@/lib/cron-history';
+
 /** A single day's click count for trend charts */
 export interface ClickTrendPoint {
   date: string; // YYYY-MM-DD
@@ -98,4 +100,50 @@ export function buildFileTypeBreakdown(fileTypes: string[]): Record<string, numb
     counts[ft] = (counts[ft] ?? 0) + 1;
   }
   return counts;
+}
+
+// ── Worker Health ──────────────────────────────────────────────────────────
+
+/** Status data returned by /api/worker-status */
+export interface WorkerHealthStatus {
+  cronHistory: CronHistoryEntry[];
+  lastSyncTime: string | null; // ISO 8601 of most recent successful sync
+  kvKeyCount: number | null; // from last successful sync's `total` field
+  syncSuccessRate: number | null; // 0–100 percentage
+}
+
+/** Derive WorkerHealthStatus from raw cron history entries. */
+export function deriveWorkerHealth(history: CronHistoryEntry[]): WorkerHealthStatus {
+  const lastSuccess = history.find((e) => e.status === 'success');
+
+  const total = history.length;
+  const successes = history.filter((e) => e.status === 'success').length;
+
+  return {
+    cronHistory: history,
+    lastSyncTime: lastSuccess?.timestamp ?? null,
+    kvKeyCount: lastSuccess?.total ?? null,
+    syncSuccessRate: total > 0 ? Math.round((successes / total) * 100) : null,
+  };
+}
+
+/** Format a relative time string: "3 分钟前", "2 小时前", etc. */
+export function formatRelativeTime(isoTimestamp: string): string {
+  const now = Date.now();
+  const then = new Date(isoTimestamp).getTime();
+  const diffMs = now - then;
+
+  if (diffMs < 0) return '刚刚';
+
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return '刚刚';
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} 分钟前`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} 天前`;
 }
