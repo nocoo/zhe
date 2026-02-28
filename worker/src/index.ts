@@ -129,7 +129,12 @@ function parseOS(ua: string): string {
 
 /**
  * Forward a request to the Railway origin, preserving method, headers, and body.
- * The Host header is rewritten to match the origin so Railway routes correctly.
+ *
+ * The Worker is a transparent proxy: the backend sees the original Host header
+ * (e.g. zhe.to) unchanged, so NextAuth, request.url, and all host-dependent
+ * logic work identically whether traffic arrives via Worker or directly.
+ * ORIGIN_URL (e.g. https://origin.zhe.to) is used only to build the fetch
+ * target URL — the Host header is NOT rewritten.
  */
 async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   const originBase = env.ORIGIN_URL.replace(/\/$/, '');
@@ -137,9 +142,6 @@ async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   const target = `${originBase}${url.pathname}${url.search}`;
 
   const headers = new Headers(request.headers);
-  // Set Host to origin host so Railway's reverse proxy routes correctly
-  const originHost = new URL(originBase).host;
-  headers.set('Host', originHost);
   // Preserve original visitor IP for analytics/logging
   headers.set('X-Forwarded-For', request.headers.get('CF-Connecting-IP') || '');
   headers.set('X-Forwarded-Proto', 'https');

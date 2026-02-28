@@ -132,14 +132,29 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(url).toBe('https://zhe-origin.railway.app/dashboard?tab=links');
     });
 
-    it('sets Host header to origin host', async () => {
+    it('does NOT rewrite Host header (transparent proxy)', async () => {
       const fetchMock = stubOriginFetch();
       const env = makeEnv();
       await worker.fetch(makeRequest('/dashboard'), env, makeCtx());
 
       const [, opts] = fetchMock.mock.calls[0];
       const headers = opts.headers as Headers;
-      expect(headers.get('Host')).toBe('zhe-origin.railway.app');
+      // Worker must NOT explicitly set Host to origin host.
+      // In the real CF Worker runtime, the original Host (zhe.to) from
+      // `new Headers(request.headers)` is preserved and sent to origin.
+      // In Node/Bun test env, Host is a forbidden header and gets stripped,
+      // so we verify it's NOT set to the origin host (which would mean rewriting).
+      expect(headers.get('Host')).not.toBe('zhe-origin.railway.app');
+    });
+
+    it('does NOT set X-Forwarded-Host (transparent proxy)', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+      await worker.fetch(makeRequest('/dashboard'), env, makeCtx());
+
+      const [, opts] = fetchMock.mock.calls[0];
+      const headers = opts.headers as Headers;
+      expect(headers.get('X-Forwarded-Host')).toBeNull();
     });
 
     it('uses redirect: manual to pass through origin redirects', async () => {
