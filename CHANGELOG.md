@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.5.0] - 2026-03-01
+
+### Added
+- Cloudflare KV HTTP client for edge redirect caching (`lib/kv/client.ts`)
+- KV sync wired into link create, update, delete, import, and webhook paths (fire-and-forget)
+- Cron endpoint (`/api/cron/sync-kv`) for full D1-to-KV sync every 15 minutes
+- Manual D1-to-KV sync CLI script (`scripts/sync-kv.ts`)
+- Cloudflare Worker (`zhe-edge`) as transparent proxy with KV edge redirects, geo header mapping, and cron trigger
+- Worker health section on Overview dashboard: last sync time, KV key count, sync success rate, and cron history table
+- `/api/worker-status` auth-protected route returning derived worker health
+- In-memory circular buffer (`lib/cron-history.ts`) for cron invocation history (max 50 entries)
+- `WorkerHealthStatus` model with `deriveWorkerHealth()` and `formatRelativeTime()` pure functions
+
+### Changed
+- Unify `CRON_SECRET` and `INTERNAL_API_SECRET` into single `WORKER_SECRET` for all Worker-to-origin authentication
+- `/api/record-click` now uses `Authorization: Bearer` header pattern (was `x-internal-secret`)
+- DNS architecture: `zhe.to` → Cloudflare Worker Route, `origin.zhe.to` → Railway origin
+
+### Fixed
+- 5s timeout on D1 HTTP fetch to prevent Cloudflare 524 gateway timeouts
+- Server Actions CSRF: use browser origin domain (`zhe.to`) in `allowedOrigins`, not `x-forwarded-host`
+- D1 REST API batch format: semicolon-joined SQL with nested params array
+- Worker sets `X-Forwarded-Host` to prevent Railway host override
+
 ## [v1.4.4] - 2026-02-28
 
 ### Added
