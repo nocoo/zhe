@@ -1,6 +1,7 @@
 'use server';
 
 import { getScopedDB } from '@/lib/auth-context';
+import { kvPutLink } from '@/lib/kv/client';
 
 import {
   parseImportPayload,
@@ -38,13 +39,20 @@ export async function importLinks(
 
     for (const entry of parsed.data) {
       try {
-        await db.createLink({
+        const link = await db.createLink({
           originalUrl: entry.originalUrl,
           slug: entry.slug,
           isCustom: entry.isCustom,
           clicks: entry.clicks,
         });
         created++;
+
+        // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
+        void kvPutLink(link.slug, {
+          id: link.id,
+          originalUrl: link.originalUrl,
+          expiresAt: link.expiresAt?.getTime() ?? null,
+        });
       } catch (err) {
         // UNIQUE constraint on slug — treat as skip (eliminates TOCTOU race
         // that existed with the previous slugExists-then-insert pattern)

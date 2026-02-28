@@ -7,6 +7,7 @@ import {
 } from "@/models/webhook";
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
 import { resolvePublicOrigin } from "@/lib/url";
+import { kvPutLink } from "@/lib/kv/client";
 
 /**
  * HEAD /api/webhook/[token]
@@ -189,6 +190,13 @@ export async function POST(
     isCustom,
     folderId,
     clicks: 0,
+  });
+
+  // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
+  void kvPutLink(link.slug, {
+    id: link.id,
+    originalUrl: link.originalUrl,
+    expiresAt: link.expiresAt?.getTime() ?? null,
   });
 
   // 8. Build short URL from the public-facing origin
