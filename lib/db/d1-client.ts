@@ -3,6 +3,9 @@
  * Used by both the main db module and Auth.js adapter.
  */
 
+/** Timeout for D1 HTTP API requests (ms). Prevents hung fetches from blocking middleware indefinitely. */
+const D1_FETCH_TIMEOUT_MS = 5_000;
+
 interface D1Response<T> {
   success: boolean;
   result: Array<{
@@ -58,6 +61,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
       method: 'POST',
       headers: getD1Headers(token),
       body: JSON.stringify({ sql, params }),
+      signal: AbortSignal.timeout(D1_FETCH_TIMEOUT_MS),
     }
   );
 
@@ -103,6 +107,7 @@ export async function executeD1Batch<T = Record<string, unknown>>(
       body: JSON.stringify(
         statements.map((s) => ({ sql: s.sql, params: s.params ?? [] })),
       ),
+      signal: AbortSignal.timeout(D1_FETCH_TIMEOUT_MS),
     }
   );
 

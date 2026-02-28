@@ -192,6 +192,7 @@ describe('executeD1Query', () => {
       Connection: 'keep-alive',
     });
     expect(JSON.parse(init.body)).toEqual({ sql, params });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('defaults params to empty array when omitted', async () => {
@@ -202,6 +203,29 @@ describe('executeD1Query', () => {
 
     const [, init] = mockFetch.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ sql: 'SELECT 1', params: [] });
+  });
+
+  it('throws when fetch times out via AbortSignal', async () => {
+    setEnv();
+    mockFetch.mockImplementationOnce(
+      (_url: string, init: { signal?: AbortSignal }) => {
+        return new Promise((_resolve, reject) => {
+          // Simulate an abort triggered by AbortSignal.timeout
+          const error = new DOMException('The operation was aborted.', 'TimeoutError');
+          if (init?.signal) {
+            init.signal.addEventListener('abort', () => reject(error));
+            // Manually abort to simulate timeout
+            setTimeout(() => {
+              if (!init.signal!.aborted) {
+                reject(error);
+              }
+            }, 10);
+          }
+        });
+      }
+    );
+
+    await expect(executeD1Query('SELECT 1')).rejects.toThrow();
   });
 });
 
@@ -308,6 +332,7 @@ describe('executeD1Batch', () => {
       { sql: statements[0].sql, params: [42] },
       { sql: statements[1].sql, params: [42] },
     ]);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
 
     expect(results).toEqual([[{ id: 1 }], []]);
   });
