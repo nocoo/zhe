@@ -54,7 +54,7 @@ cp .env.example .env.local
 
 | 变量 | 说明 |
 |------|------|
-| `INTERNAL_API_SECRET` | 内部 API 共享密钥（保护 `record-click` 端点） |
+| `WORKER_SECRET` | Worker 共享密钥（保护 `sync-kv` 和 `record-click` 端点） |
 
 ## 启动开发服务器
 

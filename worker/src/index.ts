@@ -36,8 +36,7 @@
 export interface Env {
   LINKS_KV: KVNamespace;
   ORIGIN_URL: string;
-  CRON_SECRET: string;
-  INTERNAL_API_SECRET?: string;
+  WORKER_SECRET: string;
 }
 
 /** Minimal data stored per slug in KV — mirrors lib/kv/client.ts KVLinkData. */
@@ -190,10 +189,10 @@ function recordClickAsync(
   };
 
   const originBase = env.ORIGIN_URL.replace(/\/$/, '');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (env.INTERNAL_API_SECRET) {
-    headers['x-internal-secret'] = env.INTERNAL_API_SECRET;
-  }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${env.WORKER_SECRET}`,
+  };
 
   ctx.waitUntil(
     fetch(`${originBase}/api/record-click`, {
@@ -276,7 +275,7 @@ async function handleScheduled(env: Env): Promise<void> {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.CRON_SECRET}`,
+        Authorization: `Bearer ${env.WORKER_SECRET}`,
         'Content-Type': 'application/json',
       },
     });

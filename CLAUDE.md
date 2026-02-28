@@ -97,7 +97,7 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
 |------|------|
 | `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/15 * * * *` |
 | `worker/src/index.ts` | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
-| `worker/test/index.test.ts` | 37 unit tests covering all routing, redirect, analytics, cron paths |
+| `worker/test/index.test.ts` | 38 unit tests covering all routing, redirect, analytics, cron paths |
 | `worker/package.json` | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest` |
 
 ### Worker Secrets (set via `wrangler secret put`)
@@ -105,8 +105,7 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
 | Secret | Purpose |
 |--------|---------|
 | `ORIGIN_URL` | Railway backend URL (e.g. `https://zhe.to`) |
-| `CRON_SECRET` | Shared secret for `/api/cron/sync-kv` authentication |
-| `INTERNAL_API_SECRET` | (Optional) Shared secret for `/api/record-click` authentication |
+| `WORKER_SECRET` | Shared secret for `/api/cron/sync-kv` and `/api/record-click` authentication |
 
 ### Reserved Paths (must stay in sync with `lib/constants.ts`)
 
@@ -118,7 +117,7 @@ The Worker's `RESERVED_PATHS` set mirrors `lib/constants.ts:RESERVED_PATHS`. If 
 cd worker
 bun install
 bun run deploy    # wrangler deploy
-bun run test      # vitest run (37 tests)
+bun run test      # vitest run (38 tests)
 bun run dev       # wrangler dev (local testing)
 bun run tail      # wrangler tail (live logs)
 ```

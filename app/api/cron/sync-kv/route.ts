@@ -6,20 +6,20 @@ import { kvBulkPutLinks, isKVConfigured } from '@/lib/kv/client';
  * POST /api/cron/sync-kv
  *
  * Full D1 → KV sync endpoint. Reads all links from D1 and bulk-writes them
- * to Cloudflare KV. Protected by CRON_SECRET to prevent unauthorized access.
+ * to Cloudflare KV. Protected by WORKER_SECRET to prevent unauthorized access.
  *
  * Intended to be called by an external cron scheduler (e.g. Railway cron,
  * GitHub Actions) on a periodic basis (e.g. every 6 hours) as a consistency
  * safety net — the primary sync happens inline on link create/update/delete.
  *
- * Authorization: Bearer <CRON_SECRET> header or ?secret=<CRON_SECRET> query param.
+ * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
  */
 export async function POST(request: Request) {
-  // 1. Verify CRON_SECRET
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
+  // 1. Verify WORKER_SECRET
+  const workerSecret = process.env.WORKER_SECRET;
+  if (!workerSecret) {
     return NextResponse.json(
-      { error: 'CRON_SECRET not configured' },
+      { error: 'WORKER_SECRET not configured' },
       { status: 500 },
     );
   }
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const providedSecret =
     authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : querySecret;
 
-  if (providedSecret !== cronSecret) {
+  if (providedSecret !== workerSecret) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 },

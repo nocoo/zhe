@@ -13,6 +13,5 @@ id = "7d4702bf5657489cbc6a266e10db1aba"
 crons = ["*/15 * * * *"]
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
-# ORIGIN_URL     — Railway backend URL (e.g. https://zhe.to or Railway internal)
-# CRON_SECRET    — shared secret for /api/cron/sync-kv authentication
-# INTERNAL_API_SECRET — shared secret for /api/record-click authentication (optional)
+# ORIGIN_URL      — Railway backend URL (e.g. https://zhe.to or Railway internal)
+# WORKER_SECRET   — shared secret for both /api/cron/sync-kv and /api/record-click

@@ -126,7 +126,7 @@ describe('POST /api/record-click', () => {
   beforeEach(() => {
     clearMockStorage();
     // Clear env var between tests
-    delete process.env.INTERNAL_API_SECRET;
+    delete process.env.WORKER_SECRET;
   });
 
   it('returns 400 when linkId is missing', async () => {
@@ -204,12 +204,12 @@ describe('POST /api/record-click', () => {
   });
 
   // Shared-secret protection tests
-  describe('with INTERNAL_API_SECRET set', () => {
+  describe('with WORKER_SECRET set', () => {
     beforeEach(() => {
-      process.env.INTERNAL_API_SECRET = 'test-secret-123';
+      process.env.WORKER_SECRET = 'test-secret-123';
     });
 
-    it('returns 403 when secret header is missing', async () => {
+    it('returns 403 when Authorization header is missing', async () => {
       const { POST } = await import('@/app/api/record-click/route');
       const request = new NextRequest('http://localhost:7005/api/record-click', {
         method: 'POST',
@@ -223,13 +223,13 @@ describe('POST /api/record-click', () => {
       expect(body.error).toBe('Forbidden');
     });
 
-    it('returns 403 when secret header is wrong', async () => {
+    it('returns 403 when Authorization token is wrong', async () => {
       const { POST } = await import('@/app/api/record-click/route');
       const request = new NextRequest('http://localhost:7005/api/record-click', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-internal-secret': 'wrong-secret',
+          'Authorization': 'Bearer wrong-secret',
         },
         body: JSON.stringify({ linkId: 1 }),
       });
@@ -238,7 +238,7 @@ describe('POST /api/record-click', () => {
       expect(response.status).toBe(403);
     });
 
-    it('succeeds when correct secret header is provided', async () => {
+    it('succeeds when correct Authorization Bearer token is provided', async () => {
       // Seed a link first
       const link = await seedLink('secret-test', 'https://example.com');
 
@@ -247,7 +247,7 @@ describe('POST /api/record-click', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-internal-secret': 'test-secret-123',
+          'Authorization': 'Bearer test-secret-123',
         },
         body: JSON.stringify({ linkId: link.id }),
       });
@@ -270,7 +270,7 @@ describe('POST /api/record-click', () => {
 // ============================================================
 describe('Redirect flow (lookup → analytics)', () => {
   beforeEach(() => {
-    delete process.env.INTERNAL_API_SECRET;
+    delete process.env.WORKER_SECRET;
     clearMockStorage();
   });
 

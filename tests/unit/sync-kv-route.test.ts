@@ -33,28 +33,28 @@ function makeRequest(options: {
   return new Request(url, { method: 'POST', headers });
 }
 
-const CRON_SECRET = 'test-cron-secret-123';
+const WORKER_SECRET = 'test-worker-secret-123';
 
 describe('POST /api/cron/sync-kv', () => {
   beforeEach(() => {
     mockGetAllLinksForKV.mockReset();
     mockKvBulkPutLinks.mockReset();
     mockIsKVConfigured.mockReset();
-    process.env.CRON_SECRET = CRON_SECRET;
+    process.env.WORKER_SECRET = WORKER_SECRET;
   });
 
   afterEach(() => {
-    delete process.env.CRON_SECRET;
+    delete process.env.WORKER_SECRET;
   });
 
-  it('returns 500 when CRON_SECRET is not configured', async () => {
-    delete process.env.CRON_SECRET;
+  it('returns 500 when WORKER_SECRET is not configured', async () => {
+    delete process.env.WORKER_SECRET;
 
     const res = await POST(makeRequest({ secret: 'anything' }));
     expect(res.status).toBe(500);
 
     const body = await res.json();
-    expect(body.error).toContain('CRON_SECRET not configured');
+    expect(body.error).toContain('WORKER_SECRET not configured');
   });
 
   it('returns 401 when no secret is provided', async () => {
@@ -77,7 +77,7 @@ describe('POST /api/cron/sync-kv', () => {
     mockGetAllLinksForKV.mockResolvedValue([]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 0 });
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(200);
   });
 
@@ -86,14 +86,14 @@ describe('POST /api/cron/sync-kv', () => {
     mockGetAllLinksForKV.mockResolvedValue([]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 0 });
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET, method: 'query' }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET, method: 'query' }));
     expect(res.status).toBe(200);
   });
 
   it('returns 503 when KV is not configured', async () => {
     mockIsKVConfigured.mockReturnValue(false);
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(503);
 
     const body = await res.json();
@@ -105,7 +105,7 @@ describe('POST /api/cron/sync-kv', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockGetAllLinksForKV.mockRejectedValue(new Error('D1 down'));
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(500);
 
     const body = await res.json();
@@ -122,7 +122,7 @@ describe('POST /api/cron/sync-kv', () => {
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 2, failed: 0 });
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(200);
 
     const body = await res.json();
@@ -147,7 +147,7 @@ describe('POST /api/cron/sync-kv', () => {
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 1 });
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(200);
 
     const body = await res.json();
@@ -162,7 +162,7 @@ describe('POST /api/cron/sync-kv', () => {
     mockGetAllLinksForKV.mockResolvedValue([]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 0 });
 
-    const res = await POST(makeRequest({ secret: CRON_SECRET }));
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(res.status).toBe(200);
 
     const body = await res.json();

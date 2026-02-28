@@ -25,8 +25,7 @@ interface MockKV {
 interface MockEnv {
   LINKS_KV: MockKV;
   ORIGIN_URL: string;
-  CRON_SECRET: string;
-  INTERNAL_API_SECRET?: string;
+  WORKER_SECRET: string;
 }
 
 interface MockCtx {
@@ -53,7 +52,7 @@ function makeEnv(overrides?: Partial<MockEnv>): MockEnv {
   return {
     LINKS_KV: { get: vi.fn().mockResolvedValue(null) },
     ORIGIN_URL: 'https://zhe-origin.railway.app',
-    CRON_SECRET: 'test-cron-secret',
+    WORKER_SECRET: 'test-worker-secret',
     ...overrides,
   };
 }
@@ -209,7 +208,7 @@ describe('zhe-edge Worker — fetch handler', () => {
 
     it('sends correct analytics payload to /api/record-click', async () => {
       const fetchMock = stubOriginFetch();
-      const env = makeEnv({ INTERNAL_API_SECRET: 'test-secret' });
+      const env = makeEnv();
       env.LINKS_KV.get.mockResolvedValue({
         id: 99,
         originalUrl: 'https://example.com',
@@ -244,7 +243,7 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(opts.method).toBe('POST');
 
       const headers = opts.headers as Record<string, string>;
-      expect(headers['x-internal-secret']).toBe('test-secret');
+      expect(headers['Authorization']).toBe('Bearer test-worker-secret');
 
       const body = JSON.parse(opts.body as string);
       expect(body.linkId).toBe(99);
@@ -370,7 +369,7 @@ describe('zhe-edge Worker — scheduled handler', () => {
     expect(opts.method).toBe('POST');
 
     const headers = opts.headers as Record<string, string>;
-    expect(headers['Authorization']).toBe('Bearer test-cron-secret');
+    expect(headers['Authorization']).toBe('Bearer test-worker-secret');
   });
 
   it('does not throw when cron fetch fails', async () => {

@@ -36,7 +36,7 @@ describe('GET /api/lookup — error path', () => {
 describe('POST /api/record-click — error path', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.INTERNAL_API_SECRET;
+    delete process.env.WORKER_SECRET;
   });
 
   it('returns 500 when recordClick throws', async () => {
@@ -58,15 +58,15 @@ describe('POST /api/record-click — error path', () => {
     expect(body.error).toBe('Failed to record click');
   });
 
-  it('returns 403 when internal secret does not match', async () => {
-    process.env.INTERNAL_API_SECRET = 'real-secret';
+  it('returns 403 when worker secret does not match', async () => {
+    process.env.WORKER_SECRET = 'real-secret';
 
     const { POST } = await import('@/app/api/record-click/route');
     const request = new NextRequest('http://localhost:7005/api/record-click', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-internal-secret': 'wrong-secret',
+        'Authorization': 'Bearer wrong-secret',
       },
       body: JSON.stringify({ linkId: 1 }),
     });

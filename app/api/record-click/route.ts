@@ -4,16 +4,17 @@ import { recordClick } from '@/lib/db';
 /**
  * POST /api/record-click
  * Records a click event for analytics.
- * Called asynchronously from middleware via waitUntil.
- * Protected by a shared secret to prevent external abuse.
+ * Called asynchronously from the Cloudflare Worker via waitUntil.
+ * Protected by WORKER_SECRET (Authorization: Bearer) to prevent external abuse.
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify internal caller via shared secret (read at runtime for hot-reload)
-    const internalSecret = process.env.INTERNAL_API_SECRET;
-    if (internalSecret) {
-      const authHeader = request.headers.get('x-internal-secret');
-      if (authHeader !== internalSecret) {
+    // Verify caller via shared secret (read at runtime for hot-reload)
+    const workerSecret = process.env.WORKER_SECRET;
+    if (workerSecret) {
+      const authHeader = request.headers.get('authorization');
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      if (token !== workerSecret) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
