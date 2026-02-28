@@ -14,6 +14,7 @@
     "test:e2e:pw": "bun x playwright test",
     "test:e2e:pw:ui": "bun x playwright test --ui",
     "test:coverage": "vitest run --coverage",
+    "sync-kv": "bun run scripts/sync-kv.ts",
     "generate:logos": "./scripts/generate-logos.sh",
     "prepare": "husky"
   },
