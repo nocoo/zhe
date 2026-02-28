@@ -5,6 +5,7 @@ import { slugExists, getLinkBySlug } from '@/lib/db';
 import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
+import { kvPutLink, kvDeleteLink } from '@/lib/kv/client';
 import type { Link } from '@/lib/db/schema';
 
 export interface CreateLinkInput {
@@ -66,6 +67,13 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       expiresAt: input.expiresAt,
     });
 
+    // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
+    void kvPutLink(link.slug, {
+      id: link.id,
+      originalUrl: link.originalUrl,
+      expiresAt: link.expiresAt?.getTime() ?? null,
+    });
+
     // Fire-and-forget: enrich the link with metadata asynchronously.
     // Metadata failure must never block link creation.
     void (async () => {
@@ -116,9 +124,17 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
       return { success: false, error: 'Unauthorized' };
     }
 
+    // Fetch link before deletion to obtain slug for KV eviction
+    const linkBeforeDelete = await db.getLinkById(linkId);
+
     const deleted = await db.deleteLink(linkId);
     if (!deleted) {
       return { success: false, error: 'Link not found or access denied' };
+    }
+
+    // Fire-and-forget: remove from Cloudflare KV
+    if (linkBeforeDelete) {
+      void kvDeleteLink(linkBeforeDelete.slug);
     }
 
     return { success: true };
@@ -167,6 +183,9 @@ export async function updateLink(
       screenshotUrl: data.screenshotUrl,
     };
 
+    // Fetch the old link to detect slug changes for KV eviction
+    const oldLink = data.slug !== undefined ? await db.getLinkById(linkId) : null;
+
     if (data.slug !== undefined) {
       const sanitized = sanitizeSlug(data.slug);
       if (!sanitized) {
@@ -186,6 +205,17 @@ export async function updateLink(
     const updated = await db.updateLink(linkId, updateData);
     if (!updated) {
       return { success: false, error: 'Link not found or access denied' };
+    }
+
+    // Fire-and-forget: sync updated link to Cloudflare KV
+    void kvPutLink(updated.slug, {
+      id: updated.id,
+      originalUrl: updated.originalUrl,
+      expiresAt: updated.expiresAt?.getTime() ?? null,
+    });
+    // If slug changed, evict the old slug from KV
+    if (oldLink && oldLink.slug !== updated.slug) {
+      void kvDeleteLink(oldLink.slug);
     }
 
     return { success: true, data: updated };
