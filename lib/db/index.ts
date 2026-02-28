@@ -120,6 +120,25 @@ export async function getLinksByUserId(userId: string): Promise<Link[]> {
 }
 
 /**
+ * Get all links with only the fields needed for KV sync (id, slug, original_url, expires_at).
+ * Used by the cron sync endpoint. Not user-scoped — this is an admin operation.
+ */
+export async function getAllLinksForKV(): Promise<
+  Array<{ id: number; slug: string; originalUrl: string; expiresAt: number | null }>
+> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    'SELECT id, slug, original_url, expires_at FROM links',
+  );
+
+  return rows.map((row) => ({
+    id: row.id as number,
+    slug: row.slug as string,
+    originalUrl: row.original_url as string,
+    expiresAt: row.expires_at ? (row.expires_at as number) : null,
+  }));
+}
+
+/**
  * Delete a link by id and user id.
  * Returns true if deleted, false if not found or not authorized.
  */
