@@ -5,13 +5,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   allowedDevOrigins: ["zhe.dev.hexly.ai"],
 
-  // Allow Server Actions from origin.zhe.to — the Worker proxies all traffic
-  // from zhe.to through origin.zhe.to, and Railway's reverse proxy may rewrite
-  // X-Forwarded-Host to origin.zhe.to, causing a mismatch with the browser's
-  // Origin header (zhe.to). This whitelist tells Next.js to accept both.
+  // The Worker proxies zhe.to traffic through origin.zhe.to. Railway rewrites
+  // X-Forwarded-Host to origin.zhe.to, but the browser's Origin header is zhe.to.
+  // Next.js compares these and rejects when they differ. allowedOrigins tells
+  // Next.js to trust the browser's origin domain (zhe.to) despite the mismatch.
   experimental: {
     serverActions: {
-      allowedOrigins: ["origin.zhe.to"],
+      allowedOrigins: ["zhe.to"],
     },
   },
 
