@@ -71,6 +71,70 @@ Follow [Keep a Changelog](https://keepachangelog.com/) convention:
 
 Only include sections that have entries. Use imperative mood ("add", not "added").
 
+## Cloudflare Worker (`worker/`)
+
+The **zhe-edge** Worker sits in front of Railway (origin) as a full proxy for `zhe.to`. It is a standalone Cloudflare Worker project maintained in the `worker/` subdirectory with its own `package.json`, `tsconfig.json`, `wrangler.toml`, and test suite.
+
+### Architecture
+
+```
+User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
+                              │
+                              ├─ KV hit → 307 redirect + fire-and-forget analytics
+                              ├─ KV miss → forward to origin (middleware D1 fallback)
+                              ├─ Reserved path → forward to origin
+                              └─ Cron (*/15) → POST /api/cron/sync-kv
+```
+
+### Responsibilities
+
+1. **Edge redirect** — Resolves short links from KV at the edge without hitting D1. On KV hit: 307 redirect + fire-and-forget `POST /api/record-click` for analytics. On KV miss: forward to origin where middleware handles D1 lookup.
+2. **Cron trigger** — Every 15 minutes, calls `/api/cron/sync-kv` on origin to keep KV in sync with D1. This replaces the need for external schedulers (Railway cron, GitHub Actions, etc.).
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/15 * * * *` |
+| `worker/src/index.ts` | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
+| `worker/test/index.test.ts` | 37 unit tests covering all routing, redirect, analytics, cron paths |
+| `worker/package.json` | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest` |
+
+### Worker Secrets (set via `wrangler secret put`)
+
+| Secret | Purpose |
+|--------|---------|
+| `ORIGIN_URL` | Railway backend URL (e.g. `https://zhe.to`) |
+| `CRON_SECRET` | Shared secret for `/api/cron/sync-kv` authentication |
+| `INTERNAL_API_SECRET` | (Optional) Shared secret for `/api/record-click` authentication |
+
+### Reserved Paths (must stay in sync with `lib/constants.ts`)
+
+The Worker's `RESERVED_PATHS` set mirrors `lib/constants.ts:RESERVED_PATHS`. If you add/remove a reserved path in the main app, you **must** also update `worker/src/index.ts` and redeploy.
+
+### Deployment
+
+```bash
+cd worker
+bun install
+bun run deploy    # wrangler deploy
+bun run test      # vitest run (37 tests)
+bun run dev       # wrangler dev (local testing)
+bun run tail      # wrangler tail (live logs)
+```
+
+Workers.dev URL: `https://zhe-edge.lizheng.workers.dev`
+KV Namespace: `zhe` (ID: `7d4702bf5657489cbc6a266e10db1aba`)
+
+### Geo Header Mapping
+
+The Worker maps Cloudflare geo headers to the Vercel-style headers the origin expects:
+
+| Cloudflare Header | Mapped To | Used By |
+|-------------------|-----------|---------|
+| `CF-IPCountry` | `x-vercel-ip-country` | `extractClickMetadata()` in `lib/analytics.ts` |
+| `request.cf.city` | `x-vercel-ip-city` | `extractClickMetadata()` in `lib/analytics.ts` |
+
 ## Retrospective
 
 - **Atomic commits**: Never bundle multiple logical changes (infra, model, viewmodel, view) into a single commit. Always split by layer/concern, even if they're part of the same feature. Each commit must be independently buildable and testable.
