@@ -145,6 +145,10 @@ async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   // Preserve original visitor IP for analytics/logging
   headers.set('X-Forwarded-For', request.headers.get('CF-Connecting-IP') || '');
   headers.set('X-Forwarded-Proto', 'https');
+  // Explicitly set X-Forwarded-Host to the original public hostname so that
+  // Railway's internal proxy cannot overwrite it with origin.zhe.to.
+  // This is critical for NextAuth redirect_uri generation and post-auth redirects.
+  headers.set('X-Forwarded-Host', url.hostname);
   // Pass Cloudflare geo headers for analytics (replaces Vercel geo headers)
   const cfCountry = request.headers.get('CF-IPCountry');
   const cfCity = (request as unknown as { cf?: { city?: string } }).cf?.city;

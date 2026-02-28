@@ -147,14 +147,16 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(headers.get('Host')).not.toBe('zhe-origin.railway.app');
     });
 
-    it('does NOT set X-Forwarded-Host (transparent proxy)', async () => {
+    it('sets X-Forwarded-Host to original public hostname', async () => {
       const fetchMock = stubOriginFetch();
       const env = makeEnv();
       await worker.fetch(makeRequest('/dashboard'), env, makeCtx());
 
       const [, opts] = fetchMock.mock.calls[0];
       const headers = opts.headers as Headers;
-      expect(headers.get('X-Forwarded-Host')).toBeNull();
+      // Worker must set X-Forwarded-Host to the original hostname (zhe.to)
+      // so Railway's proxy cannot overwrite it with origin.zhe.to.
+      expect(headers.get('X-Forwarded-Host')).toBe('zhe.to');
     });
 
     it('uses redirect: manual to pass through origin redirects', async () => {
