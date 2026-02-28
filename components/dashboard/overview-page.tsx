@@ -1,8 +1,8 @@
 "use client";
 
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
-import { formatClickCount, formatStorageSize } from "@/models/overview";
-import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry } from "@/models/overview";
+import { formatClickCount, formatStorageSize, formatRelativeTime } from "@/models/overview";
+import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry, WorkerHealthStatus } from "@/models/overview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CHART_COLORS, withAlpha, chartAxis } from "@/lib/palette";
 import {
@@ -16,6 +16,10 @@ import {
   Globe,
   Upload,
   FileType,
+  Radio,
+  Clock,
+  Database,
+  CheckCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -295,10 +299,135 @@ function TopLinksList({ links }: { links: TopLinkEntry[] }) {
   );
 }
 
+// ── Worker Health Section ────────────────────────────────────────────────────
+
+function WorkerHealthSection({
+  health,
+  loading: isLoading,
+}: {
+  health: WorkerHealthStatus | null;
+  loading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <section>
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <StatSkeleton />
+          <StatSkeleton />
+          <StatSkeleton />
+        </div>
+      </section>
+    );
+  }
+
+  if (!health) {
+    return (
+      <section>
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
+        <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+          无法加载 Worker 状态
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
+      <div className="space-y-4 md:space-y-6">
+        {/* Stat cards */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <StatCard
+            label="最近同步"
+            value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : '暂无'}
+            icon={Clock}
+          />
+          <StatCard
+            label="KV 键数"
+            value={health.kvKeyCount !== null ? String(health.kvKeyCount) : '—'}
+            icon={Database}
+          />
+          <StatCard
+            label="同步成功率"
+            value={health.syncSuccessRate !== null ? `${health.syncSuccessRate}%` : '—'}
+            icon={CheckCircle}
+          />
+        </div>
+
+        {/* Cron history table */}
+        <Card className="border-0 bg-secondary shadow-none">
+          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+            <Radio className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <CardTitle className="text-sm font-medium">同步记录</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+            <CronHistoryTable history={health.cronHistory} />
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function CronHistoryTable({ history }: { history: WorkerHealthStatus["cronHistory"] }) {
+  if (history.length === 0) {
+    return (
+      <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
+        暂无同步记录
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm" data-testid="cron-history-table">
+        <thead>
+          <tr className="text-left text-xs text-muted-foreground">
+            <th className="pb-2 pr-4 font-medium">时间</th>
+            <th className="pb-2 pr-4 font-medium">状态</th>
+            <th className="pb-2 pr-4 font-medium text-right">同步</th>
+            <th className="pb-2 pr-4 font-medium text-right">失败</th>
+            <th className="pb-2 font-medium text-right">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+          {history.slice(0, 10).map((entry, i) => (
+            <tr
+              key={`${entry.timestamp}-${i}`}
+              className="border-t border-border/50"
+            >
+              <td className="py-1.5 pr-4 text-muted-foreground tabular-nums">
+                {formatRelativeTime(entry.timestamp)}
+              </td>
+              <td className="py-1.5 pr-4">
+                <span
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                    entry.status === "success"
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {entry.status === "success" ? "成功" : "失败"}
+                </span>
+              </td>
+              <td className="py-1.5 pr-4 text-right tabular-nums">{entry.synced}</td>
+              <td className="py-1.5 pr-4 text-right tabular-nums">{entry.failed}</td>
+              <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                {entry.durationMs}ms
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Overview Page ────────────────────────────────────────────────────────────
 
 export function OverviewPage({ initialData }: { initialData?: import('@/models/overview').OverviewStats }) {
-  const { loading, error, stats } = useOverviewViewModel(initialData);
+  const { loading, error, stats, workerHealth, workerHealthLoading } = useOverviewViewModel(initialData);
 
   if (loading) {
     return (
@@ -327,12 +456,23 @@ export function OverviewPage({ initialData }: { initialData?: import('@/models/o
 
   if (!stats) return null;
 
-  return <OverviewContent stats={stats} />;
+  return <OverviewContent stats={stats} workerHealth={workerHealth} workerHealthLoading={workerHealthLoading} />;
 }
 
-function OverviewContent({ stats }: { stats: OverviewStats }) {
+function OverviewContent({
+  stats,
+  workerHealth,
+  workerHealthLoading,
+}: {
+  stats: OverviewStats;
+  workerHealth: WorkerHealthStatus | null;
+  workerHealthLoading: boolean;
+}) {
   return (
     <div className="space-y-8 md:space-y-10">
+      {/* ── Worker 健康 ─────────────────────────────────────────────── */}
+      <WorkerHealthSection health={workerHealth} loading={workerHealthLoading} />
+
       {/* ── 链接统计 ──────────────────────────────────────────────── */}
       <section>
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">链接统计</h2>

@@ -9,8 +9,28 @@ vi.mock('@/actions/overview', () => ({
   getOverviewStats: vi.fn(),
 }));
 
+vi.mock('@/actions/worker-status', () => ({
+  getWorkerHealth: vi.fn(),
+}));
+
 import { useOverviewViewModel } from '@/viewmodels/useOverviewViewModel';
 import { getOverviewStats } from '@/actions/overview';
+import { getWorkerHealth } from '@/actions/worker-status';
+import type { WorkerHealthStatus } from '@/models/overview';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeWorkerHealth(overrides: Partial<WorkerHealthStatus> = {}): WorkerHealthStatus {
+  return {
+    cronHistory: [],
+    lastSyncTime: '2026-03-01T12:00:00.000Z',
+    kvKeyCount: 42,
+    syncSuccessRate: 100,
+    ...overrides,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -19,6 +39,11 @@ import { getOverviewStats } from '@/actions/overview';
 describe('useOverviewViewModel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: worker health resolves successfully but empty
+    vi.mocked(getWorkerHealth).mockResolvedValue({
+      success: true,
+      data: makeWorkerHealth(),
+    });
   });
 
   it('starts in loading state', () => {
@@ -154,5 +179,62 @@ describe('useOverviewViewModel', () => {
       { date: '2026-02-12', uploads: 1 },
     ]);
     expect(result.current.stats!.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
+  });
+
+  // ==================================================================
+  // Worker health
+  // ==================================================================
+
+  it('fetches worker health independently and populates state', async () => {
+    vi.mocked(getOverviewStats).mockReturnValue(new Promise(() => {})); // stats never resolve
+    const health = makeWorkerHealth({ kvKeyCount: 99, syncSuccessRate: 80 });
+    vi.mocked(getWorkerHealth).mockResolvedValue({ success: true, data: health });
+
+    const { result } = renderHook(() => useOverviewViewModel());
+
+    await waitFor(() => {
+      expect(result.current.workerHealthLoading).toBe(false);
+    });
+
+    expect(result.current.workerHealth).toEqual(health);
+    // Main stats should still be loading (they never resolved)
+    expect(result.current.loading).toBe(true);
+  });
+
+  it('starts with workerHealthLoading true', () => {
+    vi.mocked(getOverviewStats).mockReturnValue(new Promise(() => {}));
+    vi.mocked(getWorkerHealth).mockReturnValue(new Promise(() => {})); // never resolves
+
+    const { result } = renderHook(() => useOverviewViewModel());
+
+    expect(result.current.workerHealthLoading).toBe(true);
+    expect(result.current.workerHealth).toBeNull();
+  });
+
+  it('silently handles worker health failure', async () => {
+    vi.mocked(getOverviewStats).mockReturnValue(new Promise(() => {}));
+    vi.mocked(getWorkerHealth).mockResolvedValue({ success: false, error: 'Unauthorized' });
+
+    const { result } = renderHook(() => useOverviewViewModel());
+
+    await waitFor(() => {
+      expect(result.current.workerHealthLoading).toBe(false);
+    });
+
+    // Health remains null on failure — no error propagated
+    expect(result.current.workerHealth).toBeNull();
+  });
+
+  it('silently handles worker health exception', async () => {
+    vi.mocked(getOverviewStats).mockReturnValue(new Promise(() => {}));
+    vi.mocked(getWorkerHealth).mockRejectedValue(new Error('Network down'));
+
+    const { result } = renderHook(() => useOverviewViewModel());
+
+    await waitFor(() => {
+      expect(result.current.workerHealthLoading).toBe(false);
+    });
+
+    expect(result.current.workerHealth).toBeNull();
   });
 });

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getOverviewStats } from '@/actions/overview';
-import type { OverviewStats } from '@/models/overview';
+import { getWorkerHealth } from '@/actions/worker-status';
+import type { OverviewStats, WorkerHealthStatus } from '@/models/overview';
 
 export interface OverviewViewModelState {
   loading: boolean;
   error: string | null;
   stats: OverviewStats | null;
+  workerHealth: WorkerHealthStatus | null;
+  workerHealthLoading: boolean;
 }
 
 /**
@@ -16,6 +19,8 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(initialData ?? null);
+  const [workerHealth, setWorkerHealth] = useState<WorkerHealthStatus | null>(null);
+  const [workerHealthLoading, setWorkerHealthLoading] = useState(true);
 
   useEffect(() => {
     if (initialData) return;
@@ -53,5 +58,33 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
     };
   }, [initialData]);
 
-  return { loading, error, stats };
+  // Fetch worker health independently (non-blocking for main stats)
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWorkerHealth() {
+      try {
+        const result = await getWorkerHealth();
+        if (cancelled) return;
+
+        if (result.success && result.data) {
+          setWorkerHealth(result.data);
+        }
+      } catch {
+        // Worker health is non-critical — silently ignore errors
+      } finally {
+        if (!cancelled) {
+          setWorkerHealthLoading(false);
+        }
+      }
+    }
+
+    void loadWorkerHealth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { loading, error, stats, workerHealth, workerHealthLoading };
 }
