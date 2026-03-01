@@ -11,18 +11,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN bun run build
 
-# Next.js standalone omits instrumentation files (turbopack bug).
-# Copy the instrumentation entry + its dependency chunks into standalone
-# so that register() runs on server startup.
-RUN cp .next/server/instrumentation.js .next/standalone/.next/server/instrumentation.js && \
-    cp .next/server/instrumentation.js.map .next/standalone/.next/server/instrumentation.js.map 2>/dev/null || true
-# Copy all instrumentation-specific chunks (hashed filenames change per build)
-RUN for f in .next/server/chunks/*.js; do \
-      basename="$(basename "$f")"; \
-      [ -f ".next/standalone/.next/server/chunks/$basename" ] || \
-        cp "$f" ".next/standalone/.next/server/chunks/$basename"; \
-    done
-
 # --- Stage 3: Runtime ---
 FROM oven/bun:1 AS runner
 WORKDIR /app

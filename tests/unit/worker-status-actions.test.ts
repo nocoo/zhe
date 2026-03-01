@@ -14,6 +14,11 @@ vi.mock('@/lib/cron-history', () => ({
   getCronHistory: () => mockGetCronHistory(),
 }));
 
+const mockPerformKVSync = vi.fn();
+vi.mock('@/lib/kv/sync', () => ({
+  performKVSync: () => mockPerformKVSync(),
+}));
+
 // Suppress console.error noise from catch blocks
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -76,11 +81,29 @@ describe('getWorkerHealth action', () => {
     expect(result.data!.lastSyncTime).toBe('2026-03-01T12:15:00.000Z');
     expect(result.data!.kvKeyCount).toBe(50);
     expect(result.data!.syncSuccessRate).toBe(50); // 1 out of 2
+    expect(mockPerformKVSync).not.toHaveBeenCalled();
   });
 
-  it('returns health with empty history', async () => {
+  it('triggers KV sync when history is empty (first visit after deploy)', async () => {
     mockGetSession.mockResolvedValue({ user: { id: 'user-1' } });
+    const seededEntry = makeEntry({ synced: 66, total: 66 });
+    // First call returns empty, second call (after sync) returns seeded data
+    mockGetCronHistory
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([seededEntry]);
+    mockPerformKVSync.mockResolvedValue({ synced: 66, failed: 0, total: 66, durationMs: 200 });
+
+    const result = await getWorkerHealth();
+    expect(result.success).toBe(true);
+    expect(mockPerformKVSync).toHaveBeenCalledOnce();
+    expect(result.data!.kvKeyCount).toBe(66);
+  });
+
+  it('returns health with empty history when sync also produces nothing', async () => {
+    mockGetSession.mockResolvedValue({ user: { id: 'user-1' } });
+    // Both calls return empty (KV not configured)
     mockGetCronHistory.mockReturnValue([]);
+    mockPerformKVSync.mockResolvedValue({ synced: 0, failed: 0, total: 0, durationMs: 0, error: 'KV not configured' });
 
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
