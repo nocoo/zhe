@@ -38,10 +38,8 @@ describe('GET /api/worker-status', () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.cronHistory).toEqual([]);
     expect(body.lastSyncTime).toBeNull();
     expect(body.kvKeyCount).toBeNull();
-    expect(body.syncSuccessRate).toBeNull();
   });
 
   it('returns derived health status from cron history', async () => {
@@ -69,9 +67,7 @@ describe('GET /api/worker-status', () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.cronHistory).toHaveLength(2);
     expect(body.lastSyncTime).toBe('2026-03-01T10:00:00Z');
     expect(body.kvKeyCount).toBe(42);
-    expect(body.syncSuccessRate).toBe(50); // 1 out of 2
   });
 });

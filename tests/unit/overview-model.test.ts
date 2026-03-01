@@ -215,10 +215,8 @@ describe('overview model', () => {
 
     it('returns null fields when history is empty', () => {
       const health = deriveWorkerHealth([]);
-      expect(health.cronHistory).toEqual([]);
       expect(health.lastSyncTime).toBeNull();
       expect(health.kvKeyCount).toBeNull();
-      expect(health.syncSuccessRate).toBeNull();
     });
 
     it('derives health from successful entries', () => {
@@ -230,7 +228,6 @@ describe('overview model', () => {
 
       expect(health.lastSyncTime).toBe('2026-03-01T10:15:00Z');
       expect(health.kvKeyCount).toBe(42);
-      expect(health.syncSuccessRate).toBe(100);
     });
 
     it('finds first successful entry when latest is error', () => {
@@ -242,7 +239,6 @@ describe('overview model', () => {
 
       expect(health.lastSyncTime).toBe('2026-03-01T10:15:00Z');
       expect(health.kvKeyCount).toBe(42);
-      expect(health.syncSuccessRate).toBe(50);
     });
 
     it('returns null lastSyncTime when all entries are errors', () => {
@@ -254,43 +250,12 @@ describe('overview model', () => {
 
       expect(health.lastSyncTime).toBeNull();
       expect(health.kvKeyCount).toBeNull();
-      expect(health.syncSuccessRate).toBe(0);
-    });
-
-    it('excludes skipped entries from success rate calculation', () => {
-      const entries: CronHistoryEntry[] = [
-        makeEntry({ status: 'skipped', total: 0 }),
-        makeEntry({ status: 'skipped', total: 0 }),
-        makeEntry({ status: 'success', total: 42 }),
-        makeEntry({ status: 'error', total: 0 }),
-      ];
-      const health = deriveWorkerHealth(entries);
-
-      // Only 2 meaningful entries (1 success + 1 error), skipped excluded
-      expect(health.syncSuccessRate).toBe(50);
-      expect(health.lastSyncTime).toBeTruthy();
-      expect(health.kvKeyCount).toBe(42);
-    });
-
-    it('returns null success rate when all entries are skipped', () => {
-      const entries: CronHistoryEntry[] = [
-        makeEntry({ status: 'skipped', total: 0 }),
-        makeEntry({ status: 'skipped', total: 0 }),
-      ];
-      const health = deriveWorkerHealth(entries);
-
-      // No meaningful entries → null rate
-      expect(health.syncSuccessRate).toBeNull();
-      expect(health.lastSyncTime).toBeNull();
-      expect(health.kvKeyCount).toBeNull();
     });
 
     it('WorkerHealthStatus type is well-defined', () => {
       const status: WorkerHealthStatus = {
-        cronHistory: [],
         lastSyncTime: '2026-03-01T10:00:00Z',
         kvKeyCount: 50,
-        syncSuccessRate: 95,
       };
       expect(status.kvKeyCount).toBe(50);
     });

@@ -24,10 +24,8 @@ import type { WorkerHealthStatus } from '@/models/overview';
 
 function makeWorkerHealth(overrides: Partial<WorkerHealthStatus> = {}): WorkerHealthStatus {
   return {
-    cronHistory: [],
     lastSyncTime: '2026-03-01T12:00:00.000Z',
     kvKeyCount: 42,
-    syncSuccessRate: 100,
     ...overrides,
   };
 }
@@ -187,7 +185,7 @@ describe('useOverviewViewModel', () => {
 
   it('fetches worker health independently and populates state', async () => {
     vi.mocked(getOverviewStats).mockReturnValue(new Promise(() => {})); // stats never resolve
-    const health = makeWorkerHealth({ kvKeyCount: 99, syncSuccessRate: 80 });
+    const health = makeWorkerHealth({ kvKeyCount: 99 });
     vi.mocked(getWorkerHealth).mockResolvedValue({ success: true, data: health });
 
     const { result } = renderHook(() => useOverviewViewModel());

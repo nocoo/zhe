@@ -77,10 +77,8 @@ describe('getWorkerHealth action', () => {
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data!.cronHistory).toEqual(entries);
     expect(result.data!.lastSyncTime).toBe('2026-03-01T12:15:00.000Z');
     expect(result.data!.kvKeyCount).toBe(50);
-    expect(result.data!.syncSuccessRate).toBe(50); // 1 out of 2
     expect(mockPerformKVSync).not.toHaveBeenCalled();
   });
 
@@ -107,10 +105,8 @@ describe('getWorkerHealth action', () => {
 
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
-    expect(result.data!.cronHistory).toEqual([]);
     expect(result.data!.lastSyncTime).toBeNull();
     expect(result.data!.kvKeyCount).toBeNull();
-    expect(result.data!.syncSuccessRate).toBeNull();
   });
 
   it('returns error when an unexpected exception occurs', async () => {
@@ -118,6 +114,6 @@ describe('getWorkerHealth action', () => {
 
     const result = await getWorkerHealth();
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Failed to get worker health');
+    expect(result.error).toBe('Failed to get KV cache status');
   });
 });

@@ -7,7 +7,7 @@
 
 export interface CronHistoryEntry {
   timestamp: string; // ISO 8601
-  status: 'success' | 'error' | 'skipped';
+  status: 'success' | 'error';
   synced: number;
   failed: number;
   total: number;

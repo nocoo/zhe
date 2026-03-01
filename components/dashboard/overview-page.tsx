@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { formatClickCount, formatStorageSize, formatRelativeTime } from "@/models/overview";
 import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry, WorkerHealthStatus } from "@/models/overview";
@@ -17,14 +16,9 @@ import {
   Globe,
   Upload,
   FileType,
-  Radio,
   Clock,
   Database,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -331,9 +325,9 @@ function TopLinksList({ links }: { links: TopLinkEntry[] }) {
   );
 }
 
-// ── Worker Health Section ────────────────────────────────────────────────────
+// ── KV Cache Section ─────────────────────────────────────────────────────
 
-function WorkerHealthSection({
+function KVCacheSection({
   health,
   loading: isLoading,
 }: {
@@ -343,9 +337,8 @@ function WorkerHealthSection({
   if (isLoading) {
     return (
       <section>
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <StatSkeleton />
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
           <StatSkeleton />
           <StatSkeleton />
         </div>
@@ -356,9 +349,9 @@ function WorkerHealthSection({
   if (!health) {
     return (
       <section>
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
         <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-          无法加载 Worker 状态
+          无法加载 KV 缓存状态
         </div>
       </section>
     );
@@ -366,131 +359,20 @@ function WorkerHealthSection({
 
   return (
     <section>
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">Worker 健康</h2>
-      <div className="space-y-4 md:space-y-6">
-        {/* Stat cards */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <StatCard
-            label="最近同步"
-            value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : '暂无'}
-            icon={Clock}
-          />
-          <StatCard
-            label="KV 键数"
-            value={health.kvKeyCount !== null ? String(health.kvKeyCount) : '—'}
-            icon={Database}
-          />
-          <StatCard
-            label="同步成功率"
-            value={health.syncSuccessRate !== null ? `${health.syncSuccessRate}%` : '—'}
-            icon={CheckCircle}
-          />
-        </div>
-
-        {/* Cron history table */}
-        <Card className="border-0 bg-secondary shadow-none">
-          <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-            <Radio className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            <CardTitle className="text-sm font-medium">同步记录</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-            <CronHistoryTable history={health.cronHistory} />
-          </CardContent>
-        </Card>
+      <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
+        <StatCard
+          label="最近同步"
+          value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : '暂无'}
+          icon={Clock}
+        />
+        <StatCard
+          label="KV 键数"
+          value={health.kvKeyCount !== null ? String(health.kvKeyCount) : '—'}
+          icon={Database}
+        />
       </div>
     </section>
-  );
-}
-
-function CronHistoryTable({ history }: { history: WorkerHealthStatus["cronHistory"] }) {
-  const PAGE_SIZE = 4;
-  const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(history.length / PAGE_SIZE));
-  const pageItems = history.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  if (history.length === 0) {
-    return (
-      <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
-        暂无同步记录
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" data-testid="cron-history-table">
-          <thead>
-            <tr className="text-left text-xs text-muted-foreground">
-              <th className="pb-2 pr-4 font-medium">时间</th>
-              <th className="pb-2 pr-4 font-medium">状态</th>
-              <th className="pb-2 pr-4 font-medium text-right">同步</th>
-              <th className="pb-2 pr-4 font-medium text-right">失败</th>
-              <th className="pb-2 font-medium text-right">耗时</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map((entry, i) => (
-              <tr
-                key={`${entry.timestamp}-${page * PAGE_SIZE + i}`}
-                className="border-t border-border/50"
-              >
-                <td className="py-1.5 pr-4 text-muted-foreground tabular-nums">
-                  {formatRelativeTime(entry.timestamp)}
-                </td>
-                <td className="py-1.5 pr-4">
-                  <span
-                    className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                      entry.status === "success"
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : entry.status === "skipped"
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    {entry.status === "success" ? "成功" : entry.status === "skipped" ? "跳过" : "失败"}
-                  </span>
-                </td>
-                <td className="py-1.5 pr-4 text-right tabular-nums">{entry.synced}</td>
-                <td className="py-1.5 pr-4 text-right tabular-nums">{entry.failed}</td>
-                <td className="py-1.5 text-right tabular-nums text-muted-foreground">
-                  {entry.durationMs}ms
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-1" data-testid="cron-history-pagination">
-          <span className="text-xs text-muted-foreground">
-            {page + 1} / {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
-              aria-label="上一页"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => p + 1)}
-              aria-label="下一页"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -616,8 +498,8 @@ function OverviewContent({
         </div>
       </section>
 
-      {/* ── Worker 健康 ─────────────────────────────────────────────── */}
-      <WorkerHealthSection health={workerHealth} loading={workerHealthLoading} />
+      {/* ── KV 缓存 ──────────────────────────────────────────────── */}
+      <KVCacheSection health={workerHealth} loading={workerHealthLoading} />
 
       {/* ── 图床统计 ──────────────────────────────────────────────── */}
       <section>

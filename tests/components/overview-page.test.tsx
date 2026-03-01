@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { OverviewPage } from '@/components/dashboard/overview-page';
 
 // ---------------------------------------------------------------------------
@@ -30,7 +29,6 @@ vi.mock('recharts', () => ({
 }));
 
 import type { OverviewStats, WorkerHealthStatus } from '@/models/overview';
-import type { CronHistoryEntry } from '@/lib/cron-history';
 
 function makeStats(overrides: Partial<OverviewStats> = {}): OverviewStats {
   return {
@@ -58,24 +56,10 @@ function makeStats(overrides: Partial<OverviewStats> = {}): OverviewStats {
   };
 }
 
-function makeEntry(overrides: Partial<CronHistoryEntry> = {}): CronHistoryEntry {
-  return {
-    timestamp: new Date().toISOString(),
-    status: 'success',
-    synced: 42,
-    failed: 0,
-    total: 42,
-    durationMs: 150,
-    ...overrides,
-  };
-}
-
 function makeWorkerHealth(overrides: Partial<WorkerHealthStatus> = {}): WorkerHealthStatus {
   return {
-    cronHistory: [makeEntry()],
     lastSyncTime: new Date().toISOString(),
     kvKeyCount: 42,
-    syncSuccessRate: 100,
     ...overrides,
   };
 }
@@ -208,9 +192,9 @@ describe('OverviewPage', () => {
 
     render(<OverviewPage />);
 
-    // 4 link/upload stat cards + 3 worker health stat cards = 7 total
+    // 4 link/upload stat cards + 2 KV cache stat cards = 6 total
     const statCards = screen.getAllByTestId('stat-card');
-    expect(statCards.length).toBe(7);
+    expect(statCards.length).toBe(6);
     const zeros = screen.getAllByText('0');
     expect(zeros.length).toBeGreaterThanOrEqual(3); // links, clicks, uploads
 
@@ -222,26 +206,26 @@ describe('OverviewPage', () => {
   });
 
   // ==================================================================
-  // Worker Health section
+  // KV Cache section
   // ==================================================================
 
-  it('renders Worker 健康 section header', () => {
+  it('renders KV 缓存 section header', () => {
     mockUseOverviewViewModel.mockReturnValue(vmState());
 
     render(<OverviewPage />);
-    expect(screen.getByText('Worker 健康')).toBeInTheDocument();
+    expect(screen.getByText('KV 缓存')).toBeInTheDocument();
   });
 
-  it('shows Worker health skeletons when loading', () => {
+  it('shows KV cache skeletons when loading', () => {
     mockUseOverviewViewModel.mockReturnValue(vmState({
       workerHealth: null,
       workerHealthLoading: true,
     }));
 
     render(<OverviewPage />);
-    expect(screen.getByText('Worker 健康')).toBeInTheDocument();
-    // Worker health section contributes 3 skeletons
-    expect(screen.getAllByTestId('stat-skeleton').length).toBe(3);
+    expect(screen.getByText('KV 缓存')).toBeInTheDocument();
+    // KV cache section contributes 2 skeletons
+    expect(screen.getAllByTestId('stat-skeleton').length).toBe(2);
   });
 
   it('shows fallback when worker health is null', () => {
@@ -251,14 +235,13 @@ describe('OverviewPage', () => {
     }));
 
     render(<OverviewPage />);
-    expect(screen.getByText('无法加载 Worker 状态')).toBeInTheDocument();
+    expect(screen.getByText('无法加载 KV 缓存状态')).toBeInTheDocument();
   });
 
-  it('renders worker health stat cards', () => {
+  it('renders KV cache stat cards', () => {
     mockUseOverviewViewModel.mockReturnValue(vmState({
       workerHealth: makeWorkerHealth({
         kvKeyCount: 99,
-        syncSuccessRate: 95,
       }),
     }));
 
@@ -266,111 +249,20 @@ describe('OverviewPage', () => {
 
     expect(screen.getByText('最近同步')).toBeInTheDocument();
     expect(screen.getByText('KV 键数')).toBeInTheDocument();
-    expect(screen.getByText('同步成功率')).toBeInTheDocument();
     expect(screen.getByText('99')).toBeInTheDocument();
-    expect(screen.getByText('95%')).toBeInTheDocument();
   });
 
-  it('renders worker health with null values as dashes', () => {
+  it('renders KV cache with null values as dashes', () => {
     mockUseOverviewViewModel.mockReturnValue(vmState({
       workerHealth: makeWorkerHealth({
-        cronHistory: [],
         lastSyncTime: null,
         kvKeyCount: null,
-        syncSuccessRate: null,
       }),
     }));
 
     render(<OverviewPage />);
 
     expect(screen.getByText('暂无')).toBeInTheDocument();
-    expect(screen.getAllByText('—').length).toBe(2); // kvKeyCount + syncSuccessRate
-  });
-
-  it('renders cron history table with entries', () => {
-    const entries = [
-      makeEntry({ status: 'success', synced: 50, failed: 0, durationMs: 120 }),
-      makeEntry({ status: 'error', synced: 0, failed: 1, durationMs: 5000, error: 'D1 timeout' }),
-    ];
-    mockUseOverviewViewModel.mockReturnValue(vmState({
-      workerHealth: makeWorkerHealth({ cronHistory: entries }),
-    }));
-
-    render(<OverviewPage />);
-
-    expect(screen.getByText('同步记录')).toBeInTheDocument();
-    expect(screen.getByTestId('cron-history-table')).toBeInTheDocument();
-    expect(screen.getByText('成功')).toBeInTheDocument();
-    // "失败" appears as both a table header and a status badge
-    expect(screen.getAllByText('失败').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('120ms')).toBeInTheDocument();
-    expect(screen.getByText('5000ms')).toBeInTheDocument();
-    // 2 entries fit on one page (pageSize=4), no pagination shown
-    expect(screen.queryByTestId('cron-history-pagination')).not.toBeInTheDocument();
-  });
-
-  it('paginates cron history at 4 entries per page', async () => {
-    const entries = Array.from({ length: 6 }, (_, i) =>
-      makeEntry({ synced: (i + 1) * 10, durationMs: (i + 1) * 100 }),
-    );
-    mockUseOverviewViewModel.mockReturnValue(vmState({
-      workerHealth: makeWorkerHealth({ cronHistory: entries }),
-    }));
-
-    render(<OverviewPage />);
-
-    // Page 1: first 4 entries (synced: 10, 20, 30, 40)
-    const pagination = screen.getByTestId('cron-history-pagination');
-    expect(pagination).toBeInTheDocument();
-    expect(screen.getByText('1 / 2')).toBeInTheDocument();
-    expect(screen.getByText('100ms')).toBeInTheDocument();
-    expect(screen.getByText('400ms')).toBeInTheDocument();
-    expect(screen.queryByText('500ms')).not.toBeInTheDocument();
-
-    // Prev disabled on page 1
-    const prevBtn = screen.getByRole('button', { name: '上一页' });
-    const nextBtn = screen.getByRole('button', { name: '下一页' });
-    expect(prevBtn).toBeDisabled();
-    expect(nextBtn).not.toBeDisabled();
-
-    // Go to page 2
-    await userEvent.click(nextBtn);
-    expect(screen.getByText('2 / 2')).toBeInTheDocument();
-    expect(screen.getByText('500ms')).toBeInTheDocument();
-    expect(screen.getByText('600ms')).toBeInTheDocument();
-    expect(screen.queryByText('100ms')).not.toBeInTheDocument();
-
-    // Next disabled on last page, prev enabled
-    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '上一页' })).not.toBeDisabled();
-
-    // Go back to page 1
-    await userEvent.click(screen.getByRole('button', { name: '上一页' }));
-    expect(screen.getByText('1 / 2')).toBeInTheDocument();
-    expect(screen.getByText('100ms')).toBeInTheDocument();
-  });
-
-  it('shows empty cron history message', () => {
-    mockUseOverviewViewModel.mockReturnValue(vmState({
-      workerHealth: makeWorkerHealth({ cronHistory: [] }),
-    }));
-
-    render(<OverviewPage />);
-    expect(screen.getByText('暂无同步记录')).toBeInTheDocument();
-  });
-
-  it('renders skipped status badge in cron history', () => {
-    const entries = [
-      makeEntry({ status: 'skipped' as const, synced: 0, failed: 0, durationMs: 0 }),
-      makeEntry({ status: 'success', synced: 50, failed: 0, durationMs: 120 }),
-    ];
-    mockUseOverviewViewModel.mockReturnValue(vmState({
-      workerHealth: makeWorkerHealth({ cronHistory: entries }),
-    }));
-
-    render(<OverviewPage />);
-
-    expect(screen.getByText('跳过')).toBeInTheDocument();
-    expect(screen.getByText('成功')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument(); // kvKeyCount
   });
 });

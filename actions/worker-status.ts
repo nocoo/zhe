@@ -13,9 +13,9 @@ interface ActionResult<T = void> {
 }
 
 /**
- * Get Worker health status for the overview dashboard.
+ * Get KV cache status for the overview dashboard.
  *
- * If the in-memory cron history buffer is empty (e.g. right after deploy),
+ * If the in-memory sync history buffer is empty (e.g. right after deploy),
  * triggers a single KV sync first so the dashboard has data on first load.
  */
 export async function getWorkerHealth(): Promise<ActionResult<WorkerHealthStatus>> {
@@ -36,7 +36,7 @@ export async function getWorkerHealth(): Promise<ActionResult<WorkerHealthStatus
     const health = deriveWorkerHealth(history);
     return { success: true, data: health };
   } catch (error) {
-    console.error('Failed to get worker health:', error);
-    return { success: false, error: 'Failed to get worker health' };
+    console.error('Failed to get KV cache status:', error);
+    return { success: false, error: 'Failed to get KV cache status' };
   }
 }

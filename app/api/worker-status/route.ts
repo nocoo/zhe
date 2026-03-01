@@ -6,10 +6,10 @@ import { deriveWorkerHealth } from '@/models/overview';
 /**
  * GET /api/worker-status
  *
- * Returns Worker health data: cron sync history, last sync time, KV key count,
- * and sync success rate. Auth-protected (dashboard only).
+ * Returns KV cache status: last sync time and KV key count.
+ * Auth-protected (dashboard only).
  *
- * The data is derived from the in-memory cron history buffer — no extra
+ * The data is derived from the in-memory sync history buffer — no extra
  * Cloudflare API calls needed.
  */
 export async function GET() {

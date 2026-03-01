@@ -105,29 +105,21 @@ export function buildFileTypeBreakdown(fileTypes: string[]): Record<string, numb
   return counts;
 }
 
-// ── Worker Health ──────────────────────────────────────────────────────────
+// ── KV Cache Status ───────────────────────────────────────────────────────
 
-/** Status data returned by /api/worker-status */
+/** KV cache status displayed on the dashboard overview. */
 export interface WorkerHealthStatus {
-  cronHistory: CronHistoryEntry[];
   lastSyncTime: string | null; // ISO 8601 of most recent successful sync
   kvKeyCount: number | null; // from last successful sync's `total` field
-  syncSuccessRate: number | null; // 0–100 percentage
 }
 
 /** Derive WorkerHealthStatus from raw cron history entries. */
 export function deriveWorkerHealth(history: CronHistoryEntry[]): WorkerHealthStatus {
   const lastSuccess = history.find((e) => e.status === 'success');
 
-  // Skipped entries are neutral — exclude them from the success rate calculation
-  const meaningful = history.filter((e) => e.status !== 'skipped');
-  const successes = meaningful.filter((e) => e.status === 'success').length;
-
   return {
-    cronHistory: history,
     lastSyncTime: lastSuccess?.timestamp ?? null,
     kvKeyCount: lastSuccess?.total ?? null,
-    syncSuccessRate: meaningful.length > 0 ? Math.round((successes / meaningful.length) * 100) : null,
   };
 }
 
