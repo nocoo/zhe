@@ -61,25 +61,18 @@ describe('POST /api/backy/pull', () => {
     vi.clearAllMocks();
   });
 
-  it('returns 401 when headers are missing', async () => {
+  it('returns 401 when key header is missing', async () => {
     const res = await POST(makeRequest('POST'));
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error).toContain('Missing');
   });
 
-  it('returns 401 when only key header is provided', async () => {
-    const res = await POST(makeRequest('POST', { 'x-webhook-key': 'some-key' }));
-    expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toContain('Missing');
-  });
-
-  it('returns 401 when credentials are invalid', async () => {
+  it('returns 401 when key is invalid', async () => {
     mockVerifyBackyPullWebhook.mockResolvedValue(null);
 
     const res = await POST(
-      makeRequest('POST', { 'x-webhook-key': 'bad-key', 'x-webhook-secret': 'bad-secret' }),
+      makeRequest('POST', { 'x-webhook-key': 'bad-key' }),
     );
     expect(res.status).toBe(401);
     const json = await res.json();
@@ -91,7 +84,7 @@ describe('POST /api/backy/pull', () => {
     mockGetBackySettings.mockResolvedValue(null);
 
     const res = await POST(
-      makeRequest('POST', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('POST', { 'x-webhook-key': 'valid-key' }),
     );
     expect(res.status).toBe(422);
     const json = await res.json();
@@ -135,7 +128,7 @@ describe('POST /api/backy/pull', () => {
       });
 
     const res = await POST(
-      makeRequest('POST', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('POST', { 'x-webhook-key': 'valid-key' }),
     );
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -154,6 +147,9 @@ describe('POST /api/backy/pull', () => {
         headers: { Authorization: 'Bearer sk-123' },
       }),
     );
+
+    // Verify key was passed to verify function (no secret)
+    expect(mockVerifyBackyPullWebhook).toHaveBeenCalledWith('valid-key');
   });
 
   it('returns 502 when push to Backy fails', async () => {
@@ -175,7 +171,7 @@ describe('POST /api/backy/pull', () => {
     });
 
     const res = await POST(
-      makeRequest('POST', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('POST', { 'x-webhook-key': 'valid-key' }),
     );
     expect(res.status).toBe(502);
     const json = await res.json();
@@ -204,7 +200,7 @@ describe('POST /api/backy/pull', () => {
       .mockRejectedValueOnce(new Error('timeout'));
 
     const res = await POST(
-      makeRequest('POST', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('POST', { 'x-webhook-key': 'valid-key' }),
     );
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -218,25 +214,25 @@ describe('HEAD /api/backy/pull', () => {
     vi.clearAllMocks();
   });
 
-  it('returns 401 when headers are missing', async () => {
+  it('returns 401 when key header is missing', async () => {
     const res = await HEAD(makeRequest('HEAD'));
     expect(res.status).toBe(401);
   });
 
-  it('returns 401 when credentials are invalid', async () => {
+  it('returns 401 when key is invalid', async () => {
     mockVerifyBackyPullWebhook.mockResolvedValue(null);
 
     const res = await HEAD(
-      makeRequest('HEAD', { 'x-webhook-key': 'bad-key', 'x-webhook-secret': 'bad-secret' }),
+      makeRequest('HEAD', { 'x-webhook-key': 'bad-key' }),
     );
     expect(res.status).toBe(401);
   });
 
-  it('returns 200 when credentials are valid', async () => {
+  it('returns 200 when key is valid', async () => {
     mockVerifyBackyPullWebhook.mockResolvedValue({ userId: 'user-1' });
 
     const res = await HEAD(
-      makeRequest('HEAD', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('HEAD', { 'x-webhook-key': 'valid-key' }),
     );
     expect(res.status).toBe(200);
   });
@@ -245,7 +241,7 @@ describe('HEAD /api/backy/pull', () => {
     mockVerifyBackyPullWebhook.mockResolvedValue({ userId: 'user-1' });
 
     const res = await HEAD(
-      makeRequest('HEAD', { 'x-webhook-key': 'valid-key', 'x-webhook-secret': 'valid-secret' }),
+      makeRequest('HEAD', { 'x-webhook-key': 'valid-key' }),
     );
     const body = await res.text();
     expect(body).toBe('');

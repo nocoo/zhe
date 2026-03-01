@@ -481,39 +481,36 @@ describe('useBackyViewModel', () => {
   // ==================================================================
   it('uses pull webhook from initialData when provided', () => {
     const prefetched = {
-      pullWebhook: { key: 'test-key', secret: 'test-secret' },
+      pullWebhook: { key: 'test-key' },
     };
 
     const { result } = renderHook(() => useBackyViewModel(prefetched));
 
     expect(result.current.pullKey).toBe('test-key');
-    expect(result.current.pullSecret).toBe('test-secret');
     expect(mockGetBackyPullWebhook).not.toHaveBeenCalled();
   });
 
   it('loads pull webhook on mount when no initialData', async () => {
     mockGetBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'loaded-key', secret: 'loaded-secret' },
+      data: { key: 'loaded-key' },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     expect(result.current.pullKey).toBe('loaded-key');
-    expect(result.current.pullSecret).toBe('loaded-secret');
   });
 
-  it('handleGeneratePull generates new credentials', async () => {
+  it('handleGeneratePull generates new key', async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     expect(result.current.pullKey).toBeNull();
-    expect(result.current.pullSecret).toBeNull();
 
     mockGenerateBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'new-key', secret: 'new-secret' },
+      data: { key: 'new-key' },
     });
 
     await act(async () => {
@@ -521,14 +518,13 @@ describe('useBackyViewModel', () => {
     });
 
     expect(result.current.pullKey).toBe('new-key');
-    expect(result.current.pullSecret).toBe('new-secret');
     expect(result.current.isGeneratingPull).toBe(false);
   });
 
-  it('handleRevokePull clears credentials', async () => {
+  it('handleRevokePull clears key', async () => {
     mockGetBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'existing-key', secret: 'existing-secret' },
+      data: { key: 'existing-key' },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -543,7 +539,6 @@ describe('useBackyViewModel', () => {
     });
 
     expect(result.current.pullKey).toBeNull();
-    expect(result.current.pullSecret).toBeNull();
     expect(result.current.isRevokingPull).toBe(false);
   });
 });

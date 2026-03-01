@@ -37,7 +37,6 @@ const mockBackyViewModel = {
   history: null as { project_name: string; environment: string | null; total_backups: number; recent_backups: { id: string; tag: string; environment: string; file_size: number; is_single_json: number; created_at: string }[] } | null,
   error: null as string | null,
   pullKey: null as string | null,
-  pullSecret: null as string | null,
   isGeneratingPull: false,
   isRevokingPull: false,
   handleSave: mockBackyHandleSave,
@@ -79,7 +78,6 @@ describe('BackyPage', () => {
     mockBackyViewModel.history = null;
     mockBackyViewModel.error = null;
     mockBackyViewModel.pullKey = null;
-    mockBackyViewModel.pullSecret = null;
     mockBackyViewModel.isGeneratingPull = false;
     mockBackyViewModel.isRevokingPull = false;
   });
@@ -388,20 +386,20 @@ describe('BackyPage', () => {
     expect(mockBackyHandleGeneratePull).toHaveBeenCalled();
   });
 
-  it('shows pull webhook credentials when configured', () => {
+  it('shows pull webhook key when configured', () => {
     mockBackyViewModel.pullKey = 'test-key-123';
-    mockBackyViewModel.pullSecret = 'test-secret-456';
+
     render(<BackyPage />);
 
     expect(screen.getByText('test-key-123')).toBeInTheDocument();
-    expect(screen.getByText('test-secret-456')).toBeInTheDocument();
+    expect(screen.getByText('X-Webhook-Key')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /重新生成/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /撤销/ })).toBeInTheDocument();
   });
 
   it('shows curl usage example when pull webhook configured', () => {
     mockBackyViewModel.pullKey = 'test-key-123';
-    mockBackyViewModel.pullSecret = 'test-secret-456';
+
     render(<BackyPage />);
 
     expect(screen.getByText('调用示例')).toBeInTheDocument();
@@ -411,7 +409,7 @@ describe('BackyPage', () => {
 
   it('calls handleRevokePull when revoke button clicked', () => {
     mockBackyViewModel.pullKey = 'test-key-123';
-    mockBackyViewModel.pullSecret = 'test-secret-456';
+
     render(<BackyPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /撤销/ }));
@@ -420,7 +418,7 @@ describe('BackyPage', () => {
 
   it('calls handleGeneratePull when regenerate button clicked', () => {
     mockBackyViewModel.pullKey = 'test-key-123';
-    mockBackyViewModel.pullSecret = 'test-secret-456';
+
     render(<BackyPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /重新生成/ }));
@@ -437,7 +435,7 @@ describe('BackyPage', () => {
 
   it('disables revoke button when revoking', () => {
     mockBackyViewModel.pullKey = 'test-key-123';
-    mockBackyViewModel.pullSecret = 'test-secret-456';
+
     mockBackyViewModel.isRevokingPull = true;
     render(<BackyPage />);
 

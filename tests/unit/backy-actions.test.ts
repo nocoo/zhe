@@ -56,7 +56,6 @@ vi.stubGlobal('fetch', mockFetch);
 // Mock backy.server (server-only crypto)
 vi.mock('@/models/backy.server', () => ({
   generatePullWebhookKey: () => 'mock-uuid-key',
-  generatePullWebhookSecret: () => 'mock-hex-secret',
 }));
 
 import {
@@ -588,12 +587,12 @@ describe('backy actions', () => {
   // getBackyPullWebhook
   // ==================================================================
   describe('getBackyPullWebhook', () => {
-    it('returns credentials when configured', async () => {
-      mockGetBackyPullWebhook.mockResolvedValue({ key: 'my-key', secret: 'my-secret' });
+    it('returns key when configured', async () => {
+      mockGetBackyPullWebhook.mockResolvedValue({ key: 'my-key' });
 
       const result = await getBackyPullWebhook();
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({ key: 'my-key', secret: 'my-secret' });
+      expect(result.data).toEqual({ key: 'my-key' });
     });
 
     it('returns undefined data when not configured', async () => {
@@ -626,15 +625,14 @@ describe('backy actions', () => {
   // generateBackyPullWebhook
   // ==================================================================
   describe('generateBackyPullWebhook', () => {
-    it('generates and stores new credentials', async () => {
+    it('generates and stores new key', async () => {
       mockUpsertBackyPullWebhook.mockResolvedValue(undefined);
 
       const result = await generateBackyPullWebhook();
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({ key: 'mock-uuid-key', secret: 'mock-hex-secret' });
+      expect(result.data).toEqual({ key: 'mock-uuid-key' });
       expect(mockUpsertBackyPullWebhook).toHaveBeenCalledWith({
         key: 'mock-uuid-key',
-        secret: 'mock-hex-secret',
       });
     });
 

@@ -68,7 +68,7 @@ describe('BackyRoute', () => {
     vi.mocked(getBackyConfig).mockResolvedValue({ success: false });
     vi.mocked(getBackyPullWebhook).mockResolvedValue({
       success: true,
-      data: { key: 'test-key', secret: 'test-secret' },
+      data: { key: 'test-key' },
     });
 
     const jsx = await BackyRoute();
