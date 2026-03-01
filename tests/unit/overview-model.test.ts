@@ -164,7 +164,7 @@ describe('overview model', () => {
       totalClicks: 500,
       totalUploads: 20,
       totalStorageBytes: 1048576,
-      clickTrend: [{ date: '2026-02-10', clicks: 5 }],
+      clickTrend: [{ date: '2026-02-10', clicks: 5, origin: 0, worker: 0 }],
       uploadTrend: [{ date: '2026-02-10', uploads: 3 }],
       topLinks: [{ slug: 'abc', originalUrl: 'https://example.com', clicks: 100 }],
       deviceBreakdown: { desktop: 300, mobile: 200 },
@@ -178,8 +178,10 @@ describe('overview model', () => {
   });
 
   it('ClickTrendPoint type is well-defined', () => {
-    const point: ClickTrendPoint = { date: '2026-02-10', clicks: 5 };
+    const point: ClickTrendPoint = { date: '2026-02-10', clicks: 5, origin: 2, worker: 3 };
     expect(point.date).toBe('2026-02-10');
+    expect(point.origin).toBe(2);
+    expect(point.worker).toBe(3);
   });
 
   it('UploadTrendPoint type is well-defined', () => {

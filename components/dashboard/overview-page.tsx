@@ -91,20 +91,28 @@ function ChartSkeleton() {
 function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full min-h-[200px] items-center justify-center text-sm text-muted-foreground">
         暂无点击数据
       </div>
     );
   }
 
   return (
-    <div className="h-[200px] md:h-[250px]">
+    <div className="h-full min-h-[200px]">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
           <defs>
-            <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS[0]} stopOpacity={0.3} />
+            <linearGradient id="clickGradientTotal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_COLORS[0]} stopOpacity={0.2} />
               <stop offset="100%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="clickGradientWorker" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_COLORS[2]} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={CHART_COLORS[2]} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="clickGradientOrigin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_COLORS[4]} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={CHART_COLORS[4]} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={withAlpha("chart-axis", 0.15)} />
@@ -129,14 +137,34 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               fontSize: "12px",
             }}
             labelFormatter={(label) => String(label)}
-            formatter={(value) => [String(value), "点击"]}
+            formatter={(value?: number, name?: string) => {
+              const labels: Record<string, string> = { clicks: "总计", worker: "Worker", origin: "Origin" };
+              return [String(value ?? 0), labels[name ?? ""] ?? name ?? ""];
+            }}
           />
           <Area
             type="monotone"
             dataKey="clicks"
             stroke={CHART_COLORS[0]}
-            fill="url(#clickGradient)"
+            fill="url(#clickGradientTotal)"
             strokeWidth={2}
+            name="clicks"
+          />
+          <Area
+            type="monotone"
+            dataKey="worker"
+            stroke={CHART_COLORS[2]}
+            fill="url(#clickGradientWorker)"
+            strokeWidth={1.5}
+            name="worker"
+          />
+          <Area
+            type="monotone"
+            dataKey="origin"
+            stroke={CHART_COLORS[4]}
+            fill="url(#clickGradientOrigin)"
+            strokeWidth={1.5}
+            name="origin"
           />
         </AreaChart>
       </ResponsiveContainer>

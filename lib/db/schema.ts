@@ -80,6 +80,7 @@ export const analytics = sqliteTable('analytics', {
   browser: text('browser'),
   os: text('os'),
   referer: text('referer'),
+  source: text('source'), // 'worker' | 'origin' | null (legacy data)
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

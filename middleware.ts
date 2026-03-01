@@ -105,6 +105,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
         country: metadata.country,
         city: metadata.city,
         referer: metadata.referer,
+        source: 'origin',
       }).catch((err) => {
         console.error('Failed to record click:', err);
       })

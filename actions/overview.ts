@@ -8,7 +8,7 @@ interface OverviewRawStats {
   totalClicks: number;
   totalUploads: number;
   totalStorageBytes: number;
-  clickTrend: { date: string; clicks: number }[];
+  clickTrend: { date: string; clicks: number; origin: number; worker: number }[];
   uploadTrend: { date: string; uploads: number }[];
   topLinks: { slug: string; originalUrl: string; clicks: number }[];
   deviceBreakdown: Record<string, number>;

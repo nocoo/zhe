@@ -45,6 +45,7 @@ function rowToAnalytics(row: Record<string, unknown>): Analytics {
     browser: row.browser as string | null,
     os: row.os as string | null,
     referer: row.referer as string | null,
+    source: (row.source as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -490,7 +491,7 @@ export class ScopedDB {
     totalClicks: number;
     totalUploads: number;
     totalStorageBytes: number;
-    clickTrend: { date: string; clicks: number }[];
+    clickTrend: { date: string; clicks: number; origin: number; worker: number }[];
     uploadTrend: { date: string; uploads: number }[];
     topLinks: { slug: string; originalUrl: string; clicks: number }[];
     deviceBreakdown: Record<string, number>;
@@ -538,9 +539,9 @@ export class ScopedDB {
         'SELECT file_type, COUNT(*) as count FROM uploads WHERE user_id = ? GROUP BY file_type',
         [this.userId],
       ),
-      // Click trend: GROUP BY date
+      // Click trend: GROUP BY date with source breakdown
       executeD1Query<Record<string, unknown>>(
-        `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
+        `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks, SUM(CASE WHEN a.source = 'origin' THEN 1 ELSE 0 END) as origin_clicks, SUM(CASE WHEN a.source = 'worker' THEN 1 ELSE 0 END) as worker_clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
         analyticsParams,
       ),
       // Analytics breakdowns
@@ -587,6 +588,8 @@ export class ScopedDB {
     const clickTrend = clickTrendRows.map(r => ({
       date: r.date as string,
       clicks: r.clicks as number,
+      origin: (r.origin_clicks as number) ?? 0,
+      worker: (r.worker_clicks as number) ?? 0,
     }));
 
     // Analytics breakdowns

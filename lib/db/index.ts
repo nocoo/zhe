@@ -39,6 +39,7 @@ function rowToAnalytics(row: Record<string, unknown>): Analytics {
     browser: row.browser as string | null,
     os: row.os as string | null,
     referer: row.referer as string | null,
+    source: (row.source as string) ?? null,
     createdAt: new Date(row.created_at as number),
   };
 }
@@ -209,8 +210,8 @@ export async function recordClick(
   // Batch: insert analytics record + increment click count in a single D1 request
   const [insertRows] = await executeD1Batch<Record<string, unknown>>([
     {
-      sql: `INSERT INTO analytics (link_id, country, city, device, browser, os, referer, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      sql: `INSERT INTO analytics (link_id, country, city, device, browser, os, referer, source, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
       params: [
         data.linkId,
@@ -220,6 +221,7 @@ export async function recordClick(
         data.browser ?? null,
         data.os ?? null,
         data.referer ?? null,
+        data.source ?? null,
         now,
       ],
     },

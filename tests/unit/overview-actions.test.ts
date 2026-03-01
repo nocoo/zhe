@@ -51,7 +51,7 @@ describe('getOverviewStats action', () => {
       totalClicks: 500,
       totalUploads: 5,
       totalStorageBytes: 1048576,
-      clickTrend: [{ date: '2026-02-10', clicks: 1 }, { date: '2026-02-11', clicks: 1 }],
+      clickTrend: [{ date: '2026-02-10', clicks: 1, origin: 0, worker: 1 }, { date: '2026-02-11', clicks: 1, origin: 1, worker: 0 }],
       uploadTrend: [{ date: '2026-02-10', uploads: 1 }, { date: '2026-02-12', uploads: 1 }],
       topLinks: [{ slug: 'abc', originalUrl: 'https://example.com', clicks: 100 }],
       deviceBreakdown: { desktop: 300, mobile: 200 },

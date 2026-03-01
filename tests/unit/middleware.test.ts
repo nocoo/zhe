@@ -208,6 +208,7 @@ describe('middleware', () => {
       country: 'US',
       city: 'San Francisco',
       referer: null,
+      source: 'origin',
     });
   });
 

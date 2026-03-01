@@ -186,6 +186,7 @@ function recordClickAsync(
     country: cfCountry || null,
     city: cfCity,
     referer: request.headers.get('referer') || null,
+    source: 'worker',
   };
 
   const originBase = env.ORIGIN_URL.replace(/\/$/, '');

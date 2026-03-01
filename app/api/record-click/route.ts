@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { linkId, device, browser, os, country, city, referer } = body;
+    const { linkId, device, browser, os, country, city, referer, source } = body;
 
     if (!linkId || typeof linkId !== 'number') {
       return NextResponse.json(
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       country: country || null,
       city: city || null,
       referer: referer || null,
+      source: source || null,
     });
 
     return NextResponse.json({ success: true });

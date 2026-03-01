@@ -5,7 +5,9 @@ import type { CronHistoryEntry } from '@/lib/cron-history';
 /** A single day's click count for trend charts */
 export interface ClickTrendPoint {
   date: string; // YYYY-MM-DD
-  clicks: number;
+  clicks: number; // total clicks (origin + worker + legacy)
+  origin: number; // clicks via middleware (D1 fallback)
+  worker: number; // clicks via Cloudflare Worker (KV edge)
 }
 
 /** A single day's upload count for trend charts */
@@ -55,6 +57,7 @@ export function formatStorageSize(bytes: number): string {
 /**
  * Build a click trend from an array of click timestamps.
  * Groups by date (YYYY-MM-DD) and sorts ascending.
+ * Note: source breakdown defaults to 0 since raw timestamps carry no source info.
  */
 export function buildClickTrend(timestamps: Date[]): ClickTrendPoint[] {
   if (timestamps.length === 0) return [];
@@ -66,7 +69,7 @@ export function buildClickTrend(timestamps: Date[]): ClickTrendPoint[] {
   }
 
   return Array.from(byDate.entries())
-    .map(([date, clicks]) => ({ date, clicks }))
+    .map(([date, clicks]) => ({ date, clicks, origin: 0, worker: 0 }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
