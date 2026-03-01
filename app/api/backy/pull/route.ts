@@ -17,23 +17,22 @@ import {
  * POST /api/backy/pull
  *
  * Webhook endpoint called by Backy to trigger a backup push.
- * Authentication via X-Webhook-Key + X-Webhook-Secret headers.
+ * Authentication via X-Webhook-Key header.
  *
  * On success, gathers all user data, pushes it to Backy, and returns 200.
  */
 export async function POST(request: Request) {
   const key = request.headers.get("x-webhook-key");
-  const secret = request.headers.get("x-webhook-secret");
 
-  if (!key || !secret) {
+  if (!key) {
     return NextResponse.json(
-      { error: "Missing X-Webhook-Key or X-Webhook-Secret header" },
+      { error: "Missing X-Webhook-Key header" },
       { status: 401 },
     );
   }
 
   // Verify credentials
-  const result = await verifyBackyPullWebhook(key, secret);
+  const result = await verifyBackyPullWebhook(key);
   if (!result) {
     return NextResponse.json(
       { error: "Invalid webhook credentials" },
@@ -168,18 +167,17 @@ export async function POST(request: Request) {
 /**
  * HEAD /api/backy/pull
  *
- * Test connection endpoint. Verifies the key+secret pair is valid.
+ * Test connection endpoint. Verifies the key is valid.
  * Returns 200 with no body on success, 401 if invalid.
  */
 export async function HEAD(request: Request) {
   const key = request.headers.get("x-webhook-key");
-  const secret = request.headers.get("x-webhook-secret");
 
-  if (!key || !secret) {
+  if (!key) {
     return new Response(null, { status: 401 });
   }
 
-  const result = await verifyBackyPullWebhook(key, secret);
+  const result = await verifyBackyPullWebhook(key);
   if (!result) {
     return new Response(null, { status: 401 });
   }
