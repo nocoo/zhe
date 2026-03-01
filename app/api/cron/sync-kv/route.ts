@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAllLinksForKV } from '@/lib/db';
-import { kvBulkPutLinks, isKVConfigured } from '@/lib/kv/client';
-import { recordCronResult } from '@/lib/cron-history';
+import { isKVConfigured } from '@/lib/kv/client';
+import { performKVSync } from '@/lib/kv/sync';
 
 /**
  * POST /api/cron/sync-kv
@@ -9,9 +8,9 @@ import { recordCronResult } from '@/lib/cron-history';
  * Full D1 → KV sync endpoint. Reads all links from D1 and bulk-writes them
  * to Cloudflare KV. Protected by WORKER_SECRET to prevent unauthorized access.
  *
- * Intended to be called by an external cron scheduler (e.g. Railway cron,
- * GitHub Actions) on a periodic basis (e.g. every 6 hours) as a consistency
- * safety net — the primary sync happens inline on link create/update/delete.
+ * Intended to be called by the Cloudflare Worker cron trigger (every 15 min)
+ * as a consistency safety net — the primary sync happens inline on link
+ * create/update/delete.
  *
  * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
  */
@@ -47,59 +46,20 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3. Fetch all links from D1
-  const startTime = Date.now();
-  let links: Awaited<ReturnType<typeof getAllLinksForKV>>;
-  try {
-    links = await getAllLinksForKV();
-  } catch (err) {
-    const durationMs = Date.now() - startTime;
-    console.error('sync-kv: failed to fetch links from D1:', err);
-    recordCronResult({
-      timestamp: new Date().toISOString(),
-      status: 'error',
-      synced: 0,
-      failed: 0,
-      total: 0,
-      durationMs,
-      error: 'Failed to fetch links from D1',
-    });
+  // 3. Perform sync (D1 → KV + record cron history)
+  const result = await performKVSync();
+
+  if (result.error) {
     return NextResponse.json(
-      { error: 'Failed to fetch links from D1' },
+      { error: result.error },
       { status: 500 },
     );
   }
 
-  // 4. Bulk-write to KV
-  const entries = links.map((link) => ({
-    slug: link.slug,
-    data: {
-      id: link.id,
-      originalUrl: link.originalUrl,
-      expiresAt: link.expiresAt,
-    },
-  }));
-
-  const result = await kvBulkPutLinks(entries);
-  const durationMs = Date.now() - startTime;
-
-  console.log(
-    `sync-kv: synced ${result.success} links, ${result.failed} failed, ${durationMs}ms`,
-  );
-
-  recordCronResult({
-    timestamp: new Date().toISOString(),
-    status: result.failed > 0 ? 'error' : 'success',
-    synced: result.success,
-    failed: result.failed,
-    total: links.length,
-    durationMs,
-  });
-
   return NextResponse.json({
-    synced: result.success,
+    synced: result.synced,
     failed: result.failed,
-    total: links.length,
-    durationMs,
+    total: result.total,
+    durationMs: result.durationMs,
   });
 }

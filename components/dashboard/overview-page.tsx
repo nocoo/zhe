@@ -470,9 +470,6 @@ function OverviewContent({
 }) {
   return (
     <div className="space-y-8 md:space-y-10">
-      {/* ── Worker 健康 ─────────────────────────────────────────────── */}
-      <WorkerHealthSection health={workerHealth} loading={workerHealthLoading} />
-
       {/* ── 链接统计 ──────────────────────────────────────────────── */}
       <section>
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">链接统计</h2>
@@ -548,6 +545,9 @@ function OverviewContent({
           </div>
         </div>
       </section>
+
+      {/* ── Worker 健康 ─────────────────────────────────────────────── */}
+      <WorkerHealthSection health={workerHealth} loading={workerHealthLoading} />
 
       {/* ── 图床统计 ──────────────────────────────────────────────── */}
       <section>

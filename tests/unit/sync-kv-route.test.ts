@@ -1,4 +1,5 @@
 vi.unmock('@/lib/kv/client');
+vi.unmock('@/lib/kv/sync');
 vi.unmock('@/lib/db');
 vi.unmock('@/lib/cron-history');
 
