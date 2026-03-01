@@ -91,14 +91,14 @@ function ChartSkeleton() {
 function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] md:h-[280px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex min-h-[200px] flex-1 items-center justify-center text-sm text-muted-foreground">
         暂无点击数据
       </div>
     );
   }
 
   return (
-    <div className="h-[200px] md:h-[280px]">
+    <div className="min-h-[200px] flex-1">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
           <defs>
@@ -518,12 +518,12 @@ function OverviewContent({
 
           {/* Click trend (wide) + Top links */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
+            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none flex flex-col">
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
               </CardHeader>
-              <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <CardContent className="flex flex-col flex-1 px-4 pb-4 md:px-5 md:pb-5">
                 <ClickTrendChart data={stats.clickTrend} />
               </CardContent>
             </Card>
