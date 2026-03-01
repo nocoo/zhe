@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { formatClickCount, formatStorageSize, formatRelativeTime } from "@/models/overview";
 import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry, WorkerHealthStatus } from "@/models/overview";
@@ -20,7 +21,10 @@ import {
   Clock,
   Database,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -399,6 +403,11 @@ function WorkerHealthSection({
 }
 
 function CronHistoryTable({ history }: { history: WorkerHealthStatus["cronHistory"] }) {
+  const PAGE_SIZE = 4;
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(history.length / PAGE_SIZE));
+  const pageItems = history.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   if (history.length === 0) {
     return (
       <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
@@ -408,46 +417,77 @@ function CronHistoryTable({ history }: { history: WorkerHealthStatus["cronHistor
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm" data-testid="cron-history-table">
-        <thead>
-          <tr className="text-left text-xs text-muted-foreground">
-            <th className="pb-2 pr-4 font-medium">时间</th>
-            <th className="pb-2 pr-4 font-medium">状态</th>
-            <th className="pb-2 pr-4 font-medium text-right">同步</th>
-            <th className="pb-2 pr-4 font-medium text-right">失败</th>
-            <th className="pb-2 font-medium text-right">耗时</th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.slice(0, 10).map((entry, i) => (
-            <tr
-              key={`${entry.timestamp}-${i}`}
-              className="border-t border-border/50"
-            >
-              <td className="py-1.5 pr-4 text-muted-foreground tabular-nums">
-                {formatRelativeTime(entry.timestamp)}
-              </td>
-              <td className="py-1.5 pr-4">
-                <span
-                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                    entry.status === "success"
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : "bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  {entry.status === "success" ? "成功" : "失败"}
-                </span>
-              </td>
-              <td className="py-1.5 pr-4 text-right tabular-nums">{entry.synced}</td>
-              <td className="py-1.5 pr-4 text-right tabular-nums">{entry.failed}</td>
-              <td className="py-1.5 text-right tabular-nums text-muted-foreground">
-                {entry.durationMs}ms
-              </td>
+    <div className="space-y-2">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" data-testid="cron-history-table">
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground">
+              <th className="pb-2 pr-4 font-medium">时间</th>
+              <th className="pb-2 pr-4 font-medium">状态</th>
+              <th className="pb-2 pr-4 font-medium text-right">同步</th>
+              <th className="pb-2 pr-4 font-medium text-right">失败</th>
+              <th className="pb-2 font-medium text-right">耗时</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {pageItems.map((entry, i) => (
+              <tr
+                key={`${entry.timestamp}-${page * PAGE_SIZE + i}`}
+                className="border-t border-border/50"
+              >
+                <td className="py-1.5 pr-4 text-muted-foreground tabular-nums">
+                  {formatRelativeTime(entry.timestamp)}
+                </td>
+                <td className="py-1.5 pr-4">
+                  <span
+                    className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                      entry.status === "success"
+                        ? "bg-emerald-500/10 text-emerald-500"
+                        : "bg-destructive/10 text-destructive"
+                    }`}
+                  >
+                    {entry.status === "success" ? "成功" : "失败"}
+                  </span>
+                </td>
+                <td className="py-1.5 pr-4 text-right tabular-nums">{entry.synced}</td>
+                <td className="py-1.5 pr-4 text-right tabular-nums">{entry.failed}</td>
+                <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                  {entry.durationMs}ms
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-1" data-testid="cron-history-pagination">
+          <span className="text-xs text-muted-foreground">
+            {page + 1} / {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={page === 0}
+              onClick={() => setPage(p => p - 1)}
+              aria-label="上一页"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(p => p + 1)}
+              aria-label="下一页"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

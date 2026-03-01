@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { OverviewPage } from '@/components/dashboard/overview-page';
 
 // ---------------------------------------------------------------------------
@@ -38,8 +39,8 @@ function makeStats(overrides: Partial<OverviewStats> = {}): OverviewStats {
     totalUploads: 5,
     totalStorageBytes: 1048576,
     clickTrend: [
-      { date: '2026-02-10', clicks: 100 },
-      { date: '2026-02-11', clicks: 200 },
+      { date: '2026-02-10', clicks: 100, origin: 60, worker: 40 },
+      { date: '2026-02-11', clicks: 200, origin: 120, worker: 80 },
     ],
     uploadTrend: [
       { date: '2026-02-10', uploads: 2 },
@@ -304,6 +305,49 @@ describe('OverviewPage', () => {
     expect(screen.getAllByText('失败').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('120ms')).toBeInTheDocument();
     expect(screen.getByText('5000ms')).toBeInTheDocument();
+    // 2 entries fit on one page (pageSize=4), no pagination shown
+    expect(screen.queryByTestId('cron-history-pagination')).not.toBeInTheDocument();
+  });
+
+  it('paginates cron history at 4 entries per page', async () => {
+    const entries = Array.from({ length: 6 }, (_, i) =>
+      makeEntry({ synced: (i + 1) * 10, durationMs: (i + 1) * 100 }),
+    );
+    mockUseOverviewViewModel.mockReturnValue(vmState({
+      workerHealth: makeWorkerHealth({ cronHistory: entries }),
+    }));
+
+    render(<OverviewPage />);
+
+    // Page 1: first 4 entries (synced: 10, 20, 30, 40)
+    const pagination = screen.getByTestId('cron-history-pagination');
+    expect(pagination).toBeInTheDocument();
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(screen.getByText('100ms')).toBeInTheDocument();
+    expect(screen.getByText('400ms')).toBeInTheDocument();
+    expect(screen.queryByText('500ms')).not.toBeInTheDocument();
+
+    // Prev disabled on page 1
+    const prevBtn = screen.getByRole('button', { name: '上一页' });
+    const nextBtn = screen.getByRole('button', { name: '下一页' });
+    expect(prevBtn).toBeDisabled();
+    expect(nextBtn).not.toBeDisabled();
+
+    // Go to page 2
+    await userEvent.click(nextBtn);
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    expect(screen.getByText('500ms')).toBeInTheDocument();
+    expect(screen.getByText('600ms')).toBeInTheDocument();
+    expect(screen.queryByText('100ms')).not.toBeInTheDocument();
+
+    // Next disabled on last page, prev enabled
+    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '上一页' })).not.toBeDisabled();
+
+    // Go back to page 1
+    await userEvent.click(screen.getByRole('button', { name: '上一页' }));
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(screen.getByText('100ms')).toBeInTheDocument();
   });
 
   it('shows empty cron history message', () => {
