@@ -91,14 +91,14 @@ function ChartSkeleton() {
 function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-full min-h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[200px] md:h-[280px] items-center justify-center text-sm text-muted-foreground">
         暂无点击数据
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-[200px]">
+    <div className="h-[200px] md:h-[280px]">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
           <defs>
