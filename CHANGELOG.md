@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.5.1] - 2026-03-01
+
+### Fixed
+- Worker health section showing empty data in production due to `instrumentation.ts` not being included in Next.js standalone output (turbopack omits instrumentation chunks)
+
+### Changed
+- Replace `instrumentation.ts` startup hook with on-demand KV sync in `getWorkerHealth` server action — when cron history is empty (first dashboard visit after deploy), triggers `performKVSync()` inline and returns fresh data
+- Remove `instrumentation.ts` and its test file entirely; revert Dockerfile to clean state
+
 ## [v1.5.0] - 2026-03-01
 
 ### Added
