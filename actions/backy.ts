@@ -10,6 +10,7 @@ import {
   type BackyHistoryResponse,
   type BackyPushDetail,
 } from '@/models/backy';
+import { generatePullWebhookKey, generatePullWebhookSecret } from '@/models/backy.server';
 import { serializeLinksForExport, BACKUP_SCHEMA_VERSION, type BackupEnvelope } from '@/models/settings';
 
 // ---------------------------------------------------------------------------
@@ -266,5 +267,68 @@ export async function pushBackup(): Promise<{
   } catch (error) {
     console.error('Failed to push backup:', error);
     return { success: false, error: '推送备份失败' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pull webhook actions (our endpoint that Backy calls)
+// ---------------------------------------------------------------------------
+
+/** Get the current pull webhook credentials, or null if not configured. */
+export async function getBackyPullWebhook(): Promise<{
+  success: boolean;
+  data?: { key: string; secret: string };
+  error?: string;
+}> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    const creds = await db.getBackyPullWebhook();
+    if (!creds) return { success: true, data: undefined };
+
+    return { success: true, data: creds };
+  } catch (error) {
+    console.error('Failed to get pull webhook:', error);
+    return { success: false, error: 'Failed to load pull webhook' };
+  }
+}
+
+/** Generate (or regenerate) pull webhook credentials. */
+export async function generateBackyPullWebhook(): Promise<{
+  success: boolean;
+  data?: { key: string; secret: string };
+  error?: string;
+}> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    const key = generatePullWebhookKey();
+    const secret = generatePullWebhookSecret();
+
+    await db.upsertBackyPullWebhook({ key, secret });
+
+    return { success: true, data: { key, secret } };
+  } catch (error) {
+    console.error('Failed to generate pull webhook:', error);
+    return { success: false, error: 'Failed to generate pull webhook' };
+  }
+}
+
+/** Revoke pull webhook credentials. */
+export async function revokeBackyPullWebhook(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: 'Unauthorized' };
+
+    await db.deleteBackyPullWebhook();
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to revoke pull webhook:', error);
+    return { success: false, error: 'Failed to revoke pull webhook' };
   }
 }

@@ -10,6 +10,9 @@ const mockSaveBackyConfig = vi.fn();
 const mockTestBackyConnection = vi.fn();
 const mockPushBackup = vi.fn();
 const mockFetchBackyHistory = vi.fn();
+const mockGetBackyPullWebhook = vi.fn();
+const mockGenerateBackyPullWebhook = vi.fn();
+const mockRevokeBackyPullWebhook = vi.fn();
 
 vi.mock('@/actions/backy', () => ({
   getBackyConfig: (...args: unknown[]) => mockGetBackyConfig(...args),
@@ -17,6 +20,9 @@ vi.mock('@/actions/backy', () => ({
   testBackyConnection: (...args: unknown[]) => mockTestBackyConnection(...args),
   pushBackup: (...args: unknown[]) => mockPushBackup(...args),
   fetchBackyHistory: (...args: unknown[]) => mockFetchBackyHistory(...args),
+  getBackyPullWebhook: (...args: unknown[]) => mockGetBackyPullWebhook(...args),
+  generateBackyPullWebhook: (...args: unknown[]) => mockGenerateBackyPullWebhook(...args),
+  revokeBackyPullWebhook: (...args: unknown[]) => mockRevokeBackyPullWebhook(...args),
 }));
 
 import { useBackyViewModel } from '@/viewmodels/useBackyViewModel';
@@ -32,6 +38,8 @@ describe('useBackyViewModel', () => {
     mockGetBackyConfig.mockResolvedValue({ success: true, data: undefined });
     // Default: history not available (safe for tests that trigger auto-load)
     mockFetchBackyHistory.mockResolvedValue({ success: false });
+    // Default: no pull webhook
+    mockGetBackyPullWebhook.mockResolvedValue({ success: false });
   });
 
   // ==================================================================
@@ -466,5 +474,76 @@ describe('useBackyViewModel', () => {
     expect(result.current.isEditing).toBe(false);
     expect(result.current.apiKey).toBe('');
     expect(result.current.error).toBeNull();
+  });
+
+  // ==================================================================
+  // Pull webhook
+  // ==================================================================
+  it('uses pull webhook from initialData when provided', () => {
+    const prefetched = {
+      pullWebhook: { key: 'test-key', secret: 'test-secret' },
+    };
+
+    const { result } = renderHook(() => useBackyViewModel(prefetched));
+
+    expect(result.current.pullKey).toBe('test-key');
+    expect(result.current.pullSecret).toBe('test-secret');
+    expect(mockGetBackyPullWebhook).not.toHaveBeenCalled();
+  });
+
+  it('loads pull webhook on mount when no initialData', async () => {
+    mockGetBackyPullWebhook.mockResolvedValue({
+      success: true,
+      data: { key: 'loaded-key', secret: 'loaded-secret' },
+    });
+
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    expect(result.current.pullKey).toBe('loaded-key');
+    expect(result.current.pullSecret).toBe('loaded-secret');
+  });
+
+  it('handleGeneratePull generates new credentials', async () => {
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    expect(result.current.pullKey).toBeNull();
+    expect(result.current.pullSecret).toBeNull();
+
+    mockGenerateBackyPullWebhook.mockResolvedValue({
+      success: true,
+      data: { key: 'new-key', secret: 'new-secret' },
+    });
+
+    await act(async () => {
+      await result.current.handleGeneratePull();
+    });
+
+    expect(result.current.pullKey).toBe('new-key');
+    expect(result.current.pullSecret).toBe('new-secret');
+    expect(result.current.isGeneratingPull).toBe(false);
+  });
+
+  it('handleRevokePull clears credentials', async () => {
+    mockGetBackyPullWebhook.mockResolvedValue({
+      success: true,
+      data: { key: 'existing-key', secret: 'existing-secret' },
+    });
+
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    expect(result.current.pullKey).toBe('existing-key');
+
+    mockRevokeBackyPullWebhook.mockResolvedValue({ success: true });
+
+    await act(async () => {
+      await result.current.handleRevokePull();
+    });
+
+    expect(result.current.pullKey).toBeNull();
+    expect(result.current.pullSecret).toBeNull();
+    expect(result.current.isRevokingPull).toBe(false);
   });
 });

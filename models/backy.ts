@@ -10,6 +10,12 @@ export interface BackyConfig {
   apiKey: string;
 }
 
+/** Backy pull webhook credentials — our endpoint that Backy calls */
+export interface BackyPullWebhook {
+  key: string;
+  secret: string;
+}
+
 /** Backy backup history response from the remote API */
 export interface BackyHistoryResponse {
   project_name: string;

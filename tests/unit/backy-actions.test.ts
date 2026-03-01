@@ -19,6 +19,9 @@ const mockGetLinks = vi.fn();
 const mockGetFolders = vi.fn();
 const mockGetTags = vi.fn();
 const mockGetLinkTags = vi.fn();
+const mockGetBackyPullWebhook = vi.fn();
+const mockUpsertBackyPullWebhook = vi.fn();
+const mockDeleteBackyPullWebhook = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(() => ({
@@ -28,6 +31,9 @@ vi.mock('@/lib/db/scoped', () => ({
     getFolders: mockGetFolders,
     getTags: mockGetTags,
     getLinkTags: mockGetLinkTags,
+    getBackyPullWebhook: mockGetBackyPullWebhook,
+    upsertBackyPullWebhook: mockUpsertBackyPullWebhook,
+    deleteBackyPullWebhook: mockDeleteBackyPullWebhook,
   })),
 }));
 
@@ -47,12 +53,21 @@ vi.mock('@/models/settings', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+// Mock backy.server (server-only crypto)
+vi.mock('@/models/backy.server', () => ({
+  generatePullWebhookKey: () => 'mock-uuid-key',
+  generatePullWebhookSecret: () => 'mock-hex-secret',
+}));
+
 import {
   getBackyConfig,
   saveBackyConfig,
   testBackyConnection,
   fetchBackyHistory,
   pushBackup,
+  getBackyPullWebhook,
+  generateBackyPullWebhook,
+  revokeBackyPullWebhook,
 } from '@/actions/backy';
 
 // ---------------------------------------------------------------------------
@@ -566,6 +581,108 @@ describe('backy actions', () => {
       const result = await pushBackup();
       expect(result.success).toBe(false);
       expect(result.error).toBe('推送备份失败');
+    });
+  });
+
+  // ==================================================================
+  // getBackyPullWebhook
+  // ==================================================================
+  describe('getBackyPullWebhook', () => {
+    it('returns credentials when configured', async () => {
+      mockGetBackyPullWebhook.mockResolvedValue({ key: 'my-key', secret: 'my-secret' });
+
+      const result = await getBackyPullWebhook();
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ key: 'my-key', secret: 'my-secret' });
+    });
+
+    it('returns undefined data when not configured', async () => {
+      mockGetBackyPullWebhook.mockResolvedValue(null);
+
+      const result = await getBackyPullWebhook();
+      expect(result.success).toBe(true);
+      expect(result.data).toBeUndefined();
+    });
+
+    it('returns error when auth fails', async () => {
+      const { auth } = await import('@/auth');
+      vi.mocked(auth).mockResolvedValueOnce(null);
+
+      const result = await getBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Unauthorized');
+    });
+
+    it('returns error when DB throws', async () => {
+      mockGetBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+
+      const result = await getBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to load pull webhook');
+    });
+  });
+
+  // ==================================================================
+  // generateBackyPullWebhook
+  // ==================================================================
+  describe('generateBackyPullWebhook', () => {
+    it('generates and stores new credentials', async () => {
+      mockUpsertBackyPullWebhook.mockResolvedValue(undefined);
+
+      const result = await generateBackyPullWebhook();
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ key: 'mock-uuid-key', secret: 'mock-hex-secret' });
+      expect(mockUpsertBackyPullWebhook).toHaveBeenCalledWith({
+        key: 'mock-uuid-key',
+        secret: 'mock-hex-secret',
+      });
+    });
+
+    it('returns error when auth fails', async () => {
+      const { auth } = await import('@/auth');
+      vi.mocked(auth).mockResolvedValueOnce(null);
+
+      const result = await generateBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Unauthorized');
+    });
+
+    it('returns error when DB throws', async () => {
+      mockUpsertBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+
+      const result = await generateBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to generate pull webhook');
+    });
+  });
+
+  // ==================================================================
+  // revokeBackyPullWebhook
+  // ==================================================================
+  describe('revokeBackyPullWebhook', () => {
+    it('deletes credentials successfully', async () => {
+      mockDeleteBackyPullWebhook.mockResolvedValue(undefined);
+
+      const result = await revokeBackyPullWebhook();
+      expect(result.success).toBe(true);
+      expect(mockDeleteBackyPullWebhook).toHaveBeenCalled();
+    });
+
+    it('returns error when auth fails', async () => {
+      const { auth } = await import('@/auth');
+      vi.mocked(auth).mockResolvedValueOnce(null);
+
+      const result = await revokeBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Unauthorized');
+    });
+
+    it('returns error when DB throws', async () => {
+      mockDeleteBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+
+      const result = await revokeBackyPullWebhook();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Failed to revoke pull webhook');
     });
   });
 });

@@ -1,20 +1,27 @@
 import { BackyPage } from '@/components/dashboard/backy-page';
-import { getBackyConfig, fetchBackyHistory } from '@/actions/backy';
+import { getBackyConfig, fetchBackyHistory, getBackyPullWebhook } from '@/actions/backy';
+import type { BackyInitialData } from '@/viewmodels/useBackyViewModel';
 
 export default async function BackyRoute() {
-  const configResult = await getBackyConfig();
+  const [configResult, pullResult] = await Promise.all([
+    getBackyConfig(),
+    getBackyPullWebhook(),
+  ]);
 
-  if (!configResult.success || !configResult.data) {
-    return <BackyPage />;
-  }
-
-  // Config exists — also prefetch history
-  const historyResult = await fetchBackyHistory();
-  const initialData = {
-    webhookUrl: configResult.data.webhookUrl,
-    maskedApiKey: configResult.data.maskedApiKey,
-    history: historyResult.success && historyResult.data ? historyResult.data : undefined,
+  const initialData: BackyInitialData = {
+    pullWebhook: pullResult.success && pullResult.data ? pullResult.data : undefined,
   };
+
+  if (configResult.success && configResult.data) {
+    initialData.webhookUrl = configResult.data.webhookUrl;
+    initialData.maskedApiKey = configResult.data.maskedApiKey;
+
+    // Push config exists — also prefetch history
+    const historyResult = await fetchBackyHistory();
+    if (historyResult.success && historyResult.data) {
+      initialData.history = historyResult.data;
+    }
+  }
 
   return <BackyPage initialData={initialData} />;
 }

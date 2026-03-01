@@ -15,6 +15,8 @@ const mockBackyStartEditing = vi.fn();
 const mockBackyCancelEditing = vi.fn();
 const mockBackyClearTestResult = vi.fn();
 const mockBackyClearPushResult = vi.fn();
+const mockBackyHandleGeneratePull = vi.fn();
+const mockBackyHandleRevokePull = vi.fn();
 
 const mockBackyViewModel = {
   webhookUrl: '',
@@ -34,6 +36,10 @@ const mockBackyViewModel = {
   pushResult: null as BackyPushDetail | null,
   history: null as { project_name: string; environment: string | null; total_backups: number; recent_backups: { id: string; tag: string; environment: string; file_size: number; is_single_json: number; created_at: string }[] } | null,
   error: null as string | null,
+  pullKey: null as string | null,
+  pullSecret: null as string | null,
+  isGeneratingPull: false,
+  isRevokingPull: false,
   handleSave: mockBackyHandleSave,
   handleTest: mockBackyHandleTest,
   handlePush: mockBackyHandlePush,
@@ -42,6 +48,8 @@ const mockBackyViewModel = {
   cancelEditing: mockBackyCancelEditing,
   clearTestResult: mockBackyClearTestResult,
   clearPushResult: mockBackyClearPushResult,
+  handleGeneratePull: mockBackyHandleGeneratePull,
+  handleRevokePull: mockBackyHandleRevokePull,
 };
 
 vi.mock('@/viewmodels/useBackyViewModel', () => ({
@@ -70,6 +78,10 @@ describe('BackyPage', () => {
     mockBackyViewModel.pushResult = null;
     mockBackyViewModel.history = null;
     mockBackyViewModel.error = null;
+    mockBackyViewModel.pullKey = null;
+    mockBackyViewModel.pullSecret = null;
+    mockBackyViewModel.isGeneratingPull = false;
+    mockBackyViewModel.isRevokingPull = false;
   });
 
   it('renders page heading', () => {
@@ -82,7 +94,9 @@ describe('BackyPage', () => {
     mockBackyViewModel.isLoading = true;
     render(<BackyPage />);
 
-    expect(screen.getByText('加载中...')).toBeInTheDocument();
+    // Both cards show loading state
+    const loadingTexts = screen.getAllByText('加载中...');
+    expect(loadingTexts).toHaveLength(2);
   });
 
   it('shows config form when not configured', () => {
@@ -355,5 +369,79 @@ describe('BackyPage', () => {
 
     const refreshBtn = screen.getByRole('button', { name: /刷新历史/ });
     expect(refreshBtn).toBeDisabled();
+  });
+
+  // ==================================================================
+  // Pull webhook card
+  // ==================================================================
+  it('shows pull webhook generate button when no credentials', () => {
+    render(<BackyPage />);
+
+    expect(screen.getByText('拉取 Webhook')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /生成凭证/ })).toBeInTheDocument();
+  });
+
+  it('calls handleGeneratePull when generate button clicked', () => {
+    render(<BackyPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /生成凭证/ }));
+    expect(mockBackyHandleGeneratePull).toHaveBeenCalled();
+  });
+
+  it('shows pull webhook credentials when configured', () => {
+    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullSecret = 'test-secret-456';
+    render(<BackyPage />);
+
+    expect(screen.getByText('test-key-123')).toBeInTheDocument();
+    expect(screen.getByText('test-secret-456')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /重新生成/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /撤销/ })).toBeInTheDocument();
+  });
+
+  it('shows curl usage example when pull webhook configured', () => {
+    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullSecret = 'test-secret-456';
+    render(<BackyPage />);
+
+    expect(screen.getByText('调用示例')).toBeInTheDocument();
+    // curl example contains the header names (also appear as labels)
+    expect(screen.getByText(/curl -X POST/)).toBeInTheDocument();
+  });
+
+  it('calls handleRevokePull when revoke button clicked', () => {
+    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullSecret = 'test-secret-456';
+    render(<BackyPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /撤销/ }));
+    expect(mockBackyHandleRevokePull).toHaveBeenCalled();
+  });
+
+  it('calls handleGeneratePull when regenerate button clicked', () => {
+    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullSecret = 'test-secret-456';
+    render(<BackyPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /重新生成/ }));
+    expect(mockBackyHandleGeneratePull).toHaveBeenCalled();
+  });
+
+  it('disables generate button when generating', () => {
+    mockBackyViewModel.isGeneratingPull = true;
+    render(<BackyPage />);
+
+    const generateBtn = screen.getByRole('button', { name: /生成凭证/ });
+    expect(generateBtn).toBeDisabled();
+  });
+
+  it('disables revoke button when revoking', () => {
+    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullSecret = 'test-secret-456';
+    mockBackyViewModel.isRevokingPull = true;
+    render(<BackyPage />);
+
+    const revokeBtn = screen.getByRole('button', { name: /撤销/ });
+    expect(revokeBtn).toBeDisabled();
   });
 });

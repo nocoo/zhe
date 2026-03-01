@@ -7,15 +7,19 @@ import {
   testBackyConnection,
   pushBackup,
   fetchBackyHistory,
+  getBackyPullWebhook,
+  generateBackyPullWebhook,
+  revokeBackyPullWebhook,
 } from "@/actions/backy";
 import type { BackyHistoryResponse, BackyPushDetail } from "@/models/backy";
 import { getBackyEnvironment } from "@/models/backy";
 
 /** Initial data from SSR prefetch */
 export interface BackyInitialData {
-  webhookUrl: string;
-  maskedApiKey: string;
+  webhookUrl?: string;
+  maskedApiKey?: string;
   history?: BackyHistoryResponse;
+  pullWebhook?: { key: string; secret: string };
 }
 
 /** Return type of useBackyViewModel — can be used as a prop type */
@@ -31,7 +35,7 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
   const [webhookUrl, setWebhookUrl] = useState(initialData?.webhookUrl ?? "");
   const [apiKey, setApiKey] = useState("");
   const [maskedApiKey, setMaskedApiKey] = useState<string | null>(initialData?.maskedApiKey ?? null);
-  const [isConfigured, setIsConfigured] = useState(!!initialData);
+  const [isConfigured, setIsConfigured] = useState(!!initialData?.webhookUrl);
   const [isEditing, setIsEditing] = useState(false);
 
   // Loading states
@@ -46,6 +50,12 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
   const [pushResult, setPushResult] = useState<BackyPushDetail | null>(null);
   const [history, setHistory] = useState<BackyHistoryResponse | null>(initialData?.history ?? null);
   const [error, setError] = useState<string | null>(null);
+
+  // Pull webhook state
+  const [pullKey, setPullKey] = useState<string | null>(initialData?.pullWebhook?.key ?? null);
+  const [pullSecret, setPullSecret] = useState<string | null>(initialData?.pullWebhook?.secret ?? null);
+  const [isGeneratingPull, setIsGeneratingPull] = useState(false);
+  const [isRevokingPull, setIsRevokingPull] = useState(false);
 
   // Load config (and history if configured) on mount
   useEffect(() => {
@@ -66,6 +76,14 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
           setHistory(historyResult.data);
         }
       }
+
+      // Load pull webhook credentials
+      const pullResult = await getBackyPullWebhook();
+      if (!cancelled && pullResult.success && pullResult.data) {
+        setPullKey(pullResult.data.key);
+        setPullSecret(pullResult.data.secret);
+      }
+
       setIsLoading(false);
     })();
     return () => {
@@ -157,6 +175,33 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
     setError(null);
   }, []);
 
+  // Pull webhook actions
+  const handleGeneratePull = useCallback(async () => {
+    setIsGeneratingPull(true);
+    try {
+      const result = await generateBackyPullWebhook();
+      if (result.success && result.data) {
+        setPullKey(result.data.key);
+        setPullSecret(result.data.secret);
+      }
+    } finally {
+      setIsGeneratingPull(false);
+    }
+  }, []);
+
+  const handleRevokePull = useCallback(async () => {
+    setIsRevokingPull(true);
+    try {
+      const result = await revokeBackyPullWebhook();
+      if (result.success) {
+        setPullKey(null);
+        setPullSecret(null);
+      }
+    } finally {
+      setIsRevokingPull(false);
+    }
+  }, []);
+
   // Environment
   const environment = getBackyEnvironment();
 
@@ -184,6 +229,12 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
     history,
     error,
 
+    // Pull webhook
+    pullKey,
+    pullSecret,
+    isGeneratingPull,
+    isRevokingPull,
+
     // Actions
     handleSave,
     handleTest,
@@ -191,5 +242,7 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
     handleLoadHistory,
     startEditing,
     cancelEditing,
+    handleGeneratePull,
+    handleRevokePull,
   };
 }

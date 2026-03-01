@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 vi.mock('@/actions/backy', () => ({
   getBackyConfig: vi.fn().mockResolvedValue({ success: false }),
   fetchBackyHistory: vi.fn().mockResolvedValue({ success: false }),
+  getBackyPullWebhook: vi.fn().mockResolvedValue({ success: false }),
 }));
 
 vi.mock('@/components/dashboard/backy-page', () => ({
@@ -13,7 +14,7 @@ vi.mock('@/components/dashboard/backy-page', () => ({
 }));
 
 import BackyRoute from '@/app/(dashboard)/dashboard/backy/page';
-import { getBackyConfig, fetchBackyHistory } from '@/actions/backy';
+import { getBackyConfig, fetchBackyHistory, getBackyPullWebhook } from '@/actions/backy';
 
 describe('BackyRoute', () => {
   beforeEach(() => {
@@ -35,16 +36,18 @@ describe('BackyRoute', () => {
 
     expect(screen.getByText('BackyPage with data')).toBeInTheDocument();
     expect(getBackyConfig).toHaveBeenCalledOnce();
+    expect(getBackyPullWebhook).toHaveBeenCalledOnce();
     expect(fetchBackyHistory).toHaveBeenCalledOnce();
   });
 
-  it('renders BackyPage without data when config not found', async () => {
+  it('renders BackyPage with initialData even when config not found', async () => {
     vi.mocked(getBackyConfig).mockResolvedValue({ success: false });
 
     const jsx = await BackyRoute();
     render(jsx);
 
-    expect(screen.getByText('BackyPage')).toBeInTheDocument();
+    // Route always passes initialData object (with pullWebhook field)
+    expect(screen.getByText('BackyPage with data')).toBeInTheDocument();
     expect(fetchBackyHistory).not.toHaveBeenCalled();
   });
 
@@ -59,5 +62,19 @@ describe('BackyRoute', () => {
     render(jsx);
 
     expect(screen.getByText('BackyPage with data')).toBeInTheDocument();
+  });
+
+  it('renders BackyPage with pull webhook data', async () => {
+    vi.mocked(getBackyConfig).mockResolvedValue({ success: false });
+    vi.mocked(getBackyPullWebhook).mockResolvedValue({
+      success: true,
+      data: { key: 'test-key', secret: 'test-secret' },
+    });
+
+    const jsx = await BackyRoute();
+    render(jsx);
+
+    expect(screen.getByText('BackyPage with data')).toBeInTheDocument();
+    expect(getBackyPullWebhook).toHaveBeenCalledOnce();
   });
 });

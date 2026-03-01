@@ -108,6 +108,8 @@ function rowToUserSettings(row: Record<string, unknown>): UserSettings {
     backyApiKey: (row.backy_api_key as string) ?? null,
     xrayApiUrl: (row.xray_api_url as string) ?? null,
     xrayApiToken: (row.xray_api_token as string) ?? null,
+    backyPullKey: (row.backy_pull_key as string) ?? null,
+    backyPullSecret: (row.backy_pull_secret as string) ?? null,
   };
 }
 
@@ -855,6 +857,36 @@ export class ScopedDB {
       [this.userId, data.apiUrl, data.apiToken],
     );
     return rowToUserSettings(rows[0]);
+  }
+
+  // ---- Backy pull webhook ------------------------------------
+
+  /** Get Backy pull webhook credentials (key + secret) for this user, or null if not configured. */
+  async getBackyPullWebhook(): Promise<{ key: string; secret: string } | null> {
+    const settings = await this.getUserSettings();
+    if (!settings?.backyPullKey || !settings?.backyPullSecret) return null;
+    return { key: settings.backyPullKey, secret: settings.backyPullSecret };
+  }
+
+  /** Save Backy pull webhook credentials. Creates user_settings row if needed. */
+  async upsertBackyPullWebhook(data: { key: string; secret: string }): Promise<UserSettings> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO user_settings (user_id, preview_style, backy_pull_key, backy_pull_secret)
+       VALUES (?, 'favicon', ?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET backy_pull_key = excluded.backy_pull_key, backy_pull_secret = excluded.backy_pull_secret
+       RETURNING *`,
+      [this.userId, data.key, data.secret],
+    );
+    return rowToUserSettings(rows[0]);
+  }
+
+  /** Clear Backy pull webhook credentials. */
+  async deleteBackyPullWebhook(): Promise<UserSettings | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `UPDATE user_settings SET backy_pull_key = NULL, backy_pull_secret = NULL WHERE user_id = ? RETURNING *`,
+      [this.userId],
+    );
+    return rows[0] ? rowToUserSettings(rows[0]) : null;
   }
 
 }
