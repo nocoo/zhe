@@ -257,6 +257,34 @@ describe('overview model', () => {
       expect(health.syncSuccessRate).toBe(0);
     });
 
+    it('excludes skipped entries from success rate calculation', () => {
+      const entries: CronHistoryEntry[] = [
+        makeEntry({ status: 'skipped', total: 0 }),
+        makeEntry({ status: 'skipped', total: 0 }),
+        makeEntry({ status: 'success', total: 42 }),
+        makeEntry({ status: 'error', total: 0 }),
+      ];
+      const health = deriveWorkerHealth(entries);
+
+      // Only 2 meaningful entries (1 success + 1 error), skipped excluded
+      expect(health.syncSuccessRate).toBe(50);
+      expect(health.lastSyncTime).toBeTruthy();
+      expect(health.kvKeyCount).toBe(42);
+    });
+
+    it('returns null success rate when all entries are skipped', () => {
+      const entries: CronHistoryEntry[] = [
+        makeEntry({ status: 'skipped', total: 0 }),
+        makeEntry({ status: 'skipped', total: 0 }),
+      ];
+      const health = deriveWorkerHealth(entries);
+
+      // No meaningful entries → null rate
+      expect(health.syncSuccessRate).toBeNull();
+      expect(health.lastSyncTime).toBeNull();
+      expect(health.kvKeyCount).toBeNull();
+    });
+
     it('WorkerHealthStatus type is well-defined', () => {
       const status: WorkerHealthStatus = {
         cronHistory: [],

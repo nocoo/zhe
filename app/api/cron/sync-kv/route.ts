@@ -8,9 +8,9 @@ import { performKVSync } from '@/lib/kv/sync';
  * Full D1 → KV sync endpoint. Reads all links from D1 and bulk-writes them
  * to Cloudflare KV. Protected by WORKER_SECRET to prevent unauthorized access.
  *
- * Intended to be called by the Cloudflare Worker cron trigger (every 15 min)
+ * Intended to be called by the Cloudflare Worker cron trigger (every hour)
  * as a consistency safety net — the primary sync happens inline on link
- * create/update/delete.
+ * create/update/delete. Uses delta sync: skips if no changes since last sync.
  *
  * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
  */
@@ -48,6 +48,10 @@ export async function POST(request: Request) {
 
   // 3. Perform sync (D1 → KV + record cron history)
   const result = await performKVSync();
+
+  if (result.skipped) {
+    return NextResponse.json({ skipped: true, message: 'No changes since last sync' });
+  }
 
   if (result.error) {
     return NextResponse.json(

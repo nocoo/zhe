@@ -119,14 +119,15 @@ export interface WorkerHealthStatus {
 export function deriveWorkerHealth(history: CronHistoryEntry[]): WorkerHealthStatus {
   const lastSuccess = history.find((e) => e.status === 'success');
 
-  const total = history.length;
-  const successes = history.filter((e) => e.status === 'success').length;
+  // Skipped entries are neutral — exclude them from the success rate calculation
+  const meaningful = history.filter((e) => e.status !== 'skipped');
+  const successes = meaningful.filter((e) => e.status === 'success').length;
 
   return {
     cronHistory: history,
     lastSyncTime: lastSuccess?.timestamp ?? null,
     kvKeyCount: lastSuccess?.total ?? null,
-    syncSuccessRate: total > 0 ? Math.round((successes / total) * 100) : null,
+    syncSuccessRate: meaningful.length > 0 ? Math.round((successes / meaningful.length) * 100) : null,
   };
 }
 

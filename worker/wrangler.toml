@@ -8,9 +8,9 @@ binding = "LINKS_KV"
 id = "7d4702bf5657489cbc6a266e10db1aba"
 
 # ─── Cron Triggers ───────────────────────────────────────────────────────────
-# Runs every 15 minutes to sync D1 → KV for consistency
+# Runs every hour for consistency checks (delta sync skips if no changes)
 [triggers]
-crons = ["*/15 * * * *"]
+crons = ["0 * * * *"]
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
 # ORIGIN_URL      — Railway backend URL (e.g. https://zhe.to or Railway internal)

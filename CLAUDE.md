@@ -83,19 +83,19 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
                               ├─ KV hit → 307 redirect + fire-and-forget analytics
                               ├─ KV miss → forward to origin (middleware D1 fallback)
                               ├─ Reserved path → forward to origin
-                              └─ Cron (*/15) → POST /api/cron/sync-kv
+                              └─ Cron (hourly) → POST /api/cron/sync-kv (delta sync)
 ```
 
 ### Responsibilities
 
 1. **Edge redirect** — Resolves short links from KV at the edge without hitting D1. On KV hit: 307 redirect + fire-and-forget `POST /api/record-click` for analytics. On KV miss: forward to origin where middleware handles D1 lookup.
-2. **Cron trigger** — Every 15 minutes, calls `/api/cron/sync-kv` on origin to keep KV in sync with D1. This replaces the need for external schedulers (Railway cron, GitHub Actions, etc.).
+2. **Cron trigger** — Every hour, calls `/api/cron/sync-kv` on origin. Uses **delta sync**: a dirty flag on origin tracks KV mutations; if nothing changed since the last sync, the cron is skipped (no D1 query, no KV write). This replaces the need for external schedulers (Railway cron, GitHub Actions, etc.).
 
 ### Key Files
 
 | File | Role |
 |------|------|
-| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/15 * * * *` |
+| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `0 * * * *` |
 | `worker/src/index.ts` | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
 | `worker/test/index.test.ts` | 38 unit tests covering all routing, redirect, analytics, cron paths |
 | `worker/package.json` | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest` |

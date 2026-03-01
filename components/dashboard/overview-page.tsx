@@ -443,10 +443,12 @@ function CronHistoryTable({ history }: { history: WorkerHealthStatus["cronHistor
                     className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
                       entry.status === "success"
                         ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-destructive/10 text-destructive"
+                        : entry.status === "skipped"
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-destructive/10 text-destructive"
                     }`}
                   >
-                    {entry.status === "success" ? "成功" : "失败"}
+                    {entry.status === "success" ? "成功" : entry.status === "skipped" ? "跳过" : "失败"}
                   </span>
                 </td>
                 <td className="py-1.5 pr-4 text-right tabular-nums">{entry.synced}</td>

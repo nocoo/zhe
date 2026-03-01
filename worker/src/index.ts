@@ -4,8 +4,9 @@
  * Two responsibilities:
  * 1. FETCH: Full proxy for zhe.to — resolves short link redirects from KV at
  *    the edge, forwards everything else (dashboard, API, static) to Railway origin.
- * 2. SCHEDULED: Cron trigger every 15 min to call /api/cron/sync-kv on origin,
+ * 2. SCHEDULED: Cron trigger every hour to call /api/cron/sync-kv on origin,
  *    keeping KV in sync with D1 without needing an external scheduler.
+ *    Uses delta sync: skips if no changes since last sync.
  *
  * Flow for incoming requests:
  *   ┌─────────────┐

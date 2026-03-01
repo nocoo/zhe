@@ -1,11 +1,13 @@
 vi.unmock('@/lib/kv/client');
 vi.unmock('@/lib/kv/sync');
+vi.unmock('@/lib/kv/dirty');
 vi.unmock('@/lib/db');
 vi.unmock('@/lib/cron-history');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from '@/app/api/cron/sync-kv/route';
 import { getCronHistory, clearCronHistory } from '@/lib/cron-history';
+import { _resetDirtyFlag } from '@/lib/kv/dirty';
 
 const mockGetAllLinksForKV = vi.fn();
 const mockKvBulkPutLinks = vi.fn();
@@ -44,6 +46,7 @@ describe('POST /api/cron/sync-kv', () => {
     mockKvBulkPutLinks.mockReset();
     mockIsKVConfigured.mockReset();
     clearCronHistory();
+    _resetDirtyFlag(true); // default: dirty
     process.env.WORKER_SECRET = WORKER_SECRET;
   });
 
@@ -242,5 +245,28 @@ describe('POST /api/cron/sync-kv', () => {
     mockIsKVConfigured.mockReturnValue(false);
     await POST(makeRequest({ secret: WORKER_SECRET }));
     expect(getCronHistory()).toHaveLength(0);
+  });
+
+  // ---- Delta sync (skipped) ----
+
+  it('returns skipped response when dirty flag is false', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    _resetDirtyFlag(false);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const res = await POST(makeRequest({ secret: WORKER_SECRET }));
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.skipped).toBe(true);
+    expect(body.message).toContain('No changes');
+    expect(mockGetAllLinksForKV).not.toHaveBeenCalled();
+    expect(mockKvBulkPutLinks).not.toHaveBeenCalled();
+
+    const history = getCronHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0].status).toBe('skipped');
+
+    consoleSpy.mockRestore();
   });
 });

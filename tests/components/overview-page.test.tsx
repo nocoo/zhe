@@ -358,4 +358,19 @@ describe('OverviewPage', () => {
     render(<OverviewPage />);
     expect(screen.getByText('暂无同步记录')).toBeInTheDocument();
   });
+
+  it('renders skipped status badge in cron history', () => {
+    const entries = [
+      makeEntry({ status: 'skipped' as const, synced: 0, failed: 0, durationMs: 0 }),
+      makeEntry({ status: 'success', synced: 50, failed: 0, durationMs: 120 }),
+    ];
+    mockUseOverviewViewModel.mockReturnValue(vmState({
+      workerHealth: makeWorkerHealth({ cronHistory: entries }),
+    }));
+
+    render(<OverviewPage />);
+
+    expect(screen.getByText('跳过')).toBeInTheDocument();
+    expect(screen.getByText('成功')).toBeInTheDocument();
+  });
 });

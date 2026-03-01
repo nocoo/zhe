@@ -10,7 +10,11 @@
  * - When CLOUDFLARE_KV_NAMESPACE_ID is absent (local dev), every function
  *   silently returns without performing any I/O.
  * - Every fetch uses AbortSignal.timeout to prevent hung requests.
+ * - Write operations (kvPutLink, kvDeleteLink) automatically mark the
+ *   dirty flag so the next cron sync knows changes have occurred.
  */
+
+import { markKVDirty } from '@/lib/kv/dirty';
 
 /** Timeout for KV HTTP API requests (ms). */
 const KV_FETCH_TIMEOUT_MS = 3_000;
@@ -86,6 +90,8 @@ export async function kvPutLink(slug: string, data: KVLinkData): Promise<void> {
     if (!response.ok) {
       const text = await response.text();
       console.error(`KV put failed for slug "${slug}":`, response.status, text);
+    } else {
+      markKVDirty();
     }
   } catch (err) {
     console.error(`KV put error for slug "${slug}":`, err);
@@ -110,6 +116,8 @@ export async function kvDeleteLink(slug: string): Promise<void> {
     if (!response.ok) {
       const text = await response.text();
       console.error(`KV delete failed for slug "${slug}":`, response.status, text);
+    } else {
+      markKVDirty();
     }
   } catch (err) {
     console.error(`KV delete error for slug "${slug}":`, err);

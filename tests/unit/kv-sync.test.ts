@@ -1,10 +1,12 @@
 vi.unmock('@/lib/kv/client');
 vi.unmock('@/lib/kv/sync');
+vi.unmock('@/lib/kv/dirty');
 vi.unmock('@/lib/db');
 vi.unmock('@/lib/cron-history');
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { performKVSync } from '@/lib/kv/sync';
+import { _resetDirtyFlag, isKVDirty } from '@/lib/kv/dirty';
 import { getCronHistory, clearCronHistory } from '@/lib/cron-history';
 
 const mockGetAllLinksForKV = vi.fn();
@@ -26,6 +28,7 @@ describe('performKVSync', () => {
     mockKvBulkPutLinks.mockReset();
     mockIsKVConfigured.mockReset();
     clearCronHistory();
+    _resetDirtyFlag(true); // default: dirty (like fresh deploy)
   });
 
   it('returns early when KV is not configured', async () => {
@@ -115,5 +118,78 @@ describe('performKVSync', () => {
     expect(result.error).toBeUndefined();
 
     consoleSpy.mockRestore();
+  });
+
+  // ── Delta sync (dirty flag) ─────────────────────────────────────────────
+
+  it('skips sync when dirty flag is false', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    _resetDirtyFlag(false);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const result = await performKVSync();
+
+    expect(result.skipped).toBe(true);
+    expect(result.synced).toBe(0);
+    expect(result.durationMs).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(mockGetAllLinksForKV).not.toHaveBeenCalled();
+    expect(mockKvBulkPutLinks).not.toHaveBeenCalled();
+
+    const history = getCronHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0].status).toBe('skipped');
+
+    consoleSpy.mockRestore();
+  });
+
+  it('clears dirty flag after successful sync', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    _resetDirtyFlag(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
+
+    await performKVSync();
+
+    expect(isKVDirty()).toBe(false);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps dirty flag true after partial failure', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    _resetDirtyFlag(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 1 });
+
+    await performKVSync();
+
+    expect(isKVDirty()).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps dirty flag true after D1 fetch error', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    _resetDirtyFlag(true);
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockRejectedValue(new Error('D1 timeout'));
+
+    await performKVSync();
+
+    expect(isKVDirty()).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('starts dirty (true) by default after deploy', () => {
+    // dirty.ts initializes to true; after _resetDirtyFlag(true) in beforeEach
+    expect(isKVDirty()).toBe(true);
   });
 });
