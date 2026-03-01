@@ -11,7 +11,6 @@
  * - KV miss → forward to origin
  * - KV error → forward to origin
  * - Multi-segment paths → forward to origin
- * - Cron scheduled handler
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -36,7 +35,6 @@ interface MockCtx {
 
 let worker: {
   fetch: (request: Request, env: MockEnv, ctx: MockCtx) => Promise<Response>;
-  scheduled: (event: unknown, env: MockEnv, ctx: MockCtx) => void;
 };
 
 beforeEach(async () => {
@@ -361,37 +359,3 @@ describe('zhe-edge Worker — fetch handler', () => {
   });
 });
 
-describe('zhe-edge Worker — scheduled handler', () => {
-  it('calls /api/cron/sync-kv with correct auth', async () => {
-    const fetchMock = stubOriginFetch(200, JSON.stringify({ synced: 10, failed: 0 }));
-    const env = makeEnv();
-    const ctx = makeCtx();
-
-    worker.scheduled({} as unknown, env, ctx);
-
-    // The scheduled handler uses ctx.waitUntil
-    expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
-
-    // Execute the promise
-    await ctx.waitUntil.mock.calls[0][0];
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, opts] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://zhe-origin.railway.app/api/cron/sync-kv');
-    expect(opts.method).toBe('POST');
-
-    const headers = opts.headers as Record<string, string>;
-    expect(headers['Authorization']).toBe('Bearer test-worker-secret');
-  });
-
-  it('does not throw when cron fetch fails', async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('network error'));
-    const env = makeEnv();
-    const ctx = makeCtx();
-
-    worker.scheduled({} as unknown, env, ctx);
-
-    // Should not throw
-    await expect(ctx.waitUntil.mock.calls[0][0]).resolves.toBeUndefined();
-  });
-});

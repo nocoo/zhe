@@ -1,12 +1,11 @@
 /**
  * zhe-edge — Cloudflare Worker for zhe.to
  *
- * Two responsibilities:
- * 1. FETCH: Full proxy for zhe.to — resolves short link redirects from KV at
- *    the edge, forwards everything else (dashboard, API, static) to Railway origin.
- * 2. SCHEDULED: Cron trigger every hour to call /api/cron/sync-kv on origin,
- *    keeping KV in sync with D1 without needing an external scheduler.
- *    Uses delta sync: skips if no changes since last sync.
+ * Full proxy for zhe.to — resolves short link redirects from KV at the edge,
+ * forwards everything else (dashboard, API, static) to Railway origin.
+ *
+ * KV sync is handled by: (1) inline kvPutLink/kvDeleteLink on each mutation,
+ * and (2) a full D1 → KV sync on server startup. No cron trigger needed.
  *
  * Flow for incoming requests:
  *   ┌─────────────┐
@@ -271,33 +270,8 @@ async function handleFetch(
   return forwardToOrigin(request, env);
 }
 
-// ─── Scheduled Handler (Cron) ───────────────────────────────────────────────
-
-async function handleScheduled(env: Env): Promise<void> {
-  const originBase = env.ORIGIN_URL.replace(/\/$/, '');
-  const url = `${originBase}/api/cron/sync-kv`;
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.WORKER_SECRET}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json() as Record<string, unknown>;
-    console.log(`Cron sync-kv: ${response.status}`, data);
-  } catch (err) {
-    console.error('Cron sync-kv failed:', err);
-  }
-}
-
 // ─── Worker Export ──────────────────────────────────────────────────────────
 
 export default {
   fetch: handleFetch,
-  scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(handleScheduled(env));
-  },
 } satisfies ExportedHandler<Env>;

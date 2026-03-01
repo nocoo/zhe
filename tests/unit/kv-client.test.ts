@@ -1,5 +1,4 @@
 vi.unmock('@/lib/kv/client');
-vi.unmock('@/lib/kv/dirty');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
@@ -10,7 +9,6 @@ import {
   kvBulkPutLinks,
   type KVLinkData,
 } from '@/lib/kv/client';
-import { isKVDirty, _resetDirtyFlag } from '@/lib/kv/dirty';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -153,30 +151,6 @@ describe('kvPutLink', () => {
     );
     consoleSpy.mockRestore();
   });
-
-  it('marks KV dirty on successful put', async () => {
-    setEnv();
-    _resetDirtyFlag(false);
-    mockFetch.mockResolvedValueOnce({ ok: true });
-
-    await kvPutLink('slug', sampleData);
-    expect(isKVDirty()).toBe(true);
-  });
-
-  it('does not mark KV dirty on failed put', async () => {
-    setEnv();
-    _resetDirtyFlag(false);
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 403,
-      text: async () => 'Forbidden',
-    });
-
-    await kvPutLink('slug', sampleData);
-    expect(isKVDirty()).toBe(false);
-    consoleSpy.mockRestore();
-  });
 });
 
 // ─── kvDeleteLink ───────────────────────────────────────────────────────────
@@ -235,30 +209,6 @@ describe('kvDeleteLink', () => {
       expect.stringContaining('KV delete error'),
       expect.any(Error),
     );
-    consoleSpy.mockRestore();
-  });
-
-  it('marks KV dirty on successful delete', async () => {
-    setEnv();
-    _resetDirtyFlag(false);
-    mockFetch.mockResolvedValueOnce({ ok: true });
-
-    await kvDeleteLink('slug');
-    expect(isKVDirty()).toBe(true);
-  });
-
-  it('does not mark KV dirty on failed delete', async () => {
-    setEnv();
-    _resetDirtyFlag(false);
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      text: async () => 'Not Found',
-    });
-
-    await kvDeleteLink('slug');
-    expect(isKVDirty()).toBe(false);
     consoleSpy.mockRestore();
   });
 });
