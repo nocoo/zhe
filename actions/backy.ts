@@ -10,7 +10,7 @@ import {
   type BackyHistoryResponse,
   type BackyPushDetail,
 } from '@/models/backy';
-import { generatePullWebhookKey, generatePullWebhookSecret } from '@/models/backy.server';
+import { generatePullWebhookKey } from '@/models/backy.server';
 import { serializeLinksForExport, BACKUP_SCHEMA_VERSION, type BackupEnvelope } from '@/models/settings';
 
 // ---------------------------------------------------------------------------
@@ -274,10 +274,10 @@ export async function pushBackup(): Promise<{
 // Pull webhook actions (our endpoint that Backy calls)
 // ---------------------------------------------------------------------------
 
-/** Get the current pull webhook credentials, or null if not configured. */
+/** Get the current pull webhook key, or null if not configured. */
 export async function getBackyPullWebhook(): Promise<{
   success: boolean;
-  data?: { key: string; secret: string };
+  data?: { key: string };
   error?: string;
 }> {
   try {
@@ -294,10 +294,10 @@ export async function getBackyPullWebhook(): Promise<{
   }
 }
 
-/** Generate (or regenerate) pull webhook credentials. */
+/** Generate (or regenerate) pull webhook key. */
 export async function generateBackyPullWebhook(): Promise<{
   success: boolean;
-  data?: { key: string; secret: string };
+  data?: { key: string };
   error?: string;
 }> {
   try {
@@ -305,11 +305,10 @@ export async function generateBackyPullWebhook(): Promise<{
     if (!db) return { success: false, error: 'Unauthorized' };
 
     const key = generatePullWebhookKey();
-    const secret = generatePullWebhookSecret();
 
-    await db.upsertBackyPullWebhook({ key, secret });
+    await db.upsertBackyPullWebhook({ key });
 
-    return { success: true, data: { key, secret } };
+    return { success: true, data: { key } };
   } catch (error) {
     console.error('Failed to generate pull webhook:', error);
     return { success: false, error: 'Failed to generate pull webhook' };
