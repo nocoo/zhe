@@ -491,21 +491,17 @@ export async function upsertTweetCache(data: {
 // ============================================
 
 /**
- * Look up a user by their Backy pull webhook key and verify the secret.
- * Returns the userId if the key+secret pair is valid, null otherwise.
+ * Look up a user by their Backy pull webhook key.
+ * Returns the userId if the key is valid, null otherwise.
  */
 export async function verifyBackyPullWebhook(
   key: string,
-  secret: string,
 ): Promise<{ userId: string } | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT user_id, backy_pull_secret FROM user_settings WHERE backy_pull_key = ? LIMIT 1',
+    'SELECT user_id FROM user_settings WHERE backy_pull_key = ? LIMIT 1',
     [key],
   );
   if (!rows[0]) return null;
-
-  const storedSecret = rows[0].backy_pull_secret as string;
-  if (!storedSecret || storedSecret !== secret) return null;
 
   return { userId: rows[0].user_id as string };
 }
