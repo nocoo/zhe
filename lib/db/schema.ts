@@ -126,7 +126,6 @@ export const userSettings = sqliteTable('user_settings', {
   xrayApiUrl: text('xray_api_url'),
   xrayApiToken: text('xray_api_token'),
   backyPullKey: text('backy_pull_key'),
-  backyPullSecret: text('backy_pull_secret'),
 });
 
 export const tweetCache = sqliteTable('tweet_cache', {
