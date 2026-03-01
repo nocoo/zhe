@@ -364,7 +364,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
 
           {vm.isLoading ? (
             <p className="text-sm text-muted-foreground">加载中...</p>
-          ) : vm.pullKey && vm.pullSecret ? (
+          ) : vm.pullKey ? (
             /* ── Credentials configured ────────────────────────── */
             <div className="space-y-4">
               {/* Webhook URL */}
@@ -380,33 +380,18 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
 
               {/* Key */}
               <div className="space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  Key
-                  <span className="ml-1 text-[10px] text-muted-foreground/60">
-                    (X-Webhook-Key)
-                  </span>
-                </p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground">Key</p>
+                  <code className="rounded bg-accent/60 px-1.5 py-0.5 text-[10px] text-muted-foreground/70 font-mono">
+                    X-Webhook-Key
+                  </code>
+                  <CopyButton value="X-Webhook-Key" label="复制 Header 名" />
+                </div>
                 <div className="flex items-center gap-2">
                   <code className="rounded bg-accent px-2 py-1 text-xs break-all font-mono">
                     {vm.pullKey}
                   </code>
                   <CopyButton value={vm.pullKey} label="复制 Key" />
-                </div>
-              </div>
-
-              {/* Secret */}
-              <div className="space-y-1.5">
-                <p className="text-xs text-muted-foreground">
-                  Secret
-                  <span className="ml-1 text-[10px] text-muted-foreground/60">
-                    (X-Webhook-Secret)
-                  </span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="rounded bg-accent px-2 py-1 text-xs break-all font-mono">
-                    {vm.pullSecret}
-                  </code>
-                  <CopyButton value={vm.pullSecret} label="复制 Secret" />
                 </div>
               </div>
 
@@ -444,7 +429,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
               <div className="rounded-md border bg-muted/50 p-3">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">调用示例</p>
                 <code className="block whitespace-pre-wrap text-[11px] text-muted-foreground">
-                  {`curl -X POST ${pullWebhookUrl} \\\n  -H "X-Webhook-Key: ${vm.pullKey}" \\\n  -H "X-Webhook-Secret: ${vm.pullSecret}"`}
+                  {`curl -X POST ${pullWebhookUrl} \\\n  -H "X-Webhook-Key: ${vm.pullKey}"`}
                 </code>
               </div>
             </div>
@@ -452,7 +437,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
             /* ── No credentials ────────────────────────────────── */
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                生成 Webhook 凭证后，可将 URL、Key 和 Secret 配置到 Backy，实现定时自动备份。
+                生成 Webhook Key 后，可将 URL 和 Key 配置到 Backy，实现定时自动备份。
               </p>
               <Button
                 onClick={vm.handleGeneratePull}
