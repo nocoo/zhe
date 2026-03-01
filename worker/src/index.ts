@@ -149,6 +149,10 @@ async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   // Railway's internal proxy cannot overwrite it with origin.zhe.to.
   // This is critical for NextAuth redirect_uri generation and post-auth redirects.
   headers.set('X-Forwarded-Host', url.hostname);
+  // Railway's reverse proxy may overwrite X-Forwarded-Host with origin.zhe.to.
+  // Use a custom header that Railway won't touch so the origin can always
+  // recover the real public hostname (e.g. zhe.to).
+  headers.set('X-Real-Host', url.hostname);
   // Pass Cloudflare geo headers for analytics (replaces Vercel geo headers)
   const cfCountry = request.headers.get('CF-IPCountry');
   const cfCity = (request as unknown as { cf?: { city?: string } }).cf?.city;

@@ -158,6 +158,18 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(headers.get('X-Forwarded-Host')).toBe('zhe.to');
     });
 
+    it('sets X-Real-Host to original public hostname (Railway-safe)', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+      await worker.fetch(makeRequest('/dashboard'), env, makeCtx());
+
+      const [, opts] = fetchMock.mock.calls[0];
+      const headers = opts.headers as Headers;
+      // X-Real-Host is a custom header that Railway's reverse proxy will not
+      // overwrite, ensuring the origin can always recover the real public host.
+      expect(headers.get('X-Real-Host')).toBe('zhe.to');
+    });
+
     it('uses redirect: manual to pass through origin redirects', async () => {
       const fetchMock = stubOriginFetch();
       const env = makeEnv();

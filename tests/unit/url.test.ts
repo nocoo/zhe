@@ -60,4 +60,26 @@ describe("resolvePublicOrigin", () => {
     });
     expect(resolvePublicOrigin(req)).toBe("https://zhe.to");
   });
+
+  it("prefers x-real-host over x-forwarded-host", () => {
+    const req = new Request("http://0.0.0.0:7005/api/webhook/abc", {
+      headers: {
+        "x-forwarded-proto": "https",
+        "x-real-host": "zhe.to",
+        "x-forwarded-host": "origin.zhe.to",
+        host: "0.0.0.0:7005",
+      },
+    });
+    expect(resolvePublicOrigin(req)).toBe("https://zhe.to");
+  });
+
+  it("uses x-real-host even when x-forwarded-host is absent", () => {
+    const req = new Request("http://0.0.0.0:7005/api/webhook/abc", {
+      headers: {
+        "x-forwarded-proto": "https",
+        "x-real-host": "zhe.to",
+      },
+    });
+    expect(resolvePublicOrigin(req)).toBe("https://zhe.to");
+  });
 });
