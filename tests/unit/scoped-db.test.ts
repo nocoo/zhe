@@ -916,7 +916,7 @@ describe('ScopedDB', () => {
       expect(stats.totalClicks).toBe(18);
       expect(stats.clickTrend).toHaveLength(1); // all 3 clicks on same day
       expect(stats.clickTrend[0].clicks).toBe(3);
-      expect(stats.clickTrend[0].origin).toBe(0); // no source tag → neither origin nor worker
+      expect(stats.clickTrend[0].origin).toBe(3); // no source tag (NULL) → counted as origin
       expect(stats.clickTrend[0].worker).toBe(0);
     });
 

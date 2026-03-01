@@ -541,7 +541,7 @@ export class ScopedDB {
       ),
       // Click trend: GROUP BY date with source breakdown
       executeD1Query<Record<string, unknown>>(
-        `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks, SUM(CASE WHEN a.source = 'origin' THEN 1 ELSE 0 END) as origin_clicks, SUM(CASE WHEN a.source = 'worker' THEN 1 ELSE 0 END) as worker_clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
+        `SELECT date(a.created_at / 1000, 'unixepoch') as date, COUNT(*) as clicks, SUM(CASE WHEN a.source = 'origin' OR a.source IS NULL THEN 1 ELSE 0 END) as origin_clicks, SUM(CASE WHEN a.source = 'worker' THEN 1 ELSE 0 END) as worker_clicks ${analyticsJoin} GROUP BY date ORDER BY date ASC`,
         analyticsParams,
       ),
       // Analytics breakdowns

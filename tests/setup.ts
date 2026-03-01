@@ -239,7 +239,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       
       // INSERT INTO analytics
       if (sqlLower.startsWith('insert into analytics')) {
-        const [linkId, country, city, device, browser, os, referer, createdAt] = params;
+        const [linkId, country, city, device, browser, os, referer, source, createdAt] = params;
         const id = getNextAnalyticsId();
         const record = {
           id,
@@ -250,13 +250,14 @@ vi.mock('@/lib/db/d1-client', async () => {
           browser,
           os,
           referer,
+          source: source ?? null,
           created_at: createdAt,
         };
         mockAnalytics.push(record as unknown as import('@/lib/db/schema').Analytics);
         return [record] as T[];
       }
       
-      // SELECT date(...) as date, COUNT(*) as clicks FROM analytics a JOIN links ... GROUP BY date (overview click trend)
+      // SELECT date(...) as date, COUNT(*) as clicks, SUM(...) as origin_clicks, SUM(...) as worker_clicks FROM analytics a JOIN links ... GROUP BY date (overview click trend)
       if (sqlLower.includes('count(*)') && sqlLower.includes('from analytics') && sqlLower.includes('join links') && sqlLower.includes('group by date') && !sqlLower.includes('a.link_id = ?')) {
         const [userId] = params;
         const userLinkIds = new Set<number>();
@@ -264,17 +265,25 @@ vi.mock('@/lib/db/d1-client', async () => {
           const rawLink = link as unknown as Record<string, unknown>;
           if (rawLink.user_id === userId) userLinkIds.add(rawLink.id as number);
         }
-        const dateCounts: Record<string, number> = {};
+        const dateCounts: Record<string, { clicks: number; origin_clicks: number; worker_clicks: number }> = {};
         for (const a of mockAnalytics) {
           const rawA = a as unknown as Record<string, unknown>;
           if (userLinkIds.has(rawA.link_id as number)) {
             const date = new Date(rawA.created_at as number).toISOString().slice(0, 10);
-            dateCounts[date] = (dateCounts[date] || 0) + 1;
+            if (!dateCounts[date]) dateCounts[date] = { clicks: 0, origin_clicks: 0, worker_clicks: 0 };
+            dateCounts[date].clicks += 1;
+            const source = rawA.source as string | null;
+            if (source === 'worker') {
+              dateCounts[date].worker_clicks += 1;
+            } else {
+              // source === 'origin' or NULL (legacy) both count as origin
+              dateCounts[date].origin_clicks += 1;
+            }
           }
         }
         return Object.entries(dateCounts)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, clicks]) => ({ date, clicks })) as T[];
+          .map(([date, counts]) => ({ date, clicks: counts.clicks, origin_clicks: counts.origin_clicks, worker_clicks: counts.worker_clicks })) as T[];
       }
 
       // SELECT a.device/browser/os, COUNT(*) as count FROM analytics a JOIN links ... GROUP BY ... (overview breakdown, no link_id filter)
