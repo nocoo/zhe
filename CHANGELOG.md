@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.6.0] - 2026-03-01
+
+### Added
+- Click source tagging: analytics records now include `source` field (`'origin'` for middleware, `'worker'` for Cloudflare Worker edge KV)
+- 3-line click trend chart on Overview dashboard showing total clicks, worker (edge) clicks, and origin (middleware) clicks with gradient fills
+
+### Changed
+- `ClickTrendPoint` model extended with `origin` and `worker` breakdown fields
+- Click trend chart fills full card height with responsive `min-h-[200px]`
+- Worker sends `source: 'worker'` in `/api/record-click` payload; middleware passes `source: 'origin'` to `recordClick()`
+
 ## [v1.5.1] - 2026-03-01
 
 ### Fixed
