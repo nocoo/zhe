@@ -27,5 +27,8 @@ export default async function globalTeardown(): Promise<void> {
   // Delete uploads
   await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id], { softFail: true });
 
+  // Delete webhooks
+  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER.id], { softFail: true });
+
   console.log('[pw:global-teardown] Done.');
 }
