@@ -42,12 +42,12 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
           {webhookLoading ? (
             <p className="text-sm text-muted-foreground">加载中...</p>
           ) : token && webhookUrl ? (
-            <div className="space-y-4">
+            <div className="space-y-4" data-testid="webhook-token-section">
               {/* Token display */}
               <div className="space-y-1.5">
                 <p className="text-xs text-muted-foreground">令牌</p>
                 <div className="flex items-center gap-2">
-                  <code className="rounded bg-accent px-2 py-1 text-xs">
+                  <code className="rounded bg-accent px-2 py-1 text-xs" data-testid="webhook-token-value">
                     {token}
                   </code>
                   <Button
@@ -56,6 +56,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                     className="h-7 w-7 p-0"
                     onClick={() => copyToClipboard(token)}
                     aria-label="复制令牌"
+                    data-testid="copy-token-btn"
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
@@ -66,7 +67,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               <div className="space-y-1.5">
                 <p className="text-xs text-muted-foreground">Webhook URL</p>
                 <div className="flex items-center gap-2">
-                  <code className="rounded bg-accent px-2 py-1 text-xs break-all">
+                  <code className="rounded bg-accent px-2 py-1 text-xs break-all" data-testid="webhook-url-value">
                     {webhookUrl}
                   </code>
                   <Button
@@ -75,6 +76,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                     className="h-7 w-7 shrink-0 p-0"
                     onClick={() => copyToClipboard(webhookUrl)}
                     aria-label="复制 URL"
+                    data-testid="copy-url-btn"
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
@@ -88,6 +90,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                   disabled={isGenerating}
                   variant="outline"
                   size="sm"
+                  data-testid="regenerate-token-btn"
                 >
                   {isGenerating ? "生成中..." : "重新生成"}
                 </Button>
@@ -96,6 +99,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                   disabled={isRevoking}
                   variant="outline"
                   size="sm"
+                  data-testid="revoke-token-btn"
                 >
                   {isRevoking ? "撤销中..." : "撤销令牌"}
                 </Button>
@@ -129,6 +133,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               disabled={isGenerating}
               variant="outline"
               size="sm"
+              data-testid="generate-token-btn"
             >
               {isGenerating ? "生成中..." : "生成令牌"}
             </Button>
@@ -148,7 +153,7 @@ function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateL
   const postMethod = docs.methods.find((m) => m.method === "POST");
 
   return (
-    <div className="space-y-4 border-t border-border/50 pt-4">
+    <div className="space-y-4 border-t border-border/50 pt-4" data-testid="webhook-usage-docs">
       <p className="text-xs font-medium text-foreground">使用说明</p>
 
       {/* Supported methods */}
