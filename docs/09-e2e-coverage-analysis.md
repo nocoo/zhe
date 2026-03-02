@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**82 个 E2E 测试用例**（Vitest 55 + Playwright 27）。
+当前统计：**139 个 E2E 测试用例**（Vitest 106 + Playwright 33）。
 
 ---
 
@@ -97,6 +97,29 @@
 | GitHub 链接与主题切换按钮 | `playwright/landing.spec.ts` | 1 | Playwright |
 | `/login` 重定向到 `/` | `playwright/landing.spec.ts` | 1 | Playwright |
 
+### 1.9 短链接重定向
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 短链接 307 重定向（创建链接 → 访问 → 验证跳转） | `playwright/redirect.spec.ts` | 3 | Playwright |
+
+### 1.10 Webhook API
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| HEAD 连接测试 / GET 状态与文档 / POST 创建链接 | `e2e/webhook.test.ts` | 17 | Vitest E2E |
+| 幂等性、限流（429）、自定义 Slug、文件夹分配 | `e2e/webhook.test.ts` | （含上述 17） | Vitest E2E |
+
+### 1.11 文件夹系统
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 文件夹 CRUD（创建/列表/更新/删除） | `e2e/folders.test.ts` | 7 | Vitest E2E |
+| 名称/图标验证（空名/超长/非法图标/边界） | `e2e/folders.test.ts` | 9 | Vitest E2E |
+| 链接分类（分配文件夹/移动/删除级联） | `e2e/folders.test.ts` | 5 | Vitest E2E |
+| 多用户隔离（跨用户不可见/不可改/不可删） | `e2e/folders.test.ts` | 4 | Vitest E2E |
+| 边界情况（空更新/同时更新名称和图标） | `e2e/folders.test.ts` | 4 | Vitest E2E |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -105,9 +128,6 @@
 
 | 流程 | 涉及代码 | 现有测试 |
 |------|---------|---------|
-| **短链接 307 重定向（真实 HTTP）** | `middleware.ts` | Vitest 测试了 lookup + analytics 但未穿过 middleware 触发真实 307；Playwright 从未访问过短链接 |
-| **Webhook 创建链接** (`POST /api/webhook/[token]`) | `app/api/webhook/[token]/route.ts` | 有单元测试，无 E2E 覆盖（幂等性、限流、自定义 Slug 均未测） |
-| **文件夹 CRUD** | `actions/folders.ts` | 完全无 E2E 测试（创建/重命名/删除/移动链接到文件夹） |
 | **数据导入/导出 round-trip** | `actions/settings.ts` | 有单元测试，无 E2E 验证导出 → 导入 → 数据一致性 |
 
 ### 2.2 功能页面交互
@@ -150,13 +170,13 @@
 
 以下是按业务影响排序的最关键缺口，建议优先补充：
 
-### P0 — 产品核心功能，必须覆盖
+### P0 — 产品核心功能 ✅ 已全部覆盖
 
-| # | 缺口 | 为什么重要 | 建议补充方案 |
-|---|------|-----------|-------------|
-| 1 | **短链接 307 重定向** | 这是产品最核心的功能——用户访问 `zhe.to/slug` 触发 307 跳转。目前无任何测试在真实 HTTP 层面验证这条路径。 | Playwright：创建链接 → 浏览器访问短链 → 断言最终 URL 是目标地址 + 点击计数递增 |
-| 2 | **Webhook 创建链接** | 公开的 API 入口，外部系统通过它创建短链接。幂等性和限流是生产安全的关键。 | Vitest E2E：生成 Token → POST 创建链接 → 验证幂等（重复 URL 返回同一短链） → 验证限流（超频 → 429） → 验证自定义 Slug |
-| 3 | **文件夹系统** | 用户组织和分类链接的核心功能，Inbox 流程的基础。 | Vitest E2E：创建文件夹 → 移动链接到文件夹 → 重命名 → 删除文件夹验证链接归属；Playwright：UI 级文件夹操作 |
+| # | 流程 | 测试文件 | 状态 |
+|---|------|---------|------|
+| 1 | **短链接 307 重定向** | `playwright/redirect.spec.ts` (3 tests) | ✅ 已覆盖 |
+| 2 | **Webhook 创建链接** | `e2e/webhook.test.ts` (17 tests) | ✅ 已覆盖 |
+| 3 | **文件夹系统** | `e2e/folders.test.ts` (29 tests) | ✅ 已覆盖 |
 
 ### P1 — 重要用户流程，尽快补充
 
@@ -192,9 +212,9 @@
 | Slug 编辑 | ✅ | ✅ | — | 充分 |
 | 标签系统 | ✅ | ✅ | ❌ | Action 充分，UI 缺失 |
 | 文件上传 | ✅ | ✅ | ❌ | Action 充分，UI 缺失 |
-| 文件夹系统 | ✅ | ❌ | ❌ | **严重缺失** |
-| 短链接重定向 | ✅ | ⚠️ 部分 | ❌ | **核心缺口** |
-| Webhook API | ✅ | ❌ | ❌ | **严重缺失** |
+| 文件夹系统 | ✅ | ✅ | — | 充分 |
+| 短链接重定向 | ✅ | ⚠️ 部分 | ✅ | 充分 |
+| Webhook API | ✅ | ✅ | — | 充分 |
 | 数据导入/导出 | ✅ | ❌ | ❌ | 缺失 |
 | 搜索功能 | ✅ | — | ⚠️ 仅弹窗 | 缺失 |
 | Overview 统计 | ✅ | — | ⚠️ 仅导航 | 缺失 |
