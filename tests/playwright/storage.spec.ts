@@ -18,19 +18,20 @@ const STORAGE_URL = '/dashboard/storage';
 async function goToStorage(page: Page): Promise<void> {
   await page.goto(STORAGE_URL);
   // Wait for the skeleton to disappear and summary cards to render.
-  // The "R2 总存储" label appears once scan data arrives.
-  await page.getByText('R2 总存储').waitFor({ timeout: 30_000 });
+  // Scope to main to avoid matching any hidden responsive duplicates.
+  await page.locator('main').getByText('R2 总存储', { exact: true }).waitFor({ timeout: 30_000 });
 }
 
 test.describe('Storage Management', () => {
   test('page renders with summary cards after scan', async ({ page }) => {
     await goToStorage(page);
 
-    // 4 summary cards
-    await expect(page.getByText('R2 总存储')).toBeVisible();
-    await expect(page.getByText('D1 数据库')).toBeVisible();
-    await expect(page.getByText('孤儿文件')).toBeVisible();
-    await expect(page.getByText('状态')).toBeVisible();
+    // 4 summary cards (scoped to main to avoid sidebar/responsive duplicates)
+    const main = page.locator('main');
+    await expect(main.getByText('R2 总存储', { exact: true })).toBeVisible();
+    await expect(main.getByText('D1 数据库', { exact: true })).toBeVisible();
+    await expect(main.getByText('孤儿文件', { exact: true })).toBeVisible();
+    await expect(main.getByText('状态', { exact: true })).toBeVisible();
 
     // R2 storage sub-text shows file count
     await expect(page.getByText(/个文件/)).toBeVisible();
@@ -72,7 +73,7 @@ test.describe('Storage Management', () => {
     await rescanBtn.click();
 
     // After scan completes, summary cards should still be visible
-    await page.getByText('R2 总存储').waitFor({ timeout: 30_000 });
+    await page.locator('main').getByText('R2 总存储', { exact: true }).waitFor({ timeout: 30_000 });
     await expect(rescanBtn).toBeEnabled();
   });
 
@@ -96,7 +97,7 @@ test.describe('Storage Management', () => {
     await timeBtn.click();
 
     // No crash, page still shows data
-    await expect(page.getByText('R2 总存储')).toBeVisible();
+    await expect(page.locator('main').getByText('R2 总存储', { exact: true })).toBeVisible();
   });
 
   test('D1 database card shows connection status', async ({ page }) => {

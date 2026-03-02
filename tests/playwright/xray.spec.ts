@@ -22,7 +22,7 @@ const XRAY_URL = '/dashboard/xray';
 /** Navigate to the Xray page and wait for hydration. */
 async function goToXray(page: Page): Promise<void> {
   await page.goto(XRAY_URL);
-  await page.getByText('API 配置').waitFor({ timeout: 15_000 });
+  await page.getByRole('heading', { name: 'API 配置' }).waitFor({ timeout: 15_000 });
   await page.waitForLoadState('networkidle', { timeout: 15_000 });
 }
 
@@ -50,7 +50,7 @@ test.describe.serial('Xray Page', () => {
     await goToXray(page);
 
     // Config card
-    await expect(page.getByText('API 配置')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'API 配置' })).toBeVisible();
     await expect(page.getByText('配置 xray API 的地址和认证 Key')).toBeVisible();
 
     // URL mode selector buttons (presets + Custom)
@@ -139,12 +139,12 @@ test.describe.serial('Xray Page', () => {
     await expect(page.getByText('Mock 数据')).toBeVisible({ timeout: 10_000 });
 
     // Tweet card should show content (author, metrics section)
-    // The mock data includes standard tweet elements
-    await expect(page.getByText('原帖')).toBeVisible();
+    // Mock data may include quoted tweets, so "原帖" can appear multiple times
+    await expect(page.getByText('原帖').first()).toBeVisible();
 
-    // Metric labels should be visible
-    await expect(page.getByText('浏览')).toBeVisible();
-    await expect(page.getByText('喜欢')).toBeVisible();
+    // Metric labels should be visible (use .first() — quoted tweets duplicate metrics)
+    await expect(page.getByText('浏览').first()).toBeVisible();
+    await expect(page.getByText('喜欢').first()).toBeVisible();
   });
 
   test('raw JSON toggle shows and hides JSON data', async ({ page }) => {
@@ -192,8 +192,8 @@ test.describe.serial('Xray Page', () => {
     // Wait for configured state — API URL displayed
     await expect(page.locator('code').filter({ hasText: 'xray.example.com' })).toBeVisible({ timeout: 10_000 });
 
-    // Masked key displayed
-    await expect(page.locator('code').filter({ hasText: /\*{4,}/ })).toBeVisible();
+    // Masked key displayed (uses bullet character • for masking)
+    await expect(page.locator('code').filter({ hasText: /•{4,}/ })).toBeVisible();
 
     // Edit button
     await expect(page.getByLabel('编辑配置')).toBeVisible();

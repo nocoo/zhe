@@ -98,8 +98,8 @@ test.describe.serial('Backy Page', () => {
     // Wait for configured state to appear — webhook URL is displayed as code
     await expect(page.locator('code').filter({ hasText: 'backy.example.com' })).toBeVisible({ timeout: 10_000 });
 
-    // Masked API key is displayed (ends with *****)
-    await expect(page.locator('code').filter({ hasText: /\*{4,}/ })).toBeVisible();
+    // Masked API key is displayed (uses bullet character • for masking)
+    await expect(page.locator('code').filter({ hasText: /•{4,}/ })).toBeVisible();
 
     // Edit button is visible
     await expect(page.getByLabel('编辑配置')).toBeVisible();
@@ -175,10 +175,11 @@ test.describe.serial('Backy Page', () => {
     await page.getByRole('button', { name: '生成凭证' }).click();
 
     // Wait for credentials to appear — Webhook URL should be visible
-    await expect(page.locator('code').filter({ hasText: '/api/backy/pull' })).toBeVisible({ timeout: 10_000 });
+    // Multiple <code> elements contain the URL (display + curl example), use .first()
+    await expect(page.locator('code').filter({ hasText: '/api/backy/pull' }).first()).toBeVisible({ timeout: 10_000 });
 
     // Key is displayed (non-empty)
-    const keyHeader = page.getByText('X-Webhook-Key');
+    const keyHeader = page.getByText('X-Webhook-Key', { exact: true });
     await expect(keyHeader).toBeVisible();
 
     // Regenerate and revoke buttons now visible
@@ -198,18 +199,20 @@ test.describe.serial('Backy Page', () => {
     // Wait for credentials to be displayed
     await expect(page.getByRole('button', { name: '重新生成' })).toBeVisible({ timeout: 10_000 });
 
-    // Capture current key value — find the code element that contains the key
-    // The key is in a code element with font-mono class, containing an alphanumeric string
-    const pullKeyCodeElements = page.locator('.font-mono').filter({ hasText: /^[a-zA-Z0-9_-]{10,}$/ });
-    const oldKey = await pullKeyCodeElements.first().textContent();
+    // Capture current key value — the key is in a <code> element with font-mono
+    // inside the "Key" section. Exclude the "X-Webhook-Key" header label by
+    // filtering for alphanumeric strings (actual key values are random tokens).
+    const pullKeyCode = page.locator('code.font-mono').filter({ hasNotText: 'X-Webhook-Key' }).filter({ hasNotText: 'curl' });
+    const oldKey = await pullKeyCode.first().textContent();
     expect(oldKey).toBeTruthy();
+    expect(oldKey).not.toBe('X-Webhook-Key');
 
     // Click regenerate
     await page.getByRole('button', { name: '重新生成' }).click();
 
     // Wait for key to change
     await expect(async () => {
-      const newKey = await pullKeyCodeElements.first().textContent();
+      const newKey = await pullKeyCode.first().textContent();
       expect(newKey).toBeTruthy();
       expect(newKey).not.toBe(oldKey);
     }).toPass({ timeout: 10_000 });
@@ -243,8 +246,8 @@ test.describe.serial('Backy Page', () => {
     // Generate again
     await page.getByRole('button', { name: '生成凭证' }).click();
 
-    // Credentials appear
-    await expect(page.locator('code').filter({ hasText: '/api/backy/pull' })).toBeVisible({ timeout: 10_000 });
+    // Credentials appear (use .first() — URL appears in display + curl example)
+    await expect(page.locator('code').filter({ hasText: '/api/backy/pull' }).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: '重新生成' })).toBeVisible();
     await expect(page.getByRole('button', { name: '撤销' })).toBeVisible();
   });

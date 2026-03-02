@@ -16,7 +16,7 @@ const DATA_MGMT_URL = '/dashboard/data-management';
 /** Navigate to the data management page and wait for hydration. */
 async function goToDataManagement(page: Page): Promise<void> {
   await page.goto(DATA_MGMT_URL);
-  await page.getByText('数据导出').waitFor({ timeout: 15_000 });
+  await page.getByRole('heading', { name: '数据导出' }).waitFor({ timeout: 15_000 });
   await page.waitForLoadState('networkidle', { timeout: 15_000 });
 }
 
@@ -26,8 +26,8 @@ test.describe.serial('Data Management', () => {
   test.beforeAll(async () => {
     // Seed a link so export has data to return
     await executeD1(
-      'INSERT OR IGNORE INTO links (original_url, slug, user_id, clicks, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)',
-      ['https://example.com/data-management-test', testSlug, TEST_USER.id, Date.now(), Date.now()],
+      'INSERT OR IGNORE INTO links (original_url, slug, user_id, clicks, created_at) VALUES (?, ?, ?, 0, ?)',
+      ['https://example.com/data-management-test', testSlug, TEST_USER.id, Date.now()],
       { softFail: true },
     );
   });
@@ -47,12 +47,12 @@ test.describe.serial('Data Management', () => {
     await expect(page.locator('main h1')).toContainText('数据管理');
 
     // Export card
-    await expect(page.getByText('数据导出')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '数据导出' })).toBeVisible();
     await expect(page.getByText('将所有链接数据导出为 JSON 文件')).toBeVisible();
     await expect(page.getByRole('button', { name: '导出链接' })).toBeVisible();
 
     // Import card
-    await expect(page.getByText('数据导入')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '数据导入' })).toBeVisible();
     await expect(page.getByText('从 JSON 文件导入链接数据')).toBeVisible();
     await expect(page.locator('[data-testid="import-file-input"]')).toBeVisible();
   });
@@ -134,9 +134,11 @@ test.describe.serial('Data Management', () => {
       buffer: Buffer.from(JSON.stringify(importData)),
     });
 
-    // Wait for result — should show skipped
+    // Wait for result — should show skipped count in result text
+    // "导入完成：成功 X 条，跳过 Y 条" — match the result pattern to avoid
+    // collision with description text "已存在的短链接将被自动跳过"
     await expect(page.getByText('导入完成')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('跳过')).toBeVisible();
+    await expect(page.getByText(/跳过\s+\d+\s+条/)).toBeVisible();
 
     // Dismiss
     await page.getByRole('button', { name: '确定' }).click();
