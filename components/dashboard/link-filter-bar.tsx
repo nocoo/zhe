@@ -77,6 +77,8 @@ export function LinkFilterBar({
             key={tag.id}
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
             style={styles.badge}
+            data-testid="active-tag-filter"
+            data-tag-name={tag.name}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={styles.dot} />
             {tag.name}
@@ -98,6 +100,7 @@ export function LinkFilterBar({
           type="button"
           onClick={onClear}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          data-testid="clear-filters"
         >
           清除筛选
         </button>
@@ -203,6 +206,7 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
               ? "border-primary/30 bg-primary/5 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
           )}
+          data-testid="tag-filter-trigger"
         >
           <Tag className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>
@@ -228,13 +232,15 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
               {filteredTags.map((tag) => {
                 const styles = getTagStyles(tag.name);
                 const isSelected = selectedTagIds.has(tag.id);
-                return (
-                  <CommandItem
-                    key={tag.id}
-                    value={tag.id}
-                    onSelect={() => onToggle(tag.id)}
-                    className="flex items-center gap-2"
-                  >
+                  return (
+                    <CommandItem
+                      key={tag.id}
+                      value={tag.id}
+                      onSelect={() => onToggle(tag.id)}
+                      className="flex items-center gap-2"
+                      data-testid="tag-filter-item"
+                      data-tag-name={tag.name}
+                    >
                     <Check className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
                     <span className="h-2 w-2 rounded-full" style={styles.dot} />
                     <span>{tag.name}</span>

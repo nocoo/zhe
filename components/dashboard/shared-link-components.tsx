@@ -85,6 +85,8 @@ export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
       <span
         className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium"
         style={styles.badge}
+        data-testid="tag-badge"
+        data-tag-name={tag.name}
       >
         <span className="h-1 w-1 rounded-full" style={styles.dot} />
         {tag.name}
@@ -96,6 +98,8 @@ export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
       style={styles.badge}
+      data-testid="tag-badge"
+      data-tag-name={tag.name}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={styles.dot} />
       {tag.name}
@@ -161,6 +165,7 @@ export function TagPicker({
           type="button"
           className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
           aria-label="Add tag"
+          data-testid="tag-picker-trigger"
         >
           <Plus className="h-3 w-3" />
           {triggerLabel}
@@ -205,6 +210,7 @@ export function TagPicker({
                   <CommandItem
                     onSelect={handleCreate}
                     className="flex items-center gap-2"
+                    data-testid="tag-create-option"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>创建 &ldquo;{search.trim()}&rdquo;</span>
