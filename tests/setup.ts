@@ -97,6 +97,35 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // SELECT COUNT(*) AS cnt, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ? (getWebhookStats)
+      if (sqlLower.includes('count(*)') && sqlLower.includes('as cnt') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
+        const [userId] = params;
+        let cnt = 0;
+        let totalClicks = 0;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) {
+            cnt++;
+            totalClicks += (rawLink.clicks as number) ?? 0;
+          }
+        }
+        return [{ cnt, total_clicks: totalClicks }] as T[];
+      }
+
+      // SELECT slug, original_url, clicks, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 5 (getWebhookStats)
+      if (sqlLower.includes('from links') && sqlLower.includes('where user_id = ?') && sqlLower.includes('order by created_at desc') && sqlLower.includes('limit 5')) {
+        const [userId] = params;
+        const results: unknown[] = [];
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id === userId) {
+            results.push({ slug: rawLink.slug, original_url: rawLink.original_url, clicks: (rawLink.clicks as number) ?? 0, created_at: rawLink.created_at });
+          }
+        }
+        results.sort((a, b) => ((b as Record<string, unknown>).created_at as number) - ((a as Record<string, unknown>).created_at as number));
+        return results.slice(0, 5) as T[];
+      }
+
       // SELECT COUNT(*) AS total_links, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?
       if (sqlLower.includes('count(*)') && sqlLower.includes('total_links') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
