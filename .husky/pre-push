@@ -1,3 +1,5 @@
 bun run test:run
 bun run lint
+# Kill any leftover process on Playwright's port to avoid EADDRINUSE
+lsof -ti :17005 | xargs kill -9 2>/dev/null || true
 bun run test:e2e:pw
