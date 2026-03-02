@@ -176,14 +176,14 @@ describe('WebhookPage', () => {
       expect(screen.getByText('撤销中...')).toBeInTheDocument();
     });
 
-    it('shows copy buttons for token and webhook URL', () => {
+    it('shows copy buttons for token, webhook URL, and agent prompt', () => {
       mockWebhookVm.token = 'abc-123-def';
       mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
       render(<WebhookPage />);
 
-      // Should have copy buttons (via data-testid or aria-label)
+      // Should have copy buttons: token, URL, and agent prompt
       const copyButtons = screen.getAllByRole('button', { name: /复制/ });
-      expect(copyButtons.length).toBeGreaterThanOrEqual(2);
+      expect(copyButtons.length).toBeGreaterThanOrEqual(3);
     });
 
     // ================================================================
@@ -209,7 +209,9 @@ describe('WebhookPage', () => {
       mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
       render(<WebhookPage />);
 
-      expect(screen.getByText(/curl/)).toBeInTheDocument();
+      // The pre block contains curl commands; use getAllByText since curl appears multiple times
+      const curlMatches = screen.getAllByText(/curl/);
+      expect(curlMatches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows request parameters table', () => {
@@ -217,9 +219,11 @@ describe('WebhookPage', () => {
       mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
       render(<WebhookPage />);
 
-      // Should show parameter names
+      // Should show all parameter names including note
       expect(screen.getByText('url')).toBeInTheDocument();
       expect(screen.getByText('customSlug')).toBeInTheDocument();
+      expect(screen.getByText('folder')).toBeInTheDocument();
+      expect(screen.getByText('note')).toBeInTheDocument();
     });
 
     it('shows response format section', () => {
@@ -261,7 +265,7 @@ describe('WebhookPage', () => {
       render(<WebhookPage />);
 
       expect(screen.getByText('行为说明')).toBeInTheDocument();
-      expect(screen.getByText(/Idempotent/)).toBeInTheDocument();
+      expect(screen.getByText(/幂等/)).toBeInTheDocument();
     });
 
     // ================================================================
@@ -308,8 +312,67 @@ describe('WebhookPage', () => {
       mockWebhookVm.rateLimit = 9;
       render(<WebhookPage />);
 
-      // The 429 error message includes the rate limit value
+      // The 429 error description includes the rate limit value
       expect(screen.getByText(/9 req\/min/)).toBeInTheDocument();
+    });
+
+    // ================================================================
+    // AI Agent Prompt section
+    // ================================================================
+
+    it('shows AI Agent Prompt section when token exists', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<WebhookPage />);
+
+      expect(screen.getByText('AI Agent Prompt')).toBeInTheDocument();
+      expect(screen.getByTestId('agent-prompt-content')).toBeInTheDocument();
+    });
+
+    it('does not show AI Agent Prompt when no token exists', () => {
+      render(<WebhookPage />);
+
+      expect(screen.queryByText('AI Agent Prompt')).not.toBeInTheDocument();
+    });
+
+    it('agent prompt contains webhook URL', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<WebhookPage />);
+
+      const content = screen.getByTestId('agent-prompt-content');
+      expect(content.textContent).toContain('https://zhe.example.com/api/webhook/abc-123-def');
+    });
+
+    it('agent prompt contains OpenAPI schema discovery instructions', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      render(<WebhookPage />);
+
+      const content = screen.getByTestId('agent-prompt-content');
+      expect(content.textContent).toContain('Schema Discovery');
+      expect(content.textContent).toContain('OpenAPI');
+    });
+
+    it('copies agent prompt to clipboard when copy button clicked', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: { writeText: writeTextMock },
+      });
+
+      render(<WebhookPage />);
+
+      const copyPromptBtn = screen.getByTestId('copy-agent-prompt-btn');
+      fireEvent.click(copyPromptBtn);
+
+      expect(writeTextMock).toHaveBeenCalledTimes(1);
+      // Verify the prompt content includes the webhook URL
+      const calledWith = writeTextMock.mock.calls[0][0] as string;
+      expect(calledWith).toContain('https://zhe.example.com/api/webhook/abc-123-def');
+      expect(calledWith).toContain('Schema Discovery');
     });
   });
 });

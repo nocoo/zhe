@@ -3,7 +3,7 @@ import { getWebhookByToken, getWebhookStats, getLinkByUserAndUrl, getFolderByUse
 import {
   validateWebhookPayload,
   checkRateLimit,
-  buildWebhookDocumentation,
+  buildOpenApiSpec,
 } from "@/models/webhook";
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
 import { resolvePublicOrigin } from "@/lib/url";
@@ -32,7 +32,7 @@ export async function HEAD(
 /**
  * GET /api/webhook/[token]
  *
- * Returns webhook status, usage stats, and API documentation.
+ * Returns webhook status, usage stats, and OpenAPI 3.1 specification.
  * Includes total link count, total clicks, 5 most recent links,
  * rate limit config, and full API documentation.
  */
@@ -53,7 +53,7 @@ export async function GET(
   const webhookUrl = `${resolvePublicOrigin(request)}/api/webhook/${token}`;
   const [stats, docs] = await Promise.all([
     getWebhookStats(webhook.userId),
-    Promise.resolve(buildWebhookDocumentation(webhookUrl, webhook.rateLimit)),
+    Promise.resolve(buildOpenApiSpec(webhookUrl, webhook.rateLimit)),
   ]);
 
   return NextResponse.json(
@@ -132,7 +132,7 @@ export async function POST(
     );
   }
 
-  const { url, customSlug, folder } = validation.data;
+  const { url, customSlug, folder, note } = validation.data;
 
   // 4. Idempotency check — if same URL already exists for this user, return it
   const existingLink = await getLinkByUserAndUrl(webhook.userId, url);
@@ -189,6 +189,7 @@ export async function POST(
     slug,
     isCustom,
     folderId,
+    note: note ?? null,
     clicks: 0,
   });
 

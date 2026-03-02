@@ -524,6 +524,116 @@ describe("POST /api/webhook/[token]", () => {
       expect(mockCreateLink).not.toHaveBeenCalled();
     });
   });
+
+  // ================================================================
+  // note parameter
+  // ================================================================
+
+  describe("note parameter", () => {
+    it("passes note to createLink when provided", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGenerateUniqueSlug.mockResolvedValue("abc");
+      mockCreateLink.mockResolvedValue({
+        id: 40,
+        userId: "user-1",
+        slug: "abc",
+        originalUrl: "https://example.com",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com",
+          note: "Interesting article",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(201);
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({ note: "Interesting article" }),
+      );
+    });
+
+    it("passes null note to createLink when not provided", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGenerateUniqueSlug.mockResolvedValue("xyz");
+      mockCreateLink.mockResolvedValue({
+        id: 41,
+        userId: "user-1",
+        slug: "xyz",
+        originalUrl: "https://example.com",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      await POST(
+        makeRequest("valid-token", { url: "https://example.com" }),
+        makeParams("valid-token"),
+      );
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({ note: null }),
+      );
+    });
+
+    it("returns 400 for invalid note (non-string)", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com",
+          note: 123,
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("ignores note when idempotency hits (existing URL)", async () => {
+      mockGetWebhookByToken.mockResolvedValue({
+        id: 1,
+        userId: "user-1",
+        token: "valid-token",
+        createdAt: new Date(),
+      });
+      mockGetLinkByUserAndUrl.mockResolvedValue({
+        id: 5,
+        userId: "user-1",
+        slug: "existing",
+        originalUrl: "https://example.com/dup",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+      });
+
+      const res = await POST(
+        makeRequest("valid-token", {
+          url: "https://example.com/dup",
+          note: "Should be ignored",
+        }),
+        makeParams("valid-token"),
+      );
+      expect(res.status).toBe(200);
+      expect(mockCreateLink).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe("GET /api/webhook/[token]", () => {
@@ -548,7 +658,7 @@ describe("GET /api/webhook/[token]", () => {
     expect(json.error).toBeDefined();
   });
 
-  it("returns status, stats, and docs for valid token", async () => {
+  it("returns status, stats, and OpenAPI docs for valid token", async () => {
     mockGetWebhookByToken.mockResolvedValue({
       id: 1,
       userId: "user-1",
@@ -582,10 +692,13 @@ describe("GET /api/webhook/[token]", () => {
     expect(json.stats.recentLinks).toHaveLength(1);
     expect(json.stats.recentLinks[0].slug).toBe("abc");
 
-    // Docs
+    // Docs — OpenAPI 3.1 spec
     expect(json.docs).toBeDefined();
-    expect(json.docs.endpoint).toContain("valid-token");
-    expect(json.docs.methods).toHaveLength(3);
+    expect(json.docs.openapi).toBe("3.1.0");
+    expect(json.docs.paths["/"]).toBeDefined();
+    expect(json.docs.paths["/"].head).toBeDefined();
+    expect(json.docs.paths["/"].get).toBeDefined();
+    expect(json.docs.paths["/"].post).toBeDefined();
   });
 
   it("builds endpoint URL from request origin (no proxy headers)", async () => {
@@ -602,7 +715,7 @@ describe("GET /api/webhook/[token]", () => {
     });
     const res = await GET(req, makeParams("my-token"));
     const json = await res.json();
-    expect(json.docs.endpoint).toBe("https://zhe.example.com/api/webhook/my-token");
+    expect(json.docs.servers[0].url).toBe("https://zhe.example.com/api/webhook/my-token");
   });
 
   it("builds endpoint URL from x-forwarded headers behind proxy", async () => {
@@ -623,7 +736,7 @@ describe("GET /api/webhook/[token]", () => {
     });
     const res = await GET(req, makeParams("my-token"));
     const json = await res.json();
-    expect(json.docs.endpoint).toBe("https://zhe.to/api/webhook/my-token");
+    expect(json.docs.servers[0].url).toBe("https://zhe.to/api/webhook/my-token");
   });
 
   it("calls getWebhookStats with the webhook user id", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
-import { buildWebhookDocumentation, RATE_LIMIT_ABSOLUTE_MAX } from "@/models/webhook";
+import { buildOpenApiSpec, buildAgentPrompt, RATE_LIMIT_ABSOLUTE_MAX } from "@/models/webhook";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -125,7 +125,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               </div>
 
               {/* Usage documentation */}
-              <WebhookUsageDocs webhookUrl={webhookUrl} rateLimit={rateLimit} />
+              <WebhookUsageDocs webhookUrl={webhookUrl} rateLimit={rateLimit} copyToClipboard={copyToClipboard} />
             </div>
           ) : (
             <Button
@@ -148,9 +148,24 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
 // Webhook usage documentation sub-component
 // ---------------------------------------------------------------------------
 
-function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateLimit: number }) {
-  const docs = buildWebhookDocumentation(webhookUrl, rateLimit);
-  const postMethod = docs.methods.find((m) => m.method === "POST");
+function WebhookUsageDocs({
+  webhookUrl,
+  rateLimit,
+  copyToClipboard,
+}: {
+  webhookUrl: string;
+  rateLimit: number;
+  copyToClipboard: (text: string) => void;
+}) {
+  const spec = buildOpenApiSpec(webhookUrl, rateLimit);
+  const postOp = spec.paths["/"].post;
+  const postSchema = postOp.requestBody.content["application/json"].schema;
+  const properties = postSchema.properties as Record<
+    string,
+    { type: string; description?: string; maxLength?: number; minLength?: number; pattern?: string; format?: string }
+  >;
+  const required = (postSchema.required as string[]) ?? [];
+  const agentPrompt = buildAgentPrompt(webhookUrl, rateLimit);
 
   return (
     <div className="space-y-4 border-t border-border/50 pt-4" data-testid="webhook-usage-docs">
@@ -167,12 +182,15 @@ function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateL
             </tr>
           </thead>
           <tbody>
-            {docs.methods.map((m) => (
-              <tr key={m.method} className="border-b border-border/30">
-                <td className="py-1.5 pr-3 font-mono">{m.method}</td>
-                <td className="py-1.5 text-muted-foreground">{m.description}</td>
-              </tr>
-            ))}
+            {(["head", "get", "post"] as const).map((method) => {
+              const op = spec.paths["/"][method];
+              return (
+                <tr key={method} className="border-b border-border/30">
+                  <td className="py-1.5 pr-3 font-mono">{method.toUpperCase()}</td>
+                  <td className="py-1.5 text-muted-foreground">{op.summary}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -181,75 +199,62 @@ function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateL
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">请求示例</p>
         <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
-          {docs.methods
-            .filter((m) => m.example)
-            .map((m) => `# ${m.method}\n${m.example!.curl}`)
-            .join("\n\n")}
+          {`# HEAD\ncurl -I ${webhookUrl}\n\n# GET\ncurl ${webhookUrl}\n\n# POST\ncurl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://example.com/page", "note": "Interesting article"}'`}
         </pre>
       </div>
 
       {/* POST request parameters */}
-      {postMethod?.body && (
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">POST 请求参数</p>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border/50 text-left text-muted-foreground">
-                <th className="pb-1.5 pr-3 font-medium">参数</th>
-                <th className="pb-1.5 pr-3 font-medium">类型</th>
-                <th className="pb-1.5 pr-3 font-medium">必填</th>
-                <th className="pb-1.5 font-medium">说明</th>
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">POST 请求参数</p>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border/50 text-left text-muted-foreground">
+              <th className="pb-1.5 pr-3 font-medium">参数</th>
+              <th className="pb-1.5 pr-3 font-medium">类型</th>
+              <th className="pb-1.5 pr-3 font-medium">必填</th>
+              <th className="pb-1.5 font-medium">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(properties).map(([name, prop]) => (
+              <tr key={name} className="border-b border-border/30">
+                <td className="py-1.5 pr-3 font-mono">{name}</td>
+                <td className="py-1.5 pr-3 text-muted-foreground">{prop.type}</td>
+                <td className="py-1.5 pr-3">{required.includes(name) ? "是" : "否"}</td>
+                <td className="py-1.5 text-muted-foreground">{prop.description}</td>
               </tr>
-            </thead>
-            <tbody>
-              {Object.entries(postMethod.body).map(([name, param]) => (
-                <tr key={name} className="border-b border-border/30">
-                  <td className="py-1.5 pr-3 font-mono">{name}</td>
-                  <td className="py-1.5 pr-3 text-muted-foreground">{param.type}</td>
-                  <td className="py-1.5 pr-3">{param.required ? "是" : "否"}</td>
-                  <td className="py-1.5 text-muted-foreground">{param.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* POST response format */}
-      {postMethod?.response && (
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">POST 响应格式</p>
-          <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
-            {JSON.stringify(
-              Object.fromEntries(
-                Object.entries(postMethod.response).map(([k, v]) => [k, `(${v.type}) ${v.description}`]),
-              ),
-              null,
-              2,
-            )}
-          </pre>
-        </div>
-      )}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">POST 响应格式</p>
+        <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+          {JSON.stringify(
+            { slug: "(string) The generated or custom slug", shortUrl: "(string) The full short URL", originalUrl: "(string) The original URL" },
+            null,
+            2,
+          )}
+        </pre>
+      </div>
 
       {/* Rate limit */}
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">速率限制</p>
         <p className="text-xs text-muted-foreground">
-          每个令牌最多 <strong className="text-foreground">{docs.rateLimit.maxRequests}</strong> 次请求 / 分钟（仅限 POST）
+          每个令牌最多 <strong className="text-foreground">{rateLimit}</strong> 次请求 / 分钟（仅限 POST）
         </p>
       </div>
 
-      {/* Notes */}
-      {docs.notes.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">行为说明</p>
-          <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-            {docs.notes.map((note, i) => (
-              <li key={i}>{note}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Behavior notes */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground">行为说明</p>
+        <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+          <li>幂等：如果同一 URL 已被缩短，返回已有链接（200）而非创建新链接（201）。此时 customSlug、folder、note 参数被忽略。</li>
+        </ul>
+      </div>
 
       {/* Error codes */}
       <div className="space-y-1.5">
@@ -262,14 +267,43 @@ function WebhookUsageDocs({ webhookUrl, rateLimit }: { webhookUrl: string; rateL
             </tr>
           </thead>
           <tbody>
-            {docs.errors.map((err) => (
-              <tr key={err.status} className="border-b border-border/30">
-                <td className="py-1.5 pr-3 font-mono">{err.status}</td>
-                <td className="py-1.5 text-muted-foreground">{err.description}</td>
-              </tr>
-            ))}
+            {Object.entries(postOp.responses as Record<string, { description: string }>)
+              .filter(([code]) => Number(code) >= 400)
+              .map(([code, resp]) => (
+                <tr key={code} className="border-b border-border/30">
+                  <td className="py-1.5 pr-3 font-mono">{code}</td>
+                  <td className="py-1.5 text-muted-foreground">{resp.description}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
+      </div>
+
+      {/* AI Agent Prompt */}
+      <div className="space-y-1.5 border-t border-border/50 pt-4" data-testid="webhook-agent-prompt">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-foreground">AI Agent Prompt</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => copyToClipboard(agentPrompt)}
+            aria-label="复制 Prompt"
+            data-testid="copy-agent-prompt-btn"
+          >
+            <Copy className="h-3 w-3" />
+            复制
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          将以下 Prompt 复制给 AI Agent，它将自动了解如何调用此 Webhook，并可通过 GET 请求发现完整的 OpenAPI 3.1 Schema。
+        </p>
+        <pre
+          className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-accent px-3 py-2 text-xs leading-relaxed"
+          data-testid="agent-prompt-content"
+        >
+          {agentPrompt}
+        </pre>
       </div>
     </div>
   );

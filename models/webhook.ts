@@ -8,7 +8,10 @@ export interface WebhookPayload {
   url: string;
   customSlug?: string;
   folder?: string;
+  note?: string;
 }
+
+export const WEBHOOK_NOTE_MAX_LENGTH = 500;
 
 export interface WebhookValidationResult {
   success: boolean;
@@ -86,12 +89,26 @@ export function validateWebhookPayload(
     }
   }
 
+  // note — optional, non-empty string, max WEBHOOK_NOTE_MAX_LENGTH chars
+  if (obj.note !== undefined) {
+    if (typeof obj.note !== "string") {
+      return { success: false, error: "note must be a string" };
+    }
+    if (obj.note.trim() === "") {
+      return { success: false, error: "note must be a non-empty string" };
+    }
+    if (obj.note.length > WEBHOOK_NOTE_MAX_LENGTH) {
+      return { success: false, error: `note must be at most ${WEBHOOK_NOTE_MAX_LENGTH} characters` };
+    }
+  }
+
   return {
     success: true,
     data: {
       url: obj.url,
       ...(obj.customSlug !== undefined ? { customSlug: obj.customSlug as string } : {}),
       ...(obj.folder !== undefined ? { folder: (obj.folder as string).trim() } : {}),
+      ...(obj.note !== undefined ? { note: (obj.note as string).trim() } : {}),
     },
   };
 }
@@ -160,146 +177,212 @@ export function checkRateLimit(
 }
 
 // ---------------------------------------------------------------------------
-// API documentation builder
+// OpenAPI 3.1 specification builder
 // ---------------------------------------------------------------------------
 
-export interface WebhookDocParam {
-  type: string;
-  required: boolean;
-  description: string;
-}
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type OpenApiSpec = Record<string, any>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-export interface WebhookDocError {
-  status: number;
-  description: string;
-}
-
-export interface WebhookMethodDoc {
-  method: string;
-  description: string;
-  headers?: Record<string, string>;
-  body?: Record<string, WebhookDocParam>;
-  response?: Record<string, WebhookDocParam>;
-  example?: { curl: string };
-}
-
-export interface WebhookDocumentation {
-  endpoint: string;
-  methods: WebhookMethodDoc[];
-  rateLimit: { maxRequests: number; windowMs: number };
-  notes: string[];
-  errors: WebhookDocError[];
-}
-
-/** Build a self-describing documentation object for the webhook API. */
-export function buildWebhookDocumentation(
+/** Build an OpenAPI 3.1.0 specification for the webhook API. */
+export function buildOpenApiSpec(
   webhookUrl: string,
   maxRequests: number = RATE_LIMIT_DEFAULT_MAX,
-): WebhookDocumentation {
+): OpenApiSpec {
   return {
-    endpoint: webhookUrl,
-    methods: [
-      {
-        method: "HEAD",
-        description: "Test connection. Returns 200 if the token is valid, 404 otherwise. No response body.",
-        example: {
-          curl: `curl -I ${webhookUrl}`,
-        },
-      },
-      {
-        method: "GET",
-        description: "Retrieve webhook status, usage stats (total links, total clicks, recent links), and API documentation.",
-        response: {
-          status: {
-            type: "string",
-            required: true,
-            description: "Webhook status (\"active\")",
-          },
-          createdAt: {
-            type: "string",
-            required: true,
-            description: "ISO 8601 timestamp of when the webhook was created",
-          },
-          rateLimit: {
-            type: "number",
-            required: true,
-            description: "Current rate limit (requests per minute)",
-          },
-          stats: {
-            type: "object",
-            required: true,
-            description: "Usage stats: totalLinks, totalClicks, recentLinks[]",
-          },
-          docs: {
-            type: "object",
-            required: true,
-            description: "This documentation object",
-          },
-        },
-        example: {
-          curl: `curl ${webhookUrl}`,
-        },
-      },
-      {
-        method: "POST",
-        description: "Create a short link. Rate-limited.",
-        headers: { "Content-Type": "application/json" },
-        body: {
-          url: {
-            type: "string",
-            required: true,
-            description: "The original URL to shorten (must be a valid URL)",
-          },
-          customSlug: {
-            type: "string",
-            required: false,
-            description:
-              "Optional custom slug (1-50 alphanumeric/dash/underscore chars). Auto-generated if omitted.",
-          },
-          folder: {
-            type: "string",
-            required: false,
-            description:
-              "Optional folder name (case-insensitive match). Link is placed in the matched folder, or left uncategorized if not found.",
-          },
-        },
-        response: {
-          slug: {
-            type: "string",
-            required: true,
-            description: "The generated or custom slug",
-          },
-          shortUrl: {
-            type: "string",
-            required: true,
-            description: "The full short URL",
-          },
-          originalUrl: {
-            type: "string",
-            required: true,
-            description: "The original URL that was shortened",
-          },
-        },
-        example: {
-          curl: `curl -X POST ${webhookUrl} \\
-  -H "Content-Type: application/json" \\
-  -d '{"url": "https://example.com/long-page"}'`,
-        },
-      },
-    ],
-    rateLimit: {
-      maxRequests,
-      windowMs: RATE_LIMIT_WINDOW_MS,
+    openapi: "3.1.0",
+    info: {
+      title: "zhe.to Webhook API",
+      version: "1.0.0",
+      description: "Create short links via webhook. Authentication is via UUID token in the URL path.",
     },
-    notes: [
-      "Idempotent: if the same URL has already been shortened under your account, the existing short link is returned (200) instead of creating a duplicate (201).",
-      "When an existing link is returned, the customSlug and folder parameters are ignored.",
-    ],
-    errors: [
-      { status: 400, description: "Invalid request body or slug format" },
-      { status: 404, description: "Invalid webhook token" },
-      { status: 409, description: "Custom slug already taken" },
-      { status: 429, description: `Rate limit exceeded (${maxRequests} req/min)` },
-    ],
+    servers: [{ url: webhookUrl }],
+    paths: {
+      "/": {
+        head: {
+          summary: "Test connection",
+          description: "Returns 200 if the token is valid, 404 otherwise. No response body.",
+          responses: {
+            "200": { description: "Token is valid" },
+            "404": { description: "Invalid webhook token" },
+          },
+        },
+        get: {
+          summary: "Get status, stats & API schema",
+          description: "Retrieve webhook status, usage stats, and this OpenAPI specification.",
+          responses: {
+            "200": {
+              description: "Webhook info with stats and OpenAPI docs",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      status: { type: "string", description: "Webhook status (\"active\")" },
+                      createdAt: { type: "string", format: "date-time", description: "When the webhook was created" },
+                      rateLimit: { type: "integer", description: "Requests per minute" },
+                      stats: {
+                        type: "object",
+                        properties: {
+                          totalLinks: { type: "integer" },
+                          totalClicks: { type: "integer" },
+                          recentLinks: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                slug: { type: "string" },
+                                originalUrl: { type: "string", format: "uri" },
+                                clicks: { type: "integer" },
+                                createdAt: { type: "string", format: "date-time" },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      docs: { type: "object", description: "This OpenAPI 3.1 specification" },
+                    },
+                  },
+                },
+              },
+            },
+            "404": { description: "Invalid webhook token" },
+          },
+        },
+        post: {
+          summary: "Create a short link",
+          description: `Create a short link. Rate-limited to ${maxRequests} requests per minute.`,
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["url"],
+                  properties: {
+                    url: {
+                      type: "string",
+                      format: "uri",
+                      description: "The original URL to shorten (must be a valid URL)",
+                    },
+                    customSlug: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 50,
+                      pattern: "^[a-zA-Z0-9_-]+$",
+                      description: "Optional custom slug. Auto-generated if omitted. Must not be a reserved path.",
+                    },
+                    folder: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 50,
+                      description: "Optional folder name (case-insensitive match). Left uncategorized if not found.",
+                    },
+                    note: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: WEBHOOK_NOTE_MAX_LENGTH,
+                      description: "Optional bookmark note or comment.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Short link created",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      slug: { type: "string", description: "The generated or custom slug" },
+                      shortUrl: { type: "string", format: "uri", description: "The full short URL" },
+                      originalUrl: { type: "string", format: "uri", description: "The original URL" },
+                    },
+                  },
+                },
+              },
+            },
+            "200": {
+              description: "URL already shortened — existing link returned (idempotent)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      slug: { type: "string" },
+                      shortUrl: { type: "string", format: "uri" },
+                      originalUrl: { type: "string", format: "uri" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid request body or slug format" },
+            "404": { description: "Invalid webhook token" },
+            "409": { description: "Custom slug already taken" },
+            "429": { description: `Rate limit exceeded (${maxRequests} req/min)` },
+          },
+        },
+      },
+    },
   };
+}
+
+// ---------------------------------------------------------------------------
+// AI agent prompt builder
+// ---------------------------------------------------------------------------
+
+/** Build a ready-to-copy prompt for AI agents to use the webhook API. */
+export function buildAgentPrompt(
+  webhookUrl: string,
+  rateLimit: number = RATE_LIMIT_DEFAULT_MAX,
+): string {
+  return `You have access to a URL shortener webhook API.
+
+## Endpoint
+
+${webhookUrl}
+
+## Schema Discovery
+
+To discover the full API schema (all parameters, types, constraints, and
+response formats), send a GET request to the endpoint above. The response
+JSON includes a \`docs\` field containing a standard OpenAPI 3.1 specification:
+
+  curl ${webhookUrl}
+
+Parse \`response.docs.paths["/"].post.requestBody.content["application/json"].schema.properties\`
+to enumerate all available parameters and their constraints programmatically.
+
+## Quick Reference
+
+Send a POST request with a JSON body:
+
+  curl -X POST ${webhookUrl} \\
+    -H "Content-Type: application/json" \\
+    -d '{"url": "https://example.com/page", "note": "Interesting article"}'
+
+### Parameters
+
+| Parameter  | Type   | Required | Constraint           | Description                                   |
+|------------|--------|----------|----------------------|-----------------------------------------------|
+| url        | string | yes      | valid URL            | The original URL to shorten                   |
+| customSlug | string | no       | 1-50 chars, [a-zA-Z0-9_-] | Custom slug. Auto-generated if omitted.  |
+| folder     | string | no       | max 50 chars         | Folder name (case-insensitive match)          |
+| note       | string | no       | max ${WEBHOOK_NOTE_MAX_LENGTH} chars        | Bookmark note or comment                      |
+
+### Response (201 Created)
+
+\`\`\`json
+{ "slug": "abc123", "shortUrl": "https://zhe.to/abc123", "originalUrl": "https://example.com/page" }
+\`\`\`
+
+## Behavior
+
+- **Idempotent**: If the same URL was already shortened, the existing link is returned (200) instead of creating a duplicate (201). When this happens, customSlug, folder, and note are ignored.
+- **Rate limit**: ${rateLimit} requests per minute.
+- **Auth**: The token in the URL path is the only authentication required. No additional headers needed.`;
 }

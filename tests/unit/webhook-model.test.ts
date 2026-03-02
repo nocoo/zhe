@@ -3,10 +3,12 @@ import { generateWebhookToken } from "@/models/webhook.server";
 import {
   validateWebhookPayload,
   checkRateLimit,
-  buildWebhookDocumentation,
+  buildOpenApiSpec,
+  buildAgentPrompt,
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_DEFAULT_MAX,
   RATE_LIMIT_ABSOLUTE_MAX,
+  WEBHOOK_NOTE_MAX_LENGTH,
   clampRateLimit,
   isValidRateLimit,
 } from "@/models/webhook";
@@ -170,6 +172,223 @@ describe("webhook model", () => {
       const result = validateWebhookPayload(null);
       expect(result.success).toBe(false);
     });
+
+    // ================================================================
+    // note validation
+    // ================================================================
+
+    it("accepts valid payload with note", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        note: "Interesting article",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        url: "https://example.com",
+        note: "Interesting article",
+      });
+    });
+
+    it("accepts payload with url, customSlug, folder, and note", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        customSlug: "my-slug",
+        folder: "工作",
+        note: "A note",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        url: "https://example.com",
+        customSlug: "my-slug",
+        folder: "工作",
+        note: "A note",
+      });
+    });
+
+    it("accepts payload without note field", () => {
+      const result = validateWebhookPayload({ url: "https://example.com" });
+      expect(result.success).toBe(true);
+      expect(result.data!.note).toBeUndefined();
+    });
+
+    it("rejects non-string note", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        note: 123,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("note");
+    });
+
+    it("rejects empty note string", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        note: "",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("note");
+    });
+
+    it("rejects note exceeding max length", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        note: "a".repeat(WEBHOOK_NOTE_MAX_LENGTH + 1),
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("note");
+    });
+
+    it("trims note whitespace", () => {
+      const result = validateWebhookPayload({
+        url: "https://example.com",
+        note: "  trimmed note  ",
+      });
+      expect(result.success).toBe(true);
+      expect(result.data!.note).toBe("trimmed note");
+    });
+  });
+
+  // ==================================================================
+  // buildOpenApiSpec
+  // ==================================================================
+
+  describe("buildOpenApiSpec", () => {
+    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
+
+    it("returns a valid OpenAPI 3.1.0 object", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      expect(spec.openapi).toBe("3.1.0");
+      expect(spec.info.title).toBeDefined();
+      expect(spec.info.version).toBeDefined();
+    });
+
+    it("includes the webhook URL as server", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      expect(spec.servers).toEqual([{ url: baseUrl }]);
+    });
+
+    it("defines HEAD, GET, and POST operations on '/'", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const root = spec.paths["/"];
+      expect(root.head).toBeDefined();
+      expect(root.get).toBeDefined();
+      expect(root.post).toBeDefined();
+    });
+
+    it("HEAD operation describes connection testing", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const head = spec.paths["/"].head;
+      expect(head.summary).toContain("Test connection");
+      expect(head.responses["200"]).toBeDefined();
+      expect(head.responses["404"]).toBeDefined();
+    });
+
+    it("GET operation describes status and schema retrieval", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const get = spec.paths["/"].get;
+      expect(get.summary).toBeDefined();
+      expect(get.responses["200"]).toBeDefined();
+      expect(get.responses["404"]).toBeDefined();
+    });
+
+    it("POST operation lists all request body properties including note", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const post = spec.paths["/"].post;
+      const schema = post.requestBody.content["application/json"].schema;
+      expect(schema.required).toEqual(["url"]);
+      expect(schema.properties.url).toBeDefined();
+      expect(schema.properties.customSlug).toBeDefined();
+      expect(schema.properties.folder).toBeDefined();
+      expect(schema.properties.note).toBeDefined();
+      expect(schema.properties.note.maxLength).toBe(WEBHOOK_NOTE_MAX_LENGTH);
+    });
+
+    it("POST operation includes 201, 200, 400, 404, 409, 429 responses", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const responses = spec.paths["/"].post.responses;
+      expect(responses["201"]).toBeDefined();
+      expect(responses["200"]).toBeDefined();
+      expect(responses["400"]).toBeDefined();
+      expect(responses["404"]).toBeDefined();
+      expect(responses["409"]).toBeDefined();
+      expect(responses["429"]).toBeDefined();
+    });
+
+    it("uses default rate limit in POST description", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const post = spec.paths["/"].post;
+      expect(post.description).toContain(String(RATE_LIMIT_DEFAULT_MAX));
+    });
+
+    it("uses custom rate limit when provided", () => {
+      const spec = buildOpenApiSpec(baseUrl, 8);
+      const post = spec.paths["/"].post;
+      expect(post.description).toContain("8");
+      expect(spec.paths["/"].post.responses["429"].description).toContain("8");
+    });
+
+    it("POST 201 response schema includes slug, shortUrl, originalUrl", () => {
+      const spec = buildOpenApiSpec(baseUrl);
+      const created = spec.paths["/"].post.responses["201"];
+      const props = created.content["application/json"].schema.properties;
+      expect(props.slug).toBeDefined();
+      expect(props.shortUrl).toBeDefined();
+      expect(props.originalUrl).toBeDefined();
+    });
+  });
+
+  // ==================================================================
+  // buildAgentPrompt
+  // ==================================================================
+
+  describe("buildAgentPrompt", () => {
+    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
+
+    it("includes the webhook URL", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain(baseUrl);
+    });
+
+    it("includes schema discovery instructions", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain("Schema Discovery");
+      expect(prompt).toContain("GET");
+      expect(prompt).toContain("OpenAPI");
+    });
+
+    it("includes all parameter names", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain("url");
+      expect(prompt).toContain("customSlug");
+      expect(prompt).toContain("folder");
+      expect(prompt).toContain("note");
+    });
+
+    it("includes idempotency info", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain("Idempotent");
+    });
+
+    it("includes default rate limit", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain(`${RATE_LIMIT_DEFAULT_MAX} requests per minute`);
+    });
+
+    it("includes custom rate limit when provided", () => {
+      const prompt = buildAgentPrompt(baseUrl, 8);
+      expect(prompt).toContain("8 requests per minute");
+    });
+
+    it("includes curl example with note parameter", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain("curl");
+      expect(prompt).toContain('"note"');
+    });
+
+    it("includes note max length constraint", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).toContain(String(WEBHOOK_NOTE_MAX_LENGTH));
+    });
   });
 
   describe("checkRateLimit", () => {
@@ -305,96 +524,6 @@ describe("webhook model", () => {
       expect(isValidRateLimit("5")).toBe(false);
       expect(isValidRateLimit(null)).toBe(false);
       expect(isValidRateLimit(undefined)).toBe(false);
-    });
-  });
-
-  describe("buildWebhookDocumentation", () => {
-    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
-
-    it("returns an object with endpoint and methods array", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.endpoint).toBe(baseUrl);
-      expect(docs.methods).toHaveLength(3);
-      expect(docs.methods.map((m: { method: string }) => m.method)).toEqual(["HEAD", "GET", "POST"]);
-    });
-
-    it("includes HEAD method for connection testing", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      const head = docs.methods.find((m: { method: string }) => m.method === "HEAD");
-      expect(head).toBeDefined();
-      expect(head!.description).toContain("Test connection");
-      expect(head!.example?.curl).toContain("curl -I");
-    });
-
-    it("includes GET method for status and stats", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      const get = docs.methods.find((m: { method: string }) => m.method === "GET");
-      expect(get).toBeDefined();
-      expect(get!.description).toContain("stats");
-      expect(get!.response).toHaveProperty("status");
-      expect(get!.response).toHaveProperty("stats");
-    });
-
-    it("includes POST method with request body parameters", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      const post = docs.methods.find((m: { method: string }) => m.method === "POST");
-      expect(post).toBeDefined();
-      expect(post!.body).toHaveProperty("url");
-      expect(post!.body).toHaveProperty("customSlug");
-      expect(post!.body).toHaveProperty("folder");
-      expect(post!.body!.url.required).toBe(true);
-      expect(post!.body!.customSlug.required).toBe(false);
-      expect(post!.body!.folder.required).toBe(false);
-    });
-
-    it("includes curl examples for all methods", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      for (const m of docs.methods) {
-        expect(m.example?.curl).toContain(baseUrl);
-        expect(m.example?.curl).toContain("curl");
-      }
-    });
-
-    it("includes POST response schema with all fields", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      const post = docs.methods.find((m: { method: string }) => m.method === "POST");
-      expect(post!.response).toHaveProperty("slug");
-      expect(post!.response).toHaveProperty("shortUrl");
-      expect(post!.response).toHaveProperty("originalUrl");
-    });
-
-    it("includes rate limit information", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.rateLimit.maxRequests).toBe(RATE_LIMIT_DEFAULT_MAX);
-      expect(docs.rateLimit.windowMs).toBe(RATE_LIMIT_WINDOW_MS);
-    });
-
-    it("includes custom rate limit when provided", () => {
-      const docs = buildWebhookDocumentation(baseUrl, 8);
-      expect(docs.rateLimit.maxRequests).toBe(8);
-      expect(docs.rateLimit.windowMs).toBe(RATE_LIMIT_WINDOW_MS);
-    });
-
-    it("includes error codes", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.errors).toBeDefined();
-      expect(docs.errors.length).toBeGreaterThan(0);
-      // Should at least cover 400, 404, 409, 429
-      const codes = docs.errors.map((e: { status: number }) => e.status);
-      expect(codes).toContain(400);
-      expect(codes).toContain(404);
-      expect(codes).toContain(409);
-      expect(codes).toContain(429);
-    });
-
-    it("includes idempotency notes", () => {
-      const docs = buildWebhookDocumentation(baseUrl);
-      expect(docs.notes).toBeDefined();
-      expect(docs.notes.length).toBeGreaterThan(0);
-      const notesText = docs.notes.join(" ");
-      expect(notesText).toContain("Idempotent");
-      expect(notesText).toContain("customSlug");
-      expect(notesText).toContain("folder");
     });
   });
 });
