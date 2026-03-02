@@ -90,7 +90,9 @@ bun run test:coverage       # coverage report
 | `bun run lint` | ESLint (zero-warning policy) |
 | `bun run test:run` | All unit/integration/component tests |
 | `bun run test:unit` | Unit tests only |
-| `bun run test:e2e:pw` | Playwright E2E (27 specs, port 17005) |
+| `bun run test:unit:coverage` | Unit tests + coverage gate |
+| `bun run test:api` | API E2E tests (mock-level) |
+| `bun run test:e2e:pw` | Playwright BDD E2E (port 27005) |
 | `bun run test:e2e:pw:ui` | Playwright UI mode |
 | `bun run test:coverage` | Coverage report |
 
@@ -116,7 +118,7 @@ zhe/
 │   ├── unit/         # Unit tests
 │   ├── integration/  # Integration tests
 │   ├── components/   # Component tests
-│   ├── e2e/          # Vitest-based API E2E tests
+│   ├── api/          # Vitest API E2E tests (mock-level)
 │   └── playwright/   # Playwright browser E2E specs
 ├── drizzle/          # Database migrations
 ├── docs/             # Project documentation
@@ -154,14 +156,14 @@ Key design decisions:
 
 - **Coverage target**: statements >= 90%, functions >= 85%, branches >= 80%
 - **Zero-warning policy**: ESLint `--max-warnings=0`
-- **Git hooks** (husky):
-  - pre-commit: unit tests + lint-staged
-  - pre-push: full test suite + lint + Playwright E2E
+- **Git hooks** (husky, four-layer architecture):
+  - pre-commit: L1 unit tests (with coverage gate) + L2 lint-staged
+  - pre-push: L3 API E2E + L4 Playwright BDD E2E
 
 | Port | Purpose |
 |------|---------|
 | 7005 | Development server |
-| 17005 | Playwright E2E (auto-managed, isolated) |
+| 27005 | Playwright BDD E2E (auto-managed, isolated) |
 
 ## Agent Guide
 

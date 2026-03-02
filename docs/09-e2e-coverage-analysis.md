@@ -10,7 +10,7 @@
 
 | 层级 | 框架 | 目录 | 数据库 | 认证 | 定位 |
 |------|------|------|--------|------|------|
-| **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
+| **Vitest E2E** | Vitest | `tests/api/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
 当前统计：**276 个 E2E 测试用例**（Vitest 197 + Playwright 79）。
@@ -23,12 +23,15 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| `GET /api/health` — 健康检查 | `e2e/api.test.ts` | 1 | Vitest E2E |
-| `GET /api/lookup` — Slug 查询（命中/缺失/过期） | `e2e/api.test.ts` | 4 | Vitest E2E |
-| `POST /api/record-click` — 点击记录（完整/最小元数据） | `e2e/api.test.ts` | 4 | Vitest E2E |
-| `POST /api/record-click` — Worker Secret 鉴权 | `e2e/api.test.ts` `e2e/api-extra.test.ts` | 4 | Vitest E2E |
-| 完整重定向流程（查询 → 记录 → 计数验证） | `e2e/api.test.ts` | 2 | Vitest E2E |
-| API 异常路径（D1 连接失败 → 500） | `e2e/api-extra.test.ts` | 3 | Vitest E2E |
+| `GET /api/health` — 健康检查 | `api/api.test.ts` | 1 | Vitest E2E |
+| `GET /api/lookup` — Slug 查询（命中/缺失/过期） | `api/api.test.ts` | 4 | Vitest E2E |
+| `POST /api/record-click` — 点击记录（完整/最小元数据） | `api/api.test.ts` | 4 | Vitest E2E |
+| `POST /api/record-click` — Worker Secret 鉴权 | `api/api.test.ts` `api/api-extra.test.ts` | 4 | Vitest E2E |
+| 完整重定向流程（查询 → 记录 → 计数验证） | `api/api.test.ts` | 2 | Vitest E2E |
+| API 异常路径（D1 连接失败 → 500） | `api/api-extra.test.ts` | 3 | Vitest E2E |
+| `GET /api/live` — 存活探针 | `api/live.test.ts` | 3 | Vitest E2E |
+| `GET /api/worker-status` — Worker 健康查询 | `api/worker-status.test.ts` | 4 | Vitest E2E |
+| `POST /api/cron/sync-kv` — KV 同步端点 | `api/sync-kv.test.ts` | 9 | Vitest E2E |
 
 ### 1.2 认证与访问控制
 
@@ -37,7 +40,7 @@
 | 未登录访问 `/dashboard` 重定向到着陆页 | `playwright/auth-guard.spec.ts` | 3 | Playwright |
 | 已登录用户访问 `/dashboard` 正常加载 | `playwright/auth-guard.spec.ts` | 1 | Playwright |
 | 已登录用户访问 `/` 重定向到 Dashboard | `playwright/auth-guard.spec.ts` | 1 | Playwright |
-| 未认证用户调用 Server Action 被拒 | `e2e/edit-link.test.ts` `e2e/upload.test.ts` | 9 | Vitest E2E |
+| 未认证用户调用 Server Action 被拒 | `api/edit-link.test.ts` `api/upload.test.ts` | 9 | Vitest E2E |
 
 ### 1.3 链接 CRUD
 
@@ -55,30 +58,30 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 更新 URL | `e2e/edit-link.test.ts` | 1（生命周期内） | Vitest E2E |
-| 更新/清除备注 | `e2e/edit-link.test.ts` | 3 | Vitest E2E |
-| Slug 编辑（自定义/冲突/非法字符/保留路径/大小写/跨用户唯一性） | `e2e/edit-link.test.ts` | 8 | Vitest E2E |
-| 同时更新 Slug 和 URL | `e2e/edit-link.test.ts` | 1 | Vitest E2E |
-| 编辑验证（无效 URL/不存在的链接） | `e2e/edit-link.test.ts` | 4 | Vitest E2E |
+| 更新 URL | `api/edit-link.test.ts` | 1（生命周期内） | Vitest E2E |
+| 更新/清除备注 | `api/edit-link.test.ts` | 3 | Vitest E2E |
+| Slug 编辑（自定义/冲突/非法字符/保留路径/大小写/跨用户唯一性） | `api/edit-link.test.ts` | 8 | Vitest E2E |
+| 同时更新 Slug 和 URL | `api/edit-link.test.ts` | 1 | Vitest E2E |
+| 编辑验证（无效 URL/不存在的链接） | `api/edit-link.test.ts` | 4 | Vitest E2E |
 
 ### 1.5 标签系统（Server Action 级）
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 标签 CRUD（创建/列表/更新/删除） | `e2e/edit-link.test.ts` | 1 | Vitest E2E |
-| 标签-链接关联（绑定/解绑/多对多） | `e2e/edit-link.test.ts` | 3 | Vitest E2E |
-| 级联删除（删标签清关联/删链接清关联） | `e2e/edit-link.test.ts` | 2 | Vitest E2E |
-| 标签验证（空名/超长/非法颜色/自动颜色） | `e2e/edit-link.test.ts` | 6 | Vitest E2E |
-| 多用户隔离（标签/关联互不可见） | `e2e/edit-link.test.ts` | 2 | Vitest E2E |
+| 标签 CRUD（创建/列表/更新/删除） | `api/edit-link.test.ts` | 1 | Vitest E2E |
+| 标签-链接关联（绑定/解绑/多对多） | `api/edit-link.test.ts` | 3 | Vitest E2E |
+| 级联删除（删标签清关联/删链接清关联） | `api/edit-link.test.ts` | 2 | Vitest E2E |
+| 标签验证（空名/超长/非法颜色/自动颜色） | `api/edit-link.test.ts` | 6 | Vitest E2E |
+| 多用户隔离（标签/关联互不可见） | `api/edit-link.test.ts` | 2 | Vitest E2E |
 
 ### 1.6 文件上传（Server Action 级）
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 上传生命周期（预签名 → 记录 → 列表 → 删除） | `e2e/upload.test.ts` | 1 | Vitest E2E |
-| 多用户隔离 | `e2e/upload.test.ts` | 1 | Vitest E2E |
-| 验证（超限/零字节） | `e2e/upload.test.ts` | 3 | Vitest E2E |
-| 排序（最新优先） | `e2e/upload.test.ts` | 1 | Vitest E2E |
+| 上传生命周期（预签名 → 记录 → 列表 → 删除） | `api/upload.test.ts` | 1 | Vitest E2E |
+| 多用户隔离 | `api/upload.test.ts` | 1 | Vitest E2E |
+| 验证（超限/零字节） | `api/upload.test.ts` | 3 | Vitest E2E |
+| 排序（最新优先） | `api/upload.test.ts` | 1 | Vitest E2E |
 
 ### 1.7 导航与 UI 框架
 
@@ -107,32 +110,32 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| HEAD 连接测试 / GET 状态与文档 / POST 创建链接 | `e2e/webhook.test.ts` | 17 | Vitest E2E |
-| 幂等性、限流（429）、自定义 Slug、文件夹分配 | `e2e/webhook.test.ts` | （含上述 17） | Vitest E2E |
+| HEAD 连接测试 / GET 状态与文档 / POST 创建链接 | `api/webhook.test.ts` | 17 | Vitest E2E |
+| 幂等性、限流（429）、自定义 Slug、文件夹分配 | `api/webhook.test.ts` | （含上述 17） | Vitest E2E |
 
 ### 1.11 文件夹系统
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 文件夹 CRUD（创建/列表/更新/删除） | `e2e/folders.test.ts` | 7 | Vitest E2E |
-| 名称/图标验证（空名/超长/非法图标/边界） | `e2e/folders.test.ts` | 9 | Vitest E2E |
-| 链接分类（分配文件夹/移动/删除级联） | `e2e/folders.test.ts` | 5 | Vitest E2E |
-| 多用户隔离（跨用户不可见/不可改/不可删） | `e2e/folders.test.ts` | 4 | Vitest E2E |
-| 边界情况（空更新/同时更新名称和图标） | `e2e/folders.test.ts` | 4 | Vitest E2E |
+| 文件夹 CRUD（创建/列表/更新/删除） | `api/folders.test.ts` | 7 | Vitest E2E |
+| 名称/图标验证（空名/超长/非法图标/边界） | `api/folders.test.ts` | 9 | Vitest E2E |
+| 链接分类（分配文件夹/移动/删除级联） | `api/folders.test.ts` | 5 | Vitest E2E |
+| 多用户隔离（跨用户不可见/不可改/不可删） | `api/folders.test.ts` | 4 | Vitest E2E |
+| 边界情况（空更新/同时更新名称和图标） | `api/folders.test.ts` | 4 | Vitest E2E |
 
 ### 1.12 数据导入/导出 + 预览样式
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 未认证访问拒绝（导出/导入/预览样式读写） | `e2e/settings.test.ts` | 4 | Vitest E2E |
-| 导出 → 导入 round-trip（数据一致性验证） | `e2e/settings.test.ts` | 2 | Vitest E2E |
-| 导出空数据 | `e2e/settings.test.ts` | 1 | Vitest E2E |
-| 导入验证（非数组/空数组/缺字段/无效 URL） | `e2e/settings.test.ts` | 5 | Vitest E2E |
-| 导入重复 Slug 跳过 + 部分成功 | `e2e/settings.test.ts` | 2 | Vitest E2E |
-| 多用户隔离（导出/导入互不影响） | `e2e/settings.test.ts` | 2 | Vitest E2E |
-| 预览样式生命周期（默认值/切换/持久化/归一化/用户隔离） | `e2e/settings.test.ts` | 5 | Vitest E2E |
-| 导入字段默认值 + 自定义值保留 | `e2e/settings.test.ts` | 2 | Vitest E2E |
-| 批量导入（20 条） | `e2e/settings.test.ts` | 1 | Vitest E2E |
+| 未认证访问拒绝（导出/导入/预览样式读写） | `api/settings.test.ts` | 4 | Vitest E2E |
+| 导出 → 导入 round-trip（数据一致性验证） | `api/settings.test.ts` | 2 | Vitest E2E |
+| 导出空数据 | `api/settings.test.ts` | 1 | Vitest E2E |
+| 导入验证（非数组/空数组/缺字段/无效 URL） | `api/settings.test.ts` | 5 | Vitest E2E |
+| 导入重复 Slug 跳过 + 部分成功 | `api/settings.test.ts` | 2 | Vitest E2E |
+| 多用户隔离（导出/导入互不影响） | `api/settings.test.ts` | 2 | Vitest E2E |
+| 预览样式生命周期（默认值/切换/持久化/归一化/用户隔离） | `api/settings.test.ts` | 5 | Vitest E2E |
+| 导入字段默认值 + 自定义值保留 | `api/settings.test.ts` | 2 | Vitest E2E |
+| 批量导入（20 条） | `api/settings.test.ts` | 1 | Vitest E2E |
 
 ### 1.13 标签 UI 交互
 
@@ -204,29 +207,29 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 未认证访问拒绝（全部 8 个 action） | `e2e/backy.test.ts` | 8 | Vitest E2E |
-| 配置生命周期（保存/读取/清除 webhook URL + API key） | `e2e/backy.test.ts` | 3 | Vitest E2E |
-| 推送备份（成功/网络失败/空数据） | `e2e/backy.test.ts` | 3 | Vitest E2E |
-| 拉取恢复（成功/网络失败/空备份） | `e2e/backy.test.ts` | 3 | Vitest E2E |
-| Pull webhook 生命周期（生成/读取/吊销 pull key） | `e2e/backy.test.ts` | 4 | Vitest E2E |
-| Pull API 鉴权（有效 key/无效 key/缺失 key） | `e2e/backy.test.ts` | 3 | Vitest E2E |
-| 验证（无效 URL/URL 超长/API key 超长） | `e2e/backy.test.ts` | 3 | Vitest E2E |
-| 多用户隔离（配置/pull key 互不可见） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| 未认证访问拒绝（全部 8 个 action） | `api/backy.test.ts` | 8 | Vitest E2E |
+| 配置生命周期（保存/读取/清除 webhook URL + API key） | `api/backy.test.ts` | 3 | Vitest E2E |
+| 推送备份（成功/网络失败/空数据） | `api/backy.test.ts` | 3 | Vitest E2E |
+| 拉取恢复（成功/网络失败/空备份） | `api/backy.test.ts` | 3 | Vitest E2E |
+| Pull webhook 生命周期（生成/读取/吊销 pull key） | `api/backy.test.ts` | 4 | Vitest E2E |
+| Pull API 鉴权（有效 key/无效 key/缺失 key） | `api/backy.test.ts` | 3 | Vitest E2E |
+| 验证（无效 URL/URL 超长/API key 超长） | `api/backy.test.ts` | 3 | Vitest E2E |
+| 多用户隔离（配置/pull key 互不可见） | `api/backy.test.ts` | 3 | Vitest E2E |
 
 ### 1.19 Xray Twitter 集成
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 未认证访问拒绝（全部 6 个 action） | `e2e/xray.test.ts` | 6 | Vitest E2E |
-| 配置生命周期（保存/读取/清除 API URL + token） | `e2e/xray.test.ts` | 3 | Vitest E2E |
-| 推文查找（缓存未命中 → API 调用 → 缓存写入） | `e2e/xray.test.ts` | 3 | Vitest E2E |
-| 推文缓存（缓存命中跳过 API/强制刷新/过期淘汰） | `e2e/xray.test.ts` | 4 | Vitest E2E |
-| 书签导入（成功/网络失败/未配置） | `e2e/xray.test.ts` | 3 | Vitest E2E |
-| 截图保存（成功/失败/未配置） | `e2e/xray.test.ts` | 3 | Vitest E2E |
-| 验证（无效 URL/URL 超长/token 超长/无效推文 ID） | `e2e/xray.test.ts` | 5 | Vitest E2E |
-| 多用户隔离（配置互不可见） | `e2e/xray.test.ts` | 2 | Vitest E2E |
-| 推文缓存跨用户共享 | `e2e/xray.test.ts` | 1 | Vitest E2E |
-| 集成流程（配置 → 查找 → 书签 → 截图） | `e2e/xray.test.ts` | 7 | Vitest E2E |
+| 未认证访问拒绝（全部 6 个 action） | `api/xray.test.ts` | 6 | Vitest E2E |
+| 配置生命周期（保存/读取/清除 API URL + token） | `api/xray.test.ts` | 3 | Vitest E2E |
+| 推文查找（缓存未命中 → API 调用 → 缓存写入） | `api/xray.test.ts` | 3 | Vitest E2E |
+| 推文缓存（缓存命中跳过 API/强制刷新/过期淘汰） | `api/xray.test.ts` | 4 | Vitest E2E |
+| 书签导入（成功/网络失败/未配置） | `api/xray.test.ts` | 3 | Vitest E2E |
+| 截图保存（成功/失败/未配置） | `api/xray.test.ts` | 3 | Vitest E2E |
+| 验证（无效 URL/URL 超长/token 超长/无效推文 ID） | `api/xray.test.ts` | 5 | Vitest E2E |
+| 多用户隔离（配置互不可见） | `api/xray.test.ts` | 2 | Vitest E2E |
+| 推文缓存跨用户共享 | `api/xray.test.ts` | 1 | Vitest E2E |
+| 集成流程（配置 → 查找 → 书签 → 截图） | `api/xray.test.ts` | 7 | Vitest E2E |
 
 ---
 
@@ -242,8 +245,6 @@
 
 | 流程 | 涉及代码 | 现有测试 |
 |------|---------|---------|
-| **KV 同步** (`POST /api/cron/sync-kv`) | `app/api/cron/sync-kv/route.ts` | 有单元测试，无 E2E 完整流程 |
-| **Worker 状态查询** | `app/api/worker-status/route.ts` | 仅单元测试 |
 | **链接元数据自动抓取** | `actions/enrichment.ts` | 仅单元测试 |
 | **截图捕获** | `actions/links.ts` (`fetchAndSaveScreenshot`) | 无任何 E2E 覆盖 |
 
@@ -298,6 +299,9 @@
 
 | 功能模块 | 单元测试 | Vitest E2E | Playwright E2E | 综合评价 |
 |----------|:--------:|:----------:|:--------------:|---------|
+| 存活探针 API | ✅ | ✅ | — | 充分 |
+| Worker 状态 API | ✅ | ✅ | — | 充分 |
+| KV 同步 API | ✅ | ✅ | — | 充分 |
 | 健康检查 API | ✅ | ✅ | — | 充分 |
 | Slug 查询 API | ✅ | ✅ | — | 充分 |
 | 点击记录 API | ✅ | ✅ | — | 充分 |

@@ -74,8 +74,9 @@ bun dev
 | `bun run lint` | ESLint 检查（零警告策略） |
 | `bun run test` | Watch 模式运行测试 |
 | `bun run test:run` | 运行全部测试（单次） |
-| `bun run test:unit` | 仅运行单元测试（排除 E2E） |
-| `bun run test:e2e` | 仅运行 E2E 测试 |
+| `bun run test:unit` | 仅运行单元测试（排除 API E2E） |
+| `bun run test:unit:coverage` | 单元测试 + 覆盖率门槛检查 |
+| `bun run test:api` | 仅运行 API E2E 测试 |
 | `bun run test:coverage` | 运行测试并生成覆盖率报告 |
 | `bun run generate:logos` | 从源图生成全套 Logo 尺寸 |
 

@@ -22,7 +22,7 @@ tests/
 ├── unit/           # 纯函数和逻辑测试
 ├── integration/    # Server Actions 集成测试
 ├── components/     # React 组件测试
-├── e2e/            # API 路由端到端测试
+├── api/            # API 路由端到端测试
 ├── mocks/          # 共享 Mock 数据
 │   └── db-storage.ts
 └── setup.ts        # 全局测试配置
@@ -104,16 +104,17 @@ bun run test:coverage
 |------|------|
 | `npx vitest run` | 运行全部测试（推荐） |
 | `bun run test` | Watch 模式 |
-| `bun run test:unit` | 仅单元测试（排除 E2E） |
-| `bun run test:e2e` | 仅 E2E 测试 |
+| `bun run test:unit` | 仅单元测试（排除 API E2E） |
+| `bun run test:unit:coverage` | 单元测试 + 覆盖率门槛检查 |
+| `bun run test:api` | 仅 API E2E 测试 |
 | `bun run test:coverage` | 覆盖率报告 |
 
-## Git Hooks 自动验证
+## Git Hooks 自动验证（四层架构）
 
-| Hook | 阶段 | 运行内容 |
+| Hook | 层级 | 运行内容 |
 |------|------|----------|
-| `pre-commit` | 提交前 | 单元测试 + ESLint（仅暂存文件） |
-| `pre-push` | 推送前 | 全量测试（含 E2E）+ 全量 ESLint |
+| `pre-commit` | L1 + L2 | 单元测试（含覆盖率门槛）+ ESLint（仅暂存文件，零警告策略） |
+| `pre-push` | L3 + L4 | API E2E 测试（`bun run test:api`）+ Playwright BDD E2E（`bun run test:e2e:pw`） |
 
 ESLint 采用**零警告策略**（`--max-warnings=0`），任何警告都会导致 Hook 失败。
 

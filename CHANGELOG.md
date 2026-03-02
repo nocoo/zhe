@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Click trend chart fills full card height via flex layout
 - Count legacy `NULL`-source analytics rows as origin in click trend
 - Use fixed pixel height for click trend chart to prevent Recharts -1 sizing
-- Kill leftover process on port 17005 before Playwright E2E in pre-push hook
+- Kill leftover process on Playwright E2E port before Playwright E2E in pre-push hook
 - Fix `createLink` INSERT SQL missing `note` column in both unscoped and scoped DB functions
 
 ## [v1.6.0] - 2026-03-01
@@ -256,7 +256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - Restore slug display in grid mode meta row
 - Return final redirect URL from screenshot.domains for reliable server-side download
-- Isolate E2E tests on dedicated port 17005 to avoid dev server conflicts
+- Isolate E2E tests on dedicated port to avoid dev server conflicts
 - Use platform-aware modifier key for Cmd+K test
 - Harden E2E credentials provider with email pin and production guard
 - Use else-if in session callback to prevent id overwrite
