@@ -145,7 +145,8 @@ describe("GET /api/webhook/[token]", () => {
     expect(body.stats.totalLinks).toBe(2);
     expect(body.stats.totalClicks).toBe(0);
     expect(body.docs).toBeDefined();
-    expect(body.docs.endpoint).toContain(`/api/webhook/${token}`);
+    expect(body.docs.openapi).toBe("3.1.0");
+    expect(body.docs.servers[0].url).toContain(`/api/webhook/${token}`);
   });
 });
 
