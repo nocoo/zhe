@@ -978,6 +978,18 @@ vi.mock('@/lib/db/d1-client', async () => {
 
       // ---- User Settings ----
 
+      // SELECT user_id FROM user_settings WHERE backy_pull_key = ? (verify pull webhook)
+      if (sqlLower.includes('from user_settings') && sqlLower.includes('where backy_pull_key = ?')) {
+        const [pullKey] = params;
+        const mockSettings = getMockUserSettings();
+        for (const settings of mockSettings.values()) {
+          if (settings.backy_pull_key === pullKey) {
+            return [{ user_id: settings.user_id }] as T[];
+          }
+        }
+        return [];
+      }
+
       // SELECT FROM user_settings WHERE user_id = ?
       if (sqlLower.includes('from user_settings') && sqlLower.includes('where user_id = ?')) {
         const [userId] = params;
@@ -986,18 +998,68 @@ vi.mock('@/lib/db/d1-client', async () => {
         return settings ? [settings] as T[] : [];
       }
 
+      // UPDATE user_settings SET backy_pull_key = NULL WHERE user_id = ?
+      if (sqlLower.startsWith('update user_settings') && sqlLower.includes('backy_pull_key = null')) {
+        const mockSettings = getMockUserSettings();
+        // userId is the last param (WHERE user_id = ?)
+        const userId = params[params.length - 1] as string;
+        const existing = mockSettings.get(userId);
+        if (!existing) return [];
+        const updated = { ...existing, backy_pull_key: null };
+        mockSettings.set(userId, updated);
+        return [updated] as T[];
+      }
+
       // INSERT INTO user_settings ... ON CONFLICT ... DO UPDATE (upsert)
       if (sqlLower.startsWith('insert into user_settings')) {
         const mockSettings = getMockUserSettings();
+        // Backy pull key upsert: (user_id, preview_style, backy_pull_key)
+        // SQL: VALUES (?, 'favicon', ?) — 'favicon' is literal, only 2 bind params: user_id, pull_key
+        if (sqlLower.includes('backy_pull_key') && !sqlLower.includes('backy_webhook_url') && !sqlLower.includes('xray_api_url')) {
+          const [userId, pullKey] = params;
+          const existing = mockSettings.get(userId as string);
+          const settings = {
+            user_id: userId as string,
+            preview_style: existing?.preview_style ?? 'favicon',
+            backy_webhook_url: existing?.backy_webhook_url ?? null,
+            backy_api_key: existing?.backy_api_key ?? null,
+            backy_pull_key: pullKey as string | null,
+            xray_api_url: existing?.xray_api_url ?? null,
+            xray_api_token: existing?.xray_api_token ?? null,
+          };
+          mockSettings.set(userId as string, settings);
+          return [settings] as T[];
+        }
+        // Xray settings upsert: (user_id, preview_style, xray_api_url, xray_api_token)
+        // SQL: VALUES (?, 'favicon', ?, ?) — 'favicon' is literal, 3 bind params: user_id, apiUrl, apiToken
+        if (sqlLower.includes('xray_api_url')) {
+          const [userId, apiUrl, apiToken] = params;
+          const existing = mockSettings.get(userId as string);
+          const settings = {
+            user_id: userId as string,
+            preview_style: existing?.preview_style ?? 'favicon',
+            backy_webhook_url: existing?.backy_webhook_url ?? null,
+            backy_api_key: existing?.backy_api_key ?? null,
+            backy_pull_key: existing?.backy_pull_key ?? null,
+            xray_api_url: apiUrl as string | null,
+            xray_api_token: apiToken as string | null,
+          };
+          mockSettings.set(userId as string, settings);
+          return [settings] as T[];
+        }
         // Backy settings upsert: (user_id, preview_style, backy_webhook_url, backy_api_key)
+        // SQL: VALUES (?, 'favicon', ?, ?) — 'favicon' is literal, 3 bind params: user_id, webhookUrl, apiKey
         if (sqlLower.includes('backy_webhook_url')) {
-          const [userId, , webhookUrl, apiKey] = params;
+          const [userId, webhookUrl, apiKey] = params;
           const existing = mockSettings.get(userId as string);
           const settings = {
             user_id: userId as string,
             preview_style: existing?.preview_style ?? 'favicon',
             backy_webhook_url: webhookUrl as string | null,
             backy_api_key: apiKey as string | null,
+            backy_pull_key: existing?.backy_pull_key ?? null,
+            xray_api_url: existing?.xray_api_url ?? null,
+            xray_api_token: existing?.xray_api_token ?? null,
           };
           mockSettings.set(userId as string, settings);
           return [settings] as T[];
@@ -1010,6 +1072,9 @@ vi.mock('@/lib/db/d1-client', async () => {
           preview_style: previewStyle as string,
           backy_webhook_url: existing?.backy_webhook_url ?? null,
           backy_api_key: existing?.backy_api_key ?? null,
+          backy_pull_key: existing?.backy_pull_key ?? null,
+          xray_api_url: existing?.xray_api_url ?? null,
+          xray_api_token: existing?.xray_api_token ?? null,
         };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];

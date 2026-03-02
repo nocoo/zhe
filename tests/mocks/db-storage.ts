@@ -17,6 +17,9 @@ export interface MockUserSettings {
   preview_style: string;
   backy_webhook_url?: string | null;
   backy_api_key?: string | null;
+  backy_pull_key?: string | null;
+  xray_api_url?: string | null;
+  xray_api_token?: string | null;
 }
 
 // In-memory storage
