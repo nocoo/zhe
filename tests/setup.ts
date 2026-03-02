@@ -43,6 +43,10 @@ vi.mock('@/lib/db/d1-client', async () => {
       // INSERT INTO links
       if (sqlLower.startsWith('insert into links')) {
         const [userId, folderId, originalUrl, slug, isCustom, expiresAt, clicks, createdAt] = params;
+        // Enforce UNIQUE constraint on slug (matches real D1 behaviour)
+        if (mockLinks.has(slug as string)) {
+          throw new Error('UNIQUE constraint failed: links.slug');
+        }
         const id = getNextLinkId();
         const link = {
           id,
