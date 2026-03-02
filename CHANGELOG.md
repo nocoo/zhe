@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.6.1] - 2026-03-02
+
+### Added
+- Webhook `note` parameter: optional bookmark note (max 500 chars) passed through to `createLink`
+- OpenAPI 3.1 specification replaces custom documentation format in GET `/api/webhook/[token]` response
+- AI Agent Prompt block on webhook settings page with copyable prompt for AI agents to discover and use the webhook API via GET schema discovery
+- Backy pull webhook for remote backup trigger via `POST /api/backy/pull`
+- Delta sync for KV cron: skip D1 query and KV write when nothing changed since last sync
+- Stale-while-revalidate caching for overview page
+- Cron history pagination (4 entries per page)
+- Playwright E2E tests: webhook management UI (10), upload UI (10), overview page (8), tag UI (9), data import/export (24), Cmd+K search (9), folder CRUD (29), webhook API (17), 404 page and link expiration (9), Backy backup (30), Xray Twitter (37) — 192 new E2E scenarios total
+
+### Changed
+- Simplify pull webhook to key-only authentication (remove secret from DB schema, viewmodel, and UI)
+- Simplify dashboard KV cache section and remove cron history UI
+- Remove cron sync dirty flag, simplify KV architecture
+- Add `data-testid` attributes to webhook, upload, overview, and tag UI components for E2E testing
+
+### Fixed
+- Use `X-Real-Host` header to prevent Railway overwriting public hostname in reverse proxy
+- Click trend chart fills full card height via flex layout
+- Count legacy `NULL`-source analytics rows as origin in click trend
+- Use fixed pixel height for click trend chart to prevent Recharts -1 sizing
+- Kill leftover process on port 17005 before Playwright E2E in pre-push hook
+- Fix `createLink` INSERT SQL missing `note` column in both unscoped and scoped DB functions
+
 ## [v1.6.0] - 2026-03-01
 
 ### Added
