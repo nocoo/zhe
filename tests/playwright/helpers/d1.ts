@@ -100,3 +100,48 @@ export async function executeD1(
     throw new Error(msg);
   }
 }
+
+/**
+ * Execute a SQL SELECT query against D1 and return result rows.
+ *
+ * Unlike `executeD1` (which returns void), this parses and returns
+ * the `result[0].results` array from the D1 HTTP API response.
+ */
+export async function queryD1<T = Record<string, unknown>>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId || !databaseId || !token) {
+    throw new Error('D1 credentials not configured.');
+  }
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sql, params }),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`D1 HTTP error ${res.status}: ${body}`);
+  }
+
+  const data = await res.json();
+  if (!data.success) {
+    const detail = (data.errors ?? []).map((e: { message: string }) => e.message).join(', ');
+    throw new Error(`D1 query error: ${detail}`);
+  }
+
+  // D1 HTTP API returns { result: [{ results: [...rows], ... }] }
+  return (data.result?.[0]?.results ?? []) as T[];
+}

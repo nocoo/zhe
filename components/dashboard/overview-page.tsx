@@ -42,12 +42,12 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon }: StatCardProps) {
   return (
-    <div className="rounded-xl bg-secondary p-4 md:p-5" data-testid="stat-card">
+    <div className="rounded-xl bg-secondary p-4 md:p-5" data-testid="stat-card" data-stat-label={label}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <p className="mt-2 text-xl md:text-2xl font-semibold tracking-tight">
+      <p className="mt-2 text-xl md:text-2xl font-semibold tracking-tight" data-testid="stat-value">
         {value}
       </p>
     </div>
@@ -301,11 +301,13 @@ function TopLinksList({ links }: { links: TopLinkEntry[] }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="top-links-list">
       {links.slice(0, 8).map((link, i) => (
         <div
           key={link.slug}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+          data-testid="top-link-item"
+          data-slug={link.slug}
         >
           <span className="w-5 text-center text-xs text-muted-foreground font-medium">
             {i + 1}
@@ -336,7 +338,7 @@ function KVCacheSection({
 }) {
   if (isLoading) {
     return (
-      <section>
+      <section data-testid="section-kv">
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <StatSkeleton />
@@ -348,7 +350,7 @@ function KVCacheSection({
 
   if (!health) {
     return (
-      <section>
+      <section data-testid="section-kv">
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
         <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
           无法加载 KV 缓存状态
@@ -358,7 +360,7 @@ function KVCacheSection({
   }
 
   return (
-    <section>
+    <section data-testid="section-kv">
       <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <StatCard
@@ -423,7 +425,7 @@ function OverviewContent({
   return (
     <div className="space-y-8 md:space-y-10">
       {/* ── 链接统计 ──────────────────────────────────────────────── */}
-      <section>
+      <section data-testid="section-links">
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">链接统计</h2>
         <div className="space-y-4 md:space-y-6">
           {/* Stat cards */}
@@ -502,7 +504,7 @@ function OverviewContent({
       <KVCacheSection health={workerHealth} loading={workerHealthLoading} />
 
       {/* ── 图床统计 ──────────────────────────────────────────────── */}
-      <section>
+      <section data-testid="section-uploads">
         <h2 className="mb-4 text-sm font-medium text-muted-foreground">图床统计</h2>
         <div className="space-y-4 md:space-y-6">
           {/* Stat cards */}

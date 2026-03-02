@@ -24,5 +24,8 @@ export default async function globalTeardown(): Promise<void> {
   // Delete tags
   await executeD1('DELETE FROM tags WHERE user_id = ?', [TEST_USER.id], { softFail: true });
 
+  // Delete uploads
+  await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id], { softFail: true });
+
   console.log('[pw:global-teardown] Done.');
 }
