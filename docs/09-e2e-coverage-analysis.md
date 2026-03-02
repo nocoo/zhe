@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**180 个 E2E 测试用例**（Vitest 130 + Playwright 50）。
+当前统计：**190 个 E2E 测试用例**（Vitest 130 + Playwright 60）。
 
 ---
 
@@ -160,6 +160,20 @@
 | 侧边栏导航到 Overview | `playwright/overview.spec.ts` | 1 | Playwright |
 | 数据清理 | `playwright/overview.spec.ts` | 1 | Playwright |
 
+### 1.15 浏览器端文件上传 UI
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 上传页面渲染（空状态/文件计数） | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 文件选择上传（R2 presigned URL 拦截） | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 上传文件排序（最新优先） | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 复制上传文件链接 | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 外部链接打开 | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 删除文件（确认对话框） | `playwright/uploads.spec.ts` | 1 | Playwright |
+| 删除文件（取消对话框） | `playwright/uploads.spec.ts` | 1 | Playwright |
+| PNG 自动转换开关（显示/隐藏） | `playwright/uploads.spec.ts` | 2 | Playwright |
+| PNG 自动转换开关（localStorage 持久化） | `playwright/uploads.spec.ts` | 1 | Playwright |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -168,7 +182,6 @@
 
 | 流程 | 涉及页面 | 现有测试 |
 |------|---------|---------|
-| **浏览器端文件上传 UI** | `/dashboard/uploads` | Action 级已覆盖，拖拽/选择文件的 UI 交互未测 |
 | **单链接分析视图** | 链接卡片展开 | `getAnalyticsStats` 存在但 UI 级验证缺失 |
 | **Webhook 管理 UI** | `/dashboard/webhook` | 仅导航测试，生成/吊销 Token、限流配置的 UI 操作未测 |
 | **链接过期处理** | middleware + UI | Middleware 级已测，但无 Playwright 测试创建过期链接后访问验证 404 |
@@ -220,14 +233,14 @@
 
 ### P2 — 辅助功能，按需补充
 
-| # | 缺口 | 建议补充方案 |
-|---|------|-------------|
-| 8 | 浏览器端文件上传 UI | Playwright：文件选择 → 上传 → 验证列表出现 → 删除 |
-| 9 | Webhook 管理 UI | Playwright：生成 Token → 复制 → 吊销 → 验证状态变更 |
-| 10 | 链接过期处理 | Playwright：创建已过期链接 → 访问短链 → 验证 404 页面 |
-| 11 | 404 页面渲染 | Playwright：访问不存在的 Slug → 验证 404 页面元素 |
-| 12 | Backy 备份集成 | Vitest E2E：配置 → 推送 → 验证数据一致性 |
-| 13 | Xray Twitter 集成 | Vitest E2E：配置 → 查找推文 → 验证缓存 |
+| # | 缺口 | 建议补充方案 | 状态 |
+|---|------|-------------|------|
+| 8 | 浏览器端文件上传 UI | `playwright/uploads.spec.ts` (10 tests) | ✅ 已覆盖 |
+| 9 | Webhook 管理 UI | Playwright：生成 Token → 复制 → 吊销 → 验证状态变更 | ❌ 待补充 |
+| 10 | 链接过期处理 | Playwright：创建已过期链接 → 访问短链 → 验证 404 页面 | ❌ 待补充 |
+| 11 | 404 页面渲染 | Playwright：访问不存在的 Slug → 验证 404 页面元素 | ❌ 待补充 |
+| 12 | Backy 备份集成 | Vitest E2E：配置 → 推送 → 验证数据一致性 | ❌ 待补充 |
+| 13 | Xray Twitter 集成 | Vitest E2E：配置 → 查找推文 → 验证缓存 | ❌ 待补充 |
 
 ---
 
@@ -242,7 +255,7 @@
 | 链接 CRUD | ✅ | ✅ | ✅ | 充分 |
 | Slug 编辑 | ✅ | ✅ | — | 充分 |
 | 标签系统 | ✅ | ✅ | ✅ | 充分 |
-| 文件上传 | ✅ | ✅ | ❌ | Action 充分，UI 缺失 |
+| 文件上传 | ✅ | ✅ | ✅ | 充分 |
 | 文件夹系统 | ✅ | ✅ | — | 充分 |
 | 短链接重定向 | ✅ | ⚠️ 部分 | ✅ | 充分 |
 | Webhook API | ✅ | ✅ | — | 充分 |
