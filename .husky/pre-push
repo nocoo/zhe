@@ -1,5 +1,8 @@
-bun run test:run
-bun run lint
-# Kill any leftover process on Playwright's port to avoid EADDRINUSE
+# L3: API E2E tests (mock-level, port-free)
+bun run test:api
+
+# L4: BDD E2E tests (Playwright on port 27005)
+# Kill leftover processes on API E2E (17005) and BDD E2E (27005) ports
+lsof -ti :17005 | xargs kill -9 2>/dev/null || true
 lsof -ti :27005 | xargs kill -9 2>/dev/null || true
 bun run test:e2e:pw
