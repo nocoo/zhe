@@ -68,6 +68,10 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
   if (!response.ok) {
     const error = await response.text();
     console.error('D1 HTTP error:', error);
+    // Preserve constraint errors for callers that need to detect them
+    if (/unique/i.test(error)) {
+      throw new Error('UNIQUE constraint failed');
+    }
     throw new Error('D1 query failed');
   }
 
