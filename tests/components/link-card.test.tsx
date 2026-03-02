@@ -535,7 +535,9 @@ describe("LinkCard", () => {
   it("shows click count with '次点击' in grid mode", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.getByText(/num:42 次点击/)).toBeInTheDocument();
+    const clickCount = screen.getByTestId("click-count");
+    expect(clickCount).toHaveTextContent("num:42");
+    expect(clickCount.parentElement).toHaveTextContent(/num:42\s*次点击/);
   });
 
   it("shows created date in grid mode", () => {

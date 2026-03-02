@@ -267,7 +267,7 @@ export const LinkCard = memo(function LinkCard({
             </span>
             <span className="flex items-center gap-1">
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
-              {formatNumber(link.clicks ?? 0)} 次点击
+              <span data-testid="click-count">{formatNumber(link.clicks ?? 0)}</span> 次点击
             </span>
             <span>{formatDate(link.createdAt)}</span>
           </div>
@@ -438,7 +438,7 @@ export const LinkCard = memo(function LinkCard({
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
               <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
-              <span>{formatNumber(link.clicks ?? 0)} 次点击</span>
+              <span><span data-testid="click-count">{formatNumber(link.clicks ?? 0)}</span> 次点击</span>
               {showAnalytics ? (
                 <ChevronUp className="w-3 h-3" />
               ) : (
