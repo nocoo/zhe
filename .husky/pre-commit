@@ -1,2 +1,2 @@
-bun run test:unit
+bun run test:unit:coverage
 bunx lint-staged

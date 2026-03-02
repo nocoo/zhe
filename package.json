@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**'",
+    "test:unit:coverage": "vitest run --exclude 'tests/e2e/**' --coverage",
     "test:e2e": "vitest run tests/e2e",
     "test:e2e:pw": "bun x playwright test",
     "test:e2e:pw:ui": "bun x playwright test --ui",
