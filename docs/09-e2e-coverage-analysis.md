@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**163 个 E2E 测试用例**（Vitest 130 + Playwright 33）。
+当前统计：**180 个 E2E 测试用例**（Vitest 130 + Playwright 50）。
 
 ---
 
@@ -134,6 +134,32 @@
 | 导入字段默认值 + 自定义值保留 | `e2e/settings.test.ts` | 2 | Vitest E2E |
 | 批量导入（20 条） | `e2e/settings.test.ts` | 1 | Vitest E2E |
 
+### 1.13 标签 UI 交互
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 创建标签（通过 TagPicker 输入新名称） | `playwright/tags.spec.ts` | 1 | Playwright |
+| 分配标签给链接（编辑模式选择已有标签） | `playwright/tags.spec.ts` | 1 | Playwright |
+| 标签在链接卡片上可见 | `playwright/tags.spec.ts` | 1 | Playwright |
+| 移除标签（编辑模式点击已选标签） | `playwright/tags.spec.ts` | 1 | Playwright |
+| 按标签筛选链接列表 | `playwright/tags.spec.ts` | 2 | Playwright |
+| 清除标签筛选 | `playwright/tags.spec.ts` | 1 | Playwright |
+| 多标签分配 | `playwright/tags.spec.ts` | 1 | Playwright |
+| 清理（删除测试数据） | `playwright/tags.spec.ts` | 1 | Playwright |
+
+### 1.14 Overview 页面数据渲染
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 页面区块标题渲染（链接/KV/上传） | `playwright/overview.spec.ts` | 1 | Playwright |
+| 链接统计卡片（非零数值） | `playwright/overview.spec.ts` | 1 | Playwright |
+| 热门链接排行（按点击量排序） | `playwright/overview.spec.ts` | 1 | Playwright |
+| 上传统计卡片 | `playwright/overview.spec.ts` | 1 | Playwright |
+| 图表渲染（非空状态） | `playwright/overview.spec.ts` | 1 | Playwright |
+| KV 缓存区块可见 | `playwright/overview.spec.ts` | 1 | Playwright |
+| 侧边栏导航到 Overview | `playwright/overview.spec.ts` | 1 | Playwright |
+| 数据清理 | `playwright/overview.spec.ts` | 1 | Playwright |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -142,9 +168,7 @@
 
 | 流程 | 涉及页面 | 现有测试 |
 |------|---------|---------|
-| **Overview 统计数据渲染** | `/dashboard/overview` | 仅验证页面可达，未验证统计数字/图表渲染 |
 | **浏览器端文件上传 UI** | `/dashboard/uploads` | Action 级已覆盖，拖拽/选择文件的 UI 交互未测 |
-| **标签 UI 交互** | Dashboard 链接卡片 | Action 级已覆盖，浏览器中创建/分配/筛选标签未测 |
 | **单链接分析视图** | 链接卡片展开 | `getAnalyticsStats` 存在但 UI 级验证缺失 |
 | **Webhook 管理 UI** | `/dashboard/webhook` | 仅导航测试，生成/吊销 Token、限流配置的 UI 操作未测 |
 | **链接过期处理** | middleware + UI | Middleware 级已测，但无 Playwright 测试创建过期链接后访问验证 404 |
@@ -185,14 +209,14 @@
 | 2 | **Webhook 创建链接** | `e2e/webhook.test.ts` (17 tests) | ✅ 已覆盖 |
 | 3 | **文件夹系统** | `e2e/folders.test.ts` (29 tests) | ✅ 已覆盖 |
 
-### P1 — 重要用户流程，尽快补充
+### P1 — 重要用户流程 ✅ 已全部覆盖
 
-| # | 缺口 | 为什么重要 | 建议补充方案 |
-|---|------|-----------|-------------|
-| 4 | ~~**搜索功能完整流程**~~ | ~~高频交互入口~~ | ✅ 已覆盖：`playwright/search.spec.ts` (9 tests) |
-| 5 | ~~**数据导入/导出**~~ | ~~数据可移植性是用户信任的基础~~ | ✅ 已覆盖：`e2e/settings.test.ts` (24 tests) |
-| 6 | **标签 UI 交互** | Action 级覆盖完善但用户实际通过 UI 操作，渲染和交互可能有独立问题。 | Playwright：创建标签 → 分配给链接 → 验证标签在卡片上可见 → 按标签筛选 |
-| 7 | **Overview 数据渲染** | 用户理解使用状况的入口，空数据/异常数据渲染可能导致误导。 | Playwright：先创建链接+点击 → 访问 Overview → 验证关键统计数字非零 |
+| # | 流程 | 测试文件 | 状态 |
+|---|------|---------|------|
+| 4 | **搜索功能完整流程** | `playwright/search.spec.ts` (9 tests) | ✅ 已覆盖 |
+| 5 | **数据导入/导出** | `e2e/settings.test.ts` (24 tests) | ✅ 已覆盖 |
+| 6 | **标签 UI 交互** | `playwright/tags.spec.ts` (9 tests) | ✅ 已覆盖 |
+| 7 | **Overview 数据渲染** | `playwright/overview.spec.ts` (8 tests) | ✅ 已覆盖 |
 
 ### P2 — 辅助功能，按需补充
 
@@ -217,14 +241,14 @@
 | 认证守卫 | ✅ | ✅ | ✅ | 充分 |
 | 链接 CRUD | ✅ | ✅ | ✅ | 充分 |
 | Slug 编辑 | ✅ | ✅ | — | 充分 |
-| 标签系统 | ✅ | ✅ | ❌ | Action 充分，UI 缺失 |
+| 标签系统 | ✅ | ✅ | ✅ | 充分 |
 | 文件上传 | ✅ | ✅ | ❌ | Action 充分，UI 缺失 |
 | 文件夹系统 | ✅ | ✅ | — | 充分 |
 | 短链接重定向 | ✅ | ⚠️ 部分 | ✅ | 充分 |
 | Webhook API | ✅ | ✅ | — | 充分 |
 | 数据导入/导出 | ✅ | ✅ | — | 充分 |
 | 搜索功能 | ✅ | — | ✅ | 充分 |
-| Overview 统计 | ✅ | — | ⚠️ 仅导航 | 缺失 |
+| Overview 统计 | ✅ | — | ✅ | 充分 |
 | Backy 备份 | ✅ | ❌ | ❌ | 缺失 |
 | Xray 集成 | ✅ | ❌ | ❌ | 缺失 |
 | Webhook 管理 UI | ✅ | — | ⚠️ 仅导航 | 缺失 |
