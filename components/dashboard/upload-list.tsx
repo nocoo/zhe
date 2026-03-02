@@ -70,7 +70,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-semibold text-foreground">文件上传</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5" data-testid="upload-file-count">
             共 {uploads.length} 个文件
           </p>
         </div>
@@ -81,6 +81,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
         <div className="flex items-center gap-2">
           <Switch
             id="auto-convert-png"
+            data-testid="png-convert-switch"
             checked={autoConvertPng}
             onCheckedChange={setAutoConvertPng}
           />
@@ -136,7 +137,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
 
       {/* Completed uploads */}
       {uploads.length === 0 && uploadingFiles.length === 0 ? (
-        <div className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
+        <div data-testid="upload-empty-state" className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
           <UploadIcon
             className="w-10 h-10 mx-auto text-muted-foreground mb-4"
             strokeWidth={1.5}
