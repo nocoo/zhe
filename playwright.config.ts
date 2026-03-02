@@ -3,11 +3,14 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright E2E configuration.
  *
- * Tests run on a dedicated port (17005) to avoid conflicts with the
- * regular dev server (7005). The webServer block always starts a fresh
- * instance with PLAYWRIGHT=1 so the Credentials provider is available.
+ * Tests run on a dedicated port (27005) to avoid conflicts with the
+ * regular dev server (7005) and API E2E tests (17005).
+ *
+ * Port convention: dev=7005, API E2E=17005, BDD E2E=27005.
+ * The webServer block always starts a fresh instance with PLAYWRIGHT=1
+ * so the Credentials provider is available.
  */
-const E2E_PORT = 17005;
+const E2E_PORT = 27005;
 const E2E_BASE = `http://localhost:${E2E_PORT}`;
 
 export default defineConfig({
