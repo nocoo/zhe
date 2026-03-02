@@ -121,3 +121,4 @@ Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
 - [架构概览](01-architecture.md)
 - [数据库设计](04-database.md)
 - [测试策略](05-testing.md)
+- [远程备份（Backy 集成）](10-backy.md)
