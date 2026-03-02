@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**200 个 E2E 测试用例**（Vitest 130 + Playwright 70）。
+当前统计：**209 个 E2E 测试用例**（Vitest 130 + Playwright 79）。
 
 ---
 
@@ -187,6 +187,19 @@
 | 吊销后重新生成 | `playwright/webhook.spec.ts` | 1 | Playwright |
 | 清理（删除测试数据） | `playwright/webhook.spec.ts` | 1 | Playwright |
 
+### 1.17 404 页面与链接过期
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 不存在的 Slug 返回 404 页面 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| 404 页面「返回首页」链接 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| API lookup 不存在的 Slug 返回 404 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| 过期链接返回 404 页面 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| API lookup 过期链接返回 expired: true | `playwright/not-found.spec.ts` | 1 | Playwright |
+| 未过期链接仍正常重定向 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| expiresAt 为 null 永不过期 | `playwright/not-found.spec.ts` | 1 | Playwright |
+| 清理（删除测试数据） | `playwright/not-found.spec.ts` | 2 | Playwright |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -196,7 +209,6 @@
 | 流程 | 涉及页面 | 现有测试 |
 |------|---------|---------|
 | **单链接分析视图** | 链接卡片展开 | `getAnalyticsStats` 存在但 UI 级验证缺失 |
-| **链接过期处理** | middleware + UI | Middleware 级已测，但无 Playwright 测试创建过期链接后访问验证 404 |
 
 ### 2.2 系统集成
 
@@ -213,9 +225,9 @@
 
 | 流程 | 备注 |
 |------|------|
-| **404 页面渲染** | 无 Playwright 测试访问不存在的 Slug 验证 404 页面 |
 | **主题切换效果** | 仅检测按钮存在，未验证实际切换 |
 | **Preview 样式设置** | `getPreviewStyle` / `updatePreviewStyle` 已有 E2E 覆盖 |
+| **主题切换效果** | 仅检测按钮存在，未验证实际切换 |
 | **Storage 诊断页** | 仅导航测试，未验证 D1/R2 统计展示 |
 | **移动端布局** | 无 viewport 测试 |
 | **网络异常状态** | 无 Playwright 测试 server error / 网络中断场景 |
@@ -249,8 +261,8 @@
 |---|------|-------------|------|
 | 8 | 浏览器端文件上传 UI | `playwright/uploads.spec.ts` (10 tests) | ✅ 已覆盖 |
 | 9 | Webhook 管理 UI | `playwright/webhook.spec.ts` (10 tests) | ✅ 已覆盖 |
-| 10 | 链接过期处理 | Playwright：创建已过期链接 → 访问短链 → 验证 404 页面 | ❌ 待补充 |
-| 11 | 404 页面渲染 | Playwright：访问不存在的 Slug → 验证 404 页面元素 | ❌ 待补充 |
+| 10 | 链接过期处理 | `playwright/not-found.spec.ts` (9 tests) | ✅ 已覆盖 |
+| 11 | 404 页面渲染 | `playwright/not-found.spec.ts` (含上述 9 tests) | ✅ 已覆盖 |
 | 12 | Backy 备份集成 | Vitest E2E：配置 → 推送 → 验证数据一致性 | ❌ 待补充 |
 | 13 | Xray Twitter 集成 | Vitest E2E：配置 → 查找推文 → 验证缓存 | ❌ 待补充 |
 
@@ -279,7 +291,7 @@
 | Webhook 管理 UI | ✅ | — | ✅ | 充分 |
 | 侧边栏导航 | — | — | ✅ | 充分 |
 | 着陆页 | — | — | ✅ | 充分 |
-| 404 页面 | ✅ | ❌ | ❌ | 缺失 |
+| 404 页面 | ✅ | — | ✅ | 充分 |
 | 主题切换 | — | — | ⚠️ 仅存在 | 缺失 |
 
 > **图例**：✅ 充分覆盖 | ⚠️ 部分覆盖 | ❌ 未覆盖 | — 不适用
