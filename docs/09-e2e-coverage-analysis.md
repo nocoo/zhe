@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/e2e/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**209 个 E2E 测试用例**（Vitest 130 + Playwright 79）。
+当前统计：**276 个 E2E 测试用例**（Vitest 197 + Playwright 79）。
 
 ---
 
@@ -200,6 +200,34 @@
 | expiresAt 为 null 永不过期 | `playwright/not-found.spec.ts` | 1 | Playwright |
 | 清理（删除测试数据） | `playwright/not-found.spec.ts` | 2 | Playwright |
 
+### 1.18 Backy 备份集成
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 未认证访问拒绝（全部 8 个 action） | `e2e/backy.test.ts` | 8 | Vitest E2E |
+| 配置生命周期（保存/读取/清除 webhook URL + API key） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| 推送备份（成功/网络失败/空数据） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| 拉取恢复（成功/网络失败/空备份） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| Pull webhook 生命周期（生成/读取/吊销 pull key） | `e2e/backy.test.ts` | 4 | Vitest E2E |
+| Pull API 鉴权（有效 key/无效 key/缺失 key） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| 验证（无效 URL/URL 超长/API key 超长） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+| 多用户隔离（配置/pull key 互不可见） | `e2e/backy.test.ts` | 3 | Vitest E2E |
+
+### 1.19 Xray Twitter 集成
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 未认证访问拒绝（全部 6 个 action） | `e2e/xray.test.ts` | 6 | Vitest E2E |
+| 配置生命周期（保存/读取/清除 API URL + token） | `e2e/xray.test.ts` | 3 | Vitest E2E |
+| 推文查找（缓存未命中 → API 调用 → 缓存写入） | `e2e/xray.test.ts` | 3 | Vitest E2E |
+| 推文缓存（缓存命中跳过 API/强制刷新/过期淘汰） | `e2e/xray.test.ts` | 4 | Vitest E2E |
+| 书签导入（成功/网络失败/未配置） | `e2e/xray.test.ts` | 3 | Vitest E2E |
+| 截图保存（成功/失败/未配置） | `e2e/xray.test.ts` | 3 | Vitest E2E |
+| 验证（无效 URL/URL 超长/token 超长/无效推文 ID） | `e2e/xray.test.ts` | 5 | Vitest E2E |
+| 多用户隔离（配置互不可见） | `e2e/xray.test.ts` | 2 | Vitest E2E |
+| 推文缓存跨用户共享 | `e2e/xray.test.ts` | 1 | Vitest E2E |
+| 集成流程（配置 → 查找 → 书签 → 截图） | `e2e/xray.test.ts` | 7 | Vitest E2E |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -214,8 +242,6 @@
 
 | 流程 | 涉及代码 | 现有测试 |
 |------|---------|---------|
-| **Backy 备份**（配置/推送/拉取/历史） | `actions/backy.ts` `app/api/backy/pull/route.ts` | 有单元测试，无 E2E 完整流程 |
-| **Xray Twitter 集成**（配置/推文查找/书签） | `actions/xray.ts` | 有单元测试，无 E2E 完整流程 |
 | **KV 同步** (`POST /api/cron/sync-kv`) | `app/api/cron/sync-kv/route.ts` | 有单元测试，无 E2E 完整流程 |
 | **Worker 状态查询** | `app/api/worker-status/route.ts` | 仅单元测试 |
 | **链接元数据自动抓取** | `actions/enrichment.ts` | 仅单元测试 |
@@ -255,7 +281,7 @@
 | 6 | **标签 UI 交互** | `playwright/tags.spec.ts` (9 tests) | ✅ 已覆盖 |
 | 7 | **Overview 数据渲染** | `playwright/overview.spec.ts` (8 tests) | ✅ 已覆盖 |
 
-### P2 — 辅助功能，按需补充
+### P2 — 辅助功能 ✅ 已全部覆盖
 
 | # | 缺口 | 建议补充方案 | 状态 |
 |---|------|-------------|------|
@@ -263,8 +289,8 @@
 | 9 | Webhook 管理 UI | `playwright/webhook.spec.ts` (10 tests) | ✅ 已覆盖 |
 | 10 | 链接过期处理 | `playwright/not-found.spec.ts` (9 tests) | ✅ 已覆盖 |
 | 11 | 404 页面渲染 | `playwright/not-found.spec.ts` (含上述 9 tests) | ✅ 已覆盖 |
-| 12 | Backy 备份集成 | Vitest E2E：配置 → 推送 → 验证数据一致性 | ❌ 待补充 |
-| 13 | Xray Twitter 集成 | Vitest E2E：配置 → 查找推文 → 验证缓存 | ❌ 待补充 |
+| 12 | Backy 备份集成 | `e2e/backy.test.ts` (30 tests) | ✅ 已覆盖 |
+| 13 | Xray Twitter 集成 | `e2e/xray.test.ts` (37 tests) | ✅ 已覆盖 |
 
 ---
 
@@ -286,8 +312,8 @@
 | 数据导入/导出 | ✅ | ✅ | — | 充分 |
 | 搜索功能 | ✅ | — | ✅ | 充分 |
 | Overview 统计 | ✅ | — | ✅ | 充分 |
-| Backy 备份 | ✅ | ❌ | ❌ | 缺失 |
-| Xray 集成 | ✅ | ❌ | ❌ | 缺失 |
+| Backy 备份 | ✅ | ✅ | — | 充分 |
+| Xray 集成 | ✅ | ✅ | — | 充分 |
 | Webhook 管理 UI | ✅ | — | ✅ | 充分 |
 | 侧边栏导航 | — | — | ✅ | 充分 |
 | 着陆页 | — | — | ✅ | 充分 |
