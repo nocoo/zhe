@@ -1171,13 +1171,5 @@ vi.mock('@/lib/db/d1-client', async () => {
   return {
     isD1Configured: () => true,
     executeD1Query: queryFn,
-    executeD1Batch: async <T>(statements: { sql: string; params?: unknown[] }[]): Promise<T[][]> => {
-      const results: T[][] = [];
-      for (const stmt of statements) {
-        const rows = await queryFn<T>(stmt.sql, stmt.params ?? []);
-        results.push(rows);
-      }
-      return results;
-    },
   };
 });

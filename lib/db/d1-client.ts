@@ -21,12 +21,6 @@ interface D1Response<T> {
   errors: Array<{ message: string }>;
 }
 
-/** A single statement in a D1 batch request. */
-export interface D1BatchStatement {
-  sql: string;
-  params?: unknown[];
-}
-
 /** Common headers for all D1 HTTP requests. */
 function getD1Headers(token: string): Record<string, string> {
   return {
@@ -89,55 +83,6 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
   }
 
   return data.result[0]?.results || [];
-}
-
-/**
- * Execute multiple SQL statements in a single D1 HTTP batch request.
- * All statements run inside an implicit transaction — if any fails, all are rolled back.
- * Returns an array of result arrays, one per statement in order.
- *
- * The D1 REST API accepts multiple statements as semicolon-joined SQL in a single
- * `sql` field, with `params` as an array of arrays (one per statement).
- */
-export async function executeD1Batch<T = Record<string, unknown>>(
-  statements: D1BatchStatement[],
-): Promise<T[][]> {
-  if (statements.length === 0) return [];
-
-  const { accountId, databaseId, token } = getD1Credentials();
-
-  // Join SQL statements with "; " and nest params as array of arrays
-  const sql = statements.map((s) => s.sql).join('; ');
-  const params = statements.map((s) => s.params ?? []);
-
-  const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: getD1Headers(token),
-      body: JSON.stringify({ sql, params }),
-      signal: AbortSignal.timeout(D1_FETCH_TIMEOUT_MS),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('D1 batch HTTP error:', error);
-    throw new Error('D1 batch query failed');
-  }
-
-  const data: D1Response<T> = await response.json();
-
-  if (!data.success) {
-    const detail = data.errors.map((e) => e.message).join(', ');
-    console.error('D1 batch query error:', detail);
-    if (/unique/i.test(detail)) {
-      throw new Error('UNIQUE constraint failed');
-    }
-    throw new Error('D1 batch query failed');
-  }
-
-  return data.result.map((r) => r.results ?? []);
 }
 
 /**
