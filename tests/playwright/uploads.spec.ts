@@ -10,6 +10,7 @@
  */
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
+import { executeD1, TEST_USER } from './helpers/d1';
 
 const UPLOADS_URL = '/dashboard/uploads';
 
@@ -35,6 +36,11 @@ async function goToUploads(page: Page): Promise<void> {
 }
 
 test.describe.serial('Upload UI', () => {
+  // Ensure clean state: no leftover uploads from other specs (e.g. overview seeds uploads)
+  test.beforeAll(async () => {
+    await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id], { softFail: true });
+  });
+
   test('page renders with header, upload zone, and empty state', async ({ page }) => {
     await goToUploads(page);
 
