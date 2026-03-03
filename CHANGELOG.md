@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.6.3] - 2026-03-03
+
+### Fixed
+- Fix click analytics silently failing since v1.6.1: D1 REST API `/query` endpoint does not support parameterized multi-statement batches, so `recordClick` INSERT+UPDATE must be two separate queries
+- Fix click source tagging (`worker` vs `origin`) never being persisted — all clicks showed as origin in Dashboard trend chart
+
 ## [v1.6.2] - 2026-03-03
 
 ### Added
