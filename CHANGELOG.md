@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.6.2] - 2026-03-03
+
+### Added
+- Unit tests for health, lookup, and record-click route handlers (L1 gap fill)
+- BDD E2E specs for data management, storage, backy, and xray pages (L4 gap fill)
+- API E2E tests for live, worker-status, and sync-kv endpoints (L3 gap fill)
+- Coverage threshold enforcement in pre-commit hook
+
+### Changed
+- Rename `tests/e2e` to `tests/api` for accurate naming
+- Migrate Playwright E2E port from 17005 to 27005
+- Align pre-push hook with four-layer test architecture (L3 only; L4 now on-demand)
+- Align all docs to reflect four-layer test architecture
+
+### Fixed
+- Preserve UNIQUE constraint error in D1 HTTP error path for duplicate detection
+- Resolve strict mode and locator issues in E2E specs (webhook, uploads)
+- Clean up leftover uploads in E2E to prevent cross-spec data pollution
+
 ## [v1.6.1] - 2026-03-02
 
 ### Added

@@ -176,7 +176,8 @@ Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `
 
 **Git hooks** (four-layer test architecture):
 - **pre-commit**: L1 (unit tests with coverage gate) + L2 (lint-staged, zero-warning)
-- **pre-push**: L3 (API E2E via `bun run test:api`) + L4 (BDD E2E via `bun run test:e2e:pw`)
+- **pre-push**: L3 (API E2E via `bun run test:api`)
+- **on-demand**: L4 (BDD E2E via `bun run test:e2e:pw`)
 
 ### Port Allocation
 
