@@ -130,14 +130,15 @@ test.describe.serial('Webhook Management UI', () => {
     await expect(usageDocs.getByText('速率限制')).toBeVisible();
     await expect(usageDocs.getByText('错误码')).toBeVisible();
 
-    // Curl example is present
-    await expect(usageDocs.getByText(/curl/)).toBeVisible();
+    // Curl example is present (use .first() — the agent prompt section also contains "curl")
+    await expect(usageDocs.getByText(/curl/).first()).toBeVisible();
 
-    // HTTP methods listed in the methods table
+    // HTTP methods listed in the methods table (use exact match to avoid
+    // collisions with summary text like "Get status..." or "Create a short link")
     const methodsTable = usageDocs.locator('table').first();
-    await expect(methodsTable.getByText('HEAD')).toBeVisible();
-    await expect(methodsTable.getByText('GET')).toBeVisible();
-    await expect(methodsTable.getByText('POST')).toBeVisible();
+    await expect(methodsTable.getByText('HEAD', { exact: true })).toBeVisible();
+    await expect(methodsTable.getByText('GET', { exact: true })).toBeVisible();
+    await expect(methodsTable.getByText('POST', { exact: true })).toBeVisible();
   });
 
   test('regenerates token and gets a new value', async ({ page }) => {
