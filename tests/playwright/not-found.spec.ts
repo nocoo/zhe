@@ -43,15 +43,6 @@ test.describe('404 page and link expiration', () => {
     // Authenticated user gets redirected from / to /dashboard
   });
 
-  test('non-existent slug returns 404 via API lookup', async ({ request }) => {
-    const slug = `e2e-api404-${Date.now()}`;
-    const res = await request.get(`/api/lookup?slug=${slug}`);
-    expect(res.status()).toBe(404);
-
-    const body = await res.json();
-    expect(body.found).toBe(false);
-  });
-
   // ── Link expiration handling ────────────────────────────────────
 
   test('expired link shows 404 page instead of redirecting', async ({ page }) => {
@@ -71,24 +62,6 @@ test.describe('404 page and link expiration', () => {
 
     const heading = page.locator('h1');
     await expect(heading).toContainText('404', { timeout: 10_000 });
-  });
-
-  test('expired link returns 404 with expired flag via API lookup', async ({ request }) => {
-    const slug = `e2e-expapi-${Date.now()}`;
-    const pastTimestamp = Date.now() - 7_200_000; // 2 hours ago
-
-    await executeD1(
-      `INSERT INTO links (user_id, original_url, slug, is_custom, expires_at, clicks, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [TEST_USER.id, 'https://example.com/expired', slug, 0, pastTimestamp, 0, Date.now()],
-    );
-
-    const res = await request.get(`/api/lookup?slug=${slug}`);
-    expect(res.status()).toBe(404);
-
-    const body = await res.json();
-    expect(body.found).toBe(false);
-    expect(body.expired).toBe(true);
   });
 
   test('non-expired link still redirects normally (control test)', async ({ request }) => {

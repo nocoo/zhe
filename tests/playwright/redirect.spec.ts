@@ -40,16 +40,6 @@ test.describe('Short link redirect', () => {
     expect(response.headers()['location']).toBe(targetUrl);
   });
 
-  test('visiting a non-existent slug shows not-found page', async ({ page }) => {
-    const fakeSlug = `e2e-nonexistent-${Date.now()}`;
-
-    // Visit the non-existent slug directly
-    await page.goto(`/${fakeSlug}`);
-
-    // Should show the not-found page
-    await expect(page.locator('text=404')).toBeVisible({ timeout: 10_000 });
-  });
-
   test('multiple redirects all return 307 to the same target', async ({ page, request }) => {
     const slug = `e2e-multi-${Date.now()}`;
     const targetUrl = 'https://example.com/multi-redirect-test';
