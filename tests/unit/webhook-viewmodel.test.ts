@@ -49,6 +49,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
     expect(result.current.rateLimit).toBe(8);
     expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/prefetched-token');
+    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/prefetched-token');
     // Server action should NOT be called
     expect(mockGetWebhookToken).not.toHaveBeenCalled();
   });
@@ -81,6 +82,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.isGenerating).toBe(false);
     expect(result.current.isRevoking).toBe(false);
     expect(result.current.webhookUrl).toBeNull();
+    expect(result.current.tmpUploadUrl).toBeNull();
   });
 
   it('loads existing token on mount', async () => {
@@ -98,6 +100,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.token).toBe('abc-123');
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
     expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/abc-123');
+    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/abc-123');
   });
 
   it('sets token to null when no token exists', async () => {
@@ -111,6 +114,7 @@ describe('useWebhookViewModel', () => {
 
     expect(result.current.token).toBeNull();
     expect(result.current.webhookUrl).toBeNull();
+    expect(result.current.tmpUploadUrl).toBeNull();
   });
 
   it('handles load failure gracefully', async () => {
@@ -147,6 +151,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.token).toBe('new-token-456');
     expect(result.current.createdAt).toBe('2026-02-01T00:00:00.000Z');
     expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/new-token-456');
+    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/new-token-456');
     expect(result.current.isGenerating).toBe(false);
   });
 
@@ -214,6 +219,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.token).toBeNull();
     expect(result.current.createdAt).toBeNull();
     expect(result.current.webhookUrl).toBeNull();
+    expect(result.current.tmpUploadUrl).toBeNull();
     expect(result.current.isRevoking).toBe(false);
   });
 
@@ -282,6 +288,7 @@ describe('useWebhookViewModel', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/my-token');
+    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/my-token');
   });
 
   // ====================================================================

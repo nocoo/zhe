@@ -389,6 +389,34 @@ describe("webhook model", () => {
       const prompt = buildAgentPrompt(baseUrl);
       expect(prompt).toContain(String(WEBHOOK_NOTE_MAX_LENGTH));
     });
+
+    it("omits tmp upload section when tmpUploadUrl is not provided", () => {
+      const prompt = buildAgentPrompt(baseUrl);
+      expect(prompt).not.toContain("Temporary File Upload");
+      expect(prompt).not.toContain("/api/tmp/upload/");
+    });
+
+    it("includes tmp upload section when tmpUploadUrl is provided", () => {
+      const tmpUrl = "https://zhe.example.com/api/tmp/upload/test-token-123";
+      const prompt = buildAgentPrompt(baseUrl, 5, tmpUrl);
+      expect(prompt).toContain("Temporary File Upload");
+      expect(prompt).toContain(tmpUrl);
+    });
+
+    it("includes tmp upload curl example", () => {
+      const tmpUrl = "https://zhe.example.com/api/tmp/upload/test-token-123";
+      const prompt = buildAgentPrompt(baseUrl, 5, tmpUrl);
+      expect(prompt).toContain(`curl -X POST ${tmpUrl}`);
+      expect(prompt).toContain('-F "file=@myfile.zip"');
+    });
+
+    it("includes tmp upload constraints (max size, auto-cleanup, shared rate limit)", () => {
+      const tmpUrl = "https://zhe.example.com/api/tmp/upload/test-token-123";
+      const prompt = buildAgentPrompt(baseUrl, 7, tmpUrl);
+      expect(prompt).toContain("10 MB");
+      expect(prompt).toContain("1 hour");
+      expect(prompt).toContain("7 requests per minute total");
+    });
   });
 
   describe("checkRateLimit", () => {

@@ -96,6 +96,11 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     [siteUrl, token],
   );
 
+  const tmpUploadUrl = useMemo(
+    () => (token ? `${siteUrl}/api/tmp/upload/${token}` : null),
+    [siteUrl, token],
+  );
+
   return {
     token,
     createdAt,
@@ -105,6 +110,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     isGenerating,
     isRevoking,
     webhookUrl,
+    tmpUploadUrl,
     handleGenerate,
     handleRevoke,
     handleRateLimitChange,

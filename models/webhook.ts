@@ -339,7 +339,39 @@ export function buildOpenApiSpec(
 export function buildAgentPrompt(
   webhookUrl: string,
   rateLimit: number = RATE_LIMIT_DEFAULT_MAX,
+  tmpUploadUrl?: string,
 ): string {
+  const tmpSection = tmpUploadUrl
+    ? `
+
+## Temporary File Upload
+
+You also have access to a temporary file upload endpoint that shares the same token.
+
+### Endpoint
+
+${tmpUploadUrl}
+
+### Usage
+
+Upload a file via multipart/form-data with a \`file\` field:
+
+  curl -X POST ${tmpUploadUrl} \\
+    -F "file=@myfile.zip"
+
+### Response (201 Created)
+
+\`\`\`json
+{ "key": "tmp/uuid_timestamp.zip", "url": "https://s.zhe.to/tmp/uuid_timestamp.zip", "size": 12345, "contentType": "application/zip" }
+\`\`\`
+
+### Constraints
+
+- **Max file size**: 10 MB
+- **Auto-cleanup**: Files are deleted after 1 hour
+- **Rate limit**: Shared with link creation (${rateLimit} requests per minute total)`
+    : "";
+
   return `You have access to a URL shortener webhook API.
 
 ## Endpoint
@@ -384,5 +416,5 @@ Send a POST request with a JSON body:
 
 - **Idempotent**: If the same URL was already shortened, the existing link is returned (200) instead of creating a duplicate (201). When this happens, customSlug, folder, and note are ignored.
 - **Rate limit**: ${rateLimit} requests per minute.
-- **Auth**: The token in the URL path is the only authentication required. No additional headers needed.`;
+- **Auth**: The token in the URL path is the only authentication required. No additional headers needed.${tmpSection}`;
 }

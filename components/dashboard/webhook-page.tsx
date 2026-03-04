@@ -16,6 +16,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
     rateLimit,
     setRateLimit,
     webhookUrl,
+    tmpUploadUrl,
     handleGenerate,
     handleRevoke,
     handleRateLimitChange,
@@ -83,6 +84,28 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                 </div>
               </div>
 
+              {/* Tmp Upload URL display */}
+              {tmpUploadUrl && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">Tmp Upload URL</p>
+                  <div className="flex items-center gap-2">
+                    <code className="rounded bg-accent px-2 py-1 text-xs break-all" data-testid="tmp-upload-url-value">
+                      {tmpUploadUrl}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 shrink-0 p-0"
+                      onClick={() => copyToClipboard(tmpUploadUrl)}
+                      aria-label="复制 Tmp URL"
+                      data-testid="copy-tmp-url-btn"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-2">
                 <Button
@@ -125,7 +148,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               </div>
 
               {/* Usage documentation */}
-              <WebhookUsageDocs webhookUrl={webhookUrl} rateLimit={rateLimit} copyToClipboard={copyToClipboard} />
+              <WebhookUsageDocs webhookUrl={webhookUrl} tmpUploadUrl={tmpUploadUrl} rateLimit={rateLimit} copyToClipboard={copyToClipboard} />
             </div>
           ) : (
             <Button
@@ -150,10 +173,12 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
 
 function WebhookUsageDocs({
   webhookUrl,
+  tmpUploadUrl,
   rateLimit,
   copyToClipboard,
 }: {
   webhookUrl: string;
+  tmpUploadUrl: string | null;
   rateLimit: number;
   copyToClipboard: (text: string) => void;
 }) {
@@ -165,7 +190,7 @@ function WebhookUsageDocs({
     { type: string; description?: string; maxLength?: number; minLength?: number; pattern?: string; format?: string }
   >;
   const required = (postSchema.required as string[]) ?? [];
-  const agentPrompt = buildAgentPrompt(webhookUrl, rateLimit);
+  const agentPrompt = buildAgentPrompt(webhookUrl, rateLimit, tmpUploadUrl ?? undefined);
 
   return (
     <div className="space-y-4 border-t border-border/50 pt-4" data-testid="webhook-usage-docs">
@@ -202,6 +227,19 @@ function WebhookUsageDocs({
           {`# HEAD\ncurl -I ${webhookUrl}\n\n# GET\ncurl ${webhookUrl}\n\n# POST\ncurl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://example.com/page", "note": "Interesting article"}'`}
         </pre>
       </div>
+
+      {/* Tmp upload curl example */}
+      {tmpUploadUrl && (
+        <div className="space-y-1.5" data-testid="tmp-upload-docs">
+          <p className="text-xs text-muted-foreground">临时文件上传</p>
+          <p className="text-xs text-muted-foreground">
+            使用相同令牌上传临时文件到 R2 存储，文件在 <strong className="text-foreground">1 小时</strong>后自动清理。最大文件大小 10 MB。
+          </p>
+          <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+            {`# Upload a file\ncurl -X POST ${tmpUploadUrl} \\\n  -F "file=@myfile.zip"`}
+          </pre>
+        </div>
+      )}
 
       {/* POST request parameters */}
       <div className="space-y-1.5">
