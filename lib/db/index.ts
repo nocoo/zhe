@@ -358,7 +358,7 @@ export async function getWebhookByToken(token: string): Promise<Webhook | null> 
 
 /**
  * Get stats for a webhook user: total links, total clicks, 5 most recent links.
- * Used by GET /api/webhook/[token] to return useful summary info.
+ * Used by GET /api/link/create/[token] to return useful summary info.
  */
 export async function getWebhookStats(userId: string): Promise<{
   totalLinks: number;

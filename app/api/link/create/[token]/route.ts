@@ -10,7 +10,7 @@ import { resolvePublicOrigin } from "@/lib/url";
 import { kvPutLink } from "@/lib/kv/client";
 
 /**
- * HEAD /api/webhook/[token]
+ * HEAD /api/link/create/[token]
  *
  * Test connection endpoint. Verifies the token is valid and the webhook is
  * reachable. Returns 200 with no body on success, 404 if token is invalid.
@@ -30,7 +30,7 @@ export async function HEAD(
 }
 
 /**
- * GET /api/webhook/[token]
+ * GET /api/link/create/[token]
  *
  * Returns webhook status, usage stats, and OpenAPI 3.1 specification.
  * Includes total link count, total clicks, 5 most recent links,
@@ -50,7 +50,7 @@ export async function GET(
     );
   }
 
-  const webhookUrl = `${resolvePublicOrigin(request)}/api/webhook/${token}`;
+  const webhookUrl = `${resolvePublicOrigin(request)}/api/link/create/${token}`;
   const [stats, docs] = await Promise.all([
     getWebhookStats(webhook.userId),
     Promise.resolve(buildOpenApiSpec(webhookUrl, webhook.rateLimit)),
@@ -73,7 +73,7 @@ export async function GET(
 }
 
 /**
- * POST /api/webhook/[token]
+ * POST /api/link/create/[token]
  *
  * Public endpoint for creating short links via webhook.
  * Authentication is via the UUID token in the URL path.

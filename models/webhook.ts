@@ -24,7 +24,7 @@ export interface RateLimitResult {
   retryAfterMs?: number;
 }
 
-/** Summary stats returned by GET /api/webhook/[token]. */
+/** Summary stats returned by GET /api/link/create/[token]. */
 export interface WebhookStats {
   totalLinks: number;
   totalClicks: number;

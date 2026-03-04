@@ -110,8 +110,8 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| HEAD 连接测试 / GET 状态与文档 / POST 创建链接 | `api/webhook.test.ts` | 17 | Vitest E2E |
-| 幂等性、限流（429）、自定义 Slug、文件夹分配 | `api/webhook.test.ts` | （含上述 17） | Vitest E2E |
+| HEAD 连接测试 / GET 状态与文档 / POST 创建链接 | `api/webhook.test.ts` (route: `/api/link/create/[token]`) | 17 | Vitest E2E |
+| 幂等性、限流（429）、自定义 Slug、文件夹分配 | `api/webhook.test.ts` (route: `/api/link/create/[token]`) | （含上述 17） | Vitest E2E |
 
 ### 1.11 文件夹系统
 

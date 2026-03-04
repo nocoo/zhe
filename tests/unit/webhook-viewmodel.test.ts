@@ -48,7 +48,7 @@ describe('useWebhookViewModel', () => {
     expect(result.current.token).toBe('prefetched-token');
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
     expect(result.current.rateLimit).toBe(8);
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/prefetched-token');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/prefetched-token');
     // Server action should NOT be called
     expect(mockGetWebhookToken).not.toHaveBeenCalled();
   });
@@ -97,7 +97,7 @@ describe('useWebhookViewModel', () => {
 
     expect(result.current.token).toBe('abc-123');
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/abc-123');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/abc-123');
   });
 
   it('sets token to null when no token exists', async () => {
@@ -146,7 +146,7 @@ describe('useWebhookViewModel', () => {
     expect(mockCreateWebhookToken).toHaveBeenCalledOnce();
     expect(result.current.token).toBe('new-token-456');
     expect(result.current.createdAt).toBe('2026-02-01T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/new-token-456');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/new-token-456');
     expect(result.current.isGenerating).toBe(false);
   });
 
@@ -281,7 +281,7 @@ describe('useWebhookViewModel', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/webhook/my-token');
+    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/my-token');
   });
 
   // ====================================================================

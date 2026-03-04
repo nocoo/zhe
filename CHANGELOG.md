@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Webhook `note` parameter: optional bookmark note (max 500 chars) passed through to `createLink`
-- OpenAPI 3.1 specification replaces custom documentation format in GET `/api/webhook/[token]` response
+- OpenAPI 3.1 specification replaces custom documentation format in GET `/api/link/create/[token]` response
 - AI Agent Prompt block on webhook settings page with copyable prompt for AI agents to discover and use the webhook API via GET schema discovery
 - Backy pull webhook for remote backup trigger via `POST /api/backy/pull`
 - Delta sync for KV cron: skip D1 query and KV write when nothing changed since last sync

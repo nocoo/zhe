@@ -253,7 +253,7 @@ describe("webhook model", () => {
   // ==================================================================
 
   describe("buildOpenApiSpec", () => {
-    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
+    const baseUrl = "https://zhe.example.com/api/link/create/test-token-123";
 
     it("returns a valid OpenAPI 3.1.0 object", () => {
       const spec = buildOpenApiSpec(baseUrl);
@@ -342,7 +342,7 @@ describe("webhook model", () => {
   // ==================================================================
 
   describe("buildAgentPrompt", () => {
-    const baseUrl = "https://zhe.example.com/api/webhook/test-token-123";
+    const baseUrl = "https://zhe.example.com/api/link/create/test-token-123";
 
     it("includes the webhook URL", () => {
       const prompt = buildAgentPrompt(baseUrl);

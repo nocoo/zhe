@@ -92,7 +92,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
   }, []);
 
   const webhookUrl = useMemo(
-    () => (token ? `${siteUrl}/api/webhook/${token}` : null),
+    () => (token ? `${siteUrl}/api/link/create/${token}` : null),
     [siteUrl, token],
   );
 

@@ -53,7 +53,7 @@ describe('WebhookPage', () => {
 
   it('copies token to clipboard when copy token button clicked', () => {
     mockWebhookVm.token = 'test-token-xyz';
-    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/test-token-xyz';
+    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/test-token-xyz';
 
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
@@ -71,7 +71,7 @@ describe('WebhookPage', () => {
 
   it('copies webhook URL to clipboard when copy URL button clicked', () => {
     mockWebhookVm.token = 'test-token-xyz';
-    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/test-token-xyz';
+    mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/test-token-xyz';
 
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
@@ -84,7 +84,7 @@ describe('WebhookPage', () => {
     // Second copy button is for the webhook URL
     fireEvent.click(copyButtons[1]);
 
-    expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/webhook/test-token-xyz');
+    expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/link/create/test-token-xyz');
   });
 
   // ====================================================================
@@ -124,7 +124,7 @@ describe('WebhookPage', () => {
 
     it('shows token and webhook URL when token exists', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       mockWebhookVm.createdAt = '2026-01-15T00:00:00.000Z';
       render(<WebhookPage />);
 
@@ -132,13 +132,13 @@ describe('WebhookPage', () => {
       const tokenMatches = screen.getAllByText(/abc-123-def/);
       expect(tokenMatches.length).toBeGreaterThanOrEqual(2);
       // Webhook URL appears in the URL display and the curl example
-      const urlMatches = screen.getAllByText(/https:\/\/zhe\.example\.com\/api\/webhook/);
+      const urlMatches = screen.getAllByText(/https:\/\/zhe\.example\.com\/api\/link\/create/);
       expect(urlMatches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows regenerate and revoke buttons when token exists', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByRole('button', { name: /重新生成/ })).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('WebhookPage', () => {
 
     it('calls handleGenerate when regenerate button clicked', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       const btn = screen.getByRole('button', { name: /重新生成/ });
@@ -158,7 +158,7 @@ describe('WebhookPage', () => {
 
     it('calls handleRevoke when revoke button clicked', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       const btn = screen.getByRole('button', { name: /撤销令牌/ });
@@ -169,7 +169,7 @@ describe('WebhookPage', () => {
 
     it('shows revoking state', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       mockWebhookVm.isRevoking = true;
       render(<WebhookPage />);
 
@@ -178,7 +178,7 @@ describe('WebhookPage', () => {
 
     it('shows copy buttons for token, webhook URL, and agent prompt', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       // Should have copy buttons: token, URL, and agent prompt
@@ -192,7 +192,7 @@ describe('WebhookPage', () => {
 
     it('shows usage documentation section when token exists', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByText('使用说明')).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe('WebhookPage', () => {
 
     it('shows curl example in usage docs', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       // The pre block contains curl commands; use getAllByText since curl appears multiple times
@@ -216,7 +216,7 @@ describe('WebhookPage', () => {
 
     it('shows request parameters table', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       // Should show all parameter names including note
@@ -228,7 +228,7 @@ describe('WebhookPage', () => {
 
     it('shows response format section', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByText('POST 响应格式')).toBeInTheDocument();
@@ -236,7 +236,7 @@ describe('WebhookPage', () => {
 
     it('shows rate limit info', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       // 5 req/min (default) — appears in rate limit section and error table
@@ -248,7 +248,7 @@ describe('WebhookPage', () => {
 
     it('shows error codes section', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByText('错误码')).toBeInTheDocument();
@@ -261,7 +261,7 @@ describe('WebhookPage', () => {
 
     it('shows behavior notes section with idempotency info', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByText('行为说明')).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('WebhookPage', () => {
 
     it('shows rate limit slider when token exists', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByTestId('rate-limit-slider')).toBeInTheDocument();
@@ -288,7 +288,7 @@ describe('WebhookPage', () => {
 
     it('displays current rate limit value', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       mockWebhookVm.rateLimit = 7;
       render(<WebhookPage />);
 
@@ -298,7 +298,7 @@ describe('WebhookPage', () => {
 
     it('displays default rate limit value of 5', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       mockWebhookVm.rateLimit = 5;
       render(<WebhookPage />);
 
@@ -308,7 +308,7 @@ describe('WebhookPage', () => {
 
     it('passes rateLimit to webhook documentation', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       mockWebhookVm.rateLimit = 9;
       render(<WebhookPage />);
 
@@ -322,7 +322,7 @@ describe('WebhookPage', () => {
 
     it('shows AI Agent Prompt section when token exists', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       expect(screen.getByText('AI Agent Prompt')).toBeInTheDocument();
@@ -337,16 +337,16 @@ describe('WebhookPage', () => {
 
     it('agent prompt contains webhook URL', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       const content = screen.getByTestId('agent-prompt-content');
-      expect(content.textContent).toContain('https://zhe.example.com/api/webhook/abc-123-def');
+      expect(content.textContent).toContain('https://zhe.example.com/api/link/create/abc-123-def');
     });
 
     it('agent prompt contains OpenAPI schema discovery instructions', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
       render(<WebhookPage />);
 
       const content = screen.getByTestId('agent-prompt-content');
@@ -356,7 +356,7 @@ describe('WebhookPage', () => {
 
     it('copies agent prompt to clipboard when copy button clicked', () => {
       mockWebhookVm.token = 'abc-123-def';
-      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/webhook/abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
 
       const writeTextMock = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, {
@@ -371,7 +371,7 @@ describe('WebhookPage', () => {
       expect(writeTextMock).toHaveBeenCalledTimes(1);
       // Verify the prompt content includes the webhook URL
       const calledWith = writeTextMock.mock.calls[0][0] as string;
-      expect(calledWith).toContain('https://zhe.example.com/api/webhook/abc-123-def');
+      expect(calledWith).toContain('https://zhe.example.com/api/link/create/abc-123-def');
       expect(calledWith).toContain('Schema Discovery');
     });
   });

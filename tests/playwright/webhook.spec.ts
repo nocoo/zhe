@@ -66,11 +66,11 @@ test.describe.serial('Webhook Management UI', () => {
     expect(tokenText).toBeTruthy();
     expect(tokenText!.length).toBeGreaterThan(8);
 
-    // Webhook URL is displayed (contains /api/webhook/ and the token)
+    // Webhook URL is displayed (contains /api/link/create/ and the token)
     const urlValue = page.locator('[data-testid="webhook-url-value"]');
     await expect(urlValue).toBeVisible();
     const urlText = await urlValue.textContent();
-    expect(urlText).toContain('/api/webhook/');
+    expect(urlText).toContain('/api/link/create/');
     expect(urlText).toContain(tokenText!);
   });
 
