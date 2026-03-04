@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   extractTimestampFromKey,
   findExpiredTmpKeys,
+  computeTmpStats,
   TMP_PREFIX,
   TMP_MAX_AGE_MS,
   TMP_CLEANUP_INTERVAL_MS,
@@ -141,5 +142,52 @@ describe('findExpiredTmpKeys', () => {
 
     const expired = findExpiredTmpKeys([key, fresh], NOW, customMaxAge);
     expect(expired).toEqual([key]);
+  });
+});
+
+// ── computeTmpStats ──
+
+describe('computeTmpStats', () => {
+  it('returns zeros for empty array', () => {
+    expect(computeTmpStats([])).toEqual({ totalFiles: 0, totalSize: 0 });
+  });
+
+  it('returns zeros when no tmp/ files present', () => {
+    const files = [
+      { key: 'user/20260101/photo.jpg', size: 1024 },
+      { key: 'user/20260102/doc.pdf', size: 2048 },
+    ];
+    expect(computeTmpStats(files)).toEqual({ totalFiles: 0, totalSize: 0 });
+  });
+
+  it('counts only tmp/ prefixed files', () => {
+    const files = [
+      { key: 'tmp/abc_123.zip', size: 500 },
+      { key: 'user/20260101/photo.jpg', size: 1024 },
+      { key: 'tmp/def_456.png', size: 300 },
+    ];
+    expect(computeTmpStats(files)).toEqual({ totalFiles: 2, totalSize: 800 });
+  });
+
+  it('sums sizes correctly for all tmp files', () => {
+    const files = [
+      { key: 'tmp/a_1.bin', size: 100 },
+      { key: 'tmp/b_2.bin', size: 200 },
+      { key: 'tmp/c_3.bin', size: 300 },
+    ];
+    expect(computeTmpStats(files)).toEqual({ totalFiles: 3, totalSize: 600 });
+  });
+
+  it('handles zero-size tmp files', () => {
+    const files = [{ key: 'tmp/empty_1.txt', size: 0 }];
+    expect(computeTmpStats(files)).toEqual({ totalFiles: 1, totalSize: 0 });
+  });
+
+  it('does not match keys that merely contain "tmp" but lack the prefix', () => {
+    const files = [
+      { key: 'uploads/tmp-backup.zip', size: 999 },
+      { key: 'data/tmp_file.csv', size: 888 },
+    ];
+    expect(computeTmpStats(files)).toEqual({ totalFiles: 0, totalSize: 0 });
   });
 });

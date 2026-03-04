@@ -70,3 +70,23 @@ export interface TmpStorageStats {
   /** Total size in bytes */
   totalSize: number;
 }
+
+/**
+ * Compute tmp storage stats from a list of storage files.
+ * Filters to files with keys starting with `tmp/`.
+ */
+export function computeTmpStats(
+  files: { key: string; size: number }[],
+): TmpStorageStats {
+  let totalFiles = 0;
+  let totalSize = 0;
+
+  for (const file of files) {
+    if (file.key.startsWith(TMP_PREFIX)) {
+      totalFiles++;
+      totalSize += file.size;
+    }
+  }
+
+  return { totalFiles, totalSize };
+}

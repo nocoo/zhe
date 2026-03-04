@@ -21,6 +21,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ import {
   computeSummary,
 } from "@/models/storage";
 import type { StorageScanResult, StorageFile } from "@/models/storage";
+import { computeTmpStats } from "@/models/tmp-storage";
 
 // ── Summary card ──
 
@@ -555,6 +557,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (!data) return null;
 
   const hasOrphans = data.r2.summary.orphanFiles > 0;
+  const tmpStats = computeTmpStats(data.r2.files);
 
   return (
     <div className="space-y-6">
@@ -584,10 +587,14 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
           variant={hasOrphans ? "warning" : "success"}
         />
         <SummaryCard
-          label="状态"
-          value={hasOrphans ? "发现孤儿文件" : "一切正常"}
-          icon={hasOrphans ? AlertTriangle : CheckCircle}
-          variant={hasOrphans ? "warning" : "success"}
+          label="临时文件"
+          value={tmpStats.totalFiles.toString()}
+          sub={
+            tmpStats.totalFiles > 0
+              ? `${formatBytes(tmpStats.totalSize)} · 1h 后自动清理`
+              : "无临时文件"
+          }
+          icon={Clock}
         />
       </div>
 

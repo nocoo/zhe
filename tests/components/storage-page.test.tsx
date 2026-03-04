@@ -102,8 +102,10 @@ describe('StoragePage', () => {
     expect(screen.getByText('孤儿文件')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
 
-    // Status card
-    expect(screen.getByText('发现孤儿文件')).toBeInTheDocument();
+    // Tmp card (no tmp files in default test data)
+    expect(screen.getByText('临时文件')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('无临时文件')).toBeInTheDocument();
   });
 
   it('renders D1 tables when connected', () => {
@@ -147,7 +149,7 @@ describe('StoragePage', () => {
     expect(screen.getAllByText('linked')).toHaveLength(2);
   });
 
-  it('renders "一切正常" when no orphans', () => {
+  it('renders "全部干净" when no orphans', () => {
     const data = makeTestData({
       r2: {
         connected: true,
@@ -172,7 +174,6 @@ describe('StoragePage', () => {
     });
     render(<StoragePage initialData={data} />);
 
-    expect(screen.getByText('一切正常')).toBeInTheDocument();
     expect(screen.getByText('全部干净')).toBeInTheDocument();
   });
 
@@ -203,6 +204,47 @@ describe('StoragePage', () => {
     expect(screen.getByText('Cloudflare R2')).toBeInTheDocument();
     // The R2 section should not show file list when disconnected
     expect(screen.queryByText('R2 存储为空')).not.toBeInTheDocument();
+  });
+
+  // ── Tmp storage card ──
+
+  it('renders tmp storage card with file count and size', () => {
+    const data = makeTestData({
+      r2: {
+        connected: true,
+        summary: { totalFiles: 5, totalSize: 6144, orphanFiles: 0, orphanSize: 0 },
+        files: [
+          {
+            key: 'user/20260101/photo.jpg',
+            size: 1024,
+            lastModified: '2026-01-01T00:00:00Z',
+            isReferenced: true,
+            publicUrl: 'https://s.zhe.to/user/20260101/photo.jpg',
+          },
+          {
+            key: 'tmp/abc_1709500000000.zip',
+            size: 2048,
+            lastModified: '2026-03-03T00:00:00Z',
+            isReferenced: false,
+            publicUrl: 'https://s.zhe.to/tmp/abc_1709500000000.zip',
+          },
+          {
+            key: 'tmp/def_1709500001000.png',
+            size: 3072,
+            lastModified: '2026-03-03T01:00:00Z',
+            isReferenced: false,
+            publicUrl: 'https://s.zhe.to/tmp/def_1709500001000.png',
+          },
+        ],
+      },
+    });
+    render(<StoragePage initialData={data} />);
+
+    expect(screen.getByText('临时文件')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    // 2048 + 3072 = 5120 bytes = "5.0 KB"
+    expect(screen.getByText(/5\.0 KB/)).toBeInTheDocument();
+    expect(screen.getByText(/1h 后自动清理/)).toBeInTheDocument();
   });
 
   // ── Loading without initialData ──

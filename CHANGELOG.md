@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.7.0] - 2026-03-04
+
+### Added
+- Temporary file upload endpoint `POST /api/tmp/upload/[token]` — upload files to R2 `tmp/` prefix via webhook token auth, 10 MB max, returns download URL
+- Cleanup cron route `POST /api/cron/cleanup-tmp` — delete tmp files older than 1 hour (based on filename timestamp), triggered every 10 minutes
+- Tmp upload URL display with copy button on webhook dashboard page
+- Tmp upload curl example in webhook usage docs
+- AI agent prompt includes tmp upload endpoint documentation when token is configured
+- Tmp storage card on storage management page showing file count and total size
+- `tmp-storage` model with `extractTimestampFromKey()`, `findExpiredTmpKeys()`, `computeTmpStats()` pure functions
+
+### Changed
+- Rename `/api/webhook/[token]` to `/api/link/create/[token]` for clarity
+- Replace "状态" summary card with "临时文件" card on storage page
+
 ## [v1.6.3] - 2026-03-03
 
 ### Fixed
