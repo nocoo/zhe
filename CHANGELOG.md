@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [v1.7.0] - 2026-03-04
+## [v1.7.0] - 2026-03-05
 
 ### Added
 - Temporary file upload endpoint `POST /api/tmp/upload/[token]` — upload files to R2 `tmp/` prefix via webhook token auth, 10 MB max, returns download URL
-- Cleanup cron route `POST /api/cron/cleanup` — delete tmp files older than 1 hour (based on filename timestamp), triggered every 30 minutes by Worker cron
+- Cleanup cron route `POST /api/cron/cleanup` — delete tmp files older than 30 min (based on filename timestamp), triggered every 30 minutes by Worker cron
+- Worker `scheduled` handler — cron trigger calls origin `/api/cron/cleanup` with Bearer auth for periodic tmp file cleanup
 - Tmp upload URL display with copy button on webhook dashboard page
 - Tmp upload curl example in webhook usage docs
 - AI agent prompt includes tmp upload endpoint documentation when token is configured
@@ -19,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - Rename `/api/webhook/[token]` to `/api/link/create/[token]` for clarity
 - Replace "状态" summary card with "临时文件" card on storage page
+
+### Removed
+- Remove unused `executeD1Batch` from d1-client
 
 ## [v1.6.3] - 2026-03-03
 
