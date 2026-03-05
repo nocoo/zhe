@@ -258,7 +258,7 @@ export function LinksList() {
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
           </Button>
-          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
+          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} tags={tags} onTagCreated={handleTagCreated} />
         </div>
       </div>
 
@@ -273,7 +273,7 @@ export function LinksList() {
           <p className="text-xs text-muted-foreground mb-6">
             点击上方按钮创建您的第一个短链接
           </p>
-          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} />
+          <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} tags={tags} onTagCreated={handleTagCreated} />
         </div>
       ) : (
         <div className={

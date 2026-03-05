@@ -13,6 +13,13 @@ const mockVm = {
   setCustomSlug: vi.fn(),
   folderId: undefined as string | undefined,
   setFolderId: vi.fn(),
+  note: "",
+  setNote: vi.fn(),
+  screenshotUrl: "",
+  setScreenshotUrl: vi.fn(),
+  selectedTagIds: new Set<string>(),
+  addTag: vi.fn(),
+  removeTag: vi.fn(),
   isLoading: false,
   error: "",
   handleSubmit: vi.fn((e: React.FormEvent) => e.preventDefault()),
@@ -25,6 +32,10 @@ vi.mock("@/viewmodels/useLinksViewModel", () => ({
 
 vi.mock("@/models/links", () => ({
   stripProtocol: (url: string) => url.replace(/^https?:\/\//, ""),
+}));
+
+vi.mock("@/actions/tags", () => ({
+  createTag: vi.fn(),
 }));
 
 describe("CreateLinkModal", () => {
@@ -40,6 +51,9 @@ describe("CreateLinkModal", () => {
     mockVm.url = "";
     mockVm.customSlug = "";
     mockVm.folderId = undefined;
+    mockVm.note = "";
+    mockVm.screenshotUrl = "";
+    mockVm.selectedTagIds = new Set();
     mockVm.isLoading = false;
     mockVm.error = "";
     mockVm.handleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
@@ -183,6 +197,75 @@ describe("CreateLinkModal", () => {
       const select = screen.getByLabelText("文件夹");
       fireEvent.change(select, { target: { value: "" } });
       expect(mockVm.setFolderId).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  describe("note input", () => {
+    it("shows note input when dialog is open", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} />);
+
+      expect(screen.getByLabelText("备注")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("添加备注...")).toBeInTheDocument();
+    });
+
+    it("calls setNote on input change", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} />);
+
+      const input = screen.getByLabelText("备注");
+      fireEvent.change(input, { target: { value: "my note" } });
+      expect(mockVm.setNote).toHaveBeenCalledWith("my note");
+    });
+  });
+
+  describe("screenshot URL input", () => {
+    it("shows screenshot URL input when dialog is open", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} />);
+
+      expect(screen.getByLabelText("截图链接")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("https://example.com/screenshot.png")).toBeInTheDocument();
+    });
+
+    it("calls setScreenshotUrl on input change", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} />);
+
+      const input = screen.getByLabelText("截图链接");
+      fireEvent.change(input, { target: { value: "https://img.com/shot.png" } });
+      expect(mockVm.setScreenshotUrl).toHaveBeenCalledWith("https://img.com/shot.png");
+    });
+  });
+
+  describe("tags", () => {
+    const tags = [
+      { id: "t1", userId: "u1", name: "design", color: "#ff0000", createdAt: new Date("2026-01-01") },
+      { id: "t2", userId: "u1", name: "dev", color: "#00ff00", createdAt: new Date("2026-01-02") },
+    ];
+
+    it("shows tags label when dialog is open", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} tags={tags} />);
+
+      // The label "标签" appears as both a <label> and the TagPicker trigger text
+      expect(screen.getAllByText("标签").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("shows tag picker trigger", () => {
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} tags={tags} />);
+
+      expect(screen.getByTestId("tag-picker-trigger")).toBeInTheDocument();
+    });
+
+    it("renders assigned tag badges when tags are selected", () => {
+      mockVm.isOpen = true;
+      mockVm.selectedTagIds = new Set(["t1"]);
+      render(<CreateLinkModal {...defaultProps} tags={tags} />);
+
+      expect(screen.getByTestId("tag-badge")).toBeInTheDocument();
+      expect(screen.getByText("design")).toBeInTheDocument();
     });
   });
 });

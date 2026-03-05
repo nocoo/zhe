@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +14,39 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { stripProtocol } from "@/models/links";
-import type { Link, Folder } from "@/models/types";
+import { TagBadge, TagPicker } from "./shared-link-components";
+import { createTag } from "@/actions/tags";
+import type { Link, Folder, Tag } from "@/models/types";
 
 interface CreateLinkModalProps {
   siteUrl: string;
   onSuccess: (link: Link) => void;
   folders?: Folder[];
+  tags?: Tag[];
+  onTagCreated?: (tag: Tag) => void;
 }
 
-export function CreateLinkModal({ siteUrl, onSuccess, folders = [] }: CreateLinkModalProps) {
+export function CreateLinkModal({
+  siteUrl,
+  onSuccess,
+  folders = [],
+  tags = [],
+  onTagCreated,
+}: CreateLinkModalProps) {
   const vm = useCreateLinkViewModel(siteUrl, onSuccess);
+
+  const assignedTags = tags.filter((t) => vm.selectedTagIds.has(t.id));
+
+  const handleCreateTag = useCallback(
+    async (name: string) => {
+      const result = await createTag({ name });
+      if (result.success && result.data) {
+        onTagCreated?.(result.data);
+        vm.addTag(result.data.id);
+      }
+    },
+    [onTagCreated, vm],
+  );
 
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
@@ -129,6 +153,52 @@ export function CreateLinkModal({ siteUrl, onSuccess, folders = [] }: CreateLink
               </select>
             </div>
           )}
+
+          {/* Note input */}
+          <div className="space-y-2">
+            <Label htmlFor="note" className="text-sm text-foreground">
+              备注
+            </Label>
+            <Input
+              id="note"
+              type="text"
+              placeholder="添加备注..."
+              value={vm.note}
+              onChange={(e) => vm.setNote(e.target.value)}
+              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* Screenshot URL input */}
+          <div className="space-y-2">
+            <Label htmlFor="screenshotUrl" className="text-sm text-foreground">
+              截图链接
+            </Label>
+            <Input
+              id="screenshotUrl"
+              type="url"
+              placeholder="https://example.com/screenshot.png"
+              value={vm.screenshotUrl}
+              onChange={(e) => vm.setScreenshotUrl(e.target.value)}
+              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label className="text-sm text-foreground">标签</Label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {assignedTags.map((tag) => (
+                <TagBadge key={tag.id} tag={tag} onRemove={vm.removeTag} />
+              ))}
+              <TagPicker
+                allTags={tags}
+                assignedTagIds={vm.selectedTagIds}
+                onSelectTag={vm.addTag}
+                onCreateTag={handleCreateTag}
+              />
+            </div>
+          </div>
 
           {/* Error message */}
           {vm.error && (

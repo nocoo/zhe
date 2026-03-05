@@ -250,8 +250,23 @@ export function useCreateLinkViewModel(
   const [url, setUrl] = useState("");
   const [customSlug, setCustomSlug] = useState("");
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
+  const [note, setNote] = useState("");
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const addTag = useCallback((tagId: string) => {
+    setSelectedTagIds((prev) => new Set(prev).add(tagId));
+  }, []);
+
+  const removeTag = useCallback((tagId: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      next.delete(tagId);
+      return next;
+    });
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -263,6 +278,9 @@ export function useCreateLinkViewModel(
         originalUrl: url,
         customSlug: mode === "custom" ? customSlug : undefined,
         folderId,
+        note: note.trim() || undefined,
+        screenshotUrl: screenshotUrl.trim() || undefined,
+        tagIds: selectedTagIds.size > 0 ? Array.from(selectedTagIds) : undefined,
       });
 
       setIsLoading(false);
@@ -272,12 +290,15 @@ export function useCreateLinkViewModel(
         setUrl("");
         setCustomSlug("");
         setFolderId(undefined);
+        setNote("");
+        setScreenshotUrl("");
+        setSelectedTagIds(new Set());
         setIsOpen(false);
       } else {
         setError(result.error || "Failed to create link");
       }
     },
-    [url, mode, customSlug, folderId, onSuccess]
+    [url, mode, customSlug, folderId, note, screenshotUrl, selectedTagIds, onSuccess]
   );
 
   return {
@@ -291,6 +312,13 @@ export function useCreateLinkViewModel(
     setCustomSlug,
     folderId,
     setFolderId,
+    note,
+    setNote,
+    screenshotUrl,
+    setScreenshotUrl,
+    selectedTagIds,
+    addTag,
+    removeTag,
     isLoading,
     error,
     handleSubmit,

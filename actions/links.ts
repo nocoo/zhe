@@ -13,6 +13,9 @@ export interface CreateLinkInput {
   customSlug?: string;
   folderId?: string;
   expiresAt?: Date;
+  note?: string;
+  screenshotUrl?: string;
+  tagIds?: string[];
 }
 
 export interface ActionResult<T = void> {
@@ -65,7 +68,22 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       isCustom: !!input.customSlug,
       folderId: input.folderId,
       expiresAt: input.expiresAt,
+      note: input.note || undefined,
+      screenshotUrl: input.screenshotUrl || undefined,
     });
+
+    // Fire-and-forget: associate tags with the newly created link
+    if (input.tagIds?.length) {
+      void (async () => {
+        try {
+          for (const tagId of input.tagIds!) {
+            await db.addTagToLink(link.id, tagId);
+          }
+        } catch (err) {
+          console.error('Failed to associate tags with link', link.id, err);
+        }
+      })();
+    }
 
     // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
     void kvPutLink(link.slug, {
