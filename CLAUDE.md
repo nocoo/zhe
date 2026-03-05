@@ -122,8 +122,8 @@ bun run dev       # wrangler dev (local testing)
 bun run tail      # wrangler tail (live logs)
 ```
 
-Workers.dev URL: `https://zhe-edge.lizheng.workers.dev`
-KV Namespace: `zhe` (ID: `7d4702bf5657489cbc6a266e10db1aba`)
+Workers.dev URL: `https://zhe-edge.<your-subdomain>.workers.dev`
+KV Namespace: `zhe` (ID in `worker/wrangler.toml`)
 
 ### Geo Header Mapping
 

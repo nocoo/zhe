@@ -55,6 +55,8 @@ next-env.d.ts
 
 # Wrangler
 .wrangler
+wrangler.toml
+worker/wrangler.toml
 
 # PWA
 **/public/sw.js

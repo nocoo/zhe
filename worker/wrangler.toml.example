@@ -5,7 +5,7 @@ compatibility_date = "2025-01-01"
 # ─── KV Namespace Binding ────────────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "LINKS_KV"
-id = "7d4702bf5657489cbc6a266e10db1aba"
+id = "<YOUR_KV_NAMESPACE_ID>"
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
 # ORIGIN_URL      — Railway backend URL (e.g. https://zhe.to or Railway internal)
