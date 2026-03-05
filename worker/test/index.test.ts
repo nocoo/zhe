@@ -11,6 +11,7 @@
  * - KV miss → forward to origin
  * - KV error → forward to origin
  * - Multi-segment paths → forward to origin
+ * - Scheduled handler (cron) → POST /api/cron/cleanup on origin
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -31,10 +32,17 @@ interface MockCtx {
   waitUntil: ReturnType<typeof vi.fn>;
 }
 
+interface MockScheduledController {
+  scheduledTime: number;
+  cron: string;
+  noRetry: ReturnType<typeof vi.fn>;
+}
+
 // ─── Import Worker (dynamic to allow global fetch mock) ─────────────────────
 
 let worker: {
   fetch: (request: Request, env: MockEnv, ctx: MockCtx) => Promise<Response>;
+  scheduled: (controller: MockScheduledController, env: MockEnv, ctx: MockCtx) => Promise<void>;
 };
 
 beforeEach(async () => {
@@ -356,6 +364,76 @@ describe('zhe-edge Worker — fetch handler', () => {
       const headers = opts.headers as Headers;
       expect(headers.get('x-vercel-ip-country')).toBe('JP');
     });
+  });
+});
+
+// ─── Scheduled Handler Tests ────────────────────────────────────────────────
+
+function makeScheduledController(): MockScheduledController {
+  return {
+    scheduledTime: Date.now(),
+    cron: '*/30 * * * *',
+    noRetry: vi.fn(),
+  };
+}
+
+describe('zhe-edge Worker — scheduled handler', () => {
+  it('calls POST /api/cron/cleanup with Bearer auth', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ deleted: 0, total: 0 }), { status: 200 }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+
+    // Execute the waitUntil promise
+    const waitUntilPromise = ctx.waitUntil.mock.calls[0][0];
+    await waitUntilPromise;
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://zhe-origin.railway.app/api/cron/cleanup');
+    expect(opts.method).toBe('POST');
+    expect(opts.headers.Authorization).toBe('Bearer test-worker-secret');
+  });
+
+  it('logs error when cleanup endpoint returns non-200', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('Internal Server Error', { status: 500 }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+
+    const waitUntilPromise = ctx.waitUntil.mock.calls[0][0];
+    await waitUntilPromise;
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Cleanup cron failed (500)'),
+    );
+  });
+
+  it('does not throw when fetch fails (network error)', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network unreachable'));
+    globalThis.fetch = fetchMock;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+
+    const waitUntilPromise = ctx.waitUntil.mock.calls[0][0];
+    await waitUntilPromise;
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Cleanup cron fetch error:',
+      expect.any(Error),
+    );
   });
 });
 

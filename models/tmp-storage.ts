@@ -16,8 +16,8 @@ export const TMP_PREFIX = "tmp/";
 /** Maximum age in milliseconds before a tmp file is eligible for cleanup (1 hour). */
 export const TMP_MAX_AGE_MS = 60 * 60 * 1000;
 
-/** Cleanup interval in milliseconds (10 minutes). */
-export const TMP_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+/** Cleanup interval in milliseconds (30 minutes). */
+export const TMP_CLEANUP_INTERVAL_MS = 30 * 60 * 1000;
 
 /**
  * Extract the timestamp from a tmp file key.

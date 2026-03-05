@@ -19,8 +19,8 @@ describe('constants', () => {
     expect(TMP_MAX_AGE_MS).toBe(3_600_000);
   });
 
-  it('TMP_CLEANUP_INTERVAL_MS is 10 minutes', () => {
-    expect(TMP_CLEANUP_INTERVAL_MS).toBe(600_000);
+  it('TMP_CLEANUP_INTERVAL_MS is 30 minutes', () => {
+    expect(TMP_CLEANUP_INTERVAL_MS).toBe(1_800_000);
   });
 });
 

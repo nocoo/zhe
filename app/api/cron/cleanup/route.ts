@@ -3,13 +3,12 @@ import { listR2Objects, deleteR2Objects } from '@/lib/r2/client';
 import { TMP_PREFIX, findExpiredTmpKeys } from '@/models/tmp-storage';
 
 /**
- * POST /api/cron/cleanup-tmp
+ * POST /api/cron/cleanup
  *
  * Delete expired temporary files from R2. Files older than 1 hour (based on
  * the timestamp embedded in the filename) are removed.
  *
- * Designed to be called every 10 minutes by the Cloudflare Worker cron trigger
- * or any external scheduler.
+ * Called every 30 minutes by the Cloudflare Worker cron trigger.
  *
  * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
  */

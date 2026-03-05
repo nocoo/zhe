@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Temporary file upload endpoint `POST /api/tmp/upload/[token]` — upload files to R2 `tmp/` prefix via webhook token auth, 10 MB max, returns download URL
-- Cleanup cron route `POST /api/cron/cleanup-tmp` — delete tmp files older than 1 hour (based on filename timestamp), triggered every 10 minutes
+- Cleanup cron route `POST /api/cron/cleanup` — delete tmp files older than 1 hour (based on filename timestamp), triggered every 30 minutes by Worker cron
 - Tmp upload URL display with copy button on webhook dashboard page
 - Tmp upload curl example in webhook usage docs
 - AI agent prompt includes tmp upload endpoint documentation when token is configured

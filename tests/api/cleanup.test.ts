@@ -1,5 +1,5 @@
 /**
- * API Tests for POST /api/cron/cleanup-tmp
+ * API Tests for POST /api/cron/cleanup
  *
  * Tests the tmp cleanup cron endpoint. Validates secret-based auth,
  * listing, expiration filtering, and batch deletion of expired files.
@@ -25,8 +25,8 @@ function makeRequest(options: {
   method?: 'header' | 'query';
 } = {}): Request {
   const url = options.method === 'query' && options.secret
-    ? `http://localhost/api/cron/cleanup-tmp?secret=${options.secret}`
-    : 'http://localhost/api/cron/cleanup-tmp';
+    ? `http://localhost/api/cron/cleanup?secret=${options.secret}`
+    : 'http://localhost/api/cron/cleanup';
 
   const headers: Record<string, string> = {};
   if (options.method !== 'query' && options.secret) {
@@ -36,7 +36,7 @@ function makeRequest(options: {
   return new Request(url, { method: 'POST', headers });
 }
 
-describe('POST /api/cron/cleanup-tmp', () => {
+describe('POST /api/cron/cleanup', () => {
   beforeEach(() => {
     mockListR2Objects.mockReset();
     mockDeleteR2Objects.mockReset();
@@ -52,7 +52,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
   it('rejects request when WORKER_SECRET env is missing', async () => {
     delete process.env.WORKER_SECRET;
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: 'anything' }));
 
     expect(res.status).toBe(500);
@@ -61,14 +61,14 @@ describe('POST /api/cron/cleanup-tmp', () => {
   });
 
   it('rejects request with no secret', async () => {
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest());
 
     expect(res.status).toBe(401);
   });
 
   it('rejects request with wrong secret', async () => {
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: 'wrong' }));
 
     expect(res.status).toBe(401);
@@ -77,7 +77,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
   it('accepts secret via Bearer header', async () => {
     mockListR2Objects.mockResolvedValue([]);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(200);
@@ -86,7 +86,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
   it('accepts secret via query param', async () => {
     mockListR2Objects.mockResolvedValue([]);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET, method: 'query' }));
 
     expect(res.status).toBe(200);
@@ -97,7 +97,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
   it('returns deleted:0 when tmp/ is empty', async () => {
     mockListR2Objects.mockResolvedValue([]);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(200);
@@ -119,7 +119,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
     ]);
     mockDeleteR2Objects.mockResolvedValue(1);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(200);
@@ -143,7 +143,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
       { key: `tmp/${UUID}_${freshTs}.zip`, size: 1000, lastModified: '' },
     ]);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(200);
@@ -156,7 +156,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
   it('passes TMP_PREFIX to listR2Objects', async () => {
     mockListR2Objects.mockResolvedValue([]);
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(mockListR2Objects).toHaveBeenCalledWith('tmp/');
@@ -168,7 +168,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     mockListR2Objects.mockRejectedValue(new Error('R2 down'));
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(500);
@@ -186,7 +186,7 @@ describe('POST /api/cron/cleanup-tmp', () => {
     ]);
     mockDeleteR2Objects.mockRejectedValue(new Error('R2 delete failed'));
 
-    const { POST } = await import('@/app/api/cron/cleanup-tmp/route');
+    const { POST } = await import('@/app/api/cron/cleanup/route');
     const res = await POST(makeRequest({ secret: WORKER_SECRET }));
 
     expect(res.status).toBe(500);

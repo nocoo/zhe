@@ -83,19 +83,19 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
                               ├─ KV hit → 307 redirect + fire-and-forget analytics
                               ├─ KV miss → forward to origin (middleware D1 fallback)
                               ├─ Reserved path → forward to origin
-                              └─ Cron (hourly) → POST /api/cron/sync-kv (delta sync)
+                              └─ Cron (every 30 min) → POST /api/cron/cleanup (tmp file cleanup)
 ```
 
 ### Responsibilities
 
 1. **Edge redirect** — Resolves short links from KV at the edge without hitting D1. On KV hit: 307 redirect + fire-and-forget `POST /api/record-click` for analytics. On KV miss: forward to origin where middleware handles D1 lookup.
-2. **Cron trigger** — Every hour, calls `/api/cron/sync-kv` on origin. Uses **delta sync**: a dirty flag on origin tracks KV mutations; if nothing changed since the last sync, the cron is skipped (no D1 query, no KV write). This replaces the need for external schedulers (Railway cron, GitHub Actions, etc.).
+2. **Cron trigger** — Every 30 minutes, calls `POST /api/cron/cleanup` on origin to delete expired temporary files from R2. KV sync is handled inline (on each mutation) and on server startup — no cron needed for KV.
 
 ### Key Files
 
 | File | Role |
 |------|------|
-| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `0 * * * *` |
+| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/30 * * * *` |
 | `worker/src/index.ts` | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
 | `worker/test/index.test.ts` | 38 unit tests covering all routing, redirect, analytics, cron paths |
 | `worker/package.json` | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest` |
@@ -105,7 +105,7 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
 | Secret | Purpose |
 |--------|---------|
 | `ORIGIN_URL` | Railway backend URL (e.g. `https://zhe.to`) |
-| `WORKER_SECRET` | Shared secret for `/api/cron/sync-kv` and `/api/record-click` authentication |
+| `WORKER_SECRET` | Shared secret for `/api/cron/cleanup` and `/api/record-click` authentication |
 
 ### Reserved Paths (must stay in sync with `lib/constants.ts`)
 

@@ -7,6 +7,9 @@
  * KV sync is handled by: (1) inline kvPutLink/kvDeleteLink on each mutation,
  * and (2) a full D1 → KV sync on server startup. No cron trigger needed.
  *
+ * Cron trigger (every 30 min):
+ *   POST /api/cron/cleanup → delete expired tmp files from R2
+ *
  * Flow for incoming requests:
  *   ┌─────────────┐
  *   │  Request in  │
@@ -270,8 +273,43 @@ async function handleFetch(
   return forwardToOrigin(request, env);
 }
 
+// ─── Scheduled Handler (cron) ───────────────────────────────────────────────
+
+/**
+ * Called every 30 minutes by Cloudflare cron trigger.
+ * Fires POST /api/cron/cleanup on origin to delete expired tmp files from R2.
+ */
+async function handleScheduled(
+  _controller: ScheduledController,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<void> {
+  const originBase = env.ORIGIN_URL.replace(/\/$/, '');
+  const url = `${originBase}/api/cron/cleanup`;
+
+  ctx.waitUntil(
+    fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.WORKER_SECRET}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          console.error(`Cleanup cron failed (${res.status}): ${text}`);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          console.log('Cleanup cron result:', JSON.stringify(data));
+        }
+      })
+      .catch((err) => {
+        console.error('Cleanup cron fetch error:', err);
+      }),
+  );
+}
+
 // ─── Worker Export ──────────────────────────────────────────────────────────
 
 export default {
   fetch: handleFetch,
+  scheduled: handleScheduled,
 } satisfies ExportedHandler<Env>;

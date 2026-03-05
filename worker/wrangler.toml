@@ -9,4 +9,8 @@ id = "7d4702bf5657489cbc6a266e10db1aba"
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
 # ORIGIN_URL      — Railway backend URL (e.g. https://zhe.to or Railway internal)
-# WORKER_SECRET   — shared secret for both /api/cron/sync-kv and /api/record-click
+# WORKER_SECRET   — shared secret for both /api/cron/cleanup and /api/record-click
+
+# ─── Cron Triggers ───────────────────────────────────────────────────────────
+[triggers]
+crons = ["*/30 * * * *"]  # every 30 minutes — cleanup expired tmp files
