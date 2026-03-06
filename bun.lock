@@ -36,7 +36,7 @@
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.5.0",
         "tailwindcss-animate": "^1.0.7",
-        "url-metadata": "^5.4.1",
+        "url-metadata": "^5.4.3",
       },
       "devDependencies": {
         "@eslint/eslintrc": "^3.2.0",
@@ -1759,7 +1759,7 @@
 
     "uri-js": ["uri-js@4.4.1", "", { "dependencies": { "punycode": "^2.1.0" } }, "sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg=="],
 
-    "url-metadata": ["url-metadata@5.4.1", "", { "dependencies": { "cheerio": "^1.0.0", "node-fetch": "^2.7.0", "request-filtering-agent": "2.0.1" } }, "sha512-Q2QZSnnN75DyccBMsi4jEldGk/kdz/IwU8yKKyAJyzDok4QhAadc2x2/orZB5zFoH0cFlawk+TacU+w1TpumWA=="],
+    "url-metadata": ["url-metadata@5.4.3", "", { "dependencies": { "cheerio": "^1.0.0", "node-fetch": "^2.7.0", "request-filtering-agent": "2.0.1" } }, "sha512-/eSJ83CubEBYG34Y0Z7kKRvp9IzptO/Uhg8egtLH5jn44RFNahDmilgGDvUU3uVwk4frOyvG3YO9fd8zKDx1BA=="],
 
     "use-callback-ref": ["use-callback-ref@1.3.3", "", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "@types/react": "*", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-jQL3lRnocaFtu3V00JToYz/4QkNWswxijDaCVNZRiRTO3HQDLsdu1ZtmIUvV4yPp+rvWm5j0y0TG/S61cuijTg=="],
 
