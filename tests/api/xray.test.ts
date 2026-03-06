@@ -135,15 +135,18 @@ function mockFetchOk(data: XrayTweetResponse | { success: boolean; data: XrayTwe
 // ---------------------------------------------------------------------------
 
 describe('Xray Twitter integration (E2E)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearMockStorage();
-    vi.restoreAllMocks();
-    // Re-setup the auth mock after restoreAllMocks
+    // Flush fire-and-forget microtasks (e.g. saveScreenshot) from previous tests
+    // before clearing mocks, so stale calls don't pollute the next test.
+    await new Promise((r) => setTimeout(r, 0));
+    vi.clearAllMocks();
+    // Re-setup the auth mock after clearAllMocks
     mockAuth.mockResolvedValue(null);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   // =========================================================================
