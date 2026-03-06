@@ -13,7 +13,7 @@
 - **简单模式** — 系统自动生成 6 位随机 slug（使用 nanoid，排除易混淆字符 `0OlI`）
 - **自定义模式** — 用户指定 slug（自动清理：去空格、转小写、校验格式和保留路径）
 
-创建时自动 fire-and-forget 抓取目标 URL 的元数据（标题、描述、favicon），不阻塞链接创建。
+创建时支持可选字段：文件夹、备注、截图 URL、标签。同时自动 fire-and-forget 抓取目标 URL 的元数据（标题、描述、favicon），不阻塞链接创建。
 
 ### Slug 生成规则
 
@@ -21,16 +21,25 @@
 - 默认长度：6 位
 - 碰撞重试：最多 3 次
 - 格式限制：1-50 字符，仅限字母数字、连字符、下划线
-- 保留路径：`login`, `dashboard`, `api`, `admin` 等不可用作 slug
+- 保留路径：`login`, `dashboard`, `api`, `admin` 等不可用作 slug（完整列表见 `lib/constants.ts`）
 
 ### 链接操作
 
 | 操作 | 说明 |
 |------|------|
 | 复制 | 复制短链接到剪贴板 |
-| 编辑 | 修改原始 URL、文件夹、过期时间 |
-| 删除 | 删除链接及其分析数据 |
+| 内联编辑 | 直接修改原始 URL、slug、文件夹、过期时间、截图 URL |
+| 备注 | 为链接添加/编辑备注 |
+| 标签 | 添加/移除标签 |
+| 删除 | 删除链接及其分析数据（级联删除 analytics、link_tags） |
 | 刷新元数据 | 手动重新抓取标题、描述、favicon |
+
+### 筛选与排序
+
+Dashboard 链接列表支持多维筛选：
+
+- **文件夹筛选** — 单选，按文件夹过滤链接
+- **标签筛选** — 多选，AND 交集逻辑（选中多个标签时，仅显示同时拥有所有选中标签的链接）
 
 ## 元数据自动抓取
 
@@ -45,32 +54,84 @@
 触发时机：
 1. **创建链接时** — 异步抓取，不阻塞
 2. **手动刷新** — 用户点击刷新按钮
+3. **批量刷新** — 批量重新抓取所有链接的元数据
 
 超时设置：5 秒。抓取失败不影响链接正常使用。
 
+### 富集策略
+
+元数据富集采用策略模式（`actions/enrichment.ts`）：
+
+- **Twitter 策略** — 当 URL 包含 `twitter.com` 或 `x.com` 时，通过 Xray API 获取推文数据并缓存
+- **默认策略** — 使用 `url-metadata` 抓取 HTML meta 标签
+
 ## 短链接重定向
 
-中间件（Edge Runtime）处理所有短链接请求：
+重定向采用三层缓存架构：
 
-1. 接收请求 → 提取 slug
-2. 查询 D1 数据库
-3. 命中且未过期 → **307 临时重定向**
-4. 同时异步记录点击分析（`event.waitUntil()`，不阻塞重定向）
-5. 未命中或已过期 → 404 页面
+### 第一层：Cloudflare Worker KV（边缘）
+
+```
+用户请求 → zhe-edge Worker → KV 查找
+  ├─ KV 命中 → 307 重定向 + 异步 POST /api/record-click（source: 'worker'）
+  └─ KV 未命中 → 转发至 Railway 源站
+```
+
+### 第二层：中间件 LRU 缓存（源站内存）
+
+```
+源站收到请求 → 中间件 LRU 缓存查找
+  ├─ 缓存命中且未过期 → 307 重定向 + 异步记录（source: 'origin'）
+  └─ 缓存未命中 → 查询 D1
+```
+
+- LRU 容量：1,000 条
+- TTL：60 秒
+- 实现：`Map` + 手动 LRU 淘汰
+
+### 第三层：D1 数据库查询
+
+```
+D1 查询 → 缓存结果到 LRU
+  ├─ 查到且未过期 → 307 重定向 + 异步记录
+  ├─ 查到但已过期 → 404
+  └─ 未查到 → 404
+```
+
+> 点击分析始终通过 `event.waitUntil()` 异步记录，不阻塞重定向响应。
 
 ## 访问分析
 
-每次短链接被访问时，中间件会解析以下信息并记录：
+每次短链接被访问时，记录以下信息：
 
 | 维度 | 解析方式 |
 |------|----------|
 | 设备类型 | User-Agent 解析（mobile / tablet / desktop） |
 | 浏览器 | UA 解析（Chrome, Safari, Firefox, Edge 等） |
 | 操作系统 | UA 解析（iOS, Android, Windows, macOS 等） |
-| 国家/城市 | Vercel Geo Headers（`x-vercel-ip-country`, `x-vercel-ip-city`） |
+| 国家/城市 | 地理位置头（`x-vercel-ip-country`, `x-vercel-ip-city`，由 Worker 映射 Cloudflare geo 头） |
 | 来源页面 | `Referer` 请求头 |
+| 记录来源 | `source` 字段：`worker`（边缘 KV 命中）/ `origin`（源站 D1 回落） |
 
-Dashboard 中展示汇总统计：总点击数、访问国家数、设备/浏览器/操作系统分布。
+### 概览仪表盘
+
+`/dashboard/overview` 提供全局统计：
+
+- **汇总卡片** — 总链接数、总点击数、总上传数、总存储量
+- **点击趋势图** — 3 线图（总量 / Worker / Origin），按日期聚合
+- **上传趋势图** — 按日期聚合的上传数量
+- **Top 链接** — 按点击数排序的链接列表
+- **设备/浏览器/OS/文件类型分布** — 饼图
+- **KV 缓存状态** — Worker 健康状态、KV key 数量、最近同步时间、Cron 历史
+
+## 标签系统
+
+每个链接可添加多个标签，每个标签可应用于多个链接（多对多关联）：
+
+- **CRUD** — 创建、编辑（名称/颜色）、删除标签
+- **颜色方案** — 确定性着色（FNV-1a hash → 24 色调色板），相同名称始终生成相同颜色
+- **关联管理** — 在创建链接或内联编辑时选择标签
+- **筛选** — Dashboard 列表支持按标签多选过滤
 
 ## 文件夹管理
 
@@ -78,6 +139,14 @@ Dashboard 中展示汇总统计：总点击数、访问国家数、设备/浏览
 - 每个文件夹可设置图标（24 个 Lucide 图标可选）
 - 删除文件夹时，关联链接的 `folderId` 自动置空（不删除链接）
 - 文件夹名称校验：非空、去前后空格
+
+## 收件箱分类（Inbox Triage）
+
+`/dashboard` 默认视图为收件箱，显示未归入任何文件夹的链接：
+
+- 未分类链接以列表形式展示
+- 支持快速拖入文件夹归类
+- 刷新按钮重新加载未分类链接
 
 ## 文件上传
 
@@ -96,12 +165,130 @@ Dashboard 中展示汇总统计：总点击数、访问国家数、设备/浏览
 3. 上传成功后记录元数据到 D1
 4. 返回公开访问 URL
 
+### 存储管理
+
+`/dashboard/storage` 提供存储状态概览：
+
+- R2/D1 用量统计
+- 孤儿文件检测（R2 中存在但 D1 中无记录的文件）
+- 批量清理孤儿文件
+
+## 临时文件上传
+
+通过 Webhook 令牌认证的一次性文件上传 API：
+
+```
+POST /api/tmp/upload/[token]
+Content-Type: multipart/form-data
+```
+
+| 约束 | 值 |
+|------|-----|
+| 最大文件大小 | 10 MB |
+| 存储路径 | `tmp/{uuid}.{ext}` |
+| 自动清理 | Worker cron 每 30 分钟调用 `POST /api/cron/cleanup` 清理 1 小时前的 `tmp/` 文件 |
+
+返回文件的公开访问 URL，适合在 Webhook 中上传截图后创建带截图的短链接。
+
+## Webhook API
+
+通过令牌认证的 HTTP API，支持外部系统自动创建短链接：
+
+### 创建链接
+
+```
+POST /api/link/create/[token]
+Content-Type: application/json
+
+{
+  "url": "https://example.com",
+  "slug": "custom-slug",     // 可选
+  "folder": "工作",           // 可选，按名称匹配文件夹
+  "note": "备注"              // 可选
+}
+```
+
+特性：
+- **速率限制** — 默认 5 次/分钟，可配置（1-10）
+- **幂等性** — 相同 URL 不会重复创建，返回已有链接
+- **HEAD 检测** — `HEAD /api/link/create/[token]` 返回 200 用于健康检查
+- **文件夹支持** — 按名称匹配现有文件夹（大小写不敏感），不存在则忽略
+
+### 统计信息
+
+```
+GET /api/link/create/[token]
+```
+
+返回用户统计摘要（总链接数、总点击数、最近 5 条链接）和 API 文档。
+
+## 数据导入导出
+
+`/dashboard/data-management` 提供数据管理功能：
+
+- **导出** — 将所有链接导出为 JSON 格式
+- **导入** — 支持从 JSON 文件导入链接
+
+## Backy 远程备份
+
+`/dashboard/backy` 提供与 [Backy](https://github.com/) 备份服务的集成：
+
+### 推送模式（Push）
+
+- 配置 Backy Webhook URL + API Key
+- 手动触发推送，将所有链接数据发送到 Backy 服务
+- 连接测试：验证 Webhook URL 和 API Key 是否有效
+
+### 拉取模式（Pull）
+
+- 生成唯一的 Pull Webhook Key
+- Backy 服务通过 `POST /api/backy/pull/[key]` 主动拉取链接数据
+- Key-only 认证（无需额外 secret）
+
+## Xray Twitter 集成
+
+`/dashboard/xray` 提供 X/Twitter 内容集成：
+
+- **配置** — 设置 Xray API URL 和 Token
+- **书签获取** — 从 X/Twitter 获取用户书签列表
+- **推文展示** — Masonry 布局展示推文内容和媒体
+- **一键创建链接** — 从书签推文快速创建短链接
+- **推文缓存** — 缓存推文数据到 `tweet_cache` 表，减少重复 API 调用
+
 ## 认证与授权
 
-- **认证方式**：Google OAuth（Auth.js v5 beta）
-- **会话策略**：D1 可用时使用数据库会话，否则回退到 JWT
+- **认证方式**：Google OAuth（Auth.js v5）
+- **会话策略**：始终使用 JWT（消除每请求 D1 会话查询开销）
+- **适配器**：D1Adapter 仅用于 OAuth 用户创建/关联，不用于会话管理
 - **授权检查**：所有 Server Actions 和 Dashboard 路由要求登录
 - **登录页面**：根路径 `/` 兼作登录页，已登录用户自动跳转 Dashboard
+
+## KV 缓存管理
+
+### 内联同步
+
+每次创建、更新、删除链接时，自动同步到 Cloudflare KV：
+
+- 创建/更新 → `PUT` KV entry（slug → originalUrl）
+- 删除 → `DELETE` KV entry
+
+### 全量同步
+
+```
+POST /api/cron/sync-kv
+```
+
+- Worker cron 可选触发全量同步
+- Delta 检测：比较 KV 和 D1 数据，仅同步差异
+- 跳过无变化的同步周期
+
+### 健康监控
+
+`/api/worker-status` 返回 Worker 健康信息，在 Overview 仪表盘展示：
+
+- KV key 总数
+- 最近同步时间
+- Cron 执行历史
 
 ## 主题切换
 
@@ -114,7 +301,27 @@ Dashboard 中展示汇总统计：总点击数、访问国家数、设备/浏览
 Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
 
 - 搜索所有链接（按 slug 和原始 URL 过滤）
+- 显示 favicon 和关键词高亮
 - 快捷操作：跳转到文件夹、复制短链接
+- 空态提示
+
+## API 路由一览
+
+| 路由 | 方法 | 说明 |
+|------|------|------|
+| `/api/health` | GET | 健康检查（返回版本号和状态） |
+| `/api/live` | GET | 存活检查（D1 连通性） |
+| `/api/link/create/[token]` | POST | Webhook 创建链接 |
+| `/api/link/create/[token]` | GET | Webhook 统计 + API 文档 |
+| `/api/link/create/[token]` | HEAD | Webhook 健康检查 |
+| `/api/tmp/upload/[token]` | POST | 临时文件上传 |
+| `/api/record-click` | POST | Worker 上报点击分析 |
+| `/api/lookup` | GET | Slug 查找（Worker KV miss 回退） |
+| `/api/worker-status` | GET | Worker 健康状态 |
+| `/api/cron/cleanup` | POST | 清理过期临时文件 |
+| `/api/cron/sync-kv` | POST | KV 全量同步 |
+| `/api/backy/pull/[key]` | POST | Backy 拉取备份 |
+| `/api/auth/*` | * | Auth.js 认证路由 |
 
 ## 相关文档
 
