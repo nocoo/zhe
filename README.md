@@ -323,6 +323,9 @@ zhe/
 | [Deployment](docs/06-deployment.md) | Railway, D1, security headers, domains |
 | [Contributing](docs/07-contributing.md) | Commit conventions, code quality |
 | [Performance](docs/08-performance-optimization.md) | Caching, bundle optimization, runtime perf |
+| [E2E Coverage Analysis](docs/09-e2e-coverage-analysis.md) | E2E test coverage matrix, gap analysis |
+| [Backy Integration](docs/10-backy.md) | Remote backup via Backy (push/pull) |
+| [Four-Layer Test Plan](docs/11-four-layer-test-plan.md) | Test architecture improvement plan & status |
 
 ## License
 
