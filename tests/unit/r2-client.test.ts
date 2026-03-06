@@ -5,7 +5,7 @@ const { mockSend, mockS3Client, mockPutObjectCommand, mockDeleteObjectCommand, m
   const mockSend = vi.fn().mockResolvedValue({});
   return {
     mockSend,
-    mockS3Client: vi.fn().mockImplementation(() => ({ send: mockSend })),
+    mockS3Client: vi.fn().mockImplementation(function () { return { send: mockSend }; }),
     mockPutObjectCommand: vi.fn(),
     mockDeleteObjectCommand: vi.fn(),
     mockListObjectsV2Command: vi.fn(),

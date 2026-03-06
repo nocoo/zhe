@@ -12,9 +12,11 @@ vi.mock('@/auth', () => ({
 const mockGetOverviewStats = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getOverviewStats: mockGetOverviewStats,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getOverviewStats: mockGetOverviewStats,
+    };
+  }),
 }));
 
 // Suppress console.error noise from catch blocks

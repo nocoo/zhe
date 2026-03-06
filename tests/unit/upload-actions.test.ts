@@ -36,12 +36,14 @@ const mockDeleteUpload = vi.fn();
 const mockGetUploadKey = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getUploads: mockGetUploads,
-    createUpload: mockCreateUpload,
-    deleteUpload: mockDeleteUpload,
-    getUploadKey: mockGetUploadKey,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getUploads: mockGetUploads,
+      createUpload: mockCreateUpload,
+      deleteUpload: mockDeleteUpload,
+      getUploadKey: mockGetUploadKey,
+    };
+  }),
 }));
 
 // Suppress console.error noise from catch blocks

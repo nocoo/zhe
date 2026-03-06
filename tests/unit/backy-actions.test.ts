@@ -24,17 +24,19 @@ const mockUpsertBackyPullWebhook = vi.fn();
 const mockDeleteBackyPullWebhook = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getBackySettings: mockGetBackySettings,
-    upsertBackySettings: mockUpsertBackySettings,
-    getLinks: mockGetLinks,
-    getFolders: mockGetFolders,
-    getTags: mockGetTags,
-    getLinkTags: mockGetLinkTags,
-    getBackyPullWebhook: mockGetBackyPullWebhook,
-    upsertBackyPullWebhook: mockUpsertBackyPullWebhook,
-    deleteBackyPullWebhook: mockDeleteBackyPullWebhook,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getBackySettings: mockGetBackySettings,
+      upsertBackySettings: mockUpsertBackySettings,
+      getLinks: mockGetLinks,
+      getFolders: mockGetFolders,
+      getTags: mockGetTags,
+      getLinkTags: mockGetLinkTags,
+      getBackyPullWebhook: mockGetBackyPullWebhook,
+      upsertBackyPullWebhook: mockUpsertBackyPullWebhook,
+      deleteBackyPullWebhook: mockDeleteBackyPullWebhook,
+    };
+  }),
 }));
 
 // Mock APP_VERSION

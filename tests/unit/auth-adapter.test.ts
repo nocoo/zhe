@@ -16,7 +16,7 @@ const mockExecute = vi.mocked(executeD1Query);
 const FIXED_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
 beforeEach(() => {
-  vi.restoreAllMocks();
+  vi.clearAllMocks();
   vi.stubGlobal('crypto', { randomUUID: () => FIXED_UUID });
 });
 

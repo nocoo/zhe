@@ -16,12 +16,14 @@ const mockUpdateFolder = vi.fn();
 const mockDeleteFolder = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getFolders: mockGetFolders,
-    createFolder: mockCreateFolder,
-    updateFolder: mockUpdateFolder,
-    deleteFolder: mockDeleteFolder,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getFolders: mockGetFolders,
+      createFolder: mockCreateFolder,
+      updateFolder: mockUpdateFolder,
+      deleteFolder: mockDeleteFolder,
+    };
+  }),
 }));
 
 // Suppress console.error noise from catch blocks

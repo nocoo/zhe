@@ -12,11 +12,13 @@ const mockGetTags = vi.fn();
 const mockGetLinkTags = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getLinks: mockGetLinks,
-    getTags: mockGetTags,
-    getLinkTags: mockGetLinkTags,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getLinks: mockGetLinks,
+      getTags: mockGetTags,
+      getLinkTags: mockGetLinkTags,
+    };
+  }),
 }));
 
 import { getDashboardData } from '@/actions/dashboard';

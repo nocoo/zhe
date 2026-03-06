@@ -19,15 +19,17 @@ const mockAddTagToLink = vi.fn();
 const mockRemoveTagFromLink = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getTags: mockGetTags,
-    createTag: mockCreateTag,
-    updateTag: mockUpdateTag,
-    deleteTag: mockDeleteTag,
-    getLinkTags: mockGetLinkTags,
-    addTagToLink: mockAddTagToLink,
-    removeTagFromLink: mockRemoveTagFromLink,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getTags: mockGetTags,
+      createTag: mockCreateTag,
+      updateTag: mockUpdateTag,
+      deleteTag: mockDeleteTag,
+      getLinkTags: mockGetLinkTags,
+      addTagToLink: mockAddTagToLink,
+      removeTagFromLink: mockRemoveTagFromLink,
+    };
+  }),
 }));
 
 // Suppress console.error noise from catch blocks

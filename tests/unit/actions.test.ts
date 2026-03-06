@@ -36,18 +36,20 @@ const mockUpdateLinkScreenshot = vi.fn();
 const mockUpdateLinkNote = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    createLink: mockCreateLink,
-    getLinks: mockGetLinks,
-    deleteLink: mockDeleteLink,
-    updateLink: mockUpdateLink,
-    getAnalyticsStats: mockGetAnalyticsStats,
-    updateLinkMetadata: mockUpdateLinkMetadata,
-    getLinkById: mockGetLinkById,
-    getLinksByIds: mockGetLinksByIds,
-    updateLinkScreenshot: mockUpdateLinkScreenshot,
-    updateLinkNote: mockUpdateLinkNote,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      createLink: mockCreateLink,
+      getLinks: mockGetLinks,
+      deleteLink: mockDeleteLink,
+      updateLink: mockUpdateLink,
+      getAnalyticsStats: mockGetAnalyticsStats,
+      updateLinkMetadata: mockUpdateLinkMetadata,
+      getLinkById: mockGetLinkById,
+      getLinksByIds: mockGetLinksByIds,
+      updateLinkScreenshot: mockUpdateLinkScreenshot,
+      updateLinkNote: mockUpdateLinkNote,
+    };
+  }),
 }));
 
 const mockEnrichLink = vi.fn();
@@ -122,7 +124,10 @@ const FAKE_LINK = {
 // ---------------------------------------------------------------------------
 
 describe('actions/links — uncovered paths', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Flush fire-and-forget microtasks (e.g. enrichLink) from previous tests
+    // before clearing mocks, so stale calls don't pollute the next test.
+    await new Promise((r) => setTimeout(r, 0));
     vi.clearAllMocks();
   });
 

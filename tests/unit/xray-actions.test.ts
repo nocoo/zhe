@@ -16,12 +16,14 @@ const mockUpdateLinkMetadata = vi.fn();
 const mockGetLinkById = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getXraySettings: mockGetXraySettings,
-    upsertXraySettings: mockUpsertXraySettings,
-    updateLinkMetadata: mockUpdateLinkMetadata,
-    getLinkById: mockGetLinkById,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getXraySettings: mockGetXraySettings,
+      upsertXraySettings: mockUpsertXraySettings,
+      updateLinkMetadata: mockUpdateLinkMetadata,
+      getLinkById: mockGetLinkById,
+    };
+  }),
 }));
 
 // Public DB mocks

@@ -26,7 +26,6 @@ export default defineConfig({
         'components/theme-toggle.tsx',
         'components/dashboard/**/*.tsx',
         'app/**/page.tsx',
-        'app/**/route.ts',
       ],
       exclude: [
         'node_modules/',

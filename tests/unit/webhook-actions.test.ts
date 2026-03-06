@@ -16,12 +16,14 @@ const mockDeleteWebhook = vi.fn();
 const mockUpdateWebhookRateLimit = vi.fn();
 
 vi.mock("@/lib/db/scoped", () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    getWebhook: mockGetWebhook,
-    upsertWebhook: mockUpsertWebhook,
-    deleteWebhook: mockDeleteWebhook,
-    updateWebhookRateLimit: mockUpdateWebhookRateLimit,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      getWebhook: mockGetWebhook,
+      upsertWebhook: mockUpsertWebhook,
+      deleteWebhook: mockDeleteWebhook,
+      updateWebhookRateLimit: mockUpdateWebhookRateLimit,
+    };
+  }),
 }));
 
 // Mock generateWebhookToken

@@ -11,9 +11,11 @@ vi.mock('@/lib/metadata', () => ({
 
 const mockUpdateLinkMetadata = vi.fn();
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    updateLinkMetadata: mockUpdateLinkMetadata,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      updateLinkMetadata: mockUpdateLinkMetadata,
+    };
+  }),
 }));
 
 const mockFetchAndCacheTweet = vi.fn();

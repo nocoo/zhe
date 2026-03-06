@@ -15,12 +15,14 @@ const mockGetUserSettings = vi.fn();
 const mockUpsertPreviewStyle = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
-  ScopedDB: vi.fn().mockImplementation(() => ({
-    createLink: mockCreateLink,
-    getLinks: mockGetLinks,
-    getUserSettings: mockGetUserSettings,
-    upsertPreviewStyle: mockUpsertPreviewStyle,
-  })),
+  ScopedDB: vi.fn().mockImplementation(function () {
+    return {
+      createLink: mockCreateLink,
+      getLinks: mockGetLinks,
+      getUserSettings: mockGetUserSettings,
+      upsertPreviewStyle: mockUpsertPreviewStyle,
+    };
+  }),
 }));
 
 // Suppress console.error noise from catch blocks
