@@ -60,15 +60,17 @@
 ### ESLint
 
 - 零警告策略（`--max-warnings=0`）
-- Pre-commit 检查暂存文件
-- Pre-push 全量检查
+- Pre-commit 通过 `lint-staged` 检查暂存文件
 
 ### Git Hooks（Husky）
 
-| Hook | 运行内容 |
-|------|----------|
-| `pre-commit` | `bun run test:unit` + `bunx lint-staged` |
-| `pre-push` | `bun run test:run` + `bun run lint` |
+| Hook | 层级 | 运行内容 |
+|------|------|----------|
+| `pre-commit` | L1 + L2 | `bun run test:unit:coverage`（单元测试 + 覆盖率门槛）+ `bunx lint-staged`（零警告 ESLint） |
+| `pre-push` | L3 | `bun run test:api`（API E2E 测试） |
+| 按需手动 | L4 | `bun run test:e2e:pw`（Playwright BDD E2E） |
+
+> **注意**：L4（Playwright BDD E2E）不在 Git Hook 中自动运行，需手动执行 `bun run test:e2e:pw`。
 
 ## 文档维护规则
 
@@ -78,7 +80,7 @@
 
 ```
 README.md              — 项目入口（概览 + Agent 指南）
-AGENT.md / CLAUDE.md   — 指向 README.md
+CLAUDE.md              — AI Agent 开发指南
 docs/
 ├── 01-architecture.md — 架构与数据流
 ├── 02-getting-started.md — 环境搭建
@@ -86,7 +88,11 @@ docs/
 ├── 04-database.md     — 数据库设计
 ├── 05-testing.md      — 测试策略
 ├── 06-deployment.md   — 部署配置
-└── 07-contributing.md — 开发规范（本文件）
+├── 07-contributing.md — 开发规范（本文件）
+├── 08-performance-optimization.md — 性能优化
+├── 09-e2e-coverage-analysis.md — E2E 覆盖率分析
+├── 10-backy.md        — Backy 远程备份
+└── 11-four-layer-test-plan.md — 四层测试计划
 ```
 
 ### 文档更新时机
@@ -100,6 +106,7 @@ docs/
 | 部署配置变更 | `06-deployment.md` |
 | 测试策略变更 | `05-testing.md` |
 | 开发流程变更 | `07-contributing.md` |
+| 备份功能变更 | `10-backy.md` |
 
 ## 技术栈
 
@@ -109,13 +116,18 @@ docs/
 | 框架 | Next.js 15（App Router） |
 | 语言 | TypeScript（strict mode） |
 | 数据库 | Cloudflare D1（Serverless SQLite） |
-| ORM | Drizzle ORM（仅 Schema 定义） |
+| ORM | Drizzle ORM（仅 Schema 定义 + 迁移） |
 | UI | Tailwind CSS + shadcn/ui |
-| 认证 | Auth.js v5（Google OAuth） |
-| 存储 | Cloudflare R2（S3 兼容） |
-| 测试 | Vitest + React Testing Library |
+| 认证 | Auth.js v5（Google OAuth，JWT 策略） |
+| 对象存储 | Cloudflare R2（S3 兼容） |
+| 边缘缓存 | Cloudflare KV + 进程内 LRU |
+| 边缘代理 | Cloudflare Worker（`zhe-edge`） |
+| 单元/集成测试 | Vitest + React Testing Library |
+| E2E 测试 | Playwright |
+| 部署 | Railway（Docker） |
 
 ## 相关文档
 
 - [测试策略](05-testing.md)
 - [架构概览](01-architecture.md)
+- [部署指南](06-deployment.md)
