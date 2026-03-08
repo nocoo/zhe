@@ -15,16 +15,16 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.AUTH_URL || "https://zhe.to"),
   title: "Zhe - URL Shortener",
   description: "A minimalist URL shortener service",
-  icons: {
-    icon: [
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-    ],
-    shortcut: "/favicon.png",
-    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+  openGraph: {
+    title: "Zhe - URL Shortener",
+    description: "A minimalist URL shortener service",
+    type: "website",
   },
+  // icon.png, apple-icon.png, opengraph-image.png in app/ are
+  // auto-discovered by Next.js file-based metadata convention
 };
 
 export default function RootLayout({
