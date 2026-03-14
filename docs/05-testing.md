@@ -34,6 +34,8 @@ tests/
 ├── components/     # React 组件测试
 ├── api/            # API 路由端到端测试（L3）
 ├── playwright/     # Playwright BDD E2E 测试（L4）
+│   ├── fixtures/          # 自定义 test fixtures
+│   ├── helpers/           # D1 数据库辅助函数
 │   ├── global-setup.ts     # 插入测试用户到 D1
 │   ├── global-teardown.ts  # 清理测试数据
 │   ├── *.setup.ts          # 认证 setup（保存 storageState）
@@ -48,8 +50,9 @@ tests/
 | 端口 | 用途 |
 |------|------|
 | 7005 | 开发服务器（`bun run dev`） |
-| 17005 | API E2E 测试（`tests/api/`） |
 | 27005 | Playwright BDD E2E 测试（自动管理） |
+
+> **注意**：L3 API E2E 测试（`tests/api/`）不使用任何端口，直接 import route handler 调用。
 
 ## 覆盖率目标
 
@@ -80,7 +83,7 @@ bun run test:coverage
 - `hooks/**/*.tsx` — 通用钩子
 - `components/app-sidebar.tsx`, `components/dashboard-shell.tsx`, `components/theme-toggle.tsx`
 - `components/dashboard/**/*.tsx` — Dashboard 组件
-- `app/**/page.tsx`, `app/**/route.ts` — 页面和 API 路由
+- `app/**/page.tsx` — 页面组件
 
 ### 排除
 
@@ -112,6 +115,11 @@ bun run test:coverage
 | `mockAnalytics` | `Analytics[]` | 分析记录 |
 | `mockUploads` | `Map<number, Upload>` | 按 ID 索引 |
 | `mockFolders` | `Map<string, Folder>` | 按 ID 索引 |
+| `mockWebhooks` | `Map<string, Webhook>` | 按 userId 索引 |
+| `mockTags` | `Map<string, Tag>` | 按 ID 索引 |
+| `mockLinkTags` | `MockLinkTag[]` | 链接-标签关联 |
+| `mockUserSettings` | `Map<string, MockUserSettings>` | 按 userId 索引 |
+| `mockTweetCache` | `Map<string, TweetCache>` | 按 tweetId 索引 |
 | `clearMockStorage()` | 函数 | 重置所有数据 |
 
 ### 组件测试 Mock
