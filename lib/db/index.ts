@@ -110,18 +110,6 @@ export async function getLinkByUserAndUrl(userId: string, url: string): Promise<
 }
 
 /**
- * Get all links for a user.
- */
-export async function getLinksByUserId(userId: string): Promise<Link[]> {
-  const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC',
-    [userId]
-  );
-
-  return rows.map(rowToLink);
-}
-
-/**
  * Get all links with only the fields needed for KV sync (id, slug, original_url, expires_at).
  * Used by the cron sync endpoint. Not user-scoped — this is an admin operation.
  */
@@ -138,62 +126,6 @@ export async function getAllLinksForKV(): Promise<
     originalUrl: row.original_url as string,
     expiresAt: row.expires_at ? (row.expires_at as number) : null,
   }));
-}
-
-/**
- * Delete a link by id and user id.
- * Returns true if deleted, false if not found or not authorized.
- */
-export async function deleteLinkById(id: number, userId: string): Promise<boolean> {
-  const rows = await executeD1Query<Record<string, unknown>>(
-    'DELETE FROM links WHERE id = ? AND user_id = ? RETURNING id',
-    [id, userId]
-  );
-
-  return rows.length > 0;
-}
-
-/**
- * Update link by id and user id.
- */
-export async function updateLink(
-  id: number,
-  userId: string,
-  data: Partial<Pick<Link, 'originalUrl' | 'folderId' | 'expiresAt'>>
-): Promise<Link | null> {
-  // Build dynamic update query
-  const setClauses: string[] = [];
-  const params: unknown[] = [];
-
-  if (data.originalUrl !== undefined) {
-    setClauses.push('original_url = ?');
-    params.push(data.originalUrl);
-  }
-  if (data.folderId !== undefined) {
-    setClauses.push('folder_id = ?');
-    params.push(data.folderId);
-  }
-  if (data.expiresAt !== undefined) {
-    setClauses.push('expires_at = ?');
-    params.push(data.expiresAt ? data.expiresAt.getTime() : null);
-  }
-
-  if (setClauses.length === 0) {
-    // Nothing to update, just return the existing link
-    const rows = await executeD1Query<Record<string, unknown>>(
-      'SELECT * FROM links WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
-    return rows[0] ? rowToLink(rows[0]) : null;
-  }
-
-  params.push(id, userId);
-  const rows = await executeD1Query<Record<string, unknown>>(
-    `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
-    params
-  );
-
-  return rows[0] ? rowToLink(rows[0]) : null;
 }
 
 // ============================================
