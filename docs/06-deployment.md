@@ -146,7 +146,7 @@ POST https://api.cloudflare.com/client/v4/accounts/{id}/d1/database/{id}/query
 }
 ```
 
-**同步策略**：写穿透（每次 CRUD 操作内联同步） + 部署时全量同步（安全网）。无定时同步。
+**同步策略**：写穿透（每次 CRUD 操作内联同步） + 首次访问全量同步（安全网）。手动触发：`POST /api/cron/sync-kv`（需 `WORKER_SECRET` 认证）。无定时同步。
 
 ## Cloudflare R2
 
@@ -169,6 +169,7 @@ KV 同步不依赖定时任务，而是在每次 mutation 时内联执行。
 |------|------|
 | `zhe.to` | 生产域名（Cloudflare DNS → Worker → Railway） |
 | `origin.zhe.to` | Railway 直连（Worker 转发目标） |
+| `s.zhe.to` | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`） |
 | `localhost:7005` | 本地开发 |
 
 ## 保留路径
