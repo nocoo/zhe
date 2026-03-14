@@ -1,6 +1,6 @@
 /**
  * Shared KV sync logic — used by the /api/cron/sync-kv route (manual trigger)
- * and by `instrumentation.ts` to seed cron history on server startup.
+ * and by the worker-status action on first dashboard access.
  *
  * Fire-and-forget safe: errors are caught and recorded, never thrown.
  *
