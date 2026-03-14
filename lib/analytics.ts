@@ -129,24 +129,3 @@ export function extractClickMetadata(headers: Headers): ClickMetadata {
     referer: headers.get('referer'),
   };
 }
-
-/**
- * Build the record-click API URL with query parameters.
- */
-export function buildRecordClickUrl(
-  baseUrl: string,
-  linkId: number,
-  metadata: ClickMetadata
-): string {
-  const url = new URL('/api/record-click', baseUrl);
-  url.searchParams.set('linkId', linkId.toString());
-  
-  if (metadata.device) url.searchParams.set('device', metadata.device);
-  if (metadata.browser) url.searchParams.set('browser', metadata.browser);
-  if (metadata.os) url.searchParams.set('os', metadata.os);
-  if (metadata.country) url.searchParams.set('country', metadata.country);
-  if (metadata.city) url.searchParams.set('city', metadata.city);
-  if (metadata.referer) url.searchParams.set('referer', metadata.referer);
-  
-  return url.toString();
-}

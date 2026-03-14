@@ -4,7 +4,6 @@ import {
   parseBrowser,
   parseOS,
   extractClickMetadata,
-  buildRecordClickUrl,
 } from '@/lib/analytics';
 
 describe('parseDevice', () => {
@@ -121,49 +120,5 @@ describe('extractClickMetadata', () => {
     expect(metadata.country).toBeNull();
     expect(metadata.city).toBeNull();
     expect(metadata.referer).toBeNull();
-  });
-});
-
-describe('buildRecordClickUrl', () => {
-  it('should build URL with all parameters', () => {
-    const metadata = {
-      device: 'desktop' as const,
-      browser: 'Chrome',
-      os: 'macOS',
-      country: 'US',
-      city: 'San Francisco',
-      referer: 'https://google.com',
-    };
-
-    const url = buildRecordClickUrl('https://zhe.to', 123, metadata);
-    const parsed = new URL(url);
-
-    expect(parsed.pathname).toBe('/api/record-click');
-    expect(parsed.searchParams.get('linkId')).toBe('123');
-    expect(parsed.searchParams.get('device')).toBe('desktop');
-    expect(parsed.searchParams.get('browser')).toBe('Chrome');
-    expect(parsed.searchParams.get('os')).toBe('macOS');
-    expect(parsed.searchParams.get('country')).toBe('US');
-    expect(parsed.searchParams.get('city')).toBe('San Francisco');
-    expect(parsed.searchParams.get('referer')).toBe('https://google.com');
-  });
-
-  it('should handle null values', () => {
-    const metadata = {
-      device: 'unknown' as const,
-      browser: 'Unknown',
-      os: 'Unknown',
-      country: null,
-      city: null,
-      referer: null,
-    };
-
-    const url = buildRecordClickUrl('https://zhe.to', 456, metadata);
-    const parsed = new URL(url);
-
-    expect(parsed.searchParams.get('linkId')).toBe('456');
-    expect(parsed.searchParams.has('country')).toBe(false);
-    expect(parsed.searchParams.has('city')).toBe(false);
-    expect(parsed.searchParams.has('referer')).toBe(false);
   });
 });
