@@ -65,6 +65,30 @@ Dashboard 链接列表支持多维筛选：
 - **Twitter 策略** — 当 URL 包含 `twitter.com` 或 `x.com` 时，通过 Xray API 获取推文数据并缓存
 - **默认策略** — 使用 `url-metadata` 抓取 HTML meta 标签
 
+### 截图获取
+
+链接支持两种截图源（`fetchAndSaveScreenshot`）：
+
+- **Microlink** — 通过 Microlink API 获取网页截图
+- **screenshotDomains** — 通过自定义截图服务获取
+
+截图流程：服务端获取 → 上传到 R2 → 更新链接的 `screenshotUrl` 字段。
+
+### 预览样式
+
+用户可在设置中切换链接预览样式（`actions/settings.ts`）：
+
+- `favicon` — 使用网站 favicon 作为预览（默认）
+- `screenshot` — 使用截图作为预览
+
+### Webhook OpenAPI 文档
+
+`GET /api/link/create/[token]` 返回包含以下内容的 JSON 响应：
+
+- 用户统计摘要（总链接数、总点击数、最近链接）
+- 完整的 OpenAPI 3.1 规范
+- AI Agent 即用型 Prompt（`buildAgentPrompt()`）
+
 ## 短链接重定向
 
 重定向采用三层缓存架构：
@@ -145,7 +169,6 @@ D1 查询 → 缓存结果到 LRU
 `/dashboard` 默认视图为收件箱，显示未归入任何文件夹的链接：
 
 - 未分类链接以列表形式展示
-- 支持快速拖入文件夹归类
 - 刷新按钮重新加载未分类链接
 
 ## 文件上传
@@ -155,7 +178,7 @@ D1 查询 → 缓存结果到 LRU
 | 约束 | 值 |
 |------|-----|
 | 最大文件大小 | 10 MB |
-| 支持格式 | 图片、PDF、文本等常见类型 |
+| 支持格式 | 图片（PNG 自动转 JPEG 压缩）、PDF、文本等常见类型 |
 | 上传方式 | 客户端直传（预签名 URL，5 分钟有效期） |
 | 文件路径 | `{userHash}/YYYYMMDD/{uuid}.{ext}` |
 
@@ -185,7 +208,7 @@ Content-Type: multipart/form-data
 | 约束 | 值 |
 |------|-----|
 | 最大文件大小 | 10 MB |
-| 存储路径 | `tmp/{uuid}.{ext}` |
+| 存储路径 | `tmp/{uuid}_{timestamp}.{ext}` |
 | 自动清理 | Worker cron 每 30 分钟调用 `POST /api/cron/cleanup` 清理 1 小时前的 `tmp/` 文件 |
 
 返回文件的公开访问 URL，适合在 Webhook 中上传截图后创建带截图的短链接。
@@ -202,7 +225,7 @@ Content-Type: application/json
 
 {
   "url": "https://example.com",
-  "slug": "custom-slug",     // 可选
+  "customSlug": "custom-slug", // 可选
   "folder": "工作",           // 可选，按名称匹配文件夹
   "note": "备注"              // 可选
 }
@@ -242,7 +265,7 @@ GET /api/link/create/[token]
 ### 拉取模式（Pull）
 
 - 生成唯一的 Pull Webhook Key
-- Backy 服务通过 `POST /api/backy/pull/[key]` 主动拉取链接数据
+- Backy 服务通过 `POST /api/backy/pull`（`X-Webhook-Key` header 认证）主动拉取链接数据
 - Key-only 认证（无需额外 secret）
 
 ## Xray Twitter 集成
@@ -278,9 +301,9 @@ GET /api/link/create/[token]
 POST /api/cron/sync-kv
 ```
 
-- Worker cron 可选触发全量同步
-- Delta 检测：比较 KV 和 D1 数据，仅同步差异
-- 跳过无变化的同步周期
+- 首次访问 Dashboard 时自动触发全量同步（通过 `actions/worker-status.ts`）
+- 也可通过 API 手动触发
+- 同步策略：全量 D1 → KV 覆写（无 delta 检测，KV 是缓存而非数据源）
 
 ### 健康监控
 
@@ -300,7 +323,7 @@ POST /api/cron/sync-kv
 
 Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
 
-- 搜索所有链接（按 slug 和原始 URL 过滤）
+- 搜索所有链接（按 slug、原始 URL、标题、描述、备注、标签 6 个维度过滤）
 - 显示 favicon 和关键词高亮
 - 快捷操作：跳转到文件夹、复制短链接
 - 空态提示
@@ -310,17 +333,19 @@ Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
 | 路由 | 方法 | 说明 |
 |------|------|------|
 | `/api/health` | GET | 健康检查（返回版本号和状态） |
-| `/api/live` | GET | 存活检查（D1 连通性） |
+| `/api/live` | GET | 存活探针（仅返回版本号，无外部依赖检查） |
 | `/api/link/create/[token]` | POST | Webhook 创建链接 |
 | `/api/link/create/[token]` | GET | Webhook 统计 + API 文档 |
 | `/api/link/create/[token]` | HEAD | Webhook 健康检查 |
 | `/api/tmp/upload/[token]` | POST | 临时文件上传 |
+| `/api/tmp/upload/[token]` | GET | 临时上传 API 使用文档 |
+| `/api/tmp/upload/[token]` | HEAD | 临时上传健康检查 |
 | `/api/record-click` | POST | Worker 上报点击分析 |
 | `/api/lookup` | GET | Slug 查找（Worker KV miss 回退） |
 | `/api/worker-status` | GET | Worker 健康状态 |
 | `/api/cron/cleanup` | POST | 清理过期临时文件 |
 | `/api/cron/sync-kv` | POST | KV 全量同步 |
-| `/api/backy/pull/[key]` | POST | Backy 拉取备份 |
+| `/api/backy/pull` | POST/HEAD | Backy 拉取备份（`X-Webhook-Key` header 认证）/ 连接测试 |
 | `/api/auth/*` | * | Auth.js 认证路由 |
 
 ## 相关文档
