@@ -4,45 +4,8 @@
  */
 
 import { executeD1Query } from './d1-client';
+import { rowToLink, rowToAnalytics, rowToFolder, rowToWebhook } from './mappers';
 import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook, TweetCache } from './schema';
-
-// ============================================
-// Type Conversion Helpers
-// ============================================
-
-function rowToLink(row: Record<string, unknown>): Link {
-  return {
-    id: row.id as number,
-    userId: row.user_id as string,
-    folderId: row.folder_id as string | null,
-    originalUrl: row.original_url as string,
-    slug: row.slug as string,
-    isCustom: Boolean(row.is_custom),
-    expiresAt: row.expires_at ? new Date(row.expires_at as number) : null,
-    clicks: row.clicks as number,
-    metaTitle: (row.meta_title as string) ?? null,
-    metaDescription: (row.meta_description as string) ?? null,
-    metaFavicon: (row.meta_favicon as string) ?? null,
-    screenshotUrl: (row.screenshot_url as string) ?? null,
-    note: (row.note as string) ?? null,
-    createdAt: new Date(row.created_at as number),
-  };
-}
-
-function rowToAnalytics(row: Record<string, unknown>): Analytics {
-  return {
-    id: row.id as number,
-    linkId: row.link_id as number,
-    country: row.country as string | null,
-    city: row.city as string | null,
-    device: row.device as string | null,
-    browser: row.browser as string | null,
-    os: row.os as string | null,
-    referer: row.referer as string | null,
-    source: (row.source as string) ?? null,
-    createdAt: new Date(row.created_at as number),
-  };
-}
 
 // ============================================
 // Link Operations
@@ -172,16 +135,6 @@ export async function recordClick(
 // Folder Operations (unscoped — for webhook route)
 // ============================================
 
-function rowToFolder(row: Record<string, unknown>): Folder {
-  return {
-    id: row.id as string,
-    userId: row.user_id as string,
-    name: row.name as string,
-    icon: (row.icon as string) || 'folder',
-    createdAt: new Date(row.created_at as number),
-  };
-}
-
 /**
  * Find a folder by user id and name (case-insensitive).
  * Used by webhook route to resolve folder name to folder id.
@@ -198,16 +151,6 @@ export async function getFolderByUserAndName(userId: string, name: string): Prom
 // ============================================
 // Webhook Operations (unscoped — for API route)
 // ============================================
-
-function rowToWebhook(row: Record<string, unknown>): Webhook {
-  return {
-    id: row.id as number,
-    userId: row.user_id as string,
-    token: row.token as string,
-    rateLimit: (row.rate_limit as number) ?? 5,
-    createdAt: new Date(row.created_at as number),
-  };
-}
 
 /**
  * Look up a webhook by its token (unscoped — used by the public API route).
