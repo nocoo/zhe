@@ -5,7 +5,6 @@ import {
   isKVConfigured,
   kvPutLink,
   kvDeleteLink,
-  kvGetLink,
   kvBulkPutLinks,
   type KVLinkData,
 } from '@/lib/kv/client';
@@ -207,62 +206,6 @@ describe('kvDeleteLink', () => {
     await expect(kvDeleteLink('slug')).resolves.toBeUndefined();
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('KV delete error'),
-      expect.any(Error),
-    );
-    consoleSpy.mockRestore();
-  });
-});
-
-// ─── kvGetLink ──────────────────────────────────────────────────────────────
-
-describe('kvGetLink', () => {
-  beforeEach(() => mockFetch.mockReset());
-  afterEach(() => clearEnv());
-
-  it('returns null when KV is not configured', async () => {
-    const result = await kvGetLink('test-slug');
-    expect(result).toBeNull();
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it('sends correct GET request and returns parsed data', async () => {
-    setEnv();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => sampleData,
-    });
-
-    const result = await kvGetLink('my-slug');
-
-    expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, init] = mockFetch.mock.calls[0];
-
-    expect(url).toBe(`${BASE_URL}/values/my-slug`);
-    expect(init.method).toBe('GET');
-    expect(init.headers).toEqual({
-      Authorization: 'Bearer test-api-token',
-    });
-    expect(init.signal).toBeInstanceOf(AbortSignal);
-    expect(result).toEqual(sampleData);
-  });
-
-  it('returns null on non-ok response (e.g. 404)', async () => {
-    setEnv();
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
-
-    const result = await kvGetLink('missing-slug');
-    expect(result).toBeNull();
-  });
-
-  it('returns null and logs error on network failure', async () => {
-    setEnv();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockFetch.mockRejectedValueOnce(new Error('DNS failure'));
-
-    const result = await kvGetLink('slug');
-    expect(result).toBeNull();
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('KV get error'),
       expect.any(Error),
     );
     consoleSpy.mockRestore();

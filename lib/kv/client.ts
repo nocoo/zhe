@@ -117,30 +117,6 @@ export async function kvDeleteLink(slug: string): Promise<void> {
 }
 
 /**
- * Read a link entry from KV. Returns null if not found or KV is not configured.
- * Primarily used by the sync script to verify consistency.
- */
-export async function kvGetLink(slug: string): Promise<KVLinkData | null> {
-  const creds = getKVCredentials();
-  if (!creds) return null;
-
-  try {
-    const response = await fetch(kvUrl(creds, slug), {
-      method: 'GET',
-      headers: kvHeaders(creds.token),
-      signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS),
-    });
-
-    if (!response.ok) return null;
-
-    return (await response.json()) as KVLinkData;
-  } catch (err) {
-    console.error(`KV get error for slug "${slug}":`, err);
-    return null;
-  }
-}
-
-/**
  * Bulk-write multiple link entries to KV in a single API call.
  * Cloudflare supports up to 10,000 key-value pairs per bulk write.
  * Used by the full sync script/cron.
