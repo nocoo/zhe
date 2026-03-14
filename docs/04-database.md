@@ -289,18 +289,13 @@ CREATE TABLE tweet_cache (
 | `slugExists(slug)` | 检查 slug 是否已存在 |
 | `createLink(data)` | 创建链接（webhook 路由使用） |
 | `getLinkByUserAndUrl(userId, url)` | 查找用户已有相同 URL 的链接（幂等性） |
-| `getLinksByUserId(userId)` | 获取用户所有链接 |
 | `getAllLinksForKV()` | 获取所有链接的 KV 同步字段（管理操作） |
-| `deleteLinkById(id, userId)` | 删除链接 |
-| `updateLink(id, userId, data)` | 更新链接 |
 
 ### 分析（公开）
 
 | 方法 | 说明 |
 |------|------|
 | `recordClick(data)` | 记录点击事件并递增链接点击计数 |
-| `getAnalyticsByLinkId(linkId)` | 获取链接分析记录 |
-| `getAnalyticsStats(linkId)` | 获取聚合分析统计 |
 
 ### Webhook（公开）
 
@@ -315,7 +310,6 @@ CREATE TABLE tweet_cache (
 | 方法 | 说明 |
 |------|------|
 | `getTweetCacheById(tweetId)` | 查询单条缓存推文 |
-| `getTweetCacheByIds(tweetIds)` | 批量查询缓存推文（返回 Map） |
 | `upsertTweetCache(data)` | 插入或更新推文缓存 |
 
 ### Backy Pull Webhook（公开）
