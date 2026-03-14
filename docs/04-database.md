@@ -24,7 +24,7 @@
 | `users` | `id` (text) | 用户信息 |
 | `accounts` | `id` (text) | OAuth 账号关联 |
 | `sessions` | `id` (text) | 数据库会话 |
-| `verification_tokens` | 复合主键 | 验证令牌 |
+| `verificationTokens` | 复合主键 | 验证令牌 |
 
 ### 业务表（9 张）
 
