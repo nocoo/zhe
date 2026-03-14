@@ -13,7 +13,7 @@
 | **Vitest E2E** | Vitest | `tests/api/` | 内存模拟 D1 | Mock `auth()` | API 数据完整性、Server Action 流程 |
 | **Playwright E2E** | Playwright | `tests/playwright/` | 真实 Cloudflare D1 | 真实 Credentials 登录 | 浏览器 UI 交互、页面渲染 |
 
-当前统计：**276 个 E2E 测试用例**（Vitest 197 + Playwright 79）。
+当前统计：**343 个 E2E 测试用例**（Vitest 235 + Playwright 108）。
 
 ---
 
@@ -28,7 +28,7 @@
 | `POST /api/record-click` — 点击记录（完整/最小元数据） | `api/api.test.ts` | 4 | Vitest E2E |
 | `POST /api/record-click` — Worker Secret 鉴权 | `api/api.test.ts` `api/api-extra.test.ts` | 4 | Vitest E2E |
 | 完整重定向流程（查询 → 记录 → 计数验证） | `api/api.test.ts` | 2 | Vitest E2E |
-| API 异常路径（D1 连接失败 → 500） | `api/api-extra.test.ts` | 3 | Vitest E2E |
+| API 异常路径（D1 连接失败 → 500） | `api/api-extra.test.ts` | 2 | Vitest E2E |
 | `GET /api/live` — 存活探针 | `api/live.test.ts` | 3 | Vitest E2E |
 | `GET /api/worker-status` — Worker 健康查询 | `api/worker-status.test.ts` | 4 | Vitest E2E |
 | `POST /api/cron/sync-kv` — KV 同步端点 | `api/sync-kv.test.ts` | 9 | Vitest E2E |
@@ -53,6 +53,7 @@
 | 编辑链接（添加备注） | `playwright/link-crud.spec.ts` | 1 | Playwright |
 | 删除链接（确认对话框） | `playwright/link-crud.spec.ts` | 1 | Playwright |
 | 刷新链接列表 | `playwright/link-crud.spec.ts` | 1 | Playwright |
+| 内联编辑 slug | `playwright/link-crud.spec.ts` | 1 | Playwright |
 
 ### 1.4 链接编辑（Server Action 级）
 
@@ -63,6 +64,10 @@
 | Slug 编辑（自定义/冲突/非法字符/保留路径/大小写/跨用户唯一性） | `api/edit-link.test.ts` | 8 | Vitest E2E |
 | 同时更新 Slug 和 URL | `api/edit-link.test.ts` | 1 | Vitest E2E |
 | 编辑验证（无效 URL/不存在的链接） | `api/edit-link.test.ts` | 4 | Vitest E2E |
+| 文件夹分配/移动/清除 | `api/edit-link.test.ts` | 5 | Vitest E2E |
+| 截图 URL 更新/清除 | `api/edit-link.test.ts` | 4 | Vitest E2E |
+| 过期时间设置/清除 | `api/edit-link.test.ts` | 4 | Vitest E2E |
+| 多用户隔离（跨用户不可编辑） | `api/edit-link.test.ts` | 3 | Vitest E2E |
 
 ### 1.5 标签系统（Server Action 级）
 
@@ -82,6 +87,7 @@
 | 多用户隔离 | `api/upload.test.ts` | 1 | Vitest E2E |
 | 验证（超限/零字节） | `api/upload.test.ts` | 3 | Vitest E2E |
 | 排序（最新优先） | `api/upload.test.ts` | 1 | Vitest E2E |
+| R2 删除失败回滚/S3 凭证缺失 | `api/upload.test.ts` | 3 | Vitest E2E |
 
 ### 1.7 导航与 UI 框架
 
@@ -104,7 +110,7 @@
 
 | 流程 | 测试文件 | 用例数 | 覆盖层级 |
 |------|---------|--------|---------|
-| 短链接 307 重定向（创建链接 → 访问 → 验证跳转） | `playwright/redirect.spec.ts` | 3 | Playwright |
+| 短链接 307 重定向（创建链接 → 访问 → 验证跳转） | `playwright/redirect.spec.ts` | 2 | Playwright |
 
 ### 1.10 Webhook API
 
@@ -148,7 +154,6 @@
 | 按标签筛选链接列表 | `playwright/tags.spec.ts` | 2 | Playwright |
 | 清除标签筛选 | `playwright/tags.spec.ts` | 1 | Playwright |
 | 多标签分配 | `playwright/tags.spec.ts` | 1 | Playwright |
-| 清理（删除测试数据） | `playwright/tags.spec.ts` | 1 | Playwright |
 
 ### 1.14 Overview 页面数据渲染
 
@@ -161,7 +166,6 @@
 | 图表渲染（非空状态） | `playwright/overview.spec.ts` | 1 | Playwright |
 | KV 缓存区块可见 | `playwright/overview.spec.ts` | 1 | Playwright |
 | 侧边栏导航到 Overview | `playwright/overview.spec.ts` | 1 | Playwright |
-| 数据清理 | `playwright/overview.spec.ts` | 1 | Playwright |
 
 ### 1.15 浏览器端文件上传 UI
 
@@ -188,7 +192,6 @@
 | 重新生成 Token | `playwright/webhook.spec.ts` | 1 | Playwright |
 | 吊销 Token | `playwright/webhook.spec.ts` | 1 | Playwright |
 | 吊销后重新生成 | `playwright/webhook.spec.ts` | 1 | Playwright |
-| 清理（删除测试数据） | `playwright/webhook.spec.ts` | 1 | Playwright |
 
 ### 1.17 404 页面与链接过期
 
@@ -198,10 +201,8 @@
 | 404 页面「返回首页」链接 | `playwright/not-found.spec.ts` | 1 | Playwright |
 | API lookup 不存在的 Slug 返回 404 | `playwright/not-found.spec.ts` | 1 | Playwright |
 | 过期链接返回 404 页面 | `playwright/not-found.spec.ts` | 1 | Playwright |
-| API lookup 过期链接返回 expired: true | `playwright/not-found.spec.ts` | 1 | Playwright |
 | 未过期链接仍正常重定向 | `playwright/not-found.spec.ts` | 1 | Playwright |
-| expiresAt 为 null 永不过期 | `playwright/not-found.spec.ts` | 1 | Playwright |
-| 清理（删除测试数据） | `playwright/not-found.spec.ts` | 2 | Playwright |
+| 清理（删除测试数据） | `playwright/not-found.spec.ts` | 1 | Playwright |
 
 ### 1.18 Backy 备份集成
 
@@ -231,6 +232,60 @@
 | 推文缓存跨用户共享 | `api/xray.test.ts` | 1 | Vitest E2E |
 | 集成流程（配置 → 查找 → 书签 → 截图） | `api/xray.test.ts` | 7 | Vitest E2E |
 
+### 1.20 Backy UI 交互
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 配置页面渲染、保存 Webhook URL + API Key | `playwright/backy.spec.ts` | 2 | Playwright |
+| 连接测试、推送备份 | `playwright/backy.spec.ts` | 2 | Playwright |
+| Pull Webhook 生成/显示/吊销 | `playwright/backy.spec.ts` | 3 | Playwright |
+| 备份历史展示 | `playwright/backy.spec.ts` | 1 | Playwright |
+| 清理 | `playwright/backy.spec.ts` | 2 | Playwright |
+
+### 1.21 Xray UI 交互
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| API 配置保存/清除 | `playwright/xray.spec.ts` | 2 | Playwright |
+| 推文 URL 输入与获取 | `playwright/xray.spec.ts` | 2 | Playwright |
+| 书签获取与展示 | `playwright/xray.spec.ts` | 2 | Playwright |
+| 一键创建短链接 | `playwright/xray.spec.ts` | 1 | Playwright |
+| 清理 | `playwright/xray.spec.ts` | 2 | Playwright |
+
+### 1.22 数据管理 UI
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 导出功能 | `playwright/data-management.spec.ts` | 1 | Playwright |
+| 导入功能 | `playwright/data-management.spec.ts` | 1 | Playwright |
+| 导入验证 | `playwright/data-management.spec.ts` | 1 | Playwright |
+| 清理 | `playwright/data-management.spec.ts` | 1 | Playwright |
+
+### 1.23 存储诊断 UI
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| 存储页面渲染与统计展示 | `playwright/storage.spec.ts` | 2 | Playwright |
+| 孤儿文件检测与清理 | `playwright/storage.spec.ts` | 2 | Playwright |
+| 空状态展示 | `playwright/storage.spec.ts` | 1 | Playwright |
+| 清理 | `playwright/storage.spec.ts` | 1 | Playwright |
+
+### 1.24 临时文件上传 API
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| POST 上传（成功/超限/无效 token/无文件） | `api/tmp-upload.test.ts` | 6 | Vitest E2E |
+| GET 使用文档 / HEAD 健康检查 | `api/tmp-upload.test.ts` | 2 | Vitest E2E |
+| 文件名清理与路径生成 | `api/tmp-upload.test.ts` | 4 | Vitest E2E |
+
+### 1.25 Cron 清理 API
+
+| 流程 | 测试文件 | 用例数 | 覆盖层级 |
+|------|---------|--------|---------|
+| POST 清理过期临时文件 | `api/cleanup.test.ts` | 4 | Vitest E2E |
+| Worker Secret 鉴权 | `api/cleanup.test.ts` | 3 | Vitest E2E |
+| 边界情况（空桶/全部过期/全部有效） | `api/cleanup.test.ts` | 4 | Vitest E2E |
+
 ---
 
 ## 二、尚未覆盖的流程
@@ -253,9 +308,7 @@
 | 流程 | 备注 |
 |------|------|
 | **主题切换效果** | 仅检测按钮存在，未验证实际切换 |
-| **Preview 样式设置** | `getPreviewStyle` / `updatePreviewStyle` 已有 E2E 覆盖 |
-| **主题切换效果** | 仅检测按钮存在，未验证实际切换 |
-| **Storage 诊断页** | 仅导航测试，未验证 D1/R2 统计展示 |
+| **Storage 诊断页** | 已有 Playwright 覆盖（`storage.spec.ts`，6 tests） |
 | **移动端布局** | 无 viewport 测试 |
 | **网络异常状态** | 无 Playwright 测试 server error / 网络中断场景 |
 
@@ -269,29 +322,29 @@
 
 | # | 流程 | 测试文件 | 状态 |
 |---|------|---------|------|
-| 1 | **短链接 307 重定向** | `playwright/redirect.spec.ts` (3 tests) | ✅ 已覆盖 |
-| 2 | **Webhook 创建链接** | `e2e/webhook.test.ts` (17 tests) | ✅ 已覆盖 |
-| 3 | **文件夹系统** | `e2e/folders.test.ts` (29 tests) | ✅ 已覆盖 |
+| 1 | **短链接 307 重定向** | `playwright/redirect.spec.ts` (2 tests) | ✅ 已覆盖 |
+| 2 | **Webhook 创建链接** | `api/webhook.test.ts` (17 tests) | ✅ 已覆盖 |
+| 3 | **文件夹系统** | `api/folders.test.ts` (29 tests) | ✅ 已覆盖 |
 
 ### P1 — 重要用户流程 ✅ 已全部覆盖
 
 | # | 流程 | 测试文件 | 状态 |
 |---|------|---------|------|
-| 4 | **搜索功能完整流程** | `playwright/search.spec.ts` (9 tests) | ✅ 已覆盖 |
-| 5 | **数据导入/导出** | `e2e/settings.test.ts` (24 tests) | ✅ 已覆盖 |
-| 6 | **标签 UI 交互** | `playwright/tags.spec.ts` (9 tests) | ✅ 已覆盖 |
-| 7 | **Overview 数据渲染** | `playwright/overview.spec.ts` (8 tests) | ✅ 已覆盖 |
+| 4 | **搜索功能完整流程** | `playwright/search.spec.ts` (8 tests) | ✅ 已覆盖 |
+| 5 | **数据导入/导出** | `api/settings.test.ts` (24 tests) | ✅ 已覆盖 |
+| 6 | **标签 UI 交互** | `playwright/tags.spec.ts` (8 tests) | ✅ 已覆盖 |
+| 7 | **Overview 数据渲染** | `playwright/overview.spec.ts` (7 tests) | ✅ 已覆盖 |
 
 ### P2 — 辅助功能 ✅ 已全部覆盖
 
 | # | 缺口 | 建议补充方案 | 状态 |
 |---|------|-------------|------|
 | 8 | 浏览器端文件上传 UI | `playwright/uploads.spec.ts` (10 tests) | ✅ 已覆盖 |
-| 9 | Webhook 管理 UI | `playwright/webhook.spec.ts` (10 tests) | ✅ 已覆盖 |
-| 10 | 链接过期处理 | `playwright/not-found.spec.ts` (9 tests) | ✅ 已覆盖 |
-| 11 | 404 页面渲染 | `playwright/not-found.spec.ts` (含上述 9 tests) | ✅ 已覆盖 |
-| 12 | Backy 备份集成 | `e2e/backy.test.ts` (30 tests) | ✅ 已覆盖 |
-| 13 | Xray Twitter 集成 | `e2e/xray.test.ts` (37 tests) | ✅ 已覆盖 |
+| 9 | Webhook 管理 UI | `playwright/webhook.spec.ts` (9 tests) | ✅ 已覆盖 |
+| 10 | 链接过期处理 | `playwright/not-found.spec.ts` (6 tests) | ✅ 已覆盖 |
+| 11 | 404 页面渲染 | `playwright/not-found.spec.ts` (含上述 6 tests) | ✅ 已覆盖 |
+| 12 | Backy 备份集成 | `api/backy.test.ts` (30 tests) | ✅ 已覆盖 |
+| 13 | Xray Twitter 集成 | `api/xray.test.ts` (37 tests) | ✅ 已覆盖 |
 
 ---
 
@@ -316,8 +369,12 @@
 | 数据导入/导出 | ✅ | ✅ | — | 充分 |
 | 搜索功能 | ✅ | — | ✅ | 充分 |
 | Overview 统计 | ✅ | — | ✅ | 充分 |
-| Backy 备份 | ✅ | ✅ | — | 充分 |
-| Xray 集成 | ✅ | ✅ | — | 充分 |
+| Backy 备份 | ✅ | ✅ | ✅ | 充分 |
+| Xray 集成 | ✅ | ✅ | ✅ | 充分 |
+| 数据导入/导出 UI | ✅ | ✅ | ✅ | 充分 |
+| 存储诊断 | ✅ | — | ✅ | 充分 |
+| 临时文件上传 API | — | ✅ | — | 充分 |
+| Cron 清理 API | — | ✅ | — | 充分 |
 | Webhook 管理 UI | ✅ | — | ✅ | 充分 |
 | 侧边栏导航 | — | — | ✅ | 充分 |
 | 着陆页 | — | — | ✅ | 充分 |
