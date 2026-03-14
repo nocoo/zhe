@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.7.2] - 2026-03-15
+
+### Added
+- Adopt Next.js file-based metadata convention with OG image and favicon.ico
+
+### Changed
+- Upgrade React and React DOM to 19.2.4
+- Upgrade Next.js and eslint-config-next to 15.5.12
+- Upgrade vitest 3→4, @vitest/coverage-v8 4, @vitejs/plugin-react 5
+- Upgrade @aws-sdk/client-s3 and s3-request-presigner to 3.1003.0
+- Upgrade lucide-react to 0.577.0, tailwind-merge to 3.5.0, url-metadata to 5.4.3
+- Upgrade devDependencies (eslintrc, types, autoprefixer, drizzle-kit, eslint, lint-staged, postcss)
+- Extract duplicate `rowToXxx` mappers to shared `lib/db/mappers.ts` module
+- Rewrite and fix all project documentation (architecture, features, database, testing, deployment, contributing)
+
+### Fixed
+- Fix stale comment in `kv/sync.ts`
+- Flush fire-and-forget microtasks in xray E2E test beforeEach (vitest 4 compat)
+
+### Removed
+- Remove dead `getLinksByUserId`, `deleteLinkById`, `updateLink` from `lib/db/index.ts`
+- Remove dead `getAnalyticsByLinkId`, `getAnalyticsStats` from `lib/db/index.ts`
+- Remove dead `getTweetCacheByIds` from `lib/db/index.ts`
+- Remove dead `buildRecordClickUrl` from `lib/analytics.ts`
+- Remove dead `kvGetLink` from `lib/kv/client.ts`
+- Remove unused type exports from schema and constants
+- Remove sensitive resource IDs from tracked files
+
 ## [v1.7.1] - 2026-03-05
 
 ### Added
