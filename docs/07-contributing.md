@@ -21,6 +21,7 @@
 | `test` | 测试相关 | `test: add scoped-db metadata tests` |
 | `docs` | 文档变更 | `docs: update architecture diagram` |
 | `refactor` | 重构（不改变行为） | `refactor: extract slug validation` |
+| `perf` | 性能优化 | `perf: batch metadata refresh to eliminate N+1` |
 | `chore` | 构建/工具/依赖变更 | `chore: add url-metadata dependency` |
 
 ### 规则
@@ -61,6 +62,9 @@
 
 - 零警告策略（`--max-warnings=0`）
 - Pre-commit 通过 `lint-staged` 检查暂存文件
+- Flat Config 格式（`eslint.config.mjs`）
+- 测试文件中禁用 `*.skip` 和 `*.only`（`describe.skip`, `it.only` 等）
+- 允许 `_` 前缀的未使用变量/参数（`@typescript-eslint/no-unused-vars` 自定义配置）
 
 ### Git Hooks（Husky）
 
