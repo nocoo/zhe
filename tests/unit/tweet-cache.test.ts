@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getTweetCacheById,
-  getTweetCacheByIds,
   upsertTweetCache,
 } from '@/lib/db';
 import { clearMockStorage } from '../mocks/db-storage';
@@ -93,58 +92,4 @@ describe('Tweet Cache DB Operations', () => {
     });
   });
 
-  describe('getTweetCacheByIds', () => {
-    it('returns empty Map for empty input', async () => {
-      const result = await getTweetCacheByIds([]);
-      expect(result.size).toBe(0);
-    });
-
-    it('returns empty Map when no IDs match', async () => {
-      const result = await getTweetCacheByIds(['nonexistent1', 'nonexistent2']);
-      expect(result.size).toBe(0);
-    });
-
-    it('returns Map with matching tweets', async () => {
-      await upsertTweetCache(SAMPLE_TWEET);
-      await upsertTweetCache({
-        ...SAMPLE_TWEET,
-        tweetId: '111222333',
-        authorUsername: 'elonmusk',
-        tweetUrl: 'https://x.com/elonmusk/status/111222333',
-      });
-
-      const result = await getTweetCacheByIds([
-        SAMPLE_TWEET.tweetId,
-        '111222333',
-      ]);
-
-      expect(result.size).toBe(2);
-      expect(result.get(SAMPLE_TWEET.tweetId)?.authorUsername).toBe('karpathy');
-      expect(result.get('111222333')?.authorUsername).toBe('elonmusk');
-    });
-
-    it('returns only matching IDs (partial match)', async () => {
-      await upsertTweetCache(SAMPLE_TWEET);
-
-      const result = await getTweetCacheByIds([
-        SAMPLE_TWEET.tweetId,
-        'nonexistent',
-      ]);
-
-      expect(result.size).toBe(1);
-      expect(result.has(SAMPLE_TWEET.tweetId)).toBe(true);
-      expect(result.has('nonexistent')).toBe(false);
-    });
-
-    it('provides O(1) lookup by tweet ID', async () => {
-      await upsertTweetCache(SAMPLE_TWEET);
-
-      const result = await getTweetCacheByIds([SAMPLE_TWEET.tweetId]);
-      const cached = result.get(SAMPLE_TWEET.tweetId);
-
-      expect(cached).toBeDefined();
-      expect(cached!.tweetId).toBe(SAMPLE_TWEET.tweetId);
-      expect(cached!.authorAvatar).toBe(SAMPLE_TWEET.authorAvatar);
-    });
-  });
 });

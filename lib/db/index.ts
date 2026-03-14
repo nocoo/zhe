@@ -284,27 +284,6 @@ export async function getTweetCacheById(tweetId: string): Promise<TweetCache | n
 }
 
 /**
- * Get multiple cached tweets by their IDs.
- * Returns a Map keyed by tweet ID for O(1) lookup.
- */
-export async function getTweetCacheByIds(tweetIds: string[]): Promise<Map<string, TweetCache>> {
-  if (tweetIds.length === 0) return new Map();
-
-  const placeholders = tweetIds.map(() => '?').join(', ');
-  const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT * FROM tweet_cache WHERE tweet_id IN (${placeholders})`,
-    tweetIds
-  );
-
-  const map = new Map<string, TweetCache>();
-  for (const row of rows) {
-    const cached = rowToTweetCache(row);
-    map.set(cached.tweetId, cached);
-  }
-  return map;
-}
-
-/**
  * Upsert a tweet into the cache.
  * Inserts if new, updates all fields if the tweet_id already exists.
  */
