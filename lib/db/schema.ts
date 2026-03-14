@@ -146,9 +146,6 @@ export const tweetCache = sqliteTable('tweet_cache', {
 // Type exports
 // ============================================
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-
 export type Folder = typeof folders.$inferSelect;
 export type NewFolder = typeof folders.$inferInsert;
 
@@ -162,16 +159,11 @@ export type Upload = typeof uploads.$inferSelect;
 export type NewUpload = typeof uploads.$inferInsert;
 
 export type Webhook = typeof webhooks.$inferSelect;
-export type NewWebhook = typeof webhooks.$inferInsert;
 
 export type Tag = typeof tags.$inferSelect;
-export type NewTag = typeof tags.$inferInsert;
 
 export type LinkTag = typeof linkTags.$inferSelect;
-export type NewLinkTag = typeof linkTags.$inferInsert;
 
 export type UserSettings = typeof userSettings.$inferSelect;
-export type NewUserSettings = typeof userSettings.$inferInsert;
 
 export type TweetCache = typeof tweetCache.$inferSelect;
-export type NewTweetCache = typeof tweetCache.$inferInsert;

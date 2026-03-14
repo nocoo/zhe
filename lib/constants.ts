@@ -18,8 +18,6 @@ export const RESERVED_PATHS = [
   'sitemap.xml',
 ] as const;
 
-export type ReservedPath = (typeof RESERVED_PATHS)[number];
-
 /**
  * Check if a path is reserved and cannot be used as a slug.
  */
