@@ -210,6 +210,8 @@ Backy 相关数据存储在 `user_settings` 表中：
 | `backy_api_key` | Push 认证用的 API Key |
 | `backy_pull_key` | Pull Webhook 的认证 Key |
 
+> **注意**：`models/backy.ts` 中 `BackyPullWebhook` 接口声明了 `secret` 字段，但数据库中无对应列，实际代码中未使用。该字段为历史遗留，可安全移除。
+
 ## 代码结构
 
 | 文件 | 职责 |
@@ -221,6 +223,8 @@ Backy 相关数据存储在 `user_settings` 表中：
 | `components/dashboard/backy-page.tsx` | UI 组件：远程备份 + Pull Webhook 两张卡片 |
 | `viewmodels/useBackyViewModel.ts` | 客户端状态管理：配置、推送、历史、Pull Key 生命周期 |
 | `lib/db/scoped.ts` | 数据库操作：Backy 设置和 Pull Key 的 CRUD |
+| `tests/api/backy.test.ts` | API E2E 测试：30 个用例 |
+| `tests/playwright/backy.spec.ts` | Playwright BDD E2E 测试：10 个用例 |
 
 ## 相关文档
 
