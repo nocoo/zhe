@@ -61,7 +61,7 @@
 
 | 项目 | 规范 | 现状 | 状态 |
 |------|------|------|------|
-| 核心流程覆盖 | 是 | 13 个 spec 覆盖主要 UX 流程（79 用例） | ✅ 达标 |
+| 核心流程覆盖 | 是 | 15 个 spec 覆盖主要 UX 流程（108 用例） | ✅ 达标 |
 | 独立 server | 是 | playwright.config.ts 自启 Next.js dev server | ✅ 达标 |
 | 端口 | 27005 | 使用 27005（`PLAYWRIGHT=1`, `AUTH_URL=http://localhost:27005`） | ✅ 达标 |
 | 触发方式 | on-demand | `bun run test:e2e:pw`（不在 pre-push hook 中） | ✅ 达标 |
@@ -75,7 +75,7 @@
 **目标**: 每次 commit 自动检查覆盖率，低于阈值自动 fail。
 
 **已执行**:
-1. `package.json` 新增 script: `"test:unit:coverage": "vitest run --exclude 'tests/e2e/**' --coverage"`
+1. `package.json` 新增 script: `"test:unit:coverage": "vitest run --exclude 'tests/api/**' --coverage"`
 2. `.husky/pre-commit` 第一行改为 `bun run test:unit:coverage`
 3. vitest.config.ts 已有 thresholds 配置，`--coverage` 在阈值不达标时自动 fail
 
@@ -114,11 +114,19 @@
 |----------|---------|--------|
 | `GET /api/health` | `tests/api/api.test.ts` | 1 |
 | `GET /api/lookup` | `tests/api/api.test.ts` | 4 |
-| `POST /api/record-click` | `tests/api/api.test.ts` `tests/api/api-extra.test.ts` | 8 |
+| `POST /api/record-click` | `tests/api/api.test.ts` `tests/api/api-extra.test.ts` | 16 |
 | `GET /api/live` | `tests/api/live.test.ts` | 3 |
 | `GET /api/worker-status` | `tests/api/worker-status.test.ts` | 4 |
 | `POST /api/cron/sync-kv` | `tests/api/sync-kv.test.ts` | 9 |
+| `POST /api/cron/cleanup` | `tests/api/cleanup.test.ts` | 11 |
 | `POST /api/link/create/[token]` | `tests/api/webhook.test.ts` | 17 |
+| `POST /api/tmp/upload/[token]` | `tests/api/tmp-upload.test.ts` | 12 |
+| Server Actions: links CRUD + edit | `tests/api/edit-link.test.ts` | 34 |
+| Server Actions: uploads | `tests/api/upload.test.ts` | 9 |
+| Server Actions: folders | `tests/api/folders.test.ts` | 29 |
+| Server Actions: settings | `tests/api/settings.test.ts` | 24 |
+| Server Actions: backy | `tests/api/backy.test.ts` | 30 |
+| Server Actions: xray | `tests/api/xray.test.ts` | 37 |
 
 ---
 
@@ -139,7 +147,7 @@
 **已更新文件**:
 - `CLAUDE.md` — 端口表、测试命令、git hooks
 - `docs/05-testing.md` — 四层架构表、Playwright 配置、端口分配、git hooks
-- `docs/09-e2e-coverage-analysis.md` — 完整覆盖分析（276 用例）
+- `docs/09-e2e-coverage-analysis.md` — 完整覆盖分析（343 用例）
 - `docs/11-four-layer-test-plan.md` — 本文档
 
 ---
