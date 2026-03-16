@@ -49,8 +49,18 @@
 
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 12%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --purple: 270 70% 60%;
+    --purple-foreground: 0 0% 100%;
+    --teal: 186 72% 38%;
+    --teal-foreground: 0 0% 100%;
     --badge-red: 340 82% 55%;
     --badge-red-foreground: 0 0% 100%;
+
+    --highlight: 50 100% 72%;
 
     /* Visualization palette */
     --chart-1: 262 83% 58%;
@@ -123,10 +133,20 @@
     --sidebar-border: 0 0% 16%;
     --sidebar-ring: 262 83% 58%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 142 65% 38%;
+    --success-foreground: 142 60% 90%;
+    --warning: 45 80% 42%;
+    --warning-foreground: 45 80% 92%;
+    --info: 217 70% 45%;
+    --info-foreground: 217 70% 92%;
+    --purple: 270 60% 48%;
+    --purple-foreground: 270 60% 92%;
+    --teal: 186 60% 35%;
+    --teal-foreground: 186 60% 92%;
     --badge-red: 340 82% 55%;
     --badge-red-foreground: 0 0% 100%;
+
+    --highlight: 50 90% 35%;
 
     /* Visualization palette — boosted for dark bg */
     --chart-1: 262 83% 63%;

@@ -67,8 +67,8 @@ function SummaryCard({
     <div
       className={cn(
         "rounded-xl p-4",
-        variant === "warning" && "bg-amber-500/5",
-        variant === "success" && "bg-green-500/5",
+        variant === "warning" && "bg-warning/5",
+        variant === "success" && "bg-success/5",
         variant === "default" && "bg-secondary",
       )}
     >
@@ -144,12 +144,12 @@ function FileIcon({ fileKey }: { fileKey: string }) {
   const category = getFileCategory(fileKey);
   if (category === "image") {
     return (
-      <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" strokeWidth={1.5} />
+      <ImageIcon className="h-3.5 w-3.5 text-info shrink-0" strokeWidth={1.5} />
     );
   }
   if (category === "document") {
     return (
-      <FileText className="h-3.5 w-3.5 text-amber-500 shrink-0" strokeWidth={1.5} />
+      <FileText className="h-3.5 w-3.5 text-warning shrink-0" strokeWidth={1.5} />
     );
   }
   return (
@@ -175,7 +175,7 @@ function R2FileRow({
     <div
       className={cn(
         "flex items-center gap-3 px-4 py-2 border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors",
-        isOrphan && "bg-amber-500/5",
+        isOrphan && "bg-warning/5",
       )}
     >
       {isOrphan ? (
@@ -341,7 +341,7 @@ function R2Section({
                     className="gap-1.5"
                   >
                     <AlertTriangle
-                      className="h-3.5 w-3.5 text-amber-500"
+                      className="h-3.5 w-3.5 text-warning"
                       strokeWidth={1.5}
                     />
                     选择全部孤儿文件
@@ -422,7 +422,7 @@ function R2Section({
           ) : (
             <div className="rounded-xl border border-border p-8 text-center">
               <CheckCircle
-                className="h-8 w-8 text-green-500 mx-auto mb-2"
+                className="h-8 w-8 text-success mx-auto mb-2"
                 strokeWidth={1.5}
               />
               <p className="text-sm text-muted-foreground">

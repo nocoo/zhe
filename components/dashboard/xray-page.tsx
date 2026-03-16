@@ -71,8 +71,8 @@ function ConfigSection({ vm }: { vm: XrayViewModel }) {
     <Card className="border-0 bg-secondary shadow-none">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center gap-3 text-sm font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-            <Radar className="h-4 w-4 text-blue-500" strokeWidth={1.5} />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10">
+            <Radar className="h-4 w-4 text-info" strokeWidth={1.5} />
           </div>
           <span>API 配置</span>
         </CardTitle>
@@ -205,8 +205,8 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
     <Card className="border-0 bg-secondary shadow-none">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center gap-3 text-sm font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-            <Search className="h-4 w-4 text-emerald-500" strokeWidth={1.5} />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal/10">
+            <Search className="h-4 w-4 text-teal" strokeWidth={1.5} />
           </div>
           <span>接口测试</span>
         </CardTitle>
@@ -215,7 +215,7 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
         <p className="mb-4 text-sm text-muted-foreground">
           粘贴 Twitter/X 帖子链接，自动提取 ID 并调用 API 获取内容。
           {!vm.isConfigured && (
-            <span className="ml-1 text-amber-600 dark:text-amber-400">
+            <span className="ml-1 text-warning">
               （未配置 API，将使用 Mock 数据）
             </span>
           )}
@@ -262,7 +262,7 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
             <div className="flex items-center gap-2 text-xs">
               {vm.extractedId ? (
                 <>
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  <CheckCircle className="h-3.5 w-3.5 text-success" />
                   <span className="text-muted-foreground">Tweet ID:</span>
                   <code className="rounded bg-accent px-1.5 py-0.5">
                     {vm.extractedId}
@@ -270,8 +270,8 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                  <span className="text-warning">
                     无法解析 Tweet ID
                   </span>
                 </>
@@ -282,9 +282,9 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
 
         {/* Fetch error */}
         {vm.fetchError && (
-          <div className="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-            <p className="text-sm text-red-700 dark:text-red-300">
+          <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+            <p className="text-sm text-destructive">
               {vm.fetchError}
             </p>
           </div>
@@ -337,8 +337,8 @@ function BookmarksSection({ vm }: { vm: XrayViewModel }) {
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
-              <BookmarkIcon className="h-4 w-4 text-amber-500" strokeWidth={1.5} />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
+              <BookmarkIcon className="h-4 w-4 text-warning" strokeWidth={1.5} />
             </div>
             <span>我的书签</span>
             {vm.bookmarks.length > 0 && (
@@ -368,9 +368,9 @@ function BookmarksSection({ vm }: { vm: XrayViewModel }) {
             请先在上方配置 xray API，然后即可加载您的 X 书签。
           </p>
         ) : vm.bookmarksError ? (
-          <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-            <p className="text-sm text-red-700 dark:text-red-300">
+          <div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+            <p className="text-sm text-destructive">
               {vm.bookmarksError}
             </p>
           </div>
@@ -422,7 +422,7 @@ function BookmarkAddButton({
 }) {
   if (isAdded) {
     return (
-      <Button variant="ghost" size="sm" disabled className="text-green-600 dark:text-green-400">
+      <Button variant="ghost" size="sm" disabled className="text-success">
         <Check className="mr-1.5 h-4 w-4" />
         已收录
       </Button>
@@ -452,7 +452,7 @@ function BookmarkAddButton({
 
 function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-white p-4 space-y-3 dark:bg-neutral-900">
+    <div className="rounded-lg border bg-card p-4 space-y-3">
       {/* Author row */}
       <div className="flex items-center gap-3">
         <a
@@ -479,7 +479,7 @@ function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.Rea
               {tweet.author.name}
             </a>
             {tweet.author.is_verified && (
-              <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" />
+              <BadgeCheck className="h-4 w-4 shrink-0 text-info" />
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -518,7 +518,7 @@ function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.Rea
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline dark:text-blue-400 break-all"
+              className="text-xs text-info hover:underline break-all"
             >
               {url}
             </a>
@@ -546,7 +546,7 @@ function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.Rea
               href={`https://x.com/${user}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+              className="text-xs text-info hover:underline"
             >
               @{user}
             </a>

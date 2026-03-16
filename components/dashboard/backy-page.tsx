@@ -56,7 +56,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       aria-label={label}
     >
       {copied ? (
-        <Check className="h-3.5 w-3.5 text-green-600" />
+        <Check className="h-3.5 w-3.5 text-success" />
       ) : (
         <Copy className="h-3.5 w-3.5" />
       )}
@@ -76,8 +76,8 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
       <Card className="border-0 bg-secondary shadow-none">
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-3 text-sm font-medium">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
-              <CloudUpload className="h-4 w-4 text-violet-500" strokeWidth={1.5} />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple/10">
+              <CloudUpload className="h-4 w-4 text-purple" strokeWidth={1.5} />
             </div>
             <div className="flex items-center gap-2">
               <span>远程备份</span>
@@ -216,19 +216,19 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
                 <div
                   className={`flex items-start gap-2 rounded-md border p-3 ${
                     vm.testResult.ok
-                      ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
-                      : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950"
+                      ? "border-success/20 bg-success/5"
+                      : "border-destructive/20 bg-destructive/5"
                   }`}
                   data-testid="backy-test-result"
                 >
                   {vm.testResult.ok ? (
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                    <p className="text-sm text-success">
                       {vm.testResult.message}
                     </p>
                   ) : (
                     <>
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-                      <p className="text-sm text-red-700 dark:text-red-300">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                      <p className="text-sm text-destructive">
                         {vm.testResult.message}
                       </p>
                     </>
@@ -241,18 +241,18 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
                 <div
                   className={`rounded-md border p-3 ${
                     vm.pushResult.ok
-                      ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
-                      : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950"
+                      ? "border-success/20 bg-success/5"
+                      : "border-destructive/20 bg-destructive/5"
                   }`}
                   data-testid="backy-push-result"
                 >
                   {vm.pushResult.ok ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                      <p className="text-sm font-medium text-success">
                         {vm.pushResult.message}
                       </p>
                       {vm.pushResult.request && (
-                        <div className="space-y-1 text-xs text-green-700 dark:text-green-300">
+                        <div className="space-y-1 text-xs text-success">
                           <p>Tag: {vm.pushResult.request.tag}</p>
                           <p>
                             文件: {vm.pushResult.request.fileName} (
@@ -272,8 +272,8 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
                     </div>
                   ) : (
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-                      <div className="text-sm text-red-700 dark:text-red-300">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                      <div className="text-sm text-destructive">
                         <p>{vm.pushResult.message}</p>
                         {vm.pushResult.response && (
                           <p className="mt-1 text-xs">
@@ -350,8 +350,8 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
       <Card className="border-0 bg-secondary shadow-none">
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-3 text-sm font-medium">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10">
-              <Webhook className="h-4 w-4 text-orange-500" strokeWidth={1.5} />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
+              <Webhook className="h-4 w-4 text-warning" strokeWidth={1.5} />
             </div>
             <span>拉取 Webhook</span>
           </CardTitle>
