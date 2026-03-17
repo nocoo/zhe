@@ -645,7 +645,7 @@ function InlineEditArea({
             value={editVm.editFolderId ?? "__inbox__"}
             onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? undefined : v)}
           >
-            <SelectTrigger className="h-8 w-40 rounded-widget border-border bg-background text-xs">
+            <SelectTrigger id={`edit-folder-${link.id}`} className="h-8 w-40 rounded-widget border-border bg-background text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -254,17 +254,17 @@ describe('InboxTriage', () => {
     it('renders folder select triggers for each inbox link', () => {
       render(<InboxTriage />);
 
-      // Radix Select renders triggers as buttons, folder labels indicate presence
-      const labels = screen.getAllByText('文件夹');
-      expect(labels).toHaveLength(2);
+      // Each inbox link renders a Label with htmlFor pointing to the SelectTrigger id
+      const triggers = screen.getAllByLabelText('文件夹');
+      expect(triggers).toHaveLength(2);
     });
 
     it('shows Inbox as default selected value', () => {
       render(<InboxTriage />);
 
-      // Radix Select trigger shows "Inbox" as the default value text
-      const inboxTexts = screen.getAllByText('Inbox');
-      expect(inboxTexts.length).toBeGreaterThanOrEqual(2);
+      const triggers = screen.getAllByLabelText('文件夹');
+      expect(triggers[0]).toHaveTextContent('Inbox');
+      expect(triggers[1]).toHaveTextContent('Inbox');
     });
 
     it('shows folder label', () => {
@@ -434,9 +434,8 @@ describe('InboxTriage', () => {
     it('renders Inbox as default in trigger when no folder selected', () => {
       render(<InboxTriage />);
 
-      // Radix Select trigger buttons display "Inbox" by default
-      const inboxTexts = screen.getAllByText('Inbox');
-      expect(inboxTexts.length).toBeGreaterThanOrEqual(2);
+      const triggers = screen.getAllByLabelText('文件夹');
+      expect(triggers[0]).toHaveTextContent('Inbox');
     });
 
     it('renders all folder options when trigger is clicked', async () => {

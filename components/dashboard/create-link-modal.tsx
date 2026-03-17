@@ -149,7 +149,7 @@ export function CreateLinkModal({
                   vm.setFolderId(v === "__inbox__" ? undefined : v)
                 }
               >
-                <SelectTrigger className="h-9 w-full rounded-widget border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
+                <SelectTrigger id="folder" className="h-9 w-full rounded-widget border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

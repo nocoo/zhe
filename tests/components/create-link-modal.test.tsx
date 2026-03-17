@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { CreateLinkModal } from "@/components/dashboard/create-link-modal";
 
 const mockVm = {
@@ -151,33 +152,29 @@ describe("CreateLinkModal", () => {
       mockVm.isOpen = true;
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
-      expect(screen.getByText("文件夹")).toBeInTheDocument();
-      // Radix Select renders both a visible trigger span and a hidden native option
-      const inboxElements = screen.getAllByText("Inbox");
-      expect(inboxElements.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByLabelText("文件夹")).toBeInTheDocument();
     });
 
     it("does not show folder selector when folders are empty", () => {
       mockVm.isOpen = true;
       render(<CreateLinkModal {...defaultProps} folders={[]} />);
 
-      expect(screen.queryByText("文件夹")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("文件夹")).not.toBeInTheDocument();
     });
 
     it("does not show folder selector when folders prop is not provided", () => {
       mockVm.isOpen = true;
       render(<CreateLinkModal {...defaultProps} />);
 
-      expect(screen.queryByText("文件夹")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("文件夹")).not.toBeInTheDocument();
     });
 
     it("renders Inbox as default selected value", () => {
       mockVm.isOpen = true;
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
-      // Radix Select shows current value in trigger + hidden native select
-      const inboxElements = screen.getAllByText("Inbox");
-      expect(inboxElements.length).toBeGreaterThanOrEqual(1);
+      const trigger = screen.getByLabelText("文件夹");
+      expect(trigger).toHaveTextContent("Inbox");
     });
 
     it("shows selected folder name when folderId is set", () => {
@@ -185,9 +182,8 @@ describe("CreateLinkModal", () => {
       mockVm.folderId = "f1";
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
-      // Radix Select trigger shows the selected item's text
-      const workElements = screen.getAllByText("工作");
-      expect(workElements.length).toBeGreaterThanOrEqual(1);
+      const trigger = screen.getByLabelText("文件夹");
+      expect(trigger).toHaveTextContent("工作");
     });
 
     it("reverts to Inbox display when folderId is cleared", () => {
@@ -195,8 +191,37 @@ describe("CreateLinkModal", () => {
       mockVm.folderId = undefined;
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
-      const inboxElements = screen.getAllByText("Inbox");
-      expect(inboxElements.length).toBeGreaterThanOrEqual(1);
+      const trigger = screen.getByLabelText("文件夹");
+      expect(trigger).toHaveTextContent("Inbox");
+    });
+
+    it("calls setFolderId when a folder is selected", async () => {
+      const user = userEvent.setup();
+      mockVm.isOpen = true;
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      const trigger = screen.getByLabelText("文件夹");
+      await user.click(trigger);
+
+      const workOption = screen.getByRole("option", { name: "工作" });
+      await user.click(workOption);
+
+      expect(mockVm.setFolderId).toHaveBeenCalledWith("f1");
+    });
+
+    it("calls setFolderId with undefined when Inbox is selected", async () => {
+      const user = userEvent.setup();
+      mockVm.isOpen = true;
+      mockVm.folderId = "f1";
+      render(<CreateLinkModal {...defaultProps} folders={folders} />);
+
+      const trigger = screen.getByLabelText("文件夹");
+      await user.click(trigger);
+
+      const inboxOption = screen.getByRole("option", { name: "Inbox" });
+      await user.click(inboxOption);
+
+      expect(mockVm.setFolderId).toHaveBeenCalledWith(undefined);
     });
   });
 
