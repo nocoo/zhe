@@ -76,7 +76,7 @@ export function DataManagementPage() {
           ) : importResult ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span>
                   导入完成：成功 <strong>{importResult.created}</strong> 条，跳过{" "}
                   <strong>{importResult.skipped}</strong> 条
