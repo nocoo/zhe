@@ -26,6 +26,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
@@ -634,19 +641,22 @@ function InlineEditArea({
           <Label htmlFor={`edit-folder-${link.id}`} className="text-xs text-muted-foreground">
             文件夹
           </Label>
-          <select
-            id={`edit-folder-${link.id}`}
-            value={editVm.editFolderId ?? ""}
-            onChange={(e) => editVm.setEditFolderId(e.target.value || undefined)}
-            className="flex h-8 w-40 rounded-[8px] border border-border bg-background px-2 py-1 text-xs text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+          <Select
+            value={editVm.editFolderId ?? "__inbox__"}
+            onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? undefined : v)}
           >
-            <option value="">Inbox</option>
-            {folders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="h-8 w-40 rounded-[8px] border-border bg-background text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__inbox__">Inbox</SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  {folder.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1 flex-1 min-w-[200px]">
           <Label htmlFor={`edit-note-${link.id}`} className="text-xs text-muted-foreground">

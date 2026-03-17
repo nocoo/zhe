@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -136,21 +143,24 @@ export function CreateLinkModal({
               <Label htmlFor="folder" className="text-sm text-foreground">
                 文件夹
               </Label>
-              <select
-                id="folder"
-                value={vm.folderId ?? ""}
-                onChange={(e) =>
-                  vm.setFolderId(e.target.value || undefined)
+              <Select
+                value={vm.folderId ?? "__inbox__"}
+                onValueChange={(v) =>
+                  vm.setFolderId(v === "__inbox__" ? undefined : v)
                 }
-                className="flex h-9 w-full rounded-[10px] border border-border bg-secondary px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               >
-                <option value="">Inbox</option>
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-9 w-full rounded-[10px] border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__inbox__">Inbox</SelectItem>
+                  {folders.map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
