@@ -1086,48 +1086,16 @@ describe('useDashboardLayoutViewModel', () => {
     expect(result.current.mobileOpen).toBe(false);
   });
 
-  it('locks body scroll when mobileOpen=true', () => {
+  it('does not manage body scroll (delegated to Sheet component)', () => {
     mockIsMobile = true;
     const { result } = renderHook(() => useDashboardLayoutViewModel());
-
-    expect(document.body.style.overflow).toBe('');
 
     act(() => {
       result.current.toggleSidebar();
     });
 
+    // Body scroll is now managed by Sheet, not the ViewModel
     expect(result.current.mobileOpen).toBe(true);
-    expect(document.body.style.overflow).toBe('hidden');
-  });
-
-  it('unlocks body scroll when mobileOpen=false', () => {
-    mockIsMobile = true;
-    const { result } = renderHook(() => useDashboardLayoutViewModel());
-
-    // Open
-    act(() => {
-      result.current.toggleSidebar();
-    });
-    expect(document.body.style.overflow).toBe('hidden');
-
-    // Close
-    act(() => {
-      result.current.toggleSidebar();
-    });
-    expect(document.body.style.overflow).toBe('');
-  });
-
-  it('restores body scroll on unmount', () => {
-    mockIsMobile = true;
-    const { result, unmount } = renderHook(() => useDashboardLayoutViewModel());
-
-    act(() => {
-      result.current.toggleSidebar();
-    });
-    expect(document.body.style.overflow).toBe('hidden');
-
-    unmount();
-
     expect(document.body.style.overflow).toBe('');
   });
 });

@@ -7,6 +7,8 @@ import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { Menu, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { usePathname } from "next/navigation";
 import type { Folder } from "@/models/types";
 
@@ -61,22 +63,21 @@ export function DashboardShell({
             />
           )}
 
-          {/* Mobile overlay */}
-          {isMobile && mobileOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-                onClick={closeMobileSidebar}
-              />
-              <div className="fixed inset-y-0 left-0 z-50 w-[260px]">
+          {/* Mobile sidebar — Sheet drawer with slide animation */}
+          {isMobile && (
+            <Sheet open={mobileOpen} onOpenChange={(open) => !open && closeMobileSidebar()}>
+              <SheetContent side="left" className="w-[260px] p-0 border-0 [&>button:last-child]:hidden">
+                <VisuallyHidden.Root>
+                  <SheetTitle>Navigation</SheetTitle>
+                </VisuallyHidden.Root>
                 <AppSidebar
                   collapsed={false}
                   onToggle={closeMobileSidebar}
                   user={user}
                   signOutAction={signOutAction}
                 />
-              </div>
-            </>
+              </SheetContent>
+            </Sheet>
           )}
 
           <main className="flex-1 flex flex-col min-h-screen min-w-0">
