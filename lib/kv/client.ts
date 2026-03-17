@@ -73,7 +73,16 @@ export async function kvPutLink(slug: string, data: KVLinkData): Promise<void> {
   if (!creds) return;
 
   try {
-    const response = await fetch(kvUrl(creds, slug), {
+    const url = kvUrl(creds, slug);
+    const expirationSec = data.expiresAt != null
+      ? Math.floor(data.expiresAt / 1000)
+      : null;
+    // KV requires expiration to be at least 60s in the future
+    const fetchUrl = expirationSec != null && expirationSec > Math.floor(Date.now() / 1000) + 60
+      ? `${url}?expiration=${expirationSec}`
+      : url;
+
+    const response = await fetch(fetchUrl, {
       method: 'PUT',
       headers: {
         ...kvHeaders(creds.token),
@@ -134,10 +143,20 @@ export async function kvBulkPutLinks(
 
   for (let i = 0; i < entries.length; i += BATCH_SIZE) {
     const batch = entries.slice(i, i + BATCH_SIZE);
-    const payload = batch.map((e) => ({
-      key: e.slug,
-      value: JSON.stringify(e.data),
-    }));
+    const nowSec = Math.floor(Date.now() / 1000);
+    const payload = batch.map((e) => {
+      const expirationSec = e.data.expiresAt != null
+        ? Math.floor(e.data.expiresAt / 1000)
+        : null;
+      return {
+        key: e.slug,
+        value: JSON.stringify(e.data),
+        // KV requires expiration to be at least 60s in the future
+        ...(expirationSec != null && expirationSec > nowSec + 60 && {
+          expiration: expirationSec,
+        }),
+      };
+    });
 
     try {
       const response = await fetch(

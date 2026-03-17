@@ -150,6 +150,41 @@ describe('kvPutLink', () => {
     );
     consoleSpy.mockRestore();
   });
+
+  it('appends expiration query param when expiresAt is in the future', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const futureMs = Date.now() + 3_600_000; // 1 hour from now
+    const data: KVLinkData = { id: 1, originalUrl: 'https://example.com', expiresAt: futureMs };
+    await kvPutLink('exp-slug', data);
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${BASE_URL}/values/exp-slug?expiration=${Math.floor(futureMs / 1000)}`);
+  });
+
+  it('does not append expiration when expiresAt is null', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    await kvPutLink('no-exp', { id: 1, originalUrl: 'https://example.com', expiresAt: null });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${BASE_URL}/values/no-exp`);
+    expect(url).not.toContain('expiration');
+  });
+
+  it('does not append expiration when expiresAt is in the past', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const pastMs = Date.now() - 3_600_000; // 1 hour ago
+    await kvPutLink('past-slug', { id: 1, originalUrl: 'https://example.com', expiresAt: pastMs });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe(`${BASE_URL}/values/past-slug`);
+    expect(url).not.toContain('expiration');
+  });
 });
 
 // ─── kvDeleteLink ───────────────────────────────────────────────────────────
@@ -293,5 +328,56 @@ describe('kvBulkPutLinks', () => {
     expect(result).toEqual({ success: 0, failed: 1 });
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
+  });
+
+  it('includes expiration field when expiresAt is in the future', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const futureMs = Date.now() + 7_200_000; // 2 hours from now
+    const entries = [
+      { slug: 'no-exp', data: { id: 1, originalUrl: 'https://a.com', expiresAt: null } as KVLinkData },
+      { slug: 'has-exp', data: { id: 2, originalUrl: 'https://b.com', expiresAt: futureMs } as KVLinkData },
+    ];
+
+    await kvBulkPutLinks(entries);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body[0]).toEqual({ key: 'no-exp', value: JSON.stringify(entries[0].data) });
+    expect(body[1]).toEqual({
+      key: 'has-exp',
+      value: JSON.stringify(entries[1].data),
+      expiration: Math.floor(futureMs / 1000),
+    });
+  });
+
+  it('omits expiration field when expiresAt is null', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const entries = [
+      { slug: 'a', data: { id: 1, originalUrl: 'https://a.com', expiresAt: null } as KVLinkData },
+    ];
+
+    await kvBulkPutLinks(entries);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body[0]).toEqual({ key: 'a', value: JSON.stringify(entries[0].data) });
+    expect(body[0]).not.toHaveProperty('expiration');
+  });
+
+  it('omits expiration field when expiresAt is in the past', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const pastMs = Date.now() - 3_600_000; // 1 hour ago
+    const entries = [
+      { slug: 'old', data: { id: 1, originalUrl: 'https://old.com', expiresAt: pastMs } as KVLinkData },
+    ];
+
+    await kvBulkPutLinks(entries);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body[0]).not.toHaveProperty('expiration');
   });
 });
