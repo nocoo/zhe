@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { FeatureCard } from "@/components/dashboard/feature-card";
 import {
   Radar,
   Pencil,
@@ -68,20 +69,12 @@ function ConfigSection({ vm }: { vm: XrayViewModel }) {
   ];
 
   return (
-    <Card className="border-0 bg-secondary shadow-none">
-      <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-        <CardTitle className="flex items-center gap-3 text-sm font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10">
-            <Radar className="h-4 w-4 text-info" strokeWidth={1.5} />
-          </div>
-          <span>API 配置</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-        <p className="mb-4 text-sm text-muted-foreground">
-          配置 xray API 的地址和认证 Key，用于获取 Twitter/X 帖子内容。
-        </p>
-        <Separator className="mb-4" />
+    <FeatureCard
+      icon={Radar}
+      accent="info"
+      title="API 配置"
+      description="配置 xray API 的地址和认证 Key，用于获取 Twitter/X 帖子内容。"
+    >
 
         {vm.isLoading ? (
           <p className="text-sm text-muted-foreground">加载中...</p>
@@ -191,8 +184,7 @@ function ConfigSection({ vm }: { vm: XrayViewModel }) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </FeatureCard>
   );
 }
 
@@ -202,25 +194,19 @@ function ConfigSection({ vm }: { vm: XrayViewModel }) {
 
 function TestSection({ vm }: { vm: XrayViewModel }) {
   return (
-    <Card className="border-0 bg-secondary shadow-none">
-      <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-        <CardTitle className="flex items-center gap-3 text-sm font-medium">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal/10">
-            <Search className="h-4 w-4 text-teal" strokeWidth={1.5} />
-          </div>
-          <span>接口测试</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-        <p className="mb-4 text-sm text-muted-foreground">
+    <FeatureCard
+      icon={Search}
+      accent="teal"
+      title="接口测试"
+      description={
+        <>
           粘贴 Twitter/X 帖子链接，自动提取 ID 并调用 API 获取内容。
           {!vm.isConfigured && (
-            <span className="ml-1 text-warning">
-              （未配置 API，将使用 Mock 数据）
-            </span>
+            <span className="ml-1 text-warning">（未配置 API，将使用 Mock 数据）</span>
           )}
-        </p>
-        <Separator className="mb-4" />
+        </>
+      }
+    >
 
         {/* Input area */}
         <div className="max-w-lg space-y-3">
@@ -322,8 +308,7 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </FeatureCard>
   );
 }
 

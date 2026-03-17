@@ -2,12 +2,12 @@
 
 import { useState, useCallback } from "react";
 import { useBackyViewModel, type BackyInitialData } from "@/viewmodels/useBackyViewModel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { FeatureCard } from "@/components/dashboard/feature-card";
 import {
   CloudUpload,
   Pencil,
@@ -73,27 +73,21 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
   return (
     <div className="space-y-6">
       {/* ── Remote Backup (Push) Card ─────────────────────── */}
-      <Card className="border-0 bg-secondary shadow-none">
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-3 text-sm font-medium">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple/10">
-              <CloudUpload className="h-4 w-4 text-purple" strokeWidth={1.5} />
-            </div>
-            <div className="flex items-center gap-2">
-              <span>远程备份</span>
-              {vm.isConfigured && (
-                <Badge variant={vm.environment === "prod" ? "success" : "warning"}>
-                  {vm.environment}
-                </Badge>
-              )}
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
-            将数据备份推送到 Backy 远程存储服务，支持版本管理和历史记录。
-          </p>
-          <Separator className="mb-4" />
+      <FeatureCard
+        icon={CloudUpload}
+        accent="purple"
+        title={
+          <div className="flex items-center gap-2">
+            <span>远程备份</span>
+            {vm.isConfigured && (
+              <Badge variant={vm.environment === "prod" ? "success" : "warning"}>
+                {vm.environment}
+              </Badge>
+            )}
+          </div>
+        }
+        description="将数据备份推送到 Backy 远程存储服务，支持版本管理和历史记录。"
+      >
 
           {vm.isLoading ? (
             <p className="text-sm text-muted-foreground">加载中...</p>
@@ -343,24 +337,15 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </FeatureCard>
 
       {/* ── Pull Webhook Card ────────────────────────────── */}
-      <Card className="border-0 bg-secondary shadow-none">
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-3 text-sm font-medium">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
-              <Webhook className="h-4 w-4 text-warning" strokeWidth={1.5} />
-            </div>
-            <span>拉取 Webhook</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
-            提供给 Backy 调用的 Webhook 地址，Backy 可通过此接口触发备份推送。
-          </p>
-          <Separator className="mb-4" />
+      <FeatureCard
+        icon={Webhook}
+        accent="warning"
+        title="拉取 Webhook"
+        description="提供给 Backy 调用的 Webhook 地址，Backy 可通过此接口触发备份推送。"
+      >
 
           {vm.isLoading ? (
             <p className="text-sm text-muted-foreground">加载中...</p>
@@ -454,8 +439,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </FeatureCard>
     </div>
   );
 }
