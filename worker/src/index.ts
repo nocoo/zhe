@@ -5,10 +5,11 @@
  * forwards everything else (dashboard, API, static) to Railway origin.
  *
  * KV sync is handled by: (1) inline kvPutLink/kvDeleteLink on each mutation,
- * and (2) a full D1 → KV sync on server startup. No cron trigger needed.
+ * (2) a full D1 → KV sync on server startup, and (3) delta sync via Worker cron.
  *
  * Cron trigger (every 30 min):
- *   POST /api/cron/cleanup → delete expired tmp files from R2
+ *   POST /api/cron/cleanup  → delete expired tmp files from R2
+ *   POST /api/cron/sync-kv  → D1 → KV delta sync (skips if no mutations)
  *
  * Flow for incoming requests:
  *   ┌─────────────┐
@@ -277,7 +278,9 @@ async function handleFetch(
 
 /**
  * Called every 30 minutes by Cloudflare cron trigger.
- * Fires POST /api/cron/cleanup on origin to delete expired tmp files from R2.
+ * Fires two parallel requests:
+ *   1. POST /api/cron/cleanup  → delete expired tmp files from R2
+ *   2. POST /api/cron/sync-kv  → D1 → KV delta sync (skips if no mutations)
  */
 async function handleScheduled(
   _controller: ScheduledController,
@@ -285,10 +288,10 @@ async function handleScheduled(
   ctx: ExecutionContext,
 ): Promise<void> {
   const originBase = env.ORIGIN_URL.replace(/\/$/, '');
-  const url = `${originBase}/api/cron/cleanup`;
 
+  // Cleanup expired tmp files from R2
   ctx.waitUntil(
-    fetch(url, {
+    fetch(`${originBase}/api/cron/cleanup`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.WORKER_SECRET}` },
     })
@@ -303,6 +306,26 @@ async function handleScheduled(
       })
       .catch((err) => {
         console.error('Cleanup cron fetch error:', err);
+      }),
+  );
+
+  // KV sync (D1 → KV delta)
+  ctx.waitUntil(
+    fetch(`${originBase}/api/cron/sync-kv`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.WORKER_SECRET}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          console.error(`Sync-kv cron failed (${res.status}): ${text}`);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          console.log('Sync-kv cron result:', JSON.stringify(data));
+        }
+      })
+      .catch((err) => {
+        console.error('Sync-kv cron fetch error:', err);
       }),
   );
 }
