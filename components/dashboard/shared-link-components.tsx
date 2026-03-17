@@ -240,7 +240,7 @@ export function CopyUrlButton({ url, className = "" }: CopyUrlButtonProps) {
     const success = await copyToClipboard(url);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 800);
     }
   }, [url]);
 

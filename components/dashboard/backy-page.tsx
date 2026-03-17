@@ -43,7 +43,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
     const success = await copyToClipboard(value);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 800);
     }
   }, [value]);
 

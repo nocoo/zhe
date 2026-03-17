@@ -116,7 +116,7 @@ export default async function Home() {
           {/* Badge content */}
           <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
             {/* Logo avatar */}
-            <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-[#171717] ring-1 ring-border p-2.5">
+            <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-background ring-1 ring-border p-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo-320.png"
