@@ -93,7 +93,7 @@ export function DashboardShell({
                     <Menu className="h-5 w-5" strokeWidth={1.5} />
                   </button>
                 )}
-                <h1 className="text-lg md:text-xl font-semibold text-foreground">
+                <h1 className="text-lg md:text-xl font-semibold font-display text-foreground">
                   {pageTitle}
                 </h1>
               </div>

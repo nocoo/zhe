@@ -47,7 +47,7 @@ function StatCard({ label, value, icon: Icon }: StatCardProps) {
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <p className="mt-2 text-xl md:text-2xl font-semibold tracking-tight" data-testid="stat-value">
+      <p className="mt-2 text-xl md:text-2xl font-semibold font-display tracking-tight" data-testid="stat-value">
         {value}
       </p>
     </div>
