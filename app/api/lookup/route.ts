@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       id: link.id,
       originalUrl: link.originalUrl,
       slug: link.slug,
+      expiresAt: link.expiresAt?.getTime() ?? null,
     });
   } catch (error) {
     console.error('Lookup error:', error);

@@ -101,6 +101,7 @@ describe('GET /api/lookup', () => {
     expect(body.id).toBe(link.id);
     expect(body.originalUrl).toBe('https://github.com');
     expect(body.slug).toBe('gh');
+    expect(body.expiresAt).toBeNull();
   });
 
   it('returns 404 for an expired link', async () => {
