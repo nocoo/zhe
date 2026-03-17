@@ -18,6 +18,17 @@ if (typeof Element.prototype.scrollIntoView === 'undefined') {
   Element.prototype.scrollIntoView = function () {};
 }
 
+// Polyfill pointer capture methods for jsdom (required by Radix Select)
+if (typeof Element.prototype.hasPointerCapture === 'undefined') {
+  Element.prototype.hasPointerCapture = function () { return false; };
+}
+if (typeof Element.prototype.setPointerCapture === 'undefined') {
+  Element.prototype.setPointerCapture = function () {};
+}
+if (typeof Element.prototype.releasePointerCapture === 'undefined') {
+  Element.prototype.releasePointerCapture = function () {};
+}
+
 // Re-export clearMockStorage for tests
 export { clearMockStorage } from './mocks/db-storage';
 

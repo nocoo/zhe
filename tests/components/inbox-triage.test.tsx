@@ -438,6 +438,40 @@ describe('InboxTriage', () => {
       const inboxTexts = screen.getAllByText('Inbox');
       expect(inboxTexts.length).toBeGreaterThanOrEqual(2);
     });
+
+    it('renders all folder options when trigger is clicked', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      // Click the first folder select trigger to open the dropdown
+      const triggers = screen.getAllByRole('combobox');
+      await user.click(triggers[0]);
+
+      // Radix Select should render listbox with options via portal
+      const listbox = screen.getByRole('listbox');
+      const options = screen.getAllByRole('option');
+      const optionTexts = options.map(o => o.textContent);
+      expect(optionTexts).toContain('Inbox');
+      expect(optionTexts).toContain('Work');
+      expect(optionTexts).toContain('Personal');
+      expect(listbox).toBeInTheDocument();
+    });
+
+    it('updates trigger text when a folder option is selected', async () => {
+      const user = userEvent.setup();
+      render(<InboxTriage />);
+
+      // Open the first folder select
+      const triggers = screen.getAllByRole('combobox');
+      await user.click(triggers[0]);
+
+      // Select "Work" folder
+      const workOption = screen.getByRole('option', { name: 'Work' });
+      await user.click(workOption);
+
+      // Trigger should now show "Work" instead of "Inbox"
+      expect(triggers[0]).toHaveTextContent('Work');
+    });
   });
 
   // ── Note input onChange ──
