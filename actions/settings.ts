@@ -1,7 +1,7 @@
 'use server';
 
 import { getScopedDB } from '@/lib/auth-context';
-import { kvPutLink } from '@/lib/kv/client';
+import { kvBulkPutLinks, type KVLinkData } from '@/lib/kv/client';
 
 import {
   parseImportPayload,
@@ -36,6 +36,7 @@ export async function importLinks(
 
     let created = 0;
     let skipped = 0;
+    const kvEntries: Array<{ slug: string; data: KVLinkData }> = [];
 
     for (const entry of parsed.data) {
       try {
@@ -47,11 +48,13 @@ export async function importLinks(
         });
         created++;
 
-        // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
-        void kvPutLink(link.slug, {
-          id: link.id,
-          originalUrl: link.originalUrl,
-          expiresAt: link.expiresAt?.getTime() ?? null,
+        kvEntries.push({
+          slug: link.slug,
+          data: {
+            id: link.id,
+            originalUrl: link.originalUrl,
+            expiresAt: link.expiresAt?.getTime() ?? null,
+          },
         });
       } catch (err) {
         // UNIQUE constraint on slug — treat as skip (eliminates TOCTOU race
@@ -63,6 +66,11 @@ export async function importLinks(
           throw err;
         }
       }
+    }
+
+    // Fire-and-forget: batch sync all created links to KV for edge redirect caching
+    if (kvEntries.length > 0) {
+      void kvBulkPutLinks(kvEntries);
     }
 
     return { success: true, data: { created, skipped } };
