@@ -58,11 +58,11 @@ export function CreateLinkModal({
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="rounded-[10px] h-7 w-7 p-0" aria-label="新建链接">
+        <Button size="sm" className="rounded-widget h-7 w-7 p-0" aria-label="新建链接">
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] rounded-[14px] border-0 bg-card">
+      <DialogContent className="sm:max-w-[425px] rounded-card border-0 bg-card">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
             创建短链接
@@ -75,7 +75,7 @@ export function CreateLinkModal({
             <button
               type="button"
               onClick={() => vm.setMode("simple")}
-              className={`flex-1 py-2 text-sm rounded-[10px] transition-colors ${
+              className={`flex-1 py-2 text-sm rounded-widget transition-colors ${
                 vm.mode === "simple"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-accent"
@@ -86,7 +86,7 @@ export function CreateLinkModal({
             <button
               type="button"
               onClick={() => vm.setMode("custom")}
-              className={`flex-1 py-2 text-sm rounded-[10px] transition-colors ${
+              className={`flex-1 py-2 text-sm rounded-widget transition-colors ${
                 vm.mode === "custom"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-accent"
@@ -108,7 +108,7 @@ export function CreateLinkModal({
               value={vm.url}
               onChange={(e) => vm.setUrl(e.target.value)}
               required
-              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>
 
@@ -131,7 +131,7 @@ export function CreateLinkModal({
                   pattern="^[a-zA-Z0-9_-]+$"
                   title="Only letters, numbers, hyphens, and underscores"
                   required={vm.mode === "custom"}
-                  className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+                  className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
                 />
               </div>
             </div>
@@ -149,7 +149,7 @@ export function CreateLinkModal({
                   vm.setFolderId(v === "__inbox__" ? undefined : v)
                 }
               >
-                <SelectTrigger className="h-9 w-full rounded-[10px] border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
+                <SelectTrigger className="h-9 w-full rounded-widget border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -175,7 +175,7 @@ export function CreateLinkModal({
               placeholder="添加备注..."
               value={vm.note}
               onChange={(e) => vm.setNote(e.target.value)}
-              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>
 
@@ -190,7 +190,7 @@ export function CreateLinkModal({
               placeholder="https://example.com/screenshot.png"
               value={vm.screenshotUrl}
               onChange={(e) => vm.setScreenshotUrl(e.target.value)}
-              className="rounded-[10px] border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
             />
           </div>
 
@@ -218,7 +218,7 @@ export function CreateLinkModal({
           {/* Submit button */}
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="flex w-full items-center justify-center gap-2 rounded-widget bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             disabled={vm.isLoading}
           >
             {vm.isLoading ? (

@@ -27,7 +27,7 @@ function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
     return (
       <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="rounded-[14px] bg-secondary overflow-hidden">
+          <div key={i} className="rounded-card bg-secondary overflow-hidden">
             <div className="aspect-[4/3] bg-muted" />
             <div className="p-3 space-y-2">
               <div className="h-4 w-3/4 rounded bg-muted" />
@@ -44,7 +44,7 @@ function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className="rounded-[14px] bg-secondary p-4 flex items-center gap-4"
+          className="rounded-card bg-secondary p-4 flex items-center gap-4"
         >
           <div className="h-9 w-9 rounded-lg bg-muted shrink-0" />
           <div className="flex-1 min-w-0 space-y-2">
@@ -251,7 +251,7 @@ export function LinksList() {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-[10px] h-7 w-7 p-0"
+            className="rounded-widget h-7 w-7 p-0"
             onClick={handleRefresh}
             disabled={isRefreshing}
             aria-label="刷新链接"
@@ -264,7 +264,7 @@ export function LinksList() {
 
       {/* Content */}
       {filteredLinks.length === 0 ? (
-        <div className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
+        <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
           <Link2
             className="w-10 h-10 mx-auto text-muted-foreground mb-4"
             strokeWidth={1.5}

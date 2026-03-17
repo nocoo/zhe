@@ -113,7 +113,7 @@ export function DashboardShell({
 
             {/* Content panel — Basalt L1 rounded panel */}
             <div className={cn("flex-1 px-2 pb-2 md:px-3 md:pb-3")}>
-              <div className="h-full rounded-[16px] md:rounded-[20px] bg-card p-3 md:p-5 overflow-y-auto">
+              <div className="h-full rounded-island md:rounded-island bg-card p-3 md:p-5 overflow-y-auto">
                 {children}
               </div>
             </div>

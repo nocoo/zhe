@@ -42,7 +42,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
   const isImage = isImageType(upload.fileType);
 
   return (
-    <div data-testid="upload-item" className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div data-testid="upload-item" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
@@ -149,7 +149,7 @@ interface UploadingItemProps {
 
 export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
   return (
-    <div data-testid="uploading-item" className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div data-testid="uploading-item" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}

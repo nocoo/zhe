@@ -76,7 +76,7 @@ export function InboxTriage() {
         </div>
         <div className="animate-pulse space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-[14px] bg-secondary p-4 space-y-3">
+            <div key={i} className="rounded-card bg-secondary p-4 space-y-3">
               <div className="h-4 w-3/4 rounded bg-muted" />
               <div className="h-3 w-1/2 rounded bg-muted" />
               <div className="flex gap-3">
@@ -104,7 +104,7 @@ export function InboxTriage() {
         <Button
           variant="outline"
           size="sm"
-          className="rounded-[10px]"
+          className="rounded-widget"
           onClick={handleRefresh}
           disabled={isRefreshing}
           aria-label="刷新链接"
@@ -116,7 +116,7 @@ export function InboxTriage() {
 
       {/* Content */}
       {vm.inboxLinks.length === 0 ? (
-        <div className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
+        <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
           <InboxIcon
             className="w-10 h-10 mx-auto text-muted-foreground mb-4"
             strokeWidth={1.5}

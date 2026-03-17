@@ -21,7 +21,7 @@ function UploadListSkeleton() {
 
       {/* Upload zone skeleton */}
       <div className="mb-6">
-        <div className="h-32 rounded-[14px] border-2 border-dashed border-muted bg-secondary" />
+        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary" />
       </div>
 
       {/* Upload item skeletons */}
@@ -29,7 +29,7 @@ function UploadListSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-[14px] bg-secondary p-4 flex items-center gap-4"
+            className="rounded-card bg-secondary p-4 flex items-center gap-4"
           >
             <div className="h-12 w-12 rounded-lg bg-muted shrink-0" />
             <div className="flex-1 min-w-0 space-y-2">
@@ -137,7 +137,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
 
       {/* Completed uploads */}
       {uploads.length === 0 && uploadingFiles.length === 0 ? (
-        <div data-testid="upload-empty-state" className="rounded-[14px] border-0 bg-secondary shadow-none p-12 text-center">
+        <div data-testid="upload-empty-state" className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
           <UploadIcon
             className="w-10 h-10 mx-auto text-muted-foreground mb-4"
             strokeWidth={1.5}

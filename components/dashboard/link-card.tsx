@@ -128,7 +128,7 @@ export const LinkCard = memo(function LinkCard({
 
   if (viewMode === "grid") {
     return (
-      <div data-testid="link-card" className="group rounded-[14px] border-0 bg-secondary shadow-none overflow-hidden transition-colors">
+      <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors">
         {/* Screenshot — top, full width */}
         <div
           className="relative block w-full aspect-[4/3] bg-accent cursor-pointer"
@@ -315,7 +315,7 @@ export const LinkCard = memo(function LinkCard({
   }
 
   return (
-    <div data-testid="link-card" className="rounded-[14px] border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div data-testid="link-card" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
       <div className="flex items-stretch gap-4">
         {/* Screenshot/favicon thumbnail — left side, 118x62 (≈19:10), object-top crop */}
         <div className="group/thumb relative shrink-0 hidden sm:flex w-[118px] h-[62px] rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
@@ -617,7 +617,7 @@ function InlineEditArea({
             value={editVm.editUrl}
             onChange={(e) => editVm.setEditUrl(e.target.value)}
             placeholder="https://example.com"
-            className="h-8 rounded-[8px] border-border bg-background text-xs"
+            className="h-8 rounded-widget border-border bg-background text-xs"
           />
         </div>
         <div className="space-y-1 w-40">
@@ -630,7 +630,7 @@ function InlineEditArea({
             value={editVm.editSlug}
             onChange={(e) => editVm.setEditSlug(e.target.value)}
             placeholder="custom-slug"
-            className="h-8 rounded-[8px] border-border bg-background text-xs"
+            className="h-8 rounded-widget border-border bg-background text-xs"
           />
         </div>
       </div>
@@ -645,7 +645,7 @@ function InlineEditArea({
             value={editVm.editFolderId ?? "__inbox__"}
             onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? undefined : v)}
           >
-            <SelectTrigger className="h-8 w-40 rounded-[8px] border-border bg-background text-xs">
+            <SelectTrigger className="h-8 w-40 rounded-widget border-border bg-background text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -668,7 +668,7 @@ function InlineEditArea({
             value={editVm.editNote}
             onChange={(e) => editVm.setEditNote(e.target.value)}
             placeholder="添加备注..."
-            className="h-8 rounded-[8px] border-border bg-background text-xs"
+            className="h-8 rounded-widget border-border bg-background text-xs"
           />
         </div>
       </div>
@@ -684,7 +684,7 @@ function InlineEditArea({
           value={editVm.editScreenshotUrl}
           onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
           placeholder="https://example.com/screenshot.png"
-          className="h-8 rounded-[8px] border-border bg-background text-xs"
+          className="h-8 rounded-widget border-border bg-background text-xs"
         />
       </div>
 
@@ -712,7 +712,7 @@ function InlineEditArea({
           trigger={
             <button
               aria-label="Delete link"
-              className="flex h-8 items-center gap-1.5 rounded-[8px] px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="flex h-8 items-center gap-1.5 rounded-widget px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               disabled={isDeleting}
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -724,7 +724,7 @@ function InlineEditArea({
         />
         <Button
           size="sm"
-          className="h-8 rounded-[8px] text-xs"
+          className="h-8 rounded-widget text-xs"
           onClick={handleSave}
           disabled={editVm.isSaving}
         >
