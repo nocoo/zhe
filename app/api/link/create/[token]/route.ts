@@ -8,6 +8,7 @@ import {
 import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
 import { resolvePublicOrigin } from "@/lib/url";
 import { kvPutLink } from "@/lib/kv/client";
+import { markKVDirty } from "@/lib/kv/dirty";
 
 /**
  * HEAD /api/link/create/[token]
@@ -194,6 +195,7 @@ export async function POST(
   });
 
   // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
+  markKVDirty();
   void kvPutLink(link.slug, {
     id: link.id,
     originalUrl: link.originalUrl,

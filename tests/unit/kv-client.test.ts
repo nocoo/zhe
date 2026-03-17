@@ -1,5 +1,4 @@
 vi.unmock('@/lib/kv/client');
-vi.unmock('@/lib/kv/dirty');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
@@ -9,7 +8,6 @@ import {
   kvBulkPutLinks,
   type KVLinkData,
 } from '@/lib/kv/client';
-import { _resetDirtyFlag, isKVDirty } from '@/lib/kv/dirty';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -294,63 +292,6 @@ describe('kvBulkPutLinks', () => {
 
     expect(result).toEqual({ success: 0, failed: 1 });
     expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-});
-
-// ─── Dirty Flag Integration ──────────────────────────────────────────────────
-
-describe('dirty flag integration', () => {
-  beforeEach(() => {
-    mockFetch.mockReset();
-    _resetDirtyFlag(false);
-    setEnv();
-  });
-  afterEach(() => clearEnv());
-
-  it('marks dirty on successful kvPutLink', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true });
-    expect(isKVDirty()).toBe(false);
-
-    await kvPutLink('slug', sampleData);
-
-    expect(isKVDirty()).toBe(true);
-  });
-
-  it('does not mark dirty on failed kvPutLink', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: async () => 'Internal Server Error',
-    });
-
-    await kvPutLink('slug', sampleData);
-
-    expect(isKVDirty()).toBe(false);
-    consoleSpy.mockRestore();
-  });
-
-  it('marks dirty on successful kvDeleteLink', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true });
-    expect(isKVDirty()).toBe(false);
-
-    await kvDeleteLink('slug');
-
-    expect(isKVDirty()).toBe(true);
-  });
-
-  it('does not mark dirty on failed kvDeleteLink', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      text: async () => 'Internal Server Error',
-    });
-
-    await kvDeleteLink('slug');
-
-    expect(isKVDirty()).toBe(false);
     consoleSpy.mockRestore();
   });
 });

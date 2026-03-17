@@ -1,5 +1,10 @@
 /**
- * Module-level dirty flag for KV mutation tracking.
+ * Module-level dirty flag for D1 → KV sync tracking.
+ *
+ * Indicates that D1 has been mutated and KV may be stale. Called at D1
+ * mutation call sites (link create/update/delete), NOT in the KV client.
+ * This ensures that even if the inline KV write fails, the cron-based
+ * full sync will run as a compensating reconciliation.
  *
  * Starts dirty (true) for cold-start consistency — the first sync after
  * server start always runs a full D1 → KV reconciliation. Subsequent

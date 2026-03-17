@@ -6,6 +6,7 @@ import { generateUniqueSlug, sanitizeSlug } from '@/lib/slug';
 import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
 import { kvPutLink, kvDeleteLink } from '@/lib/kv/client';
+import { markKVDirty } from '@/lib/kv/dirty';
 import type { Link } from '@/lib/db/schema';
 
 export interface CreateLinkInput {
@@ -86,6 +87,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     }
 
     // Fire-and-forget: sync to Cloudflare KV for edge redirect caching
+    markKVDirty();
     void kvPutLink(link.slug, {
       id: link.id,
       originalUrl: link.originalUrl,
@@ -151,6 +153,7 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
     }
 
     // Fire-and-forget: remove from Cloudflare KV
+    markKVDirty();
     if (linkBeforeDelete) {
       void kvDeleteLink(linkBeforeDelete.slug);
     }
@@ -226,6 +229,7 @@ export async function updateLink(
     }
 
     // Fire-and-forget: sync updated link to Cloudflare KV
+    markKVDirty();
     void kvPutLink(updated.slug, {
       id: updated.id,
       originalUrl: updated.originalUrl,

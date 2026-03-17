@@ -2,6 +2,7 @@
 
 import { getScopedDB } from '@/lib/auth-context';
 import { kvBulkPutLinks, type KVLinkData } from '@/lib/kv/client';
+import { markKVDirty } from '@/lib/kv/dirty';
 
 import {
   parseImportPayload,
@@ -70,6 +71,7 @@ export async function importLinks(
 
     // Fire-and-forget: batch sync all created links to KV for edge redirect caching
     if (kvEntries.length > 0) {
+      markKVDirty();
       void kvBulkPutLinks(kvEntries);
     }
 

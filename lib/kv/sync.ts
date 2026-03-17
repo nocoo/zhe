@@ -4,9 +4,10 @@
  *
  * Fire-and-forget safe: errors are caught and recorded, never thrown.
  *
- * Sync strategy: Full D1 → KV overwrite, gated by a dirty flag. When no
- * mutations have occurred since the last sync, the call is skipped entirely.
- * The dirty flag starts true for cold-start consistency.
+ * Sync strategy: Dirty-gated full sync. When D1 has been mutated (dirty flag
+ * is true), performs a full D1 → KV overwrite. When no mutations have occurred
+ * since the last successful sync, the call is skipped entirely. This is NOT a
+ * delta/incremental sync — every run that proceeds reads all links from D1.
  */
 
 import { getAllLinksForKV } from '@/lib/db';
