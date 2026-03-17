@@ -35,6 +35,11 @@ vi.mock('@/actions/tags', () => ({
   removeTagFromLink: vi.fn(),
 }));
 
+// Default to desktop so filter controls render inline (not inside popover)
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => false,
+}));
+
 // Mock DashboardService context — mutable so each test can set its own data
 const mockService: DashboardService = {
   links: [],

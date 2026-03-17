@@ -6,8 +6,14 @@ import { LinkCard } from "./link-card";
 import { InboxTriage } from "./inbox-triage";
 import { CreateLinkModal } from "./create-link-modal";
 import { LinkFilterBar } from "./link-filter-bar";
-import { Link2, LayoutList, LayoutGrid, RefreshCw } from "lucide-react";
+import { Link2, LayoutList, LayoutGrid, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
@@ -77,6 +83,8 @@ export function LinksList() {
   // Batch-refresh metadata for links missing it (replaces per-card N+1 auto-fetch)
   useAutoRefreshMetadata(links, handleLinkUpdated);
 
+  const isMobile = useIsMobile();
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterFolderId, setFilterFolderId] = useState<string | null>(null);
@@ -203,6 +211,59 @@ export function LinksList() {
     return <InboxTriage />;
   }
 
+  const activeFilterCount =
+    (filterFolderId ? 1 : 0) + filterTagIds.size;
+
+  /** Shared filter + view controls used in both desktop inline and mobile popover */
+  const filterControls = (
+    <>
+      <LinkFilterBar
+        folders={folders}
+        tags={tags}
+        filterFolderId={filterFolderId}
+        filterTagIds={filterTagIds}
+        onFolderChange={setFilterFolderId}
+        onToggleTag={handleToggleFilterTag}
+        onClear={handleClearFilters}
+        showFolderFilter={!selectedFolderId}
+      />
+      <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+        <button
+          onClick={() => handleViewModeChange("list")}
+          aria-label="List view"
+          className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+            viewMode === "list"
+              ? "bg-accent text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <LayoutList className="w-4 h-4" strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={() => handleViewModeChange("grid")}
+          aria-label="Grid view"
+          className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+            viewMode === "grid"
+              ? "bg-accent text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
+        </button>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="rounded-widget h-7 w-7 p-0"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        aria-label="刷新链接"
+      >
+        <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
+      </Button>
+    </>
+  );
+
   return (
     <div>
       {/* Header */}
@@ -214,50 +275,40 @@ export function LinksList() {
               ? `${linkCount} / ${links.length} 条链接`
               : `共 ${linkCount} 条链接`}
           </p>
-          <LinkFilterBar
-            folders={folders}
-            tags={tags}
-            filterFolderId={filterFolderId}
-            filterTagIds={filterTagIds}
-            onFolderChange={setFilterFolderId}
-            onToggleTag={handleToggleFilterTag}
-            onClear={handleClearFilters}
-            showFolderFilter={!selectedFolderId}
-          />
-          <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
-            <button
-              onClick={() => handleViewModeChange("list")}
-              aria-label="List view"
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                viewMode === "list"
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutList className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-            <button
-              onClick={() => handleViewModeChange("grid")}
-              aria-label="Grid view"
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-                viewMode === "grid"
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-widget h-7 w-7 p-0"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            aria-label="刷新链接"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-          </Button>
+
+          {/* Desktop: inline filter controls */}
+          {!isMobile && filterControls}
+
+          {/* Mobile: collapse filters into popover */}
+          {isMobile && (
+            <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
+                  aria-label="筛选与视图"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span>筛选</span>
+                  {activeFilterCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-[calc(100vw-2rem)] max-w-xs p-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  {filterControls}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           <CreateLinkModal siteUrl={siteUrl} onSuccess={handleLinkCreated} folders={folders} tags={tags} onTagCreated={handleTagCreated} />
         </div>
       </div>
