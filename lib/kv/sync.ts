@@ -1,23 +1,27 @@
 /**
- * Shared KV sync logic — used by the /api/cron/sync-kv route (manual trigger)
+ * Shared KV sync logic — used by the /api/cron/sync-kv route (cron + manual)
  * and by the worker-status action on first dashboard access.
  *
  * Fire-and-forget safe: errors are caught and recorded, never thrown.
  *
- * Sync strategy: Full D1 → KV overwrite on every call. No delta/dirty flag
- * tracking — KV is a cache, not source of truth. The Worker falls back to
- * origin on KV miss, so temporary inconsistency is acceptable.
+ * Sync strategy: Full D1 → KV overwrite, gated by a dirty flag. When no
+ * mutations have occurred since the last sync, the call is skipped entirely.
+ * The dirty flag starts true for cold-start consistency.
  */
 
 import { getAllLinksForKV } from '@/lib/db';
 import { kvBulkPutLinks, isKVConfigured } from '@/lib/kv/client';
+import { isKVDirty, clearKVDirty } from '@/lib/kv/dirty';
 import { recordCronResult } from '@/lib/cron-history';
+
+export { isKVDirty, clearKVDirty, markKVDirty } from '@/lib/kv/dirty';
 
 export interface SyncResult {
   synced: number;
   failed: number;
   total: number;
   durationMs: number;
+  skipped?: boolean;
   error?: string;
 }
 
@@ -28,6 +32,18 @@ export interface SyncResult {
 export async function performKVSync(): Promise<SyncResult> {
   if (!isKVConfigured()) {
     return { synced: 0, failed: 0, total: 0, durationMs: 0, error: 'KV not configured' };
+  }
+
+  if (!isKVDirty()) {
+    recordCronResult({
+      timestamp: new Date().toISOString(),
+      status: 'skipped',
+      synced: 0,
+      failed: 0,
+      total: 0,
+      durationMs: 0,
+    });
+    return { synced: 0, failed: 0, total: 0, durationMs: 0, skipped: true };
   }
 
   const startTime = Date.now();
@@ -77,6 +93,10 @@ export async function performKVSync(): Promise<SyncResult> {
     total: links.length,
     durationMs,
   });
+
+  if (result.failed === 0) {
+    clearKVDirty();
+  }
 
   return {
     synced: result.success,

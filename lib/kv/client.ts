@@ -12,6 +12,8 @@
  * - Every fetch uses AbortSignal.timeout to prevent hung requests.
  */
 
+import { markKVDirty } from './dirty';
+
 /** Timeout for KV HTTP API requests (ms). */
 const KV_FETCH_TIMEOUT_MS = 3_000;
 
@@ -86,6 +88,8 @@ export async function kvPutLink(slug: string, data: KVLinkData): Promise<void> {
     if (!response.ok) {
       const text = await response.text();
       console.error(`KV put failed for slug "${slug}":`, response.status, text);
+    } else {
+      markKVDirty();
     }
   } catch (err) {
     console.error(`KV put error for slug "${slug}":`, err);
@@ -110,6 +114,8 @@ export async function kvDeleteLink(slug: string): Promise<void> {
     if (!response.ok) {
       const text = await response.text();
       console.error(`KV delete failed for slug "${slug}":`, response.status, text);
+    } else {
+      markKVDirty();
     }
   } catch (err) {
     console.error(`KV delete error for slug "${slug}":`, err);
@@ -155,6 +161,7 @@ export async function kvBulkPutLinks(
 
       if (response.ok) {
         success += batch.length;
+        markKVDirty();
       } else {
         const text = await response.text();
         console.error(`KV bulk put failed (batch ${i / BATCH_SIZE}):`, response.status, text);

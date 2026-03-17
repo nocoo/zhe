@@ -8,9 +8,9 @@ import { performKVSync } from '@/lib/kv/sync';
  * Full D1 → KV sync endpoint. Reads all links from D1 and bulk-writes them
  * to Cloudflare KV. Protected by WORKER_SECRET to prevent unauthorized access.
  *
- * Manual trigger only — no cron. Primary sync happens inline on link
- * create/update/delete; this endpoint is a consistency safety net called
- * on server startup or on-demand from the dashboard.
+ * Called by the Worker cron (every 30 min) and available for manual trigger
+ * from the dashboard. Uses a dirty flag to skip when no mutations have
+ * occurred since the last sync.
  *
  * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
  */
@@ -48,6 +48,10 @@ export async function POST(request: Request) {
 
   // 3. Perform sync (D1 → KV + record cron history)
   const result = await performKVSync();
+
+  if (result.skipped) {
+    return NextResponse.json({ skipped: true, message: 'No mutations since last sync' });
+  }
 
   if (result.error) {
     return NextResponse.json(
