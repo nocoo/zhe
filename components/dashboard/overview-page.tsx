@@ -38,18 +38,60 @@ interface StatCardProps {
   label: string;
   value: string;
   icon: React.ElementType;
+  sparkline?: number[];
 }
 
-function StatCard({ label, value, icon: Icon }: StatCardProps) {
+/** Lightweight inline SVG sparkline — 80×24px */
+function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return null;
+  const w = 80;
+  const h = 24;
+  const max = Math.max(...data) || 1;
+  const step = w / (data.length - 1);
+  const points = data.map((v, i) => `${i * step},${h - (v / max) * h}`).join(" ");
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="shrink-0"
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`0,${h} ${points} ${w},${h}`}
+        fill="url(#spark-fill)"
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke="hsl(var(--primary))"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, sparkline }: StatCardProps) {
   return (
     <div className="rounded-xl bg-secondary p-4 md:p-5" data-testid="stat-card" data-stat-label={label}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <p className="mt-2 text-xl md:text-2xl font-semibold font-display tracking-tight" data-testid="stat-value">
-        {value}
-      </p>
+      <div className="mt-2 flex items-center gap-3">
+        <p className="text-xl md:text-2xl font-semibold font-display tracking-tight" data-testid="stat-value">
+          {value}
+        </p>
+        {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}
+      </div>
     </div>
   );
 }
@@ -439,6 +481,7 @@ function OverviewContent({
               label="总点击量"
               value={formatClickCount(stats.totalClicks)}
               icon={MousePointerClick}
+              sparkline={stats.clickTrend.map((p) => p.clicks)}
             />
           </div>
 
@@ -513,6 +556,7 @@ function OverviewContent({
               label="总上传数"
               value={formatClickCount(stats.totalUploads)}
               icon={ImageIcon}
+              sparkline={stats.uploadTrend.map((p) => p.uploads)}
             />
             <StatCard
               label="存储用量"
