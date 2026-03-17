@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.0] - 2026-03-17
+
+### Added
+- Add KV native expiration on write — expired keys auto-deleted by Cloudflare KV
+- Add Worker edge lookup via lightweight `/api/lookup` API on KV miss (replaces full origin forward)
+- Add negative cache (Cache API tombstone, 60s TTL) for confirmed slug misses at the edge
+- Add KV backfill with native expiration on lookup API hit
+- Add `expiresAt` field to `/api/lookup` response for KV backfill completeness
+- Add dirty flag delta sync for D1 → KV (skip sync when no mutations since last run)
+- Add KV sync to Worker cron schedule (parallel with cleanup, every 30 min)
+- Batch KV writes in link import (N HTTP calls → 1)
+- Add sparkline charts to overview stat cards
+- Add slide animation to mobile sidebar via Sheet component
+- Apply DM Sans font-display to stat cards and page headings
+- Collapse filter bar to popover on mobile
+
+### Changed
+- Replace hardcoded colors with semantic design tokens (Basalt design system)
+- Consolidate radius values to 3 Basalt tokens
+- Migrate native select to shadcn Select component
+- Extract shared FeatureCard component from card pattern
+- Use `--highlight` token for search match highlighting
+
+### Fixed
+- Move `markKVDirty()` to D1 mutation sites (not KV client success path) — prevents KV permanently stale on write failure
+- Place negative cache check after KV lookup — freshly-created slugs no longer masked by stale tombstone
+- Forward expired KV hits and lookup misses to origin for real 404 page (not plain text)
+- Include native expiration in Worker KV backfill path
+- Restore label-control association for Radix Select triggers
+- Align alert-dialog animation duration with dialog (200→150ms)
+- Use unique id for sparkline gradient to avoid DOM id collision
+- Speed up animations and replace hardcoded dark mode backgrounds
+- Remove extraneous double spaces in sheet.tsx class strings
+
 ## [v1.7.2] - 2026-03-15
 
 ### Added
