@@ -42,7 +42,7 @@ function HighlightText({
         seg.highlight ? (
           <mark
             key={i}
-            className="bg-yellow-200/60 text-foreground rounded-sm px-0.5 dark:bg-yellow-500/30"
+            className="bg-highlight/60 text-foreground rounded-sm px-0.5"
           >
             {seg.text}
           </mark>
