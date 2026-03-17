@@ -28,13 +28,20 @@
  *   │  Root path?   ├──────────► │ Forward to origin              │
  *   └──────┬───────┘            └────────────────────────────────┘
  *          │ no (potential slug)
+ *   ┌──────▼────────────┐
+ *   │ Negative cache hit?├──yes──► Return cached 404
+ *   └──────┬────────────┘
+ *          │ no
  *   ┌──────▼───────┐   found   ┌──────────────┐
  *   │  KV lookup    ├─────────► │ 307 redirect │──► fire-and-forget analytics
  *   └──────┬───────┘           └──────────────┘
- *          │ not found
- *   ┌──────▼───────────┐
- *   │ Forward to origin │  (middleware handles D1 fallback)
- *   └─────────────────┘
+ *          │ not found / expired at edge (direct 404)
+ *   ┌──────▼────────────────┐
+ *   │ Lookup API (/api/lookup)│
+ *   └──────┬────────────────┘
+ *          ├── found → 307 redirect + KV backfill
+ *          ├── not found → 404 + neg cache tombstone
+ *          └── error → forwardToOrigin (full fallback)
  */
 
 export interface Env {
@@ -248,15 +255,22 @@ async function handleFetch(
     return forwardToOrigin(request, env);
   }
 
+  // 5.5 Negative cache: check if this slug was recently confirmed as non-existent
+  const cache = caches.default;
+  const negCacheKey = new Request(`https://neg-cache.internal/${slug}`);
+  const cached = await cache.match(negCacheKey);
+  if (cached) {
+    return cached;
+  }
+
   // 6. KV lookup for potential slug
   try {
     const kvData = await env.LINKS_KV.get<KVLinkData>(slug, 'json');
 
     if (kvData) {
-      // Check expiry
+      // Check expiry — return not-found directly at the edge
       if (kvData.expiresAt && Date.now() > kvData.expiresAt) {
-        // Expired — forward to origin (shows not-found page)
-        return forwardToOrigin(request, env);
+        return new Response('Not Found', { status: 404 });
       }
 
       // Fire-and-forget click analytics
@@ -267,10 +281,60 @@ async function handleFetch(
     }
   } catch (err) {
     console.error(`KV lookup error for slug "${slug}":`, err);
-    // Fall through to origin on KV error
+    // Fall through to lookup API on KV error
   }
 
-  // 7. KV miss or error → forward to origin (middleware D1 fallback)
+  // 6.5 Lightweight lookup via API (instead of full forwardToOrigin)
+  try {
+    const originBase = env.ORIGIN_URL.replace(/\/$/, '');
+    const lookupRes = await fetch(
+      `${originBase}/api/lookup?slug=${encodeURIComponent(slug)}`,
+      { headers: { 'X-Forwarded-Host': url.hostname } },
+    );
+
+    // Only trust the response semantics for 200 and 404 (explicit hit/miss).
+    // 500/other errors are transient — fall through to forwardToOrigin.
+    if (lookupRes.ok || lookupRes.status === 404) {
+      const lookupData = await lookupRes.json() as {
+        found: boolean;
+        id?: number;
+        originalUrl?: string;
+        expiresAt?: number | null;
+        expired?: boolean;
+      };
+
+      if (lookupData.found && lookupData.originalUrl) {
+        // D1 hit — redirect + analytics
+        recordClickAsync(ctx, env, lookupData.id!, request);
+
+        // Fire-and-forget: backfill KV for future edge hits
+        ctx.waitUntil(
+          env.LINKS_KV.put(slug, JSON.stringify({
+            id: lookupData.id,
+            originalUrl: lookupData.originalUrl,
+            expiresAt: lookupData.expiresAt ?? null,
+          })),
+        );
+
+        return Response.redirect(lookupData.originalUrl, 307);
+      }
+
+      // Confirmed miss or expired — write negative cache tombstone
+      if (!lookupData.found) {
+        const notFound = new Response('Not Found', {
+          status: 404,
+          headers: { 'Cache-Control': 'max-age=60' },
+        });
+        ctx.waitUntil(cache.put(negCacheKey, notFound.clone()));
+        return notFound;
+      }
+    }
+  } catch (err) {
+    console.error(`Lookup API error for slug "${slug}":`, err);
+    // Lookup API failed — fall through to forwardToOrigin as last resort
+  }
+
+  // 7. Fallback — full origin forward (only when lookup API itself fails)
   return forwardToOrigin(request, env);
 }
 

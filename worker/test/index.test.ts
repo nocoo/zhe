@@ -2,14 +2,16 @@
  * Unit tests for zhe-edge Cloudflare Worker.
  *
  * Tests the Worker's fetch handler by mocking KV, ExecutionContext,
- * and the origin fetch. Covers:
+ * Cache API, and the origin fetch. Covers:
  * - Reserved path forwarding
  * - Static asset forwarding
  * - Root path forwarding
  * - KV hit → 307 redirect + analytics
- * - KV hit with expired link → forward to origin
- * - KV miss → forward to origin
- * - KV error → forward to origin
+ * - KV hit with expired link → direct 404 at edge (no origin forward)
+ * - KV miss → lookup API → 307 redirect + KV backfill
+ * - KV miss → lookup API miss → 404 + negative cache tombstone
+ * - KV error → lookup API fallback → forwardToOrigin
+ * - Negative cache hit → cached 404
  * - Multi-segment paths → forward to origin
  * - Scheduled handler (cron) → POST /api/cron/cleanup + POST /api/cron/sync-kv on origin
  */
@@ -20,6 +22,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 interface MockKV {
   get: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
 }
 
 interface MockEnv {
@@ -38,6 +41,19 @@ interface MockScheduledController {
   noRetry: ReturnType<typeof vi.fn>;
 }
 
+// ─── Cache API Mock ─────────────────────────────────────────────────────────
+
+const mockCache = {
+  match: vi.fn().mockResolvedValue(undefined),
+  put: vi.fn().mockResolvedValue(undefined),
+};
+
+Object.defineProperty(globalThis, 'caches', {
+  value: { default: mockCache },
+  writable: true,
+  configurable: true,
+});
+
 // ─── Import Worker (dynamic to allow global fetch mock) ─────────────────────
 
 let worker: {
@@ -47,6 +63,8 @@ let worker: {
 
 beforeEach(async () => {
   vi.restoreAllMocks();
+  mockCache.match.mockReset().mockResolvedValue(undefined);
+  mockCache.put.mockReset().mockResolvedValue(undefined);
   // Dynamic import to pick up fresh module state
   const mod = await import('../src/index.js');
   worker = mod.default as unknown as typeof worker;
@@ -56,7 +74,10 @@ beforeEach(async () => {
 
 function makeEnv(overrides?: Partial<MockEnv>): MockEnv {
   return {
-    LINKS_KV: { get: vi.fn().mockResolvedValue(null) },
+    LINKS_KV: {
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
     ORIGIN_URL: 'https://zhe-origin.railway.app',
     WORKER_SECRET: 'test-worker-secret',
     ...overrides,
@@ -272,7 +293,7 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(body.referer).toBe('https://twitter.com');
     });
 
-    it('forwards expired link to origin (shows not-found)', async () => {
+    it('returns 404 directly for expired KV hit (no origin forward)', async () => {
       const fetchMock = stubOriginFetch();
       const env = makeEnv();
       env.LINKS_KV.get.mockResolvedValue({
@@ -283,9 +304,9 @@ describe('zhe-edge Worker — fetch handler', () => {
 
       const res = await worker.fetch(makeRequest('/expired'), env, makeCtx());
 
-      // Should forward to origin, not redirect
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(res.status).toBe(200);
+      // Should return 404 directly at the edge, NOT forward to origin
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(res.status).toBe(404);
     });
 
     it('does NOT expire link when expiresAt is in the future', async () => {
@@ -304,27 +325,111 @@ describe('zhe-edge Worker — fetch handler', () => {
       expect(res.headers.get('Location')).toMatch(/^https:\/\/valid\.example\.com\/?$/);
     });
 
-    it('forwards to origin when KV returns null (miss)', async () => {
-      const fetchMock = stubOriginFetch();
+    it('calls lookup API on KV miss and redirects on hit', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          found: true,
+          id: 7,
+          originalUrl: 'https://from-lookup.com',
+          expiresAt: null,
+        }), { status: 200 }),
+      );
+      globalThis.fetch = fetchMock;
       const env = makeEnv();
       env.LINKS_KV.get.mockResolvedValue(null);
 
       const res = await worker.fetch(makeRequest('/unknown'), env, makeCtx());
 
       expect(env.LINKS_KV.get).toHaveBeenCalledWith('unknown', 'json');
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(res.status).toBe(200);
+      // Should call lookup API
+      const lookupCall = fetchMock.mock.calls.find(
+        (call: unknown[]) => (call[0] as string).includes('/api/lookup'),
+      );
+      expect(lookupCall).toBeDefined();
+      expect(lookupCall![0]).toContain('/api/lookup?slug=unknown');
+      // Should 307 redirect from lookup hit
+      expect(res.status).toBe(307);
+      expect(res.headers.get('Location')).toMatch(/^https:\/\/from-lookup\.com\/?$/);
     });
 
-    it('forwards to origin when KV throws an error', async () => {
-      const fetchMock = stubOriginFetch();
+    it('backfills KV on lookup API hit', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          found: true,
+          id: 7,
+          originalUrl: 'https://from-lookup.com',
+          expiresAt: 1800000000000,
+        }), { status: 200 }),
+      );
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+      const ctx = makeCtx();
+
+      await worker.fetch(makeRequest('/backfill'), env, ctx);
+
+      // waitUntil should be called for both analytics and KV backfill
+      expect(ctx.waitUntil).toHaveBeenCalled();
+      // Verify KV put was called via waitUntil (KV backfill)
+      const waitUntilArgs = ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]);
+      await Promise.all(waitUntilArgs);
+      expect(env.LINKS_KV.put).toHaveBeenCalledWith(
+        'backfill',
+        JSON.stringify({ id: 7, originalUrl: 'https://from-lookup.com', expiresAt: 1800000000000 }),
+      );
+    });
+
+    it('returns 404 and writes tombstone on lookup API miss', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ found: false }), { status: 404 }),
+      );
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+      const ctx = makeCtx();
+
+      const res = await worker.fetch(makeRequest('/nonexist'), env, ctx);
+
+      expect(res.status).toBe(404);
+      // Should write tombstone via cache.put
+      await Promise.all(ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]));
+      expect(mockCache.put).toHaveBeenCalledTimes(1);
+      const [cacheKey, tombstone] = mockCache.put.mock.calls[0];
+      expect(cacheKey.url).toBe('https://neg-cache.internal/nonexist');
+      expect(tombstone.status).toBe(404);
+      expect(tombstone.headers.get('Cache-Control')).toBe('max-age=60');
+    });
+
+    it('does not write tombstone on lookup API error', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: 'DB error' }), { status: 500 }),
+      );
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+
+      await worker.fetch(makeRequest('/dberr'), env, makeCtx());
+
+      // Should fall back to forwardToOrigin — fetch called twice (lookup + forward)
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // Should NOT write tombstone
+      expect(mockCache.put).not.toHaveBeenCalled();
+    });
+
+    it('falls back to forwardToOrigin when KV error and lookup API fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fetchMock = vi.fn()
+        .mockRejectedValueOnce(new Error('Lookup network error')) // lookup API fails
+        .mockResolvedValueOnce(new Response('origin', { status: 200 })); // forwardToOrigin succeeds
+      globalThis.fetch = fetchMock;
       const env = makeEnv();
       env.LINKS_KV.get.mockRejectedValue(new Error('KV unavailable'));
 
       const res = await worker.fetch(makeRequest('/broken'), env, makeCtx());
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // Should fall through to forwardToOrigin
       expect(res.status).toBe(200);
+      consoleSpy.mockRestore();
     });
   });
 
@@ -345,6 +450,41 @@ describe('zhe-edge Worker — fetch handler', () => {
 
       expect(env.LINKS_KV.get).not.toHaveBeenCalled();
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('negative cache', () => {
+    it('returns cached 404 when negative cache has tombstone for slug', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+      // Simulate cache hit
+      mockCache.match.mockResolvedValueOnce(
+        new Response('Not Found', { status: 404, headers: { 'Cache-Control': 'max-age=60' } }),
+      );
+
+      const res = await worker.fetch(makeRequest('/cached-miss'), env, makeCtx());
+
+      // Should return cached 404 without calling KV or fetch
+      expect(res.status).toBe(404);
+      expect(env.LINKS_KV.get).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('tombstone includes Cache-Control max-age=60', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ found: false }), { status: 404 }),
+      );
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+      const ctx = makeCtx();
+
+      await worker.fetch(makeRequest('/tomb-test'), env, ctx);
+
+      await Promise.all(ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]));
+      expect(mockCache.put).toHaveBeenCalledTimes(1);
+      const [, tombstone] = mockCache.put.mock.calls[0];
+      expect(tombstone.headers.get('Cache-Control')).toBe('max-age=60');
     });
   });
 
