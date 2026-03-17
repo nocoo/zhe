@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { formatClickCount, formatStorageSize, formatRelativeTime } from "@/models/overview";
 import type { OverviewStats, ClickTrendPoint, UploadTrendPoint, TopLinkEntry, WorkerHealthStatus } from "@/models/overview";
@@ -43,6 +44,7 @@ interface StatCardProps {
 
 /** Lightweight inline SVG sparkline — 80×24px */
 function Sparkline({ data }: { data: number[] }) {
+  const gradientId = useId();
   if (data.length < 2) return null;
   const w = 80;
   const h = 24;
@@ -58,14 +60,14 @@ function Sparkline({ data }: { data: number[] }) {
       aria-hidden
     >
       <defs>
-        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
           <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
         </linearGradient>
       </defs>
       <polygon
         points={`0,${h} ${points} ${w},${h}`}
-        fill="url(#spark-fill)"
+        fill={`url(#${gradientId})`}
       />
       <polyline
         points={points}
