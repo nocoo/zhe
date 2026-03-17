@@ -7,11 +7,13 @@
  */
 vi.unmock('@/lib/kv/client');
 vi.unmock('@/lib/kv/sync');
+vi.unmock('@/lib/kv/dirty');
 vi.unmock('@/lib/db');
 vi.unmock('@/lib/cron-history');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearCronHistory } from '@/lib/cron-history';
+import { _resetDirtyFlag } from '@/lib/kv/dirty';
 
 const mockGetAllLinksForKV = vi.fn();
 const mockKvBulkPutLinks = vi.fn();
@@ -50,6 +52,7 @@ describe('POST /api/cron/sync-kv', () => {
     mockKvBulkPutLinks.mockReset();
     mockIsKVConfigured.mockReset();
     clearCronHistory();
+    _resetDirtyFlag(true); // Ensure sync runs (not skipped) for each test
     process.env.WORKER_SECRET = WORKER_SECRET;
   });
 
