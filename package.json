@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 7005",
     "lint": "eslint . --max-warnings=0",
+    "typecheck": "bash scripts/typecheck.sh",
     "test": "vitest",
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude 'tests/api/**'",
