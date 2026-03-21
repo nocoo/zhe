@@ -11,6 +11,8 @@
 | [Bun](https://bun.sh) | >= 1.0 | 运行时 + 包管理器 |
 | [Node.js](https://nodejs.org) | >= 20 | Vitest 测试运行（使用 `npx vitest`） |
 | [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) | >= 4.0 | Cloudflare D1 管理（可选） |
+| [gitleaks](https://github.com/gitleaks/gitleaks) | >= 8.0 | Secrets 泄露扫描（G2 advisory，可选） |
+| [osv-scanner](https://github.com/google/osv-scanner) | >= 2.0 | 依赖漏洞扫描（G2 advisory，可选） |
 
 ## 安装依赖
 
