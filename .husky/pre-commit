@@ -1,6 +1,9 @@
 # L1: Unit tests + coverage gate (≥90%)
 bun run test:unit:coverage
 
+# L1: Integration tests (in-process, no coverage collection)
+bun run test:integration
+
 # G1: Static analysis
 bun run typecheck
 bunx lint-staged
