@@ -13,7 +13,7 @@
     "test:unit": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**'",
     "test:unit:coverage": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**' --coverage",
     "test:integration": "vitest run tests/integration",
-    "test:api": "vitest run tests/api",
+    "test:api": "bun run scripts/run-api-e2e.ts",
     "test:e2e:pw": "bun x playwright test",
     "test:e2e:pw:ui": "bun x playwright test --ui",
     "test:coverage": "vitest run --coverage",
