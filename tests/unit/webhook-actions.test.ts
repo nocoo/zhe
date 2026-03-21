@@ -72,7 +72,7 @@ describe("webhook actions", () => {
 
     it("returns error when auth fails", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await getWebhookToken();
       expect(result.success).toBe(false);
@@ -101,7 +101,7 @@ describe("webhook actions", () => {
 
     it("returns error when auth fails", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await createWebhookToken();
       expect(result.success).toBe(false);
@@ -127,7 +127,7 @@ describe("webhook actions", () => {
 
     it("returns error when auth fails", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await revokeWebhookToken();
       expect(result.success).toBe(false);
@@ -175,7 +175,7 @@ describe("webhook actions", () => {
 
     it("returns error when auth fails", async () => {
       const { auth } = await import("@/auth");
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await updateWebhookRateLimit(5);
       expect(result.success).toBe(false);

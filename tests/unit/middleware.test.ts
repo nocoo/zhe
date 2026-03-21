@@ -86,7 +86,7 @@ describe('middleware', () => {
   // 3. Dashboard with no auth ───────────────────────────────────────────────
   it('redirects to login when dashboard is accessed without auth', async () => {
     vi.mocked(isReservedPath).mockReturnValue(true);
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
 
     const res = await middleware(makeRequest('/dashboard/links'), makeEvent());
 

@@ -109,7 +109,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await getBackyConfig();
       expect(result.success).toBe(false);
@@ -193,7 +193,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await saveBackyConfig({
         webhookUrl: 'https://backy.example.com/webhook',
@@ -268,7 +268,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await testBackyConnection();
       expect(result.success).toBe(false);
@@ -326,7 +326,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await fetchBackyHistory();
       expect(result.success).toBe(false);
@@ -560,7 +560,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
@@ -607,7 +607,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await getBackyPullWebhook();
       expect(result.success).toBe(false);
@@ -640,7 +640,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await generateBackyPullWebhook();
       expect(result.success).toBe(false);
@@ -670,7 +670,7 @@ describe('backy actions', () => {
 
     it('returns error when auth fails', async () => {
       const { auth } = await import('@/auth');
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await revokeBackyPullWebhook();
       expect(result.success).toBe(false);
