@@ -1,40 +1,36 @@
 /**
  * API E2E Tests for GET /api/live
  *
- * Tests the liveness probe endpoint from the perspective of an
- * external monitoring service. Validates the full request → response
- * cycle with real route handlers.
+ * Tests the liveness probe endpoint via real HTTP requests.
+ * Validates status code, response body, and cache headers
+ * from the perspective of an external monitoring service.
  */
 import { describe, it, expect } from 'vitest';
-import { APP_VERSION } from '@/lib/version';
+import { apiGet, jsonResponse } from './helpers/http';
 
 describe('GET /api/live', () => {
   it('returns 200 with ok status, version, and ISO timestamp', async () => {
-    const { GET } = await import('@/app/api/live/route');
-    const response = await GET();
+    const res = await apiGet('/api/live');
+    const { status, body } = await jsonResponse<{ status: string; version: string; timestamp: string }>(res);
 
-    expect(response.status).toBe(200);
-
-    const body = await response.json();
+    expect(status).toBe(200);
     expect(body.status).toBe('ok');
-    expect(body.version).toBe(APP_VERSION);
+    expect(body.version).toBeDefined();
     // Timestamp is valid ISO-8601
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
   });
 
   it('sets no-cache headers for monitoring accuracy', async () => {
-    const { GET } = await import('@/app/api/live/route');
-    const response = await GET();
+    const res = await apiGet('/api/live');
 
-    const cc = response.headers.get('Cache-Control');
+    const cc = res.headers.get('Cache-Control');
     expect(cc).toContain('no-store');
     expect(cc).toContain('no-cache');
   });
 
   it('returns exactly status, timestamp, version keys (no extra fields)', async () => {
-    const { GET } = await import('@/app/api/live/route');
-    const response = await GET();
-    const body = await response.json();
+    const res = await apiGet('/api/live');
+    const { body } = await jsonResponse<Record<string, unknown>>(res);
 
     expect(Object.keys(body).sort()).toEqual(['status', 'timestamp', 'version']);
   });

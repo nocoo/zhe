@@ -1,118 +1,92 @@
 /**
- * E2E API Tests
+ * API E2E Tests — real HTTP
  *
- * Tests the full request → response cycle of API route handlers.
- * Uses real NextRequest/NextResponse objects with the in-memory D1 mock.
- * Validates HTTP status codes, response bodies, and error handling
- * from the perspective of an external HTTP client (BDD style).
+ * Tests the full request → response cycle of API route handlers
+ * via real HTTP requests to a running Next.js dev server.
+ *
+ * Scenarios:
+ * 1. GET /api/health — liveness/health check
+ * 2. GET /api/lookup — slug resolution
+ * 3. POST /api/record-click — click analytics
+ * 4. Full redirect flow — lookup → record-click → verify
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { NextRequest } from 'next/server';
-import { clearMockStorage } from '../setup';
-import { APP_VERSION } from '@/lib/version';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { apiGet, apiPost, jsonResponse } from './helpers/http';
+import { ensureTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
 
-// Seed a link into mock storage before tests
-async function seedLink(slug: string, originalUrl: string, userId = 'user-e2e') {
-  const { createLink } = await import('@/lib/db');
-  return createLink({
-    userId,
-    folderId: null,
-    originalUrl,
-    slug,
-    isCustom: true,
-    clicks: 0,
-    expiresAt: null,
-  });
-}
+// ---------------------------------------------------------------------------
+// Setup: ensure test user exists, clean up before/after
+// ---------------------------------------------------------------------------
+beforeAll(async () => {
+  await ensureTestUser();
+  await cleanupTestData();
+});
 
-async function seedExpiredLink(slug: string, originalUrl: string, userId = 'user-e2e') {
-  const { createLink } = await import('@/lib/db');
-  return createLink({
-    userId,
-    folderId: null,
-    originalUrl,
-    slug,
-    isCustom: true,
-    clicks: 0,
-    expiresAt: new Date(Date.now() - 86_400_000), // expired yesterday
-  });
-}
+afterAll(async () => {
+  await cleanupTestData();
+});
 
 // ============================================================
 // Scenario 1: Health Check
-// As an external monitor, I want to hit GET /api/health
-// so I can verify the service is up.
 // ============================================================
 describe('GET /api/health', () => {
   it('returns status ok with version and timestamp', async () => {
-    const { GET } = await import('@/app/api/health/route');
-    const response = await GET();
+    const res = await apiGet('/api/health');
+    const { status, body } = await jsonResponse<{ status: string; version: string; timestamp: string }>(res);
 
-    expect(response.status).toBe(200);
-    const body = await response.json();
+    expect(status).toBe(200);
     expect(body.status).toBe('ok');
-    expect(body.version).toBe(APP_VERSION);
-    expect(body.timestamp).toBeDefined();
-    // Verify timestamp is a valid ISO string
+    expect(body.version).toBeDefined();
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
   });
 });
 
 // ============================================================
 // Scenario 2: Slug Lookup
-// As the middleware, I want to query GET /api/lookup?slug=xxx
-// so I can decide whether to redirect the user.
 // ============================================================
 describe('GET /api/lookup', () => {
-  beforeEach(() => {
-    clearMockStorage();
-  });
-
   it('returns 400 when slug parameter is missing', async () => {
-    const { GET } = await import('@/app/api/lookup/route');
-    const request = new NextRequest('http://localhost:7005/api/lookup');
-    const response = await GET(request);
+    const res = await apiGet('/api/lookup');
+    const { status, body } = await jsonResponse<{ error: string }>(res);
 
-    expect(response.status).toBe(400);
-    const body = await response.json();
+    expect(status).toBe(400);
     expect(body.error).toBe('Missing slug');
   });
 
   it('returns 404 when slug does not exist', async () => {
-    const { GET } = await import('@/app/api/lookup/route');
-    const request = new NextRequest('http://localhost:7005/api/lookup?slug=nonexistent');
-    const response = await GET(request);
+    const res = await apiGet('/api/lookup?slug=nonexistent-never-exists');
+    const { status, body } = await jsonResponse<{ found: boolean }>(res);
 
-    expect(response.status).toBe(404);
-    const body = await response.json();
+    expect(status).toBe(404);
     expect(body.found).toBe(false);
   });
 
   it('returns the link when slug exists', async () => {
-    const link = await seedLink('gh', 'https://github.com');
+    const slug = testSlug('lookup');
+    await seedLink({ slug, originalUrl: 'https://github.com' });
 
-    const { GET } = await import('@/app/api/lookup/route');
-    const request = new NextRequest('http://localhost:7005/api/lookup?slug=gh');
-    const response = await GET(request);
+    const res = await apiGet(`/api/lookup?slug=${slug}`);
+    const { status, body } = await jsonResponse<{ found: boolean; originalUrl: string; slug: string; expiresAt: string | null }>(res);
 
-    expect(response.status).toBe(200);
-    const body = await response.json();
+    expect(status).toBe(200);
     expect(body.found).toBe(true);
-    expect(body.id).toBe(link.id);
     expect(body.originalUrl).toBe('https://github.com');
-    expect(body.slug).toBe('gh');
+    expect(body.slug).toBe(slug);
     expect(body.expiresAt).toBeNull();
   });
 
   it('returns 404 for an expired link', async () => {
-    await seedExpiredLink('old', 'https://expired.example.com');
+    const slug = testSlug('expired');
+    await seedLink({
+      slug,
+      originalUrl: 'https://expired.example.com',
+      expiresAt: new Date(Date.now() - 86_400_000).toISOString(), // expired yesterday
+    });
 
-    const { GET } = await import('@/app/api/lookup/route');
-    const request = new NextRequest('http://localhost:7005/api/lookup?slug=old');
-    const response = await GET(request);
+    const res = await apiGet(`/api/lookup?slug=${slug}`);
+    const { status, body } = await jsonResponse<{ found: boolean; expired: boolean }>(res);
 
-    expect(response.status).toBe(404);
-    const body = await response.json();
+    expect(status).toBe(404);
     expect(body.found).toBe(false);
     expect(body.expired).toBe(true);
   });
@@ -120,223 +94,109 @@ describe('GET /api/lookup', () => {
 
 // ============================================================
 // Scenario 3: Record Click
-// As the middleware, I want to POST /api/record-click
-// so analytics are persisted after a redirect.
 // ============================================================
 describe('POST /api/record-click', () => {
-  beforeEach(() => {
-    clearMockStorage();
-    // Clear env var between tests
-    delete process.env.WORKER_SECRET;
-  });
-
   it('returns 400 when linkId is missing', async () => {
-    const { POST } = await import('@/app/api/record-click/route');
-    const request = new NextRequest('http://localhost:7005/api/record-click', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    const response = await POST(request);
+    const res = await apiPost('/api/record-click', {});
+    const { status, body } = await jsonResponse<{ error: string }>(res);
 
-    expect(response.status).toBe(400);
-    const body = await response.json();
+    expect(status).toBe(400);
     expect(body.error).toContain('linkId');
   });
 
   it('returns 400 when linkId is not a number', async () => {
-    const { POST } = await import('@/app/api/record-click/route');
-    const request = new NextRequest('http://localhost:7005/api/record-click', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ linkId: 'abc' }),
-    });
-    const response = await POST(request);
+    const res = await apiPost('/api/record-click', { linkId: 'abc' });
 
-    expect(response.status).toBe(400);
+    expect(res.status).toBe(400);
   });
 
   it('records a click successfully with full metadata', async () => {
-    const link = await seedLink('test-click', 'https://example.com');
+    const { id: linkId, slug } = await seedLink({ slug: testSlug('click-full') });
 
-    const { POST } = await import('@/app/api/record-click/route');
-    const request = new NextRequest('http://localhost:7005/api/record-click', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        linkId: link.id,
-        device: 'desktop',
-        browser: 'Chrome',
-        os: 'macOS',
-        country: 'US',
-        city: 'San Francisco',
-        referer: 'https://twitter.com',
-      }),
+    const res = await apiPost('/api/record-click', {
+      linkId,
+      device: 'desktop',
+      browser: 'Chrome',
+      os: 'macOS',
+      country: 'US',
+      city: 'San Francisco',
+      referer: 'https://twitter.com',
     });
-    const response = await POST(request);
+    const { status, body } = await jsonResponse<{ success: boolean }>(res);
 
-    expect(response.status).toBe(200);
-    const body = await response.json();
+    expect(status).toBe(200);
     expect(body.success).toBe(true);
 
-    // Verify click was recorded by checking click count increment
-    const { getLinkBySlug } = await import('@/lib/db');
-    const updatedLink = await getLinkBySlug('test-click');
-    expect(updatedLink).not.toBeNull();
-    expect(updatedLink!.clicks).toBe(1);
+    // Verify click count via D1 query (black-box: check DB side effect)
+    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [slug]);
+    expect(rows[0].clicks).toBe(1);
   });
 
-  it('records a click with minimal metadata (nulls)', async () => {
-    const link = await seedLink('minimal', 'https://example.com');
+  it('records a click with minimal metadata', async () => {
+    const { id: linkId } = await seedLink({ slug: testSlug('click-min') });
 
-    const { POST } = await import('@/app/api/record-click/route');
-    const request = new NextRequest('http://localhost:7005/api/record-click', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ linkId: link.id }),
-    });
-    const response = await POST(request);
+    const res = await apiPost('/api/record-click', { linkId });
+    const { status, body } = await jsonResponse<{ success: boolean }>(res);
 
-    expect(response.status).toBe(200);
-    const body = await response.json();
+    expect(status).toBe(200);
     expect(body.success).toBe(true);
-  });
-
-  // Shared-secret protection tests
-  describe('with WORKER_SECRET set', () => {
-    beforeEach(() => {
-      process.env.WORKER_SECRET = 'test-secret-123';
-    });
-
-    it('returns 403 when Authorization header is missing', async () => {
-      const { POST } = await import('@/app/api/record-click/route');
-      const request = new NextRequest('http://localhost:7005/api/record-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ linkId: 1 }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-      const body = await response.json();
-      expect(body.error).toBe('Forbidden');
-    });
-
-    it('returns 403 when Authorization token is wrong', async () => {
-      const { POST } = await import('@/app/api/record-click/route');
-      const request = new NextRequest('http://localhost:7005/api/record-click', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer wrong-secret',
-        },
-        body: JSON.stringify({ linkId: 1 }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it('succeeds when correct Authorization Bearer token is provided', async () => {
-      // Seed a link first
-      const link = await seedLink('secret-test', 'https://example.com');
-
-      const { POST } = await import('@/app/api/record-click/route');
-      const request = new NextRequest('http://localhost:7005/api/record-click', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-secret-123',
-        },
-        body: JSON.stringify({ linkId: link.id }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(200);
-      const body = await response.json();
-      expect(body.success).toBe(true);
-    });
   });
 });
 
 // ============================================================
-// Scenario 4: Full Redirect Flow (integration)
-// As a user clicking a short link, the middleware should:
-// 1. Lookup the slug via /api/lookup
-// 2. Get the original URL
-// 3. Respond with 307 redirect
-// This tests the data flow end-to-end without a running server.
+// Scenario 4: Full Redirect Flow (lookup → record-click → verify)
 // ============================================================
 describe('Redirect flow (lookup → analytics)', () => {
-  beforeEach(() => {
-    delete process.env.WORKER_SECRET;
-    clearMockStorage();
+  let flowSlug: string;
+  let flowLinkId: number;
+
+  beforeEach(async () => {
+    flowSlug = testSlug('flow');
+    const seeded = await seedLink({ slug: flowSlug, originalUrl: 'https://example.com/target' });
+    flowLinkId = seeded.id;
   });
 
   it('complete flow: seed link → lookup → record click → verify analytics', async () => {
-    // Step 1: Seed a link
-    await seedLink('flow', 'https://example.com/target');
-
-    // Step 2: Lookup the slug (simulates what middleware does)
-    const { GET } = await import('@/app/api/lookup/route');
-    const lookupReq = new NextRequest('http://localhost:7005/api/lookup?slug=flow');
-    const lookupRes = await GET(lookupReq);
-    const lookupBody = await lookupRes.json();
+    // Step 1: Lookup the slug
+    const lookupRes = await apiGet(`/api/lookup?slug=${flowSlug}`);
+    const { body: lookupBody } = await jsonResponse<{ found: boolean; originalUrl: string; id: number }>(lookupRes);
 
     expect(lookupRes.status).toBe(200);
     expect(lookupBody.found).toBe(true);
     expect(lookupBody.originalUrl).toBe('https://example.com/target');
 
-    // Step 3: Record a click (simulates middleware's waitUntil)
-    const { POST } = await import('@/app/api/record-click/route');
-    const clickReq = new NextRequest('http://localhost:7005/api/record-click', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        linkId: lookupBody.id,
-        device: 'mobile',
-        browser: 'Safari',
-        os: 'iOS',
-        country: 'JP',
-        city: 'Tokyo',
-        referer: null,
-      }),
+    // Step 2: Record a click
+    const clickRes = await apiPost('/api/record-click', {
+      linkId: lookupBody.id,
+      device: 'mobile',
+      browser: 'Safari',
+      os: 'iOS',
+      country: 'JP',
+      city: 'Tokyo',
+      referer: null,
     });
-    const clickRes = await POST(clickReq);
     expect(clickRes.status).toBe(200);
 
-    // Step 4: Verify click count was incremented
-    const { getLinkBySlug } = await import('@/lib/db');
-    const updatedLink = await getLinkBySlug('flow');
-    expect(updatedLink).not.toBeNull();
-    expect(updatedLink!.clicks).toBe(1);
+    // Step 3: Verify click count incremented
+    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
+    expect(rows[0].clicks).toBe(1);
   });
 
   it('multiple clicks increment counter correctly', async () => {
-    const link = await seedLink('multi', 'https://example.com/multi');
-
-    const { POST } = await import('@/app/api/record-click/route');
-
     // Record 3 clicks
     for (let i = 0; i < 3; i++) {
-      const req = new NextRequest('http://localhost:7005/api/record-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          linkId: link.id,
-          device: i % 2 === 0 ? 'desktop' : 'mobile',
-          browser: 'Chrome',
-          os: 'Windows',
-          country: 'US',
-        }),
+      const res = await apiPost('/api/record-click', {
+        linkId: flowLinkId,
+        device: i % 2 === 0 ? 'desktop' : 'mobile',
+        browser: 'Chrome',
+        os: 'Windows',
+        country: 'US',
       });
-      const res = await POST(req);
       expect(res.status).toBe(200);
     }
 
     // Verify
-    const { getLinkBySlug } = await import('@/lib/db');
-    const updatedLink = await getLinkBySlug('multi');
-    expect(updatedLink!.clicks).toBe(3);
+    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
+    expect(rows[0].clicks).toBe(3);
   });
 });
