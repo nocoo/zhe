@@ -1,26 +1,32 @@
 #!/usr/bin/env bun
 /**
- * API E2E test runner — starts a Next.js dev server and runs vitest against it.
+ * API E2E test runner — runs all L2 route handler tests in two phases:
  *
- * Flow:
- * 1. Load .env.local for D1 credentials
- * 2. Start Next.js dev server on port 17005 with PLAYWRIGHT=1 (bypasses adapter)
- * 3. Poll GET /api/health until ready (timeout 60s)
- * 4. Run vitest with vitest.api.config.ts
- * 5. Kill the dev server regardless of test outcome
- * 6. Exit with vitest's exit code
+ * Phase 1: In-process route handler tests (vi.mock-based, no server needed)
+ *   - Runs: tests/api/*.test.ts EXCEPT api.test.ts and live.test.ts
+ *   - Uses: main vitest.config.ts (jsdom + setup.ts D1 memory mock)
+ *
+ * Phase 2: Real HTTP tests (fetch against running Next.js dev server)
+ *   - Runs: tests/api/api.test.ts and tests/api/live.test.ts
+ *   - Uses: vitest.api.config.ts (node, no setup.ts)
+ *   - Starts dev server on port 17005, polls health, runs tests, kills server
  *
  * Soft gate: if D1 credentials are missing or the server fails to start,
- * prints a warning and exits 0 (skip), allowing git push to proceed.
+ * Phase 2 prints a warning and exits 0 (skip), allowing git push to proceed.
+ * Phase 1 (in-process) always runs — it has no external dependencies.
  */
 import { spawn, type ChildProcess } from 'child_process';
 import { resolve as pathResolve } from 'path';
 import { readFileSync } from 'fs';
 
+const PROJECT_ROOT = pathResolve(import.meta.dirname!, '..');
 const API_E2E_PORT = 17005;
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;
 const HEALTH_POLL_MS = 1_000;
+
+// Real HTTP test files — everything else in tests/api/ is in-process
+const HTTP_TEST_FILES = ['tests/api/api.test.ts', 'tests/api/live.test.ts'];
 
 // ---------------------------------------------------------------------------
 // Env loading
@@ -50,7 +56,39 @@ function loadEnvFile(filePath: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Soft gate check
+// Generic child process runner
+// ---------------------------------------------------------------------------
+
+function runCommand(args: string[], env?: Record<string, string>): Promise<number> {
+  return new Promise((done) => {
+    const child = spawn('bun', args, {
+      env: { ...process.env, ...env },
+      stdio: 'inherit',
+      cwd: PROJECT_ROOT,
+    });
+    child.on('close', (code: number | null) => {
+      done(code ?? 1);
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 1: In-process route handler tests
+// ---------------------------------------------------------------------------
+
+async function runInProcessTests(): Promise<number> {
+  console.log('\n━━━ Phase 1: In-process route handler tests ━━━\n');
+
+  const excludeArgs = HTTP_TEST_FILES.flatMap((f) => ['--exclude', f]);
+
+  return runCommand([
+    'x', 'vitest', 'run', 'tests/api',
+    ...excludeArgs,
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Real HTTP tests
 // ---------------------------------------------------------------------------
 
 function checkPrerequisites(): boolean {
@@ -58,26 +96,22 @@ function checkPrerequisites(): boolean {
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length > 0) {
     console.warn(`\n⚠️  [api-e2e] Missing env vars: ${missing.join(', ')}`);
-    console.warn('   Skipping API E2E tests (soft gate). Set these in .env.local to enable.\n');
+    console.warn('   Skipping real HTTP tests (soft gate). Set these in .env.local to enable.\n');
     return false;
   }
   return true;
 }
-
-// ---------------------------------------------------------------------------
-// Server management
-// ---------------------------------------------------------------------------
 
 function startServer(): ChildProcess {
   console.log(`[api-e2e] Starting Next.js dev server on port ${API_E2E_PORT}...`);
   const child = spawn('bun', ['run', 'next', 'dev', '--turbopack', '-p', String(API_E2E_PORT)], {
     env: {
       ...process.env,
-      PLAYWRIGHT: '1', // bypass NextAuth adapter
+      PLAYWRIGHT: '1',
       NODE_ENV: 'development',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
-    cwd: pathResolve(import.meta.dirname!, '..'),
+    cwd: PROJECT_ROOT,
   });
 
   child.stdout?.on('data', (chunk: Buffer) => {
@@ -114,7 +148,6 @@ function killServer(child: ChildProcess): void {
   if (child.exitCode === null) {
     console.log('[api-e2e] Shutting down dev server...');
     child.kill('SIGTERM');
-    // Give it 5s then SIGKILL
     setTimeout(() => {
       if (child.exitCode === null) {
         child.kill('SIGKILL');
@@ -123,38 +156,18 @@ function killServer(child: ChildProcess): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Test runner
-// ---------------------------------------------------------------------------
-
-async function runTests(): Promise<number> {
-  return new Promise((done) => {
-    const child = spawn('bun', ['x', 'vitest', 'run', '--config', 'vitest.api.config.ts'], {
-      env: {
-        ...process.env,
-        API_E2E_BASE_URL: BASE_URL,
-      },
-      stdio: 'inherit',
-      cwd: pathResolve(import.meta.dirname!, '..'),
-    });
-
-    child.on('close', (code: number | null) => {
-      done(code ?? 1);
-    });
-  });
+async function runHttpTests(): Promise<number> {
+  return runCommand(
+    ['x', 'vitest', 'run', '--config', 'vitest.api.config.ts'],
+    { API_E2E_BASE_URL: BASE_URL },
+  );
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+async function runPhase2(): Promise<number> {
+  console.log('\n━━━ Phase 2: Real HTTP tests ━━━\n');
 
-async function main(): Promise<void> {
-  // Load env
-  loadEnvFile(pathResolve(import.meta.dirname!, '..', '.env.local'));
-
-  // Soft gate
   if (!checkPrerequisites()) {
-    process.exit(0);
+    return 0; // soft gate
   }
 
   // Check if port is already in use
@@ -162,29 +175,42 @@ async function main(): Promise<void> {
     const res = await fetch(`${BASE_URL}/api/health`);
     if (res.ok) {
       console.warn(`⚠️  [api-e2e] Port ${API_E2E_PORT} already in use. Kill the existing server first.`);
-      process.exit(1);
+      return 1;
     }
   } catch {
     // Expected — port is free
   }
 
   const server = startServer();
-  let exitCode = 1;
-
   try {
     const ready = await waitForHealth();
     if (!ready) {
       console.error(`❌ [api-e2e] Server failed to start within ${HEALTH_TIMEOUT_MS / 1000}s`);
-      console.warn('   Skipping API E2E tests (soft gate).\n');
-      exitCode = 0; // soft gate — don't block push
-    } else {
-      exitCode = await runTests();
+      console.warn('   Skipping real HTTP tests (soft gate).\n');
+      return 0; // soft gate
     }
+    return await runHttpTests();
   } finally {
     killServer(server);
   }
+}
 
-  process.exit(exitCode);
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+async function main(): Promise<void> {
+  loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
+
+  // Phase 1: always runs (no external deps)
+  const phase1Code = await runInProcessTests();
+  if (phase1Code !== 0) {
+    process.exit(phase1Code);
+  }
+
+  // Phase 2: soft gate (may skip if infra unavailable)
+  const phase2Code = await runPhase2();
+  process.exit(phase2Code);
 }
 
 main();
