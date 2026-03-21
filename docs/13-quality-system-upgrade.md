@@ -114,11 +114,9 @@ fi
 exec bun x tsc --noEmit
 ```
 
-- **正常开发流程**（已跑过 `next dev`/`bun run build`）：`.next/types` 存在，直接跑 `tsc --noEmit`，0 额外开销
+- **正常开发流程**（已跑过 `next dev`/`bun run build`）：`.next/types` 存在且路由文件结构一致，直接跑 `tsc --noEmit`，0 额外开销
 - **全新 checkout**：自动触发 `bun run build --no-lint`（~14s），生成 `.next/types` 后再跑 tsc
-- **stale cache**：开发者仍需手工 `rm -rf .next/types && bun run build` 清理残留文件（脚本只检查目录是否存在，不检查内容是否过期）
-
-> **已知局限**：脚本无法检测 `.next/types` 内容是否与当前路由一致（stale 但目录存在的情况）。完全消除这个问题需要比较 `app/api/**/route.ts` 和 `.next/types/app/api/**/route.ts` 的文件列表，复杂度过高。实践中 stale cache 只在路由重命名/删除后出现，频率很低，手工 rebuild 可接受。
+- **stale cache**（路由重命名/删除后 `.next/types` 残留旧文件）：脚本对比 `app/**/route.ts` 和 `.next/types/app/**/route.ts` 文件列表，发现不一致时自动 `rm -rf .next/types && bun run build --no-lint` 重建
 
 **改动文件**：
 - `tests/unit/backy-actions.test.ts` — 修复 8 处 `null as NextMiddleware`
