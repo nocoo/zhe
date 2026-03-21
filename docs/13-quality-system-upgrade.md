@@ -22,10 +22,12 @@
 | 层级 | 名称 | 验证对象 | Hook | 强制性 |
 |------|------|----------|------|--------|
 | **L1** | Unit/Component | 纯函数、ViewModel、Hooks | pre-commit (<30s) | ✅ 硬门控 |
-| **L2** | Integration/API | **真 HTTP 请求**、跨模块协作 | pre-push (<3min) | ✅ 硬门控 |
+| **L2** | Integration/API | **真 HTTP 请求**、跨模块协作 | pre-push (<3min) | ⚠️ Soft gate（见下方说明） |
 | **L3** | System/E2E | 真实用户端到端流程 | CI / on-demand | ✅ 硬门控 |
 | **G1** | Static Analysis | 类型检查 + Lint strict | pre-commit (与 L1 并行) | ✅ 硬门控 |
 | **G2** | Security Advisory | 依赖漏洞 + Secrets 泄露 | pre-commit + pre-push | ⚠️ Advisory（工具缺失时跳过） |
+
+> **⚠️ L2 强制性说明**：迁移为真 HTTP 后，L2 测试依赖远程 Cloudflare D1 test DB。当远程资源可用时，L2 是 **mandatory**——测试失败会阻止 push。但当网络不可达或凭证缺失时，`run-api-e2e.ts` 会 **warn + skip**（降级为 advisory），避免基础设施故障阻塞所有 push。这使 L2 成为 **soft gate**：正常情况下强制执行，异常情况下有安全降级路径。如果未来引入 CI，L2 应在 CI 中 **无条件强制执行**（CI 环境有稳定网络和凭证管理），从而补上本地 hook 的降级缺口。
 
 > **⚠️ G2 强制性说明**：G2 在本地 hook 中实现为 **advisory check**——工具（gitleaks/osv-scanner）未安装时静默跳过并打印安装提示，不阻塞 commit/push。这意味着不同开发机的安全保障水平不一致。如果需要一致的安全门禁，应在未来引入 CI pipeline 时将 G2 提升为 **mandatory gate**（在 CI 中强制安装并执行，失败则阻止合并）。当前项目无 CI（无 `.github/workflows`），因此 G2 暂时只能是 advisory。
 
@@ -77,7 +79,7 @@
 
 | 文件 | 错误类型 | 数量 | 修复方案 |
 |------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`rm -rf .next/types && bun run build`（或 `next dev` 重新生成）。不应在 `tsconfig.json` 中永久排除 `.next/types`，因为这些生成类型是 Next.js 路由类型检查的一部分 |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`typecheck` script 定义为 `rm -rf .next/types && tsc --noEmit`，每次执行前自动清理，无需手工干预也无需修改 `tsconfig.json` |
 | `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
 | `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
 | `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
@@ -85,25 +87,29 @@
 | `tests/unit/settings-actions.test.ts` | `ExportedLink` optional 字段 | 1 | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null` |
 
 **改动文件**：
-- `.next/types` — 删除残留的 `app/api/webhook/[token]/` 目录（`rm -rf .next/types`），由 `next dev`/`next build` 重新生成正确的类型。`.next/` 已在 `.gitignore` 中，无需修改 `tsconfig.json`
 - `tests/unit/backy-actions.test.ts` — 修复 13 处 `null as NextMiddleware`
 - `tests/unit/webhook-actions.test.ts` — 修复 4 处
 - `tests/unit/middleware.test.ts` — 修复 1 处
 - `tests/unit/auth-adapter.test.ts` — 修复 3 处类型
 - `tests/unit/settings-actions.test.ts` — 修复 1 处类型
-- `package.json` — 新增 `"typecheck": "tsc --noEmit"` script
+- `package.json` — 新增 `"typecheck": "rm -rf .next/types && tsc --noEmit"` script（先清理可能残留的 stale 生成类型，再执行检查）
 - `.husky/pre-commit` — 添加 `bun run typecheck`
+
+> **前置准备（非 commit，本地操作）**：`.next/types/app/api/webhook/[token]/route.ts` 引用了已重命名的路由（旧 `app/api/webhook/[token]/` → 现 `app/api/link/create/[token]/`），但 `.next/` 在 `.gitignore` 中不进仓库。这意味着：
+> - 任何本地有 stale `.next/types` 的开发者都会撞到同样的 TS2307 错误
+> - 这不是可提交、可传播的修复——别人拉到的 commit 不包含任何 `.next` 变更
+>
+> 因此 `typecheck` script 定义为 `rm -rf .next/types && tsc --noEmit`，**每次 typecheck 前自动清理生成类型再重建**，从根本上消除 stale 文件问题。不需要单独的 commit 或手工清理步骤。
 
 **原子化提交**：
 
 | # | Commit | 内容 |
 |---|--------|------|
-| 1.1 | `chore: delete stale .next/types from renamed webhook route` | `rm -rf .next/types`（不进 git，仅本地操作；`.next` 已在 `.gitignore`） |
-| 1.2 | `fix: resolve NextMiddleware null type errors in test files` | 5 个测试文件 |
-| 1.3 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 2 个测试文件 |
-| 1.4 | `chore: add typecheck script and pre-commit hook` | `package.json` + `.husky/pre-commit` |
+| 1.1 | `fix: resolve NextMiddleware null type errors in test files` | 5 个测试文件 |
+| 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 2 个测试文件 |
+| 1.3 | `chore: add typecheck script and pre-commit hook` | `package.json`（含 `rm -rf .next/types && tsc --noEmit`）+ `.husky/pre-commit` |
 
-**验证**：`bun run typecheck` 输出 0 errors 后才可执行 1.4。
+**验证**：`bun run typecheck` 输出 0 errors 后才可执行 1.3。
 
 ---
 
@@ -290,17 +296,18 @@ tests/
 > **关键范式转换**：从白盒（断言 mock 调用）转为黑盒（断言 HTTP 响应 + 数据库副作用）。
 > 这意味着测试不仅要改调用方式，**断言逻辑也需要全部重写**。
 
-> **⚠️ 可重复性风险**：此方案将 pre-push hook 从纯本地（in-process mock）变为依赖共享远程资源（Cloudflare D1 test DB、KV namespace）的状态化测试。这意味着 `git push` 是否成功将受到以下因素影响：
-> - **网络**：无法访问 Cloudflare API 时 push 被阻塞
-> - **凭证**：`.env.test.api` 中 `CF_D1_*` token 过期或缺失
+> **⚠️ 可重复性风险**：此方案将 pre-push hook 从纯本地（in-process mock）变为依赖共享远程资源（Cloudflare D1 test DB、KV namespace）的状态化测试。这使 L2 成为 **soft gate**（正常时 mandatory，基础设施不可达时降级跳过）。`git push` 是否能执行完整 L2 验证将受到以下因素影响：
+> - **网络**：无法访问 Cloudflare API 时 L2 降级跳过
+> - **凭证**：`.env.test.api` 中 `CF_D1_*` token 过期或缺失时 L2 降级跳过
 > - **数据污染**：共享 test DB 中残留的脏数据导致 seed/teardown 失败
 > - **并发冲突**：多人同时 push 时竞争同一 test DB
 >
 > **缓解措施**（执行 Phase 0 时必须落实）：
 > 1. `seed.ts` 的每个测试用例使用 **唯一前缀/namespace** 的测试数据（如 `test-{uuid}-` slug），避免用例间和并发间的数据碰撞
 > 2. 每个 test suite 的 `afterAll` **必须清理自己 seed 的数据**，不依赖全局 teardown
-> 3. `run-api-e2e.ts` 在网络不可用时应 **warn + skip**（与 G2 guard 同策略），而非 fail push。本地开发者不应因 Cloudflare API 临时故障而无法 push
+> 3. `run-api-e2e.ts` 在基础设施不可达时（网络超时、凭证缺失）应 **warn + skip**，输出明确的降级提示，而非静默通过或硬失败。这是 L2 作为 soft gate 的降级路径
 > 4. 如果可重复性问题在实践中频发，考虑退回为 in-process 方案或引入 miniflare 本地模拟器替代远程 D1
+> 5. **CI 补偿**：未来引入 CI 后，L2 应在 CI 中 **无条件强制执行**（无降级路径），补上本地 hook 的 soft gate 缺口
 
 ##### 现有 mock 依赖逐文件清单
 
@@ -422,8 +429,8 @@ fi
 
 **.husky/pre-push**：
 ```bash
-# L2: Integration/API tests (real HTTP, requires Cloudflare D1 test DB access)
-# NOTE: If network/credentials unavailable, run-api-e2e.ts will warn and skip
+# L2: Integration/API tests (real HTTP, soft gate)
+# Mandatory when Cloudflare D1 test DB is reachable; degrades to warn+skip otherwise
 bun run test:api
 
 # G2: Dependency vulnerability scanning (advisory — skips if tool not installed)
@@ -461,12 +468,12 @@ Step 5: 文档重组                                    依赖前四步全部完
 - [ ] `bun run lint` — 0 errors, 0 warnings，strict rules 生效（G1）
 - [ ] `bun run test:unit:coverage` — 全部通过，覆盖率 ≥ 90%（L1）
 - [ ] `bun run test:integration` — server action 测试全部通过（L1）
-- [ ] `bun run test:api` — 全部通过，走真 HTTP（L2）
+- [ ] `bun run test:api` — 全部通过，走真 HTTP（L2, soft gate — 基础设施不可达时降级跳过）
 - [ ] `osv-scanner --lockfile=bun.lock` — 无已知漏洞（G2）
 - [ ] `gitleaks protect --staged --no-banner` — 无 secrets 泄露（G2）
 - [ ] `bun run test:e2e:pw` — Playwright 全部通过（L3）
 - [ ] `git commit` 触发 pre-commit hook — L1 + G1 + G2(gitleaks) 全通过
-- [ ] `git push` 触发 pre-push hook — L2 + G2(osv-scanner) 全通过
+- [ ] `git push` 触发 pre-push hook — L2(soft gate) + G2(osv-scanner advisory) 全通过
 - [ ] `docs/05-testing.md` 反映新质量体系
 - [ ] `CLAUDE.md` 无旧版四层测试引用
 
