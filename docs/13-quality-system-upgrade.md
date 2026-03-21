@@ -1,4 +1,4 @@
-# 质量体系升级：从「四层测试」到「三层测试 + 两道门控」
+# 质量体系升级：从「四层测试」到「三层测试 + 门控 + 安全检查」
 
 本文档设计 zhe 项目从旧版「四层测试架构」升级到新版「质量体系（L1+L2+L3+G1+G2）」的具体实施步骤。
 
@@ -17,15 +17,17 @@
 | L3 | API E2E | pre-push | ✅ 235 用例（in-process import handler） |
 | L4 | BDD E2E | on-demand | ✅ 108 用例，Playwright |
 
-### 新版：三层测试 + 两道门控
+### 新版：三层测试 + 一道门控 + 一道安全检查
 
-| 层级 | 名称 | 验证对象 | Hook |
-|------|------|----------|------|
-| **L1** | Unit/Component | 纯函数、ViewModel、Hooks | pre-commit (<30s) |
-| **L2** | Integration/API | **真 HTTP 请求**、跨模块协作 | pre-push (<3min) |
-| **L3** | System/E2E | 真实用户端到端流程 | CI / on-demand |
-| **G1** | Static Analysis | 类型检查 + Lint strict | pre-commit (与 L1 并行) |
-| **G2** | Security/Perf | 依赖漏洞 + Secrets 泄露 | pre-commit + pre-push |
+| 层级 | 名称 | 验证对象 | Hook | 强制性 |
+|------|------|----------|------|--------|
+| **L1** | Unit/Component | 纯函数、ViewModel、Hooks | pre-commit (<30s) | ✅ 硬门控 |
+| **L2** | Integration/API | **真 HTTP 请求**、跨模块协作 | pre-push (<3min) | ✅ 硬门控 |
+| **L3** | System/E2E | 真实用户端到端流程 | CI / on-demand | ✅ 硬门控 |
+| **G1** | Static Analysis | 类型检查 + Lint strict | pre-commit (与 L1 并行) | ✅ 硬门控 |
+| **G2** | Security Advisory | 依赖漏洞 + Secrets 泄露 | pre-commit + pre-push | ⚠️ Advisory（工具缺失时跳过） |
+
+> **⚠️ G2 强制性说明**：G2 在本地 hook 中实现为 **advisory check**——工具（gitleaks/osv-scanner）未安装时静默跳过并打印安装提示，不阻塞 commit/push。这意味着不同开发机的安全保障水平不一致。如果需要一致的安全门禁，应在未来引入 CI pipeline 时将 G2 提升为 **mandatory gate**（在 CI 中强制安装并执行，失败则阻止合并）。当前项目无 CI（无 `.github/workflows`），因此 G2 暂时只能是 advisory。
 
 ---
 
@@ -35,8 +37,8 @@
 |---|------|------|
 | 1 | **G1: `tsc --noEmit` 存在 19 个 type errors** — `tsc --noEmit` 当前就会失败：`.next/types/` broken import（2）、测试文件类型错误（17：`null as NextMiddleware`、`AdapterAccount` 类型不匹配、`ExportedLink` optional 字段）。必须先修完才能加 hook | 不能直接加 hook，否则 brick 所有 commit |
 | 2 | **G1: ESLint 非 strict 配置** — 使用 `next/core-web-vitals + next/typescript`，未启用 `@typescript-eslint/strict`；`no-unused-vars` 是 warn 而非 error；缺少 `no-explicit-any: error` | 宽松规则放行低质量代码 |
-| 3 | **L2: `tests/api/` 混合了两类测试** — 该目录包含 9 个 route handler 测试（通过 `await import('@/app/api/.../route')` 调用 GET/POST）和 5 个 server action 测试（通过 `await import('@/actions/...')` 调用）。全部依赖 in-process `vi.mock` 和 D1 内存模拟器。迁移真 HTTP 前必须先拆分 | 无法笼统 "全部迁移"，需要分类处理 |
-| 4 | **G2: 无安全扫描** — 无 osv-scanner、gitleaks | 依赖漏洞和 secrets 泄露无门控 |
+| 3 | **L2: `tests/api/` 混合了两类测试** — 该目录包含 8 个 route handler 测试（通过 `await import('@/app/api/.../route')` 调用 GET/POST）和 6 个 server action 测试（通过 `await import('@/actions/...')` 调用）。全部依赖 in-process `vi.mock` 和 D1 内存模拟器。迁移真 HTTP 前必须先拆分。注意：`tests/integration/` 目录已存在（含 `links.test.ts`），迁移时是追加而非新建 | 无法笼统 "全部迁移"，需要分类处理 |
+| 4 | **G2: 无安全扫描** — 无 osv-scanner、gitleaks | 依赖漏洞和 secrets 泄露无检查（目标：advisory check，工具缺失时不阻塞；未来加 CI 后可升级为硬门控） |
 | 5 | **文档/Hook 重组** — 层级命名、hook 内容需与新体系对齐 | 文档过时 |
 
 ### 当前 `tests/api/` 文件分类
@@ -75,7 +77,7 @@
 
 | 文件 | 错误类型 | 数量 | 修复方案 |
 |------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | `tsconfig.json` 的 `exclude` 添加 `.next/types` |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`rm -rf .next/types && bun run build`（或 `next dev` 重新生成）。不应在 `tsconfig.json` 中永久排除 `.next/types`，因为这些生成类型是 Next.js 路由类型检查的一部分 |
 | `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
 | `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
 | `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
@@ -83,7 +85,7 @@
 | `tests/unit/settings-actions.test.ts` | `ExportedLink` optional 字段 | 1 | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null` |
 
 **改动文件**：
-- `tsconfig.json` — exclude `.next/types`（或 `.next`）
+- `.next/types` — 删除残留的 `app/api/webhook/[token]/` 目录（`rm -rf .next/types`），由 `next dev`/`next build` 重新生成正确的类型。`.next/` 已在 `.gitignore` 中，无需修改 `tsconfig.json`
 - `tests/unit/backy-actions.test.ts` — 修复 13 处 `null as NextMiddleware`
 - `tests/unit/webhook-actions.test.ts` — 修复 4 处
 - `tests/unit/middleware.test.ts` — 修复 1 处
@@ -96,7 +98,7 @@
 
 | # | Commit | 内容 |
 |---|--------|------|
-| 1.1 | `fix: exclude .next/types from tsc to avoid broken generated imports` | `tsconfig.json` |
+| 1.1 | `chore: delete stale .next/types from renamed webhook route` | `rm -rf .next/types`（不进 git，仅本地操作；`.next` 已在 `.gitignore`） |
 | 1.2 | `fix: resolve NextMiddleware null type errors in test files` | 5 个测试文件 |
 | 1.3 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 2 个测试文件 |
 | 1.4 | `chore: add typecheck script and pre-commit hook` | `package.json` + `.husky/pre-commit` |
@@ -138,7 +140,7 @@
 
 ---
 
-### Step 3: G2 — 安装安全门控
+### Step 3: G2 — 安装安全检查（advisory）
 
 **改动文件**：
 - `.husky/pre-commit` — 追加 gitleaks（扫描暂存区，在 commit 前拦截 secrets）
@@ -149,7 +151,7 @@
 
 `brew install` 是手工约定，不同开发者机器上会漂移（有人有、有人没有、版本不同）。解决方案：
 
-1. **Hook 中加 guard 脚本**：在 `.husky/pre-commit` 和 `.husky/pre-push` 调用安全扫描前，先检查工具是否可用。工具缺失时打印安装提示并 **skip**（warn 而非 fail），避免 brick 其他人的 commit 流程。
+1. **Hook 中加 guard 脚本**：在 `.husky/pre-commit` 和 `.husky/pre-push` 调用安全扫描前，先检查工具是否可用。工具缺失时打印安装提示并 **skip**（warn 而非 fail），避免 brick 其他人的 commit 流程。这使 G2 成为 **advisory check** 而非硬门控——不同开发机可能获得不同级别的安全保障。
 
 ```bash
 # scripts/ensure-tools.sh (sourced by hooks)
@@ -164,7 +166,7 @@ check_tool() {
 
 2. **`docs/02-getting-started.md` 补充工具清单**：将 osv-scanner 和 gitleaks 加入开发环境 prerequisites，明确版本要求。
 
-3. **CI 定义**：本项目当前无 CI pipeline（无 `.github/workflows`）。G2 目前定位为 **本地开发者 hook**，不在 CI 重复执行。如果未来加 CI，需要在 workflow YAML 中显式安装这两个工具（`brew install` 或 `go install`）。文档中标注此项为 TODO。
+3. **CI 定义**：本项目当前无 CI pipeline（无 `.github/workflows`）。G2 目前定位为 **本地 advisory check**，不在 CI 重复执行。如果未来加 CI，应在 workflow YAML 中显式安装这两个工具（`brew install` 或 `go install`）并 **强制执行**（失败则阻止合并），将 G2 从 advisory 升级为真正的硬门控。文档中标注此项为 TODO。
 
 **原子化提交**：
 
@@ -182,12 +184,6 @@ check_tool() {
 
 因此 gitleaks 必须放在 **pre-commit**，而非 pre-push。osv-scanner 扫描 lockfile 是静态文件，放 pre-push 即可。
 
-**原子化提交**：
-
-| # | Commit | 内容 |
-|---|--------|------|
-| 3.1 | `chore: add gitleaks to pre-commit and osv-scanner to pre-push` | `.husky/pre-commit` + `.husky/pre-push` |
-
 **pre-commit 变为**：
 ```bash
 # L1: Unit tests + coverage gate (≥90%)
@@ -197,7 +193,7 @@ bun run test:unit:coverage
 bun run typecheck
 bunx lint-staged
 
-# G2: Secrets scanning (must be pre-commit, not pre-push)
+# G2: Secrets scanning (advisory — skips if tool not installed, see ⚠️ below)
 source "$(dirname "$0")/../scripts/ensure-tools.sh"
 if check_tool gitleaks "secrets scanning"; then
   gitleaks protect --staged --no-banner
@@ -226,7 +222,7 @@ fi
 
 #### Step 4a: 拆分 `tests/api/` 为两个独立目录
 
-**问题**：当前 `tests/api/` 混合了 route handler 测试（9 个文件）和 server action 测试（5 个文件）。它们验证的对象不同，运行环境也将不同：
+**问题**：当前 `tests/api/` 混合了 route handler 测试（8 个文件）和 server action 测试（6 个文件）。它们验证的对象不同，运行环境也将不同：
 - Route handler 测试 → 迁移为真 HTTP，需要独立 server
 - Server action 测试 → 保持 in-process import，不需要 server
 
@@ -243,7 +239,8 @@ tests/
 │   ├── cleanup.test.ts
 │   ├── webhook.test.ts
 │   └── tmp-upload.test.ts
-├── integration/            # (新建) Server action 测试 → 保持 in-process (L1)
+├── integration/            # (已存在，追加) Server action 测试 → 保持 in-process (L1)
+│   ├── links.test.ts       # 已有
 │   ├── edit-link.test.ts
 │   ├── folders.test.ts
 │   ├── settings.test.ts
@@ -254,16 +251,18 @@ tests/
 
 **归属变更**：
 - Server action 测试从 L2 降级为 **L1**（它们本质是 in-process 集成测试，依赖 `vi.mock` + D1 内存模拟器，和单元测试的运行环境一致）
-- `test:unit:coverage` 的 exclude 从 `tests/api/**` 不变
-- 新增 `test:integration` script 运行 `tests/integration/`
+- `test:unit:coverage` 的 exclude 需要**同时排除** `tests/api/**` 和 `tests/integration/**`，确保 coverage 指标仅反映纯 unit 测试。当前只排除了 `tests/api/**`，必须更新
+- 新增 `test:integration` script 运行 `tests/integration/`（独立执行，**无 coverage 收集**，避免污染 unit coverage 指标）
 - `test:api` 仅运行 `tests/api/`（route handler 测试）
+
+> **⚠️ 注意**：`tests/integration/` 目录已存在（含 `links.test.ts`）。当前 `test:unit:coverage` 未排除该目录，意味着 `links.test.ts` 已经被 coverage 运行包含。此步骤必须同时修复 exclude 规则，否则迁移过去的 server action 测试会被 `test:unit:coverage` 和 `test:integration` 双重执行，且 coverage 指标会从 "unit" 污染为 "unit + integration"。
 
 **原子化提交**：
 
 | # | Commit | 内容 |
 |---|--------|------|
 | 4a.1 | `refactor: move server action tests to tests/integration/` | `git mv` 6 个文件 |
-| 4a.2 | `chore: add test:integration script, update test:unit exclude` | `package.json` scripts 调整 |
+| 4a.2 | `chore: add test:integration script, exclude integration from unit coverage` | `package.json`: 新增 `test:integration`，`test:unit` 和 `test:unit:coverage` 的 exclude 追加 `'tests/integration/**'` |
 | 4a.3 | `chore: update pre-commit hook to include integration tests` | `.husky/pre-commit` 添加 `bun run test:integration` |
 
 #### Step 4b: Route Handler 测试迁移为真 HTTP
@@ -290,6 +289,18 @@ tests/
 
 > **关键范式转换**：从白盒（断言 mock 调用）转为黑盒（断言 HTTP 响应 + 数据库副作用）。
 > 这意味着测试不仅要改调用方式，**断言逻辑也需要全部重写**。
+
+> **⚠️ 可重复性风险**：此方案将 pre-push hook 从纯本地（in-process mock）变为依赖共享远程资源（Cloudflare D1 test DB、KV namespace）的状态化测试。这意味着 `git push` 是否成功将受到以下因素影响：
+> - **网络**：无法访问 Cloudflare API 时 push 被阻塞
+> - **凭证**：`.env.test.api` 中 `CF_D1_*` token 过期或缺失
+> - **数据污染**：共享 test DB 中残留的脏数据导致 seed/teardown 失败
+> - **并发冲突**：多人同时 push 时竞争同一 test DB
+>
+> **缓解措施**（执行 Phase 0 时必须落实）：
+> 1. `seed.ts` 的每个测试用例使用 **唯一前缀/namespace** 的测试数据（如 `test-{uuid}-` slug），避免用例间和并发间的数据碰撞
+> 2. 每个 test suite 的 `afterAll` **必须清理自己 seed 的数据**，不依赖全局 teardown
+> 3. `run-api-e2e.ts` 在网络不可用时应 **warn + skip**（与 G2 guard 同策略），而非 fail push。本地开发者不应因 Cloudflare API 临时故障而无法 push
+> 4. 如果可重复性问题在实践中频发，考虑退回为 in-process 方案或引入 miniflare 本地模拟器替代远程 D1
 
 ##### 现有 mock 依赖逐文件清单
 
@@ -392,14 +403,17 @@ tests/
 **.husky/pre-commit**：
 ```bash
 # L1: Unit tests + coverage gate (≥90%)
+# NOTE: test:unit:coverage excludes both tests/api/** and tests/integration/**
 bun run test:unit:coverage
+
+# L1: Integration tests (in-process, no coverage collection)
 bun run test:integration
 
 # G1: Static analysis
 bun run typecheck
 bunx lint-staged
 
-# G2: Secrets scanning
+# G2: Secrets scanning (advisory — skips if tool not installed)
 source "$(dirname "$0")/../scripts/ensure-tools.sh"
 if check_tool gitleaks "secrets scanning"; then
   gitleaks protect --staged --no-banner
@@ -408,10 +422,11 @@ fi
 
 **.husky/pre-push**：
 ```bash
-# L2: Integration/API tests (real HTTP)
+# L2: Integration/API tests (real HTTP, requires Cloudflare D1 test DB access)
+# NOTE: If network/credentials unavailable, run-api-e2e.ts will warn and skip
 bun run test:api
 
-# G2: Dependency vulnerability scanning
+# G2: Dependency vulnerability scanning (advisory — skips if tool not installed)
 source "$(dirname "$0")/../scripts/ensure-tools.sh"
 if check_tool osv-scanner "dependency audit" && [ -f bun.lock ]; then
   osv-scanner --lockfile=bun.lock
@@ -427,7 +442,7 @@ Step 1: G1 — fix type errors + tsc --noEmit     独立，必须先行
     ↓
 Step 2: G1 — ESLint strict                       依赖 Step 1（一起验证 pre-commit）
     ↓
-Step 3: G2 — 安全门控                              独立（可与 Step 2 并行）
+Step 3: G2 — 安全检查 (advisory)                  独立（可与 Step 2 并行）
     ↓
 Step 4a: 拆分 tests/api/ 目录                      独立于 G1/G2，但必须在 4b 之前
     ↓
