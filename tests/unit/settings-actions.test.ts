@@ -53,7 +53,7 @@ function makeExportedLink(overrides: Partial<ExportedLink> = {}): ExportedLink {
     clicks: 0,
     createdAt: '2026-01-15T00:00:00.000Z',
     ...overrides,
-  };
+  } as ExportedLink;
 }
 
 const FAKE_LINK = {

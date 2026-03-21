@@ -149,7 +149,6 @@ describe('D1Adapter', () => {
       const result = await adapter.getUserByAccount!({
         provider: 'github',
         providerAccountId: 'gh-123',
-        type: 'oauth',
       });
 
       expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining('JOIN accounts'), [
@@ -165,7 +164,6 @@ describe('D1Adapter', () => {
       const result = await adapter.getUserByAccount!({
         provider: 'github',
         providerAccountId: 'nonexistent',
-        type: 'oauth',
       });
 
       expect(result).toBeNull();
@@ -284,7 +282,7 @@ describe('D1Adapter', () => {
         refresh_token: 'rt-abc',
         access_token: 'at-xyz',
         expires_at: 3600,
-        token_type: 'bearer',
+        token_type: 'bearer' as Lowercase<string>,
         scope: 'read:user',
         id_token: 'id-tok',
         session_state: 'active',
