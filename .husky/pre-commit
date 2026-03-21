@@ -1,3 +1,12 @@
+# L1: Unit tests + coverage gate (≥90%)
 bun run test:unit:coverage
+
+# G1: Static analysis
 bun run typecheck
 bunx lint-staged
+
+# G2: Secrets scanning (advisory — skips if tool not installed)
+source "$(dirname "$0")/../scripts/ensure-tools.sh"
+if check_tool gitleaks "secrets scanning"; then
+  gitleaks protect --staged --no-banner
+fi

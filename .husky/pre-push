@@ -1,2 +1,8 @@
-# L3: API E2E tests (mock-level, port-free)
+# L2: Integration/API tests
 bun run test:api
+
+# G2: Dependency vulnerability scanning (advisory — skips if tool not installed)
+source "$(dirname "$0")/../scripts/ensure-tools.sh"
+if check_tool osv-scanner "dependency audit" && [ -f bun.lock ]; then
+  osv-scanner --lockfile=bun.lock
+fi
