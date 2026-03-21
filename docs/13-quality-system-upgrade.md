@@ -79,7 +79,7 @@
 
 | 文件 | 错误类型 | 数量 | 修复方案 |
 |------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：由 `typecheck` script 自动处理（见下方方案） |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：手工执行 `rm -rf .next/types && bun run build` 重建（见下方"已知局限"说明，此类 stale cache 无法自动检测） |
 | `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
 | `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
 | `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
@@ -138,7 +138,9 @@ exec bun x tsc --noEmit
 | 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 修复 4 处类型不匹配 | `auth-adapter.test.ts`（3 处）、`settings-actions.test.ts`（1 处） |
 | 1.3 | `chore: add typecheck script and pre-commit hook` | 新建 `scripts/typecheck.sh`，添加 npm script + hook | `scripts/typecheck.sh`、`package.json`、`.husky/pre-commit` |
 
-**验证**：`bun run typecheck` 输出 0 errors 后才可执行 1.3。
+**验证**（按阶段）：
+- 1.1 + 1.2 完成后：`bun x tsc --noEmit` 输出 0 errors（直接调用 tsc，因为 typecheck script 尚未创建）
+- 1.3 完成后：`bun run typecheck` 输出 0 errors（验证新脚本工作正常）
 
 ---
 
