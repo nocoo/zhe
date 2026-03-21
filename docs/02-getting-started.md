@@ -58,6 +58,12 @@ cp .env.example .env.local
 |------|------|
 | `WORKER_SECRET` | Worker 共享密钥（保护 `sync-kv` 和 `record-click` 端点） |
 
+### 可选变量（API E2E 测试）
+
+| 变量 | 说明 |
+|------|------|
+| `D1_TEST_DATABASE_ID` | 必须等于 `CLOUDFLARE_D1_DATABASE_ID`。安全防护：防止 API E2E 测试意外对非测试库执行写删操作 |
+
 ## 启动开发服务器
 
 ```bash

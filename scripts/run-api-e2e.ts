@@ -99,6 +99,26 @@ function checkPrerequisites(): boolean {
     console.warn('   Skipping real HTTP tests (soft gate). Set these in .env.local to enable.\n');
     return false;
   }
+
+  // Safety: require D1_TEST_DATABASE_ID to match CLOUDFLARE_D1_DATABASE_ID.
+  // This prevents accidentally running destructive E2E tests against a
+  // production or shared development database.
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  const activeDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  if (!testDbId) {
+    console.error('❌ [api-e2e] D1_TEST_DATABASE_ID not set.');
+    console.error('   Set D1_TEST_DATABASE_ID in .env.local to the D1 database ID used for testing.');
+    console.error('   This guard prevents running destructive tests against production.\n');
+    return false;
+  }
+  if (testDbId !== activeDbId) {
+    console.error('❌ [api-e2e] D1 safety check failed:');
+    console.error(`   CLOUDFLARE_D1_DATABASE_ID = ${activeDbId}`);
+    console.error(`   D1_TEST_DATABASE_ID        = ${testDbId}`);
+    console.error('   These must match. Refusing to run tests against a non-test database.\n');
+    return false;
+  }
+
   return true;
 }
 
