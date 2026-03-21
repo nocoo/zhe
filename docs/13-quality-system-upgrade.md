@@ -79,12 +79,20 @@
 
 | 文件 | 错误类型 | 数量 | 修复方案 |
 |------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`typecheck` script 定义为 `rm -rf .next/types && tsc --noEmit`，每次执行前自动清理，无需手工干预也无需修改 `tsconfig.json` |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`rm -rf .next/types && bun run build` 重新生成正确的 `.next/types`。`tsconfig.json` 的 `include` 包含 `.next/types/**/*.ts`，Next 路由类型检查应保留参与 tsc |
 | `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
 | `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
 | `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
 | `tests/unit/auth-adapter.test.ts` | `AdapterAccount` 类型不匹配 | 3 | 添加 `satisfies` 或修正 mock 数据类型 |
 | `tests/unit/settings-actions.test.ts` | `ExportedLink` optional 字段 | 1 | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null` |
+
+> **前置准备（非 commit，本地操作）**：`.next/types/` 中的 stale 文件造成 2 个 TS2307 错误。由于 `.next/` 在 `.gitignore` 中，这不是可提交的修复——每个本地有 stale cache 的开发者都需要自行重建。
+>
+> 执行命令：`rm -rf .next/types && bun run build`
+>
+> 重建后 `tsc --noEmit` 的 `.next/types` 错误消失，剩余 17 个测试文件类型错误由 commit 1.1-1.2 修复。
+>
+> **注意**：`tsc --noEmit` **不会**生成 `.next/types`——只有 `next dev` / `next build` 才会。`typecheck` script 定义为纯 `tsc --noEmit`，不应在其中删除或重建 `.next/types`，否则等于在绕过 Next 路由类型检查。如果开发者遇到 `.next/types` 相关的 tsc 错误，应执行 `bun run build` 重建而非删除。
 
 **改动文件**：
 - `tests/unit/backy-actions.test.ts` — 修复 13 处 `null as NextMiddleware`
@@ -92,14 +100,8 @@
 - `tests/unit/middleware.test.ts` — 修复 1 处
 - `tests/unit/auth-adapter.test.ts` — 修复 3 处类型
 - `tests/unit/settings-actions.test.ts` — 修复 1 处类型
-- `package.json` — 新增 `"typecheck": "rm -rf .next/types && tsc --noEmit"` script（先清理可能残留的 stale 生成类型，再执行检查）
+- `package.json` — 新增 `"typecheck": "tsc --noEmit"` script
 - `.husky/pre-commit` — 添加 `bun run typecheck`
-
-> **前置准备（非 commit，本地操作）**：`.next/types/app/api/webhook/[token]/route.ts` 引用了已重命名的路由（旧 `app/api/webhook/[token]/` → 现 `app/api/link/create/[token]/`），但 `.next/` 在 `.gitignore` 中不进仓库。这意味着：
-> - 任何本地有 stale `.next/types` 的开发者都会撞到同样的 TS2307 错误
-> - 这不是可提交、可传播的修复——别人拉到的 commit 不包含任何 `.next` 变更
->
-> 因此 `typecheck` script 定义为 `rm -rf .next/types && tsc --noEmit`，**每次 typecheck 前自动清理生成类型再重建**，从根本上消除 stale 文件问题。不需要单独的 commit 或手工清理步骤。
 
 **原子化提交**：
 
@@ -107,7 +109,7 @@
 |---|--------|------|
 | 1.1 | `fix: resolve NextMiddleware null type errors in test files` | 5 个测试文件 |
 | 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 2 个测试文件 |
-| 1.3 | `chore: add typecheck script and pre-commit hook` | `package.json`（含 `rm -rf .next/types && tsc --noEmit`）+ `.husky/pre-commit` |
+| 1.3 | `chore: add typecheck script and pre-commit hook` | `package.json`（`"typecheck": "tsc --noEmit"`）+ `.husky/pre-commit` |
 
 **验证**：`bun run typecheck` 输出 0 errors 后才可执行 1.3。
 
