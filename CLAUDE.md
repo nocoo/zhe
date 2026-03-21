@@ -148,23 +148,37 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 - **vitest 4 `coverage.all` behavior change**: vitest 4 removed the `coverage.all` option and now automatically includes all files matching `coverage.include` globs, even if no test imports them. This means `app/**/route.ts` in `coverage.include` pulls in all API route files at 0% coverage, tanking the overall percentage. Solution: remove `app/**/route.ts` from `coverage.include` since API routes are tested by L3 E2E tests, not L1 unit tests.
 - **`bun update --latest` can jump major versions unexpectedly**: Running `bun update --latest` on packages like `eslint` or `@types/node` can jump to incompatible major versions (e.g. eslint 9→10, @types/node 22→25). Always verify the installed version after `--latest` and pin to the correct major if needed. `eslint` 10.x is incompatible with `@rushstack/eslint-patch` used by `eslint-config-next`.
 - **Dirty flag belongs at D1 mutation sites, not KV client**: A "needs sync" dirty flag must be set when D1 is mutated (the source of truth changes), not when the KV cache write succeeds. Setting it on KV success inverts the semantics — KV write failures leave dirty=false, which causes the compensating cron sync to skip, leaving KV permanently stale. Always place cache-invalidation signals at the mutation source, not the cache write path.
+- **Always commit lockfile with dependency changes**: When adding/removing dependencies in `package.json`, always `bun install` and commit the updated `bun.lock` in the same commit. `--frozen-lockfile` in CI/CD (Railway Dockerfile) will reject builds if the lockfile doesn't match the manifest.
 
 ## Testing
 
-### Unit & Integration (Vitest)
+### Quality System: L1 + L2 + L3 + G1 + G2
 
-| Command | Description |
-|---------|-------------|
-| `bun run test` | Watch mode |
-| `bun run test:run` | Single run (all tests) |
-| `bun run test:unit` | Unit tests only (excludes `tests/api/`) |
-| `bun run test:unit:coverage` | Unit tests with coverage threshold enforcement |
-| `bun run test:api` | Vitest-based API E2E tests (mock-level) |
-| `bun run test:coverage` | Coverage report |
+| Layer | Name | Hook | Gate |
+|-------|------|------|------|
+| L1 | Unit/Component + Integration | pre-commit | Hard |
+| L2 | API E2E (real HTTP) | pre-push | Soft (skips if D1 unreachable) |
+| L3 | System/E2E (Playwright) | on-demand | Hard |
+| G1 | Static Analysis (tsc + ESLint strict) | pre-commit | Hard |
+| G2 | Security Advisory (gitleaks + osv-scanner) | pre-commit + pre-push | Advisory (skips if tools missing) |
+
+### Commands
+
+| Command | Layer | Description |
+|---------|-------|-------------|
+| `bun run test` | — | Watch mode |
+| `bun run test:run` | — | Single run (all tests) |
+| `bun run test:unit` | L1 | Unit tests only (excludes `tests/api/` and `tests/integration/`) |
+| `bun run test:unit:coverage` | L1 | Unit tests with coverage threshold enforcement |
+| `bun run test:integration` | L1 | Server Actions + route handler integration tests (in-process) |
+| `bun run test:api` | L2 | API E2E tests (starts dev server on port 17005, real HTTP) |
+| `bun run test:coverage` | — | Coverage report |
+| `bun run typecheck` | G1 | TypeScript type check (`tsc --noEmit`) |
+| `bun run lint` | G1 | ESLint strict (zero warnings) |
 
 ### E2E (Playwright)
 
-Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `PLAYWRIGHT=1` and `AUTH_URL=http://localhost:27005`. This is completely isolated from the regular dev server (port 7005).
+Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `PLAYWRIGHT=1` and `AUTH_URL=http://localhost:27005`. This is completely isolated from the regular dev server (port 7005) and API E2E server (port 17005).
 
 | Command | Description |
 |---------|-------------|
@@ -178,14 +192,15 @@ Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `
 - `AUTH_URL` is set to `http://localhost:27005` so NextAuth uses non-secure cookies
 - Global setup inserts the test user into D1; global teardown cleans up
 
-**Git hooks** (four-layer test architecture):
-- **pre-commit**: L1 (unit tests with coverage gate) + L2 (lint-staged, zero-warning)
-- **pre-push**: L3 (API E2E via `bun run test:api`)
-- **on-demand**: L4 (BDD E2E via `bun run test:e2e:pw`)
+**Git hooks:**
+- **pre-commit**: L1 (unit + integration + coverage gate) + G1 (typecheck + lint-staged) + G2 (gitleaks advisory)
+- **pre-push**: L2 (API E2E real HTTP, soft gate) + G2 (osv-scanner advisory)
+- **on-demand**: L3 (BDD E2E via `bun run test:e2e:pw`)
 
 ### Port Allocation
 
 | Port | Purpose |
 |------|---------|
 | 7005 | Development server (`bun run dev`) |
-| 27005 | Playwright BDD E2E test server (auto-managed) |
+| 17005 | L2 API E2E test server (`run-api-e2e.ts`, auto-managed) |
+| 27005 | L3 Playwright BDD E2E test server (auto-managed) |
