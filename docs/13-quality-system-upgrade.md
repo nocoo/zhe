@@ -265,22 +265,24 @@ fi
 
 ```
 tests/
-├── api/                    # (保留) Route handler 测试 → 将迁移为真 HTTP (L2)
-│   ├── api.test.ts
-│   ├── api-extra.test.ts
-│   ├── live.test.ts
+├── api/                    # Route handler 测试 (L2, pre-push)
+│   ├── api.test.ts          # Phase 2: real HTTP
+│   ├── api-extra.test.ts    # Phase 1: in-process (from tests/unit/)
+│   ├── backy-pull-route.test.ts  # Phase 1: in-process (split from backy.test.ts)
+│   ├── live.test.ts         # Phase 2: real HTTP
 │   ├── worker-status.test.ts
 │   ├── sync-kv.test.ts
+│   ├── sync-kv-route.test.ts  # Phase 1: in-process (from tests/unit/)
 │   ├── cleanup.test.ts
 │   ├── webhook.test.ts
 │   └── tmp-upload.test.ts
-├── integration/            # (已存在，追加) Server action 测试 → 保持 in-process (L1)
-│   ├── links.test.ts       # 已有
+├── integration/            # Server action 测试 → in-process (L1)
+│   ├── links.test.ts
 │   ├── edit-link.test.ts
 │   ├── folders.test.ts
 │   ├── settings.test.ts
 │   ├── upload.test.ts
-│   ├── backy.test.ts
+│   ├── backy.test.ts       # server actions only (route tests → api/)
 │   └── xray.test.ts
 ```
 
