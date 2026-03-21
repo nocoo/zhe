@@ -1,6 +1,7 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
+import tseslint from "typescript-eslint";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -9,15 +10,27 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+// Extract only rule configs from typescript-eslint strict, skip plugin
+// registration (already provided by next/typescript via FlatCompat)
+const strictRuleConfigs = tseslint.configs.strict.filter(
+  (config) => !config.plugins && config.rules,
+);
+
 const eslintConfig = [
   { ignores: [".next/", "coverage/", "drizzle/", "next-env.d.ts"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // Apply typescript-eslint strict rules (non-type-aware)
+  ...strictRuleConfigs,
   {
     rules: {
+      // Upgrade from warn to error
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Relax rules that conflict with Next.js patterns or have too many violations:
+      // 419 existing usages across source + tests — fix incrementally, not in bulk
+      "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
   {
