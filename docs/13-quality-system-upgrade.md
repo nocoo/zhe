@@ -79,37 +79,64 @@
 
 | 文件 | 错误类型 | 数量 | 修复方案 |
 |------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：`rm -rf .next/types && bun run build` 重新生成正确的 `.next/types`。`tsconfig.json` 的 `include` 包含 `.next/types/**/*.ts`，Next 路由类型检查应保留参与 tsc |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：由 `typecheck` script 自动处理（见下方方案） |
 | `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
 | `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
 | `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
 | `tests/unit/auth-adapter.test.ts` | `AdapterAccount` 类型不匹配 | 3 | 添加 `satisfies` 或修正 mock 数据类型 |
 | `tests/unit/settings-actions.test.ts` | `ExportedLink` optional 字段 | 1 | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null` |
 
-> **前置准备（非 commit，本地操作）**：`.next/types/` 中的 stale 文件造成 2 个 TS2307 错误。由于 `.next/` 在 `.gitignore` 中，这不是可提交的修复——每个本地有 stale cache 的开发者都需要自行重建。
->
-> 执行命令：`rm -rf .next/types && bun run build`
->
-> 重建后 `tsc --noEmit` 的 `.next/types` 错误消失，剩余 17 个测试文件类型错误由 commit 1.1-1.2 修复。
->
-> **注意**：`tsc --noEmit` **不会**生成 `.next/types`——只有 `next dev` / `next build` 才会。`typecheck` script 定义为纯 `tsc --noEmit`，不应在其中删除或重建 `.next/types`，否则等于在绕过 Next 路由类型检查。如果开发者遇到 `.next/types` 相关的 tsc 错误，应执行 `bun run build` 重建而非删除。
+**typecheck script 设计**：
+
+`tsc --noEmit` 本身不生成 `.next/types`（只有 `next dev`/`next build` 才会）。但 `tsconfig.json` 的 `include` 包含 `.next/types/**/*.ts`，意味着 Next 路由类型检查是 tsc 范围的一部分。如果 typecheck 只是纯 `tsc --noEmit`，其结果会因本地 `.next/types` 状态不同而不同：
+
+| 本地状态 | typecheck 行为 | 问题 |
+|----------|----------------|------|
+| 正常（已跑过 dev/build） | 包含路由类型检查 | ✅ |
+| stale cache（路由重命名后未 rebuild） | 报假阳性 TS2307 | ❌ 开发者需手工 rebuild |
+| 全新 checkout（从未 build） | 跳过路由类型检查 | ❌ 静默降级，不检查路由类型 |
+
+为保证 G1 作为硬门控的确定性，`typecheck` script 使用 shell 脚本确保 `.next/types` 存在且是最新的：
+
+```bash
+# scripts/typecheck.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure .next/types exists and is up-to-date
+# next build is the only way to generate these files (~14s)
+# Only runs when .next/types is missing; normal dev workflow (next dev) keeps it current
+if [ ! -d ".next/types" ]; then
+  echo "⚠️  .next/types not found — running next build to generate route types..."
+  bun run build --no-lint
+fi
+
+exec bun x tsc --noEmit
+```
+
+- **正常开发流程**（已跑过 `next dev`/`bun run build`）：`.next/types` 存在，直接跑 `tsc --noEmit`，0 额外开销
+- **全新 checkout**：自动触发 `bun run build --no-lint`（~14s），生成 `.next/types` 后再跑 tsc
+- **stale cache**：开发者仍需手工 `rm -rf .next/types && bun run build` 清理残留文件（脚本只检查目录是否存在，不检查内容是否过期）
+
+> **已知局限**：脚本无法检测 `.next/types` 内容是否与当前路由一致（stale 但目录存在的情况）。完全消除这个问题需要比较 `app/api/**/route.ts` 和 `.next/types/app/api/**/route.ts` 的文件列表，复杂度过高。实践中 stale cache 只在路由重命名/删除后出现，频率很低，手工 rebuild 可接受。
 
 **改动文件**：
-- `tests/unit/backy-actions.test.ts` — 修复 13 处 `null as NextMiddleware`
+- `tests/unit/backy-actions.test.ts` — 修复 8 处 `null as NextMiddleware`
 - `tests/unit/webhook-actions.test.ts` — 修复 4 处
 - `tests/unit/middleware.test.ts` — 修复 1 处
 - `tests/unit/auth-adapter.test.ts` — 修复 3 处类型
 - `tests/unit/settings-actions.test.ts` — 修复 1 处类型
-- `package.json` — 新增 `"typecheck": "tsc --noEmit"` script
+- `scripts/typecheck.sh` — 新建，确保 `.next/types` 存在后执行 `tsc --noEmit`
+- `package.json` — 新增 `"typecheck": "bash scripts/typecheck.sh"` script
 - `.husky/pre-commit` — 添加 `bun run typecheck`
 
 **原子化提交**：
 
-| # | Commit | 内容 |
-|---|--------|------|
-| 1.1 | `fix: resolve NextMiddleware null type errors in test files` | 5 个测试文件 |
-| 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 2 个测试文件 |
-| 1.3 | `chore: add typecheck script and pre-commit hook` | `package.json`（`"typecheck": "tsc --noEmit"`）+ `.husky/pre-commit` |
+| # | Commit | 内容 | 涉及文件 |
+|---|--------|------|----------|
+| 1.1 | `fix: resolve NextMiddleware null type errors in test files` | 修复 13 处 `null` → `null as unknown as NextMiddleware` | `backy-actions.test.ts`（8 处）、`webhook-actions.test.ts`（4 处）、`middleware.test.ts`（1 处） |
+| 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 修复 4 处类型不匹配 | `auth-adapter.test.ts`（3 处）、`settings-actions.test.ts`（1 处） |
+| 1.3 | `chore: add typecheck script and pre-commit hook` | 新建 `scripts/typecheck.sh`，添加 npm script + hook | `scripts/typecheck.sh`、`package.json`、`.husky/pre-commit` |
 
 **验证**：`bun run typecheck` 输出 0 errors 后才可执行 1.3。
 
