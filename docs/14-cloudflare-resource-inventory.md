@@ -107,15 +107,17 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 
 ### 核心设计：fail-safe env 覆盖
 
+> ⚠️ **本方案不改变任何层级的门控级别**。L2 仍然是 soft gate（`docs/05-testing.md:29`），L3 仍然是 on-demand 硬门控。隔离机制只改变 env 覆盖逻辑，不改变"缺凭证时测试跳不跳过"的策略。
+
 **原则**：所有测试资源（D1/R2/KV）在测试入口统一做检查 + env 覆盖。检查分两类：
 
-| 情况 | L2（soft gate） | L3（hard gate） |
+| 情况 | L2（soft gate，pre-push） | L3（hard gate，on-demand） |
 |------|----------------|----------------|
-| 测试变量**缺失** | ⚠️ warn + skip（保持 soft gate 契约，不阻塞 push） | ❌ throw/exit（L3 是 on-demand 硬门控，缺凭证是配置错误） |
+| 测试变量**缺失** | ⚠️ warn + skip（保持 soft gate 契约，不阻塞 push） | ❌ throw（缺凭证是配置错误） |
 | 测试变量**存在但等于生产值** | ❌ hard fail（安全问题，绝不允许） | ❌ hard fail |
 | 测试变量**存在且正确** | ✅ 覆盖 env，继续运行 | ✅ 覆盖 env，继续运行 |
 
-> **关键**：绝不静默回退到生产资源。要么用正确的测试资源运行，要么不运行。L2 选择"不运行"时是 warn+skip（符合 `docs/05-testing.md:29` 的 soft gate 定义），不是 hard exit。
+> **关键**：绝不静默回退到生产资源。要么用正确的测试资源运行，要么不运行。L2 选择"不运行"时是 warn+skip（与现有 `checkPrerequisites()` 返回 false 后的行为完全一致），不是 hard exit。
 
 #### D1: `D1_TEST_DATABASE_ID` 语义变更
 
@@ -376,9 +378,22 @@ export async function executeD1(sql, params, options): Promise<void> {
 
 `queryD1()` 也需添加同样的 guard。
 
-**`playwright.config.ts`** — webServer 的 env 通过 command 前缀注入（webServer 是独立 shell 进程，不受 globalSetup `process.env` 影响）：
+**`playwright.config.ts`** — webServer 的 env 通过 command 前缀注入（webServer 是独立 shell 进程，不受 globalSetup `process.env` 影响）。
+
+> ⚠️ `playwright.config.ts` 是 Node 脚本，不会自动读取 `.env.local`。KV 的 conditional 逻辑需要在 config 加载时知道 `CLOUDFLARE_KV_NAMESPACE_ID` 是否已配。因此**必须在 config 顶部显式加载 `.env.local`**（[Playwright 官方文档](https://playwright.dev/docs/test-parameterize#env-files)）。
 
 ```typescript
+// playwright.config.ts 顶部
+import { resolve } from 'path';
+import { loadEnvFile } from 'node:process';
+
+try {
+  loadEnvFile(resolve(process.cwd(), '.env.local'));
+} catch {
+  // .env.local doesn't exist — fine, env comes from shell
+}
+
+// ... 然后在 defineConfig 中：
 webServer: {
   command: [
     `PLAYWRIGHT=1`,
@@ -387,6 +402,7 @@ webServer: {
     `R2_BUCKET_NAME=\${R2_TEST_BUCKET_NAME:?R2_TEST_BUCKET_NAME not set}`,
     `R2_PUBLIC_DOMAIN=\${R2_TEST_PUBLIC_DOMAIN:?R2_TEST_PUBLIC_DOMAIN not set}`,
     // KV: 如果生产 ID 已配，用测试 ID 覆盖；否则不传（KV 不激活）
+    // process.env 已通过顶部 loadEnvFile 加载 .env.local
     process.env.CLOUDFLARE_KV_NAMESPACE_ID
       ? `CLOUDFLARE_KV_NAMESPACE_ID=\${KV_TEST_NAMESPACE_ID:?KV_TEST_NAMESPACE_ID not set}`
       : '',
