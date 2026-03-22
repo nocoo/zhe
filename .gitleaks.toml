@@ -1,0 +1,38 @@
+# gitleaks configuration — false-positive allowlists for zhe
+# See: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+  # Inherit all built-in rules, then layer our allowlists on top
+  useDefault = true
+
+# ---------------------------------------------------------------------------
+# Global path exclusions (apply to ALL rules)
+# ---------------------------------------------------------------------------
+[[allowlists]]
+  description = "Build artifacts and local env files — no real secrets in source control"
+  paths = [
+    '''\.next/''',
+    '''node_modules/''',
+    '''\.env\.local$''',
+    '''\.env\..*''',
+  ]
+
+# ---------------------------------------------------------------------------
+# Test files: mock API keys (sk-1234567890abcdef, test-key-*, etc.)
+# ---------------------------------------------------------------------------
+[[allowlists]]
+  description = "Test fixtures use hardcoded mock API keys — not real secrets"
+  targetRules = ["generic-api-key"]
+  paths = [
+    '''tests/''',
+  ]
+
+# ---------------------------------------------------------------------------
+# Documentation: example curl commands with placeholder keys
+# ---------------------------------------------------------------------------
+[[allowlists]]
+  description = "Docs contain example curl commands with placeholder auth values"
+  targetRules = ["generic-api-key", "curl-auth-header"]
+  paths = [
+    '''docs/''',
+  ]

@@ -4,5 +4,5 @@ bun run test:api
 # G2: Dependency vulnerability scanning (advisory — skips if tool not installed)
 source "$(dirname "$0")/../scripts/ensure-tools.sh"
 if check_tool osv-scanner "dependency audit" && [ -f bun.lock ]; then
-  osv-scanner --lockfile=bun.lock || echo "⚠️  osv-scanner found vulnerabilities (advisory only, not blocking push)"
+  osv-scanner scan --lockfile=bun.lock --config=.osv-scanner.toml || echo "⚠️  osv-scanner found vulnerabilities (advisory only, not blocking push)"
 fi
