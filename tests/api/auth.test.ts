@@ -43,12 +43,13 @@ describe('GET /api/auth', () => {
     expect(body['e2e-credentials'].type).toBe('credentials');
   });
 
-  it('GET /api/auth/session returns empty session for unauthenticated request', async () => {
+  it('GET /api/auth/session returns empty/null session for unauthenticated request', async () => {
     const res = await apiGet('/api/auth/session');
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    // Unauthenticated session is an empty object
-    expect(body).toEqual({});
+    // NextAuth returns null or {} for unauthenticated sessions depending on version
+    const isEmpty = body === null || (typeof body === 'object' && Object.keys(body).length === 0);
+    expect(isEmpty).toBe(true);
   });
 });

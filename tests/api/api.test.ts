@@ -11,7 +11,7 @@
  * 4. Full redirect flow — lookup → record-click → verify
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { apiGet, apiPost, jsonResponse } from './helpers/http';
+import { apiGet, apiPostWorker, jsonResponse } from './helpers/http';
 import { ensureTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
 
 // ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ describe('GET /api/lookup', () => {
 // ============================================================
 describe('POST /api/record-click', () => {
   it('returns 400 when linkId is missing', async () => {
-    const res = await apiPost('/api/record-click', {});
+    const res = await apiPostWorker('/api/record-click', {});
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(400);
@@ -105,7 +105,7 @@ describe('POST /api/record-click', () => {
   });
 
   it('returns 400 when linkId is not a number', async () => {
-    const res = await apiPost('/api/record-click', { linkId: 'abc' });
+    const res = await apiPostWorker('/api/record-click', { linkId: 'abc' });
 
     expect(res.status).toBe(400);
   });
@@ -113,7 +113,7 @@ describe('POST /api/record-click', () => {
   it('records a click successfully with full metadata', async () => {
     const { id: linkId, slug } = await seedLink({ slug: testSlug('click-full') });
 
-    const res = await apiPost('/api/record-click', {
+    const res = await apiPostWorker('/api/record-click', {
       linkId,
       device: 'desktop',
       browser: 'Chrome',
@@ -135,7 +135,7 @@ describe('POST /api/record-click', () => {
   it('records a click with minimal metadata', async () => {
     const { id: linkId } = await seedLink({ slug: testSlug('click-min') });
 
-    const res = await apiPost('/api/record-click', { linkId });
+    const res = await apiPostWorker('/api/record-click', { linkId });
     const { status, body } = await jsonResponse<{ success: boolean }>(res);
 
     expect(status).toBe(200);
@@ -166,7 +166,7 @@ describe('Redirect flow (lookup → analytics)', () => {
     expect(lookupBody.originalUrl).toBe('https://example.com/target');
 
     // Step 2: Record a click
-    const clickRes = await apiPost('/api/record-click', {
+    const clickRes = await apiPostWorker('/api/record-click', {
       linkId: lookupBody.id,
       device: 'mobile',
       browser: 'Safari',
@@ -185,7 +185,7 @@ describe('Redirect flow (lookup → analytics)', () => {
   it('multiple clicks increment counter correctly', async () => {
     // Record 3 clicks
     for (let i = 0; i < 3; i++) {
-      const res = await apiPost('/api/record-click', {
+      const res = await apiPostWorker('/api/record-click', {
         linkId: flowLinkId,
         device: i % 2 === 0 ? 'desktop' : 'mobile',
         browser: 'Chrome',

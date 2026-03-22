@@ -148,9 +148,9 @@ export async function ensureTestUser(): Promise<void> {
 // Link helpers
 // ---------------------------------------------------------------------------
 
-/** Generate a unique slug with a test prefix to avoid collisions. */
+/** Generate a unique lowercase slug with a test prefix to avoid collisions. */
 export function testSlug(prefix = 'api-e2e'): string {
-  return `${prefix}-${nanoid(8)}`;
+  return `${prefix}-${nanoid(8)}`.toLowerCase();
 }
 
 export interface SeedLinkOptions {

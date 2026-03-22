@@ -207,15 +207,15 @@ describe('POST /api/link/create/[token]', () => {
   });
 
   it('link created via POST appears in GET stats', async () => {
-    // Create a new webhook with its own user to get clean stats
-    const { token: freshToken, userId } = await seedWebhook({ userId: 'wh-stats-user' });
-
-    // Ensure user exists
+    // Create a dedicated user for clean stats
     const { executeD1 } = await import('./helpers/seed');
     await executeD1(
       'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
       ['wh-stats-user', 'WH Stats User', 'wh-stats@test.local'],
     );
+
+    // Create a new webhook with its own user to get clean stats
+    const { token: freshToken, userId } = await seedWebhook({ userId: 'wh-stats-user' });
 
     const res = await apiPost(`/api/link/create/${freshToken}`, {
       url: `https://example.com/${testSlug('wh-stats')}`,
