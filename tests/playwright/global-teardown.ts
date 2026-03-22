@@ -1,27 +1,38 @@
 /**
  * Playwright global teardown: clean up data created by E2E tests.
  *
- * Performs the same safety checks as global-setup.ts before any D1 operation.
+ * Safety model: globalSetup (same process) already performed the full
+ * four-layer safety check and overrode CLOUDFLARE_D1_DATABASE_ID to
+ * D1_TEST_DATABASE_ID.  Teardown inherits that override (same Node
+ * process), so we only need to *confirm* the override is still in effect
+ * and re-verify _test_marker before running destructive queries.
+ *
  * Uses softFail mode — teardown should never mask actual test failures.
  */
 import { resolve } from 'path';
 import { loadEnvFile, executeD1, queryD1, TEST_USER } from './helpers/d1';
 
 export default async function globalTeardown(): Promise<void> {
+  // Re-load .env.local so D1_TEST_DATABASE_ID is available for the
+  // confirmation check (loadEnvFile is a no-op for keys already set).
   loadEnvFile(resolve(process.cwd(), '.env.local'));
 
-  // ---- D1: hard gate ----
-  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  // ---- D1: confirm globalSetup override is still in effect ----
+  // globalSetup already set CLOUDFLARE_D1_DATABASE_ID = D1_TEST_DATABASE_ID.
+  // We verify they match (not that they differ — they *should* be equal now).
+  const currentDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
     throw new Error('D1_TEST_DATABASE_ID not set.');
   }
-  if (testDbId === prodDbId) {
-    throw new Error('D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. Refusing teardown on prod.');
+  if (currentDbId !== testDbId) {
+    throw new Error(
+      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${currentDbId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
+      'globalSetup override may not have taken effect. Refusing teardown.'
+    );
   }
-  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
 
-  // ---- R2: hard gate ----
+  // ---- R2: confirm test overrides ----
   const testBucket = process.env.R2_TEST_BUCKET_NAME;
   const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
   if (!testBucket || !testPublicDomain) {
@@ -29,10 +40,11 @@ export default async function globalTeardown(): Promise<void> {
       'R2_TEST_BUCKET_NAME and R2_TEST_PUBLIC_DOMAIN must both be set for teardown.'
     );
   }
+  // Re-apply in case something cleared them (defensive)
   process.env.R2_BUCKET_NAME = testBucket;
   process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
 
-  // ---- KV: conditional hard gate ----
+  // ---- KV: conditional check ----
   if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
     const testKvId = process.env.KV_TEST_NAMESPACE_ID;
     if (!testKvId) {
