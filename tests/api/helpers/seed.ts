@@ -185,13 +185,96 @@ export async function seedLink(options: SeedLinkOptions = {}): Promise<{ slug: s
 }
 
 // ---------------------------------------------------------------------------
+// Webhook helpers
+// ---------------------------------------------------------------------------
+
+export interface SeedWebhookOptions {
+  userId?: string;
+  rateLimit?: number;
+}
+
+/** Insert a webhook into D1 and return the token. */
+export async function seedWebhook(options: SeedWebhookOptions = {}): Promise<{ token: string; userId: string }> {
+  const userId = options.userId ?? TEST_USER.id;
+  const rateLimit = options.rateLimit ?? 60;
+  const token = `wh-${nanoid(16)}`;
+  const now = Math.floor(Date.now() / 1000);
+
+  // Delete existing webhook for user first (unique constraint on user_id)
+  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [userId]);
+  await executeD1(
+    'INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, ?, ?)',
+    [userId, token, rateLimit, now],
+  );
+
+  return { token, userId };
+}
+
+// ---------------------------------------------------------------------------
+// Folder helpers
+// ---------------------------------------------------------------------------
+
+/** Insert a folder into D1 and return the folder id. */
+export async function seedFolder(name: string, userId?: string): Promise<string> {
+  const uid = userId ?? TEST_USER.id;
+  const id = `folder-${nanoid(8)}`;
+  const now = Math.floor(Date.now() / 1000);
+
+  await executeD1(
+    'INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)',
+    [id, uid, name, 'folder', now],
+  );
+
+  return id;
+}
+
+// ---------------------------------------------------------------------------
+// Backy pull webhook helpers
+// ---------------------------------------------------------------------------
+
+/** Seed a backy pull key in user_settings and return the key. */
+export async function seedBackyPullKey(userId?: string): Promise<string> {
+  const uid = userId ?? TEST_USER.id;
+  const key = `bpk-${nanoid(16)}`;
+
+  // Upsert user_settings with the backy pull key
+  await executeD1(
+    `INSERT INTO user_settings (user_id, backy_pull_key, preview_style)
+     VALUES (?, ?, 'favicon')
+     ON CONFLICT(user_id) DO UPDATE SET backy_pull_key = excluded.backy_pull_key`,
+    [uid, key],
+  );
+
+  return key;
+}
+
+/** Seed backy push config (webhookUrl + apiKey) in user_settings. */
+export async function seedBackyPushConfig(
+  webhookUrl: string,
+  apiKey: string,
+  userId?: string,
+): Promise<void> {
+  const uid = userId ?? TEST_USER.id;
+
+  await executeD1(
+    `INSERT INTO user_settings (user_id, backy_webhook_url, backy_api_key, preview_style)
+     VALUES (?, ?, ?, 'favicon')
+     ON CONFLICT(user_id) DO UPDATE SET
+       backy_webhook_url = excluded.backy_webhook_url,
+       backy_api_key = excluded.backy_api_key`,
+    [uid, webhookUrl, apiKey],
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 
-/** Delete all links owned by the test user. Analytics cascade automatically. */
+/** Delete all test data owned by the test user. Analytics cascade automatically. */
 export async function cleanupTestData(): Promise<void> {
   await executeD1('DELETE FROM links WHERE user_id = ?', [TEST_USER.id]);
   await executeD1('DELETE FROM folders WHERE user_id = ?', [TEST_USER.id]);
   await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER.id]);
   await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id]);
+  await executeD1('DELETE FROM user_settings WHERE user_id = ?', [TEST_USER.id]);
 }
