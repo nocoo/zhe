@@ -31,6 +31,10 @@ export function loadEnvFile(filePath: string): void {
     // Strip surrounding quotes
     if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
+    } else {
+      // Strip inline comments for unquoted values (e.g. KEY=value # comment)
+      const commentIdx = value.indexOf(' #');
+      if (commentIdx >= 0) value = value.slice(0, commentIdx).trim();
     }
     if (!process.env[key]) {
       process.env[key] = value;
