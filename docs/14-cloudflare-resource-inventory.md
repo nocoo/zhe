@@ -107,18 +107,21 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 
 ### 核心设计：fail-safe env 覆盖
 
-> ⚠️ **本方案不改变任何层级的门控级别**。L2 仍然是 soft gate（`docs/05-testing.md:29`），L3 仍然是 on-demand 硬门控。隔离机制只改变 env 覆盖逻辑，不改变"缺凭证时测试跳不跳过"的策略。
+> ⚠️ **本方案不改变任何层级的门控级别**。L2 仍然是 soft gate（`docs/05-testing.md:29`），L3 仍然是 on-demand 硬门控。Phase 1 always runs，Phase 2 soft gate——这一结构不变。唯一的行为变化是：当 `CLOUDFLARE_KV_NAMESPACE_ID` 已配但 `KV_TEST_NAMESPACE_ID` 缺失时，L2 会**清除** KV 生产 ID 使 KV 功能降级为 no-op（而非跳过测试）。这是功能降级，不是门控变更。
 
 **原则**：所有测试资源（D1/R2/KV）在测试入口统一做检查 + env 覆盖。检查分两类：
 
 | 情况 | L2（soft gate，pre-push） | L3（hard gate，on-demand） |
 |------|----------------|----------------|
-| D1/KV 测试变量**缺失** | ⚠️ warn + skip Phase 2（KV 缺失跳过全部，D1 缺失跳过 Phase 2） | ❌ throw |
-| R2 测试变量**缺失** | ⚠️ warn only（L2 不依赖真实 R2，Phase 1 和 Phase 2 继续运行） | ❌ throw（L3 webServer 可能触发 R2） |
+| D1 测试变量**缺失** | ⚠️ warn + skip Phase 2（Phase 1 always runs，它用内存 D1 mock） | ❌ throw |
+| R2 测试变量**缺失** | ⚠️ warn only（L2 全路径 R2 操作均 mock，无真实写入） | ❌ throw（L3 webServer 可能触发 R2） |
+| KV 生产 ID 已配但测试 ID **缺失** | ⚠️ **清除**生产 KV ID + warn（`getKVCredentials()` → null，`kvPutLink()` no-op），Phase 1 继续运行 | ❌ throw |
 | 测试变量**存在但等于生产值** | ❌ hard fail（安全问题，绝不允许） | ❌ hard fail |
 | 测试变量**存在且正确** | ✅ 覆盖 env，继续运行 | ✅ 覆盖 env，继续运行 |
 
-> **关键**：绝不静默回退到生产资源。要么用正确的测试资源运行，要么不运行。L2 的 skip 粒度遵循现有 harness 设计——Phase 1 always runs（`run-api-e2e.ts:16`），只有 Phase 2 是 soft gate。
+> **关键原则**：绝不在有真实写入风险的路径上静默回退到生产资源。对于**已证明全路径 mock、无真实写入**的资源（如 L2 的 R2），允许 warn-only 继续运行，但必须在日志中明确标注原因。L2 的 skip 粒度严格遵循现有 harness 设计——Phase 1 always runs（`run-api-e2e.ts:16`），只有 Phase 2 是 soft gate。
+>
+> **KV 降级说明**：当 `CLOUDFLARE_KV_NAMESPACE_ID` 已配但 `KV_TEST_NAMESPACE_ID` 缺失时，L2 方案**清除** `CLOUDFLARE_KV_NAMESPACE_ID` 使 KV 功能停用。这是一种**功能降级**（KV 写入被禁用），不是门控级别变更（Phase 1 仍然运行，不跳过）。对比 D1 的处理差异：D1 Phase 1 用内存 mock 不需要真实 D1，所以缺少 D1 测试变量不影响 Phase 1；KV 没有 mock 层，只能通过清除 env 使其 no-op。
 
 #### D1: `D1_TEST_DATABASE_ID` 语义变更
 
@@ -144,29 +147,33 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
   5. process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId   // 覆盖
 ```
 
-#### R2: warn-only 覆盖（L2 不依赖真实 R2）
+#### R2: warn-only 覆盖（L2 全路径 R2 操作均 mock，无真实写入风险）
 
-L2 Phase 1 的 R2 操作全部被 mock（`tmp-upload.test.ts`、`cleanup.test.ts`），Phase 2（`api.test.ts`、`live.test.ts`）不涉及 R2。因此 R2 **不是** L2 的 skip 前提条件。
+L2 Phase 1 的 R2 操作全部被 mock（`tmp-upload.test.ts`、`cleanup.test.ts`），Phase 2（`api.test.ts`、`live.test.ts`）不涉及 R2。**L2 全部代码路径中不存在任何 unmocked 的 R2 写入**，因此 R2 **不是** L2 的 skip 前提条件。
 
 ```
 测试入口逻辑:
   1. 如果 R2_TEST_BUCKET_NAME 和 R2_TEST_PUBLIC_DOMAIN 都存在 → 覆盖
-  2. 如果缺少 → warn（dev server 使用生产 R2 config，但 L2 测试不做真实 R2 写入）
+  2. 如果缺少 → warn（标注"L2 全路径 R2 均 mock，无真实写入"），Phase 1 和 Phase 2 继续运行
   3. 不跳过 Phase 1 或 Phase 2
 ```
 
+> **与"绝不在有真实写入风险的路径上回退到生产资源"原则的关系**：R2 warn-only 是该原则的合法例外——L2 已证明全路径 mock，不存在真实写入风险。warn 日志明确标注了原因，不是"静默"回退。如果未来 L2 新增了 unmocked R2 写入路径，此处必须升级为 skip 或 hard fail。
+>
 > **L3 仍然是 hard gate**——Playwright webServer 启动真实 Next.js，可能触发 R2 操作。
 
-#### KV: conditional — Phase 1 前必须覆盖
+#### KV: conditional — Phase 1 前必须覆盖或清除
 
 ```
 测试入口逻辑（在 Phase 1 之前执行）:
   1. 如果 CLOUDFLARE_KV_NAMESPACE_ID 未配 → 跳过（KV 不激活，无风险）
-  2. 如果已配 → 断言 KV_TEST_NAMESPACE_ID 存在    // 缺少则 L2 soft skip / L3 throw
-  3. process.env.CLOUDFLARE_KV_NAMESPACE_ID = KV_TEST_NAMESPACE_ID
+  2. 如果已配 → 检查 KV_TEST_NAMESPACE_ID 是否存在
+     2a. 存在 → process.env.CLOUDFLARE_KV_NAMESPACE_ID = KV_TEST_NAMESPACE_ID
+     2b. 缺失 → L2: 清除 CLOUDFLARE_KV_NAMESPACE_ID + warn（KV 功能降级为 no-op）
+                  L3: throw（硬门控）
 ```
 
-> **为什么 KV 必须在 Phase 1 之前**：`webhook.test.ts` 的 POST 测试触发 `kvPutLink()`（`route.ts:199`）。如果 `CLOUDFLARE_KV_NAMESPACE_ID` 已配且未覆盖为测试 namespace，Phase 1 会写入生产 KV。
+> **为什么 L2 选择清除而非跳过**：`webhook.test.ts` 的 POST 测试触发 `kvPutLink()`（`route.ts:199`）。如果 `CLOUDFLARE_KV_NAMESPACE_ID` 已配且未处理，Phase 1 会写入生产 KV。但 Phase 1 always runs 是 L2 harness 的核心设计（`run-api-e2e.ts:16`），不能跳过。清除生产 KV ID 使 `getKVCredentials()` 返回 null → `kvPutLink()` 变 no-op，既保护了生产 KV，又不打破 Phase 1 的运行保证。
 
 ### Step 1: 创建测试资源
 
@@ -221,7 +228,7 @@ KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 
 **改动方案**：
 
-1. **KV 覆盖放在 `main()` 顶部**（Phase 1 需要，因为 `webhook.test.ts` 触发 `kvPutLink()`）
+1. **KV 覆盖或清除放在 `main()` 顶部**（Phase 1 需要，因为 `webhook.test.ts` 触发 `kvPutLink()`。有测试 ID 则覆盖，无则清除生产 ID 使 KV no-op）
 2. **D1 覆盖放在 Phase 1 之后、Phase 2 之前**（只有 Phase 2 需要真实 D1）
 3. **R2 覆盖也放在 Phase 2 之前**（Phase 1 全部 mock，Phase 2 不涉及 R2；但覆盖可防止 dev server 意外连生产 R2）
 4. **D1 缺失时跳过 Phase 2**（soft gate），R2 缺失时只 warn 不跳过（L2 不依赖真实 R2）
@@ -231,17 +238,20 @@ KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
 
-  // ---- KV: 覆盖必须在 Phase 1 之前（webhook.test.ts 触发 kvPutLink） ----
+  // ---- KV: 覆盖或清除，必须在 Phase 1 之前（webhook.test.ts 触发 kvPutLink） ----
   if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
     const testKvId = process.env.KV_TEST_NAMESPACE_ID;
-    if (!testKvId) {
+    if (testKvId) {
+      process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
+    } else {
+      // 清除生产 KV ID → getKVCredentials() returns null → kvPutLink() no-op
+      // 功能降级，但 Phase 1 不跳过
       console.warn(
         '⚠️  [api-e2e] CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
-        'Phase 1 webhook tests may write to production KV. Skipping (soft gate).'
+        'Clearing KV config to prevent production writes (KV features disabled for this run).'
       );
-      return;
+      delete process.env.CLOUDFLARE_KV_NAMESPACE_ID;
     }
-    process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
   }
 
   // Phase 1: always runs (in-process, memory D1 mock, R2 mocked)
@@ -275,7 +285,7 @@ async function main(): Promise<void> {
   } else {
     console.warn(
       '⚠️  [api-e2e] R2_TEST_BUCKET_NAME or R2_TEST_PUBLIC_DOMAIN not set. ' +
-      'Dev server will use production R2 config (L2 tests mock R2, no real writes).'
+      'Dev server retains production R2 config. This is safe: L2 tests mock all R2 operations, no real writes occur.'
     );
   }
 
@@ -307,7 +317,7 @@ function checkPrerequisites(): boolean {
 `seed.ts` 的 `d1Credentials()` 同样简化——`main()` 已保证覆盖正确，只需保留 `D1_TEST_DATABASE_ID` 存在性检查。
 
 **改动文件**：
-- `scripts/run-api-e2e.ts` — `main()` 分层 env 覆盖（KV→Phase1→D1/R2→Phase2）；`checkPrerequisites()` 简化
+- `scripts/run-api-e2e.ts` — `main()` 分层 env 覆盖（KV 覆盖或清除→Phase1→D1/R2→Phase2）；`checkPrerequisites()` 简化
 - `tests/api/helpers/seed.ts` — `d1Credentials()` 简化 guard
 
 #### 4b. L3 Playwright — 主进程 + webServer 子进程都要覆盖
@@ -522,7 +532,8 @@ KV 隔离**不能**用 `PLAYWRIGHT === '1'` 做分流——L2 Phase 1 不设置 
 **Conditional fail-closed 策略**：
 
 - 如果 `.env.local` 没有配 `CLOUDFLARE_KV_NAMESPACE_ID`（当前状态）→ `getKVCredentials()` 返回 null → `kvPutLink()` 静默跳过，**无风险**
-- 如果 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID`（未来可能）→ 测试入口**必须**要求 `KV_TEST_NAMESPACE_ID` 存在，否则拒绝启动 → **fail-closed**
+- 如果 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID` 且有 `KV_TEST_NAMESPACE_ID` → env 覆盖，写入测试 KV
+- 如果 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID` 但缺少 `KV_TEST_NAMESPACE_ID` → L2 **清除**生产 KV ID（功能降级为 no-op，Phase 1 仍运行）；L3 **throw**（硬门控）
 
 覆盖逻辑已包含在 4a（`run-api-e2e.ts` 的 `main()`）和 4b（`global-setup.ts` / `global-teardown.ts` / `playwright.config.ts`）的代码示例中。
 
@@ -573,7 +584,7 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 |---|--------|------|----------|
 | 1 | `feat: create test D1, R2, KV resources` | CLI 创建资源，记录 UUID/ID 到本文档 | `docs/14-*` |
 | 2 | `feat: initialize zhe-db-test schema` | 对测试 D1 执行全部迁移 | — (CLI only) |
-| 3 | `fix: isolate L2 env to use test D1/R2/KV resources` | `main()` 分层覆盖（KV→Phase1→D1/R2→Phase2）；Phase 1 always runs；`checkPrerequisites()` + `seed.ts` 简化 guard | `scripts/run-api-e2e.ts`, `tests/api/helpers/seed.ts` |
+| 3 | `fix: isolate L2 env to use test D1/R2/KV resources` | `main()` 分层覆盖（KV 覆盖或清除→Phase1→D1/R2→Phase2）；Phase 1 always runs；`checkPrerequisites()` + `seed.ts` 简化 guard | `scripts/run-api-e2e.ts`, `tests/api/helpers/seed.ts` |
 | 4 | `fix: isolate L3 env to use test D1/R2/KV resources` | global-setup/teardown hard gate + 覆盖 env；d1.ts 添加 guard；playwright.config.ts webServer env（`${VAR:?msg}` hard gate） | `tests/playwright/global-setup.ts`, `tests/playwright/global-teardown.ts`, `tests/playwright/helpers/d1.ts`, `playwright.config.ts` |
 | 5 | `feat: create .env.example with test resource vars` | 新建 `.env.example` | `.env.example` |
 | 6 | `docs: update getting-started and testing docs for test isolation` | 更新文档引用 | `docs/02-*`, `docs/05-*`, `CLAUDE.md` |
@@ -587,10 +598,10 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `zhe-test` KV namespace 已创建，ID 已记录
 - [ ] `zhe-db-test` schema 已初始化（全部迁移执行完毕）
 - [ ] `.env.local` 中 `D1_TEST_DATABASE_ID` 指向 `zhe-db-test`（**不等于** `CLOUDFLARE_D1_DATABASE_ID`）
-- [ ] `run-api-e2e.ts` `main()` 分层覆盖：KV→Phase1→D1/R2→Phase2
+- [ ] `run-api-e2e.ts` `main()` 分层覆盖：KV（覆盖或清除）→Phase1→D1/R2→Phase2
 - [ ] 缺少 `D1_TEST_DATABASE_ID` 时：Phase 1 运行，Phase 2 warn+skip
 - [ ] 缺少 `R2_TEST_*` 时：Phase 1 和 Phase 2 都运行，仅 warn
-- [ ] `CLOUDFLARE_KV_NAMESPACE_ID` 已配但缺少 `KV_TEST_NAMESPACE_ID` 时：Phase 1 之前 warn+skip
+- [ ] `CLOUDFLARE_KV_NAMESPACE_ID` 已配但缺少 `KV_TEST_NAMESPACE_ID` 时：KV ID 被清除，Phase 1 正常运行（KV 功能降级为 no-op）
 - [ ] `global-setup.ts` 和 `global-teardown.ts` 对 D1/R2 hard gate + KV conditional hard gate
 - [ ] `playwright.config.ts` webServer command 使用 `${VAR:?msg}` 语法（缺少时 shell 报错终止）
 - [ ] `bun run test:api` Phase 1 通过（内存 D1 mock；webhook 建链写入 `zhe-test` KV 或 KV 不激活）
@@ -602,7 +613,7 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
 - [ ] 故意删除 `R2_TEST_BUCKET_NAME` 后运行 `bun run test:api`，确认 warn 但 Phase 1+2 仍运行
 - [ ] 故意设置 `D1_TEST_DATABASE_ID` 等于 `CLOUDFLARE_D1_DATABASE_ID` 后运行 `bun run test:api`，确认 hard fail
-- [ ] 如果配了 `CLOUDFLARE_KV_NAMESPACE_ID`，故意删除 `KV_TEST_NAMESPACE_ID` 后运行 `bun run test:api`，确认 warn+skip（Phase 1 之前）
+- [ ] 如果配了 `CLOUDFLARE_KV_NAMESPACE_ID`，故意删除 `KV_TEST_NAMESPACE_ID` 后运行 `bun run test:api`，确认 KV ID 被清除 + warn，Phase 1 仍然运行
 
 ---
 
