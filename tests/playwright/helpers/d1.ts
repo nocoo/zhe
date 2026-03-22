@@ -48,6 +48,9 @@ export interface ExecuteD1Options {
  *
  * Requires CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, and
  * CLOUDFLARE_API_TOKEN to be set in the environment.
+ *
+ * Safety: verifies CLOUDFLARE_D1_DATABASE_ID has been overridden to
+ * D1_TEST_DATABASE_ID by globalSetup before executing any query.
  */
 export async function executeD1(
   sql: string,
@@ -65,6 +68,16 @@ export async function executeD1(
       return;
     }
     throw new Error(msg);
+  }
+
+  // Safety: CLOUDFLARE_D1_DATABASE_ID must equal D1_TEST_DATABASE_ID (globalSetup override)
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
+  if (databaseId !== testDbId) {
+    throw new Error(
+      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
+      'globalSetup should have overridden this. Refusing to operate on non-test database.'
+    );
   }
 
   const res = await fetch(
@@ -106,6 +119,9 @@ export async function executeD1(
  *
  * Unlike `executeD1` (which returns void), this parses and returns
  * the `result[0].results` array from the D1 HTTP API response.
+ *
+ * Safety: verifies CLOUDFLARE_D1_DATABASE_ID has been overridden to
+ * D1_TEST_DATABASE_ID by globalSetup before executing any query.
  */
 export async function queryD1<T = Record<string, unknown>>(
   sql: string,
@@ -117,6 +133,16 @@ export async function queryD1<T = Record<string, unknown>>(
 
   if (!accountId || !databaseId || !token) {
     throw new Error('D1 credentials not configured.');
+  }
+
+  // Safety: CLOUDFLARE_D1_DATABASE_ID must equal D1_TEST_DATABASE_ID (globalSetup override)
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
+  if (databaseId !== testDbId) {
+    throw new Error(
+      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
+      'globalSetup should have overridden this. Refusing to operate on non-test database.'
+    );
   }
 
   const res = await fetch(
