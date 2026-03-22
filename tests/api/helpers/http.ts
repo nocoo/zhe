@@ -17,16 +17,20 @@ export async function apiGet(path: string, headers?: Record<string, string>): Pr
   return fetch(url(path), { headers });
 }
 
-/** POST request to an API path with JSON body. */
+/** POST request to an API path with optional JSON body. */
 export async function apiPost(
   path: string,
   body: unknown,
   headers?: Record<string, string>,
 ): Promise<Response> {
+  const hasBody = body !== null && body !== undefined;
   return fetch(url(path), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body),
+    headers: {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...headers,
+    },
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 }
 

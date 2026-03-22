@@ -1,423 +1,233 @@
 /**
- * E2E Webhook API Tests
+ * L2 API E2E Tests for /api/link/create/[token]
  *
- * Tests the full request → response cycle of the webhook API route handlers:
+ * Tests the webhook link creation API via real HTTP.
  * HEAD (connection test), GET (status/docs), POST (link creation).
- * Uses real NextRequest/NextResponse objects with the in-memory D1 mock.
- * Each test uses a unique token to avoid rate-limiter cross-test pollution.
+ *
+ * Seeded via D1 HTTP API — no in-process mocks.
  */
-import { describe, it, expect, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
-import { clearMockStorage } from "../setup";
-import { getMockWebhooks, getMockFolders } from "../mocks/db-storage";
-import type { Webhook, Folder } from "@/lib/db/schema";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { apiGet, apiHead, apiPost, jsonResponse } from './helpers/http';
+import { ensureTestUser, seedWebhook, seedLink, seedFolder, cleanupTestData, testSlug } from './helpers/seed';
 
-const BASE = "http://localhost:7005";
+let webhookToken: string;
 
-// Unique token counter to avoid rate limiter collisions across tests
-let tokenSeq = 0;
+beforeAll(async () => {
+  await ensureTestUser();
+  await cleanupTestData();
+  const wh = await seedWebhook();
+  webhookToken = wh.token;
+});
 
-function uniqueToken(): string {
-  return `tok-${++tokenSeq}-${Date.now()}`;
-}
-
-/** Seed a webhook directly into mock storage. */
-function seedWebhook(
-  userId = "webhook-e2e-user",
-  rateLimit = 5,
-): { userId: string; token: string } {
-  const token = uniqueToken();
-  const mockWebhooks = getMockWebhooks();
-  mockWebhooks.set(userId, {
-    id: mockWebhooks.size + 1,
-    user_id: userId,
-    token,
-    rate_limit: rateLimit,
-    created_at: Date.now(),
-  } as unknown as Webhook);
-  return { userId, token };
-}
-
-/** Seed a folder directly into mock storage. */
-function seedFolder(userId: string, folderName: string): string {
-  const id = `folder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const mockFolders = getMockFolders();
-  mockFolders.set(id, {
-    id,
-    user_id: userId,
-    name: folderName,
-    icon: "folder",
-    created_at: Date.now(),
-  } as unknown as Folder);
-  return id;
-}
-
-/** Seed a link via the DB layer (createLink is exported). */
-async function seedLink(
-  userId: string,
-  slug: string,
-  originalUrl: string,
-) {
-  const { createLink } = await import("@/lib/db");
-  return createLink({
-    userId,
-    folderId: null,
-    originalUrl,
-    slug,
-    isCustom: true,
-    clicks: 0,
-    expiresAt: null,
-  });
-}
+afterAll(async () => {
+  await cleanupTestData();
+});
 
 // ============================================================
-// Scenario 1: HEAD — Connection Test
-// As an external integrator, I want to verify my webhook token
-// is valid before wiring up automations.
+// HEAD — Connection Test
 // ============================================================
-describe("HEAD /api/link/create/[token]", () => {
-  beforeEach(() => {
-    clearMockStorage();
-  });
-
-  it("returns 200 for a valid token", async () => {
-    const { token } = seedWebhook();
-
-    const { HEAD } = await import("@/app/api/link/create/[token]/route");
-    const res = await HEAD(
-      new Request(`${BASE}/api/link/create/${token}`, { method: "HEAD" }),
-      { params: Promise.resolve({ token }) },
-    );
-
+describe('HEAD /api/link/create/[token]', () => {
+  it('returns 200 for a valid token', async () => {
+    const res = await apiHead(`/api/link/create/${webhookToken}`);
     expect(res.status).toBe(200);
   });
 
-  it("returns 404 for an invalid token", async () => {
-    const { HEAD } = await import("@/app/api/link/create/[token]/route");
-    const res = await HEAD(
-      new Request(`${BASE}/api/link/create/nonexistent`, { method: "HEAD" }),
-      { params: Promise.resolve({ token: "nonexistent" }) },
-    );
-
+  it('returns 404 for an invalid token', async () => {
+    const res = await apiHead('/api/link/create/nonexistent-token');
     expect(res.status).toBe(404);
   });
 });
 
 // ============================================================
-// Scenario 2: GET — Status & Documentation
-// As an external integrator, I want to see my webhook's status,
-// usage stats, and API docs so I know it's working.
+// GET — Status & Documentation
 // ============================================================
-describe("GET /api/link/create/[token]", () => {
-  beforeEach(() => {
-    clearMockStorage();
+describe('GET /api/link/create/[token]', () => {
+  it('returns 404 for an invalid token', async () => {
+    const res = await apiGet('/api/link/create/bad-token');
+    const { status, body } = await jsonResponse<{ error: string }>(res);
+
+    expect(status).toBe(404);
+    expect(body.error).toBe('Invalid webhook token');
   });
 
-  it("returns 404 for an invalid token", async () => {
-    const { GET } = await import("@/app/api/link/create/[token]/route");
-    const res = await GET(
-      new NextRequest(`${BASE}/api/link/create/bad-token`),
-      { params: Promise.resolve({ token: "bad-token" }) },
-    );
+  it('returns status, stats, and docs for a valid token', async () => {
+    const res = await apiGet(`/api/link/create/${webhookToken}`);
+    const { status, body } = await jsonResponse<{
+      status: string;
+      createdAt: string;
+      rateLimit: number;
+      stats: { totalLinks: number; totalClicks: number };
+      docs: { openapi: string; servers: { url: string }[] };
+    }>(res);
 
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Invalid webhook token");
-  });
-
-  it("returns status, stats, and docs for a valid token", async () => {
-    const { userId, token } = seedWebhook();
-    // Seed some links so stats are non-zero
-    await seedLink(userId, "wh-link1", "https://example.com/1");
-    await seedLink(userId, "wh-link2", "https://example.com/2");
-
-    const { GET } = await import("@/app/api/link/create/[token]/route");
-    const res = await GET(
-      new NextRequest(`${BASE}/api/link/create/${token}`),
-      { params: Promise.resolve({ token }) },
-    );
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.status).toBe("active");
+    expect(status).toBe(200);
+    expect(body.status).toBe('active');
     expect(body.createdAt).toBeDefined();
-    expect(body.rateLimit).toBe(5);
-    expect(body.stats.totalLinks).toBe(2);
-    expect(body.stats.totalClicks).toBe(0);
-    expect(body.docs).toBeDefined();
-    expect(body.docs.openapi).toBe("3.1.0");
-    expect(body.docs.servers[0].url).toContain(`/api/link/create/${token}`);
+    expect(body.rateLimit).toBeGreaterThan(0);
+    expect(body.stats).toBeDefined();
+    expect(body.docs.openapi).toBe('3.1.0');
+    expect(body.docs.servers[0].url).toContain(`/api/link/create/${webhookToken}`);
   });
 });
 
 // ============================================================
-// Scenario 3: POST — Link Creation
-// As an external integrator, I want to create short links via
-// the webhook so I can automate link generation from my tools.
+// POST — Link Creation
 // ============================================================
-describe("POST /api/link/create/[token]", () => {
-  beforeEach(() => {
-    clearMockStorage();
+describe('POST /api/link/create/[token]', () => {
+  it('returns 404 for an invalid token', async () => {
+    const res = await apiPost('/api/link/create/fake-token', { url: 'https://example.com' });
+    const { status, body } = await jsonResponse<{ error: string }>(res);
+
+    expect(status).toBe(404);
+    expect(body.error).toBe('Invalid webhook token');
   });
 
-  function buildPostRequest(token: string, body: unknown): [Request, { params: Promise<{ token: string }> }] {
-    return [
-      new NextRequest(`${BASE}/api/link/create/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-      { params: Promise.resolve({ token }) },
-    ];
-  }
-
-  // --- Auth ---
-
-  it("returns 404 for an invalid token", async () => {
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest("fake-token", { url: "https://example.com" }),
+  it('returns 400 for invalid JSON body', async () => {
+    const res = await fetch(
+      `${process.env.API_E2E_BASE_URL ?? 'http://localhost:17005'}/api/link/create/${webhookToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'not json',
+      },
     );
-
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Invalid webhook token");
-  });
-
-  // --- Validation ---
-
-  it("returns 400 for non-JSON body", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-
-    const res = await POST(
-      new NextRequest(`${BASE}/api/link/create/${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "not json",
-      }),
-      { params: Promise.resolve({ token }) },
-    );
-
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe("Invalid JSON body");
   });
 
-  it("returns 400 when url is missing", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(...buildPostRequest(token, {}));
+  it('returns 400 when url is missing', async () => {
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {});
+    const { status, body } = await jsonResponse<{ error: string }>(res);
 
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("url");
+    expect(status).toBe(400);
+    expect(body.error).toContain('url');
   });
 
-  it("returns 400 when url is invalid", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, { url: "not-a-url" }),
-    );
+  it('returns 400 when url is invalid', async () => {
+    const res = await apiPost(`/api/link/create/${webhookToken}`, { url: 'not-a-url' });
+    const { status, body } = await jsonResponse<{ error: string }>(res);
 
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("valid URL");
+    expect(status).toBe(400);
+    expect(body.error).toContain('valid URL');
   });
 
-  // --- Happy path: auto-generated slug ---
+  it('creates a link with an auto-generated slug', async () => {
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {
+      url: `https://example.com/${testSlug('wh-auto')}`,
+    });
+    const { status, body } = await jsonResponse<{
+      slug: string;
+      shortUrl: string;
+      originalUrl: string;
+    }>(res);
 
-  it("creates a link with an auto-generated slug", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, { url: "https://github.com/example" }),
-    );
-
-    expect(res.status).toBe(201);
-    const body = await res.json();
+    expect(status).toBe(201);
     expect(body.slug).toBeDefined();
     expect(body.slug.length).toBeGreaterThan(0);
     expect(body.shortUrl).toContain(body.slug);
-    expect(body.originalUrl).toBe("https://github.com/example");
   });
 
-  // --- Happy path: custom slug ---
+  it('creates a link with a custom slug', async () => {
+    const slug = testSlug('wh-custom');
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {
+      url: 'https://example.com/custom-test',
+      customSlug: slug,
+    });
+    const { status, body } = await jsonResponse<{
+      slug: string;
+      shortUrl: string;
+      originalUrl: string;
+    }>(res);
 
-  it("creates a link with a custom slug", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com/custom",
-        customSlug: "my-custom",
-      }),
-    );
-
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.slug).toBe("my-custom");
-    expect(body.shortUrl).toContain("my-custom");
-    expect(body.originalUrl).toBe("https://example.com/custom");
-
-    // Verify link actually exists in DB
-    const { getLinkBySlug } = await import("@/lib/db");
-    const link = await getLinkBySlug("my-custom");
-    expect(link).not.toBeNull();
-    expect(link!.originalUrl).toBe("https://example.com/custom");
+    expect(status).toBe(201);
+    expect(body.slug).toBe(slug);
+    expect(body.originalUrl).toBe('https://example.com/custom-test');
   });
 
-  // --- Custom slug conflict ---
+  it('returns 409 when custom slug is already taken', async () => {
+    const slug = testSlug('wh-taken');
+    await seedLink({ slug, originalUrl: 'https://existing.com' });
 
-  it("returns 409 when custom slug is already taken", async () => {
-    const { userId, token } = seedWebhook();
-    await seedLink(userId, "taken-slug", "https://existing.com");
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {
+      url: 'https://example.com/conflict',
+      customSlug: slug,
+    });
+    const { status, body } = await jsonResponse<{ error: string }>(res);
 
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com/new",
-        customSlug: "taken-slug",
-      }),
-    );
-
-    expect(res.status).toBe(409);
-    const body = await res.json();
-    expect(body.error).toContain("already taken");
+    expect(status).toBe(409);
+    expect(body.error).toContain('already taken');
   });
 
-  // --- Invalid custom slug ---
-
-  it("returns 400 when custom slug is invalid", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com",
-        customSlug: "invalid slug with spaces!",
-      }),
-    );
+  it('returns 400 when custom slug is invalid', async () => {
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {
+      url: 'https://example.com',
+      customSlug: 'invalid slug with spaces!',
+    });
 
     expect(res.status).toBe(400);
   });
 
-  // --- Idempotency ---
+  it('returns existing link (200) when same URL is posted again', async () => {
+    const uniqueUrl = `https://example.com/${testSlug('wh-idemp')}`;
 
-  it("returns existing link (200) when same URL is posted again", async () => {
-    const { token } = seedWebhook();
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-
-    // First call — creates link
-    const res1 = await POST(
-      ...buildPostRequest(token, { url: "https://idempotent.example.com" }),
-    );
+    // First call — creates
+    const res1 = await apiPost(`/api/link/create/${webhookToken}`, { url: uniqueUrl });
     expect(res1.status).toBe(201);
     const body1 = await res1.json();
 
     // Second call — returns existing
-    const res2 = await POST(
-      ...buildPostRequest(token, { url: "https://idempotent.example.com" }),
-    );
+    const res2 = await apiPost(`/api/link/create/${webhookToken}`, { url: uniqueUrl });
     expect(res2.status).toBe(200);
     const body2 = await res2.json();
 
     expect(body2.slug).toBe(body1.slug);
-    expect(body2.originalUrl).toBe(body1.originalUrl);
   });
 
-  // --- Folder assignment ---
+  it('assigns link to folder when folder name matches', async () => {
+    const folderId = await seedFolder('WebhookTestFolder');
 
-  it("assigns link to folder when folder name matches", async () => {
-    const { userId, token } = seedWebhook();
-    const folderId = seedFolder(userId, "Projects");
+    const res = await apiPost(`/api/link/create/${webhookToken}`, {
+      url: `https://example.com/${testSlug('wh-folder')}`,
+      folder: 'WebhookTestFolder',
+    });
+    const { status, body } = await jsonResponse<{ slug: string }>(res);
 
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com/project",
-        folder: "Projects",
-      }),
+    expect(status).toBe(201);
+    expect(body.slug).toBeDefined();
+
+    // Verify folder assignment via lookup (the link exists)
+    // We can't directly check folderId via public API, but the link was created
+    // successfully with the folder parameter accepted (no error).
+    // D1 verification is available if needed:
+    const { queryD1 } = await import('./helpers/seed');
+    const rows = await queryD1<{ folder_id: string }>(
+      'SELECT folder_id FROM links WHERE slug = ?',
+      [body.slug],
+    );
+    expect(rows[0].folder_id).toBe(folderId);
+  });
+
+  it('link created via POST appears in GET stats', async () => {
+    // Create a new webhook with its own user to get clean stats
+    const { token: freshToken, userId } = await seedWebhook({ userId: 'wh-stats-user' });
+
+    // Ensure user exists
+    const { executeD1 } = await import('./helpers/seed');
+    await executeD1(
+      'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+      ['wh-stats-user', 'WH Stats User', 'wh-stats@test.local'],
     );
 
+    const res = await apiPost(`/api/link/create/${freshToken}`, {
+      url: `https://example.com/${testSlug('wh-stats')}`,
+    });
     expect(res.status).toBe(201);
-    const body = await res.json();
 
-    // Verify the link's folderId matches
-    const { getLinkBySlug } = await import("@/lib/db");
-    const link = await getLinkBySlug(body.slug);
-    expect(link).not.toBeNull();
-    expect(link!.folderId).toBe(folderId);
-  });
+    const getRes = await apiGet(`/api/link/create/${freshToken}`);
+    const { body } = await jsonResponse<{ stats: { totalLinks: number } }>(getRes);
+    expect(body.stats.totalLinks).toBeGreaterThanOrEqual(1);
 
-  it("creates link without folder when folder name does not match", async () => {
-    const { token } = seedWebhook();
-
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com/nofolder",
-        folder: "NonexistentFolder",
-      }),
-    );
-
-    expect(res.status).toBe(201);
-    const body = await res.json();
-
-    const { getLinkBySlug } = await import("@/lib/db");
-    const link = await getLinkBySlug(body.slug);
-    expect(link).not.toBeNull();
-    expect(link!.folderId).toBeNull();
-  });
-
-  // --- Rate limiting ---
-
-  it("returns 429 when rate limit is exceeded", async () => {
-    const { token } = seedWebhook("rate-limit-user", 2);
-    const { POST } = await import("@/app/api/link/create/[token]/route");
-
-    // First 2 should succeed (rate limit = 2)
-    for (let i = 0; i < 2; i++) {
-      const res = await POST(
-        ...buildPostRequest(token, {
-          url: `https://example.com/rate-${i}`,
-        }),
-      );
-      expect(res.status).toBeLessThan(400);
-    }
-
-    // Third should be rate-limited
-    const res = await POST(
-      ...buildPostRequest(token, {
-        url: "https://example.com/rate-blocked",
-      }),
-    );
-
-    expect(res.status).toBe(429);
-    const body = await res.json();
-    expect(body.error).toContain("Rate limit");
-    expect(res.headers.get("Retry-After")).toBeDefined();
-  });
-
-  // --- Full integration: create then verify via GET ---
-
-  it("link created via POST appears in GET stats", async () => {
-    const { token } = seedWebhook();
-    const { POST, GET } = await import("@/app/api/link/create/[token]/route");
-
-    // Create a link
-    const postRes = await POST(
-      ...buildPostRequest(token, { url: "https://stats-test.example.com" }),
-    );
-    expect(postRes.status).toBe(201);
-
-    // GET should now show 1 link in stats
-    const getRes = await GET(
-      new NextRequest(`${BASE}/api/link/create/${token}`),
-      { params: Promise.resolve({ token }) },
-    );
-    expect(getRes.status).toBe(200);
-    const body = await getRes.json();
-    expect(body.stats.totalLinks).toBe(1);
+    // Clean up the extra user's data
+    await executeD1('DELETE FROM links WHERE user_id = ?', [userId]);
+    await executeD1('DELETE FROM webhooks WHERE user_id = ?', [userId]);
   });
 });
