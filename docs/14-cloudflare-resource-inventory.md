@@ -232,74 +232,18 @@ function checkPrerequisites(): boolean {
 - `scripts/run-api-e2e.ts` — `main()` 添加安全检查（存在性 + 不等性）+ env 覆盖；`checkPrerequisites()` 简化
 - `tests/api/helpers/seed.ts` — `d1Credentials()` 简化 guard
 
-#### 4b. L3 Playwright — 主进程 + worker 进程 + webServer 子进程都要覆盖
+#### 4b. L3 Playwright — 主进程 + webServer 子进程都要覆盖
 
-Playwright 有 **3 层进程**需要关注：
+Playwright 有 **2 层**需要覆盖 env 的地方：
 
-1. **主进程**（运行 `global-setup.ts` / `global-teardown.ts`）：直接调用 `d1.ts` 的 `executeD1()`
-2. **Worker 进程**（运行 `test.beforeAll` / `test()` / `test.afterAll`）：Playwright 会 fork 独立 worker 进程执行 spec，这些 worker **不继承** `global-setup.ts` 中的 `process.env` 修改（Playwright 官方文档："globalSetup runs in its own process"）
-3. **webServer 子进程**（Next.js dev server on port 27005）：通过 shell command 启动
+1. **主进程 + test worker 进程**（运行 `global-setup.ts` / `global-teardown.ts`，以及 `test.beforeAll` / `test()` / `test.afterAll`）：Playwright 官方文档明确支持在 `globalSetup` 中通过 `process.env.FOO = 'value'` 设置环境变量，test worker 进程可以在 `test()` 中读取这些值（[来源](https://playwright.dev/docs/test-global-setup-teardown)）
+2. **webServer 子进程**（Next.js dev server on port 27005）：通过 shell command 启动，不受 `globalSetup` 的 `process.env` 影响
 
-> ⚠️ **关键认知**：`test.beforeAll` 不在主进程运行，而是在 **worker 进程**中。7 个 spec 文件的 `beforeAll` 调用 `executeD1()` 时，`process.env` 是从 shell 继承的原始环境，不含 `global-setup.ts` 的覆盖。因此，env override 必须放在 `d1.ts` helper 自身中，不能依赖 global-setup 的 side effect。
+因此，`globalSetup` 中设置的 `process.env` 覆盖可以同时覆盖主进程和 test worker 中的 `executeD1()` 调用。webServer 需要单独通过 shell env 注入。
 
 **改动方案**：
 
-**`tests/playwright/helpers/d1.ts`** — 在 `executeD1()` / `queryD1()` 中自行加载 `.env.local` 并做安全切换（lazy init，只执行一次）：
-
-```typescript
-import { resolve } from 'path';
-import { loadEnvFile } from 'node:process';
-
-let envInitialized = false;
-
-/**
- * Ensure test env is loaded and D1 ID is overridden to the test database.
- * Safe to call multiple times — only runs once per process.
- */
-function ensureTestEnv(): void {
-  if (envInitialized) return;
-  envInitialized = true;
-
-  // Load .env.local (may already be loaded in global-setup's process,
-  // but worker processes need their own load)
-  try {
-    loadEnvFile(resolve(process.cwd(), '.env.local'));
-  } catch {
-    // Already loaded or file doesn't exist — continue
-  }
-
-  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-
-  if (!testDbId) {
-    throw new Error(
-      'D1_TEST_DATABASE_ID not set. Playwright E2E requires a dedicated test database.'
-    );
-  }
-  if (testDbId === prodDbId) {
-    throw new Error(
-      `D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID (${prodDbId}). ` +
-      'Test DB must differ from production DB. Check .env.local.'
-    );
-  }
-
-  // Override: from this point on, all D1 calls in this process use test DB
-  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
-}
-
-export async function executeD1(sql, params, options): Promise<void> {
-  ensureTestEnv();  // ← 每个进程（主进程 or worker 进程）首次调用时自行初始化
-
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;  // 已是 testDbId
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-  // ... existing fetch logic ...
-}
-```
-
-`queryD1()` 同样在函数入口调用 `ensureTestEnv()`。
-
-**`tests/playwright/global-setup.ts`** — 仍然做 env override（因为主进程的 `ensureTestUser` 也要用正确的 D1 ID）：
+**`tests/playwright/global-setup.ts`** — 在 `loadEnvFile()` 后立即做安全检查 + 覆盖 `process.env`（test worker 可读取）：
 
 ```typescript
 export default async function globalSetup(): Promise<void> {
@@ -332,7 +276,33 @@ export default async function globalSetup(): Promise<void> {
 }
 ```
 
-**`playwright.config.ts`** — webServer 的 env 通过 command 前缀注入：
+**`tests/playwright/helpers/d1.ts`** — 添加安全 guard（确认 env 已被 globalSetup 正确覆盖）：
+
+```typescript
+export async function executeD1(sql, params, options): Promise<void> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+
+  // 安全防护：必须有 D1_TEST_DATABASE_ID，且 CLOUDFLARE_D1_DATABASE_ID 已被覆盖
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
+  if (databaseId !== testDbId) {
+    throw new Error(
+      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
+      'globalSetup should have overridden this. Refusing to operate on non-test database.'
+    );
+  }
+
+  // ... existing fetch logic ...
+}
+```
+
+> **为什么 guard 用 `databaseId !== testDbId`**：`globalSetup` 已将 `CLOUDFLARE_D1_DATABASE_ID` 覆盖为 `D1_TEST_DATABASE_ID`，正常流程中两者必然相等。如果不等，说明 globalSetup 覆盖没生效（配置 bug），guard 应拒绝操作。这是防御性检查，不是主要的隔离机制。
+
+`queryD1()` 也需添加同样的 guard。
+
+**`playwright.config.ts`** — webServer 的 env 通过 command 前缀注入（webServer 是独立 shell 进程，不受 globalSetup `process.env` 影响）：
 
 ```typescript
 webServer: {
@@ -350,7 +320,7 @@ webServer: {
 },
 ```
 
-> 注意：Playwright `webServer.command` 是 shell string，可直接用 shell 变量展开。`${D1_TEST_DATABASE_ID}` 在 shell 层面读取，不需要 Node 的 `process.env`。
+> 注意：Playwright `webServer.command` 是 shell string，可直接用 shell 变量展开。`${D1_TEST_DATABASE_ID}` 在 shell 层面读取。
 
 **`tests/playwright/global-teardown.ts`** — 同样做安全检查 + 覆盖：
 
@@ -374,9 +344,9 @@ export default async function globalTeardown(): Promise<void> {
 ```
 
 **改动文件**：
-- `tests/playwright/helpers/d1.ts` — 添加 `ensureTestEnv()` lazy init（加载 env + 安全检查 + 覆盖），`executeD1()` 和 `queryD1()` 在入口调用
-- `tests/playwright/global-setup.ts` — 安全检查（存在性 + 不等性）+ env 覆盖
+- `tests/playwright/global-setup.ts` — 安全检查（存在性 + 不等性）+ env 覆盖（传播到 test worker）
 - `tests/playwright/global-teardown.ts` — 安全检查 + env 覆盖
+- `tests/playwright/helpers/d1.ts` — `executeD1()` 和 `queryD1()` 添加防御性 guard
 - `playwright.config.ts` — webServer command 注入测试 env
 
 #### 4c. R2 — bucket name + public domain 都需要覆盖
@@ -485,8 +455,7 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `bun run test:api` Phase 2 通过（dev server 连接 `zhe-db-test` + `zhe-test` bucket）
 - [ ] `bun run test:e2e:pw` 通过（global-setup/teardown 使用 `zhe-db-test`；webServer 使用 `zhe-db-test` + `zhe-test` bucket）
 - [ ] 运行测试前后，`zhe-db` 生产数据无变化（通过 D1 HTTP API 查询验证）
-- [ ] `tests/playwright/helpers/d1.ts` 的 `ensureTestEnv()` 自行加载 `.env.local` + 安全检查 + 覆盖（不依赖 global-setup 的 env 传播）
-- [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 在入口调用 `ensureTestEnv()`
+- [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 有防御性 guard（`databaseId !== testDbId` 时拒绝操作）
 - [ ] `.env.example` 存在且包含所有生产+测试 env var
 - [ ] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
 
