@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.1] - 2026-03-22
+
+### Added
+- Add dedicated Cloudflare test resources (D1 `zhe-db-test`, R2 `zhe-test`, KV `zhe-test`) for E2E isolation
+- Add four-layer safety system for test environment isolation (env override → inequality check → defensive guard → `_test_marker` table)
+- Add `.env.example` with all production and test environment variables
+- Add `_test_marker` table as last-line-of-defense for D1 test database verification
+- Add `ensure-tools.sh` for graceful tool availability check (gitleaks, osv-scanner)
+
+### Changed
+- Upgrade ESLint to strict TypeScript rules
+- Upgrade quality system to L1+L2+L3+G1+G2 (typecheck, strict lint, gitleaks, osv-scanner)
+- Split API E2E into two-phase architecture (Phase 1 in-process always runs, Phase 2 real HTTP soft gate)
+- Move route handler tests from L1 to L2 for proper HTTP-level testing
+- Move server action tests to `tests/integration/` directory
+
+### Fixed
+- Fix test environment isolation: L2/L3 E2E tests now use dedicated test resources instead of production
+- Fix inline comment parsing in all 4 custom `.env` parsers (comments were treated as values)
+- Fix Playwright globalTeardown safety check for same-process env override
+- Fix D1 safety guard to prevent API E2E against production database
+- Fix stale `.next/types` detection by comparing route file structure
+- Fix `AdapterAccount` and `ExportedLink` type mismatches in tests
+
 ## [v1.8.0] - 2026-03-17
 
 ### Added
