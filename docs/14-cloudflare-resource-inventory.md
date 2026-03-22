@@ -105,9 +105,17 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 
 测试环境（L2 + L3）使用独立的 `zhe-db-test` / `zhe-test` / `zhe-test` 资源，与生产完全隔离。
 
-### 核心设计：fail-closed env 覆盖
+### 核心设计：fail-safe env 覆盖
 
-**原则**：所有测试资源（D1/R2/KV）在测试入口统一做 fail-closed 检查 + env 覆盖。缺少测试变量时拒绝启动，绝不静默回退到生产资源。
+**原则**：所有测试资源（D1/R2/KV）在测试入口统一做检查 + env 覆盖。检查分两类：
+
+| 情况 | L2（soft gate） | L3（hard gate） |
+|------|----------------|----------------|
+| 测试变量**缺失** | ⚠️ warn + skip（保持 soft gate 契约，不阻塞 push） | ❌ throw/exit（L3 是 on-demand 硬门控，缺凭证是配置错误） |
+| 测试变量**存在但等于生产值** | ❌ hard fail（安全问题，绝不允许） | ❌ hard fail |
+| 测试变量**存在且正确** | ✅ 覆盖 env，继续运行 | ✅ 覆盖 env，继续运行 |
+
+> **关键**：绝不静默回退到生产资源。要么用正确的测试资源运行，要么不运行。L2 选择"不运行"时是 warn+skip（符合 `docs/05-testing.md:29` 的 soft gate 定义），不是 hard exit。
 
 #### D1: `D1_TEST_DATABASE_ID` 语义变更
 
@@ -202,23 +210,24 @@ KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 2. **`startServer()` 子进程**（Next.js dev server）— 通过 `.env.local` 连接 D1
 3. **`runHttpTests()` → `runCommand()` 子进程**（Vitest）— `seed.ts` 读 `process.env` 做 D1 HTTP API 操作
 
-**改动方案**：在 `main()` 函数中，加载 `.env.local` 后立即做安全检查并覆盖 `process.env.CLOUDFLARE_D1_DATABASE_ID`。这样 3 个消费方都自动继承（子进程通过 `...process.env` 继承）：
+**改动方案**：在 `main()` 函数中，加载 `.env.local` 后做安全检查并覆盖 env。**保持 L2 soft gate 契约**——缺少测试变量时 warn+skip，配错（等于生产）时 hard fail：
 
 ```typescript
 // scripts/run-api-e2e.ts — main()
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
 
-  // ---- 关键：安全检查 + 将当前进程切换到测试资源 ----
+  // ---- 安全检查 + env 覆盖（L2 soft gate: missing = skip, misconfigured = fail） ----
 
-  // D1: fail-closed
+  // D1: required for both Phase 1 and Phase 2
   const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
-    console.error('❌ D1_TEST_DATABASE_ID not set.');
-    process.exit(1);
+    console.warn('⚠️  [api-e2e] D1_TEST_DATABASE_ID not set. Skipping E2E tests (soft gate).');
+    return;
   }
   if (testDbId === prodDbId) {
+    // This is a misconfiguration, not a missing credential — hard fail
     console.error(
       '❌ D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. ' +
       'Test DB must differ from production DB.'
@@ -227,27 +236,25 @@ async function main(): Promise<void> {
   }
   process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
 
-  // R2: fail-closed — 必须配齐测试变量，否则拒绝启动
+  // R2: required for upload/screenshot paths
   const testBucket = process.env.R2_TEST_BUCKET_NAME;
   const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
   if (!testBucket || !testPublicDomain) {
-    console.error(
-      '❌ R2_TEST_BUCKET_NAME and R2_TEST_PUBLIC_DOMAIN must both be set.'
-    );
-    process.exit(1);
+    console.warn('⚠️  [api-e2e] R2_TEST_BUCKET_NAME or R2_TEST_PUBLIC_DOMAIN not set. Skipping E2E tests (soft gate).');
+    return;
   }
   process.env.R2_BUCKET_NAME = testBucket;
   process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
 
-  // KV: fail-closed — 如果生产 KV 已配置，必须有测试替代
+  // KV: conditional — only if production KV is configured
   if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
     const testKvId = process.env.KV_TEST_NAMESPACE_ID;
     if (!testKvId) {
-      console.error(
-        '❌ CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
-        'Tests would write to production KV.'
+      console.warn(
+        '⚠️  [api-e2e] CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
+        'Skipping E2E tests to avoid writing to production KV (soft gate).'
       );
-      process.exit(1);
+      return;
     }
     process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
   }
@@ -255,6 +262,8 @@ async function main(): Promise<void> {
   // Phase 1 & Phase 2 ...
 }
 ```
+
+> **L2 soft gate 保持不变**：当 D1/R2 测试凭证缺失时，`main()` 提前 return（与现有 `checkPrerequisites()` 返回 false 后跳过 Phase 2 的行为一致）。只有配错（test ID === prod ID）才 hard fail。这符合 `docs/05-testing.md:29` 的 soft gate 定义："远程 D1 不可达或凭证缺失时 warn + skip，不阻塞 push"。
 
 **Guard 语义变更**（`checkPrerequisites()` + `seed.ts` 的 `d1Credentials()`）：
 
@@ -292,13 +301,13 @@ Playwright 有 **2 层**需要覆盖 env 的地方：
 
 **改动方案**：
 
-**`tests/playwright/global-setup.ts`** — 在 `loadEnvFile()` 后立即做安全检查 + 覆盖 `process.env`（test worker 可读取）：
+**`tests/playwright/global-setup.ts`** — L3 是 on-demand 硬门控，缺少测试变量直接 throw（不是 soft gate）：
 
 ```typescript
 export default async function globalSetup(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), '.env.local'));
 
-  // ---- D1: fail-closed ----
+  // ---- D1: hard gate (L3 is on-demand, missing config = error) ----
   const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
@@ -314,18 +323,18 @@ export default async function globalSetup(): Promise<void> {
   }
   process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
 
-  // ---- R2: fail-closed ----
+  // ---- R2: hard gate ----
   const testBucket = process.env.R2_TEST_BUCKET_NAME;
   const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
   if (!testBucket || !testPublicDomain) {
     throw new Error(
-      'R2_TEST_BUCKET_NAME and R2_TEST_PUBLIC_DOMAIN must both be set.'
+      'R2_TEST_BUCKET_NAME and R2_TEST_PUBLIC_DOMAIN must both be set for Playwright E2E.'
     );
   }
   process.env.R2_BUCKET_NAME = testBucket;
   process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
 
-  // ---- KV: fail-closed (conditional) ----
+  // ---- KV: conditional hard gate ----
   if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
     const testKvId = process.env.KV_TEST_NAMESPACE_ID;
     if (!testKvId) {
@@ -391,13 +400,13 @@ webServer: {
 
 > `${VAR:?msg}` 是 bash 语法：如果 `VAR` 未设置或为空，shell 报错并终止。这保证 webServer 进程在测试变量缺失时直接失败，不会静默回退到生产值。
 
-**`tests/playwright/global-teardown.ts`** — 同样做安全检查 + 覆盖：
+**`tests/playwright/global-teardown.ts`** — 与 global-setup 一致的硬检查（teardown 操作的是测试资源，配置不全时拒绝运行防止误删生产数据）：
 
 ```typescript
 export default async function globalTeardown(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), '.env.local'));
 
-  // D1: fail-closed（与 global-setup 相同）
+  // ---- D1: hard gate ----
   const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
@@ -408,12 +417,27 @@ export default async function globalTeardown(): Promise<void> {
   }
   process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
 
-  // R2/KV: 同样覆盖（teardown 可能需要清理测试 bucket 数据）
-  if (process.env.R2_TEST_BUCKET_NAME) {
-    process.env.R2_BUCKET_NAME = process.env.R2_TEST_BUCKET_NAME;
+  // ---- R2: hard gate ----
+  const testBucket = process.env.R2_TEST_BUCKET_NAME;
+  const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
+  if (!testBucket || !testPublicDomain) {
+    throw new Error(
+      'R2_TEST_BUCKET_NAME and R2_TEST_PUBLIC_DOMAIN must both be set for teardown.'
+    );
   }
-  if (process.env.CLOUDFLARE_KV_NAMESPACE_ID && process.env.KV_TEST_NAMESPACE_ID) {
-    process.env.CLOUDFLARE_KV_NAMESPACE_ID = process.env.KV_TEST_NAMESPACE_ID;
+  process.env.R2_BUCKET_NAME = testBucket;
+  process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
+
+  // ---- KV: conditional hard gate ----
+  if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
+    const testKvId = process.env.KV_TEST_NAMESPACE_ID;
+    if (!testKvId) {
+      throw new Error(
+        'CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
+        'Refusing teardown to avoid touching production KV.'
+      );
+    }
+    process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
   }
 
   // ... cleanup (使用已覆盖的资源 ID) ...
@@ -515,8 +539,8 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 |---|--------|------|----------|
 | 1 | `feat: create test D1, R2, KV resources` | CLI 创建资源，记录 UUID/ID 到本文档 | `docs/14-*` |
 | 2 | `feat: initialize zhe-db-test schema` | 对测试 D1 执行全部迁移 | — (CLI only) |
-| 3 | `fix: isolate L2 env to use test D1/R2/KV resources` | `main()` fail-closed 检查 + 覆盖 D1/R2/KV env；`checkPrerequisites()` + `seed.ts` 简化 guard | `scripts/run-api-e2e.ts`, `tests/api/helpers/seed.ts` |
-| 4 | `fix: isolate L3 env to use test D1/R2/KV resources` | global-setup/teardown fail-closed 检查 + 覆盖 env；d1.ts 添加 guard；playwright.config.ts webServer env（`${VAR:?msg}` fail-closed） | `tests/playwright/global-setup.ts`, `tests/playwright/global-teardown.ts`, `tests/playwright/helpers/d1.ts`, `playwright.config.ts` |
+| 3 | `fix: isolate L2 env to use test D1/R2/KV resources` | `main()` soft gate（missing=skip, misconfigured=fail）+ 覆盖 D1/R2/KV env；`checkPrerequisites()` + `seed.ts` 简化 guard | `scripts/run-api-e2e.ts`, `tests/api/helpers/seed.ts` |
+| 4 | `fix: isolate L3 env to use test D1/R2/KV resources` | global-setup/teardown hard gate + 覆盖 env；d1.ts 添加 guard；playwright.config.ts webServer env（`${VAR:?msg}` hard gate） | `tests/playwright/global-setup.ts`, `tests/playwright/global-teardown.ts`, `tests/playwright/helpers/d1.ts`, `playwright.config.ts` |
 | 5 | `feat: create .env.example with test resource vars` | 新建 `.env.example` | `.env.example` |
 | 6 | `docs: update getting-started and testing docs for test isolation` | 更新文档引用 | `docs/02-*`, `docs/05-*`, `CLAUDE.md` |
 
@@ -529,8 +553,8 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `zhe-test` KV namespace 已创建，ID 已记录
 - [ ] `zhe-db-test` schema 已初始化（全部迁移执行完毕）
 - [ ] `.env.local` 中 `D1_TEST_DATABASE_ID` 指向 `zhe-db-test`（**不等于** `CLOUDFLARE_D1_DATABASE_ID`）
-- [ ] `run-api-e2e.ts` `main()` 对 D1/R2/KV 全部 fail-closed（缺少测试变量时 `process.exit(1)`）
-- [ ] `global-setup.ts` 对 D1/R2 fail-closed + KV conditional fail-closed
+- [ ] `run-api-e2e.ts` `main()` 对 D1/R2/KV：缺失 → warn+skip（soft gate）；配错 → hard fail
+- [ ] `global-setup.ts` 和 `global-teardown.ts` 对 D1/R2 hard gate + KV conditional hard gate
 - [ ] `playwright.config.ts` webServer command 使用 `${VAR:?msg}` 语法（缺少时 shell 报错终止）
 - [ ] `bun run test:api` Phase 1 通过（seed.ts 使用 `zhe-db-test`；webhook 建链写入 `zhe-test` KV 或 KV 不激活）
 - [ ] `bun run test:api` Phase 2 通过（dev server 连接 `zhe-db-test` + `zhe-test` bucket）
@@ -539,8 +563,9 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 有防御性 guard（`databaseId !== testDbId` 时拒绝操作）
 - [ ] `.env.example` 存在且包含所有生产+测试 env var
 - [ ] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
-- [ ] 故意删除 `R2_TEST_BUCKET_NAME` 后运行 `bun run test:api`，确认立即报错退出（fail-closed 验证）
-- [ ] 如果配了 `CLOUDFLARE_KV_NAMESPACE_ID`，故意删除 `KV_TEST_NAMESPACE_ID` 后运行 `bun run test:api`，确认立即报错退出
+- [ ] 故意删除 `R2_TEST_BUCKET_NAME` 后运行 `bun run test:api`，确认 warn+skip（不报错，不运行测试）
+- [ ] 故意设置 `D1_TEST_DATABASE_ID` 等于 `CLOUDFLARE_D1_DATABASE_ID` 后运行 `bun run test:api`，确认 hard fail
+- [ ] 如果配了 `CLOUDFLARE_KV_NAMESPACE_ID`，故意删除 `KV_TEST_NAMESPACE_ID` 后运行 `bun run test:api`，确认 warn+skip
 
 ---
 
