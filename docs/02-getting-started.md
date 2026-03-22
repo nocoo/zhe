@@ -62,7 +62,37 @@ cp .env.example .env.local
 
 | 变量 | 说明 |
 |------|------|
-| `D1_TEST_DATABASE_ID` | 必须等于 `CLOUDFLARE_D1_DATABASE_ID`。安全防护：防止 API E2E 测试意外对非测试库执行写删操作 |
+| `D1_TEST_DATABASE_ID` | 测试专用 D1 数据库 UUID（必须**不等于** `CLOUDFLARE_D1_DATABASE_ID`）。安全防护：防止 E2E 测试意外操作生产数据 |
+| `R2_TEST_BUCKET_NAME` | 测试专用 R2 bucket 名称（默认 `zhe-test`） |
+| `R2_TEST_PUBLIC_DOMAIN` | 测试 R2 占位域名（默认 `https://test-r2.zhe.to`，无需真实 DNS） |
+| `KV_TEST_NAMESPACE_ID` | 测试专用 KV namespace ID |
+
+> **测试资源隔离**：L2/L3 E2E 测试使用独立的 Cloudflare 资源（`zhe-db-test` / `zhe-test` / `zhe-test`），与生产完全隔离。详见 [Cloudflare 资源清单](14-cloudflare-resource-inventory.md)。
+
+### 创建测试资源（仅首次）
+
+```bash
+# D1: 创建测试数据库
+npx wrangler d1 create zhe-db-test
+
+# R2: 创建测试 bucket
+npx wrangler r2 bucket create zhe-test
+
+# KV: 创建测试 namespace
+npx wrangler kv namespace create zhe-test
+
+# 初始化测试 D1 schema
+for f in drizzle/migrations/*.sql; do
+  npx wrangler d1 execute zhe-db-test --remote --file="$f"
+done
+
+# 插入 _test_marker 标记（最后一道防线）
+npx wrangler d1 execute zhe-db-test --remote --command \
+  "CREATE TABLE IF NOT EXISTS _test_marker (key TEXT PRIMARY KEY, value TEXT);
+   INSERT OR REPLACE INTO _test_marker (key, value) VALUES ('env', 'test');"
+```
+
+将获取到的 UUID / ID 填入 `.env.local` 对应的测试变量中。
 
 ## 启动开发服务器
 

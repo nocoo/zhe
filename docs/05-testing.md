@@ -131,6 +131,35 @@ fi
 bun run test:e2e:pw    # Playwright BDD E2E
 ```
 
+## 测试环境隔离
+
+L2/L3 E2E 测试使用独立的 Cloudflare 资源，与生产完全隔离：
+
+| 资源类型 | 生产 | 测试 |
+|----------|------|------|
+| D1 Database | `zhe-db` | `zhe-db-test` |
+| R2 Bucket | `zhe` | `zhe-test` |
+| KV Namespace | `zhe` | `zhe-test` |
+
+### 四重安全防线
+
+1. **测试入口 env 覆盖**：`main()` / `globalSetup` 中将 `CLOUDFLARE_D1_DATABASE_ID` 覆盖为 `D1_TEST_DATABASE_ID`
+2. **ID 不等性检查**：`testDbId !== prodDbId`，防止误配回生产
+3. **防御性 guard**：`executeD1()` / `queryD1()` 中确认覆盖已生效
+4. **`_test_marker` 标记表**：测试 D1 中有标记行，批量操作前查询验证。生产 D1 无此表
+
+### L2 分层覆盖策略
+
+- **KV 覆盖或清除**：在 Phase 1 之前执行（`webhook.test.ts` 触发 `kvPutLink()`）
+- **D1/R2 覆盖**：在 Phase 1 之后、Phase 2 之前执行（只有 Phase 2 需要真实 D1）
+- Phase 1 always runs（无外部依赖），Phase 2 为 soft gate
+
+### L3 硬门控
+
+L3 是 on-demand 测试，缺少测试配置直接 throw（不跳过）。`playwright.config.ts` 的 webServer 使用 `${VAR:?msg}` bash 语法确保 fail-fast。
+
+> 详细设计见 [Cloudflare 资源清单与测试隔离](14-cloudflare-resource-inventory.md)。
+
 ## 测试命令
 
 | 命令 | 层级 | 说明 |
@@ -170,3 +199,4 @@ bun run test:e2e:pw    # Playwright BDD E2E
 - [架构概览](01-architecture.md)
 - [开发规范](07-contributing.md)
 - [质量体系升级设计](13-quality-system-upgrade.md)
+- [Cloudflare 资源清单与测试隔离](14-cloudflare-resource-inventory.md)

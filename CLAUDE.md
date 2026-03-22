@@ -152,6 +152,22 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 ## Testing
 
+### Test Environment Isolation
+
+L2/L3 E2E tests use **dedicated Cloudflare resources** (`zhe-db-test` / `zhe-test` / `zhe-test`), never production. Four safety layers prevent accidental production writes:
+
+1. Env override in test entry (`main()` / `globalSetup`)
+2. `testDbId !== prodDbId` inequality check
+3. Defensive guard in `executeD1()` / `queryD1()`
+4. `_test_marker` table verification (exists only in test DB)
+
+Key env vars for test isolation (set in `.env.local`):
+- `D1_TEST_DATABASE_ID` — must **not** equal `CLOUDFLARE_D1_DATABASE_ID`
+- `R2_TEST_BUCKET_NAME` / `R2_TEST_PUBLIC_DOMAIN` — test R2 bucket
+- `KV_TEST_NAMESPACE_ID` — test KV namespace
+
+See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inventory.md) for full design.
+
 ### Quality System: L1 + L2 + L3 + G1 + G2
 
 | Layer | Name | Hook | Gate |

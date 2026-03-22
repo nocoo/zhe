@@ -642,26 +642,26 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 
 ## 六、验证清单
 
-- [ ] `zhe-db-test` D1 数据库已创建，UUID 已记录
-- [ ] `zhe-test` R2 bucket 已创建
-- [ ] `zhe-test` KV namespace 已创建，ID 已记录
-- [ ] `zhe-db-test` schema 已初始化（全部迁移执行完毕）
-- [ ] `zhe-db-test` 包含 `_test_marker` 表（`key='env', value='test'`）
-- [ ] `zhe-db`（生产）**没有** `_test_marker` 表（查询返回错误或空）
-- [ ] `.env.local` 中 `D1_TEST_DATABASE_ID` 指向 `zhe-db-test`（**不等于** `CLOUDFLARE_D1_DATABASE_ID`）
-- [ ] `run-api-e2e.ts` `main()` 分层覆盖：KV（覆盖或清除）→Phase1→D1/R2→Phase2
-- [ ] 缺少 `D1_TEST_DATABASE_ID` 时：Phase 1 运行，Phase 2 warn+skip
-- [ ] 缺少 `R2_TEST_*` 时：Phase 1 和 Phase 2 都运行，仅 warn
-- [ ] `CLOUDFLARE_KV_NAMESPACE_ID` 已配但缺少 `KV_TEST_NAMESPACE_ID` 时：KV ID 被清除，Phase 1 正常运行（KV 功能降级为 no-op）
-- [ ] `global-setup.ts` 和 `global-teardown.ts` 对 D1/R2 hard gate + KV conditional hard gate + `_test_marker` 验证
-- [ ] `playwright.config.ts` webServer command 使用 `${VAR:?msg}` 语法（缺少时 shell 报错终止）
+- [x] `zhe-db-test` D1 数据库已创建，UUID 已记录
+- [x] `zhe-test` R2 bucket 已创建
+- [x] `zhe-test` KV namespace 已创建，ID 已记录
+- [x] `zhe-db-test` schema 已初始化（全部迁移执行完毕）
+- [x] `zhe-db-test` 包含 `_test_marker` 表（`key='env', value='test'`）
+- [x] `zhe-db`（生产）**没有** `_test_marker` 表（查询返回错误或空）
+- [x] `.env.local` 中 `D1_TEST_DATABASE_ID` 指向 `zhe-db-test`（**不等于** `CLOUDFLARE_D1_DATABASE_ID`）
+- [x] `run-api-e2e.ts` `main()` 分层覆盖：KV（覆盖或清除）→Phase1→D1/R2→Phase2
+- [x] 缺少 `D1_TEST_DATABASE_ID` 时：Phase 1 运行，Phase 2 warn+skip
+- [x] 缺少 `R2_TEST_*` 时：Phase 1 和 Phase 2 都运行，仅 warn
+- [x] `CLOUDFLARE_KV_NAMESPACE_ID` 已配但缺少 `KV_TEST_NAMESPACE_ID` 时：KV ID 被清除，Phase 1 正常运行（KV 功能降级为 no-op）
+- [x] `global-setup.ts` 和 `global-teardown.ts` 对 D1/R2 hard gate + KV conditional hard gate + `_test_marker` 验证
+- [x] `playwright.config.ts` webServer command 使用 `${VAR:?msg}` 语法（缺少时 shell 报错终止）
 - [ ] `bun run test:api` Phase 1 通过（内存 D1 mock；webhook 建链写入 `zhe-test` KV 或 KV 不激活）
 - [ ] `bun run test:api` Phase 2 通过（dev server 连接 `zhe-db-test` + `zhe-test` bucket；`checkPrerequisites()` 验证 `_test_marker`）
 - [ ] `bun run test:e2e:pw` 通过（global-setup/teardown 使用测试资源；webServer 使用测试资源）
 - [ ] 运行测试前后，`zhe-db` 生产数据无变化（通过 D1 HTTP API 查询验证）
-- [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 有防御性 guard（`databaseId !== testDbId` 时拒绝操作）
-- [ ] `.env.example` 存在且包含所有生产+测试 env var
-- [ ] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
+- [x] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 有防御性 guard（`databaseId !== testDbId` 时拒绝操作）
+- [x] `.env.example` 存在且包含所有生产+测试 env var
+- [x] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
 - [ ] 故意删除 `R2_TEST_BUCKET_NAME` 后运行 `bun run test:api`，确认 warn 但 Phase 1+2 仍运行
 - [ ] 故意设置 `D1_TEST_DATABASE_ID` 等于 `CLOUDFLARE_D1_DATABASE_ID` 后运行 `bun run test:api`，确认 hard fail
 - [ ] 如果配了 `CLOUDFLARE_KV_NAMESPACE_ID`，故意删除 `KV_TEST_NAMESPACE_ID` 后运行 `bun run test:api`，确认 KV ID 被清除 + warn，Phase 1 仍然运行
