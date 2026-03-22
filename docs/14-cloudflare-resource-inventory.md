@@ -86,7 +86,7 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 
 - L3 Playwright `uploads.spec.ts`：浏览器端 PUT 被 `page.route()` mock → 不写入
 - 但 `deleteUpload()` server action 在服务端执行 → S3 SDK 直接调 `zhe` bucket
-- 创建链接触发 OG screenshot → `uploadBufferToR2()` 写入 `zhe` bucket
+- 截图上传（`saveScreenshot()` / `fetchAndSaveScreenshot()`，`actions/links.ts:440,455`）是用户手动触发的独立流程，不在普通建链路径中（建链只异步做 metadata enrichment，`actions/links.ts:97`）。但如果 L3 测试触发了截图保存操作，`uploadBufferToR2()` 仍会写入生产 `zhe` bucket
 
 #### KV: 碰巧安全但无设计防护
 
@@ -104,12 +104,24 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 
 当前 guard 的语义是"你确认 `CLOUDFLARE_D1_DATABASE_ID` 是测试库"（`D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID`）。这种设计在生产和测试共用一个 D1 时勉强可用，但无法支持隔离——两个 ID 不同时 guard 会拒绝运行。
 
-**新语义**：`D1_TEST_DATABASE_ID` 是测试库的实际 UUID。所有测试进程在启动前，将 `CLOUDFLARE_D1_DATABASE_ID` **覆盖**为 `D1_TEST_DATABASE_ID`，使得测试进程看到的"当前 D1"就是测试库。guard 改为"D1_TEST_DATABASE_ID 必须存在且不等于生产 D1 ID"，防止误配回生产。
+**新语义**：`D1_TEST_DATABASE_ID` 是测试库的实际 UUID。测试入口在 env 覆盖后，guard 需要做 **两重检查**：
+
+1. `D1_TEST_DATABASE_ID` 必须存在
+2. `D1_TEST_DATABASE_ID` 必须**不等于**原始 `CLOUDFLARE_D1_DATABASE_ID`（防止误配回生产）
+
+为了实现第 2 点，覆盖前需要先记住原始生产 ID，覆盖后再比较。
 
 ```
 .env.local:
-  CLOUDFLARE_D1_DATABASE_ID = <zhe-db 生产 UUID>     ← 应用运行时使用
-  D1_TEST_DATABASE_ID       = <zhe-db-test 测试 UUID>  ← 测试时覆盖上去
+  CLOUDFLARE_D1_DATABASE_ID = 2ec5605c-...  ← zhe-db (生产)
+  D1_TEST_DATABASE_ID       = <新创建的 UUID>  ← zhe-db-test (测试)
+
+测试入口逻辑:
+  1. prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID   // 记住生产 ID
+  2. testDbId = process.env.D1_TEST_DATABASE_ID
+  3. 断言 testDbId 存在
+  4. 断言 testDbId !== prodDbId                         // ← 防止误配
+  5. process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId   // 覆盖
 ```
 
 ### Step 1: 创建测试资源
@@ -146,7 +158,7 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 # 测试凭据（新增）
 D1_TEST_DATABASE_ID=<zhe-db-test 的 UUID>
 R2_TEST_BUCKET_NAME=zhe-test
-R2_TEST_PUBLIC_DOMAIN=            # 留空：测试 bucket 不配公开域名，上传产生的 URL 不指向生产
+R2_TEST_PUBLIC_DOMAIN=https://test-r2.zhe.to  # 占位域名（不需要实际 DNS，见 4c 说明）
 KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 ```
 
@@ -160,20 +172,30 @@ KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 2. **`startServer()` 子进程**（Next.js dev server）— 通过 `.env.local` 连接 D1
 3. **`runHttpTests()` → `runCommand()` 子进程**（Vitest）— `seed.ts` 读 `process.env` 做 D1 HTTP API 操作
 
-**改动方案**：在 `main()` 函数中，加载 `.env.local` 后立即覆盖 `process.env.CLOUDFLARE_D1_DATABASE_ID`。这样 3 个消费方都自动继承（子进程通过 `...process.env` 继承）：
+**改动方案**：在 `main()` 函数中，加载 `.env.local` 后立即做安全检查并覆盖 `process.env.CLOUDFLARE_D1_DATABASE_ID`。这样 3 个消费方都自动继承（子进程通过 `...process.env` 继承）：
 
 ```typescript
 // scripts/run-api-e2e.ts — main()
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
 
-  // ---- 关键：将当前进程的 D1 ID 切换到测试库 ----
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  // ---- 关键：安全检查 + 将当前进程的 D1 ID 切换到测试库 ----
   const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  if (testDbId) {
-    process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  if (!testDbId) {
+    console.error('❌ D1_TEST_DATABASE_ID not set.');
+    process.exit(1);
   }
-  // R2 + R2_PUBLIC_DOMAIN 也一并覆盖
+  if (testDbId === prodDbId) {
+    console.error(
+      '❌ D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. ' +
+      'Test DB must differ from production DB.'
+    );
+    process.exit(1);
+  }
+  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+
+  // R2: bucket name + public domain
   if (process.env.R2_TEST_BUCKET_NAME) {
     process.env.R2_BUCKET_NAME = process.env.R2_TEST_BUCKET_NAME;
   }
@@ -187,10 +209,11 @@ async function main(): Promise<void> {
 
 **Guard 语义变更**（`checkPrerequisites()` + `seed.ts` 的 `d1Credentials()`）：
 
-```typescript
-// 旧：要求 D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID（确认你配的是测试库）
-// 新：要求 D1_TEST_DATABASE_ID 存在（main() 已覆盖 CLOUDFLARE_D1_DATABASE_ID = D1_TEST_DATABASE_ID）
+由于 `main()` 已经执行了完整的安全检查（存在性 + 不等性）并覆盖了 `CLOUDFLARE_D1_DATABASE_ID`，下游的 guard 简化为确认覆盖已生效：
 
+```typescript
+// checkPrerequisites() — 简化为确认 D1_TEST_DATABASE_ID 存在
+// （main() 已做完 testDbId !== prodDbId 检查，到这里一定已通过）
 function checkPrerequisites(): boolean {
   // ... check CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN ...
 
@@ -199,38 +222,101 @@ function checkPrerequisites(): boolean {
     console.error('❌ D1_TEST_DATABASE_ID not set.');
     return false;
   }
-  // 此时 CLOUDFLARE_D1_DATABASE_ID 已被 main() 覆盖为 testDbId
-  // guard 只需确认 D1_TEST_DATABASE_ID 存在即可
   return true;
 }
 ```
 
-`seed.ts` 的 `d1Credentials()` 做同样简化——移除 `testDbId !== databaseId` 检查（因为 `main()` 已统一覆盖，两者必然相等），只保留 `D1_TEST_DATABASE_ID` 存在性检查。
+`seed.ts` 的 `d1Credentials()` 同样简化——`main()` 已保证覆盖正确，只需保留 `D1_TEST_DATABASE_ID` 存在性检查。
 
 **改动文件**：
-- `scripts/run-api-e2e.ts` — `main()` 添加 env 覆盖；`checkPrerequisites()` 简化 guard
+- `scripts/run-api-e2e.ts` — `main()` 添加安全检查（存在性 + 不等性）+ env 覆盖；`checkPrerequisites()` 简化
 - `tests/api/helpers/seed.ts` — `d1Credentials()` 简化 guard
 
-#### 4b. L3 Playwright — 主进程 + webServer 子进程都要覆盖
+#### 4b. L3 Playwright — 主进程 + worker 进程 + webServer 子进程都要覆盖
 
-Playwright 有 **2 个** 需要覆盖 env 的地方：
+Playwright 有 **3 层进程**需要关注：
 
-1. **Playwright 主进程**（运行 `global-setup.ts` / `global-teardown.ts` / spec 中的 `beforeAll`）：直接调用 `tests/playwright/helpers/d1.ts` 的 `executeD1()`，读 `process.env.CLOUDFLARE_D1_DATABASE_ID`
-2. **webServer 子进程**（Next.js dev server on port 27005）：通过 shell command 启动，继承 shell 环境变量 + `.env.local`
+1. **主进程**（运行 `global-setup.ts` / `global-teardown.ts`）：直接调用 `d1.ts` 的 `executeD1()`
+2. **Worker 进程**（运行 `test.beforeAll` / `test()` / `test.afterAll`）：Playwright 会 fork 独立 worker 进程执行 spec，这些 worker **不继承** `global-setup.ts` 中的 `process.env` 修改（Playwright 官方文档："globalSetup runs in its own process"）
+3. **webServer 子进程**（Next.js dev server on port 27005）：通过 shell command 启动
+
+> ⚠️ **关键认知**：`test.beforeAll` 不在主进程运行，而是在 **worker 进程**中。7 个 spec 文件的 `beforeAll` 调用 `executeD1()` 时，`process.env` 是从 shell 继承的原始环境，不含 `global-setup.ts` 的覆盖。因此，env override 必须放在 `d1.ts` helper 自身中，不能依赖 global-setup 的 side effect。
 
 **改动方案**：
 
-**`tests/playwright/global-setup.ts`** — 在 `loadEnvFile()` 后立即覆盖 `process.env`：
+**`tests/playwright/helpers/d1.ts`** — 在 `executeD1()` / `queryD1()` 中自行加载 `.env.local` 并做安全切换（lazy init，只执行一次）：
+
+```typescript
+import { resolve } from 'path';
+import { loadEnvFile } from 'node:process';
+
+let envInitialized = false;
+
+/**
+ * Ensure test env is loaded and D1 ID is overridden to the test database.
+ * Safe to call multiple times — only runs once per process.
+ */
+function ensureTestEnv(): void {
+  if (envInitialized) return;
+  envInitialized = true;
+
+  // Load .env.local (may already be loaded in global-setup's process,
+  // but worker processes need their own load)
+  try {
+    loadEnvFile(resolve(process.cwd(), '.env.local'));
+  } catch {
+    // Already loaded or file doesn't exist — continue
+  }
+
+  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+
+  if (!testDbId) {
+    throw new Error(
+      'D1_TEST_DATABASE_ID not set. Playwright E2E requires a dedicated test database.'
+    );
+  }
+  if (testDbId === prodDbId) {
+    throw new Error(
+      `D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID (${prodDbId}). ` +
+      'Test DB must differ from production DB. Check .env.local.'
+    );
+  }
+
+  // Override: from this point on, all D1 calls in this process use test DB
+  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+}
+
+export async function executeD1(sql, params, options): Promise<void> {
+  ensureTestEnv();  // ← 每个进程（主进程 or worker 进程）首次调用时自行初始化
+
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;  // 已是 testDbId
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  // ... existing fetch logic ...
+}
+```
+
+`queryD1()` 同样在函数入口调用 `ensureTestEnv()`。
+
+**`tests/playwright/global-setup.ts`** — 仍然做 env override（因为主进程的 `ensureTestUser` 也要用正确的 D1 ID）：
 
 ```typescript
 export default async function globalSetup(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), '.env.local'));
 
-  // ---- 关键：切换到测试资源 ----
+  // ---- 安全检查 + 切换到测试资源 ----
+  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
     throw new Error(
       'D1_TEST_DATABASE_ID not set. Playwright E2E requires a dedicated test database.'
+    );
+  }
+  if (testDbId === prodDbId) {
+    throw new Error(
+      `D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID (${prodDbId}). ` +
+      'Test DB must differ from production DB.'
     );
   }
   process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
@@ -242,37 +328,11 @@ export default async function globalSetup(): Promise<void> {
     process.env.R2_PUBLIC_DOMAIN = process.env.R2_TEST_PUBLIC_DOMAIN;
   }
 
-  // ... ensureTestUser ...
+  // ... ensureTestUser (使用已覆盖的 D1 ID) ...
 }
 ```
 
-**`tests/playwright/helpers/d1.ts`** — 添加 guard（在 env 已被 global-setup 覆盖后校验）：
-
-```typescript
-export async function executeD1(sql, params, options): Promise<void> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-
-  // 安全防护：必须有 D1_TEST_DATABASE_ID，且当前 CLOUDFLARE_D1_DATABASE_ID 必须等于它
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
-  if (databaseId !== testDbId) {
-    throw new Error(
-      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
-      'global-setup should have overridden this. Refusing to operate on non-test database.'
-    );
-  }
-
-  // ... existing fetch logic ...
-}
-```
-
-> **为什么 guard 此处用 `===` 而非 `!==`**：`global-setup.ts` 已将 `CLOUDFLARE_D1_DATABASE_ID` 覆盖为 `D1_TEST_DATABASE_ID`，所以在正常流程中两者必然相等。如果不等，说明覆盖没生效（bug），guard 应拒绝操作。
-
-`queryD1()` 也需添加同样的 guard。
-
-**`playwright.config.ts`** — webServer 的 env 覆盖通过 command 前缀注入：
+**`playwright.config.ts`** — webServer 的 env 通过 command 前缀注入：
 
 ```typescript
 webServer: {
@@ -281,7 +341,7 @@ webServer: {
     `AUTH_URL=${E2E_BASE}`,
     `CLOUDFLARE_D1_DATABASE_ID=\${D1_TEST_DATABASE_ID}`,
     `R2_BUCKET_NAME=\${R2_TEST_BUCKET_NAME:-$R2_BUCKET_NAME}`,
-    `R2_PUBLIC_DOMAIN=\${R2_TEST_PUBLIC_DOMAIN:-}`,
+    `R2_PUBLIC_DOMAIN=\${R2_TEST_PUBLIC_DOMAIN:-$R2_PUBLIC_DOMAIN}`,
     `bun run next dev --turbopack -p ${E2E_PORT}`,
   ].join(' '),
   url: E2E_BASE,
@@ -292,42 +352,61 @@ webServer: {
 
 > 注意：Playwright `webServer.command` 是 shell string，可直接用 shell 变量展开。`${D1_TEST_DATABASE_ID}` 在 shell 层面读取，不需要 Node 的 `process.env`。
 
-**`tests/playwright/global-teardown.ts`** — 同样在 `loadEnvFile` 后覆盖：
+**`tests/playwright/global-teardown.ts`** — 同样做安全检查 + 覆盖：
 
 ```typescript
 export default async function globalTeardown(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), '.env.local'));
 
-  // 切换到测试库（与 global-setup 相同）
+  // 安全检查 + 切换到测试库（与 global-setup 相同）
+  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (testDbId) {
-    process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+  if (!testDbId) {
+    throw new Error('D1_TEST_DATABASE_ID not set.');
   }
+  if (testDbId === prodDbId) {
+    throw new Error('D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. Refusing teardown on prod.');
+  }
+  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
 
-  // ... cleanup ...
+  // ... cleanup (使用已覆盖的 D1 ID) ...
 }
 ```
 
 **改动文件**：
-- `tests/playwright/global-setup.ts` — env 覆盖 + D1_TEST_DATABASE_ID 存在性检查
-- `tests/playwright/global-teardown.ts` — env 覆盖
-- `tests/playwright/helpers/d1.ts` — `executeD1()` 和 `queryD1()` 添加 guard
+- `tests/playwright/helpers/d1.ts` — 添加 `ensureTestEnv()` lazy init（加载 env + 安全检查 + 覆盖），`executeD1()` 和 `queryD1()` 在入口调用
+- `tests/playwright/global-setup.ts` — 安全检查（存在性 + 不等性）+ env 覆盖
+- `tests/playwright/global-teardown.ts` — 安全检查 + env 覆盖
 - `playwright.config.ts` — webServer command 注入测试 env
 
 #### 4c. R2 — bucket name + public domain 都需要覆盖
 
 应用代码中 3 处使用 `R2_PUBLIC_DOMAIN` 构造最终 URL：
-- `actions/upload.ts:50` — presigned upload 后返回的公开 URL
-- `actions/links.ts:518` — OG screenshot 上传后的 URL
-- `app/api/tmp/upload/[token]/route.ts:111` — 临时文件上传后的 URL
 
-如果只覆盖 `R2_BUCKET_NAME` 不覆盖 `R2_PUBLIC_DOMAIN`，写入 `zhe-test` bucket 的文件会生成 `https://s.zhe.to/...` URL，指向生产 bucket —— 隔离目标不成立。
+| 文件 | 行 | 代码 | 空字符串行为 |
+|------|-----|------|-------------|
+| `actions/upload.ts` | 50-52 | `if (!publicDomain)` return error | ❌ 报错（空字符串 falsy） |
+| `actions/links.ts` | 518-520 | `if (!publicDomain)` return error | ❌ 报错（空字符串 falsy） |
+| `app/api/tmp/upload/[token]/route.ts` | 111 | `process.env.R2_PUBLIC_DOMAIN \|\| "https://s.zhe.to"` | ❌ 回退到生产域名（空字符串 falsy） |
 
-**方案**：新增 `R2_TEST_PUBLIC_DOMAIN` env var，测试时一并覆盖。测试 bucket 无公开域名时设为空字符串，使得测试中生成的 URL 为 `/<path>` 而非 `https://s.zhe.to/<path>`。
+**结论**：`R2_TEST_PUBLIC_DOMAIN` 不能设为空字符串——两处 server action 会报错终止，临时上传 route 则会静默回退到生产域名 `https://s.zhe.to`。
 
-覆盖逻辑已包含在 4a（`run-api-e2e.ts` 的 `main()`）和 4b（`global-setup.ts` / `global-teardown.ts` / `playwright.config.ts` 的 webServer command）中。
+**方案**：使用占位域名 `https://test-r2.zhe.to`（不需要真正配置 DNS，仅作为 URL 前缀；测试中不会真正通过浏览器访问这些 URL——L2 不测试上传，L3 上传被 `page.route()` mock 拦截）：
 
-**无需改动应用代码**——`R2_PUBLIC_DOMAIN` 已从 env var 读取，覆盖 env var 即可。
+```bash
+# .env.local
+R2_TEST_PUBLIC_DOMAIN=https://test-r2.zhe.to    # 占位域名，不需要实际 DNS
+```
+
+这样：
+- `actions/upload.ts` / `actions/links.ts`：`!publicDomain` 为 false → 正常生成 URL（指向测试占位域名）
+- `route.ts:111`：`process.env.R2_PUBLIC_DOMAIN || ...` → 使用 `https://test-r2.zhe.to`，不会回退到生产域名
+- 所有生成的 URL 形如 `https://test-r2.zhe.to/xxx`，明显区别于生产 `https://s.zhe.to/xxx`
+- 不需要改动应用代码
+
+> **如果未来需要真正验证 R2 上传 URL 可访问性**（如 L3 测试检查图片加载），再配置 `test-r2.zhe.to` 的 DNS → `zhe-test` bucket。当前阶段不需要。
+
+覆盖逻辑已包含在 4a（`run-api-e2e.ts` 的 `main()`）和 4b（`global-setup.ts` / `global-teardown.ts` / `d1.ts` / `playwright.config.ts`）中。
 
 #### 4d. KV — 预防性防护
 
@@ -369,7 +448,7 @@ WORKER_SECRET=                    # Shared secret for sync-kv and record-click e
 # ─── Test Resources (required for L2/L3 E2E tests) ──────────────────────────
 D1_TEST_DATABASE_ID=              # zhe-db-test UUID (must NOT equal CLOUDFLARE_D1_DATABASE_ID)
 R2_TEST_BUCKET_NAME=zhe-test
-R2_TEST_PUBLIC_DOMAIN=            # Leave empty for test bucket (no public domain)
+R2_TEST_PUBLIC_DOMAIN=https://test-r2.zhe.to  # Placeholder domain (no real DNS needed)
 KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 ```
 
@@ -406,9 +485,10 @@ KV_TEST_NAMESPACE_ID=             # zhe-test KV namespace ID
 - [ ] `bun run test:api` Phase 2 通过（dev server 连接 `zhe-db-test` + `zhe-test` bucket）
 - [ ] `bun run test:e2e:pw` 通过（global-setup/teardown 使用 `zhe-db-test`；webServer 使用 `zhe-db-test` + `zhe-test` bucket）
 - [ ] 运行测试前后，`zhe-db` 生产数据无变化（通过 D1 HTTP API 查询验证）
-- [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 有 guard
+- [ ] `tests/playwright/helpers/d1.ts` 的 `ensureTestEnv()` 自行加载 `.env.local` + 安全检查 + 覆盖（不依赖 global-setup 的 env 传播）
+- [ ] `tests/playwright/helpers/d1.ts` 的 `executeD1()` 和 `queryD1()` 在入口调用 `ensureTestEnv()`
 - [ ] `.env.example` 存在且包含所有生产+测试 env var
-- [ ] `R2_TEST_PUBLIC_DOMAIN` 为空，测试中生成的 URL 不指向 `s.zhe.to`
+- [ ] `R2_TEST_PUBLIC_DOMAIN` 为 `https://test-r2.zhe.to`，测试中生成的 URL 不指向 `s.zhe.to`
 
 ---
 
