@@ -88,10 +88,35 @@ async function runInProcessTests(): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// D1 test marker verification
+// ---------------------------------------------------------------------------
+
+async function queryD1TestMarker(): Promise<string | null> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  if (!accountId || !databaseId || !token) return null;
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: "SELECT value FROM _test_marker WHERE key = 'env'", params: [] }),
+    },
+  );
+  if (!res.ok) throw new Error(`D1 HTTP error ${res.status}`);
+  const data = await res.json();
+  if (!data.success) throw new Error('D1 query failed');
+  const rows = data.result?.[0]?.results ?? [];
+  return rows.length > 0 ? (rows[0] as { value: string }).value : null;
+}
+
+// ---------------------------------------------------------------------------
 // Phase 2: Real HTTP tests
 // ---------------------------------------------------------------------------
 
-function checkPrerequisites(): boolean {
+async function checkPrerequisites(): Promise<boolean> {
   const required = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length > 0) {
@@ -100,22 +125,28 @@ function checkPrerequisites(): boolean {
     return false;
   }
 
-  // Safety: require D1_TEST_DATABASE_ID to match CLOUDFLARE_D1_DATABASE_ID.
-  // This prevents accidentally running destructive E2E tests against a
-  // production or shared development database.
+  // Safety: require D1_TEST_DATABASE_ID to exist.
+  // main() has already verified testDbId !== prodDbId and overridden CLOUDFLARE_D1_DATABASE_ID.
   const testDbId = process.env.D1_TEST_DATABASE_ID;
-  const activeDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   if (!testDbId) {
     console.error('❌ [api-e2e] D1_TEST_DATABASE_ID not set.');
-    console.error('   Set D1_TEST_DATABASE_ID in .env.local to the D1 database ID used for testing.');
+    console.error('   Set D1_TEST_DATABASE_ID in .env.local to the dedicated test D1 database ID.');
     console.error('   This guard prevents running destructive tests against production.\n');
     return false;
   }
-  if (testDbId !== activeDbId) {
-    console.error('❌ [api-e2e] D1 safety check failed:');
-    console.error(`   CLOUDFLARE_D1_DATABASE_ID = ${activeDbId}`);
-    console.error(`   D1_TEST_DATABASE_ID        = ${testDbId}`);
-    console.error('   These must match. Refusing to run tests against a non-test database.\n');
+
+  // _test_marker: last line of defense — verify the database is actually a test DB
+  try {
+    const marker = await queryD1TestMarker();
+    if (marker !== 'test') {
+      console.error('❌ [api-e2e] _test_marker check failed. Is this really a test database?');
+      console.error('   Expected _test_marker(key="env", value="test") in the D1 database.');
+      console.error('   Run Step 2 from docs/14-cloudflare-resource-inventory.md to initialize.\n');
+      return false;
+    }
+  } catch (err) {
+    console.warn(`⚠️  [api-e2e] Failed to verify _test_marker: ${err}`);
+    console.warn('   Database may not be initialized. Skipping Phase 2 (soft gate).\n');
     return false;
   }
 
@@ -186,7 +217,7 @@ async function runHttpTests(): Promise<number> {
 async function runPhase2(): Promise<number> {
   console.log('\n━━━ Phase 2: Real HTTP tests ━━━\n');
 
-  if (!checkPrerequisites()) {
+  if (!(await checkPrerequisites())) {
     return 0; // soft gate
   }
 
@@ -222,10 +253,55 @@ async function runPhase2(): Promise<number> {
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
 
+  // ---- KV: override or clear — must happen before Phase 1 (webhook.test.ts triggers kvPutLink) ----
+  if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
+    const testKvId = process.env.KV_TEST_NAMESPACE_ID;
+    if (testKvId) {
+      process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
+    } else {
+      // Clear production KV ID → getKVCredentials() returns null → kvPutLink() no-op
+      // Functional degradation, but Phase 1 does not skip
+      console.warn(
+        '⚠️  [api-e2e] CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
+        'Clearing KV config to prevent production writes (KV features disabled for this run).'
+      );
+      delete process.env.CLOUDFLARE_KV_NAMESPACE_ID;
+    }
+  }
+
   // Phase 1: always runs (no external deps)
   const phase1Code = await runInProcessTests();
   if (phase1Code !== 0) {
     process.exit(phase1Code);
+  }
+
+  // ---- D1: override before Phase 2 (only Phase 2 needs real D1) ----
+  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const testDbId = process.env.D1_TEST_DATABASE_ID;
+  if (!testDbId) {
+    console.warn('⚠️  [api-e2e] D1_TEST_DATABASE_ID not set. Skipping Phase 2 (soft gate).');
+    return;
+  }
+  if (testDbId === prodDbId) {
+    console.error(
+      '❌ D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. ' +
+      'Test DB must differ from production DB.'
+    );
+    process.exit(1);
+  }
+  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+
+  // ---- R2: override dev server env (Phase 2 doesn't depend on real R2, but prevents accidental prod access) ----
+  const testBucket = process.env.R2_TEST_BUCKET_NAME;
+  const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
+  if (testBucket && testPublicDomain) {
+    process.env.R2_BUCKET_NAME = testBucket;
+    process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
+  } else {
+    console.warn(
+      '⚠️  [api-e2e] R2_TEST_BUCKET_NAME or R2_TEST_PUBLIC_DOMAIN not set. ' +
+      'Dev server retains production R2 config. This is safe: L2 tests mock all R2 operations, no real writes occur.'
+    );
   }
 
   // Phase 2: soft gate (may skip if infra unavailable)

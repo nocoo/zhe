@@ -56,18 +56,20 @@ function d1Credentials(): { accountId: string; databaseId: string; token: string
     throw new Error('D1 credentials not configured. Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN in .env.local');
   }
 
-  // Safety: require D1_TEST_DATABASE_ID to match, preventing writes to production
+  // Safety: require D1_TEST_DATABASE_ID to exist.
+  // main() in run-api-e2e.ts has already verified testDbId !== prodDbId
+  // and overridden CLOUDFLARE_D1_DATABASE_ID to point to the test database.
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
     throw new Error(
       'D1_TEST_DATABASE_ID not set. This guard prevents running destructive seed/teardown against production. ' +
-      'Set D1_TEST_DATABASE_ID in .env.local to match CLOUDFLARE_D1_DATABASE_ID.',
+      'Set D1_TEST_DATABASE_ID in .env.local to the dedicated test D1 database UUID.',
     );
   }
   if (testDbId !== databaseId) {
     throw new Error(
-      `D1 safety check failed: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
-      'Refusing to write to a non-test database.',
+      `D1 safety check: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
+      'run-api-e2e.ts should have overridden this. Refusing to write to a non-test database.',
     );
   }
 
