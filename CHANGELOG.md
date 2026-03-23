@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.3] - 2026-03-24
+
+### Changed
+- Enable `noUncheckedIndexedAccess` in tsconfig for stricter type safety
+- Enable `exactOptionalPropertyTypes` in tsconfig
+- Enable `noUnusedLocals` and `noUnusedParameters` in tsconfig
+- Enable `noFallthroughCasesInSwitch` in tsconfig
+- Upgrade G2 security gate from soft (advisory) to hard (blocking)
+
 ## [v1.8.2] - 2026-03-23
 
 ### Added
