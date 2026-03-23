@@ -58,7 +58,7 @@ export function DashboardShell({
             <AppSidebar
               collapsed={collapsed}
               onToggle={toggleSidebar}
-              user={user}
+              {...(user ? { user } : {})}
               signOutAction={signOutAction}
             />
           )}
@@ -73,7 +73,7 @@ export function DashboardShell({
                 <AppSidebar
                   collapsed={false}
                   onToggle={closeMobileSidebar}
-                  user={user}
+                  {...(user ? { user } : {})}
                   signOutAction={signOutAction}
                 />
               </SheetContent>

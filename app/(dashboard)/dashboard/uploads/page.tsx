@@ -3,6 +3,5 @@ import { getUploads } from '@/actions/upload';
 
 export default async function UploadsPage() {
   const result = await getUploads();
-  const initialUploads = result.success ? result.data : undefined;
-  return <UploadList initialUploads={initialUploads} />;
+  return <UploadList {...(result.success && result.data ? { initialUploads: result.data } : {})} />;
 }

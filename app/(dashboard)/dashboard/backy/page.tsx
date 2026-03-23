@@ -9,7 +9,7 @@ export default async function BackyRoute() {
   ]);
 
   const initialData: BackyInitialData = {
-    pullWebhook: pullResult.success && pullResult.data ? pullResult.data : undefined,
+    ...(pullResult.success && pullResult.data ? { pullWebhook: pullResult.data } : {}),
   };
 
   if (configResult.success && configResult.data) {

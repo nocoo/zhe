@@ -14,7 +14,9 @@ export function url(path: string): string {
 
 /** GET request to an API path. */
 export async function apiGet(path: string, headers?: Record<string, string>): Promise<Response> {
-  return fetch(url(path), { headers });
+  return fetch(url(path), {
+    ...(headers !== undefined && { headers }),
+  });
 }
 
 /** POST request to an API path with optional JSON body. */
@@ -30,13 +32,16 @@ export async function apiPost(
       ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...headers,
     },
-    body: hasBody ? JSON.stringify(body) : undefined,
+    ...(hasBody && { body: JSON.stringify(body) }),
   });
 }
 
 /** HEAD request to an API path. */
 export async function apiHead(path: string, headers?: Record<string, string>): Promise<Response> {
-  return fetch(url(path), { method: 'HEAD', headers });
+  return fetch(url(path), {
+    method: 'HEAD',
+    ...(headers !== undefined && { headers }),
+  });
 }
 
 /** Parse JSON response and return both the parsed body and the Response. */

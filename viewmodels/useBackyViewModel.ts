@@ -16,10 +16,10 @@ import { getBackyEnvironment } from "@/models/backy";
 
 /** Initial data from SSR prefetch */
 export interface BackyInitialData {
-  webhookUrl?: string;
-  maskedApiKey?: string;
-  history?: BackyHistoryResponse;
-  pullWebhook?: { key: string };
+  webhookUrl?: string | undefined;
+  maskedApiKey?: string | undefined;
+  history?: BackyHistoryResponse | undefined;
+  pullWebhook?: { key: string } | undefined;
 }
 
 /** Return type of useBackyViewModel — can be used as a prop type */

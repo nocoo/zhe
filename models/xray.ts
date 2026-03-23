@@ -55,7 +55,7 @@ export interface XrayTweetMedia {
   id: string;
   type: 'PHOTO' | 'VIDEO' | 'GIF';
   url: string;
-  thumbnail_url?: string;
+  thumbnail_url?: string | undefined;
 }
 
 /** Tweet data returned by the API */
@@ -71,9 +71,9 @@ export interface XrayTweetData {
   is_reply: boolean;
   lang: string;
   entities: XrayTweetEntities;
-  media?: XrayTweetMedia[];
-  quoted_tweet?: XrayTweetData;
-  reply_to_id?: string;
+  media?: XrayTweetMedia[] | undefined;
+  quoted_tweet?: XrayTweetData | undefined;
+  reply_to_id?: string | undefined;
 }
 
 /** Full API response envelope (single tweet) */

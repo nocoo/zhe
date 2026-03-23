@@ -11,18 +11,18 @@ import type { Link } from '@/lib/db/schema';
 
 export interface CreateLinkInput {
   originalUrl: string;
-  customSlug?: string;
-  folderId?: string;
-  expiresAt?: Date;
-  note?: string;
-  screenshotUrl?: string;
-  tagIds?: string[];
+  customSlug?: string | undefined;
+  folderId?: string | undefined;
+  expiresAt?: Date | undefined;
+  note?: string | undefined;
+  screenshotUrl?: string | undefined;
+  tagIds?: string[] | undefined;
 }
 
 export interface ActionResult<T = void> {
   success: boolean;
-  data?: T;
-  error?: string;
+  data?: T | undefined;
+  error?: string | undefined;
 }
 
 /**
@@ -198,10 +198,10 @@ export async function updateLink(
 
     // Validate and sanitize slug if provided
     const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
-      originalUrl: data.originalUrl,
-      folderId: data.folderId,
-      expiresAt: data.expiresAt,
-      screenshotUrl: data.screenshotUrl,
+      ...(data.originalUrl !== undefined && { originalUrl: data.originalUrl }),
+      ...(data.folderId !== undefined && { folderId: data.folderId }),
+      ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt }),
+      ...(data.screenshotUrl !== undefined && { screenshotUrl: data.screenshotUrl }),
     };
 
     // Fetch the old link to detect slug changes for KV eviction

@@ -28,7 +28,7 @@ export async function getBackyConfig(): Promise<{
     if (!db) return { success: false, error: 'Unauthorized' };
 
     const config = await db.getBackySettings();
-    if (!config) return { success: true, data: undefined };
+    if (!config) return { success: true };
 
     return {
       success: true,
@@ -285,7 +285,7 @@ export async function getBackyPullWebhook(): Promise<{
     if (!db) return { success: false, error: 'Unauthorized' };
 
     const creds = await db.getBackyPullWebhook();
-    if (!creds) return { success: true, data: undefined };
+    if (!creds) return { success: true };
 
     return { success: true, data: creds };
   } catch (error) {

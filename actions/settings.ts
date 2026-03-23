@@ -32,7 +32,7 @@ export async function importLinks(
 
     const parsed = parseImportPayload(payload);
     if (!parsed.success || !parsed.data) {
-      return { success: false, error: parsed.error };
+      return { success: false, error: parsed.error ?? 'Invalid import data' };
     }
 
     let created = 0;

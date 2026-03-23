@@ -172,7 +172,7 @@ async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   return fetch(target, {
     method: request.method,
     headers,
-    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+    ...(request.method !== 'GET' && request.method !== 'HEAD' && { body: request.body }),
     redirect: 'manual', // Don't follow origin redirects — pass them through
   });
 }

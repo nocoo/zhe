@@ -21,7 +21,7 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell
-      user={session?.user}
+      {...(session?.user ? { user: session.user } : {})}
       signOutAction={handleSignOut}
       initialFolders={initialFolders}
     >

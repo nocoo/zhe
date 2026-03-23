@@ -72,7 +72,7 @@ export async function getXrayConfig(): Promise<{
     if (!db) return { success: false, error: 'Unauthorized' };
 
     const config = await db.getXraySettings();
-    if (!config) return { success: true, data: undefined };
+    if (!config) return { success: true };
 
     return {
       success: true,

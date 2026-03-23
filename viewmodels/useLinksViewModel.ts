@@ -384,7 +384,7 @@ export function useInlineLinkEditViewModel(
       // Build update payload — include slug only if changed
       const payload: { originalUrl: string; folderId?: string; slug?: string; screenshotUrl?: string | null } = {
         originalUrl: editUrl,
-        folderId: editFolderId,
+        ...(editFolderId !== undefined && { folderId: editFolderId }),
       };
       if (editSlug !== link.slug) {
         payload.slug = editSlug;

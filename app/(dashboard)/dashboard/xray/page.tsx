@@ -3,6 +3,5 @@ import { getXrayConfig } from '@/actions/xray';
 
 export default async function XrayRoute() {
   const result = await getXrayConfig();
-  const initialData = result.success && result.data ? result.data : undefined;
-  return <XrayPage initialData={initialData} />;
+  return <XrayPage {...(result.success && result.data ? { initialData: result.data } : {})} />;
 }
