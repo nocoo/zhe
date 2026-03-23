@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.2] - 2026-03-23
+
+### Added
+- Add `.gitleaks.toml` with allowlists for build artifacts, test mock keys, and doc placeholders
+- Add `.osv-scanner.toml` ignoring GHSA-5f7q-jpqc-wp7h (Next.js PPR DoS, PPR not enabled)
+- Add `apiPostWorker` HTTP helper for WORKER_SECRET Bearer auth in L2 tests
+- Add `apiGetAuth` / `apiPostAuth` session auth helpers with CSRF cookie forwarding
+- Add L2 test for `/api/auth/[...nextauth]` (CSRF, providers, session)
+- Add D1 seed helpers for webhooks, folders, backy pull/push config
+
+### Changed
+- Upgrade L2 from 4/11 to 11/11 API endpoint coverage (55 tests, 9 files, real HTTP)
+- Eliminate Phase 1/Phase 2 split — all L2 tests now run as real HTTP against dev server
+- Upgrade G2 hooks from advisory to hard gate (block commit/push when tool is present)
+- Serialize L2 test files (`fileParallelism: false`) to prevent cross-file seed race conditions
+- Update pre-push hook to osv-scanner v2 syntax (`scan --config=`)
+- Lowercase `testSlug()` output to match API `sanitizeSlug()` behavior
+
+### Fixed
+- Fix CSRF cookie not forwarded in session auth helper (MissingCSRF error)
+- Fix WORKER_SECRET Bearer auth missing from record-click L2 tests (403)
+- Fix webhook stats test FK constraint (create user before webhook)
+- Fix auth session test to accept both `null` and `{}` from NextAuth
+
 ## [v1.8.1] - 2026-03-22
 
 ### Added

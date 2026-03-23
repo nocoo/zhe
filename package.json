@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 7005",
@@ -91,5 +91,13 @@
     "firefox >= 95",
     "safari >= 15.4",
     "edge >= 96"
-  ]
+  ],
+  "overrides": {
+    "esbuild": ">=0.25.0",
+    "fast-xml-parser": ">=5.5.7",
+    "flatted": ">=3.4.2",
+    "rollup": ">=4.59.0",
+    "undici": ">=7.24.0",
+    "next": ">=15.5.14"
+  }
 }
