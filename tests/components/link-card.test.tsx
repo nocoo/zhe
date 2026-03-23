@@ -492,7 +492,7 @@ describe("LinkCard", () => {
     // The AlertDialog confirm button — find within the dialog, not the trigger
     const confirmButtons = screen.getAllByRole("button", { name: "删除" });
     // The last one is the AlertDialogAction inside the dialog
-    await user.click(confirmButtons[confirmButtons.length - 1]);
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
   });

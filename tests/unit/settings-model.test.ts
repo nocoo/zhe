@@ -74,7 +74,7 @@ describe('models/settings', () => {
     it('exports null for missing optional fields', () => {
       const link = makeLink();
       const result = serializeLinksForExport([link]);
-      const exported = result[0];
+      const exported = result[0]!;
       expect(exported.folderId).toBeNull();
       expect(exported.expiresAt).toBeNull();
       expect(exported.metaTitle).toBeNull();
@@ -96,7 +96,7 @@ describe('models/settings', () => {
     it('handles null clicks as 0', () => {
       const link = makeLink({ clicks: null });
       const result = serializeLinksForExport([link]);
-      expect(result[0].clicks).toBe(0);
+      expect(result[0]!.clicks).toBe(0);
     });
   });
 
@@ -138,8 +138,8 @@ describe('models/settings', () => {
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
-      expect(result.data![0].originalUrl).toBe('https://example.com');
-      expect(result.data![0].slug).toBe('abc');
+      expect(result.data![0]!.originalUrl).toBe('https://example.com');
+      expect(result.data![0]!.slug).toBe('abc');
     });
 
     it('returns error when link missing originalUrl', () => {
@@ -167,21 +167,21 @@ describe('models/settings', () => {
       const payload = [{ originalUrl: 'https://example.com', slug: 'abc', isCustom: true, createdAt: '2026-01-01' }];
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
-      expect(result.data![0].clicks).toBe(0);
+      expect(result.data![0]!.clicks).toBe(0);
     });
 
     it('defaults isCustom to false when missing', () => {
       const payload = [{ originalUrl: 'https://example.com', slug: 'abc', clicks: 5, createdAt: '2026-01-01' }];
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
-      expect(result.data![0].isCustom).toBe(false);
+      expect(result.data![0]!.isCustom).toBe(false);
     });
 
     it('defaults optional fields to null when missing', () => {
       const payload = [{ originalUrl: 'https://example.com', slug: 'abc' }];
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
-      const entry = result.data![0];
+      const entry = result.data![0]!;
       expect(entry.folderId).toBeNull();
       expect(entry.expiresAt).toBeNull();
       expect(entry.metaTitle).toBeNull();
@@ -205,7 +205,7 @@ describe('models/settings', () => {
       }];
       const result = parseImportPayload(payload);
       expect(result.success).toBe(true);
-      const entry = result.data![0];
+      const entry = result.data![0]!;
       expect(entry.folderId).toBe('folder-1');
       expect(entry.expiresAt).toBe('2027-01-01T00:00:00.000Z');
       expect(entry.metaTitle).toBe('Title');

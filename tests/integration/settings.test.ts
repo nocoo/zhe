@@ -366,15 +366,15 @@ describe('Data Import/Export + Preview Style E2E', () => {
       const aExport = await exportLinks();
       expect(aExport.success).toBe(true);
       expect(aExport.data).toHaveLength(1);
-      expect(aExport.data![0].slug).toBe('a-slug');
-      expect(aExport.data![0].originalUrl).toBe('https://a-link.com');
+      expect(aExport.data![0]!.slug).toBe('a-slug');
+      expect(aExport.data![0]!.originalUrl).toBe('https://a-link.com');
 
       // User B exports — should only see their own
       authenticatedAs(USER_B);
       const bExport = await exportLinks();
       expect(bExport.success).toBe(true);
       expect(bExport.data).toHaveLength(1);
-      expect(bExport.data![0].slug).toBe('b-slug');
+      expect(bExport.data![0]!.slug).toBe('b-slug');
     });
 
     it('import does not affect other user\'s links', async () => {
@@ -395,13 +395,13 @@ describe('Data Import/Export + Preview Style E2E', () => {
       authenticatedAs(USER_A);
       const aExport = await exportLinks();
       expect(aExport.data).toHaveLength(1);
-      expect(aExport.data![0].slug).toBe('a-only');
+      expect(aExport.data![0]!.slug).toBe('a-only');
 
       // User B sees only their imported link
       authenticatedAs(USER_B);
       const bExport = await exportLinks();
       expect(bExport.data).toHaveLength(1);
-      expect(bExport.data![0].slug).toBe('b-imported');
+      expect(bExport.data![0]!.slug).toBe('b-imported');
     });
   });
 

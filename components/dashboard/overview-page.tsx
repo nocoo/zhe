@@ -187,7 +187,7 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="clicks"
-            stroke={CHART_COLORS[0]}
+            stroke={CHART_COLORS[0]!}
             fill="url(#clickGradientTotal)"
             strokeWidth={2}
             name="clicks"
@@ -195,7 +195,7 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="worker"
-            stroke={CHART_COLORS[2]}
+            stroke={CHART_COLORS[2]!}
             fill="url(#clickGradientWorker)"
             strokeWidth={1.5}
             name="worker"
@@ -203,7 +203,7 @@ function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="origin"
-            stroke={CHART_COLORS[4]}
+            stroke={CHART_COLORS[4]!}
             fill="url(#clickGradientOrigin)"
             strokeWidth={1.5}
             name="origin"
@@ -262,7 +262,7 @@ function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="uploads"
-            stroke={CHART_COLORS[1]}
+            stroke={CHART_COLORS[1]!}
             fill="url(#uploadGradient)"
             strokeWidth={2}
           />
@@ -302,7 +302,7 @@ function BreakdownDonut({ data }: { data: Record<string, number> }) {
               dataKey="value"
             >
               {pieData.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]!} />
               ))}
             </Pie>
             <Tooltip

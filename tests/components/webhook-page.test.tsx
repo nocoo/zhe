@@ -67,7 +67,7 @@ describe('WebhookPage', () => {
 
     const copyButtons = screen.getAllByRole('button', { name: /复制/ });
     // First copy button is for the token
-    fireEvent.click(copyButtons[0]);
+    fireEvent.click(copyButtons[0]!);
 
     expect(writeTextMock).toHaveBeenCalledWith('test-token-xyz');
   });
@@ -86,7 +86,7 @@ describe('WebhookPage', () => {
 
     const copyButtons = screen.getAllByRole('button', { name: /复制/ });
     // Second copy button is for the webhook URL
-    fireEvent.click(copyButtons[1]);
+    fireEvent.click(copyButtons[1]!);
 
     expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/link/create/test-token-xyz');
   });
@@ -395,7 +395,7 @@ describe('WebhookPage', () => {
 
       expect(writeTextMock).toHaveBeenCalledTimes(1);
       // Verify the prompt content includes the webhook URL
-      const calledWith = writeTextMock.mock.calls[0][0] as string;
+      const calledWith = writeTextMock.mock.calls[0]![0] as string;
       expect(calledWith).toContain('https://zhe.example.com/api/link/create/abc-123-def');
       expect(calledWith).toContain('Schema Discovery');
     });

@@ -45,8 +45,8 @@ describe('cron-history', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(2);
-    expect(history[0].synced).toBe(2); // newer first
-    expect(history[1].synced).toBe(1);
+    expect(history[0]!.synced).toBe(2); // newer first
+    expect(history[1]!.synced).toBe(1);
   });
 
   it('records error entries', () => {
@@ -60,8 +60,8 @@ describe('cron-history', () => {
     recordCronResult(entry);
 
     const history = getCronHistory();
-    expect(history[0].status).toBe('error');
-    expect(history[0].error).toBe('D1 timeout');
+    expect(history[0]!.status).toBe('error');
+    expect(history[0]!.error).toBe('D1 timeout');
   });
 
   it('evicts oldest entries when exceeding max (50)', () => {
@@ -73,8 +73,8 @@ describe('cron-history', () => {
     const history = getCronHistory();
     expect(history).toHaveLength(50);
     // Newest (synced=54) should be first, oldest kept (synced=5) should be last
-    expect(history[0].synced).toBe(54);
-    expect(history[49].synced).toBe(5);
+    expect(history[0]!.synced).toBe(54);
+    expect(history[49]!.synced).toBe(5);
   });
 
   it('returns a shallow copy (mutations do not affect internal state)', () => {

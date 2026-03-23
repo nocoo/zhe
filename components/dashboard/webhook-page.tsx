@@ -142,8 +142,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                   max={RATE_LIMIT_ABSOLUTE_MAX}
                   step={1}
                   value={[rateLimit]}
-                  onValueChange={([v]) => setRateLimit(v)}
-                  onValueCommit={([v]) => handleRateLimitChange(v)}
+                  onValueChange={([v]) => setRateLimit(v!)}
+                  onValueCommit={([v]) => handleRateLimitChange(v!)}
                 />
               </div>
 

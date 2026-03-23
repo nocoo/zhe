@@ -84,7 +84,7 @@ describe('useIsMobile', () => {
     expect(result.current).toBe(false);
 
     // Simulate resize to mobile
-    const changeHandler = addEventListenerSpy.mock.calls[0][1];
+    const changeHandler = addEventListenerSpy.mock.calls[0]![1];
     act(() => {
       Object.defineProperty(window, 'innerWidth', { value: 500, writable: true, configurable: true });
       changeHandler();

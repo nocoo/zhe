@@ -75,7 +75,7 @@ export async function getSessionCookie(): Promise<string> {
   // Extract the csrf cookie from the response to forward it
   const csrfCookies = csrfRes.headers.getSetCookie?.() ?? [];
   const csrfCookieStr = csrfCookies
-    .map((c: string) => c.split(';')[0])
+    .map((c: string) => c.split(';')[0]!)
     .join('; ');
 
   // Step 2: POST to credentials callback with csrf cookie and redirect: manual
@@ -96,7 +96,7 @@ export async function getSessionCookie(): Promise<string> {
   // Extract Set-Cookie header(s) — session token comes from the callback
   const cookies = callbackRes.headers.getSetCookie?.() ?? [];
   const sessionCookie = cookies
-    .map((c: string) => c.split(';')[0])
+    .map((c: string) => c.split(';')[0]!)
     .filter((c: string) => c.startsWith('authjs.session-token=') || c.startsWith('__Secure-authjs.session-token='))
     .join('; ');
 

@@ -263,7 +263,7 @@ describe("DashboardService", () => {
         result.current.handleLinkUpdated(updated);
       });
 
-      expect(result.current.links[0].originalUrl).toBe("https://new.com");
+      expect(result.current.links[0]!.originalUrl).toBe("https://new.com");
     });
 
     it("handleLinkUpdated is a no-op for non-existent id", async () => {
@@ -279,7 +279,7 @@ describe("DashboardService", () => {
       });
 
       expect(result.current.links).toHaveLength(1);
-      expect(result.current.links[0].originalUrl).toBe("https://example.com");
+      expect(result.current.links[0]!.originalUrl).toBe("https://example.com");
     });
   });
 
@@ -296,7 +296,7 @@ describe("DashboardService", () => {
       });
 
       expect(result.current.folders).toHaveLength(2);
-      expect(result.current.folders[1]).toEqual(newFolder);
+      expect(result.current.folders[1]!).toEqual(newFolder);
     });
 
     it("handleFolderDeleted removes a folder by id", async () => {
@@ -311,7 +311,7 @@ describe("DashboardService", () => {
       });
 
       expect(result.current.folders).toHaveLength(1);
-      expect(result.current.folders[0].id).toBe("f2");
+      expect(result.current.folders[0]!.id).toBe("f2");
     });
 
     it("handleFolderDeleted cascades: clears folderId on associated links", async () => {
@@ -330,11 +330,11 @@ describe("DashboardService", () => {
       });
 
       // Link 1 had folderId=f1, should now be null
-      expect(result.current.links[0].folderId).toBeNull();
+      expect(result.current.links[0]!.folderId).toBeNull();
       // Link 2 had folderId=f2, unaffected
-      expect(result.current.links[1].folderId).toBe("f2");
+      expect(result.current.links[1]!.folderId).toBe("f2");
       // Link 3 was already null
-      expect(result.current.links[2].folderId).toBeNull();
+      expect(result.current.links[2]!.folderId).toBeNull();
     });
 
     it("handleFolderDeleted does not affect links of other folders", async () => {
@@ -355,8 +355,7 @@ describe("DashboardService", () => {
         result.current.handleFolderDeleted("f1");
       });
 
-      // f2 link untouched
-      expect(result.current.links[1].folderId).toBe("f2");
+      expect(result.current.links[1]!.folderId).toBe("f2");
     });
 
     it("handleFolderUpdated replaces a folder by id", async () => {
@@ -368,8 +367,8 @@ describe("DashboardService", () => {
         result.current.handleFolderUpdated(updated);
       });
 
-      expect(result.current.folders[0].name).toBe("Office");
-      expect(result.current.folders[0].icon).toBe("building");
+      expect(result.current.folders[0]!.name).toBe("Office");
+      expect(result.current.folders[0]!.icon).toBe("building");
     });
 
     it("handleFolderUpdated is a no-op for non-existent id", async () => {
@@ -383,7 +382,7 @@ describe("DashboardService", () => {
       });
 
       expect(result.current.folders).toHaveLength(1);
-      expect(result.current.folders[0].name).toBe("Work");
+      expect(result.current.folders[0]!.name).toBe("Work");
     });
   });
 
@@ -410,7 +409,7 @@ describe("DashboardService", () => {
       const tag = makeTag({ id: "t-new" });
       act(() => { result.current.handleTagCreated(tag); });
       expect(result.current.tags).toHaveLength(1);
-      expect(result.current.tags[0]).toEqual(tag);
+      expect(result.current.tags[0]!).toEqual(tag);
     });
 
     it("handleTagDeleted removes a tag by id", async () => {
@@ -421,7 +420,7 @@ describe("DashboardService", () => {
 
       act(() => { result.current.handleTagDeleted("t1"); });
       expect(result.current.tags).toHaveLength(1);
-      expect(result.current.tags[0].id).toBe("t2");
+      expect(result.current.tags[0]!.id).toBe("t2");
     });
 
     it("handleTagDeleted cascades: removes link-tags for deleted tag", async () => {
@@ -437,7 +436,7 @@ describe("DashboardService", () => {
       act(() => { result.current.handleTagDeleted("t1"); });
 
       expect(result.current.linkTags).toHaveLength(1);
-      expect(result.current.linkTags[0].tagId).toBe("t2");
+      expect(result.current.linkTags[0]!.tagId).toBe("t2");
     });
 
     it("handleTagUpdated replaces a tag by id", async () => {
@@ -450,8 +449,8 @@ describe("DashboardService", () => {
         result.current.handleTagUpdated(makeTag({ id: "t1", name: "new", color: "blue" }));
       });
 
-      expect(result.current.tags[0].name).toBe("new");
-      expect(result.current.tags[0].color).toBe("blue");
+      expect(result.current.tags[0]!.name).toBe("new");
+      expect(result.current.tags[0]!.color).toBe("blue");
     });
   });
 
@@ -478,7 +477,7 @@ describe("DashboardService", () => {
       const lt = makeLinkTag({ linkId: 5, tagId: "t3" });
       act(() => { result.current.handleLinkTagAdded(lt); });
       expect(result.current.linkTags).toHaveLength(1);
-      expect(result.current.linkTags[0]).toEqual(lt);
+      expect(result.current.linkTags[0]!).toEqual(lt);
     });
 
     it("handleLinkTagRemoved removes by linkId+tagId", async () => {
@@ -557,7 +556,7 @@ describe("DashboardService", () => {
       act(() => {
         result.current.handleLinkCreated(link);
       });
-      expect(result.current.links[0].folderId).toBe("f-new");
+      expect(result.current.links[0]!.folderId).toBe("f-new");
 
       // Delete folder — link should cascade
       act(() => {
@@ -565,7 +564,7 @@ describe("DashboardService", () => {
       });
 
       expect(result.current.folders).toHaveLength(0);
-      expect(result.current.links[0].folderId).toBeNull();
+      expect(result.current.links[0]!.folderId).toBeNull();
     });
 
     it("supports updating a link's folderId then deleting that folder", async () => {
@@ -580,13 +579,13 @@ describe("DashboardService", () => {
       act(() => {
         result.current.handleLinkUpdated(makeLink({ id: 1, folderId: "f1" }));
       });
-      expect(result.current.links[0].folderId).toBe("f1");
+      expect(result.current.links[0]!.folderId).toBe("f1");
 
       // Delete folder
       act(() => {
         result.current.handleFolderDeleted("f1");
       });
-      expect(result.current.links[0].folderId).toBeNull();
+      expect(result.current.links[0]!.folderId).toBeNull();
     });
   });
 });

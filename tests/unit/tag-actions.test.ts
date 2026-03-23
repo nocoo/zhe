@@ -158,7 +158,7 @@ describe('actions/tags', () => {
       const result = await createTag({ name: 'work' });
       expect(result.success).toBe(true);
       // Verify createTag was called with a valid color derived from name
-      const call = mockCreateTag.mock.calls[0][0];
+      const call = mockCreateTag.mock.calls[0]![0];
       expect(call.name).toBe('work');
       expect(typeof call.color).toBe('string');
     });

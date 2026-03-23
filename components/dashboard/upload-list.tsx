@@ -99,7 +99,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
             </Label>
             <Slider
               value={[jpegQuality]}
-              onValueChange={([v]) => setJpegQuality(v)}
+              onValueChange={([v]) => setJpegQuality(v!)}
               min={1}
               max={100}
               step={1}

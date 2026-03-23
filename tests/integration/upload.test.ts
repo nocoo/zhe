@@ -154,8 +154,8 @@ describe('Upload E2E — full lifecycle', () => {
 
       expect(listResult.success).toBe(true);
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0].id).toBe(uploadId);
-      expect(listResult.data![0].fileName).toBe('landscape.png');
+      expect(listResult.data![0]!.id).toBe(uploadId);
+      expect(listResult.data![0]!.fileName).toBe('landscape.png');
 
       // Step 4: Delete the upload
       const deleteResult = await deleteUpload(uploadId);
@@ -213,7 +213,7 @@ describe('Upload E2E — full lifecycle', () => {
       // User B lists — should only see their own
       const listB = await getUploads();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0].fileName).toBe('user-b.pdf');
+      expect(listB.data![0]!.fileName).toBe('user-b.pdf');
 
       // User B tries to delete User A's upload — should fail
       const deleteAttempt = await deleteUpload(uploadAId);
@@ -225,7 +225,7 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(USER_ID);
       const listA = await getUploads();
       expect(listA.data).toHaveLength(1);
-      expect(listA.data![0].fileName).toBe('user-a.png');
+      expect(listA.data![0]!.fileName).toBe('user-a.png');
     });
   });
 

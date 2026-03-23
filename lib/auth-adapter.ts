@@ -30,7 +30,7 @@ export function D1Adapter(): Adapter {
         [id, user.name ?? null, user.email, user.emailVerified?.getTime() ?? null, user.image ?? null]
       );
 
-      return rowToUser(rows[0]);
+      return rowToUser(rows[0]!);
     },
 
     async getUser(id) {
@@ -90,7 +90,7 @@ export function D1Adapter(): Adapter {
         params
       );
 
-      return rowToUser(rows[0]);
+      return rowToUser(rows[0]!);
     },
 
     async deleteUser(userId) {

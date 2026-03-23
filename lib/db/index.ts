@@ -56,7 +56,10 @@ export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promi
     ]
   );
 
-  return rowToLink(rows[0]);
+  const row = rows[0];
+  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+
+  return rowToLink(row);
 }
 
 /**
@@ -128,7 +131,7 @@ export async function recordClick(
     [data.linkId],
   );
 
-  return rowToAnalytics(insertRows[0]);
+  return rowToAnalytics(insertRows[0]!);
 }
 
 // ============================================
@@ -271,9 +274,8 @@ export async function upsertTweetCache(data: {
     ]
   );
 
-  return rowToTweetCache(rows[0]);
+  return rowToTweetCache(rows[0]!);
 }
-
 // ============================================
 // Backy pull webhook (unscoped — used by public API route)
 // ============================================

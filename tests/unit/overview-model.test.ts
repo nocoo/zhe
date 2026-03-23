@@ -77,10 +77,10 @@ describe('overview model', () => {
       const result = buildClickTrend(timestamps);
 
       expect(result).toHaveLength(2);
-      expect(result[0].date).toBe('2026-02-10');
-      expect(result[0].clicks).toBe(2);
-      expect(result[1].date).toBe('2026-02-11');
-      expect(result[1].clicks).toBe(1);
+      expect(result[0]!.date).toBe('2026-02-10');
+      expect(result[0]!.clicks).toBe(2);
+      expect(result[1]!.date).toBe('2026-02-11');
+      expect(result[1]!.clicks).toBe(1);
     });
 
     it('sorts by date ascending', () => {

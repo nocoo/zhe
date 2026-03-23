@@ -473,7 +473,7 @@ describe('fetchAndCacheTweet', () => {
 
     await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 1);
 
-    const metaCall = mockUpdateLinkMetadata.mock.calls[0];
+    const metaCall = mockUpdateLinkMetadata.mock.calls[0]!;
     expect(metaCall[1].metaTitle).toBe('@karpathy posted on x.com');
     // metaDescription should be the full text
     expect(metaCall[1].metaDescription).toBe('A'.repeat(200));
@@ -708,7 +708,7 @@ describe('fetchBookmarks', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(bookmarksResponse);
     expect(result.data!.data).toHaveLength(1);
-    expect(result.data!.data[0].id).toBe('2026360908398862478');
+    expect(result.data!.data[0]!.id).toBe('2026360908398862478');
   });
 
   it('returns error when API request fails', async () => {

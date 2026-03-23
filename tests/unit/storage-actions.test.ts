@@ -79,7 +79,7 @@ describe('scanStorage', () => {
     expect(result.data!.d1.tables).toHaveLength(6);
     expect(result.data!.r2.connected).toBe(true);
     expect(result.data!.r2.files).toHaveLength(1);
-    expect(result.data!.r2.files[0].isReferenced).toBe(true);
+    expect(result.data!.r2.files[0]!.isReferenced).toBe(true);
   });
 
   it('returns D1 disconnected when D1 queries throw', async () => {

@@ -242,7 +242,8 @@ async function handleFetch(
   }
 
   // 3. Extract first path segment
-  const slug = pathname.slice(1).split('/')[0];
+  // split('/') always returns at least [''], so [0] is safe
+  const slug = pathname.slice(1).split('/')[0]!;
 
   // 4. Reserved paths → forward to origin
   if (isReservedPath(slug)) {

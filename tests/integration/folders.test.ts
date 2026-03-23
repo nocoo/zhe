@@ -130,7 +130,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       const listResult = await getFolders();
       expect(listResult.success).toBe(true);
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0].id).toBe(folder.id);
+      expect(listResult.data![0]!.id).toBe(folder.id);
 
       // Step 3: Update name
       const nameResult = await updateFolder(folder.id, { name: 'Personal' });
@@ -441,7 +441,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const list = await getFolders();
       expect(list.data).toHaveLength(1);
-      expect(list.data![0].id).toBe(folderA.id);
+      expect(list.data![0]!.id).toBe(folderA.id);
     });
 
     it('each user manages their own folders independently', async () => {
@@ -467,7 +467,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_B);
       const listB = await getFolders();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0].name).toBe('B-Projects');
+      expect(listB.data![0]!.name).toBe('B-Projects');
     });
   });
 

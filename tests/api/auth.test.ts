@@ -34,13 +34,13 @@ describe('GET /api/auth', () => {
 
     // Google should always be present
     expect(body.google).toBeDefined();
-    expect(body.google.id).toBe('google');
-    expect(body.google.type).toBe('oidc');
+    expect(body.google!.id).toBe('google');
+    expect(body.google!.type).toBe('oidc');
 
     // e2e-credentials should be present because dev server runs with PLAYWRIGHT=1
     expect(body['e2e-credentials']).toBeDefined();
-    expect(body['e2e-credentials'].id).toBe('e2e-credentials');
-    expect(body['e2e-credentials'].type).toBe('credentials');
+    expect(body['e2e-credentials']!.id).toBe('e2e-credentials');
+    expect(body['e2e-credentials']!.type).toBe('credentials');
   });
 
   it('GET /api/auth/session returns empty/null session for unauthenticated request', async () => {

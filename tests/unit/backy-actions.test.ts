@@ -422,8 +422,8 @@ describe('backy actions', () => {
       );
 
       // Verify FormData body on POST call
-      const fetchCall = mockFetch.mock.calls[0];
-      const body = fetchCall[1].body;
+      const fetchCall = mockFetch.mock.calls[0]!;
+      const body = fetchCall[1]!.body;
       expect(body).toBeInstanceOf(FormData);
       expect(body.get('environment')).toBe('dev');
       expect(body.get('tag')).toContain('v1.2.3');
@@ -516,9 +516,9 @@ describe('backy actions', () => {
       await pushBackup();
 
       // Second call (GET history) should include signal
-      const secondCall = mockFetch.mock.calls[1];
-      expect(secondCall[1]).toHaveProperty('signal');
-      expect(secondCall[1].signal).toBeInstanceOf(AbortSignal);
+      const secondCall = mockFetch.mock.calls[1]!;
+      expect(secondCall[1]!).toHaveProperty('signal');
+      expect(secondCall[1]!.signal).toBeInstanceOf(AbortSignal);
     });
 
     it('returns error with detail when POST fails', async () => {

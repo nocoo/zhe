@@ -197,7 +197,7 @@ describe('middleware', () => {
     expect(event.waitUntil).toHaveBeenCalledTimes(1);
 
     // Resolve the promise passed to waitUntil so recordClick is invoked
-    const waitUntilPromise = vi.mocked(event.waitUntil).mock.calls[0][0];
+    const waitUntilPromise = vi.mocked(event.waitUntil).mock.calls[0]![0];
     await waitUntilPromise;
 
     expect(recordClick).toHaveBeenCalledWith({

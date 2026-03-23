@@ -195,7 +195,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Step 8: Verify only one tag remains
       const linkTagsAfter = await getLinkTags();
       expect(linkTagsAfter.data).toHaveLength(1);
-      expect(linkTagsAfter.data![0].tagId).toBe(tag2.id);
+      expect(linkTagsAfter.data![0]!.tagId).toBe(tag2.id);
 
       // Step 9: Verify tags are still intact (removing from link doesn't delete the tag)
       const allTags = await getTags();
@@ -231,7 +231,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // List
       const listResult = await getTags();
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0].id).toBe(tag.id);
+      expect(listResult.data![0]!.id).toBe(tag.id);
 
       // Update name
       const updateNameResult = await updateTag(tag.id, { name: 'infrastructure' });
@@ -312,7 +312,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Tag itself should still exist
       const tags = await getTags();
       expect(tags.data).toHaveLength(1);
-      expect(tags.data![0].id).toBe(tag.id);
+      expect(tags.data![0]!.id).toBe(tag.id);
     });
   });
 
@@ -339,7 +339,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // User B can only see their own tags
       const listB = await getTags();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0].name).toBe('user-b-tag');
+      expect(listB.data![0]!.name).toBe('user-b-tag');
 
       // User B cannot update User A's tag
       const updateAttempt = await updateTag(tagA.data!.id, { name: 'hacked' });
@@ -354,7 +354,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       authenticatedAs(USER_A);
       const listA = await getTags();
       expect(listA.data).toHaveLength(1);
-      expect(listA.data![0].name).toBe('user-a-tag');
+      expect(listA.data![0]!.name).toBe('user-a-tag');
     });
 
     it('users cannot see or modify each other\'s link-tag associations', async () => {
@@ -376,7 +376,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // User B can only see their own link-tags
       const ltB = await getLinkTags();
       expect(ltB.data).toHaveLength(1);
-      expect(ltB.data![0].linkId).toBe(linkB.id);
+      expect(ltB.data![0]!.linkId).toBe(linkB.id);
 
       // User B tries to remove User A's link-tag — should fail
       const removeAttempt = await removeTagFromLink(linkA.id, tagA.data!.id);
@@ -386,7 +386,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       authenticatedAs(USER_A);
       const ltA = await getLinkTags();
       expect(ltA.data).toHaveLength(1);
-      expect(ltA.data![0].linkId).toBe(linkA.id);
+      expect(ltA.data![0]!.linkId).toBe(linkA.id);
     });
   });
 

@@ -118,7 +118,7 @@ export function extractTweetId(input: string): string | null {
 
     // Path: /<username>/status/<id> with optional trailing segments (/photo/1, etc.)
     const match = url.pathname.match(/^\/[^/]+\/status\/(\d+)/);
-    return match ? match[1] : null;
+    return match?.[1] ?? null;
   } catch {
     return null;
   }

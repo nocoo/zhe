@@ -342,7 +342,7 @@ describe('useUploadsViewModel', () => {
 
       expect(success).toBe(true);
       expect(result.current.uploads).toHaveLength(1);
-      expect(result.current.uploads[0].id).toBe(2);
+      expect(result.current.uploads[0]!.id).toBe(2);
     });
 
     it('returns false and keeps upload on failure', async () => {
@@ -411,7 +411,7 @@ describe('useUploadsViewModel', () => {
       });
 
       expect(result.current.uploadingFiles).toHaveLength(1);
-      const tempId = result.current.uploadingFiles[0].id;
+      const tempId = result.current.uploadingFiles[0]!.id;
 
       act(() => {
         result.current.dismissUploadingFile(tempId);

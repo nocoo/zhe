@@ -199,7 +199,7 @@ vi.mock('@/lib/db/d1-client', async () => {
             // Cascade: remove associated link_tags entries
             const linkTags = getMockLinkTags();
             for (let i = linkTags.length - 1; i >= 0; i--) {
-              if (linkTags[i].link_id === id) {
+              if (linkTags[i]!.link_id === id) {
                 linkTags.splice(i, 1);
               }
             }
@@ -234,10 +234,10 @@ vi.mock('@/lib/db/d1-client', async () => {
             // Parse SET clause to update fields
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
             if (setMatch) {
-              const setClauses = setMatch[1].split(',').map(s => s.trim());
+              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0].trim();
+                const field = clause.split('=')[0]!.trim();
                 if (field === 'original_url') {
                   rawLink.original_url = params[paramIndex];
                 } else if (field === 'folder_id') {
@@ -714,10 +714,10 @@ vi.mock('@/lib/db/d1-client', async () => {
           if (raw.id === id && raw.user_id === userId) {
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
             if (setMatch) {
-              const setClauses = setMatch[1].split(',').map(s => s.trim());
+              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0].trim();
+                const field = clause.split('=')[0]!.trim();
                 if (field === 'name') {
                   raw.name = params[paramIndex];
                 } else if (field === 'icon') {
@@ -811,10 +811,10 @@ vi.mock('@/lib/db/d1-client', async () => {
           if (raw.id === id && raw.user_id === userId) {
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
             if (setMatch) {
-              const setClauses = setMatch[1].split(',').map(s => s.trim());
+              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0].trim();
+                const field = clause.split('=')[0]!.trim();
                 if (field === 'name') {
                   raw.name = params[paramIndex];
                 } else if (field === 'color') {
@@ -840,7 +840,7 @@ vi.mock('@/lib/db/d1-client', async () => {
             // Cascade: remove associated link_tags entries
             const linkTags = getMockLinkTags();
             for (let i = linkTags.length - 1; i >= 0; i--) {
-              if (linkTags[i].tag_id === id) {
+              if (linkTags[i]!.tag_id === id) {
                 linkTags.splice(i, 1);
               }
             }
@@ -904,7 +904,7 @@ vi.mock('@/lib/db/d1-client', async () => {
         if (!linkOwned) return [];
         
         for (let i = linkTags.length - 1; i >= 0; i--) {
-          if (linkTags[i].link_id === linkId && linkTags[i].tag_id === tagId) {
+          if (linkTags[i]!.link_id === linkId && linkTags[i]!.tag_id === tagId) {
             linkTags.splice(i, 1);
             return [{ link_id: linkId }] as T[];
           }

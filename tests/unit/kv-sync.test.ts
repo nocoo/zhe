@@ -61,8 +61,8 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0].status).toBe('success');
-    expect(history[0].synced).toBe(2);
+    expect(history[0]!.status).toBe('success');
+    expect(history[0]!.synced).toBe(2);
 
     consoleSpy.mockRestore();
   });
@@ -79,8 +79,8 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0].status).toBe('error');
-    expect(history[0].error).toBe('Failed to fetch links from D1');
+    expect(history[0]!.status).toBe('error');
+    expect(history[0]!.error).toBe('Failed to fetch links from D1');
 
     consoleSpy.mockRestore();
   });
@@ -100,7 +100,7 @@ describe('performKVSync', () => {
     expect(result.error).toBeUndefined();
 
     const history = getCronHistory();
-    expect(history[0].status).toBe('error');
+    expect(history[0]!.status).toBe('error');
 
     consoleSpy.mockRestore();
   });
@@ -134,7 +134,7 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0].status).toBe('skipped');
+    expect(history[0]!.status).toBe('skipped');
   });
 
   it('clears dirty flag after successful sync', async () => {

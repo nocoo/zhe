@@ -484,7 +484,7 @@ describe('ScopedDB', () => {
       await db.deleteFolder(folder.id);
 
       const links = await db.getLinks();
-      expect(links[0].folderId).toBeNull();
+      expect(links[0]!.folderId).toBeNull();
     });
   });
 
@@ -721,8 +721,8 @@ describe('ScopedDB', () => {
 
       const linkTags = await db.getLinkTags();
       expect(linkTags).toHaveLength(1);
-      expect(linkTags[0].linkId).toBe(link.id);
-      expect(linkTags[0].tagId).toBe(tag.id);
+      expect(linkTags[0]!.linkId).toBe(link.id);
+      expect(linkTags[0]!.tagId).toBe(tag.id);
     });
 
     it('addTagToLink returns false for unowned link', async () => {
@@ -761,9 +761,9 @@ describe('ScopedDB', () => {
       const linkTagsB = await dbB.getLinkTags();
 
       expect(linkTagsA).toHaveLength(1);
-      expect(linkTagsA[0].linkId).toBe(linkA.id);
+      expect(linkTagsA[0]!.linkId).toBe(linkA.id);
       expect(linkTagsB).toHaveLength(1);
-      expect(linkTagsB[0].linkId).toBe(linkB.id);
+      expect(linkTagsB[0]!.linkId).toBe(linkB.id);
     });
 
     it('removeTagFromLink removes the association', async () => {
@@ -915,9 +915,9 @@ describe('ScopedDB', () => {
       // totalClicks comes from sum of links.clicks column (10 + 5 initial + 3 recorded = 18)
       expect(stats.totalClicks).toBe(18);
       expect(stats.clickTrend).toHaveLength(1); // all 3 clicks on same day
-      expect(stats.clickTrend[0].clicks).toBe(3);
-      expect(stats.clickTrend[0].origin).toBe(3); // no source tag (NULL) → counted as origin
-      expect(stats.clickTrend[0].worker).toBe(0);
+      expect(stats.clickTrend[0]!.clicks).toBe(3);
+      expect(stats.clickTrend[0]!.origin).toBe(3); // no source tag (NULL) → counted as origin
+      expect(stats.clickTrend[0]!.worker).toBe(0);
     });
 
     it('does not include other users data', async () => {
@@ -964,10 +964,10 @@ describe('ScopedDB', () => {
       const stats = await db.getOverviewStats();
 
       expect(stats.topLinks).toHaveLength(3);
-      expect(stats.topLinks[0].slug).toBe('ov-top-high');
-      expect(stats.topLinks[0].clicks).toBe(100);
-      expect(stats.topLinks[1].slug).toBe('ov-top-mid');
-      expect(stats.topLinks[2].slug).toBe('ov-top-low');
+      expect(stats.topLinks[0]!.slug).toBe('ov-top-high');
+      expect(stats.topLinks[0]!.clicks).toBe(100);
+      expect(stats.topLinks[1]!.slug).toBe('ov-top-mid');
+      expect(stats.topLinks[2]!.slug).toBe('ov-top-low');
     });
 
     it('includes upload stats with timestamps and file type breakdown', async () => {
@@ -993,7 +993,7 @@ describe('ScopedDB', () => {
       expect(stats.totalUploads).toBe(2);
       expect(stats.totalStorageBytes).toBe(3072);
       expect(stats.uploadTrend).toHaveLength(1); // both uploads on same day
-      expect(stats.uploadTrend[0].uploads).toBe(2);
+      expect(stats.uploadTrend[0]!.uploads).toBe(2);
       expect(stats.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
     });
 

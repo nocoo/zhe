@@ -398,7 +398,7 @@ describe('Backy backup integration (E2E)', () => {
       expect(result.data?.request?.backupStats?.links).toBe(2);
 
       // Verify the POST call used FormData
-      const postCall = fetchSpy.mock.calls[0];
+      const postCall = fetchSpy.mock.calls[0]!;
       expect(postCall[0]).toBe('https://backy.test/wh');
       expect(postCall[1]?.method).toBe('POST');
       expect(postCall[1]?.headers).toEqual({

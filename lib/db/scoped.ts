@@ -89,7 +89,9 @@ export class ScopedDB {
         now,
       ],
     );
-    return rowToLink(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('INSERT RETURNING * returned no rows');
+    return rowToLink(row);
   }
 
   /** Delete a link by id. Returns true if deleted. */
@@ -300,7 +302,9 @@ export class ScopedDB {
        RETURNING *`,
       [id, this.userId, data.name, data.icon ?? 'folder', now],
     );
-    return rowToFolder(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('INSERT RETURNING * returned no rows');
+    return rowToFolder(row);
   }
 
   /** Update a folder by id. Returns updated folder or null if not found/not owned. */
@@ -371,7 +375,9 @@ export class ScopedDB {
         now,
       ],
     );
-    return rowToUpload(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('INSERT RETURNING * returned no rows');
+    return rowToUpload(row);
   }
 
   /** Delete an upload by id. Returns true if deleted. */
@@ -551,7 +557,9 @@ export class ScopedDB {
        RETURNING *`,
       [this.userId, token, now],
     );
-    return rowToWebhook(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+    return rowToWebhook(row);
   }
 
   /** Update the rate limit for this user's webhook. */
@@ -593,7 +601,9 @@ export class ScopedDB {
        RETURNING *`,
       [id, this.userId, data.name, data.color, now],
     );
-    return rowToTag(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('INSERT RETURNING * returned no rows');
+    return rowToTag(row);
   }
 
   /** Update a tag by id. Returns updated tag or null if not found/not owned. */
@@ -715,7 +725,9 @@ export class ScopedDB {
        RETURNING *`,
       [this.userId, previewStyle],
     );
-    return rowToUserSettings(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+    return rowToUserSettings(row);
   }
 
   // ---- Backy remote backup ----------------------------------
@@ -736,7 +748,9 @@ export class ScopedDB {
        RETURNING *`,
       [this.userId, data.webhookUrl, data.apiKey],
     );
-    return rowToUserSettings(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+    return rowToUserSettings(row);
   }
 
   // ---- xray API settings ------------------------------------
@@ -757,7 +771,9 @@ export class ScopedDB {
        RETURNING *`,
       [this.userId, data.apiUrl, data.apiToken],
     );
-    return rowToUserSettings(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+    return rowToUserSettings(row);
   }
 
   // ---- Backy pull webhook ------------------------------------
@@ -778,7 +794,9 @@ export class ScopedDB {
        RETURNING *`,
       [this.userId, data.key],
     );
-    return rowToUserSettings(rows[0]);
+    const row = rows[0];
+    if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+    return rowToUserSettings(row);
   }
 
   /** Clear Backy pull webhook key. */

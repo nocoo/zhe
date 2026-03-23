@@ -98,7 +98,7 @@ describe('kvPutLink', () => {
     await kvPutLink('my-slug', sampleData);
 
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, init] = mockFetch.mock.calls[0];
+    const [url, init] = mockFetch.mock.calls[0]!;
 
     expect(url).toBe(`${BASE_URL}/values/my-slug`);
     expect(init.method).toBe('PUT');
@@ -205,7 +205,7 @@ describe('kvDeleteLink', () => {
     await kvDeleteLink('my-slug');
 
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, init] = mockFetch.mock.calls[0];
+    const [url, init] = mockFetch.mock.calls[0]!;
 
     expect(url).toBe(`${BASE_URL}/values/my-slug`);
     expect(init.method).toBe('DELETE');
@@ -278,7 +278,7 @@ describe('kvBulkPutLinks', () => {
     const result = await kvBulkPutLinks(entries);
 
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, init] = mockFetch.mock.calls[0];
+    const [url, init] = mockFetch.mock.calls[0]!;
 
     expect(url).toBe(`${BASE_URL}/bulk`);
     expect(init.method).toBe('PUT');
@@ -289,8 +289,8 @@ describe('kvBulkPutLinks', () => {
 
     const body = JSON.parse(init.body);
     expect(body).toEqual([
-      { key: 'slug-a', value: JSON.stringify(entries[0].data) },
-      { key: 'slug-b', value: JSON.stringify(entries[1].data) },
+      { key: 'slug-a', value: JSON.stringify(entries[0]!.data) },
+      { key: 'slug-b', value: JSON.stringify(entries[1]!.data) },
     ]);
     expect(init.signal).toBeInstanceOf(AbortSignal);
 
@@ -342,11 +342,11 @@ describe('kvBulkPutLinks', () => {
 
     await kvBulkPutLinks(entries);
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body[0]).toEqual({ key: 'no-exp', value: JSON.stringify(entries[0].data) });
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body);
+    expect(body[0]).toEqual({ key: 'no-exp', value: JSON.stringify(entries[0]!.data) });
     expect(body[1]).toEqual({
       key: 'has-exp',
-      value: JSON.stringify(entries[1].data),
+      value: JSON.stringify(entries[1]!.data),
       expiration: Math.floor(futureMs / 1000),
     });
   });
@@ -361,8 +361,8 @@ describe('kvBulkPutLinks', () => {
 
     await kvBulkPutLinks(entries);
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body[0]).toEqual({ key: 'a', value: JSON.stringify(entries[0].data) });
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body);
+    expect(body[0]).toEqual({ key: 'a', value: JSON.stringify(entries[0]!.data) });
     expect(body[0]).not.toHaveProperty('expiration');
   });
 
@@ -377,7 +377,7 @@ describe('kvBulkPutLinks', () => {
 
     await kvBulkPutLinks(entries);
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const body = JSON.parse(mockFetch.mock.calls[0]![1]!.body);
     expect(body[0]).not.toHaveProperty('expiration');
   });
 });
