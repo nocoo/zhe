@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Sourced by git hooks to check tool availability before running advisory checks.
-# Returns 1 (skip) when a tool is missing — callers use: if check_tool ...; then ...
+# Sourced by git hooks to enforce security tool availability.
+# Missing tool → exit 1 (hard gate). Callers: require_tool <cmd> <label>
 
-check_tool() {
+require_tool() {
   if ! command -v "$1" &>/dev/null; then
-    echo "⚠️  $1 not found — skipping $2. Install: brew install $1"
-    return 1
+    echo "❌ $1 is required but not found — cannot run $2." >&2
+    echo "   Install: brew install $1" >&2
+    exit 1
   fi
-  return 0
 }

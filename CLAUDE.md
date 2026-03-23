@@ -177,7 +177,7 @@ See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inven
 | L2 | API E2E (real HTTP) | pre-push | Soft (skips if D1 unreachable) |
 | L3 | System/E2E (Playwright) | on-demand | Hard |
 | G1 | Static Analysis (tsc + ESLint strict) | pre-commit | Hard |
-| G2 | Security (gitleaks + osv-scanner) | pre-commit + pre-push | Hard (skips if tools missing) |
+| G2 | Security (gitleaks + osv-scanner) | pre-commit + pre-push | Hard |
 
 ### Commands
 
