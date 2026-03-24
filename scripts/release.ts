@@ -310,7 +310,7 @@ function readCurrentVersion(): string {
     process.exit(1);
   }
   // Extract version between quotes
-  const fullMatch = match[0]; // e.g. "version": "1.8.3"
+  const fullMatch = match[0];
   const verMatch = /\d+\.\d+\.\d+/.exec(fullMatch);
   if (!verMatch) {
     console.error('❌ Could not parse version from package.json');
@@ -461,6 +461,8 @@ async function main(): Promise<void> {
     '*.tsx',
     '--glob',
     '!node_modules/**',
+    '--glob',
+    '!scripts/release.ts',
   ]);
 
   if (rgResult.code === 0 && rgResult.stdout.trim()) {
