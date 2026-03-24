@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Automated release script for zhe.
+ * Automated release script.
+ *
+ * Portable across projects — reads project name from package.json and
+ * auto-detects CHANGELOG header format (with or without `v` prefix).
  *
  * Bumps version in package.json (single source of truth), syncs lockfile,
  * generates CHANGELOG entries from conventional commits, commits, tags,
@@ -30,6 +33,25 @@ import * as readline from 'readline';
 const PROJECT_ROOT = pathResolve(import.meta.dirname!, '..');
 const PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'package.json');
 const CHANGELOG_MD = pathResolve(PROJECT_ROOT, 'CHANGELOG.md');
+
+// Auto-detect project name from package.json
+function readProjectName(): string {
+  const raw = readFileSync(PACKAGE_JSON, 'utf-8');
+  const match = /"name"\s*:\s*"([^"]+)"/.exec(raw);
+  return match?.[1] ?? 'project';
+}
+
+// Auto-detect CHANGELOG header format: `## [vx.y.z]` vs `## [x.y.z]`
+function detectChangelogVPrefix(): boolean {
+  try {
+    const content = readFileSync(CHANGELOG_MD, 'utf-8');
+    // Check existing entries for v-prefix pattern
+    return content.includes('## [v');
+  } catch {
+    // No CHANGELOG yet — default to v-prefix
+    return true;
+  }
+}
 
 const BUMP_TYPES = ['patch', 'minor', 'major'] as const;
 type BumpType = (typeof BUMP_TYPES)[number];
@@ -260,8 +282,10 @@ function formatChangelogSection(
   version: string,
   date: string,
   sections: ChangelogSections,
+  vPrefix: boolean,
 ): string {
-  const lines: string[] = [`## [v${version}] - ${date}`];
+  const tag = vPrefix ? `v${version}` : version;
+  const lines: string[] = [`## [${tag}] - ${date}`];
 
   const sectionOrder: [keyof ChangelogSections, string][] = [
     ['added', 'Added'],
@@ -284,9 +308,9 @@ function formatChangelogSection(
   return lines.join('\n');
 }
 
-function updateChangelog(newSection: string): void {
+function updateChangelog(newSection: string, vPrefix: boolean): void {
   const content = readFileSync(CHANGELOG_MD, 'utf-8');
-  const marker = '## [v';
+  const marker = vPrefix ? '## [v' : '## [';
   const idx = content.indexOf(marker);
 
   let updated: string;
@@ -398,8 +422,10 @@ async function main(): Promise<void> {
   const currentVersion = readCurrentVersion();
   const newVersion = bumpVersion(currentVersion, bumpArg);
   const lastTag = await getLastTag();
+  const projectName = readProjectName();
+  const vPrefix = detectChangelogVPrefix();
 
-  console.log('📦 zhe release');
+  console.log(`📦 ${projectName} release`);
   console.log(`   Current version: ${currentVersion}`);
   console.log(`   New version:     ${newVersion}`);
   console.log(`   Bump type:       ${bumpArg}`);
@@ -439,7 +465,7 @@ async function main(): Promise<void> {
 
   const sections = classifyCommits(commits);
   const today = new Date().toISOString().slice(0, 10);
-  const changelogSection = formatChangelogSection(newVersion, today, sections);
+  const changelogSection = formatChangelogSection(newVersion, today, sections, vPrefix);
 
   console.log('   --- Generated CHANGELOG section ---');
   console.log(changelogSection);
@@ -448,7 +474,7 @@ async function main(): Promise<void> {
   if (isDryRun) {
     console.log('   [dry-run] Would prepend above section to CHANGELOG.md');
   } else {
-    updateChangelog(changelogSection);
+    updateChangelog(changelogSection, vPrefix);
     console.log('   ✅ CHANGELOG.md updated');
   }
   console.log('');
@@ -624,9 +650,11 @@ async function main(): Promise<void> {
   console.log(`   📋 Commit:  chore: bump version to ${newVersion}`);
   console.log(`   🏷️  Tag:     v${newVersion}`);
   if (ghAuthed) {
-    console.log(
-      `   🔗 Release: https://github.com/nocoo/zhe/releases/tag/v${newVersion}`,
-    );
+    const repoUrl = await run('gh', ['repo', 'view', '--json', 'url', '-q', '.url']);
+    const repo = repoUrl.stdout.trim();
+    if (repo) {
+      console.log(`   🔗 Release: ${repo}/releases/tag/v${newVersion}`);
+    }
   }
   console.log('='.repeat(50));
 }

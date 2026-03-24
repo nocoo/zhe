@@ -58,6 +58,8 @@ The script performs these steps automatically:
 
 Pre-commit hooks (L1 tests, G1 lint/typecheck, G2 gitleaks) run automatically during step 6. Pre-push hooks (L2 API E2E, G2 osv-scanner) run during step 8.
 
+> **Versioning spec**: `search-memory "开发规范：版本号的维护"` — defines X (major/breaking), Y (minor/feature), Z (patch/fix) and default bump rules.
+
 ### CHANGELOG.md Format
 
 Follow [Keep a Changelog](https://keepachangelog.com/) convention:
