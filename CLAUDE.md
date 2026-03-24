@@ -17,12 +17,10 @@ The **only** authoritative version number lives in `package.json` `"version"` fi
 |------|------|
 | `package.json` | `"version"` field — **the only place to update** |
 | `lib/version.ts` | Reads `package.json` and exports `APP_VERSION` |
-| `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated) |
-| `app/api/live/route.ts` | Uses `APP_VERSION` (auto-updated) |
-| `tests/unit/live-route.test.ts` | Asserts against `APP_VERSION` (auto-updated) |
-| `tests/api/api.test.ts` | Asserts against `APP_VERSION` (auto-updated) |
+| `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
+| `app/api/live/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
 
-Before committing a version bump, run `rg 'OLD_VERSION' --glob '*.ts' --glob '*.tsx'` to catch any stragglers.
+All test files assert via `APP_VERSION` import or `toBeDefined()` — no hardcoded version strings.
 
 ### Semantic Versioning (SemVer)
 
@@ -38,16 +36,27 @@ Follow strict [SemVer 2.0.0](https://semver.org/):
 
 ### Release Workflow
 
-When the user requests a version bump (do NOT proactively suggest or create version bumps):
+All release steps are automated by `scripts/release.ts`. When the user requests a version bump (do NOT proactively suggest or create version bumps):
 
-1. **Determine version**: Read current version from `package.json`. Apply the requested bump (default: patch). E.g. `1.2.0` -> `1.2.1`
-2. **Search & update all version references**: Update every file in the checklist above. Verify with `rg` that no old version remains in source files
-3. **Update CHANGELOG.md**: Prepend a new `## [vx.y.z] - YYYY-MM-DD` section. Content is derived from `git log` commits since the last tag
-4. **Commit**: `chore: bump version to x.y.z`
-5. **Push**: `git push` — triggers Vercel/Railway auto-deploy if configured
-6. **Tag**: `git tag -a vx.y.z -m "vx.y.z"` (annotated, `v`-prefixed)
-7. **Push tag**: `git push --tags`
-8. **GitHub Release**: `gh release create vx.y.z --title "vx.y.z"` with CHANGELOG section as release notes
+```bash
+bun run release              # patch bump (default)
+bun run release -- minor     # minor bump
+bun run release -- major     # major bump
+bun run release -- 2.0.0     # explicit version
+bun run release -- --dry-run # preview without side effects
+```
+
+The script performs these steps automatically:
+1. Preflight: verify clean working tree, branch, `gh` auth
+2. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
+3. Run `bun install` to sync `bun.lock` (prevents `--frozen-lockfile` failures in CI)
+4. Generate CHANGELOG.md section from `git log` (conventional commit classification)
+5. Verify no stale old version strings remain in `*.ts`/`*.tsx` via `rg`
+6. Commit: `chore: bump version to x.y.z` (triggers pre-commit hooks: L1 + G1 + G2)
+7. Interactive confirmation gate
+8. Push → Tag (`v`-prefixed, annotated) → Push tags → GitHub Release
+
+Pre-commit hooks (L1 tests, G1 lint/typecheck, G2 gitleaks) run automatically during step 6. Pre-push hooks (L2 API E2E, G2 osv-scanner) run during step 8.
 
 ### CHANGELOG.md Format
 
@@ -192,6 +201,7 @@ See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inven
 | `bun run test:coverage` | — | Coverage report |
 | `bun run typecheck` | G1 | TypeScript type check (`tsc --noEmit`) |
 | `bun run lint` | G1 | ESLint strict (zero warnings) |
+| `bun run release` | — | Automated release: bump, changelog, commit, push, tag, GH release |
 
 ### E2E (Playwright)
 

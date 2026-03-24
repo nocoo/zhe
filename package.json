@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "sync-kv": "bun run scripts/sync-kv.ts",
     "generate:logos": "./scripts/generate-logos.sh",
+    "release": "bun run scripts/release.ts",
     "prepare": "husky"
   },
   "dependencies": {
