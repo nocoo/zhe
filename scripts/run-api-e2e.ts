@@ -283,6 +283,12 @@ async function main(): Promise<void> {
     );
   }
 
+  // ---- WORKER_SECRET: ensure it exists for cron endpoint tests ----
+  if (!process.env.WORKER_SECRET) {
+    process.env.WORKER_SECRET = 'api-e2e-test-worker-secret';
+    console.log('[api-e2e] WORKER_SECRET not set — using test default.');
+  }
+
   const exitCode = await runTests();
   process.exit(exitCode);
 }
