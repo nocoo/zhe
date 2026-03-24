@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.4] - 2026-03-24
+
+### Added
+- Add automated release script
+
+### Changed
+- Make release script portable across projects
+
+### Fixed
+- Remove non-null assertions in release script
+- Only classify as Removed when commit type is ambiguous
+- Remove hardcoded version in release script comment and exclude self from stale check
+- Sync bun.lock with package.json
+
 ## [v1.8.3] - 2026-03-24
 
 ### Changed
