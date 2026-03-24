@@ -246,12 +246,12 @@ export function SearchCommandDialog({
                               className="flex items-center gap-0.5 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleNavigateToFolder(link.folderId!);
+                                if (link.folderId) handleNavigateToFolder(link.folderId);
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   e.stopPropagation();
-                                  handleNavigateToFolder(link.folderId!);
+                                  if (link.folderId) handleNavigateToFolder(link.folderId);
                                 }
                               }}
                             >

@@ -75,9 +75,10 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
 
     // Fire-and-forget: associate tags with the newly created link
     if (input.tagIds?.length) {
+      const tagIds = input.tagIds;
       void (async () => {
         try {
-          for (const tagId of input.tagIds!) {
+          for (const tagId of tagIds) {
             await db.addTagToLink(link.id, tagId);
           }
         } catch (err) {
@@ -325,7 +326,10 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
 
     // Re-fetch the updated link
     const updated = await db.getLinkById(linkId);
-    return { success: true, data: updated! };
+    if (!updated) {
+      return { success: false, error: 'Link not found after refresh' };
+    }
+    return { success: true, data: updated };
   } catch (error) {
     console.error('Failed to refresh metadata:', error);
     return { success: false, error: 'Failed to refresh metadata' };
@@ -382,7 +386,8 @@ export async function batchRefreshLinkMetadata(
 
     async function processNext(): Promise<void> {
       while (queue.length > 0) {
-        const link = queue.shift()!;
+        const link = queue.shift();
+        if (!link) break;
         try {
           await refreshLinkEnrichment(link.originalUrl, link.id, userId);
         } catch {

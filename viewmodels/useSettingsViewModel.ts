@@ -57,7 +57,7 @@ export function useSettingsViewModel() {
         return;
       }
 
-      setImportResult(result.data!);
+      setImportResult(result.data ?? null);
     } finally {
       setIsImporting(false);
     }

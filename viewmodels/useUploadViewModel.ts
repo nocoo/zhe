@@ -216,7 +216,8 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
     }
 
     // Success: add to uploads list and mark as complete
-    setUploads((prev) => [recordResult.data!, ...prev]);
+    const uploadData = recordResult.data;
+    setUploads((prev) => [uploadData, ...prev]);
     setUploadingFiles((prev) =>
       prev.map((f) =>
         f.id === tempId

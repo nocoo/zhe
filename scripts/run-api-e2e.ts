@@ -12,7 +12,7 @@ import { spawn, type ChildProcess } from 'child_process';
 import { resolve as pathResolve } from 'path';
 import { readFileSync } from 'fs';
 
-const PROJECT_ROOT = pathResolve(import.meta.dirname!, '..');
+const PROJECT_ROOT = pathResolve(import.meta.dirname ?? process.cwd(), '..');
 const API_E2E_PORT = 17005;
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;

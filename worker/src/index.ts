@@ -243,7 +243,7 @@ async function handleFetch(
 
   // 3. Extract first path segment
   // split('/') always returns at least [''], so [0] is safe
-  const slug = pathname.slice(1).split('/')[0]!;
+  const slug = pathname.slice(1).split('/')[0] ?? '';
 
   // 4. Reserved paths → forward to origin
   if (isReservedPath(slug)) {
@@ -309,7 +309,9 @@ async function handleFetch(
 
       if (lookupData.found && lookupData.originalUrl) {
         // D1 hit — redirect + analytics
-        recordClickAsync(ctx, env, lookupData.id!, request);
+        if (lookupData.id != null) {
+          recordClickAsync(ctx, env, lookupData.id, request);
+        }
 
         // Fire-and-forget: backfill KV for future edge hits (with native expiration)
         const kvValue = JSON.stringify({

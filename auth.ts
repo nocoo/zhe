@@ -9,8 +9,8 @@ import { isD1Configured } from '@/lib/db/d1-client';
 // provider so tests can authenticate without Google OAuth.
 const providers: Provider[] = [
   Google({
-    clientId: process.env.AUTH_GOOGLE_ID!,
-    clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    clientId: process.env.AUTH_GOOGLE_ID ?? '',
+    clientSecret: process.env.AUTH_GOOGLE_SECRET ?? '',
   }),
 ];
 
@@ -74,7 +74,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session({ session, token }) {
       // JWT strategy: user id always comes from the token
       if (token?.sub && session.user) {
-        session.user.id = token.sub!;
+        session.user.id = token.sub;
       }
       return session;
     },
