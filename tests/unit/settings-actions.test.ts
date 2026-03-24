@@ -34,6 +34,7 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 
 import { importLinks, exportLinks, getPreviewStyle, updatePreviewStyle } from '@/actions/settings';
 import type { ExportedLink } from '@/models/settings';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -117,8 +118,8 @@ describe('actions/settings', () => {
       const result = await importLinks([makeExportedLink({ slug: 'existing' })]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(0);
-      expect(result.data!.skipped).toBe(1);
+      expect(unwrap(result.data).created).toBe(0);
+      expect(unwrap(result.data).skipped).toBe(1);
     });
 
     it('creates links for new slugs', async () => {
@@ -130,8 +131,8 @@ describe('actions/settings', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(1);
-      expect(result.data!.skipped).toBe(0);
+      expect(unwrap(result.data).created).toBe(1);
+      expect(unwrap(result.data).skipped).toBe(0);
       expect(mockCreateLink).toHaveBeenCalledWith({
         originalUrl: 'https://new.com',
         slug: 'new-slug',
@@ -153,8 +154,8 @@ describe('actions/settings', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(1);
-      expect(result.data!.skipped).toBe(1);
+      expect(unwrap(result.data).created).toBe(1);
+      expect(unwrap(result.data).skipped).toBe(1);
       expect(mockCreateLink).toHaveBeenCalledTimes(2);
     });
 

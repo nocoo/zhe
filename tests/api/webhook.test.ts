@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, apiPost, jsonResponse } from './helpers/http';
 import { ensureTestUser, seedWebhook, seedLink, seedFolder, cleanupTestData, testSlug } from './helpers/seed';
+import { unwrap } from '../test-utils';
 
 let webhookToken: string;
 
@@ -66,7 +67,8 @@ describe('GET /api/link/create/[token]', () => {
     expect(body.rateLimit).toBeGreaterThan(0);
     expect(body.stats).toBeDefined();
     expect(body.docs.openapi).toBe('3.1.0');
-    expect(body.docs.servers[0]!.url).toContain(`/api/link/create/${webhookToken}`);
+    expect(body.docs.servers[0]).toBeDefined();
+    expect(unwrap(body.docs.servers[0]).url).toContain(`/api/link/create/${webhookToken}`);
   });
 });
 
@@ -203,7 +205,7 @@ describe('POST /api/link/create/[token]', () => {
       'SELECT folder_id FROM links WHERE slug = ?',
       [body.slug],
     );
-    expect(rows[0]!.folder_id).toBe(folderId);
+    expect(unwrap(rows[0]).folder_id).toBe(folderId);
   });
 
   it('link created via POST appears in GET stats', async () => {

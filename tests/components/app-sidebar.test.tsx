@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
+import { unwrap } from '../test-utils';
 
 let mockPathname = '/dashboard';
 let mockSearchParamsFolder: string | null = null;
@@ -200,7 +201,7 @@ describe('AppSidebar', () => {
 
       const searchButton = screen.getByText('搜索链接...').closest('button');
       expect(searchButton).toBeInTheDocument();
-      fireEvent.click(searchButton!);
+      fireEvent.click(unwrap(searchButton));
 
       // SearchCommandDialog should render with a search input
       expect(screen.getByPlaceholderText('搜索链接、标题、备注、标签...')).toBeInTheDocument();
@@ -393,7 +394,7 @@ describe('AppSidebar', () => {
       const toggleButton = Array.from(buttons).find((btn) =>
         !btn.getAttribute('type') || btn.getAttribute('type') !== 'submit'
       );
-      fireEvent.click(toggleButton!);
+      fireEvent.click(unwrap(toggleButton));
       expect(onToggle).toHaveBeenCalledOnce();
     });
   });
@@ -658,7 +659,7 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const allLinksItem = screen.getByText('全部链接').closest('a')!;
+      const allLinksItem = unwrap(screen.getByText('全部链接').closest('a'));
       expect(allLinksItem.textContent).toContain('3');
     });
 
@@ -671,7 +672,7 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const uncategorizedItem = screen.getByText('Inbox').closest('a')!;
+      const uncategorizedItem = unwrap(screen.getByText('Inbox').closest('a'));
       expect(uncategorizedItem.textContent).toContain('2');
     });
 
@@ -686,11 +687,11 @@ describe('AppSidebar', () => {
       renderSidebar({ collapsed: false });
 
       // SidebarFolderItem for '工作' should display count 3
-      const workItem = screen.getByText('工作').closest('a')!;
+      const workItem = unwrap(screen.getByText('工作').closest('a'));
       expect(workItem.textContent).toContain('3');
 
       // SidebarFolderItem for '个人' should display count 1
-      const personalItem = screen.getByText('个人').closest('a')!;
+      const personalItem = unwrap(screen.getByText('个人').closest('a'));
       expect(personalItem.textContent).toContain('1');
     });
 
@@ -702,7 +703,7 @@ describe('AppSidebar', () => {
       renderSidebar({ collapsed: false });
 
       // '个人' (f2) has no links, should show 0
-      const personalItem = screen.getByText('个人').closest('a')!;
+      const personalItem = unwrap(screen.getByText('个人').closest('a'));
       expect(personalItem.textContent).toContain('0');
     });
 
@@ -714,15 +715,15 @@ describe('AppSidebar', () => {
       resetMockFoldersVm({ folders: [] });
       renderSidebar({ collapsed: false });
 
-      const allLinksItem = screen.getByText('全部链接').closest('a')!;
-      const allCount = allLinksItem.querySelector('.tabular-nums')!;
-      const allContainer = allCount.parentElement!;
+      const allLinksItem = unwrap(screen.getByText('全部链接').closest('a'));
+      const allCount = unwrap(allLinksItem.querySelector('.tabular-nums'));
+      const allContainer = unwrap(allCount.parentElement);
       expect(allContainer.className).toContain('w-5');
       expect(allContainer.className).toContain('shrink-0');
 
-      const uncategorizedItem = screen.getByText('Inbox').closest('a')!;
-      const uncatCount = uncategorizedItem.querySelector('.tabular-nums')!;
-      const uncatContainer = uncatCount.parentElement!;
+      const uncategorizedItem = unwrap(screen.getByText('Inbox').closest('a'));
+      const uncatCount = unwrap(uncategorizedItem.querySelector('.tabular-nums'));
+      const uncatContainer = unwrap(uncatCount.parentElement);
       expect(uncatContainer.className).toContain('w-5');
       expect(uncatContainer.className).toContain('shrink-0');
     });

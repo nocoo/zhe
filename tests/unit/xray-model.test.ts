@@ -14,6 +14,7 @@ import {
   XRAY_DEFAULT_URL,
 } from '@/models/xray';
 import type { XrayTweetData, XrayBookmarksResponse } from '@/models/xray';
+import { unwrap } from '../test-utils';
 
 describe('xray model', () => {
   // ==================================================================
@@ -359,7 +360,8 @@ describe('xray model', () => {
       };
       expect(response.success).toBe(true);
       expect(response.data).toHaveLength(1);
-      expect(response.data[0]!.id).toBe('123');
+      expect(response.data[0]).toBeDefined();
+      expect(unwrap(response.data[0]).id).toBe('123');
     });
 
     it('accepts empty data array', () => {
@@ -422,15 +424,15 @@ describe('xray model', () => {
 
     it('contains media array', () => {
       expect(MOCK_TWEET_RESPONSE.data.media).toBeDefined();
-      expect(MOCK_TWEET_RESPONSE.data.media!.length).toBeGreaterThan(0);
-      expect(MOCK_TWEET_RESPONSE.data.media![0]!.type).toBe('PHOTO');
+      expect(unwrap(MOCK_TWEET_RESPONSE.data.media).length).toBeGreaterThan(0);
+      expect(unwrap(unwrap(MOCK_TWEET_RESPONSE.data.media)[0]).type).toBe('PHOTO');
     });
 
     it('contains quoted_tweet', () => {
       expect(MOCK_TWEET_RESPONSE.data.quoted_tweet).toBeDefined();
-      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.author.username).toBe('SuhailKakar');
-      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.media).toBeDefined();
-      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet!.media![0]!.type).toBe('VIDEO');
+      expect(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).author.username).toBe('SuhailKakar');
+      expect(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).media).toBeDefined();
+      expect(unwrap(unwrap(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).media)[0]).type).toBe('VIDEO');
     });
   });
 });

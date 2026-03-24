@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { unwrap } from '../test-utils';
 import type { Link } from '@/lib/db/schema';
 import type { ExportedLink } from '@/models/settings';
 
@@ -152,26 +153,26 @@ describe('Data Import/Export + Preview Style E2E', () => {
       expect(exportResult.success).toBe(true);
       expect(exportResult.data).toHaveLength(2);
 
-      const exported = exportResult.data!;
+      const exported = unwrap(exportResult.data);
 
       // Verify export shape
-      const ghExport = exported.find(e => e.slug === 'gh');
+      const ghExport = unwrap(exported.find(e => e.slug === 'gh'));
       expect(ghExport).toBeDefined();
-      expect(ghExport!.originalUrl).toBe('https://github.com');
-      expect(ghExport!.isCustom).toBe(true);
-      expect(ghExport!.clicks).toBe(link1.clicks);
+      expect(ghExport.originalUrl).toBe('https://github.com');
+      expect(ghExport.isCustom).toBe(true);
+      expect(ghExport.clicks).toBe(link1.clicks);
 
-      const vcExport = exported.find(e => e.slug === 'vc');
+      const vcExport = unwrap(exported.find(e => e.slug === 'vc'));
       expect(vcExport).toBeDefined();
-      expect(vcExport!.originalUrl).toBe('https://vercel.com');
+      expect(vcExport.originalUrl).toBe('https://vercel.com');
 
       // Step 3: Clear storage and reimport
       clearMockStorage();
 
       const importResult = await importLinks(exported);
       expect(importResult.success).toBe(true);
-      expect(importResult.data!.created).toBe(2);
-      expect(importResult.data!.skipped).toBe(0);
+      expect(unwrap(importResult.data).created).toBe(2);
+      expect(unwrap(importResult.data).skipped).toBe(0);
 
       // Step 4: Export again and compare
       const reExport = await exportLinks();
@@ -179,12 +180,12 @@ describe('Data Import/Export + Preview Style E2E', () => {
       expect(reExport.data).toHaveLength(2);
 
       // Verify data survived the round-trip
-      const reGh = reExport.data!.find(e => e.slug === 'gh');
-      expect(reGh!.originalUrl).toBe('https://github.com');
-      expect(reGh!.isCustom).toBe(true);
+      const reGh = unwrap(unwrap(reExport.data).find(e => e.slug === 'gh'));
+      expect(reGh.originalUrl).toBe('https://github.com');
+      expect(reGh.isCustom).toBe(true);
 
-      const reVc = reExport.data!.find(e => e.slug === 'vc');
-      expect(reVc!.originalUrl).toBe('https://vercel.com');
+      const reVc = unwrap(unwrap(reExport.data).find(e => e.slug === 'vc'));
+      expect(reVc.originalUrl).toBe('https://vercel.com');
     });
 
     it('preserves isCustom and clicks through round-trip', async () => {
@@ -199,25 +200,25 @@ describe('Data Import/Export + Preview Style E2E', () => {
       const exportResult = await exportLinks();
       expect(exportResult.success).toBe(true);
 
-      const exported = exportResult.data!;
-      const customLink = exported.find(e => e.slug === 'custom-one');
-      const autoLink = exported.find(e => e.slug !== 'custom-one');
-      expect(customLink!.isCustom).toBe(true);
-      expect(autoLink!.isCustom).toBe(false);
+      const exported = unwrap(exportResult.data);
+      const customLink = unwrap(exported.find(e => e.slug === 'custom-one'));
+      const autoLink = unwrap(exported.find(e => e.slug !== 'custom-one'));
+      expect(customLink.isCustom).toBe(true);
+      expect(autoLink.isCustom).toBe(false);
 
       // Clear and reimport
       clearMockStorage();
 
       const importResult = await importLinks(exported);
       expect(importResult.success).toBe(true);
-      expect(importResult.data!.created).toBe(2);
+      expect(unwrap(importResult.data).created).toBe(2);
 
       // Verify preservation
       const reExport = await exportLinks();
-      const reCustom = reExport.data!.find(e => e.slug === 'custom-one');
-      const reAuto = reExport.data!.find(e => e.slug !== 'custom-one');
-      expect(reCustom!.isCustom).toBe(true);
-      expect(reAuto!.isCustom).toBe(false);
+      const reCustom = unwrap(unwrap(reExport.data).find(e => e.slug === 'custom-one'));
+      const reAuto = unwrap(unwrap(reExport.data).find(e => e.slug !== 'custom-one'));
+      expect(reCustom.isCustom).toBe(true);
+      expect(reAuto.isCustom).toBe(false);
     });
   });
 
@@ -315,18 +316,18 @@ describe('Data Import/Export + Preview Style E2E', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(1);
-      expect(result.data!.skipped).toBe(1);
+      expect(unwrap(result.data).created).toBe(1);
+      expect(unwrap(result.data).skipped).toBe(1);
 
       // Verify the original link was not overwritten
       const allLinks = await exportLinks();
-      const existingLink = allLinks.data!.find(e => e.slug === 'existing');
-      expect(existingLink!.originalUrl).toBe('https://original.com');
+      const existingLink = unwrap(unwrap(allLinks.data).find(e => e.slug === 'existing'));
+      expect(existingLink.originalUrl).toBe('https://original.com');
 
       // Verify the new link was created
-      const newLink = allLinks.data!.find(e => e.slug === 'brand-new');
+      const newLink = unwrap(unwrap(allLinks.data).find(e => e.slug === 'brand-new'));
       expect(newLink).toBeDefined();
-      expect(newLink!.originalUrl).toBe('https://brand-new.com');
+      expect(newLink.originalUrl).toBe('https://brand-new.com');
     });
 
     it('imports all when no duplicates exist', async () => {
@@ -340,8 +341,8 @@ describe('Data Import/Export + Preview Style E2E', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(3);
-      expect(result.data!.skipped).toBe(0);
+      expect(unwrap(result.data).created).toBe(3);
+      expect(unwrap(result.data).skipped).toBe(0);
     });
   });
 
@@ -366,15 +367,15 @@ describe('Data Import/Export + Preview Style E2E', () => {
       const aExport = await exportLinks();
       expect(aExport.success).toBe(true);
       expect(aExport.data).toHaveLength(1);
-      expect(aExport.data![0]!.slug).toBe('a-slug');
-      expect(aExport.data![0]!.originalUrl).toBe('https://a-link.com');
+      expect(unwrap(unwrap(aExport.data)[0]).slug).toBe('a-slug');
+      expect(unwrap(unwrap(aExport.data)[0]).originalUrl).toBe('https://a-link.com');
 
       // User B exports — should only see their own
       authenticatedAs(USER_B);
       const bExport = await exportLinks();
       expect(bExport.success).toBe(true);
       expect(bExport.data).toHaveLength(1);
-      expect(bExport.data![0]!.slug).toBe('b-slug');
+      expect(unwrap(unwrap(bExport.data)[0]).slug).toBe('b-slug');
     });
 
     it('import does not affect other user\'s links', async () => {
@@ -395,13 +396,13 @@ describe('Data Import/Export + Preview Style E2E', () => {
       authenticatedAs(USER_A);
       const aExport = await exportLinks();
       expect(aExport.data).toHaveLength(1);
-      expect(aExport.data![0]!.slug).toBe('a-only');
+      expect(unwrap(unwrap(aExport.data)[0]).slug).toBe('a-only');
 
       // User B sees only their imported link
       authenticatedAs(USER_B);
       const bExport = await exportLinks();
       expect(bExport.data).toHaveLength(1);
-      expect(bExport.data![0]!.slug).toBe('b-imported');
+      expect(unwrap(unwrap(bExport.data)[0]).slug).toBe('b-imported');
     });
   });
 
@@ -498,14 +499,14 @@ describe('Data Import/Export + Preview Style E2E', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(1);
+      expect(unwrap(result.data).created).toBe(1);
 
       // Verify defaults
       const exported = await exportLinks();
-      const link = exported.data!.find(e => e.slug === 'minimal');
+      const link = unwrap(unwrap(exported.data).find(e => e.slug === 'minimal'));
       expect(link).toBeDefined();
-      expect(link!.isCustom).toBe(false);
-      expect(link!.clicks).toBe(0);
+      expect(link.isCustom).toBe(false);
+      expect(link.clicks).toBe(0);
     });
 
     it('preserves custom isCustom and clicks values', async () => {
@@ -517,12 +518,12 @@ describe('Data Import/Export + Preview Style E2E', () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(1);
+      expect(unwrap(result.data).created).toBe(1);
 
       const exported = await exportLinks();
-      const link = exported.data!.find(e => e.slug === 'custom-import');
-      expect(link!.isCustom).toBe(true);
-      expect(link!.clicks).toBe(42);
+      const link = unwrap(unwrap(exported.data).find(e => e.slug === 'custom-import'));
+      expect(link.isCustom).toBe(true);
+      expect(link.clicks).toBe(42);
     });
   });
 
@@ -544,8 +545,8 @@ describe('Data Import/Export + Preview Style E2E', () => {
       const result = await importLinks(bulk);
 
       expect(result.success).toBe(true);
-      expect(result.data!.created).toBe(20);
-      expect(result.data!.skipped).toBe(0);
+      expect(unwrap(result.data).created).toBe(20);
+      expect(unwrap(result.data).skipped).toBe(0);
 
       // Verify all 20 exist
       const exported = await exportLinks();

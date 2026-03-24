@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { D1Adapter } from '@/lib/auth-adapter';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -52,7 +53,7 @@ describe('D1Adapter', () => {
       mockExecute.mockResolvedValueOnce([row]);
 
       const emailVerified = new Date(NOW);
-      const result = await adapter.createUser!({
+      const result = await unwrap(adapter.createUser)({
         name: 'Alice',
         email: 'alice@example.com',
         emailVerified,
@@ -77,7 +78,7 @@ describe('D1Adapter', () => {
       const row = userRow({ id: FIXED_UUID, name: null, emailVerified: null, image: null });
       mockExecute.mockResolvedValueOnce([row]);
 
-      await adapter.createUser!({
+      await unwrap(adapter.createUser)({
         email: 'bob@example.com',
         id: '',
         emailVerified: null,
@@ -96,7 +97,7 @@ describe('D1Adapter', () => {
     it('returns user when found', async () => {
       mockExecute.mockResolvedValueOnce([userRow()]);
 
-      const result = await adapter.getUser!('user-1');
+      const result = await unwrap(adapter.getUser)('user-1');
 
       expect(mockExecute).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', ['user-1']);
       expect(result).toEqual({
@@ -111,7 +112,7 @@ describe('D1Adapter', () => {
     it('returns null when not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.getUser!('nonexistent');
+      const result = await unwrap(adapter.getUser)('nonexistent');
 
       expect(result).toBeNull();
     });
@@ -123,7 +124,7 @@ describe('D1Adapter', () => {
     it('returns user when found', async () => {
       mockExecute.mockResolvedValueOnce([userRow()]);
 
-      const result = await adapter.getUserByEmail!('alice@example.com');
+      const result = await unwrap(adapter.getUserByEmail)('alice@example.com');
 
       expect(mockExecute).toHaveBeenCalledWith('SELECT * FROM users WHERE email = ?', [
         'alice@example.com',
@@ -134,7 +135,7 @@ describe('D1Adapter', () => {
     it('returns null when not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.getUserByEmail!('nobody@example.com');
+      const result = await unwrap(adapter.getUserByEmail)('nobody@example.com');
 
       expect(result).toBeNull();
     });
@@ -146,7 +147,7 @@ describe('D1Adapter', () => {
     it('returns user when found', async () => {
       mockExecute.mockResolvedValueOnce([userRow()]);
 
-      const result = await adapter.getUserByAccount!({
+      const result = await unwrap(adapter.getUserByAccount)({
         provider: 'github',
         providerAccountId: 'gh-123',
       });
@@ -161,7 +162,7 @@ describe('D1Adapter', () => {
     it('returns null when not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.getUserByAccount!({
+      const result = await unwrap(adapter.getUserByAccount)({
         provider: 'github',
         providerAccountId: 'nonexistent',
       });
@@ -176,7 +177,7 @@ describe('D1Adapter', () => {
     it('updates name only', async () => {
       mockExecute.mockResolvedValueOnce([userRow({ name: 'Bob' })]);
 
-      const result = await adapter.updateUser!({ id: 'user-1', name: 'Bob' });
+      const result = await unwrap(adapter.updateUser)({ id: 'user-1', name: 'Bob' });
 
       expect(mockExecute).toHaveBeenCalledWith(
         'UPDATE users SET name = ? WHERE id = ? RETURNING *',
@@ -188,7 +189,7 @@ describe('D1Adapter', () => {
     it('updates email only', async () => {
       mockExecute.mockResolvedValueOnce([userRow({ email: 'new@example.com' })]);
 
-      await adapter.updateUser!({ id: 'user-1', email: 'new@example.com' });
+      await unwrap(adapter.updateUser)({ id: 'user-1', email: 'new@example.com' });
 
       expect(mockExecute).toHaveBeenCalledWith(
         'UPDATE users SET email = ? WHERE id = ? RETURNING *',
@@ -200,7 +201,7 @@ describe('D1Adapter', () => {
       const ts = 1700001000000;
       mockExecute.mockResolvedValueOnce([userRow({ emailVerified: ts })]);
 
-      const result = await adapter.updateUser!({
+      const result = await unwrap(adapter.updateUser)({
         id: 'user-1',
         emailVerified: new Date(ts),
       });
@@ -215,7 +216,7 @@ describe('D1Adapter', () => {
     it('updates emailVerified to null', async () => {
       mockExecute.mockResolvedValueOnce([userRow({ emailVerified: null })]);
 
-      const result = await adapter.updateUser!({
+      const result = await unwrap(adapter.updateUser)({
         id: 'user-1',
         emailVerified: null,
       });
@@ -230,7 +231,7 @@ describe('D1Adapter', () => {
     it('updates image only', async () => {
       mockExecute.mockResolvedValueOnce([userRow({ image: 'https://new.png' })]);
 
-      await adapter.updateUser!({ id: 'user-1', image: 'https://new.png' });
+      await unwrap(adapter.updateUser)({ id: 'user-1', image: 'https://new.png' });
 
       expect(mockExecute).toHaveBeenCalledWith(
         'UPDATE users SET image = ? WHERE id = ? RETURNING *',
@@ -243,7 +244,7 @@ describe('D1Adapter', () => {
         userRow({ name: 'Charlie', email: 'charlie@example.com' }),
       ]);
 
-      await adapter.updateUser!({
+      await unwrap(adapter.updateUser)({
         id: 'user-1',
         name: 'Charlie',
         email: 'charlie@example.com',
@@ -262,7 +263,7 @@ describe('D1Adapter', () => {
     it('deletes the user by id', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await adapter.deleteUser!('user-1');
+      await unwrap(adapter.deleteUser)('user-1');
 
       expect(mockExecute).toHaveBeenCalledWith('DELETE FROM users WHERE id = ?', ['user-1']);
     });
@@ -288,7 +289,7 @@ describe('D1Adapter', () => {
         session_state: 'active',
       };
 
-      const result = await adapter.linkAccount!(account);
+      const result = await unwrap(adapter.linkAccount)(account);
 
       expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO accounts'), [
         FIXED_UUID,
@@ -317,7 +318,7 @@ describe('D1Adapter', () => {
         providerAccountId: 'g-456',
       };
 
-      await adapter.linkAccount!(account);
+      await unwrap(adapter.linkAccount)(account);
 
       expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO accounts'), [
         FIXED_UUID,
@@ -342,7 +343,7 @@ describe('D1Adapter', () => {
     it('deletes by provider + providerAccountId', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await adapter.unlinkAccount!({ provider: 'github', providerAccountId: 'gh-123' });
+      await unwrap(adapter.unlinkAccount)({ provider: 'github', providerAccountId: 'gh-123' });
 
       expect(mockExecute).toHaveBeenCalledWith(
         'DELETE FROM accounts WHERE provider = ? AND providerAccountId = ?',
@@ -364,7 +365,7 @@ describe('D1Adapter', () => {
         expires,
       };
 
-      const result = await adapter.createSession!(session);
+      const result = await unwrap(adapter.createSession)(session);
 
       expect(mockExecute).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO sessions'),
@@ -391,7 +392,7 @@ describe('D1Adapter', () => {
         },
       ]);
 
-      const result = await adapter.getSessionAndUser!('tok-abc');
+      const result = await unwrap(adapter.getSessionAndUser)('tok-abc');
 
       expect(mockExecute).toHaveBeenCalledWith(
         expect.stringContaining('JOIN users u ON s.userId = u.id'),
@@ -416,7 +417,7 @@ describe('D1Adapter', () => {
     it('returns null when not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.getSessionAndUser!('nonexistent');
+      const result = await unwrap(adapter.getSessionAndUser)('nonexistent');
 
       expect(result).toBeNull();
     });
@@ -435,10 +436,10 @@ describe('D1Adapter', () => {
         },
       ]);
 
-      const result = await adapter.getSessionAndUser!('tok-abc');
+      const result = await unwrap(adapter.getSessionAndUser)('tok-abc');
 
-      expect(result!.user.emailVerified).toBeNull();
-      expect(result!.user.image).toBeNull();
+      expect(unwrap(result).user.emailVerified).toBeNull();
+      expect(unwrap(result).user.image).toBeNull();
     });
   });
 
@@ -451,7 +452,7 @@ describe('D1Adapter', () => {
         { sessionToken: 'tok-abc', userId: 'user-1', expires: newExpires },
       ]);
 
-      const result = await adapter.updateSession!({
+      const result = await unwrap(adapter.updateSession)({
         sessionToken: 'tok-abc',
         expires: new Date(newExpires),
       });
@@ -472,7 +473,7 @@ describe('D1Adapter', () => {
         { sessionToken: 'tok-abc', userId: 'user-2', expires: NOW },
       ]);
 
-      const result = await adapter.updateSession!({
+      const result = await unwrap(adapter.updateSession)({
         sessionToken: 'tok-abc',
         userId: 'user-2',
       });
@@ -481,7 +482,7 @@ describe('D1Adapter', () => {
         'UPDATE sessions SET userId = ? WHERE sessionToken = ? RETURNING *',
         ['user-2', 'tok-abc']
       );
-      expect(result!.userId).toBe('user-2');
+      expect(unwrap(result).userId).toBe('user-2');
     });
 
     it('updates both expires and userId', async () => {
@@ -490,7 +491,7 @@ describe('D1Adapter', () => {
         { sessionToken: 'tok-abc', userId: 'user-2', expires: newExpires },
       ]);
 
-      await adapter.updateSession!({
+      await unwrap(adapter.updateSession)({
         sessionToken: 'tok-abc',
         expires: new Date(newExpires),
         userId: 'user-2',
@@ -503,7 +504,7 @@ describe('D1Adapter', () => {
     });
 
     it('returns null when no fields to update', async () => {
-      const result = await adapter.updateSession!({ sessionToken: 'tok-abc' });
+      const result = await unwrap(adapter.updateSession)({ sessionToken: 'tok-abc' });
 
       expect(mockExecute).not.toHaveBeenCalled();
       expect(result).toBeNull();
@@ -512,7 +513,7 @@ describe('D1Adapter', () => {
     it('returns null when row not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.updateSession!({
+      const result = await unwrap(adapter.updateSession)({
         sessionToken: 'tok-abc',
         userId: 'user-2',
       });
@@ -527,7 +528,7 @@ describe('D1Adapter', () => {
     it('deletes by sessionToken', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await adapter.deleteSession!('tok-abc');
+      await unwrap(adapter.deleteSession)('tok-abc');
 
       expect(mockExecute).toHaveBeenCalledWith(
         'DELETE FROM sessions WHERE sessionToken = ?',
@@ -549,7 +550,7 @@ describe('D1Adapter', () => {
         expires,
       };
 
-      const result = await adapter.createVerificationToken!(token);
+      const result = await unwrap(adapter.createVerificationToken)(token);
 
       expect(mockExecute).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO verificationTokens'),
@@ -567,7 +568,7 @@ describe('D1Adapter', () => {
         { identifier: 'alice@example.com', token: 'vt-abc', expires: NOW },
       ]);
 
-      const result = await adapter.useVerificationToken!({
+      const result = await unwrap(adapter.useVerificationToken)({
         identifier: 'alice@example.com',
         token: 'vt-abc',
       });
@@ -586,7 +587,7 @@ describe('D1Adapter', () => {
     it('returns null when not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      const result = await adapter.useVerificationToken!({
+      const result = await unwrap(adapter.useVerificationToken)({
         identifier: 'nobody@example.com',
         token: 'nonexistent',
       });

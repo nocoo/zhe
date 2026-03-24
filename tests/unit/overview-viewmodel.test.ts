@@ -22,6 +22,7 @@ import {
 import { getOverviewStats } from '@/actions/overview';
 import { getWorkerHealth } from '@/actions/worker-status';
 import type { OverviewStats, WorkerHealthStatus } from '@/models/overview';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,15 +172,15 @@ describe('useOverviewViewModel', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.stats!.clickTrend).toEqual([
+    expect(unwrap(result.current.stats).clickTrend).toEqual([
       { date: '2026-02-10', clicks: 2, origin: 1, worker: 1 },
       { date: '2026-02-11', clicks: 1, origin: 0, worker: 1 },
     ]);
-    expect(result.current.stats!.uploadTrend).toEqual([
+    expect(unwrap(result.current.stats).uploadTrend).toEqual([
       { date: '2026-02-10', uploads: 1 },
       { date: '2026-02-12', uploads: 1 },
     ]);
-    expect(result.current.stats!.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
+    expect(unwrap(result.current.stats).fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
   });
 
   // ==================================================================

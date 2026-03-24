@@ -34,6 +34,7 @@ import {
   deleteR2Objects,
   resetR2Client,
 } from '@/lib/r2/client';
+import { unwrap } from '../test-utils';
 
 function setR2Env() {
   process.env.R2_ACCESS_KEY_ID = 'test-access-key';
@@ -316,8 +317,8 @@ describe('R2 Client', () => {
       const result = await listR2Objects();
 
       expect(result).toHaveLength(2);
-      expect(result[0]!.key).toBe('file1.png');
-      expect(result[1]!.key).toBe('file2.png');
+      expect(unwrap(result[0]).key).toBe('file1.png');
+      expect(unwrap(result[1]).key).toBe('file2.png');
       expect(mockSend).toHaveBeenCalledTimes(2);
     });
 
@@ -335,7 +336,7 @@ describe('R2 Client', () => {
       const result = await listR2Objects();
 
       expect(result).toHaveLength(1);
-      expect(result[0]!.key).toBe('valid.png');
+      expect(unwrap(result[0]).key).toBe('valid.png');
     });
 
     it('uses empty string for lastModified when LastModified is undefined', async () => {
@@ -348,7 +349,7 @@ describe('R2 Client', () => {
       const result = await listR2Objects();
 
       expect(result).toHaveLength(1);
-      expect(result[0]!.lastModified).toBe('');
+      expect(unwrap(result[0]).lastModified).toBe('');
     });
 
     it('throws when env vars are missing', async () => {

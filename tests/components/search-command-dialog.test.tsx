@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Link, Folder } from "@/models/types";
+import { unwrap } from "../test-utils";
 
 // ── Mocks ──
 
@@ -62,7 +63,7 @@ function getCmdkItem(slug: string): HTMLElement | null {
 function expectItemWithText(slug: string, text: string) {
   const item = getCmdkItem(slug);
   expect(item).toBeTruthy();
-  expect(item!.textContent).toContain(text);
+  expect(unwrap(item).textContent).toContain(text);
 }
 
 /**
@@ -169,7 +170,7 @@ describe("SearchCommandDialog", () => {
       expectItemWithText("abc", "Example Page");
       // Should NOT show full short URL (zhe.to/abc), only the slug
       const item = getCmdkItem("abc");
-      expect(item!.textContent).not.toContain("zhe.to/");
+      expect(unwrap(item).textContent).not.toContain("zhe.to/");
     });
 
     it("shows folder name for links in a folder", async () => {
@@ -237,7 +238,7 @@ describe("SearchCommandDialog", () => {
 
       const item = getCmdkItem("abc123");
       expect(item).toBeTruthy();
-      fireEvent.click(item!);
+      fireEvent.click(unwrap(item));
 
       expect(windowOpenSpy).toHaveBeenCalledWith("https://example.com/page", "_blank", "noopener,noreferrer");
       expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -253,7 +254,7 @@ describe("SearchCommandDialog", () => {
       await userEvent.type(input, "abc");
 
       const item = getCmdkItem("abc123");
-      fireEvent.click(item!);
+      fireEvent.click(unwrap(item));
 
       expect(mockPush).not.toHaveBeenCalled();
       windowOpenSpy.mockRestore();

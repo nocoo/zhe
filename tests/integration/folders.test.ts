@@ -13,6 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { unwrap } from '../test-utils';
 import type { Folder, Link } from '@/lib/db/schema';
 
 // ---------------------------------------------------------------------------
@@ -119,7 +120,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       // Step 1: Create a folder
       const createResult = await createFolder({ name: 'Work', icon: 'briefcase' });
       expect(createResult.success).toBe(true);
-      const folder = createResult.data!;
+      const folder = unwrap(createResult.data);
       expect(folder.name).toBe('Work');
       expect(folder.icon).toBe('briefcase');
       expect(folder.userId).toBe(USER_A);
@@ -130,19 +131,19 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       const listResult = await getFolders();
       expect(listResult.success).toBe(true);
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0]!.id).toBe(folder.id);
+      expect(unwrap(unwrap(listResult.data)[0]).id).toBe(folder.id);
 
       // Step 3: Update name
       const nameResult = await updateFolder(folder.id, { name: 'Personal' });
       expect(nameResult.success).toBe(true);
-      expect(nameResult.data!.name).toBe('Personal');
-      expect(nameResult.data!.icon).toBe('briefcase'); // icon unchanged
+      expect(unwrap(nameResult.data).name).toBe('Personal');
+      expect(unwrap(nameResult.data).icon).toBe('briefcase'); // icon unchanged
 
       // Step 4: Update icon
       const iconResult = await updateFolder(folder.id, { icon: 'heart' });
       expect(iconResult.success).toBe(true);
-      expect(iconResult.data!.icon).toBe('heart');
-      expect(iconResult.data!.name).toBe('Personal'); // name unchanged
+      expect(unwrap(iconResult.data).icon).toBe('heart');
+      expect(unwrap(iconResult.data).name).toBe('Personal'); // name unchanged
 
       // Step 5: Delete
       const deleteResult = await deleteFolder(folder.id);
@@ -159,7 +160,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
 
       const result = await createFolder({ name: 'No Icon' });
       expect(result.success).toBe(true);
-      expect(result.data!.icon).toBe('folder'); // default icon
+      expect(unwrap(result.data).icon).toBe('folder'); // default icon
     });
 
     it('creates multiple folders and lists them all', async () => {
@@ -174,7 +175,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       expect(list.success).toBe(true);
       expect(list.data).toHaveLength(3);
 
-      const names = list.data!.map((f: Folder) => f.name).sort();
+      const names = unwrap(list.data).map((f: Folder) => f.name).sort();
       expect(names).toEqual(['Alpha', 'Beta', 'Gamma']);
     });
   });
@@ -218,7 +219,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       const maxName = 'a'.repeat(50);
       const result = await createFolder({ name: maxName });
       expect(result.success).toBe(true);
-      expect(result.data!.name).toBe(maxName);
+      expect(unwrap(result.data).name).toBe(maxName);
     });
 
     it('trims whitespace from name', async () => {
@@ -227,14 +228,14 @@ describe('Folder CRUD + Link Categorization E2E', () => {
 
       const result = await createFolder({ name: '  Trimmed  ' });
       expect(result.success).toBe(true);
-      expect(result.data!.name).toBe('Trimmed');
+      expect(unwrap(result.data).name).toBe('Trimmed');
     });
 
     it('rejects update with empty name', async () => {
       authenticatedAs(USER_A);
       const { createFolder, updateFolder } = await import('@/actions/folders');
 
-      const folder = (await createFolder({ name: 'Valid' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Valid' })).data);
 
       const result = await updateFolder(folder.id, { name: '' });
       expect(result.success).toBe(false);
@@ -259,7 +260,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder, updateFolder } = await import('@/actions/folders');
 
-      const folder = (await createFolder({ name: 'Good' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Good' })).data);
 
       const result = await updateFolder(folder.id, { icon: 'nonexistent-icon' });
       expect(result.success).toBe(false);
@@ -276,7 +277,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       for (const icon of testIcons) {
         const result = await createFolder({ name: `Folder-${icon}`, icon });
         expect(result.success).toBe(true);
-        expect(result.data!.icon).toBe(icon);
+        expect(unwrap(result.data).icon).toBe(icon);
       }
     });
   });
@@ -289,7 +290,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder } = await import('@/actions/folders');
 
-      const folder = (await createFolder({ name: 'Bookmarks' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Bookmarks' })).data);
       const link = await seedLink('https://example.com', folder.id);
 
       expect(link.folderId).toBe(folder.id);
@@ -308,8 +309,8 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       const { createFolder } = await import('@/actions/folders');
       const { updateLink } = await import('@/actions/links');
 
-      const folderA = (await createFolder({ name: 'Folder A' })).data!;
-      const folderB = (await createFolder({ name: 'Folder B' })).data!;
+      const folderA = unwrap((await createFolder({ name: 'Folder A' })).data);
+      const folderB = unwrap((await createFolder({ name: 'Folder B' })).data);
 
       const link = await seedLink('https://moveable.com', folderA.id);
       expect(link.folderId).toBe(folderA.id);
@@ -317,7 +318,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       // Move to folder B
       const result = await updateLink(link.id, { folderId: folderB.id });
       expect(result.success).toBe(true);
-      expect(result.data!.folderId).toBe(folderB.id);
+      expect(unwrap(result.data).folderId).toBe(folderB.id);
     });
 
     it('link without folder has null folderId by default', async () => {
@@ -342,7 +343,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       const { getLinks } = await import('@/actions/links');
 
       // Create folder + links inside it
-      const folder = (await createFolder({ name: 'Doomed' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Doomed' })).data);
       await seedLink('https://link-1.com', folder.id);
       await seedLink('https://link-2.com', folder.id);
       await seedLink('https://link-3.com'); // no folder
@@ -356,14 +357,14 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       expect(links.success).toBe(true);
       expect(links.data).toHaveLength(3);
 
-      for (const link of links.data!) {
+      for (const link of unwrap(links.data)) {
         expect(link.folderId).toBeNull();
       }
 
       // Unassigned link is also still null
-      const link3 = links.data!.find((l: Link) => l.originalUrl === 'https://link-3.com');
+      const link3 = unwrap(unwrap(links.data).find((l: Link) => l.originalUrl === 'https://link-3.com'));
       expect(link3).toBeDefined();
-      expect(link3!.folderId).toBeNull();
+      expect(link3.folderId).toBeNull();
     });
   });
 
@@ -400,7 +401,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder, getFolders } = await import('@/actions/folders');
 
-      const folderA = (await createFolder({ name: 'Private A' })).data!;
+      const folderA = unwrap((await createFolder({ name: 'Private A' })).data);
       expect(folderA.userId).toBe(USER_A);
 
       // Switch to User B
@@ -415,7 +416,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder, updateFolder } = await import('@/actions/folders');
 
-      const folderA = (await createFolder({ name: 'A Only' })).data!;
+      const folderA = unwrap((await createFolder({ name: 'A Only' })).data);
 
       // Switch to User B
       authenticatedAs(USER_B);
@@ -429,7 +430,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder, deleteFolder, getFolders } = await import('@/actions/folders');
 
-      const folderA = (await createFolder({ name: 'Protected' })).data!;
+      const folderA = unwrap((await createFolder({ name: 'Protected' })).data);
 
       // Switch to User B — try to delete
       authenticatedAs(USER_B);
@@ -441,7 +442,7 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const list = await getFolders();
       expect(list.data).toHaveLength(1);
-      expect(list.data![0]!.id).toBe(folderA.id);
+      expect(unwrap(unwrap(list.data)[0]).id).toBe(folderA.id);
     });
 
     it('each user manages their own folders independently', async () => {
@@ -460,14 +461,14 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const listA = await getFolders();
       expect(listA.data).toHaveLength(2);
-      const namesA = listA.data!.map((f: Folder) => f.name).sort();
+      const namesA = unwrap(listA.data).map((f: Folder) => f.name).sort();
       expect(namesA).toEqual(['A-Personal', 'A-Work']);
 
       // User B sees only their 1
       authenticatedAs(USER_B);
       const listB = await getFolders();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0]!.name).toBe('B-Projects');
+      expect(unwrap(unwrap(listB.data)[0]).name).toBe('B-Projects');
     });
   });
 
@@ -481,27 +482,27 @@ describe('Folder CRUD + Link Categorization E2E', () => {
       authenticatedAs(USER_A);
       const { createFolder, updateFolder } = await import('@/actions/folders');
 
-      const folder = (await createFolder({ name: 'Static', icon: 'star' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Static', icon: 'star' })).data);
 
       const result = await updateFolder(folder.id, {});
       expect(result.success).toBe(true);
-      expect(result.data!.name).toBe('Static');
-      expect(result.data!.icon).toBe('star');
+      expect(unwrap(result.data).name).toBe('Static');
+      expect(unwrap(result.data).icon).toBe('star');
     });
 
     it('update both name and icon in a single call', async () => {
       authenticatedAs(USER_A);
       const { createFolder, updateFolder } = await import('@/actions/folders');
 
-      const folder = (await createFolder({ name: 'Old', icon: 'folder' })).data!;
+      const folder = unwrap((await createFolder({ name: 'Old', icon: 'folder' })).data);
 
       const result = await updateFolder(folder.id, {
         name: 'New',
         icon: 'rocket',
       });
       expect(result.success).toBe(true);
-      expect(result.data!.name).toBe('New');
-      expect(result.data!.icon).toBe('rocket');
+      expect(unwrap(result.data).name).toBe('New');
+      expect(unwrap(result.data).icon).toBe('rocket');
     });
   });
 });

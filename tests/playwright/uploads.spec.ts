@@ -138,7 +138,8 @@ test.describe.serial('Upload UI', () => {
     await expect(externalLink).toHaveAttribute('target', '_blank');
     const href = await externalLink.getAttribute('href');
     expect(href).toBeTruthy();
-    expect(href!.startsWith('http')).toBe(true);
+    if (!href) throw new Error('expected href to be non-null');
+    expect(href.startsWith('http')).toBe(true);
   });
 
   test('delete an upload via confirmation dialog', async ({ page }) => {

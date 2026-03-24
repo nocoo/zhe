@@ -3,6 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
+import { unwrap } from '../test-utils';
 
 let mockSearchParamsFolder: string | null = null;
 
@@ -430,7 +431,7 @@ describe('LinksList', () => {
       const devItems = screen.getAllByText('dev');
       const devDropdownItem = devItems.find(el => el.closest('[cmdk-item]'));
       expect(devDropdownItem).toBeTruthy();
-      await user.click(devDropdownItem!);
+      await user.click(unwrap(devDropdownItem));
 
       // Only link 1 (abc) has the "dev" tag
       expect(screen.getByText('abc')).toBeInTheDocument();
@@ -446,12 +447,16 @@ describe('LinksList', () => {
       // Select "dev" tag
       await user.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       // Select "design" tag too (reopen)
       await user.click(screen.getByText('标签 (1)'));
       const designItems = screen.getAllByText('design');
-      await user.click(designItems.find(el => el.closest('[cmdk-item]'))!);
+      const designDropdownItem = designItems.find(el => el.closest('[cmdk-item]'));
+      // cmdk may filter out already-selected items; click only if present
+      if (designDropdownItem) {
+        await user.click(designDropdownItem);
+      }
 
       // Only link 1 (abc) has both "dev" AND "design"
       expect(screen.getByText('abc')).toBeInTheDocument();
@@ -466,7 +471,7 @@ describe('LinksList', () => {
       // Select "blog" tag to narrow to link 3 only
       await user.click(screen.getByText('标签'));
       const blogItems = screen.getAllByText('blog');
-      await user.click(blogItems.find(el => el.closest('[cmdk-item]'))!);
+      await user.click(unwrap(blogItems.find(el => el.closest('[cmdk-item]'))));
       expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
 
       // Remove it via X on the badge
@@ -483,7 +488,7 @@ describe('LinksList', () => {
       await user.click(screen.getByText('工作'));
       await user.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       // Clear all
       await user.click(screen.getByText('清除筛选'));
@@ -501,7 +506,7 @@ describe('LinksList', () => {
 
       await user.click(screen.getByText('标签'));
       const designItems = screen.getAllByText('design');
-      await user.click(designItems.find(el => el.closest('[cmdk-item]'))!);
+      await user.click(unwrap(designItems.find(el => el.closest('[cmdk-item]'))));
 
       // Only link 2 (def) is in folder "个人" AND has tag "design"
       expect(screen.getByText('def')).toBeInTheDocument();
@@ -515,7 +520,7 @@ describe('LinksList', () => {
 
       await user.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(devItems.find(el => el.closest('[cmdk-item]'))!);
+      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       expect(screen.getByText('标签 (1)')).toBeInTheDocument();
     });

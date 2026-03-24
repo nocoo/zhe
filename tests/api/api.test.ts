@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { apiGet, apiPostWorker, jsonResponse } from './helpers/http';
 import { ensureTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Setup: ensure test user exists, clean up before/after
@@ -129,7 +130,8 @@ describe('POST /api/record-click', () => {
 
     // Verify click count via D1 query (black-box: check DB side effect)
     const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [slug]);
-    expect(rows[0]!.clicks).toBe(1);
+    expect(rows[0]).toBeDefined();
+    expect(unwrap(rows[0]).clicks).toBe(1);
   });
 
   it('records a click with minimal metadata', async () => {
@@ -179,7 +181,8 @@ describe('Redirect flow (lookup → analytics)', () => {
 
     // Step 3: Verify click count incremented
     const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
-    expect(rows[0]!.clicks).toBe(1);
+    expect(rows[0]).toBeDefined();
+    expect(unwrap(rows[0]).clicks).toBe(1);
   });
 
   it('multiple clicks increment counter correctly', async () => {
@@ -197,6 +200,6 @@ describe('Redirect flow (lookup → analytics)', () => {
 
     // Verify
     const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
-    expect(rows[0]!.clicks).toBe(3);
+    expect(unwrap(rows[0]).clicks).toBe(3);
   });
 });

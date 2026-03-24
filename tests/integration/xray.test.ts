@@ -17,6 +17,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearMockStorage } from '../setup';
 import { getMockTweetCache } from '../mocks/db-storage';
+import { unwrap } from '../test-utils';
 import type { Link } from '@/lib/db/schema';
 import type { XrayTweetData, XrayTweetResponse } from '@/models/xray';
 
@@ -200,10 +201,10 @@ describe('Xray Twitter integration (E2E)', () => {
       const result = await saveXrayConfig(XRAY_CONFIG);
 
       expect(result.success).toBe(true);
-      expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
       // Token: "xray-e2e-token-abcdefghij" (25 chars)
       // maskToken: first 4 + (25-8)=17 dots + last 4
-      expect(result.data!.maskedToken).toBe('xray•••••••••••••••••ghij');
+      expect(unwrap(result.data).maskedToken).toBe('xray•••••••••••••••••ghij');
     });
 
     it('retrieves saved config with masked token', async () => {
@@ -214,8 +215,8 @@ describe('Xray Twitter integration (E2E)', () => {
       const result = await getXrayConfig();
 
       expect(result.success).toBe(true);
-      expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
-      expect(result.data!.maskedToken).toBe('xray•••••••••••••••••ghij');
+      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(result.data).maskedToken).toBe('xray•••••••••••••••••ghij');
     });
 
     it('upserts config (overwrite existing)', async () => {
@@ -230,8 +231,8 @@ describe('Xray Twitter integration (E2E)', () => {
 
       const result = await getXrayConfig();
       expect(result.success).toBe(true);
-      expect(result.data!.apiUrl).toBe('https://xray.dev.hexly.ai');
-      expect(result.data!.maskedToken).toBe('new-••••••••••••6789');
+      expect(unwrap(result.data).apiUrl).toBe('https://xray.dev.hexly.ai');
+      expect(unwrap(result.data).maskedToken).toBe('new-••••••••••••6789');
     });
 
     it('validates empty URL', async () => {
@@ -272,7 +273,7 @@ describe('Xray Twitter integration (E2E)', () => {
 
       const result = await getXrayConfig();
       expect(result.success).toBe(true);
-      expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
     });
   });
 
@@ -317,7 +318,7 @@ describe('Xray Twitter integration (E2E)', () => {
 
         expect(result.success).toBe(true);
         expect(result.mock).toBe(false);
-        expect(result.data!.data.id).toBe('9990001111222233334');
+        expect(unwrap(result.data).data.id).toBe('9990001111222233334');
 
         // Verify the correct API URL was called
         expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -400,7 +401,7 @@ describe('Xray Twitter integration (E2E)', () => {
         const result = await fetchBookmarks();
 
         expect(result.success).toBe(true);
-        expect(result.data!.data).toHaveLength(2);
+        expect(unwrap(result.data).data).toHaveLength(2);
 
         expect(globalThis.fetch).toHaveBeenCalledWith(
           'https://xray.hexly.ai/api/twitter/me/bookmarks',
@@ -429,7 +430,7 @@ describe('Xray Twitter integration (E2E)', () => {
       try {
         const result = await fetchBookmarks();
         expect(result.success).toBe(true);
-        expect(result.data!.data).toHaveLength(0);
+        expect(unwrap(result.data).data).toHaveLength(0);
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -494,7 +495,7 @@ describe('Xray Twitter integration (E2E)', () => {
         // Verify tweet was written to cache
         const cache = getMockTweetCache();
         expect(cache.has('9990001111222233334')).toBe(true);
-        expect(cache.get('9990001111222233334')!.authorUsername).toBe('testuser');
+        expect(unwrap(cache.get('9990001111222233334')).authorUsername).toBe('testuser');
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -550,10 +551,10 @@ describe('Xray Twitter integration (E2E)', () => {
         // Verify link metadata was updated
         const { getLinks } = await import('@/actions/links');
         const links = await getLinks();
-        const updated = links.data!.find((l: Link) => l.slug === 'xray-meta-test');
-        expect(updated!.metaTitle).toBe('@testuser posted on x.com');
-        expect(updated!.metaDescription).toBe(SAMPLE_TWEET.text);
-        expect(updated!.metaFavicon).toBe(SAMPLE_TWEET.author.profile_image_url);
+        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-meta-test'));
+        expect(updated.metaTitle).toBe('@testuser posted on x.com');
+        expect(updated.metaDescription).toBe(SAMPLE_TWEET.text);
+        expect(updated.metaFavicon).toBe(SAMPLE_TWEET.author.profile_image_url);
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -586,8 +587,8 @@ describe('Xray Twitter integration (E2E)', () => {
         // Verify link metadata was updated from cache
         const { getLinks } = await import('@/actions/links');
         const links = await getLinks();
-        const updated = links.data!.find((l: Link) => l.slug === 'xray-cache-hit-meta');
-        expect(updated!.metaTitle).toBe('@testuser posted on x.com');
+        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-cache-hit-meta'));
+        expect(updated.metaTitle).toBe('@testuser posted on x.com');
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -754,14 +755,14 @@ describe('Xray Twitter integration (E2E)', () => {
 
         // Verify cache was updated
         const cache = getMockTweetCache();
-        const cached = cache.get('9990001111222233334')!;
+        const cached = unwrap(cache.get('9990001111222233334'));
         expect(cached.tweetText).toBe('Updated tweet text after force refresh.');
 
         // Verify link metadata was updated
         const { getLinks } = await import('@/actions/links');
         const links = await getLinks();
-        const updated = links.data!.find((l: Link) => l.slug === 'xray-refresh-meta');
-        expect(updated!.metaDescription).toBe('Updated tweet text after force refresh.');
+        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-refresh-meta'));
+        expect(updated.metaDescription).toBe('Updated tweet text after force refresh.');
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -810,8 +811,8 @@ describe('Xray Twitter integration (E2E)', () => {
 
       const cache = getMockTweetCache();
       expect(cache.size).toBe(2);
-      expect(cache.get('9990001111222233334')!.tweetText).toBe(SAMPLE_TWEET.text);
-      expect(cache.get('8880001111222255556')!.tweetText).toBe(SECOND_TWEET.text);
+      expect(unwrap(cache.get('9990001111222233334')).tweetText).toBe(SAMPLE_TWEET.text);
+      expect(unwrap(cache.get('8880001111222255556')).tweetText).toBe(SECOND_TWEET.text);
     });
 
     it('upserts cache on force refresh (updates existing entry)', async () => {
@@ -847,7 +848,7 @@ describe('Xray Twitter integration (E2E)', () => {
       // Cache should have updated text, not old text
       const cache = getMockTweetCache();
       expect(cache.size).toBe(1); // Still 1 entry, not 2
-      expect(cache.get('9990001111222233334')!.tweetText).toBe('Refreshed text.');
+      expect(unwrap(cache.get('9990001111222233334')).tweetText).toBe('Refreshed text.');
     });
   });
 
@@ -872,7 +873,7 @@ describe('Xray Twitter integration (E2E)', () => {
       authenticatedAs(USER_A);
       const resultA = await getXrayConfig();
       expect(resultA.success).toBe(true);
-      expect(resultA.data!.apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(resultA.data).apiUrl).toBe('https://xray.hexly.ai');
     });
 
     it('tweet cache is shared (global, not per-user)', async () => {

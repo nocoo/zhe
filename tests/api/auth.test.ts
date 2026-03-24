@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { apiGet, jsonResponse } from './helpers/http';
+import { unwrap } from '../test-utils';
 
 describe('GET /api/auth', () => {
   it('GET /api/auth/csrf returns a csrfToken', async () => {
@@ -34,13 +35,13 @@ describe('GET /api/auth', () => {
 
     // Google should always be present
     expect(body.google).toBeDefined();
-    expect(body.google!.id).toBe('google');
-    expect(body.google!.type).toBe('oidc');
+    expect(unwrap(body.google).id).toBe('google');
+    expect(unwrap(body.google).type).toBe('oidc');
 
     // e2e-credentials should be present because dev server runs with PLAYWRIGHT=1
     expect(body['e2e-credentials']).toBeDefined();
-    expect(body['e2e-credentials']!.id).toBe('e2e-credentials');
-    expect(body['e2e-credentials']!.type).toBe('credentials');
+    expect(unwrap(body['e2e-credentials']).id).toBe('e2e-credentials');
+    expect(unwrap(body['e2e-credentials']).type).toBe('credentials');
   });
 
   it('GET /api/auth/session returns empty/null session for unauthenticated request', async () => {

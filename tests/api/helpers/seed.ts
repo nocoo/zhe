@@ -9,6 +9,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { nanoid } from 'nanoid';
+import { unwrap } from '../../test-utils';
 
 // ---------------------------------------------------------------------------
 // Env loading (same pattern as Playwright)
@@ -181,7 +182,7 @@ export async function seedLink(options: SeedLinkOptions = {}): Promise<{ slug: s
   // Retrieve the auto-generated ID
   const rows = await queryD1<{ id: number }>('SELECT id FROM links WHERE slug = ?', [slug]);
   if (rows.length === 0) throw new Error(`Seeded link not found: ${slug}`);
-  return { slug, id: rows[0]!.id };
+  return { slug, id: unwrap(rows[0]).id };
 }
 
 // ---------------------------------------------------------------------------

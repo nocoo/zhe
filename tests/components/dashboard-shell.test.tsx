@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
+import { unwrap } from '../test-utils';
 
 let mockFoldersVm: FoldersViewModel = {
   folders: [],
@@ -118,11 +119,11 @@ async function renderShell(props: Partial<Parameters<typeof DashboardShell>[0]> 
     children: <div data-testid="child-content">Dashboard Content</div>,
     ...props,
   };
-  let result: ReturnType<typeof render>;
+  let result: ReturnType<typeof render> | undefined;
   await act(async () => {
     result = render(<DashboardShell {...defaultProps} />);
   });
-  return result!;
+  return unwrap(result);
 }
 
 describe('DashboardShell', () => {
@@ -278,7 +279,7 @@ describe('DashboardShell', () => {
       const menuButton = Array.from(headerButtons || []).find(
         (btn: Element) => !btn.getAttribute('title')?.includes('Theme')
       );
-      fireEvent.click(menuButton!);
+      fireEvent.click(unwrap(menuButton));
       expect(mockViewModel.toggleSidebar).toHaveBeenCalledOnce();
     });
 

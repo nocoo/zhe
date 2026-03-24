@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { unwrap } from '../test-utils';
 import type { Link, Tag } from '@/lib/db/schema';
 
 // ---------------------------------------------------------------------------
@@ -155,23 +156,23 @@ describe('Edit-Link E2E — full lifecycle', () => {
         originalUrl: 'https://updated.com',
       });
       expect(urlResult.success).toBe(true);
-      expect(urlResult.data!.originalUrl).toBe('https://updated.com');
+      expect(unwrap(urlResult.data).originalUrl).toBe('https://updated.com');
 
       // Step 3: Add a note
       const noteResult = await updateLinkNote(link.id, 'Important bookmark');
       expect(noteResult.success).toBe(true);
-      expect(noteResult.data!.note).toBe('Important bookmark');
+      expect(unwrap(noteResult.data).note).toBe('Important bookmark');
 
       // Step 4: Create two tags
       const tag1Result = await createTag({ name: 'work', color: 'cobalt' });
       expect(tag1Result.success).toBe(true);
-      const tag1 = tag1Result.data!;
+      const tag1 = unwrap(tag1Result.data);
       expect(tag1.name).toBe('work');
       expect(tag1.color).toBe('cobalt');
 
       const tag2Result = await createTag({ name: 'reference', color: 'green' });
       expect(tag2Result.success).toBe(true);
-      const tag2 = tag2Result.data!;
+      const tag2 = unwrap(tag2Result.data);
 
       // Step 5: Assign both tags to the link
       const assign1 = await addTagToLink(link.id, tag1.id);
@@ -185,7 +186,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(linkTagsResult.success).toBe(true);
       expect(linkTagsResult.data).toHaveLength(2);
 
-      const assignedTagIds = linkTagsResult.data!.map((lt) => lt.tagId).sort();
+      const assignedTagIds = unwrap(linkTagsResult.data).map((lt) => lt.tagId).sort();
       expect(assignedTagIds).toEqual([tag1.id, tag2.id].sort());
 
       // Step 7: Remove one tag
@@ -195,7 +196,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Step 8: Verify only one tag remains
       const linkTagsAfter = await getLinkTags();
       expect(linkTagsAfter.data).toHaveLength(1);
-      expect(linkTagsAfter.data![0]!.tagId).toBe(tag2.id);
+      expect(unwrap(unwrap(linkTagsAfter.data)[0]).tagId).toBe(tag2.id);
 
       // Step 9: Verify tags are still intact (removing from link doesn't delete the tag)
       const allTags = await getTags();
@@ -204,9 +205,9 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Step 10: Verify link state via getLinks
       const linksResult = await getLinks();
       expect(linksResult.success).toBe(true);
-      const finalLink = linksResult.data!.find((l) => l.id === link.id);
-      expect(finalLink!.originalUrl).toBe('https://updated.com');
-      expect(finalLink!.note).toBe('Important bookmark');
+      const finalLink = unwrap(unwrap(linksResult.data).find((l) => l.id === link.id));
+      expect(finalLink.originalUrl).toBe('https://updated.com');
+      expect(finalLink.note).toBe('Important bookmark');
     });
   });
 
@@ -224,26 +225,26 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Create
       const createResult = await createTag({ name: 'devops', color: 'orange' });
       expect(createResult.success).toBe(true);
-      const tag = createResult.data!;
+      const tag = unwrap(createResult.data);
       expect(tag.name).toBe('devops');
       expect(tag.color).toBe('orange');
 
       // List
       const listResult = await getTags();
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0]!.id).toBe(tag.id);
+      expect(unwrap(unwrap(listResult.data)[0]).id).toBe(tag.id);
 
       // Update name
       const updateNameResult = await updateTag(tag.id, { name: 'infrastructure' });
       expect(updateNameResult.success).toBe(true);
-      expect(updateNameResult.data!.name).toBe('infrastructure');
-      expect(updateNameResult.data!.color).toBe('orange'); // color unchanged
+      expect(unwrap(updateNameResult.data).name).toBe('infrastructure');
+      expect(unwrap(updateNameResult.data).color).toBe('orange'); // color unchanged
 
       // Update color
       const updateColorResult = await updateTag(tag.id, { color: 'teal' });
       expect(updateColorResult.success).toBe(true);
-      expect(updateColorResult.data!.name).toBe('infrastructure'); // name unchanged
-      expect(updateColorResult.data!.color).toBe('teal');
+      expect(unwrap(updateColorResult.data).name).toBe('infrastructure'); // name unchanged
+      expect(unwrap(updateColorResult.data).color).toBe('teal');
 
       // Delete
       const deleteResult = await deleteTag(tag.id);
@@ -268,7 +269,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Create a link and a tag
       const link = await seedLink('https://cascade-test.com');
       const tagResult = await createTag({ name: 'temporary', color: 'rose' });
-      const tag = tagResult.data!;
+      const tag = unwrap(tagResult.data);
 
       // Assign tag to link
       await addTagToLink(link.id, tag.id);
@@ -294,7 +295,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Create a link and a tag, then associate
       const link = await seedLink('https://link-delete-test.com');
       const tagResult = await createTag({ name: 'permanent', color: 'indigo' });
-      const tag = tagResult.data!;
+      const tag = unwrap(tagResult.data);
       await addTagToLink(link.id, tag.id);
 
       // Verify association exists
@@ -312,7 +313,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Tag itself should still exist
       const tags = await getTags();
       expect(tags.data).toHaveLength(1);
-      expect(tags.data![0]!.id).toBe(tag.id);
+      expect(unwrap(unwrap(tags.data)[0]).id).toBe(tag.id);
     });
   });
 
@@ -339,22 +340,22 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // User B can only see their own tags
       const listB = await getTags();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0]!.name).toBe('user-b-tag');
+      expect(unwrap(unwrap(listB.data)[0]).name).toBe('user-b-tag');
 
       // User B cannot update User A's tag
-      const updateAttempt = await updateTag(tagA.data!.id, { name: 'hacked' });
+      const updateAttempt = await updateTag(unwrap(tagA.data).id, { name: 'hacked' });
       expect(updateAttempt.success).toBe(false);
       expect(updateAttempt.error).toBe('Tag not found or access denied');
 
       // User B cannot delete User A's tag
-      const deleteAttempt = await deleteTag(tagA.data!.id);
+      const deleteAttempt = await deleteTag(unwrap(tagA.data).id);
       expect(deleteAttempt.success).toBe(false);
 
       // Switch to User A — their tag should still exist unmodified
       authenticatedAs(USER_A);
       const listA = await getTags();
       expect(listA.data).toHaveLength(1);
-      expect(listA.data![0]!.name).toBe('user-a-tag');
+      expect(unwrap(unwrap(listA.data)[0]).name).toBe('user-a-tag');
     });
 
     it('users cannot see or modify each other\'s link-tag associations', async () => {
@@ -365,28 +366,28 @@ describe('Edit-Link E2E — full lifecycle', () => {
       authenticatedAs(USER_A);
       const linkA = await seedLink('https://user-a.com');
       const tagA = await createTag({ name: 'a-private', color: 'amber' });
-      await addTagToLink(linkA.id, tagA.data!.id);
+      await addTagToLink(linkA.id, unwrap(tagA.data).id);
 
       // User B creates a link + tag + association
       authenticatedAs(USER_B);
       const linkB = await seedLink('https://user-b.com');
       const tagB = await createTag({ name: 'b-private', color: 'purple' });
-      await addTagToLink(linkB.id, tagB.data!.id);
+      await addTagToLink(linkB.id, unwrap(tagB.data).id);
 
       // User B can only see their own link-tags
       const ltB = await getLinkTags();
       expect(ltB.data).toHaveLength(1);
-      expect(ltB.data![0]!.linkId).toBe(linkB.id);
+      expect(unwrap(unwrap(ltB.data)[0]).linkId).toBe(linkB.id);
 
       // User B tries to remove User A's link-tag — should fail
-      const removeAttempt = await removeTagFromLink(linkA.id, tagA.data!.id);
+      const removeAttempt = await removeTagFromLink(linkA.id, unwrap(tagA.data).id);
       expect(removeAttempt.success).toBe(false);
 
       // Switch to User A — their association is intact
       authenticatedAs(USER_A);
       const ltA = await getLinkTags();
       expect(ltA.data).toHaveLength(1);
-      expect(ltA.data![0]!.linkId).toBe(linkA.id);
+      expect(unwrap(unwrap(ltA.data)[0]).linkId).toBe(linkA.id);
     });
   });
 
@@ -405,22 +406,22 @@ describe('Edit-Link E2E — full lifecycle', () => {
       // Add note
       const addResult = await updateLinkNote(link.id, 'First note');
       expect(addResult.success).toBe(true);
-      expect(addResult.data!.note).toBe('First note');
+      expect(unwrap(addResult.data).note).toBe('First note');
 
       // Update note
       const updateResult = await updateLinkNote(link.id, 'Updated note');
       expect(updateResult.success).toBe(true);
-      expect(updateResult.data!.note).toBe('Updated note');
+      expect(unwrap(updateResult.data).note).toBe('Updated note');
 
       // Clear note (set to null)
       const clearResult = await updateLinkNote(link.id, null);
       expect(clearResult.success).toBe(true);
-      expect(clearResult.data!.note).toBeNull();
+      expect(unwrap(clearResult.data).note).toBeNull();
 
       // Verify via getLinks
       const linksResult = await getLinks();
-      const finalLink = linksResult.data!.find((l) => l.id === link.id);
-      expect(finalLink!.note).toBeNull();
+      const finalLink = unwrap(unwrap(linksResult.data).find((l) => l.id === link.id));
+      expect(finalLink.note).toBeNull();
     });
   });
 
@@ -473,7 +474,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const { createTag, updateTag } = await import('@/actions/tags');
 
       const tag = await createTag({ name: 'test', color: 'cobalt' });
-      const result = await updateTag(tag.data!.id, { color: 'rainbow' });
+      const result = await updateTag(unwrap(tag.data).id, { color: 'rainbow' });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid tag color');
@@ -485,7 +486,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const result = await createTag({ name: '  trimmed  ', color: 'rose' });
 
       expect(result.success).toBe(true);
-      expect(result.data!.name).toBe('trimmed');
+      expect(unwrap(result.data).name).toBe('trimmed');
     });
 
     it('assigns deterministic color from name when none specified', async () => {
@@ -495,8 +496,8 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const result = await createTag({ name: 'auto-color' });
 
       expect(result.success).toBe(true);
-      expect(TAG_COLORS).toContain(result.data!.color);
-      expect(result.data!.color).toBe(tagColorFromName('auto-color'));
+      expect(TAG_COLORS).toContain(unwrap(result.data).color);
+      expect(unwrap(result.data).color).toBe(tagColorFromName('auto-color'));
     });
   });
 
@@ -517,14 +518,14 @@ describe('Edit-Link E2E — full lifecycle', () => {
 
       const tag = await createTag({ name: 'shared', color: 'teal' });
 
-      await addTagToLink(link1.id, tag.data!.id);
-      await addTagToLink(link2.id, tag.data!.id);
-      await addTagToLink(link3.id, tag.data!.id);
+      await addTagToLink(link1.id, unwrap(tag.data).id);
+      await addTagToLink(link2.id, unwrap(tag.data).id);
+      await addTagToLink(link3.id, unwrap(tag.data).id);
 
       const linkTags = await getLinkTags();
       expect(linkTags.data).toHaveLength(3);
 
-      const linkedIds = linkTags.data!.map((lt) => lt.linkId).sort((a, b) => a - b);
+      const linkedIds = unwrap(linkTags.data).map((lt) => lt.linkId).sort((a, b) => a - b);
       expect(linkedIds).toEqual([link1.id, link2.id, link3.id].sort((a, b) => a - b));
     });
 
@@ -539,7 +540,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const colors = ['red', 'cobalt', 'green', 'orange', 'purple'];
       for (const color of colors) {
         const result = await createTag({ name: `tag-${color}`, color });
-        tags.push(result.data!);
+        tags.push(unwrap(result.data));
       }
 
       for (const tag of tags) {
@@ -549,7 +550,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const linkTags = await getLinkTags();
       expect(linkTags.data).toHaveLength(5);
 
-      const assignedTagIds = linkTags.data!.map((lt) => lt.tagId).sort();
+      const assignedTagIds = unwrap(linkTags.data).map((lt) => lt.tagId).sort();
       const expectedIds = tags.map((t) => t.id).sort();
       expect(assignedTagIds).toEqual(expectedIds);
     });
@@ -596,7 +597,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const { createTag, addTagToLink } = await import('@/actions/tags');
 
       const tag = await createTag({ name: 'orphan', color: 'gray' });
-      const result = await addTagToLink(99999, tag.data!.id);
+      const result = await addTagToLink(99999, unwrap(tag.data).id);
 
       expect(result.success).toBe(false);
     });
@@ -619,13 +620,13 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const result = await updateLink(link.id, { slug: 'my-custom-slug' });
 
       expect(result.success).toBe(true);
-      expect(result.data!.slug).toBe('my-custom-slug');
-      expect(result.data!.isCustom).toBe(true);
+      expect(unwrap(result.data).slug).toBe('my-custom-slug');
+      expect(unwrap(result.data).isCustom).toBe(true);
 
       // Verify persisted
       const links = await getLinks();
-      const found = links.data!.find(l => l.id === link.id);
-      expect(found!.slug).toBe('my-custom-slug');
+      const found = unwrap(unwrap(links.data).find(l => l.id === link.id));
+      expect(found.slug).toBe('my-custom-slug');
     });
 
     it('allows keeping the same slug (no-op for custom slug)', async () => {
@@ -640,7 +641,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const result = await updateLink(link.id, { slug: 'my-stable' });
 
       expect(result.success).toBe(true);
-      expect(result.data!.slug).toBe('my-stable');
+      expect(unwrap(result.data).slug).toBe('my-stable');
     });
 
     it('rejects slug that is already taken by another link', async () => {
@@ -686,7 +687,7 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const result = await updateLink(link.id, { slug: 'MySlug' });
 
       expect(result.success).toBe(true);
-      expect(result.data!.slug).toBe('myslug');
+      expect(unwrap(result.data).slug).toBe('myslug');
     });
 
     it('cross-user slug uniqueness — cannot steal another user slug', async () => {
@@ -717,9 +718,9 @@ describe('Edit-Link E2E — full lifecycle', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data!.originalUrl).toBe('https://updated-both.com');
-      expect(result.data!.slug).toBe('both-updated');
-      expect(result.data!.isCustom).toBe(true);
+      expect(unwrap(result.data).originalUrl).toBe('https://updated-both.com');
+      expect(unwrap(result.data).slug).toBe('both-updated');
+      expect(unwrap(result.data).isCustom).toBe(true);
     });
   });
 });

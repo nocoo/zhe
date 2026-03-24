@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { unwrap } from '../test-utils';
 
 // Mock url-metadata before importing the module under test
 const mockUrlMetadata = vi.fn();
@@ -197,7 +198,7 @@ describe('lib/metadata — fetchMetadata', () => {
 
     const result = await fetchMetadata('https://example.com');
 
-    expect(result.title!.length).toBeLessThanOrEqual(512);
+    expect(unwrap(result.title).length).toBeLessThanOrEqual(512);
   });
 
   it('truncates extremely long description', async () => {
@@ -210,6 +211,6 @@ describe('lib/metadata — fetchMetadata', () => {
 
     const result = await fetchMetadata('https://example.com');
 
-    expect(result.description!.length).toBeLessThanOrEqual(1024);
+    expect(unwrap(result.description).length).toBeLessThanOrEqual(1024);
   });
 });

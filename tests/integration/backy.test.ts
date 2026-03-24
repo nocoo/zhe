@@ -18,6 +18,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { unwrap } from '../test-utils';
 import type { Link } from '@/lib/db/schema';
 
 // ---------------------------------------------------------------------------
@@ -210,7 +211,7 @@ describe('Backy backup integration (E2E)', () => {
       const genResult = await generateBackyPullWebhook();
       expect(genResult.success).toBe(true);
       expect(genResult.data?.key).toBeTruthy();
-      const key = genResult.data!.key;
+      const key = unwrap(genResult.data).key;
 
       // Read it back
       const getResult = await getBackyPullWebhook();
@@ -227,7 +228,7 @@ describe('Backy backup integration (E2E)', () => {
 
       expect(first.data?.key).toBeTruthy();
       expect(second.data?.key).toBeTruthy();
-      expect(first.data!.key).not.toBe(second.data!.key);
+      expect(unwrap(first.data).key).not.toBe(unwrap(second.data).key);
     });
 
     it('revoke clears the key', async () => {
@@ -398,7 +399,7 @@ describe('Backy backup integration (E2E)', () => {
       expect(result.data?.request?.backupStats?.links).toBe(2);
 
       // Verify the POST call used FormData
-      const postCall = fetchSpy.mock.calls[0]!;
+      const postCall = unwrap(fetchSpy.mock.calls[0]);
       expect(postCall[0]).toBe('https://backy.test/wh');
       expect(postCall[1]?.method).toBe('POST');
       expect(postCall[1]?.headers).toEqual({
@@ -490,7 +491,7 @@ describe('Backy backup integration (E2E)', () => {
 
       // Generate pull key first
       const genResult = await generateBackyPullWebhook();
-      const key = genResult.data!.key;
+      const key = unwrap(genResult.data).key;
 
       // Save push config
       await saveBackyConfig({

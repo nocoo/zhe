@@ -64,14 +64,15 @@ test.describe.serial('Webhook Management UI', () => {
     await expect(tokenValue).toBeVisible();
     const tokenText = await tokenValue.textContent();
     expect(tokenText).toBeTruthy();
-    expect(tokenText!.length).toBeGreaterThan(8);
+    if (!tokenText) throw new Error('expected tokenText to be non-null');
+    expect(tokenText.length).toBeGreaterThan(8);
 
     // Webhook URL is displayed (contains /api/link/create/ and the token)
     const urlValue = page.locator('[data-testid="webhook-url-value"]');
     await expect(urlValue).toBeVisible();
     const urlText = await urlValue.textContent();
     expect(urlText).toContain('/api/link/create/');
-    expect(urlText).toContain(tokenText!);
+    expect(urlText).toContain(tokenText);
   });
 
   test('shows regenerate and revoke buttons when token exists', async ({ page }) => {
@@ -167,7 +168,8 @@ test.describe.serial('Webhook Management UI', () => {
     expect(response.status()).toBe(200);
 
     // Wait for React to re-render with the new token
-    await expect(tokenEl).not.toHaveText(oldToken!, { timeout: 5_000 });
+    if (!oldToken) throw new Error('expected oldToken to be non-null');
+    await expect(tokenEl).not.toHaveText(oldToken, { timeout: 5_000 });
 
     const newToken = await tokenEl.textContent();
     expect(newToken).toBeTruthy();
@@ -175,7 +177,8 @@ test.describe.serial('Webhook Management UI', () => {
 
     // URL is updated to contain the new token
     const urlText = await page.locator('[data-testid="webhook-url-value"]').textContent();
-    expect(urlText).toContain(newToken!);
+    if (!newToken) throw new Error('expected newToken to be non-null');
+    expect(urlText).toContain(newToken);
   });
 
   test('revokes token and returns to initial state', async ({ page }) => {
@@ -222,7 +225,8 @@ test.describe.serial('Webhook Management UI', () => {
     // Token value is valid
     const tokenText = await page.locator('[data-testid="webhook-token-value"]').textContent();
     expect(tokenText).toBeTruthy();
-    expect(tokenText!.length).toBeGreaterThan(8);
+    if (!tokenText) throw new Error('expected tokenText to be non-null');
+    expect(tokenText.length).toBeGreaterThan(8);
   });
 
 });

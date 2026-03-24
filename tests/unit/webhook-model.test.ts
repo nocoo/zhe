@@ -12,6 +12,7 @@ import {
   clampRateLimit,
   isValidRateLimit,
 } from "@/models/webhook";
+import { unwrap } from "../test-utils";
 
 describe("webhook model", () => {
   describe("generateWebhookToken", () => {
@@ -101,7 +102,7 @@ describe("webhook model", () => {
     it("accepts payload without customSlug field", () => {
       const result = validateWebhookPayload({ url: "https://example.com" });
       expect(result.success).toBe(true);
-      expect(result.data!.customSlug).toBeUndefined();
+      expect(unwrap(result.data).customSlug).toBeUndefined();
     });
 
     it("accepts valid payload with folder", () => {
@@ -133,7 +134,7 @@ describe("webhook model", () => {
     it("accepts payload without folder field", () => {
       const result = validateWebhookPayload({ url: "https://example.com" });
       expect(result.success).toBe(true);
-      expect(result.data!.folder).toBeUndefined();
+      expect(unwrap(result.data).folder).toBeUndefined();
     });
 
     it("rejects non-string folder", () => {
@@ -208,7 +209,7 @@ describe("webhook model", () => {
     it("accepts payload without note field", () => {
       const result = validateWebhookPayload({ url: "https://example.com" });
       expect(result.success).toBe(true);
-      expect(result.data!.note).toBeUndefined();
+      expect(unwrap(result.data).note).toBeUndefined();
     });
 
     it("rejects non-string note", () => {
@@ -244,7 +245,7 @@ describe("webhook model", () => {
         note: "  trimmed note  ",
       });
       expect(result.success).toBe(true);
-      expect(result.data!.note).toBe("trimmed note");
+      expect(unwrap(result.data).note).toBe("trimmed note");
     });
   });
 

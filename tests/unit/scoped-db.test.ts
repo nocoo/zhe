@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ScopedDB } from '@/lib/db/scoped';
 import { recordClick, createLink } from '@/lib/db';
 import { clearMockStorage } from '../mocks/db-storage';
+import { unwrap } from '../test-utils';
 
 const USER_A = 'user-alice';
 const USER_B = 'user-bob';
@@ -92,8 +93,8 @@ describe('ScopedDB', () => {
       // Pass empty object — should hit the early return (lines 140-142)
       const result = await db.updateLink(link.id, {});
       expect(result).not.toBeNull();
-      expect(result!.id).toBe(link.id);
-      expect(result!.originalUrl).toBe('https://keep.com');
+      expect(unwrap(result).id).toBe(link.id);
+      expect(unwrap(result).originalUrl).toBe('https://keep.com');
     });
 
     it('updateLink with empty data returns null for non-existent link', async () => {
@@ -110,8 +111,8 @@ describe('ScopedDB', () => {
 
       const updated = await db.updateLink(link.id, { slug: 'newslug', isCustom: true });
       expect(updated).not.toBeNull();
-      expect(updated!.slug).toBe('newslug');
-      expect(updated!.isCustom).toBe(true);
+      expect(unwrap(updated).slug).toBe('newslug');
+      expect(unwrap(updated).isCustom).toBe(true);
     });
 
     it('updateLink slug change is reflected in getLinks', async () => {
@@ -131,7 +132,7 @@ describe('ScopedDB', () => {
 
       const updated = await db.updateLink(link.id, { screenshotUrl: 'https://img.example.com/shot.png' });
       expect(updated).not.toBeNull();
-      expect(updated!.screenshotUrl).toBe('https://img.example.com/shot.png');
+      expect(unwrap(updated).screenshotUrl).toBe('https://img.example.com/shot.png');
     });
 
     it('updateLink clears screenshotUrl when set to null', async () => {
@@ -141,7 +142,7 @@ describe('ScopedDB', () => {
 
       const cleared = await db.updateLink(link.id, { screenshotUrl: null });
       expect(cleared).not.toBeNull();
-      expect(cleared!.screenshotUrl).toBeNull();
+      expect(unwrap(cleared).screenshotUrl).toBeNull();
     });
   });
 
@@ -159,9 +160,9 @@ describe('ScopedDB', () => {
       });
 
       expect(updated).not.toBeNull();
-      expect(updated!.metaTitle).toBe('Example');
-      expect(updated!.metaDescription).toBe('An example site');
-      expect(updated!.metaFavicon).toBe('https://example.com/favicon.ico');
+      expect(unwrap(updated).metaTitle).toBe('Example');
+      expect(unwrap(updated).metaDescription).toBe('An example site');
+      expect(unwrap(updated).metaFavicon).toBe('https://example.com/favicon.ico');
     });
 
     it('updates only title when other fields are not provided', async () => {
@@ -171,7 +172,7 @@ describe('ScopedDB', () => {
       const updated = await db.updateLinkMetadata(link.id, { metaTitle: 'Only Title' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.metaTitle).toBe('Only Title');
+      expect(unwrap(updated).metaTitle).toBe('Only Title');
     });
 
     it('can set metadata to null (clear)', async () => {
@@ -193,9 +194,9 @@ describe('ScopedDB', () => {
       });
 
       expect(cleared).not.toBeNull();
-      expect(cleared!.metaTitle).toBeNull();
-      expect(cleared!.metaDescription).toBeNull();
-      expect(cleared!.metaFavicon).toBeNull();
+      expect(unwrap(cleared).metaTitle).toBeNull();
+      expect(unwrap(cleared).metaDescription).toBeNull();
+      expect(unwrap(cleared).metaFavicon).toBeNull();
     });
 
     it('returns null for another user link', async () => {
@@ -214,7 +215,7 @@ describe('ScopedDB', () => {
 
       const result = await db.updateLinkMetadata(link.id, {});
       expect(result).not.toBeNull();
-      expect(result!.id).toBe(link.id);
+      expect(unwrap(result).id).toBe(link.id);
     });
 
     it('returns null for non-existent link with empty data', async () => {
@@ -378,8 +379,8 @@ describe('ScopedDB', () => {
 
       const found = await db.getFolderById(folder.id);
       expect(found).not.toBeNull();
-      expect(found!.id).toBe(folder.id);
-      expect(found!.name).toBe('Mine');
+      expect(unwrap(found).id).toBe(folder.id);
+      expect(unwrap(found).name).toBe('Mine');
     });
 
     it('getFolderById returns null for other user', async () => {
@@ -403,8 +404,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateFolder(folder.id, { name: 'New Name', icon: 'star' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('New Name');
-      expect(updated!.icon).toBe('star');
+      expect(unwrap(updated).name).toBe('New Name');
+      expect(unwrap(updated).icon).toBe('star');
     });
 
     it('updateFolder updates only name when icon is not provided', async () => {
@@ -414,8 +415,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateFolder(folder.id, { name: 'Renamed' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('Renamed');
-      expect(updated!.icon).toBe('heart');
+      expect(unwrap(updated).name).toBe('Renamed');
+      expect(unwrap(updated).icon).toBe('heart');
     });
 
     it('updateFolder updates only icon when name is not provided', async () => {
@@ -425,8 +426,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateFolder(folder.id, { icon: 'rocket' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('Keep');
-      expect(updated!.icon).toBe('rocket');
+      expect(unwrap(updated).name).toBe('Keep');
+      expect(unwrap(updated).icon).toBe('rocket');
     });
 
     it('updateFolder with empty data returns existing folder', async () => {
@@ -435,7 +436,7 @@ describe('ScopedDB', () => {
 
       const result = await db.updateFolder(folder.id, {});
       expect(result).not.toBeNull();
-      expect(result!.name).toBe('NoChange');
+      expect(unwrap(result).name).toBe('NoChange');
     });
 
     it('updateFolder returns null for other user folder', async () => {
@@ -484,7 +485,7 @@ describe('ScopedDB', () => {
       await db.deleteFolder(folder.id);
 
       const links = await db.getLinks();
-      expect(links[0]!.folderId).toBeNull();
+      expect(unwrap(links[0]).folderId).toBeNull();
     });
   });
 
@@ -636,8 +637,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateTag(tag.id, { name: 'new', color: 'red' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('new');
-      expect(updated!.color).toBe('red');
+      expect(unwrap(updated).name).toBe('new');
+      expect(unwrap(updated).color).toBe('red');
     });
 
     it('updateTag updates only name', async () => {
@@ -647,8 +648,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateTag(tag.id, { name: 'renamed' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('renamed');
-      expect(updated!.color).toBe('emerald');
+      expect(unwrap(updated).name).toBe('renamed');
+      expect(unwrap(updated).color).toBe('emerald');
     });
 
     it('updateTag updates only color', async () => {
@@ -658,8 +659,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateTag(tag.id, { color: 'rose' });
 
       expect(updated).not.toBeNull();
-      expect(updated!.name).toBe('keep');
-      expect(updated!.color).toBe('rose');
+      expect(unwrap(updated).name).toBe('keep');
+      expect(unwrap(updated).color).toBe('rose');
     });
 
     it('updateTag with empty data returns existing tag', async () => {
@@ -668,7 +669,7 @@ describe('ScopedDB', () => {
 
       const result = await db.updateTag(tag.id, {});
       expect(result).not.toBeNull();
-      expect(result!.name).toBe('nochange');
+      expect(unwrap(result).name).toBe('nochange');
     });
 
     it('updateTag returns null for other user tag', async () => {
@@ -721,8 +722,8 @@ describe('ScopedDB', () => {
 
       const linkTags = await db.getLinkTags();
       expect(linkTags).toHaveLength(1);
-      expect(linkTags[0]!.linkId).toBe(link.id);
-      expect(linkTags[0]!.tagId).toBe(tag.id);
+      expect(unwrap(linkTags[0]).linkId).toBe(link.id);
+      expect(unwrap(linkTags[0]).tagId).toBe(tag.id);
     });
 
     it('addTagToLink returns false for unowned link', async () => {
@@ -761,9 +762,9 @@ describe('ScopedDB', () => {
       const linkTagsB = await dbB.getLinkTags();
 
       expect(linkTagsA).toHaveLength(1);
-      expect(linkTagsA[0]!.linkId).toBe(linkA.id);
+      expect(unwrap(linkTagsA[0]).linkId).toBe(linkA.id);
       expect(linkTagsB).toHaveLength(1);
-      expect(linkTagsB[0]!.linkId).toBe(linkB.id);
+      expect(unwrap(linkTagsB[0]).linkId).toBe(linkB.id);
     });
 
     it('removeTagFromLink removes the association', async () => {
@@ -844,7 +845,7 @@ describe('ScopedDB', () => {
       const updated = await db.updateLinkNote(link.id, 'this is a note');
 
       expect(updated).not.toBeNull();
-      expect(updated!.note).toBe('this is a note');
+      expect(unwrap(updated).note).toBe('this is a note');
     });
 
     it('clears note by setting null', async () => {
@@ -855,7 +856,7 @@ describe('ScopedDB', () => {
       const cleared = await db.updateLinkNote(link.id, null);
 
       expect(cleared).not.toBeNull();
-      expect(cleared!.note).toBeNull();
+      expect(unwrap(cleared).note).toBeNull();
     });
 
     it('returns null for other user link', async () => {
@@ -915,9 +916,9 @@ describe('ScopedDB', () => {
       // totalClicks comes from sum of links.clicks column (10 + 5 initial + 3 recorded = 18)
       expect(stats.totalClicks).toBe(18);
       expect(stats.clickTrend).toHaveLength(1); // all 3 clicks on same day
-      expect(stats.clickTrend[0]!.clicks).toBe(3);
-      expect(stats.clickTrend[0]!.origin).toBe(3); // no source tag (NULL) → counted as origin
-      expect(stats.clickTrend[0]!.worker).toBe(0);
+      expect(unwrap(stats.clickTrend[0]).clicks).toBe(3);
+      expect(unwrap(stats.clickTrend[0]).origin).toBe(3); // no source tag (NULL) → counted as origin
+      expect(unwrap(stats.clickTrend[0]).worker).toBe(0);
     });
 
     it('does not include other users data', async () => {
@@ -964,10 +965,10 @@ describe('ScopedDB', () => {
       const stats = await db.getOverviewStats();
 
       expect(stats.topLinks).toHaveLength(3);
-      expect(stats.topLinks[0]!.slug).toBe('ov-top-high');
-      expect(stats.topLinks[0]!.clicks).toBe(100);
-      expect(stats.topLinks[1]!.slug).toBe('ov-top-mid');
-      expect(stats.topLinks[2]!.slug).toBe('ov-top-low');
+      expect(unwrap(stats.topLinks[0]).slug).toBe('ov-top-high');
+      expect(unwrap(stats.topLinks[0]).clicks).toBe(100);
+      expect(unwrap(stats.topLinks[1]).slug).toBe('ov-top-mid');
+      expect(unwrap(stats.topLinks[2]).slug).toBe('ov-top-low');
     });
 
     it('includes upload stats with timestamps and file type breakdown', async () => {
@@ -993,7 +994,7 @@ describe('ScopedDB', () => {
       expect(stats.totalUploads).toBe(2);
       expect(stats.totalStorageBytes).toBe(3072);
       expect(stats.uploadTrend).toHaveLength(1); // both uploads on same day
-      expect(stats.uploadTrend[0]!.uploads).toBe(2);
+      expect(unwrap(stats.uploadTrend[0]).uploads).toBe(2);
       expect(stats.fileTypeBreakdown).toEqual({ 'image/png': 1, 'image/jpeg': 1 });
     });
 
@@ -1049,8 +1050,8 @@ describe('ScopedDB', () => {
       const settings = await db.getUserSettings();
 
       expect(settings).not.toBeNull();
-      expect(settings!.userId).toBe(USER_A);
-      expect(settings!.previewStyle).toBe('favicon');
+      expect(unwrap(settings).userId).toBe(USER_A);
+      expect(unwrap(settings).previewStyle).toBe('favicon');
     });
 
     it('upsertPreviewStyle updates existing settings', async () => {
@@ -1062,7 +1063,7 @@ describe('ScopedDB', () => {
       expect(updated.previewStyle).toBe('screenshot');
 
       const settings = await db.getUserSettings();
-      expect(settings!.previewStyle).toBe('screenshot');
+      expect(unwrap(settings).previewStyle).toBe('screenshot');
     });
 
     it('settings are scoped to user (user isolation)', async () => {
@@ -1075,8 +1076,8 @@ describe('ScopedDB', () => {
       const settingsA = await dbA.getUserSettings();
       const settingsB = await dbB.getUserSettings();
 
-      expect(settingsA!.previewStyle).toBe('screenshot');
-      expect(settingsB!.previewStyle).toBe('favicon');
+      expect(unwrap(settingsA).previewStyle).toBe('screenshot');
+      expect(unwrap(settingsB).previewStyle).toBe('favicon');
     });
 
     it('user without settings does not see other user settings', async () => {
@@ -1125,9 +1126,9 @@ describe('ScopedDB', () => {
       const webhookB = await dbB.getWebhook();
 
       expect(webhookA).not.toBeNull();
-      expect(webhookA!.token).toBe('tok_alice');
+      expect(unwrap(webhookA).token).toBe('tok_alice');
       expect(webhookB).not.toBeNull();
-      expect(webhookB!.token).toBe('tok_bob');
+      expect(unwrap(webhookB).token).toBe('tok_bob');
     });
 
     it('getWebhook returns null when no webhook exists', async () => {
@@ -1142,8 +1143,8 @@ describe('ScopedDB', () => {
       const updated = await db.updateWebhookRateLimit(20);
 
       expect(updated).not.toBeNull();
-      expect(updated!.rateLimit).toBe(20);
-      expect(updated!.token).toBe('tok_rate');
+      expect(unwrap(updated).rateLimit).toBe(20);
+      expect(unwrap(updated).token).toBe('tok_rate');
     });
 
     it('updateWebhookRateLimit returns null when no webhook exists', async () => {
@@ -1167,7 +1168,7 @@ describe('ScopedDB', () => {
       // Alice can update her own
       const aliceResult = await dbA.updateWebhookRateLimit(15);
       expect(aliceResult).not.toBeNull();
-      expect(aliceResult!.rateLimit).toBe(15);
+      expect(unwrap(aliceResult).rateLimit).toBe(15);
     });
 
     it('deleteWebhook removes the webhook', async () => {
@@ -1201,7 +1202,7 @@ describe('ScopedDB', () => {
 
       // Bob's webhook should still exist
       expect(await dbB.getWebhook()).not.toBeNull();
-      expect((await dbB.getWebhook())!.token).toBe('tok_bob');
+      expect(unwrap(await dbB.getWebhook()).token).toBe('tok_bob');
     });
   });
 });

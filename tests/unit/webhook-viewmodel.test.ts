@@ -19,6 +19,7 @@ vi.mock('@/actions/webhook', () => ({
 
 // Import after mocks
 import { useWebhookViewModel } from '@/viewmodels/useWebhookViewModel';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -174,7 +175,7 @@ describe('useWebhookViewModel', () => {
 
     await act(async () => {
       resolveCreate({ success: true, data: { token: 'x', createdAt: '2026-01-01' } });
-      await generatePromise!;
+      await unwrap(generatePromise);
     });
 
     expect(result.current.isGenerating).toBe(false);
@@ -247,7 +248,7 @@ describe('useWebhookViewModel', () => {
 
     await act(async () => {
       resolveRevoke({ success: true });
-      await revokePromise!;
+      await unwrap(revokePromise);
     });
 
     expect(result.current.isRevoking).toBe(false);

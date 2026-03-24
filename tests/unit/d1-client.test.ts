@@ -2,6 +2,7 @@ vi.unmock('@/lib/db/d1-client');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
+import { unwrap } from '../test-utils';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -180,7 +181,7 @@ describe('executeD1Query', () => {
     await executeD1Query(sql, params);
 
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, init] = mockFetch.mock.calls[0]!;
+    const [url, init] = unwrap(mockFetch.mock.calls[0]);
 
     expect(url).toBe(
       'https://api.cloudflare.com/client/v4/accounts/test-account-id/d1/database/test-database-id/query'
@@ -201,7 +202,7 @@ describe('executeD1Query', () => {
 
     await executeD1Query('SELECT 1');
 
-    const [, init] = mockFetch.mock.calls[0]!;
+    const [, init] = unwrap(mockFetch.mock.calls[0]);
     expect(JSON.parse(init.body)).toEqual({ sql: 'SELECT 1', params: [] });
   });
 
@@ -216,7 +217,7 @@ describe('executeD1Query', () => {
             init.signal.addEventListener('abort', () => reject(error));
             // Manually abort to simulate timeout
             setTimeout(() => {
-              if (!init.signal!.aborted) {
+              if (!unwrap(init.signal).aborted) {
                 reject(error);
               }
             }, 10);

@@ -24,6 +24,7 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 
 import { getWorkerHealth } from '@/actions/worker-status';
 import type { CronHistoryEntry } from '@/lib/cron-history';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,8 +78,8 @@ describe('getWorkerHealth action', () => {
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data!.lastSyncTime).toBe('2026-03-01T12:15:00.000Z');
-    expect(result.data!.kvKeyCount).toBe(50);
+    expect(unwrap(result.data).lastSyncTime).toBe('2026-03-01T12:15:00.000Z');
+    expect(unwrap(result.data).kvKeyCount).toBe(50);
     expect(mockPerformKVSync).not.toHaveBeenCalled();
   });
 
@@ -94,7 +95,7 @@ describe('getWorkerHealth action', () => {
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
     expect(mockPerformKVSync).toHaveBeenCalledOnce();
-    expect(result.data!.kvKeyCount).toBe(66);
+    expect(unwrap(result.data).kvKeyCount).toBe(66);
   });
 
   it('returns health with empty history when sync also produces nothing', async () => {
@@ -105,8 +106,8 @@ describe('getWorkerHealth action', () => {
 
     const result = await getWorkerHealth();
     expect(result.success).toBe(true);
-    expect(result.data!.lastSyncTime).toBeNull();
-    expect(result.data!.kvKeyCount).toBeNull();
+    expect(unwrap(result.data).lastSyncTime).toBeNull();
+    expect(unwrap(result.data).kvKeyCount).toBeNull();
   });
 
   it('returns error when an unexpected exception occurs', async () => {

@@ -4,6 +4,7 @@ import {
   upsertTweetCache,
 } from '@/lib/db';
 import { clearMockStorage } from '../mocks/db-storage';
+import { unwrap } from '../test-utils';
 
 const SAMPLE_TWEET = {
   tweetId: '2026360908398862478',
@@ -33,12 +34,12 @@ describe('Tweet Cache DB Operations', () => {
       const result = await getTweetCacheById(SAMPLE_TWEET.tweetId);
 
       expect(result).not.toBeNull();
-      expect(result!.tweetId).toBe(SAMPLE_TWEET.tweetId);
-      expect(result!.authorUsername).toBe('karpathy');
-      expect(result!.authorName).toBe('Andrej Karpathy');
-      expect(result!.tweetText).toBe(SAMPLE_TWEET.tweetText);
-      expect(result!.tweetUrl).toBe(SAMPLE_TWEET.tweetUrl);
-      expect(result!.lang).toBe('en');
+      expect(unwrap(result).tweetId).toBe(SAMPLE_TWEET.tweetId);
+      expect(unwrap(result).authorUsername).toBe('karpathy');
+      expect(unwrap(result).authorName).toBe('Andrej Karpathy');
+      expect(unwrap(result).tweetText).toBe(SAMPLE_TWEET.tweetText);
+      expect(unwrap(result).tweetUrl).toBe(SAMPLE_TWEET.tweetUrl);
+      expect(unwrap(result).lang).toBe('en');
     });
 
     it('returns null for non-matching tweet ID', async () => {

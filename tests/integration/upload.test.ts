@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearMockStorage } from '../setup';
+import { unwrap } from '../test-utils';
 import { hashUserId } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
@@ -128,11 +129,12 @@ describe('Upload E2E — full lifecycle', () => {
 
       expect(presignResult.success).toBe(true);
       expect(presignResult.data).toBeDefined();
-      expect(presignResult.data!.uploadUrl).toBe('https://r2.example.com/presigned-put');
-      expect(presignResult.data!.publicUrl).toContain('https://s.zhe.to/');
-      expect(presignResult.data!.key).toMatch(/^[0-9a-f]{12}\/\d{8}\//);
+      const presignData = unwrap(presignResult.data);
+      expect(presignData.uploadUrl).toBe('https://r2.example.com/presigned-put');
+      expect(presignData.publicUrl).toContain('https://s.zhe.to/');
+      expect(presignData.key).toMatch(/^[0-9a-f]{12}\/\d{8}\//);
 
-      const { publicUrl, key } = presignResult.data!;
+      const { publicUrl, key } = presignData;
 
       // Step 2: Record the upload in D1 (after successful R2 PUT)
       const recordResult = await recordUpload({
@@ -145,17 +147,18 @@ describe('Upload E2E — full lifecycle', () => {
 
       expect(recordResult.success).toBe(true);
       expect(recordResult.data).toBeDefined();
-      expect(recordResult.data!.fileName).toBe('landscape.png');
-      expect(recordResult.data!.publicUrl).toBe(publicUrl);
-      const uploadId = recordResult.data!.id;
+      const recordData = unwrap(recordResult.data);
+      expect(recordData.fileName).toBe('landscape.png');
+      expect(recordData.publicUrl).toBe(publicUrl);
+      const uploadId = recordData.id;
 
       // Step 3: List uploads — should contain the new upload
       const listResult = await getUploads();
 
       expect(listResult.success).toBe(true);
       expect(listResult.data).toHaveLength(1);
-      expect(listResult.data![0]!.id).toBe(uploadId);
-      expect(listResult.data![0]!.fileName).toBe('landscape.png');
+      expect(unwrap(unwrap(listResult.data)[0]).id).toBe(uploadId);
+      expect(unwrap(unwrap(listResult.data)[0]).fileName).toBe('landscape.png');
 
       // Step 4: Delete the upload
       const deleteResult = await deleteUpload(uploadId);
@@ -183,7 +186,7 @@ describe('Upload E2E — full lifecycle', () => {
         deleteUpload,
       } = await import('@/actions/upload');
 
-      const salt = process.env.R2_USER_HASH_SALT!;
+      const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const hashA = await hashUserId(USER_ID, salt);
       const hashB = await hashUserId(OTHER_USER_ID, salt);
 
@@ -197,7 +200,7 @@ describe('Upload E2E — full lifecycle', () => {
         publicUrl: `https://s.zhe.to/${hashA}/20260212/user-a-file.png`,
       });
       expect(recordA.success).toBe(true);
-      const uploadAId = recordA.data!.id;
+      const uploadAId = unwrap(recordA.data).id;
 
       // User B creates an upload
       authenticatedAs(OTHER_USER_ID);
@@ -213,7 +216,7 @@ describe('Upload E2E — full lifecycle', () => {
       // User B lists — should only see their own
       const listB = await getUploads();
       expect(listB.data).toHaveLength(1);
-      expect(listB.data![0]!.fileName).toBe('user-b.pdf');
+      expect(unwrap(unwrap(listB.data)[0]).fileName).toBe('user-b.pdf');
 
       // User B tries to delete User A's upload — should fail
       const deleteAttempt = await deleteUpload(uploadAId);
@@ -225,7 +228,7 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(USER_ID);
       const listA = await getUploads();
       expect(listA.data).toHaveLength(1);
-      expect(listA.data![0]!.fileName).toBe('user-a.png');
+      expect(unwrap(unwrap(listA.data)[0]).fileName).toBe('user-a.png');
     });
   });
 
@@ -288,7 +291,7 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(USER_ID);
       const { recordUpload, getUploads } = await import('@/actions/upload');
 
-      const salt = process.env.R2_USER_HASH_SALT!;
+      const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const userHash = await hashUserId(USER_ID, salt);
 
       // Create 3 uploads
@@ -307,7 +310,7 @@ describe('Upload E2E — full lifecycle', () => {
       expect(listResult.data).toHaveLength(3);
 
       // Should be in reverse order (newest first)
-      const fileNames = listResult.data!.map((u) => u.fileName);
+      const fileNames = unwrap(listResult.data).map((u) => u.fileName);
       expect(fileNames).toEqual(['third.png', 'second.png', 'first.png']);
     });
   });

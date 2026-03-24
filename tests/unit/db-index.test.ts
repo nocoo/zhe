@@ -6,6 +6,7 @@ import {
   getWebhookByToken,
 } from '@/lib/db';
 import { clearMockStorage, getMockFolders, getMockWebhooks } from '../mocks/db-storage';
+import { unwrap } from '../test-utils';
 
 describe('Link DB Operations', () => {
   beforeEach(() => {
@@ -23,9 +24,9 @@ describe('Link DB Operations', () => {
       const found = await getLinkByUserAndUrl('user-1', 'https://example.com/existing');
 
       expect(found).not.toBeNull();
-      expect(found!.userId).toBe('user-1');
-      expect(found!.originalUrl).toBe('https://example.com/existing');
-      expect(found!.slug).toBe('exist1');
+      expect(unwrap(found).userId).toBe('user-1');
+      expect(unwrap(found).originalUrl).toBe('https://example.com/existing');
+      expect(unwrap(found).slug).toBe('exist1');
     });
 
     it('should return null when URL does not exist for the user', async () => {
@@ -72,8 +73,8 @@ describe('Link DB Operations', () => {
       const found = await getLinkByUserAndUrl('user-1', 'https://example.com/second');
 
       expect(found).not.toBeNull();
-      expect(found!.slug).toBe('second');
-      expect(found!.originalUrl).toBe('https://example.com/second');
+      expect(unwrap(found).slug).toBe('second');
+      expect(unwrap(found).originalUrl).toBe('https://example.com/second');
     });
 
     it('should map the returned row through rowToLink correctly', async () => {
@@ -91,14 +92,14 @@ describe('Link DB Operations', () => {
       const found = await getLinkByUserAndUrl('user-1', 'https://example.com/mapped');
 
       expect(found).not.toBeNull();
-      expect(found!.id).toBeTypeOf('number');
-      expect(found!.userId).toBe('user-1');
-      expect(found!.folderId).toBe('folder-99');
-      expect(found!.isCustom).toBe(true);
-      expect(found!.expiresAt).toBeInstanceOf(Date);
-      expect(found!.expiresAt!.getTime()).toBe(expiresAt.getTime());
-      expect(found!.clicks).toBe(10);
-      expect(found!.createdAt).toBeInstanceOf(Date);
+      expect(unwrap(found).id).toBeTypeOf('number');
+      expect(unwrap(found).userId).toBe('user-1');
+      expect(unwrap(found).folderId).toBe('folder-99');
+      expect(unwrap(found).isCustom).toBe(true);
+      expect(unwrap(found).expiresAt).toBeInstanceOf(Date);
+      expect(unwrap(unwrap(found).expiresAt).getTime()).toBe(expiresAt.getTime());
+      expect(unwrap(found).clicks).toBe(10);
+      expect(unwrap(found).createdAt).toBeInstanceOf(Date);
     });
   });
 
@@ -120,8 +121,8 @@ describe('Link DB Operations', () => {
       const folder = await getFolderByUserAndName('user-1', '工作');
 
       expect(folder).not.toBeNull();
-      expect(folder!.id).toBe('f1');
-      expect(folder!.name).toBe('工作');
+      expect(unwrap(folder).id).toBe('f1');
+      expect(unwrap(folder).name).toBe('工作');
     });
 
     it('should match folder name case-insensitively', async () => {
@@ -130,8 +131,8 @@ describe('Link DB Operations', () => {
       const folder = await getFolderByUserAndName('user-1', 'projects');
 
       expect(folder).not.toBeNull();
-      expect(folder!.id).toBe('f2');
-      expect(folder!.name).toBe('Projects');
+      expect(unwrap(folder).id).toBe('f2');
+      expect(unwrap(folder).name).toBe('Projects');
     });
 
     it('should match folder name case-insensitively (uppercase query)', async () => {
@@ -140,7 +141,7 @@ describe('Link DB Operations', () => {
       const folder = await getFolderByUserAndName('user-1', 'WORK');
 
       expect(folder).not.toBeNull();
-      expect(folder!.id).toBe('f3');
+      expect(unwrap(folder).id).toBe('f3');
     });
 
     it('should return null when folder name does not exist', async () => {
@@ -183,8 +184,8 @@ describe('Link DB Operations', () => {
       const webhook = await getWebhookByToken('tok_abc123');
 
       expect(webhook).not.toBeNull();
-      expect(webhook!.token).toBe('tok_abc123');
-      expect(webhook!.userId).toBe('user-1');
+      expect(unwrap(webhook).token).toBe('tok_abc123');
+      expect(unwrap(webhook).userId).toBe('user-1');
     });
 
     it('should return null when token does not exist', async () => {
@@ -206,11 +207,11 @@ describe('Link DB Operations', () => {
       const webhook = await getWebhookByToken('tok_mapped');
 
       expect(webhook).not.toBeNull();
-      expect(webhook!.id).toBeTypeOf('number');
-      expect(webhook!.userId).toBe('user-1');
-      expect(webhook!.token).toBe('tok_mapped');
-      expect(webhook!.rateLimit).toBe(10);
-      expect(webhook!.createdAt).toBeInstanceOf(Date);
+      expect(unwrap(webhook).id).toBeTypeOf('number');
+      expect(unwrap(webhook).userId).toBe('user-1');
+      expect(unwrap(webhook).token).toBe('tok_mapped');
+      expect(unwrap(webhook).rateLimit).toBe(10);
+      expect(unwrap(webhook).createdAt).toBeInstanceOf(Date);
     });
 
     it('should return the correct webhook when multiple exist', async () => {
@@ -221,10 +222,10 @@ describe('Link DB Operations', () => {
       const second = await getWebhookByToken('tok_second');
 
       expect(first).not.toBeNull();
-      expect(first!.userId).toBe('user-1');
+      expect(unwrap(first).userId).toBe('user-1');
 
       expect(second).not.toBeNull();
-      expect(second!.userId).toBe('user-2');
+      expect(unwrap(second).userId).toBe('user-2');
     });
 
     it('should default rateLimit to 5 when not explicitly set', async () => {
@@ -233,7 +234,7 @@ describe('Link DB Operations', () => {
       const webhook = await getWebhookByToken('tok_default');
 
       expect(webhook).not.toBeNull();
-      expect(webhook!.rateLimit).toBe(5);
+      expect(unwrap(webhook).rateLimit).toBe(5);
     });
   });
 });

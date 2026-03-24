@@ -53,6 +53,7 @@ import {
   forceRefreshTweetCache,
   fetchBookmarks,
 } from '@/actions/xray';
+import { unwrap } from '../test-utils';
 import { MOCK_TWEET_RESPONSE, type XrayTweetData } from '@/models/xray';
 
 // ---------------------------------------------------------------------------
@@ -139,9 +140,9 @@ describe('getXrayConfig', () => {
     const result = await getXrayConfig();
 
     expect(result.success).toBe(true);
-    expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
+    expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
     // maskToken: first 4 + (length - 8) dots + last 4 = 4 + 12 + 4 = 20
-    expect(result.data!.maskedToken).toBe('abcd••••••••••••qrst');
+    expect(unwrap(result.data).maskedToken).toBe('abcd••••••••••••qrst');
   });
 
   it('returns error on unexpected exception', async () => {
@@ -205,8 +206,8 @@ describe('saveXrayConfig', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.data!.apiUrl).toBe('https://xray.hexly.ai');
-    expect(result.data!.maskedToken).toBe('abcd••••••••••••qrst');
+    expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
+    expect(unwrap(result.data).maskedToken).toBe('abcd••••••••••••qrst');
     expect(mockUpsertXraySettings).toHaveBeenCalledWith({
       apiUrl: 'https://xray.hexly.ai',
       apiToken: 'abcdefghijklmnopqrst',
@@ -280,7 +281,7 @@ describe('fetchTweet', () => {
 
     expect(result.success).toBe(true);
     expect(result.mock).toBe(false);
-    expect(result.data!.data.id).toBe('2026360908398862478');
+    expect(unwrap(result.data).data.id).toBe('2026360908398862478');
     expect(mockFetch).toHaveBeenCalledWith(
       'https://xray.hexly.ai/api/twitter/tweets/2026360908398862478',
       expect.objectContaining({
@@ -473,7 +474,7 @@ describe('fetchAndCacheTweet', () => {
 
     await fetchAndCacheTweet('https://x.com/karpathy/status/2026360908398862478', 1);
 
-    const metaCall = mockUpdateLinkMetadata.mock.calls[0]!;
+    const metaCall = unwrap(mockUpdateLinkMetadata.mock.calls[0]);
     expect(metaCall[1].metaTitle).toBe('@karpathy posted on x.com');
     // metaDescription should be the full text
     expect(metaCall[1].metaDescription).toBe('A'.repeat(200));
@@ -707,8 +708,8 @@ describe('fetchBookmarks', () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toEqual(bookmarksResponse);
-    expect(result.data!.data).toHaveLength(1);
-    expect(result.data!.data[0]!.id).toBe('2026360908398862478');
+    expect(unwrap(result.data).data).toHaveLength(1);
+    expect(unwrap(unwrap(result.data).data[0]).id).toBe('2026360908398862478');
   });
 
   it('returns error when API request fails', async () => {
@@ -741,6 +742,6 @@ describe('fetchBookmarks', () => {
     const result = await fetchBookmarks();
 
     expect(result.success).toBe(true);
-    expect(result.data!.data).toHaveLength(0);
+    expect(unwrap(result.data).data).toHaveLength(0);
   });
 });

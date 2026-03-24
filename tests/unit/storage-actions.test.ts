@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { unwrap } from '../test-utils';
 
 // ── Mocks ──
 
@@ -72,14 +73,14 @@ describe('scanStorage', () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data!.d1.connected).toBe(true);
-    expect(result.data!.d1.totalLinks).toBe(10);
-    expect(result.data!.d1.totalUploads).toBe(5);
-    expect(result.data!.d1.totalAnalytics).toBe(100);
-    expect(result.data!.d1.tables).toHaveLength(6);
-    expect(result.data!.r2.connected).toBe(true);
-    expect(result.data!.r2.files).toHaveLength(1);
-    expect(result.data!.r2.files[0]!.isReferenced).toBe(true);
+    expect(unwrap(result.data).d1.connected).toBe(true);
+    expect(unwrap(result.data).d1.totalLinks).toBe(10);
+    expect(unwrap(result.data).d1.totalUploads).toBe(5);
+    expect(unwrap(result.data).d1.totalAnalytics).toBe(100);
+    expect(unwrap(result.data).d1.tables).toHaveLength(6);
+    expect(unwrap(result.data).r2.connected).toBe(true);
+    expect(unwrap(result.data).r2.files).toHaveLength(1);
+    expect(unwrap(unwrap(result.data).r2.files[0]).isReferenced).toBe(true);
   });
 
   it('returns D1 disconnected when D1 queries throw', async () => {
@@ -92,9 +93,9 @@ describe('scanStorage', () => {
     const result = await scanStorage();
 
     expect(result.success).toBe(true);
-    expect(result.data!.d1.connected).toBe(false);
-    expect(result.data!.d1.totalLinks).toBe(0);
-    expect(result.data!.d1.tables).toEqual([]);
+    expect(unwrap(result.data).d1.connected).toBe(false);
+    expect(unwrap(result.data).d1.totalLinks).toBe(0);
+    expect(unwrap(result.data).d1.tables).toEqual([]);
   });
 
   it('returns R2 disconnected when listR2Objects throws', async () => {
@@ -106,9 +107,9 @@ describe('scanStorage', () => {
     const result = await scanStorage();
 
     expect(result.success).toBe(true);
-    expect(result.data!.d1.connected).toBe(true);
-    expect(result.data!.r2.connected).toBe(false);
-    expect(result.data!.r2.summary.totalFiles).toBe(0);
+    expect(unwrap(result.data).d1.connected).toBe(true);
+    expect(unwrap(result.data).r2.connected).toBe(false);
+    expect(unwrap(result.data).r2.summary.totalFiles).toBe(0);
   });
 
   it('detects orphan files correctly', async () => {
@@ -130,9 +131,9 @@ describe('scanStorage', () => {
     const result = await scanStorage();
 
     expect(result.success).toBe(true);
-    expect(result.data!.r2.summary.totalFiles).toBe(3);
-    expect(result.data!.r2.summary.orphanFiles).toBe(1);
-    expect(result.data!.r2.summary.orphanSize).toBe(200);
+    expect(unwrap(result.data).r2.summary.totalFiles).toBe(3);
+    expect(unwrap(result.data).r2.summary.orphanFiles).toBe(1);
+    expect(unwrap(result.data).r2.summary.orphanSize).toBe(200);
 
     delete process.env.R2_PUBLIC_DOMAIN;
   });
@@ -178,9 +179,9 @@ describe('cleanupOrphanFiles', () => {
     const result = await cleanupOrphanFiles(['orphan1.png', 'orphan2.png', 'referenced.png']);
 
     expect(result.success).toBe(true);
-    expect(result.data!.deleted).toBe(2);
-    expect(result.data!.skipped).toBe(1); // 'referenced.png' is in uploadKeys
-    expect(result.data!.deletedKeys).toEqual(['orphan1.png', 'orphan2.png']);
+    expect(unwrap(result.data).deleted).toBe(2);
+    expect(unwrap(result.data).skipped).toBe(1); // 'referenced.png' is in uploadKeys
+    expect(unwrap(result.data).deletedKeys).toEqual(['orphan1.png', 'orphan2.png']);
 
     // deleteR2Objects should only receive confirmed orphans
     expect(mockDeleteR2Objects).toHaveBeenCalledWith(['orphan1.png', 'orphan2.png']);
@@ -195,9 +196,9 @@ describe('cleanupOrphanFiles', () => {
     const result = await cleanupOrphanFiles(['file1.png', 'file2.png']);
 
     expect(result.success).toBe(true);
-    expect(result.data!.deleted).toBe(0);
-    expect(result.data!.skipped).toBe(2);
-    expect(result.data!.deletedKeys).toEqual([]);
+    expect(unwrap(result.data).deleted).toBe(0);
+    expect(unwrap(result.data).skipped).toBe(2);
+    expect(unwrap(result.data).deletedKeys).toEqual([]);
     expect(mockDeleteR2Objects).not.toHaveBeenCalled();
   });
 
@@ -213,8 +214,8 @@ describe('cleanupOrphanFiles', () => {
     const result = await cleanupOrphanFiles(['screenshot.webp', 'orphan.png']);
 
     expect(result.success).toBe(true);
-    expect(result.data!.deleted).toBe(1);
-    expect(result.data!.skipped).toBe(1);
+    expect(unwrap(result.data).deleted).toBe(1);
+    expect(unwrap(result.data).skipped).toBe(1);
     expect(mockDeleteR2Objects).toHaveBeenCalledWith(['orphan.png']);
 
     delete process.env.R2_PUBLIC_DOMAIN;
@@ -227,7 +228,7 @@ describe('cleanupOrphanFiles', () => {
     const result = await cleanupOrphanFiles(['', 'valid.png']);
 
     expect(result.success).toBe(true);
-    expect(result.data!.deleted).toBe(1);
+    expect(unwrap(result.data).deleted).toBe(1);
     expect(mockDeleteR2Objects).toHaveBeenCalledWith(['valid.png']);
   });
 

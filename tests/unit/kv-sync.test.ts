@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { performKVSync } from '@/lib/kv/sync';
 import { getCronHistory, clearCronHistory } from '@/lib/cron-history';
 import { _resetDirtyFlag, isKVDirty } from '@/lib/kv/dirty';
+import { unwrap } from '../test-utils';
 
 const mockGetAllLinksForKV = vi.fn();
 const mockKvBulkPutLinks = vi.fn();
@@ -61,8 +62,8 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0]!.status).toBe('success');
-    expect(history[0]!.synced).toBe(2);
+    expect(unwrap(history[0]).status).toBe('success');
+    expect(unwrap(history[0]).synced).toBe(2);
 
     consoleSpy.mockRestore();
   });
@@ -79,8 +80,8 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0]!.status).toBe('error');
-    expect(history[0]!.error).toBe('Failed to fetch links from D1');
+    expect(unwrap(history[0]).status).toBe('error');
+    expect(unwrap(history[0]).error).toBe('Failed to fetch links from D1');
 
     consoleSpy.mockRestore();
   });
@@ -100,7 +101,7 @@ describe('performKVSync', () => {
     expect(result.error).toBeUndefined();
 
     const history = getCronHistory();
-    expect(history[0]!.status).toBe('error');
+    expect(unwrap(history[0]).status).toBe('error');
 
     consoleSpy.mockRestore();
   });
@@ -134,7 +135,7 @@ describe('performKVSync', () => {
 
     const history = getCronHistory();
     expect(history).toHaveLength(1);
-    expect(history[0]!.status).toBe('skipped');
+    expect(unwrap(history[0]).status).toBe('skipped');
   });
 
   it('clears dirty flag after successful sync', async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createLink, getLinks, deleteLink, updateLink } from '@/actions/links';
 import { clearMockStorage } from '../mocks/db-storage';
+import { unwrap } from '../test-utils';
 
 // Mock auth to return a test user
 vi.mock('@/auth', () => ({
@@ -117,7 +118,7 @@ describe('Link Server Actions', () => {
   describe('deleteLink', () => {
     it('deletes an existing link', async () => {
       const createResult = await createLink({ originalUrl: 'https://example.com' });
-      const linkId = createResult.data!.id;
+      const linkId = unwrap(createResult.data).id;
 
       const deleteResult = await deleteLink(linkId);
       expect(deleteResult.success).toBe(true);
@@ -137,7 +138,7 @@ describe('Link Server Actions', () => {
   describe('updateLink', () => {
     it('updates link URL', async () => {
       const createResult = await createLink({ originalUrl: 'https://old.com' });
-      const linkId = createResult.data!.id;
+      const linkId = unwrap(createResult.data).id;
 
       const updateResult = await updateLink(linkId, {
         originalUrl: 'https://new.com',
@@ -149,7 +150,7 @@ describe('Link Server Actions', () => {
 
     it('rejects invalid URL on update', async () => {
       const createResult = await createLink({ originalUrl: 'https://example.com' });
-      const linkId = createResult.data!.id;
+      const linkId = unwrap(createResult.data).id;
 
       const updateResult = await updateLink(linkId, {
         originalUrl: 'invalid-url',

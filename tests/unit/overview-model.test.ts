@@ -14,6 +14,7 @@ import {
   type WorkerHealthStatus,
 } from '@/models/overview';
 import type { CronHistoryEntry } from '@/lib/cron-history';
+import { unwrap } from '../test-utils';
 
 describe('overview model', () => {
   // ---- formatClickCount ----
@@ -77,10 +78,10 @@ describe('overview model', () => {
       const result = buildClickTrend(timestamps);
 
       expect(result).toHaveLength(2);
-      expect(result[0]!.date).toBe('2026-02-10');
-      expect(result[0]!.clicks).toBe(2);
-      expect(result[1]!.date).toBe('2026-02-11');
-      expect(result[1]!.clicks).toBe(1);
+      expect(unwrap(result[0]).date).toBe('2026-02-10');
+      expect(unwrap(result[0]).clicks).toBe(2);
+      expect(unwrap(result[1]).date).toBe('2026-02-11');
+      expect(unwrap(result[1]).clicks).toBe(1);
     });
 
     it('sorts by date ascending', () => {

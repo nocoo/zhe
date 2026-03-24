@@ -5,6 +5,7 @@ import { LinkCard } from "@/components/dashboard/link-card";
 import type { Link, Tag, LinkTag, Folder } from "@/models/types";
 import type { AnalyticsStats } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { unwrap } from "../test-utils";
 
 const mockVm = {
   shortUrl: "https://zhe.to/abc123",
@@ -492,7 +493,7 @@ describe("LinkCard", () => {
     // The AlertDialog confirm button — find within the dialog, not the trigger
     const confirmButtons = screen.getAllByRole("button", { name: "删除" });
     // The last one is the AlertDialogAction inside the dialog
-    await user.click(confirmButtons[confirmButtons.length - 1]!);
+    await user.click(unwrap(confirmButtons[confirmButtons.length - 1]));
 
     expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
   });
@@ -654,7 +655,7 @@ describe("LinkCard", () => {
 
     const thumbArea = container.querySelector(".group\\/thumb");
     expect(thumbArea).toBeInTheDocument();
-    const svgs = thumbArea!.querySelectorAll("svg");
+    const svgs = unwrap(thumbArea).querySelectorAll("svg");
     expect(svgs.length).toBeGreaterThanOrEqual(1);
   });
 
