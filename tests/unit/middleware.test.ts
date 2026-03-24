@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -92,7 +93,7 @@ describe('middleware', () => {
 
     expect(auth).toHaveBeenCalled();
     expect(res.status).toBe(307);
-    const location = new URL(res.headers.get('location')!);
+    const location = new URL(unwrap(res.headers.get('location')));
     expect(location.pathname).toBe('/');
     expect(location.searchParams.get('callbackUrl')).toBe('/dashboard/links');
   });
@@ -197,7 +198,7 @@ describe('middleware', () => {
     expect(event.waitUntil).toHaveBeenCalledTimes(1);
 
     // Resolve the promise passed to waitUntil so recordClick is invoked
-    const waitUntilPromise = vi.mocked(event.waitUntil).mock.calls[0]![0];
+    const waitUntilPromise = unwrap(vi.mocked(event.waitUntil).mock.calls[0])[0];
     await waitUntilPromise;
 
     expect(recordClick).toHaveBeenCalledWith({

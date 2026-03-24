@@ -191,7 +191,7 @@ export const LinkCard = memo(function LinkCard({
           <div className="flex items-center gap-1.5">
             {showFaviconImage ? (
               <Image
-                src={link.metaFavicon!}
+                src={link.metaFavicon ?? ''}
                 alt="favicon"
                 width={14}
                 height={14}
@@ -356,7 +356,7 @@ export const LinkCard = memo(function LinkCard({
           <div className="flex items-center gap-2 mb-1">
             {showFaviconImage ? (
               <Image
-                src={link.metaFavicon!}
+                src={link.metaFavicon ?? ''}
                 alt="favicon"
                 width={16}
                 height={16}

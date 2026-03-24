@@ -18,6 +18,7 @@ import {
 } from '@/models/links';
 import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
+import { unwrap } from '../test-utils';
 
 // Helper to create a minimal Link fixture
 function makeLink(overrides: Partial<Link> = {}): Link {
@@ -144,7 +145,7 @@ describe('models/links', () => {
       const b = makeLink({ id: 2, createdAt: new Date('2026-06-01') });
       const original = [a, b];
       sortLinksByDate(original);
-      expect(original[0]!.id).toBe(1); // unchanged
+      expect(unwrap(original[0]).id).toBe(1); // unchanged
     });
 
     it('returns empty array for empty input', () => {
@@ -792,7 +793,7 @@ describe('models/links', () => {
 
       await fetchMicrolinkScreenshot('https://example.com/page');
 
-      const calledUrl = new URL(fetchSpy.mock.calls[0]![0] as string);
+      const calledUrl = new URL(unwrap(fetchSpy.mock.calls[0])[0] as string);
       expect(calledUrl.origin + calledUrl.pathname).toBe('https://api.microlink.io/');
       expect(calledUrl.searchParams.get('url')).toBe('https://example.com/page');
       expect(calledUrl.searchParams.get('screenshot')).toBe('true');
@@ -872,7 +873,7 @@ describe('models/links', () => {
 
       await fetchScreenshotDomains('https://example.com');
 
-      const callArgs = vi.mocked(globalThis.fetch).mock.calls[0]!;
+      const callArgs = unwrap(vi.mocked(globalThis.fetch).mock.calls[0]);
       const options = callArgs[1] as RequestInit;
       expect(options.signal).toBeInstanceOf(AbortSignal);
     });

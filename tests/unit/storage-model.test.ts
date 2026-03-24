@@ -9,6 +9,7 @@ import {
 } from '@/models/storage';
 import type { StorageFile } from '@/models/storage';
 import type { R2Object } from '@/lib/r2/client';
+import { unwrap } from '../test-utils';
 
 // ── Helpers ──
 
@@ -39,14 +40,14 @@ const DOMAIN = 'https://cdn.example.com';
 describe('classifyR2Objects', () => {
   it('marks a file as referenced when its key is in uploadKeys', () => {
     const objects = [makeR2Object()];
-    const uploadKeys = new Set([objects[0]!.key]);
+    const uploadKeys = new Set([unwrap(objects[0]).key]);
     const screenshotKeys = new Set<string>();
 
     const result = classifyR2Objects(objects, uploadKeys, screenshotKeys, DOMAIN);
 
     expect(result).toHaveLength(1);
-    expect(result[0]!.isReferenced).toBe(true);
-    expect(result[0]!.publicUrl).toBe(`${DOMAIN}/${objects[0]!.key}`);
+    expect(unwrap(result[0]).isReferenced).toBe(true);
+    expect(unwrap(result[0]).publicUrl).toBe(`${DOMAIN}/${unwrap(objects[0]).key}`);
   });
 
   it('marks a file as referenced when its key is in screenshotKeys', () => {
@@ -57,7 +58,7 @@ describe('classifyR2Objects', () => {
 
     const result = classifyR2Objects(objects, uploadKeys, screenshotKeys, DOMAIN);
 
-    expect(result[0]!.isReferenced).toBe(true);
+    expect(unwrap(result[0]).isReferenced).toBe(true);
   });
 
   it('marks a file as orphan when not in either set', () => {
@@ -67,7 +68,7 @@ describe('classifyR2Objects', () => {
 
     const result = classifyR2Objects(objects, uploadKeys, screenshotKeys, DOMAIN);
 
-    expect(result[0]!.isReferenced).toBe(false);
+    expect(unwrap(result[0]).isReferenced).toBe(false);
   });
 
   it('handles empty input', () => {
@@ -86,16 +87,16 @@ describe('classifyR2Objects', () => {
 
     const result = classifyR2Objects(objects, uploadKeys, screenshotKeys, DOMAIN);
 
-    expect(result[0]!.isReferenced).toBe(true);  // in uploadKeys
-    expect(result[1]!.isReferenced).toBe(false); // orphan
-    expect(result[2]!.isReferenced).toBe(true);  // in screenshotKeys
+    expect(unwrap(result[0]).isReferenced).toBe(true);  // in uploadKeys
+    expect(unwrap(result[1]).isReferenced).toBe(false); // orphan
+    expect(unwrap(result[2]).isReferenced).toBe(true);  // in screenshotKeys
   });
 
   it('strips trailing slash from domain when building URL', () => {
     const objects = [makeR2Object({ key: 'file.png' })];
     const result = classifyR2Objects(objects, new Set(), new Set(), 'https://cdn.example.com/');
 
-    expect(result[0]!.publicUrl).toBe('https://cdn.example.com/file.png');
+    expect(unwrap(result[0]).publicUrl).toBe('https://cdn.example.com/file.png');
   });
 });
 

@@ -131,7 +131,9 @@ export async function recordClick(
     [data.linkId],
   );
 
-  return rowToAnalytics(insertRows[0]!);
+  const row = insertRows[0];
+  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+  return rowToAnalytics(row);
 }
 
 // ============================================
@@ -274,7 +276,9 @@ export async function upsertTweetCache(data: {
     ]
   );
 
-  return rowToTweetCache(rows[0]!);
+  const row = rows[0];
+  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  return rowToTweetCache(row);
 }
 // ============================================
 // Backy pull webhook (unscoped — used by public API route)

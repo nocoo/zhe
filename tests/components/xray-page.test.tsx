@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { XrayPage } from '@/components/dashboard/xray-page';
 import type { XrayTweetData, XrayTweetResponse } from '@/models/xray';
+import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -513,7 +514,7 @@ describe('XrayPage', () => {
     mockVm.tweetResult = { success: true, data: tweet };
     render(<XrayPage />);
 
-    fireEvent.click(screen.getByText(/原始 JSON/).closest('button')!);
+    fireEvent.click(unwrap(screen.getByText(/原始 JSON/).closest('button')));
     expect(mockToggleRawJson).toHaveBeenCalledOnce();
   });
 

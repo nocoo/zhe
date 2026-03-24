@@ -199,7 +199,8 @@ vi.mock('@/lib/db/d1-client', async () => {
             // Cascade: remove associated link_tags entries
             const linkTags = getMockLinkTags();
             for (let i = linkTags.length - 1; i >= 0; i--) {
-              if (linkTags[i]!.link_id === id) {
+              const entry = linkTags[i];
+              if (entry && entry.link_id === id) {
                 linkTags.splice(i, 1);
               }
             }
@@ -208,7 +209,7 @@ vi.mock('@/lib/db/d1-client', async () => {
         }
         return [];
       }
-      
+
       // UPDATE links SET clicks = clicks + 1 WHERE id = ? (simple increment, no user_id)
       if (sqlLower.includes('update links set clicks = clicks + 1') && !sqlLower.includes('user_id')) {
         const [linkId] = params;
@@ -233,11 +234,11 @@ vi.mock('@/lib/db/d1-client', async () => {
           if (rawLink.id === id && rawLink.user_id === userId) {
             // Parse SET clause to update fields
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
-            if (setMatch) {
-              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
+            if (setMatch && setMatch[1]) {
+              const setClauses = setMatch[1].split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0]!.trim();
+                const field = (clause.split('=')[0] ?? '').trim();
                 if (field === 'original_url') {
                   rawLink.original_url = params[paramIndex];
                 } else if (field === 'folder_id') {
@@ -713,11 +714,11 @@ vi.mock('@/lib/db/d1-client', async () => {
           const raw = folder as unknown as Record<string, unknown>;
           if (raw.id === id && raw.user_id === userId) {
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
-            if (setMatch) {
-              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
+            if (setMatch && setMatch[1]) {
+              const setClauses = setMatch[1].split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0]!.trim();
+                const field = (clause.split('=')[0] ?? '').trim();
                 if (field === 'name') {
                   raw.name = params[paramIndex];
                 } else if (field === 'icon') {
@@ -810,11 +811,11 @@ vi.mock('@/lib/db/d1-client', async () => {
           const raw = tag as unknown as Record<string, unknown>;
           if (raw.id === id && raw.user_id === userId) {
             const setMatch = sql.match(/set\s+(.+?)\s+where/i);
-            if (setMatch) {
-              const setClauses = setMatch[1]!.split(',').map(s => s.trim());
+            if (setMatch && setMatch[1]) {
+              const setClauses = setMatch[1].split(',').map(s => s.trim());
               let paramIndex = 0;
               for (const clause of setClauses) {
-                const field = clause.split('=')[0]!.trim();
+                const field = (clause.split('=')[0] ?? '').trim();
                 if (field === 'name') {
                   raw.name = params[paramIndex];
                 } else if (field === 'color') {
@@ -840,7 +841,8 @@ vi.mock('@/lib/db/d1-client', async () => {
             // Cascade: remove associated link_tags entries
             const linkTags = getMockLinkTags();
             for (let i = linkTags.length - 1; i >= 0; i--) {
-              if (linkTags[i]!.tag_id === id) {
+              const entry = linkTags[i];
+              if (entry && entry.tag_id === id) {
                 linkTags.splice(i, 1);
               }
             }
@@ -904,7 +906,8 @@ vi.mock('@/lib/db/d1-client', async () => {
         if (!linkOwned) return [];
         
         for (let i = linkTags.length - 1; i >= 0; i--) {
-          if (linkTags[i]!.link_id === linkId && linkTags[i]!.tag_id === tagId) {
+          const entry = linkTags[i];
+          if (entry && entry.link_id === linkId && entry.tag_id === tagId) {
             linkTags.splice(i, 1);
             return [{ link_id: linkId }] as T[];
           }

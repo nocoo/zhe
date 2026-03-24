@@ -30,7 +30,9 @@ export function D1Adapter(): Adapter {
         [id, user.name ?? null, user.email, user.emailVerified?.getTime() ?? null, user.image ?? null]
       );
 
-      return rowToUser(rows[0]!);
+      const row = rows[0];
+      if (!row) throw new Error('INSERT RETURNING * returned no rows');
+      return rowToUser(row);
     },
 
     async getUser(id) {
@@ -90,7 +92,9 @@ export function D1Adapter(): Adapter {
         params
       );
 
-      return rowToUser(rows[0]!);
+      const row = rows[0];
+      if (!row) throw new Error('UPDATE RETURNING * returned no rows');
+      return rowToUser(row);
     },
 
     async deleteUser(userId) {

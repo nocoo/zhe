@@ -277,7 +277,7 @@ describe('zhe-edge Worker — fetch handler', () => {
       );
       expect(analyticsCall).toBeDefined();
 
-      const [url, opts] = analyticsCall!;
+      const [url, opts] = analyticsCall as [string, Record<string, unknown>];
       expect(url).toBe('https://zhe-origin.railway.app/api/record-click');
       expect(opts.method).toBe('POST');
 
@@ -346,7 +346,7 @@ describe('zhe-edge Worker — fetch handler', () => {
         (call: unknown[]) => (call[0] as string).includes('/api/lookup'),
       );
       expect(lookupCall).toBeDefined();
-      expect(lookupCall![0]).toContain('/api/lookup?slug=unknown');
+      expect((lookupCall as unknown[])[0]).toContain('/api/lookup?slug=unknown');
       // Should 307 redirect from lookup hit
       expect(res.status).toBe(307);
       expect(res.headers.get('Location')).toMatch(/^https:\/\/from-lookup\.com\/?$/);

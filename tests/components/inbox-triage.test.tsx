@@ -3,6 +3,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
+import { unwrap } from '../test-utils';
 
 // ── Mocks ──
 
@@ -297,7 +298,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
-      await user.type(inputs[0]!, 'my note');
+      await user.type(unwrap(inputs[0]), 'my note');
 
       expect(inputs[0]).toHaveValue('my note');
     });
@@ -351,7 +352,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(deleteButtons[0]!);
+      await user.click(unwrap(deleteButtons[0]));
 
       expect(screen.getByText('确认删除')).toBeInTheDocument();
       expect(screen.getByText('此操作不可撤销，确定要删除这条链接吗？')).toBeInTheDocument();
@@ -362,7 +363,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(deleteButtons[0]!);
+      await user.click(unwrap(deleteButtons[0]));
 
       expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '删除' })).toBeInTheDocument();
@@ -444,7 +445,7 @@ describe('InboxTriage', () => {
 
       // Click the first folder select trigger to open the dropdown
       const triggers = screen.getAllByRole('combobox');
-      await user.click(triggers[0]!);
+      await user.click(unwrap(triggers[0]));
 
       // Radix Select should render listbox with options via portal
       const listbox = screen.getByRole('listbox');
@@ -462,7 +463,7 @@ describe('InboxTriage', () => {
 
       // Open the first folder select
       const triggers = screen.getAllByRole('combobox');
-      await user.click(triggers[0]!);
+      await user.click(unwrap(triggers[0]));
 
       // Select "Work" folder
       const workOption = screen.getByRole('option', { name: 'Work' });
@@ -481,7 +482,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
-      await user.type(inputs[0]!, 'hello world');
+      await user.type(unwrap(inputs[0]), 'hello world');
 
       expect(inputs[0]).toHaveValue('hello world');
     });
@@ -498,7 +499,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const saveButtons = screen.getAllByRole('button', { name: '保存' });
-      await user.click(saveButtons[0]!);
+      await user.click(unwrap(saveButtons[0]));
 
       expect(updateLink).toHaveBeenCalled();
     });
@@ -534,7 +535,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(addButtons[0]!);
+      await user.click(unwrap(addButtons[0]));
 
       expect(screen.getByPlaceholderText('搜索或创建标签...')).toBeInTheDocument();
     });
@@ -548,7 +549,7 @@ describe('InboxTriage', () => {
 
       // Open the tag picker for the first inbox link
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(addButtons[0]!);
+      await user.click(unwrap(addButtons[0]));
 
       // Click on a tag in the picker
       const tagOption = screen.getByText('Important');
@@ -572,7 +573,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(addButtons[0]!);
+      await user.click(unwrap(addButtons[0]));
 
       // Type a non-existing tag name
       const searchInput = screen.getByPlaceholderText('搜索或创建标签...');
@@ -598,7 +599,7 @@ describe('InboxTriage', () => {
 
       // Open delete dialog
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(deleteButtons[0]!);
+      await user.click(unwrap(deleteButtons[0]));
 
       // Click confirm
       const confirmBtn = screen.getByRole('button', { name: '删除' });
@@ -615,7 +616,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(deleteButtons[0]!);
+      await user.click(unwrap(deleteButtons[0]));
 
       // Dialog is open
       expect(screen.getByText('确认删除')).toBeInTheDocument();

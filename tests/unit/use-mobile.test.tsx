@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
+import { unwrap } from '../test-utils';
 
 describe('useIsMobile', () => {
   let addEventListenerSpy: ReturnType<typeof vi.fn>;
@@ -84,7 +85,7 @@ describe('useIsMobile', () => {
     expect(result.current).toBe(false);
 
     // Simulate resize to mobile
-    const changeHandler = addEventListenerSpy.mock.calls[0]![1];
+    const changeHandler = unwrap(addEventListenerSpy.mock.calls[0])[1];
     act(() => {
       Object.defineProperty(window, 'innerWidth', { value: 500, writable: true, configurable: true });
       changeHandler();

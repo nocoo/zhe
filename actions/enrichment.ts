@@ -102,7 +102,10 @@ const strategies: LinkEnrichmentStrategy[] = [
  * Always returns a strategy (defaultMetadataStrategy is the catch-all).
  */
 function resolveStrategy(url: string): LinkEnrichmentStrategy {
-  return strategies.find((s) => s.canHandle(url))!;
+  // defaultMetadataStrategy is a catch-all, so find() always returns a match.
+  const strategy = strategies.find((s) => s.canHandle(url));
+  if (!strategy) throw new Error(`No enrichment strategy found for URL: ${url}`);
+  return strategy;
 }
 
 // ---------------------------------------------------------------------------

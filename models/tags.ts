@@ -43,7 +43,7 @@ export function isValidTagColor(color: string): color is TagPaletteColor {
 
 /** Pick a random color from the palette */
 export function randomTagColor(): TagPaletteColor {
-  return TAG_PALETTE[Math.floor(Math.random() * PALETTE_SIZE)]!;
+  return TAG_PALETTE[Math.floor(Math.random() * PALETTE_SIZE)] ?? 'primary';
 }
 
 /**
@@ -69,7 +69,7 @@ function fnv1aHash(str: string): number {
  * Same name → same color, everywhere, always.
  */
 export function tagColorFromName(name: string): TagPaletteColor {
-  return TAG_PALETTE[fnv1aHash(name) % PALETTE_SIZE]!;
+  return TAG_PALETTE[fnv1aHash(name) % PALETTE_SIZE] ?? 'primary';
 }
 
 /**

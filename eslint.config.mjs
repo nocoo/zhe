@@ -28,9 +28,6 @@ const eslintConfig = [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      // Relax rules that conflict with Next.js patterns or have too many violations:
-      // 419 existing usages across source + tests — fix incrementally, not in bulk
-      "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
   {

@@ -168,7 +168,7 @@ export function checkRateLimit(
 
   if (timestamps.length >= maxRequests) {
     // Earliest entry determines when a slot opens
-    const retryAfterMs = timestamps[0]! + RATE_LIMIT_WINDOW_MS - now;
+    const retryAfterMs = (timestamps[0] ?? now) + RATE_LIMIT_WINDOW_MS - now;
     return { allowed: false, retryAfterMs: Math.max(1, retryAfterMs) };
   }
 

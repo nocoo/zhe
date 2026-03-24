@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Link, Tag, LinkTag } from '@/models/types';
+import { unwrap } from '../test-utils';
 
 // ── Mocks ──
 
@@ -221,7 +222,7 @@ describe('useInlineLinkEditViewModel', () => {
 
       await act(async () => { await result.current.saveEdit(); });
 
-      const callArgs = vi.mocked(updateLink).mock.calls[0]![1];
+      const callArgs = unwrap(vi.mocked(updateLink).mock.calls[0])[1];
       expect(callArgs).not.toHaveProperty('slug');
     });
 
@@ -289,7 +290,7 @@ describe('useInlineLinkEditViewModel', () => {
       // Link update succeeded — list should still be updated
       expect(cbs.onLinkUpdated).toHaveBeenCalled();
       // Updated link should keep original note since note save failed
-      const updatedLink = vi.mocked(cbs.onLinkUpdated).mock.calls[0]![0];
+      const updatedLink = unwrap(vi.mocked(cbs.onLinkUpdated).mock.calls[0])[0];
       expect(updatedLink.note).toBeNull();
       // Error is shown
       expect(result.current.error).toBe('Link saved but note update failed');
@@ -361,7 +362,7 @@ describe('useInlineLinkEditViewModel', () => {
 
       await act(async () => { await result.current.saveEdit(); });
 
-      const callArgs = vi.mocked(updateLink).mock.calls[0]![1];
+      const callArgs = unwrap(vi.mocked(updateLink).mock.calls[0])[1];
       expect(callArgs).not.toHaveProperty('screenshotUrl');
     });
 

@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // Get the first segment of the path (potential slug)
-  const slug = pathname.slice(1).split('/')[0]!;
+  const slug = pathname.slice(1).split('/')[0] ?? '';
 
   // Skip reserved paths - let Auth.js and Next.js handle them
   if (isReservedPath(slug)) {
