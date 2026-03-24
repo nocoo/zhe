@@ -235,8 +235,11 @@ function classifyCommits(commits: Commit[]): ChangelogSections {
       section = 'changed';
     }
 
-    // Override: keywords indicating removal
-    if (REMOVED_KEYWORDS.test(subject)) {
+    // Override: keywords indicating removal (only when type is ambiguous)
+    if (
+      REMOVED_KEYWORDS.test(subject) &&
+      section === 'changed'
+    ) {
       section = 'removed';
     }
 
