@@ -32,7 +32,7 @@ test.describe('Storage Management', () => {
     await expect(main.getByText('R2 总存储', { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(main.getByText('D1 数据库', { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(main.getByText('孤儿文件', { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(main.getByText('状态', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText('临时文件', { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // R2 storage sub-text shows file count
     await expect(page.getByText(/个文件/)).toBeVisible({ timeout: 15_000 });
