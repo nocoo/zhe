@@ -71,8 +71,8 @@ test.describe.serial('Upload UI', () => {
     });
 
     // The uploading item should appear briefly, then the completed item
-    // Wait for the completed upload item to appear
-    await expect(page.locator('[data-testid="upload-item"]')).toBeVisible({ timeout: 15_000 });
+    // Wait for the completed upload item to appear (longer timeout for CI cold-compile)
+    await expect(page.locator('[data-testid="upload-item"]')).toBeVisible({ timeout: 30_000 });
 
     // Verify file name is displayed
     await expect(page.locator('[data-testid="upload-file-name"]').first()).toContainText('e2e-test-file.txt');

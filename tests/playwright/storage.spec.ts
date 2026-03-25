@@ -27,14 +27,15 @@ test.describe('Storage Management', () => {
     await goToStorage(page);
 
     // 4 summary cards (scoped to main to avoid sidebar/responsive duplicates)
+    // Use longer timeout for CI environments where rendering can be slower
     const main = page.locator('main');
-    await expect(main.getByText('R2 总存储', { exact: true })).toBeVisible();
-    await expect(main.getByText('D1 数据库', { exact: true })).toBeVisible();
-    await expect(main.getByText('孤儿文件', { exact: true })).toBeVisible();
-    await expect(main.getByText('状态', { exact: true })).toBeVisible();
+    await expect(main.getByText('R2 总存储', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText('D1 数据库', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText('孤儿文件', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText('状态', { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // R2 storage sub-text shows file count
-    await expect(page.getByText(/个文件/)).toBeVisible();
+    await expect(page.getByText(/个文件/)).toBeVisible({ timeout: 15_000 });
   });
 
   test('D1 section shows connected badge and table list', async ({ page }) => {
