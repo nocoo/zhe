@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    uses: nocoo/workflow/.github/workflows/bun-quality.yml@main
+    with:
+      bun-version: "1.3.11"
+      pre-command: "bun run build --no-lint"
+      typecheck-command: "bun x tsc --noEmit"
+      test-command: "bun run test:unit:coverage && bun run test:integration"
+      osv-config: ".osv-scanner.toml"
+      enable-l2: true
+      enable-l3: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    secrets: inherit
