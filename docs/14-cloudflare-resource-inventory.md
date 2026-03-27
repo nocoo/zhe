@@ -24,8 +24,8 @@
 
 | 名称 | UUID | 用途 | 状态 |
 |------|------|------|------|
-| `zhe-db` | `2ec5605c-613a-4c3a-a815-1ff7776bf6ab` | **生产** — 线上短链接数据 | ✅ 已存在 |
-| `zhe-db-test` | `d97aebb3-14c5-4650-8e51-95b13081ba6a` | **测试** — L2/L3 E2E 测试专用 | ✅ 已创建 |
+| `zhe-db` | `<YOUR_D1_DATABASE_ID>` | **生产** — 线上短链接数据 | ✅ 已存在 |
+| `zhe-db-test` | `<YOUR_TEST_D1_DATABASE_ID>` | **测试** — L2/L3 E2E 测试专用 | ✅ 已创建 |
 
 ### R2 Bucket
 
@@ -38,8 +38,8 @@
 
 | 名称 | ID | 用途 | 状态 |
 |------|------|------|------|
-| `zhe` | `7d4702bf5657489cbc6a266e10db1aba` | **生产** — Worker 边缘短链缓存 | ✅ 已存在 |
-| `zhe-test` | `359bfc2301864c70832131cf003c85b0` | **测试** — L2/L3 E2E 测试专用 | ✅ 已创建 |
+| `zhe` | `<YOUR_KV_NAMESPACE_ID>` | **生产** — Worker 边缘短链缓存 | ✅ 已存在 |
+| `zhe-test` | `<YOUR_TEST_KV_NAMESPACE_ID>` | **测试** — L2/L3 E2E 测试专用 | ✅ 已创建 |
 
 ### Cloudflare Worker
 
@@ -66,8 +66,8 @@
 `.env.local` 配置：
 
 ```
-CLOUDFLARE_D1_DATABASE_ID=2ec5605c-613a-4c3a-a815-1ff7776bf6ab   ← zhe-db (生产)
-D1_TEST_DATABASE_ID=2ec5605c-613a-4c3a-a815-1ff7776bf6ab         ← 同一个！
+CLOUDFLARE_D1_DATABASE_ID=<YOUR_D1_DATABASE_ID>   ← zhe-db (生产)
+D1_TEST_DATABASE_ID=<YOUR_TEST_D1_DATABASE_ID>    ← zhe-db-test (测试)
 ```
 
 - **L2 API E2E**（`tests/api/helpers/seed.ts`）：有 `D1_TEST_DATABASE_ID` 校验，但两个 ID 相同 → 防护形同虚设
@@ -215,10 +215,10 @@ npx wrangler d1 execute zhe-db-test --remote --command \
 
 ```bash
 # 生产凭据（不变）
-CLOUDFLARE_D1_DATABASE_ID=2ec5605c-613a-4c3a-a815-1ff7776bf6ab
+CLOUDFLARE_D1_DATABASE_ID=<YOUR_D1_DATABASE_ID>
 R2_BUCKET_NAME=zhe
 R2_PUBLIC_DOMAIN=https://s.zhe.to
-# CLOUDFLARE_KV_NAMESPACE_ID=7d4702bf5657489cbc6a266e10db1aba  (Worker 使用，应用不直接配)
+# CLOUDFLARE_KV_NAMESPACE_ID=<YOUR_KV_NAMESPACE_ID>  (Worker 使用，应用不直接配)
 
 # 测试凭据（新增）
 D1_TEST_DATABASE_ID=<zhe-db-test 的 UUID>
