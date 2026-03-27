@@ -108,7 +108,13 @@ export async function POST(
   }
 
   // 7. Build public download URL
-  const publicDomain = process.env.R2_PUBLIC_DOMAIN || "https://s.zhe.to";
+  const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+  if (!publicDomain) {
+    return NextResponse.json(
+      { error: "R2_PUBLIC_DOMAIN environment variable is required" },
+      { status: 500 },
+    );
+  }
   const url = `${publicDomain}/${key}`;
 
   return NextResponse.json(
