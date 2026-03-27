@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordClick } from '@/lib/db';
+import { timingSafeEqual } from 'crypto';
+
+/** Timing-safe string comparison to prevent timing attacks. */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * POST /api/record-click
@@ -11,12 +18,17 @@ export async function POST(request: NextRequest) {
   try {
     // Verify caller via shared secret (read at runtime for hot-reload)
     const workerSecret = process.env.WORKER_SECRET;
-    if (workerSecret) {
-      const authHeader = request.headers.get('authorization');
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-      if (token !== workerSecret) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    if (!workerSecret) {
+      return NextResponse.json(
+        { error: 'Server misconfiguration: WORKER_SECRET not set' },
+        { status: 500 },
+      );
+    }
+
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token || !safeCompare(token, workerSecret)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
