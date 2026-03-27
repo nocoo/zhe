@@ -32,7 +32,7 @@ async function interceptR2Puts(page: Page): Promise<void> {
 async function goToUploads(page: Page): Promise<void> {
   await page.goto(UPLOADS_URL);
   // Wait for the upload zone to confirm page is hydrated
-  await page.locator('[data-testid="upload-zone"]').waitFor({ timeout: 15_000 });
+  await page.locator('[data-testid="upload-zone"]').first().waitFor({ state: 'visible', timeout: 15_000 });
 }
 
 test.describe.serial('Upload UI', () => {
@@ -207,12 +207,13 @@ test.describe.serial('Upload UI', () => {
     await pngSwitch.click();
     await expect(page.getByText('质量', { exact: true })).toBeVisible({ timeout: 3_000 });
 
-    // Reload
+    // Reload and wait for React hydration + localStorage read to complete
     await page.reload();
-    await page.locator('[data-testid="upload-zone"]').waitFor({ timeout: 15_000 });
-
-    // Should still be on (persisted in localStorage)
-    await expect(page.getByText('质量', { exact: true })).toBeVisible();
+    // Wait for upload zone to appear (page is loaded)
+    await page.locator('[data-testid="upload-zone"]').first().waitFor({ state: 'visible', timeout: 15_000 });
+    // Wait for "质量" label to appear — confirms localStorage was read and
+    // autoConvertPng state was rehydrated.
+    await expect(page.getByText('质量', { exact: true })).toBeVisible({ timeout: 5_000 });
 
     // Clean up: turn it off
     await page.locator('[data-testid="png-convert-switch"]').click();

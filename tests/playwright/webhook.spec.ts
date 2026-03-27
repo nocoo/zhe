@@ -150,24 +150,14 @@ test.describe.serial('Webhook Management UI', () => {
     const tokenEl = page.locator('[data-testid="webhook-token-value"]');
     const oldToken = await tokenEl.textContent();
 
-    // Click regenerate. Use Promise.all to start listening for the server
-    // action POST response before the click triggers it.
-    const [response] = await Promise.all([
-      page.waitForResponse(
-        (resp) =>
-          resp.request().method() === 'POST'
-          && resp.url().includes('/dashboard/webhook')
-          // Filter for the action response that contains the new token,
-          // not the RSC layout revalidation response.
-          && resp.text().then((t) => t.includes('"token"')).catch(() => false),
-        { timeout: 15_000 },
-      ),
-      page.locator('[data-testid="regenerate-token-btn"]').click(),
-    ]);
+    // Click regenerate and wait for the button's loading state to complete.
+    // This is more stable than waiting for a specific server action response,
+    // since response-body filters can be unreliable with streaming/Server Actions.
+    await page.locator('[data-testid="regenerate-token-btn"]').click();
+    await expect(page.locator('[data-testid="regenerate-token-btn"]')).toBeDisabled();
+    await expect(page.locator('[data-testid="regenerate-token-btn"]')).toBeEnabled({ timeout: 10_000 });
 
-    expect(response.status()).toBe(200);
-
-    // Wait for React to re-render with the new token
+    // Verify the token has changed
     if (!oldToken) throw new Error('expected oldToken to be non-null');
     await expect(tokenEl).not.toHaveText(oldToken, { timeout: 5_000 });
 
@@ -185,23 +175,11 @@ test.describe.serial('Webhook Management UI', () => {
     await goToWebhook(page);
     await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
 
-    // Click revoke. Filter for the action response (contains "success")
-    // rather than the RSC layout revalidation response.
-    const [response] = await Promise.all([
-      page.waitForResponse(
-        (resp) =>
-          resp.request().method() === 'POST'
-          && resp.url().includes('/dashboard/webhook')
-          && resp.text().then((t) => !t.includes('"linkTags"')).catch(() => false),
-        { timeout: 15_000 },
-      ),
-      page.locator('[data-testid="revoke-token-btn"]').click(),
-    ]);
-
-    expect(response.status()).toBe(200);
-
-    // Token section disappears after the action completes
-    await expect(page.locator('[data-testid="webhook-token-section"]')).not.toBeVisible({ timeout: 10_000 });
+    // Click revoke and wait for the token section to disappear from the UI.
+    // This is more stable than waiting for a specific server action response,
+    // since response-body filters can be unreliable with streaming/Server Actions.
+    await page.locator('[data-testid="revoke-token-btn"]').click();
+    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeHidden({ timeout: 10_000 });
 
     // Generate button is back
     const generateBtn = page.locator('[data-testid="generate-token-btn"]');
