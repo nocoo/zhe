@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { listR2Objects, deleteR2Objects } from '@/lib/r2/client';
 import { TMP_PREFIX, findExpiredTmpKeys } from '@/models/tmp-storage';
+
+/** Timing-safe string comparison to prevent timing attacks. */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * POST /api/cron/cleanup
@@ -10,7 +17,7 @@ import { TMP_PREFIX, findExpiredTmpKeys } from '@/models/tmp-storage';
  *
  * Called every 30 minutes by the Cloudflare Worker cron trigger.
  *
- * Authorization: Bearer <WORKER_SECRET> header or ?secret=<WORKER_SECRET> query param.
+ * Authorization: Bearer <WORKER_SECRET> header.
  */
 export async function POST(request: Request) {
   // 1. Verify WORKER_SECRET
@@ -23,13 +30,9 @@ export async function POST(request: Request) {
   }
 
   const authHeader = request.headers.get('authorization');
-  const url = new URL(request.url);
-  const querySecret = url.searchParams.get('secret');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-  const providedSecret =
-    authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : querySecret;
-
-  if (providedSecret !== workerSecret) {
+  if (!token || !safeCompare(token, workerSecret)) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 },

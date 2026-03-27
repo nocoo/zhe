@@ -61,14 +61,4 @@ describe('POST /api/cron/sync-kv', () => {
     }
   });
 
-  it('accepts secret via query param', async () => {
-    const secret = getWorkerSecret();
-    const res = await fetch(
-      `${process.env.API_E2E_BASE_URL ?? 'http://localhost:17005'}/api/cron/sync-kv?secret=${secret}`,
-      { method: 'POST' },
-    );
-
-    // 200 or 503 (KV not configured) — both are valid
-    expect([200, 503]).toContain(res.status);
-  });
 });
