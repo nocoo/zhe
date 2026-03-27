@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.5] - 2026-03-27
+
+### Added
+- Add CI workflow using reusable bun quality gate
+- Add unwrap() test utility for null-safe assertions
+
+### Changed
+- Record completed security fixes in remediation plan
+- Re-enable no-non-null-assertion eslint rule
+- Replace non-null assertions with unwrap() in all test files
+
+### Fixed
+- Stabilize flaky uploads and webhook Playwright tests
+- Move GitHub preview image to public/ directory
+- Replace real Cloudflare D1/KV IDs with placeholders in docs
+- Require R2_PUBLIC_DOMAIN env var in tmp upload endpoint
+- Reject non-http/https URLs in link creation and webhook API
+- Use timing-safe compare and remove query-secret fallback in cron routes
+- Make WORKER_SECRET mandatory and use timing-safe compare in record-click
+- Update storage summary card label '状态' → '临时文件'
+- Increase timeouts for CI environment
+- Reference nocoo/ci for reusable workflow
+- Use string values for boolean workflow inputs
+- Remove non-null assertions from source code
+
 ## [v1.8.4] - 2026-03-24
 
 ### Added
