@@ -1,0 +1,33 @@
+# osv-scanner configuration
+# See: https://google.github.io/osv-scanner/configuration/
+
+[[IgnoredVulns]]
+# Next.js DoS via PPR resume endpoint — only affects apps with
+# experimental.ppr: true or cacheComponents: true. zhe does not use PPR.
+# Fixed in 15.6.0-canary.61 (canary only) or 16.1.5.
+# Will resolve naturally when Next.js 15.6.0 stable ships.
+id = "GHSA-5f7q-jpqc-wp7h"
+reason = "PPR not enabled in zhe; fix only available in canary (15.6.0-canary.61)"
+
+[[IgnoredVulns]]
+# brace-expansion ReDoS — old versions (1.1.12, 2.0.2, 5.0.4) pinned by
+# @typescript-eslint deep transitive chain. Top-level already at 5.0.5.
+# Cannot force nested dependency upgrades in Bun.
+id = "GHSA-f886-m6hf-6m8v"
+reason = "Old versions are transitive deps of @typescript-eslint; top-level already at 5.0.5"
+
+[[IgnoredVulns]]
+# picomatch ReDoS — old version (2.3.1) pinned by @typescript-eslint deep
+# transitive chain. Top-level and v4.0.3 already updated to 4.0.4.
+id = "GHSA-3v7f-55p6-f55p"
+reason = "Old version is transitive dep of @typescript-eslint; top-level already at 4.0.4"
+
+[[IgnoredVulns]]
+# picomatch ReDoS — same root cause as GHSA-3v7f-55p6-f55p.
+id = "GHSA-c2c7-rcm5-vvqj"
+reason = "Old version is transitive dep of @typescript-eslint; top-level already at 4.0.4"
+
+[[IgnoredVulns]]
+# yaml denial of service — transitive dep, not directly used by application code.
+id = "GHSA-48c2-rrv3-qjmp"
+reason = "Transitive dep not used directly; will resolve with upstream updates"
