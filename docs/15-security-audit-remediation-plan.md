@@ -137,22 +137,22 @@ if (!publicDomain) {
 
 | 资源 | UUID | 行号 |
 |------|------|------|
-| 生产 D1 | `2ec5605c-613a-4c3a-a815-1ff7776bf6ab` | 27, 69, 70, 218 |
-| 测试 D1 | `d97aebb3-14c5-4650-8e51-95b13081ba6a` | 28 |
-| 生产 KV | `7d4702bf5657489cbc6a266e10db1aba` | 41, 221 |
-| 测试 KV | `359bfc2301864c70832131cf003c85b0` | 42 |
+| 生产 D1 | `<YOUR_D1_DATABASE_ID>` | 27, 69, 70, 218 |
+| 测试 D1 | `<YOUR_TEST_D1_DATABASE_ID>` | 28 |
+| 生产 KV | `<YOUR_KV_NAMESPACE_ID>` | 41, 221 |
+| 测试 KV | `<YOUR_TEST_KV_NAMESPACE_ID>` | 42 |
 
 **修复**（macOS/GNU sed 兼容）：
 ```bash
-# macOS
-sed -i '' 's/2ec5605c-613a-4c3a-a815-1ff7776bf6ab/<YOUR_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
-sed -i '' 's/d97aebb3-14c5-4650-8e51-95b13081ba6a/<YOUR_TEST_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
-sed -i '' 's/7d4702bf5657489cbc6a266e10db1aba/<YOUR_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
-sed -i '' 's/359bfc2301864c70832131cf003c85b0/<YOUR_TEST_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
+已替换为占位符（见 `docs/14-cloudflare-resource-inventory.md` 当前版本）。
 
-# GNU sed（Linux/WSL）
-sed -i 's/2ec5605c-613a-4c3a-a815-1ff7776bf6ab/<YOUR_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
-# ...以此类推
+```bash
+# 如果需要重新替换（macOS/GNU sed 兼容）：
+# sed -i '' 's/<REAL_D1_ID>/<YOUR_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
+# sed -i '' 's/<REAL_TEST_D1_ID>/<YOUR_TEST_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
+# sed -i '' 's/<REAL_KV_ID>/<YOUR_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
+# sed -i '' 's/<REAL_TEST_KV_ID>/<YOUR_TEST_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
+```
 ```
 
 ---
@@ -160,7 +160,7 @@ sed -i 's/2ec5605c-613a-4c3a-a815-1ff7776bf6ab/<YOUR_D1_DATABASE_ID>/g' docs/14-
 ### 2.10 High — GitHub Preview Image URL 指向真实 R2 Bucket
 
 **文件**: `models/links.ts:207`
-**问题**: `"https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg"` — 暴露 R2 key 结构（日期目录 + UUID）；图片被删则 README 预览失效
+**问题**: 旧版 README 引用了 R2 真实路径（含用户 hash + UUID），暴露 key 结构；图片被删则预览失效
 **修复**:
 1. 下载图片到 `public/github-preview.jpg`
 2. 改为本地引用：
