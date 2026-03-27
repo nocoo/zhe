@@ -66,6 +66,12 @@ describe("webhook model", () => {
       expect(result.error).toContain("url");
     });
 
+    it("rejects non-http/https URLs (javascript:, data:, etc.)", () => {
+      const result = validateWebhookPayload({ url: "javascript:alert(1)" });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("http or https");
+    });
+
     it("rejects empty url string", () => {
       const result = validateWebhookPayload({ url: "" });
       expect(result.success).toBe(false);

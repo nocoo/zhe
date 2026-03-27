@@ -37,10 +37,14 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     const { db, userId } = ctx;
 
     // Validate URL
+    let parsedUrl: URL;
     try {
-      new URL(input.originalUrl);
+      parsedUrl = new URL(input.originalUrl);
     } catch {
       return { success: false, error: 'Invalid URL' };
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return { success: false, error: 'URL must use http or https protocol' };
     }
 
     let slug: string;

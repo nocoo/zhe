@@ -58,7 +58,10 @@ export function validateWebhookPayload(
   }
 
   try {
-    new URL(obj.url);
+    const parsed = new URL(obj.url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { success: false, error: "url must use http or https protocol" };
+    }
   } catch {
     return { success: false, error: "url must be a valid URL" };
   }

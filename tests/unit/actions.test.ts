@@ -187,6 +187,15 @@ describe('actions/links — uncovered paths', () => {
       expect(mockCreateLink).not.toHaveBeenCalled();
     });
 
+    it('rejects non-http/https URLs (javascript:, data:, etc.)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const result = await createLink({ originalUrl: 'javascript:alert(1)' });
+
+      expect(result).toEqual({ success: false, error: 'URL must use http or https protocol' });
+      expect(mockCreateLink).not.toHaveBeenCalled();
+    });
+
     it('returns error when custom slug is invalid (sanitizeSlug returns null)', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockSanitizeSlug.mockReturnValue(null);
