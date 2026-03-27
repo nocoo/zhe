@@ -533,7 +533,7 @@ describe('useLinkCardViewModel', () => {
       useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    expect(result.current.screenshotUrl).toBe('https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg');
+    expect(result.current.screenshotUrl).toBe('/github-preview.jpg');
     expect(result.current.faviconUrl).toBeNull();
   });
 
@@ -548,7 +548,7 @@ describe('useLinkCardViewModel', () => {
       useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
     );
 
-    expect(result.current.screenshotUrl).toBe('https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg');
+    expect(result.current.screenshotUrl).toBe('/github-preview.jpg');
     expect(result.current.faviconUrl).toBeNull();
   });
 

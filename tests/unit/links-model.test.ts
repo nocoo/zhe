@@ -922,8 +922,8 @@ describe('models/links', () => {
   });
 
   describe('GITHUB_REPO_PREVIEW_URL', () => {
-    it('is a valid URL string', () => {
-      expect(GITHUB_REPO_PREVIEW_URL).toMatch(/^https:\/\//);
+    it('is a valid local path', () => {
+      expect(GITHUB_REPO_PREVIEW_URL).toMatch(/^\/github-preview\.jpg$/);
     });
   });
 

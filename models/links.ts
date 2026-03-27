@@ -203,8 +203,7 @@ export function isTwitterUrl(url: string): boolean {
 // --- Domain-specific preview overrides ---
 
 /** Fixed preview image for GitHub repository pages (they all look the same) */
-export const GITHUB_REPO_PREVIEW_URL =
-  "https://t.zhe.to/2026-02-22/ff94f3a4-6b0d-45e7-ab7b-e88862473f78.jpg";
+export const GITHUB_REPO_PREVIEW_URL = "/github-preview.jpg";
 
 /**
  * Check if a URL points to a GitHub repository page.
