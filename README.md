@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="public/github-preview.jpg" alt="Zhe Dashboard Preview" width="720">
+  <img src="https://s.zhe.to/dcd0e6e42358/20260305/71bebef9-8e23-4fcf-889c-246e70214054.jpg" alt="Zhe Dashboard Preview" width="720">
 </p>
 
 ---
