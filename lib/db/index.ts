@@ -40,8 +40,8 @@ export async function slugExists(slug: string): Promise<boolean> {
 export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promise<Link> {
   const now = Date.now();
   const rows = await executeD1Query<Record<string, unknown>>(
-    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
     [
       data.userId,
@@ -52,6 +52,7 @@ export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promi
       data.expiresAt ? data.expiresAt.getTime() : null,
       data.clicks ?? 0,
       data.note ?? null,
+      data.screenshotUrl ?? null,
       now,
     ]
   );
