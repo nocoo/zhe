@@ -53,7 +53,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       
       // INSERT INTO links
       if (sqlLower.startsWith('insert into links')) {
-        const [userId, folderId, originalUrl, slug, isCustom, expiresAt, clicks, createdAt] = params;
+        const [userId, folderId, originalUrl, slug, isCustom, expiresAt, clicks, note, screenshotUrl, createdAt] = params;
         // Enforce UNIQUE constraint on slug (matches real D1 behaviour)
         if (mockLinks.has(slug as string)) {
           throw new Error('UNIQUE constraint failed: links.slug');
@@ -71,8 +71,8 @@ vi.mock('@/lib/db/d1-client', async () => {
           meta_title: null,
           meta_description: null,
           meta_favicon: null,
-          screenshot_url: null,
-          note: null,
+          screenshot_url: screenshotUrl ?? null,
+          note: note ?? null,
           created_at: createdAt,
         };
         mockLinks.set(slug as string, link as unknown as import('@/lib/db/schema').Link);
