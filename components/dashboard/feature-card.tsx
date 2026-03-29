@@ -36,7 +36,7 @@ export function FeatureCard({ title, description, icon: Icon, accent, children }
   const colors = ACCENT_CLASSES[accent];
 
   return (
-    <Card className="border-0 bg-secondary shadow-none">
+    <Card>
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center gap-3 text-sm font-medium">
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colors.bg}`}>

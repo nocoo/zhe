@@ -117,7 +117,7 @@ function StatSkeleton() {
 
 function ChartSkeleton() {
   return (
-    <Card className="border-0 bg-secondary shadow-none" data-testid="stat-skeleton">
+    <Card data-testid="stat-skeleton">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <div className="h-4 w-24 rounded bg-muted animate-pulse" />
       </CardHeader>
@@ -489,7 +489,7 @@ function OverviewContent({
 
           {/* Click trend (wide) + Top links */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none flex flex-col">
+            <Card className="lg:col-span-2 flex flex-col">
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
@@ -499,7 +499,7 @@ function OverviewContent({
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-secondary shadow-none">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <Crown className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">热门链接</CardTitle>
@@ -512,7 +512,7 @@ function OverviewContent({
 
           {/* Device + Browser + OS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            <Card className="border-0 bg-secondary shadow-none">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">设备分布</CardTitle>
@@ -522,7 +522,7 @@ function OverviewContent({
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-secondary shadow-none">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">浏览器分布</CardTitle>
@@ -532,7 +532,7 @@ function OverviewContent({
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-secondary shadow-none">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">操作系统</CardTitle>
@@ -569,7 +569,7 @@ function OverviewContent({
 
           {/* Upload trend (wide) + File type breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <Card className="lg:col-span-2 border-0 bg-secondary shadow-none">
+            <Card className="lg:col-span-2">
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
@@ -579,7 +579,7 @@ function OverviewContent({
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-secondary shadow-none">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
                 <FileType className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                 <CardTitle className="text-sm font-medium">文件类型</CardTitle>

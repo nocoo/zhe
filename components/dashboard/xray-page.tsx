@@ -318,7 +318,7 @@ function TestSection({ vm }: { vm: XrayViewModel }) {
 
 function BookmarksSection({ vm }: { vm: XrayViewModel }) {
   return (
-    <Card className="border-0 bg-secondary shadow-none">
+    <Card>
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-3">
@@ -437,7 +437,7 @@ function BookmarkAddButton({
 
 function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
+    <div className="rounded-[var(--radius-card)] bg-secondary p-4 space-y-3">
       {/* Author row */}
       <div className="flex items-center gap-3">
         <a

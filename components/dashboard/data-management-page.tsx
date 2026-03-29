@@ -36,7 +36,7 @@ export function DataManagementPage() {
   return (
     <div className="space-y-6">
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
-      <Card className="border-0 bg-secondary shadow-none">
+      <Card>
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <Download className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
@@ -59,7 +59,7 @@ export function DataManagementPage() {
       </Card>
 
       {/* ── 数据导入 ──────────────────────────────────────────────── */}
-      <Card className="border-0 bg-secondary shadow-none">
+      <Card>
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
