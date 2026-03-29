@@ -526,21 +526,25 @@ function CollapsibleNavGroup({
 }: CollapsibleNavGroupProps) {
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} className="px-3 mb-1">
-      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2.5">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
-          {label}
-        </span>
+      <div className="flex w-full items-center justify-between px-3 py-2.5">
+        <CollapsibleTrigger className="flex flex-1 items-center gap-1">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+            {label}
+          </span>
+        </CollapsibleTrigger>
         <div className="flex items-center gap-1">
           {trailing}
-          <ChevronUp
-            className={cn(
-              "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
-              !open && "rotate-180",
-            )}
-            strokeWidth={1.5}
-          />
+          <CollapsibleTrigger className="flex items-center">
+            <ChevronUp
+              className={cn(
+                "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                !open && "rotate-180",
+              )}
+              strokeWidth={1.5}
+            />
+          </CollapsibleTrigger>
         </div>
-      </CollapsibleTrigger>
+      </div>
       <div
         className="grid overflow-hidden"
         style={{
