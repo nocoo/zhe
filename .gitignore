@@ -63,3 +63,4 @@ worker/wrangler.toml
 **/public/workbox-*.js
 **/public/swe-worker-*.js
 linkflow-hub
+.claude/
