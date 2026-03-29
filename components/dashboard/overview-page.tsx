@@ -40,6 +40,8 @@ interface StatCardProps {
   value: string;
   icon: React.ElementType;
   sparkline?: number[];
+  /** Stagger index for fade-up animation delay */
+  index?: number;
 }
 
 /** Lightweight inline SVG sparkline — 80×24px */
@@ -81,9 +83,14 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
-function StatCard({ label, value, icon: Icon, sparkline }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: StatCardProps) {
   return (
-    <div className="rounded-xl bg-secondary p-4 md:p-5" data-testid="stat-card" data-stat-label={label}>
+    <div
+      className="animate-fade-up rounded-xl bg-secondary p-4 md:p-5"
+      style={{ animationDelay: `${index * 80}ms` }}
+      data-testid="stat-card"
+      data-stat-label={label}
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
@@ -411,11 +418,13 @@ function KVCacheSection({
           label="最近同步"
           value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : '暂无'}
           icon={Clock}
+          index={0}
         />
         <StatCard
           label="KV 键数"
           value={health.kvKeyCount !== null ? String(health.kvKeyCount) : '—'}
           icon={Database}
+          index={1}
         />
       </div>
     </section>
@@ -478,12 +487,14 @@ function OverviewContent({
               label="总链接数"
               value={formatClickCount(stats.totalLinks)}
               icon={Link2}
+              index={0}
             />
             <StatCard
               label="总点击量"
               value={formatClickCount(stats.totalClicks)}
               icon={MousePointerClick}
               sparkline={stats.clickTrend.map((p) => p.clicks)}
+              index={1}
             />
           </div>
 
@@ -559,11 +570,13 @@ function OverviewContent({
               value={formatClickCount(stats.totalUploads)}
               icon={ImageIcon}
               sparkline={stats.uploadTrend.map((p) => p.uploads)}
+              index={0}
             />
             <StatCard
               label="存储用量"
               value={formatStorageSize(stats.totalStorageBytes)}
               icon={HardDrive}
+              index={1}
             />
           </div>
 

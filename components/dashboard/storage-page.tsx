@@ -56,21 +56,24 @@ function SummaryCard({
   sub,
   icon: Icon,
   variant = "default",
+  index = 0,
 }: {
   label: string;
   value: string;
   sub?: string;
   icon: React.ElementType;
   variant?: "default" | "warning" | "success";
+  index?: number;
 }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-4",
+        "animate-fade-up rounded-xl p-4",
         variant === "warning" && "bg-warning/5",
         variant === "success" && "bg-success/5",
         variant === "default" && "bg-secondary",
       )}
+      style={{ animationDelay: `${index * 80}ms` }}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>
@@ -572,12 +575,14 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
           value={formatBytes(data.r2.summary.totalSize)}
           sub={`${data.r2.summary.totalFiles} 个文件`}
           icon={HardDrive}
+          index={0}
         />
         <SummaryCard
           label="D1 数据库"
           value={data.d1.connected ? "已连接" : "未连接"}
           sub={`${data.d1.totalLinks} 链接 · ${data.d1.totalUploads} 上传`}
           icon={Database}
+          index={1}
         />
         <SummaryCard
           label="孤儿文件"
@@ -589,6 +594,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
           }
           icon={AlertTriangle}
           variant={hasOrphans ? "warning" : "success"}
+          index={2}
         />
         <SummaryCard
           label="临时文件"
@@ -599,6 +605,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
               : "无临时文件"
           }
           icon={Clock}
+          index={3}
         />
       </div>
 
