@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.8.6] - 2026-03-29
+
+### Changed
+- Add .claude/ to gitignore
+- Add createLink screenshotUrl and note coverage
+- Restore R2 preview image URL in README
+
+### Fixed
+- Read note and screenshot_url from INSERT params in mock
+- Add screenshot_url to public createLink INSERT SQL
+- Add screenshot_url to ScopedDB.createLink INSERT SQL
+- Update osv-scanner config path for v2
+- Update transitive deps and migrate osv-scanner config to v2 format
+- Use local image instead of R2 URL for README preview
+- Replace real Cloudflare D1/KV UUIDs in audit doc with placeholders
+
 ## [v1.8.5] - 2026-03-27
 
 ### Added
