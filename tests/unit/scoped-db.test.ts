@@ -32,6 +32,44 @@ describe('ScopedDB', () => {
       expect(link.slug).toBe('abc');
     });
 
+    it('createLink stores screenshotUrl when provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({
+        originalUrl: 'https://example.com',
+        slug: 'with-ss',
+        screenshotUrl: 'https://img.example.com/shot.png',
+      });
+
+      expect(link.screenshotUrl).toBe('https://img.example.com/shot.png');
+
+      // Verify persisted via getLinkById
+      const fetched = await db.getLinkById(link.id);
+      expect(fetched).not.toBeNull();
+      expect(unwrap(fetched).screenshotUrl).toBe('https://img.example.com/shot.png');
+    });
+
+    it('createLink stores note when provided', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({
+        originalUrl: 'https://example.com',
+        slug: 'with-note',
+        note: 'my note',
+      });
+
+      expect(link.note).toBe('my note');
+    });
+
+    it('createLink defaults screenshotUrl and note to null', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({
+        originalUrl: 'https://example.com',
+        slug: 'no-extras',
+      });
+
+      expect(link.screenshotUrl).toBeNull();
+      expect(link.note).toBeNull();
+    });
+
     it('getLinks only returns own links', async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);

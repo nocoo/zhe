@@ -285,6 +285,38 @@ describe('actions/links — uncovered paths', () => {
         }),
       );
     });
+
+    it('passes screenshotUrl through to db.createLink', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGenerateUniqueSlug.mockResolvedValue('slug-ss');
+      const createdLink = { ...FAKE_LINK, slug: 'slug-ss', screenshotUrl: 'https://img.example.com/shot.png' };
+      mockCreateLink.mockResolvedValue(createdLink);
+
+      const result = await createLink({
+        originalUrl: 'https://example.com',
+        screenshotUrl: 'https://img.example.com/shot.png',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.screenshotUrl).toBe('https://img.example.com/shot.png');
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          screenshotUrl: 'https://img.example.com/shot.png',
+        }),
+      );
+    });
+
+    it('omits screenshotUrl when not provided', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGenerateUniqueSlug.mockResolvedValue('slug-no-ss');
+      mockCreateLink.mockResolvedValue({ ...FAKE_LINK, slug: 'slug-no-ss' });
+
+      await createLink({ originalUrl: 'https://example.com' });
+
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.not.objectContaining({ screenshotUrl: expect.any(String) }),
+      );
+    });
   });
 
   // ====================================================================
