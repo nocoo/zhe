@@ -96,7 +96,7 @@ function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: StatCardPr
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <div className="mt-2 flex items-center gap-3">
-        <p className="text-xl md:text-2xl font-semibold font-display tracking-tight" data-testid="stat-value">
+        <p className="text-xl md:text-2xl font-semibold font-display tabular-nums tracking-tight" data-testid="stat-value">
           {value}
         </p>
         {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}

@@ -79,7 +79,7 @@ function SummaryCard({
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
-      <p className="mt-2 text-xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-2 text-xl font-semibold font-display tabular-nums tracking-tight">{value}</p>
       {sub && (
         <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
       )}
