@@ -362,12 +362,14 @@ function R2Section({
 
             <div className="flex items-center gap-2">
               {/* Sort controls */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" role="group" aria-label="排序">
                 <Button
                   variant={sortField === "time" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => toggleSort("time")}
                   className="gap-1 text-xs h-7 px-2"
+                  role="columnheader"
+                  aria-sort={sortField === "time" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
                   时间
                   <SortIcon field="time" />
@@ -377,6 +379,8 @@ function R2Section({
                   size="sm"
                   onClick={() => toggleSort("size")}
                   className="gap-1 text-xs h-7 px-2"
+                  role="columnheader"
+                  aria-sort={sortField === "size" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
                   大小
                   <SortIcon field="size" />
