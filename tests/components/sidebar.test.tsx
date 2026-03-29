@@ -67,7 +67,22 @@ vi.mock('@/viewmodels/useFoldersViewModel', () => ({
   useFoldersViewModel: () => mockFoldersVm,
 }));
 
-import { AppSidebar } from '@/components/app-sidebar';
+// Mock sidebar context — the Sidebar component now reads from useSidebar()
+let mockSidebarCtx = {
+  collapsed: false,
+  toggle: vi.fn(),
+  setCollapsed: vi.fn(),
+  isMobile: false,
+  mobileOpen: false,
+  setMobileOpen: vi.fn(),
+};
+
+vi.mock('@/components/sidebar-context', () => ({
+  useSidebar: () => mockSidebarCtx,
+  SidebarProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+import { Sidebar } from '@/components/sidebar';
 
 function makeLink(overrides: Partial<Link> = {}): Link {
   return {
@@ -104,26 +119,37 @@ function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
   };
 }
 
-function renderSidebar(props: Partial<Parameters<typeof AppSidebar>[0]> = {}) {
+function renderSidebar(props: Partial<Parameters<typeof Sidebar>[0]> & { collapsed?: boolean } = {}) {
+  const { collapsed, ...sidebarProps } = props;
+  // Set the mock context before rendering
+  if (collapsed !== undefined) {
+    mockSidebarCtx.collapsed = collapsed;
+  }
   const defaultProps = {
-    collapsed: false,
-    onToggle: vi.fn(),
     user: { name: 'Test User', email: 'test@example.com', image: null },
     signOutAction: vi.fn(async () => {}),
-    ...props,
+    ...sidebarProps,
   };
   return render(
     <TooltipProvider>
-      <AppSidebar {...defaultProps} />
+      <Sidebar {...defaultProps} />
     </TooltipProvider>
   );
 }
 
-describe('AppSidebar', () => {
+describe('Sidebar', () => {
   beforeEach(() => {
     mockPathname = '/dashboard';
     mockSearchParamsFolder = null;
     mockLinks = [];
+    mockSidebarCtx = {
+      collapsed: false,
+      toggle: vi.fn(),
+      setCollapsed: vi.fn(),
+      isMobile: false,
+      mobileOpen: false,
+      setMobileOpen: vi.fn(),
+    };
     resetMockFoldersVm();
     vi.clearAllMocks();
   });
@@ -297,8 +323,8 @@ describe('AppSidebar', () => {
     it('renders overview section label above 链接管理', () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      // Find section labels by their class
-      const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
+      // Find section labels by B-2 spec class (upgraded from text-sm font-normal)
+      const sectionLabels = container.querySelectorAll('.text-xs.font-medium.uppercase');
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
       // Overview should come before 链接管理
@@ -384,9 +410,8 @@ describe('AppSidebar', () => {
   });
 
   describe('toggle button', () => {
-    it('calls onToggle when toggle button is clicked', () => {
-      const onToggle = vi.fn();
-      const { container } = renderSidebar({ collapsed: false, onToggle });
+    it('calls toggle when toggle button is clicked', () => {
+      const { container } = renderSidebar({ collapsed: false });
 
       // The toggle button contains the PanelLeft icon and is in the header area
       const buttons = container.querySelectorAll('button');
@@ -395,7 +420,7 @@ describe('AppSidebar', () => {
         !btn.getAttribute('type') || btn.getAttribute('type') !== 'submit'
       );
       fireEvent.click(unwrap(toggleButton));
-      expect(onToggle).toHaveBeenCalledOnce();
+      expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
     });
   });
 
@@ -626,7 +651,7 @@ describe('AppSidebar', () => {
     it('renders "系统" section below 系统集成 section', () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const sectionLabels = container.querySelectorAll('.text-sm.font-normal.text-muted-foreground');
+      const sectionLabels = container.querySelectorAll('.text-xs.font-medium.uppercase');
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
       const integrationIndex = labels.indexOf('系统集成');
@@ -641,6 +666,23 @@ describe('AppSidebar', () => {
       // Should include: 1 overview + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 3 系统 (storage+data-management+webhook) = 9
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(9);
+    });
+  });
+
+  describe('collapsible nav groups', () => {
+    it('renders ChevronUp icon for each nav group', () => {
+      const { container } = renderSidebar({ collapsed: false });
+
+      // 4 groups: 概览, 链接管理, 系统集成, 系统
+      const triggers = container.querySelectorAll('[data-state]');
+      expect(triggers.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('uses B-2 spec group label styling', () => {
+      const { container } = renderSidebar({ collapsed: false });
+
+      const labels = container.querySelectorAll('.text-xs.font-medium.uppercase.tracking-wider');
+      expect(labels.length).toBe(4);
     });
   });
 

@@ -1,7 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PanelLeft, LogOut, Search, FileUp, Plus, Link2, Inbox, BarChart3, Database, Webhook, HardDrive, Radar, CloudUpload } from "lucide-react";
+import {
+  PanelLeft,
+  LogOut,
+  Search,
+  FileUp,
+  Plus,
+  Link2,
+  Inbox,
+  BarChart3,
+  Database,
+  Webhook,
+  HardDrive,
+  Radar,
+  CloudUpload,
+  ChevronUp,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -12,10 +27,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FolderIcon } from "@/components/folder-icon";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
+import { useSidebar } from "@/components/sidebar-context";
 import { APP_VERSION } from "@/lib/version";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { useDashboardState } from "@/contexts/dashboard-service";
@@ -32,7 +49,12 @@ interface FolderNavItem {
 
 const FOLDER_NAV_ITEMS: FolderNavItem[] = [
   { title: "全部链接", icon: Link2, href: "/dashboard", folderParam: null },
-  { title: "Inbox", icon: Inbox, href: "/dashboard?folder=uncategorized", folderParam: "uncategorized" },
+  {
+    title: "Inbox",
+    icon: Inbox,
+    href: "/dashboard?folder=uncategorized",
+    folderParam: "uncategorized",
+  },
 ];
 
 /** Static nav items rendered as <Link> */
@@ -77,9 +99,7 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export interface AppSidebarProps {
-  collapsed: boolean;
-  onToggle: () => void;
+export interface SidebarProps {
   user?: {
     name?: string | null;
     email?: string | null;
@@ -88,15 +108,12 @@ export interface AppSidebarProps {
   signOutAction: () => Promise<void>;
 }
 
-export function AppSidebar({
-  collapsed,
-  onToggle,
-  user,
-  signOutAction,
-}: AppSidebarProps) {
+export function Sidebar({ user, signOutAction }: SidebarProps) {
+  const { collapsed, toggle } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentFolder = pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
+  const currentFolder =
+    pathname === "/dashboard" ? (searchParams.get("folder") ?? null) : "__other__";
 
   const foldersVm = useFoldersViewModel();
   const { links } = useDashboardState();
@@ -104,6 +121,19 @@ export function AppSidebar({
 
   // Search dialog state (pure UI — not in service)
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Collapsible group state — all default open
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({
+    概览: true,
+    链接管理: true,
+    系统集成: true,
+    系统: true,
+  });
+  const toggleGroup = useCallback(
+    (label: string) =>
+      setGroupOpen((prev) => ({ ...prev, [label]: !prev[label] })),
+    [],
+  );
 
   // Cmd+K / Ctrl+K global keyboard shortcut
   useEffect(() => {
@@ -124,22 +154,23 @@ export function AppSidebar({
     return currentFolder === folderParam;
   }
 
+  // ─── Collapsed view ────────────────────────────────────────────────
   if (collapsed) {
     return (
-      <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-150 ease-in-out overflow-hidden">
+      <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-300 ease-in-out overflow-hidden">
         <div className="flex h-14 items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-24.png"
-              alt="Zhe"
-              width={24}
-              height={24}
-              className="shrink-0"
-            />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-24.png"
+            alt="Zhe"
+            width={24}
+            height={24}
+            className="shrink-0"
+          />
         </div>
 
         <button
-          onClick={onToggle}
+          onClick={toggle}
           aria-label="Expand sidebar"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-2"
         >
@@ -157,7 +188,7 @@ export function AppSidebar({
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
                     pathname === item.href
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
@@ -179,7 +210,7 @@ export function AppSidebar({
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
                     isFolderNavActive(item.folderParam)
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
@@ -201,10 +232,14 @@ export function AppSidebar({
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
                     currentFolder === folder.id
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
-                  <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
+                  <FolderIcon
+                    name={folder.icon}
+                    className="h-4 w-4"
+                    strokeWidth={1.5}
+                  />
                 </Link>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={8}>
@@ -223,7 +258,7 @@ export function AppSidebar({
                     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
                     pathname === item.href
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   <item.icon className="h-4 w-4" strokeWidth={1.5} />
@@ -240,7 +275,9 @@ export function AppSidebar({
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Avatar className="h-9 w-9 cursor-pointer">
-                {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
+                {user?.image && (
+                  <AvatarImage src={user.image} alt={user.name || "User"} />
+                )}
                 <AvatarFallback className="text-xs">
                   {user?.name?.[0] || "U"}
                 </AvatarFallback>
@@ -256,8 +293,9 @@ export function AppSidebar({
     );
   }
 
+  // ─── Expanded view ─────────────────────────────────────────────────
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-background transition-all duration-150 ease-in-out overflow-hidden">
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-background transition-all duration-300 ease-in-out overflow-hidden">
       {/* Header */}
       <div className="px-3 h-14 flex items-center">
         <div className="flex w-full items-center justify-between px-3">
@@ -273,12 +311,15 @@ export function AppSidebar({
             <span className="text-lg md:text-xl font-semibold text-foreground">
               ZHE.TO
             </span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground"
+            >
               v{APP_VERSION}
             </Badge>
           </div>
           <button
-            onClick={onToggle}
+            onClick={toggle}
             aria-label="Collapse sidebar"
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -310,12 +351,12 @@ export function AppSidebar({
       <nav className="flex-1 overflow-y-auto pt-2">
         {/* Pre-link nav groups (概览 etc.) */}
         {PRE_LINK_NAV_GROUPS.map((group) => (
-          <div key={group.label} className="px-3 mb-1">
-            <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-sm font-normal text-muted-foreground">
-                {group.label}
-              </span>
-            </div>
+          <CollapsibleNavGroup
+            key={group.label}
+            label={group.label}
+            open={groupOpen[group.label] ?? true}
+            onOpenChange={() => toggleGroup(group.label)}
+          >
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <Link
@@ -325,7 +366,7 @@ export function AppSidebar({
                     "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                     pathname === item.href
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -333,23 +374,27 @@ export function AppSidebar({
                 </Link>
               ))}
             </div>
-          </div>
+          </CollapsibleNavGroup>
         ))}
 
-        {/* 链接管理 group */}
-        <div className="px-3 mb-1">
-          <div className="flex items-center justify-between px-3 py-2.5">
-            <span className="text-sm font-normal text-muted-foreground">
-              链接管理
-            </span>
+        {/* 链接管理 group — special: has + button and folder management */}
+        <CollapsibleNavGroup
+          label="链接管理"
+          open={groupOpen["链接管理"] ?? true}
+          onOpenChange={() => toggleGroup("链接管理")}
+          trailing={
             <button
-              onClick={() => foldersVm.setIsCreating(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                foldersVm.setIsCreating(true);
+              }}
               aria-label="新建文件夹"
               className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
-          </div>
+          }
+        >
           <div className="flex flex-col gap-0.5">
             {/* "全部链接" and "未分类" as links */}
             {FOLDER_NAV_ITEMS.map((item) => (
@@ -360,14 +405,16 @@ export function AppSidebar({
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                   isFolderNavActive(item.folderParam)
                     ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                 <span className="flex-1 text-left">{item.title}</span>
                 <span className="flex w-5 shrink-0 items-center justify-center">
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
+                    {item.folderParam === null
+                      ? linkCounts.total
+                      : linkCounts.uncategorized}
                   </span>
                 </span>
               </Link>
@@ -396,16 +443,16 @@ export function AppSidebar({
               />
             )}
           </div>
-        </div>
+        </CollapsibleNavGroup>
 
-        {/* Other nav groups (文件管理 etc.) */}
+        {/* Other nav groups (系统集成, 系统 etc.) */}
         {OTHER_NAV_GROUPS.map((group) => (
-          <div key={group.label} className="px-3 mb-1">
-            <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-sm font-normal text-muted-foreground">
-                {group.label}
-              </span>
-            </div>
+          <CollapsibleNavGroup
+            key={group.label}
+            label={group.label}
+            open={groupOpen[group.label] ?? true}
+            onOpenChange={() => toggleGroup(group.label)}
+          >
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <Link
@@ -415,7 +462,7 @@ export function AppSidebar({
                     "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
                     pathname === item.href
                       ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -423,7 +470,7 @@ export function AppSidebar({
                 </Link>
               ))}
             </div>
-          </div>
+          </CollapsibleNavGroup>
         ))}
       </nav>
 
@@ -431,7 +478,9 @@ export function AppSidebar({
       <div className="px-4 py-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 shrink-0">
-            {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
+            {user?.image && (
+              <AvatarImage src={user.image} alt={user.name || "User"} />
+            )}
             <AvatarFallback className="text-xs">
               {user?.name?.[0] || "U"}
             </AvatarFallback>
@@ -456,5 +505,51 @@ export function AppSidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+// ─── CollapsibleNavGroup ───────────────────────────────────────────
+interface CollapsibleNavGroupProps {
+  label: string;
+  open: boolean;
+  onOpenChange: () => void;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function CollapsibleNavGroup({
+  label,
+  open,
+  onOpenChange,
+  trailing,
+  children,
+}: CollapsibleNavGroupProps) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange} className="px-3 mb-1">
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2.5">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+          {label}
+        </span>
+        <div className="flex items-center gap-1">
+          {trailing}
+          <ChevronUp
+            className={cn(
+              "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+              !open && "rotate-180",
+            )}
+            strokeWidth={1.5}
+          />
+        </div>
+      </CollapsibleTrigger>
+      <div
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 200ms ease-out",
+        }}
+      >
+        <div className="min-h-0 overflow-hidden">{children}</div>
+      </div>
+    </Collapsible>
   );
 }

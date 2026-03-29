@@ -78,16 +78,19 @@ vi.mock('@/contexts/dashboard-service', () => ({
   DashboardServiceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-let mockViewModel = {
+// Mock sidebar context — controls sidebar state for shell tests
+let mockSidebarCtx = {
   collapsed: false,
+  toggle: vi.fn(),
+  setCollapsed: vi.fn(),
   isMobile: false,
   mobileOpen: false,
-  toggleSidebar: vi.fn(),
-  closeMobileSidebar: vi.fn(),
+  setMobileOpen: vi.fn(),
 };
 
-vi.mock('@/viewmodels/useDashboardLayoutViewModel', () => ({
-  useDashboardLayoutViewModel: () => mockViewModel,
+vi.mock('@/components/sidebar-context', () => ({
+  useSidebar: () => mockSidebarCtx,
+  SidebarProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 let mockPathname = '/dashboard';
@@ -109,9 +112,9 @@ vi.mock('next-themes', () => ({
   useTheme: () => ({ theme: 'system', setTheme: vi.fn(), resolvedTheme: 'light' }),
 }));
 
-import { DashboardShell } from '@/components/dashboard-shell';
+import { AppShell } from '@/components/app-shell';
 
-async function renderShell(props: Partial<Parameters<typeof DashboardShell>[0]> = {}) {
+async function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}) {
   const { act } = await import('@testing-library/react');
   const defaultProps = {
     user: { name: 'Test User', email: 'test@example.com', image: null },
@@ -121,20 +124,21 @@ async function renderShell(props: Partial<Parameters<typeof DashboardShell>[0]> 
   };
   let result: ReturnType<typeof render> | undefined;
   await act(async () => {
-    result = render(<DashboardShell {...defaultProps} />);
+    result = render(<AppShell {...defaultProps} />);
   });
   return unwrap(result);
 }
 
-describe('DashboardShell', () => {
+describe('AppShell', () => {
   beforeEach(() => {
     mockPathname = '/dashboard';
-    mockViewModel = {
+    mockSidebarCtx = {
       collapsed: false,
+      toggle: vi.fn(),
+      setCollapsed: vi.fn(),
       isMobile: false,
       mobileOpen: false,
-      toggleSidebar: vi.fn(),
-      closeMobileSidebar: vi.fn(),
+      setMobileOpen: vi.fn(),
     };
     mockFoldersVm = {
       folders: [],
@@ -160,45 +164,26 @@ describe('DashboardShell', () => {
     expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
   });
 
-  it('renders header with title', async () => {
+  it('renders breadcrumbs instead of h1 title', async () => {
     await renderShell();
-    expect(screen.getByRole('heading', { name: '链接管理' })).toBeInTheDocument();
+    const breadcrumbNav = screen.getByLabelText('Breadcrumb');
+    expect(breadcrumbNav).toBeInTheDocument();
   });
 
-  it('renders header with 系统集成 title on uploads page', async () => {
+  it('renders breadcrumbs with 链接管理 on dashboard root', async () => {
+    await renderShell();
+    const breadcrumbNav = screen.getByLabelText('Breadcrumb');
+    expect(breadcrumbNav.textContent).toContain('链接管理');
+  });
+
+  it('renders breadcrumbs with page label on sub-pages', async () => {
     mockPathname = '/dashboard/uploads';
     await renderShell();
-    expect(screen.getByRole('heading', { name: '系统集成' })).toBeInTheDocument();
-  });
-
-  it('renders header with Backy title on backy page', async () => {
-    mockPathname = '/dashboard/backy';
-    await renderShell();
-    expect(screen.getByRole('heading', { name: 'Backy' })).toBeInTheDocument();
-  });
-
-  it('renders header with Xray title on xray page', async () => {
-    mockPathname = '/dashboard/xray';
-    await renderShell();
-    expect(screen.getByRole('heading', { name: 'Xray' })).toBeInTheDocument();
-  });
-
-  it('renders header with 概览 title on overview page', async () => {
-    mockPathname = '/dashboard/overview';
-    await renderShell();
-    expect(screen.getByRole('heading', { name: '概览' })).toBeInTheDocument();
-  });
-
-  it('renders header with 数据管理 title on data management page', async () => {
-    mockPathname = '/dashboard/data-management';
-    await renderShell();
-    expect(screen.getByRole('heading', { name: '数据管理' })).toBeInTheDocument();
-  });
-
-  it('renders header with Webhook title on webhook page', async () => {
-    mockPathname = '/dashboard/webhook';
-    await renderShell();
-    expect(screen.getByRole('heading', { name: 'Webhook' })).toBeInTheDocument();
+    const breadcrumbNav = screen.getByLabelText('Breadcrumb');
+    expect(breadcrumbNav).toBeInTheDocument();
+    // Breadcrumb should contain the page label and parent link
+    expect(breadcrumbNav.textContent).toContain('系统集成');
+    expect(breadcrumbNav.textContent).toContain('仪表盘');
   });
 
   it('renders ThemeToggle in header', async () => {
@@ -215,8 +200,8 @@ describe('DashboardShell', () => {
 
   describe('desktop mode', () => {
     it('renders sidebar when not mobile', async () => {
-      mockViewModel.isMobile = false;
-      mockViewModel.collapsed = false;
+      mockSidebarCtx.isMobile = false;
+      mockSidebarCtx.collapsed = false;
       const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
@@ -225,8 +210,8 @@ describe('DashboardShell', () => {
     });
 
     it('renders collapsed sidebar', async () => {
-      mockViewModel.isMobile = false;
-      mockViewModel.collapsed = true;
+      mockSidebarCtx.isMobile = false;
+      mockSidebarCtx.collapsed = true;
       const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
@@ -235,7 +220,7 @@ describe('DashboardShell', () => {
     });
 
     it('does not show mobile menu button on desktop', async () => {
-      mockViewModel.isMobile = false;
+      mockSidebarCtx.isMobile = false;
       const { container } = await renderShell();
 
       const header = container.querySelector('header');
@@ -250,8 +235,8 @@ describe('DashboardShell', () => {
 
   describe('mobile mode', () => {
     it('does not render sidebar inline when mobile and drawer is closed', async () => {
-      mockViewModel.isMobile = true;
-      mockViewModel.mobileOpen = false;
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = false;
       const { container } = await renderShell();
 
       const aside = container.querySelector('aside');
@@ -259,7 +244,7 @@ describe('DashboardShell', () => {
     });
 
     it('shows mobile menu button', async () => {
-      mockViewModel.isMobile = true;
+      mockSidebarCtx.isMobile = true;
       const { container } = await renderShell();
 
       const header = container.querySelector('header');
@@ -270,8 +255,8 @@ describe('DashboardShell', () => {
       expect(nonThemeButtons.length).toBe(1);
     });
 
-    it('calls toggleSidebar when mobile menu button is clicked', async () => {
-      mockViewModel.isMobile = true;
+    it('calls toggle when mobile menu button is clicked', async () => {
+      mockSidebarCtx.isMobile = true;
       const { container } = await renderShell();
 
       const header = container.querySelector('header');
@@ -280,12 +265,12 @@ describe('DashboardShell', () => {
         (btn: Element) => !btn.getAttribute('title')?.includes('Theme')
       );
       fireEvent.click(unwrap(menuButton));
-      expect(mockViewModel.toggleSidebar).toHaveBeenCalledOnce();
+      expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
     });
 
     it('renders Sheet overlay and sidebar when drawer is open', async () => {
-      mockViewModel.isMobile = true;
-      mockViewModel.mobileOpen = true;
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = true;
       await renderShell();
 
       // Sheet renders sidebar content via portal — sidebar should be present in document
@@ -295,8 +280,8 @@ describe('DashboardShell', () => {
     });
 
     it('renders Sheet overlay when drawer is open', async () => {
-      mockViewModel.isMobile = true;
-      mockViewModel.mobileOpen = true;
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = true;
       await renderShell();
 
       // Sheet overlay is rendered via Radix portal with role="dialog"
@@ -310,9 +295,9 @@ describe('DashboardShell', () => {
       { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
     ];
 
-    it('passes folders to AppSidebar in expanded desktop mode', async () => {
-      mockViewModel.isMobile = false;
-      mockViewModel.collapsed = false;
+    it('passes folders to Sidebar in expanded desktop mode', async () => {
+      mockSidebarCtx.isMobile = false;
+      mockSidebarCtx.collapsed = false;
       mockFoldersVm.folders = mockFolders;
       await renderShell();
 
@@ -320,9 +305,9 @@ describe('DashboardShell', () => {
       expect(screen.getByText('工作')).toBeInTheDocument();
     });
 
-    it('passes folders to AppSidebar in collapsed desktop mode', async () => {
-      mockViewModel.isMobile = false;
-      mockViewModel.collapsed = true;
+    it('passes folders to Sidebar in collapsed desktop mode', async () => {
+      mockSidebarCtx.isMobile = false;
+      mockSidebarCtx.collapsed = true;
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
@@ -332,12 +317,22 @@ describe('DashboardShell', () => {
     });
 
     it('passes folders to mobile sidebar when open', async () => {
-      mockViewModel.isMobile = true;
-      mockViewModel.mobileOpen = true;
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = true;
       mockFoldersVm.folders = mockFolders;
       await renderShell();
 
       expect(screen.getByText('工作')).toBeInTheDocument();
+    });
+  });
+
+  describe('B-2 spec: rounded content area', () => {
+    it('uses rounded-[16px] md:rounded-[20px] for content panel', async () => {
+      const { container } = await renderShell();
+
+      const contentPanel = container.querySelector('.rounded-\\[16px\\]');
+      expect(contentPanel).toBeInTheDocument();
+      expect(contentPanel?.className).toContain('md:rounded-[20px]');
     });
   });
 });

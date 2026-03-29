@@ -1,6 +1,6 @@
 import { signOut } from "@/auth";
 import { getSession } from "@/lib/auth-context";
-import { DashboardShell } from "@/components/dashboard-shell";
+import { AppShell } from "@/components/app-shell";
 import { getFolders } from "@/actions/folders";
 
 export default async function DashboardLayout({
@@ -20,12 +20,12 @@ export default async function DashboardLayout({
   const initialFolders = foldersResult.data ?? [];
 
   return (
-    <DashboardShell
+    <AppShell
       {...(session?.user ? { user: session.user } : {})}
       signOutAction={handleSignOut}
       initialFolders={initialFolders}
     >
       {children}
-    </DashboardShell>
+    </AppShell>
   );
 }
