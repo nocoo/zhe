@@ -15,7 +15,7 @@ jobs:
       pre-command: "bun run build --no-lint"
       typecheck-command: "bun x tsc --noEmit"
       test-command: "bun run test:unit:coverage && bun run test:integration"
-      osv-config: ".osv-scanner.toml"
+      osv-config: "osv-scanner.toml"
       enable-l2: "true"
       enable-l3: "${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}"
     secrets: inherit
