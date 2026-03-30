@@ -369,7 +369,7 @@ tests/
 **基础设施层**（Phase 0）：
 - `scripts/run-api-e2e.ts` — server harness（启停 dev server，health check 轮询，进程管理）
 - `vitest.api.config.ts` — 独立 vitest config，**不加载 `tests/setup.ts`**（不注入 D1 内存模拟器）
-- `tests/api/helpers/http.ts` — fetch wrapper（base URL `http://localhost:17005`、common headers、response assert helpers）
+- `tests/api/helpers/http.ts` — fetch wrapper（base URL `http://localhost:17006`、common headers、response assert helpers）
 - `tests/api/helpers/seed.ts` — 测试数据生命周期管理（通过 Cloudflare D1 HTTP API 直接操作 test DB：insert/delete/query）
 - `.env.test.api` — API E2E 专用环境变量（`CF_D1_DATABASE_ID`、`CF_D1_ACCOUNT_ID`、`CF_D1_API_TOKEN`、`WORKER_SECRET`、`E2E_SKIP_AUTH=1`）
 
@@ -379,9 +379,9 @@ tests/
 **run-api-e2e.ts 流程**：
 ```
 1. 加载 .env.test.api 环境变量
-2. 启动 Next.js dev server (port 17005, E2E_SKIP_AUTH=1)
+2. 启动 Next.js dev server (port 17006, E2E_SKIP_AUTH=1)
    — server 连接真实 D1 test DB，不使用内存模拟器
-3. 轮询 GET http://localhost:17005/api/health 等待就绪（超时 30s）
+3. 轮询 GET http://localhost:17006/api/health 等待就绪（超时 30s）
 4. 运行 vitest tests/api --config vitest.api.config.ts
 5. 无论结果如何，SIGTERM 关闭 server
 6. 返回测试退出码
@@ -391,9 +391,9 @@ tests/
 
 | 端口 | 用途 |
 |------|------|
-| 7005 | 开发服务器 |
-| 17005 | L2 API Integration E2E（新增） |
-| 27005 | L3 Playwright BDD E2E |
+| 7006 | 开发服务器 |
+| 17006 | L2 API Integration E2E（新增） |
+| 27006 | L3 Playwright BDD E2E |
 
 ##### 原子化提交
 

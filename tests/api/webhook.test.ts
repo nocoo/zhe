@@ -86,7 +86,7 @@ describe('POST /api/link/create/[token]', () => {
 
   it('returns 400 for invalid JSON body', async () => {
     const res = await fetch(
-      `${process.env.API_E2E_BASE_URL ?? 'http://localhost:17005'}/api/link/create/${webhookToken}`,
+      `${process.env.API_E2E_BASE_URL ?? 'http://localhost:17006'}/api/link/create/${webhookToken}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

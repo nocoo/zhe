@@ -352,7 +352,7 @@ async function checkPrerequisites(): Promise<boolean> {
 Playwright 有 **2 层**需要覆盖 env 的地方：
 
 1. **主进程 + test worker 进程**（运行 `global-setup.ts` / `global-teardown.ts`，以及 `test.beforeAll` / `test()` / `test.afterAll`）：Playwright 官方文档明确支持在 `globalSetup` 中通过 `process.env.FOO = 'value'` 设置环境变量，test worker 进程可以在 `test()` 中读取这些值（[来源](https://playwright.dev/docs/test-global-setup-teardown)）
-2. **webServer 子进程**（Next.js dev server on port 27005）：通过 shell command 启动，不受 `globalSetup` 的 `process.env` 影响
+2. **webServer 子进程**（Next.js dev server on port 27006）：通过 shell command 启动，不受 `globalSetup` 的 `process.env` 影响
 
 因此，`globalSetup` 中设置的 `process.env` 覆盖可以同时覆盖主进程和 test worker 中的 `executeD1()` 调用。webServer 需要单独通过 shell env 注入。
 

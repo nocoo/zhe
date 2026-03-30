@@ -3,7 +3,7 @@
  *
  * Behind a reverse proxy (Railway, Vercel, nginx, etc.) the raw
  * `request.url` reflects the internal listener address (e.g.
- * `http://0.0.0.0:7005`). This helper reads forwarding headers set
+ * `http://0.0.0.0:7006`). This helper reads forwarding headers set
  * by the proxy to reconstruct the real public origin that end-users
  * see (e.g. `https://zhe.to`).
  *

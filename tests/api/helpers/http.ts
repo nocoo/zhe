@@ -7,7 +7,7 @@
 
 import { unwrap } from '../../test-utils';
 
-const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17005';
+const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17006';
 
 /** Build an absolute URL from a path like `/api/health`. */
 export function url(path: string): string {

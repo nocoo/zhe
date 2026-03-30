@@ -28,7 +28,7 @@
 
 ### L2 Soft Gate 说明
 
-L2 测试通过 `scripts/run-api-e2e.ts` 启动独立 Next.js dev server（端口 17005），对真实 Cloudflare D1 测试数据库发送 HTTP 请求。当远程 D1 不可达或凭证缺失时，`run-api-e2e.ts` 会 warn + skip（降级为 advisory），避免基础设施故障阻塞 push。
+L2 测试通过 `scripts/run-api-e2e.ts` 启动独立 Next.js dev server（端口 17006），对真实 Cloudflare D1 测试数据库发送 HTTP 请求。当远程 D1 不可达或凭证缺失时，`run-api-e2e.ts` 会 warn + skip（降级为 advisory），避免基础设施故障阻塞 push。
 
 ### G2 Advisory 说明
 
@@ -61,9 +61,9 @@ tests/
 
 | 端口 | 用途 |
 |------|------|
-| 7005 | 开发服务器（`bun run dev`） |
-| 17005 | L2 API E2E 测试（`run-api-e2e.ts` 自动管理） |
-| 27005 | L3 Playwright BDD E2E 测试（`playwright.config.ts` 自动管理） |
+| 7006 | 开发服务器（`bun run dev`） |
+| 17006 | L2 API E2E 测试（`run-api-e2e.ts` 自动管理） |
+| 27006 | L3 Playwright BDD E2E 测试（`playwright.config.ts` 自动管理） |
 
 ## 覆盖率目标
 
@@ -180,8 +180,8 @@ L3 是 on-demand 测试，缺少测试配置直接 throw（不跳过）。`playw
 
 ### 配置（`playwright.config.ts`）
 
-- **端口**：27005（与开发服务器 7005 和 API E2E 17005 完全隔离）
-- **服务器**：`PLAYWRIGHT=1 AUTH_URL=http://localhost:27005 bun run next dev --turbopack -p 27005`
+- **端口**：27006（与开发服务器 7006 和 API E2E 17006 完全隔离）
+- **服务器**：`PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next dev --turbopack -p 27006`
 - **`reuseExistingServer: false`** — 每次都启动全新实例
 - **串行执行**：`fullyParallel: false`, `workers: 1`（避免数据竞争）
 - **浏览器**：Chromium（Desktop Chrome）

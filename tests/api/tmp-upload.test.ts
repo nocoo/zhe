@@ -10,7 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, jsonResponse } from './helpers/http';
 import { ensureTestUser, seedWebhook, cleanupTestData } from './helpers/seed';
 
-const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17005';
+const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17006';
 
 let webhookToken: string;
 

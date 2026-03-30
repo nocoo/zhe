@@ -3,7 +3,7 @@
  * API E2E test runner — runs all L2 tests via real HTTP.
  *
  * All tests/api/*.test.ts files run against a real Next.js dev server
- * on port 17005 with PLAYWRIGHT=1 (enables e2e-credentials auth).
+ * on port 17006 with PLAYWRIGHT=1 (enables e2e-credentials auth).
  *
  * Soft gate: if D1 credentials are missing or the server fails to start,
  * prints a warning and exits 0 (skip), allowing git push to proceed.
@@ -13,7 +13,7 @@ import { resolve as pathResolve } from 'path';
 import { readFileSync } from 'fs';
 
 const PROJECT_ROOT = pathResolve(import.meta.dirname ?? process.cwd(), '..');
-const API_E2E_PORT = 17005;
+const API_E2E_PORT = 17006;
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;
 const HEALTH_POLL_MS = 1_000;

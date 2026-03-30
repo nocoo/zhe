@@ -100,13 +100,13 @@ npx wrangler d1 execute zhe-db-test --remote --command \
 bun dev
 ```
 
-服务默认运行在 **http://localhost:7005**，使用 Turbopack 加速编译。
+服务默认运行在 **http://localhost:7006**，使用 Turbopack 加速编译。
 
 ## 常用命令
 
 | 命令 | 说明 |
 |------|------|
-| `bun dev` | 启动开发服务器（端口 7005，Turbopack） |
+| `bun dev` | 启动开发服务器（端口 7006，Turbopack） |
 | `bun run build` | 生产构建 |
 | `bun run start` | 启动生产服务器 |
 | `bun run lint` | ESLint 检查（零警告策略） |

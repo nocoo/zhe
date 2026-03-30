@@ -51,7 +51,7 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 | 变量 | 值 |
 |------|-----|
 | `NODE_ENV` | `production` |
-| `PORT` | `7005` |
+| `PORT` | `7006` |
 | `HOSTNAME` | `0.0.0.0` |
 
 ### Next.js 配置
@@ -170,7 +170,7 @@ KV 同步不依赖定时任务，而是在每次 mutation 时内联执行。
 | `zhe.to` | 生产域名（Cloudflare DNS → Worker → Railway） |
 | `origin.zhe.to` | Railway 直连（Worker 转发目标） |
 | `s.zhe.to` | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`） |
-| `localhost:7005` | 本地开发 |
+| `localhost:7006` | 本地开发 |
 
 ## 保留路径
 

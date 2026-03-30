@@ -19,8 +19,8 @@
 
 | 用途 | 端口规则 | 本项目 |
 |------|---------|--------|
-| Dev server | 基础端口 | 7005 |
-| BDD E2E | 万位前缀 `2` | **27005** |
+| Dev server | 基础端口 | 7006 |
+| BDD E2E | 万位前缀 `2` | **27006** |
 
 > 注：L3 API E2E 使用 mock 级别 route handler 测试，不启动独立 server，因此无需专用端口。
 
@@ -28,7 +28,7 @@
 
 - **pre-commit**: `bun run test:unit:coverage`（覆盖率不达标自动 fail） + `bunx lint-staged`（`--max-warnings=0`）
 - **pre-push**: `bun run test:api`（L3 API E2E，mock 级别，无需端口）
-- **on-demand**: `bun run test:e2e:pw`（L4 Playwright BDD E2E，端口 27005）
+- **on-demand**: `bun run test:e2e:pw`（L4 Playwright BDD E2E，端口 27006）
 
 ---
 
@@ -63,7 +63,7 @@
 |------|------|------|------|
 | 核心流程覆盖 | 是 | 15 个 spec 覆盖主要 UX 流程（108 用例） | ✅ 达标 |
 | 独立 server | 是 | playwright.config.ts 自启 Next.js dev server | ✅ 达标 |
-| 端口 | 27005 | 使用 27005（`PLAYWRIGHT=1`, `AUTH_URL=http://localhost:27005`） | ✅ 达标 |
+| 端口 | 27006 | 使用 27006（`PLAYWRIGHT=1`, `AUTH_URL=http://localhost:27006`） | ✅ 达标 |
 | 触发方式 | on-demand | `bun run test:e2e:pw`（不在 pre-push hook 中） | ✅ 达标 |
 
 ---
@@ -95,10 +95,10 @@
 
 ### P2: 端口约定规范化 ✅ 已完成
 
-**目标**: Playwright BDD E2E 使用 27005 端口。
+**目标**: Playwright BDD E2E 使用 27006 端口。
 
 **已执行**:
-1. `playwright.config.ts` 的 webServer port 设为 27005
+1. `playwright.config.ts` 的 webServer port 设为 27006
 2. `CLAUDE.md` 端口表已更新
 3. `docs/05-testing.md` 端口说明已更新
 

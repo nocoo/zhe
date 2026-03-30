@@ -148,7 +148,7 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 ## Retrospective
 
 - **Atomic commits**: Never bundle multiple logical changes (infra, model, viewmodel, view) into a single commit. Always split by layer/concern, even if they're part of the same feature. Each commit must be independently buildable and testable.
-- **E2E port isolation**: BDD E2E tests must use a dedicated port (27005) separate from the dev server (7005). Never reuse an existing dev server for E2E — Playwright always starts its own with `PLAYWRIGHT=1`. This avoids env-var mismatch bugs where the CredentialsProvider is missing.
+- **E2E port isolation**: BDD E2E tests must use a dedicated port (27006) separate from the dev server (7006). Never reuse an existing dev server for E2E — Playwright always starts its own with `PLAYWRIGHT=1`. This avoids env-var mismatch bugs where the CredentialsProvider is missing.
 - **Version bump find-replace safety**: When bumping versions in `package.json`, never use naive substring replacement (e.g. `sd '1.2.1' '1.2.2'`) because it can corrupt dependency versions (e.g. `^1.2.10` becomes `^1.2.20` when `1.2.1` is matched as a substring). Always use targeted edits scoped to the `"version"` field, or use word-boundary-aware regex.
 - **HighlightText breaks `getByText`**: When a component splits text across multiple DOM elements (e.g. `<span>zhe.to/</span><mark>abc</mark>`), `screen.getByText("zhe.to/abc")` fails because no single element contains the full text. Use `data-value` attributes on parent elements (e.g. `[cmdk-item][data-value="slug"]`) to locate items, then assert on `element.textContent` which concatenates all child text nodes.
 - **eslint-disable placement**: `// eslint-disable-next-line` only suppresses the immediately following line. If placed before a variable declaration but the lint violation is on a JSX return two lines below, it has no effect and creates an "unused eslint-disable" warning. Always place the directive directly above the offending line.
@@ -200,7 +200,7 @@ See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inven
 | `bun run test:unit` | L1 | Unit tests only (excludes `tests/api/` and `tests/integration/`) |
 | `bun run test:unit:coverage` | L1 | Unit tests with coverage threshold enforcement |
 | `bun run test:integration` | L1 | Server Actions + route handler integration tests (in-process) |
-| `bun run test:api` | L2 | API E2E tests (starts dev server on port 17005, real HTTP) |
+| `bun run test:api` | L2 | API E2E tests (starts dev server on port 17006, real HTTP) |
 | `bun run test:coverage` | — | Coverage report |
 | `bun run typecheck` | G1 | TypeScript type check (`tsc --noEmit`) |
 | `bun run lint` | G1 | ESLint strict (zero warnings) |
@@ -208,7 +208,7 @@ See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inven
 
 ### E2E (Playwright)
 
-Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `PLAYWRIGHT=1` and `AUTH_URL=http://localhost:27005`. This is completely isolated from the regular dev server (port 7005) and API E2E server (port 17005).
+Playwright tests run a **dedicated** Next.js dev server on **port 27006** with `PLAYWRIGHT=1` and `AUTH_URL=http://localhost:27006`. This is completely isolated from the regular dev server (port 7006) and API E2E server (port 17006).
 
 | Command | Description |
 |---------|-------------|
@@ -216,10 +216,10 @@ Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `
 | `bun run test:e2e:pw:ui` | Open Playwright UI mode for debugging |
 
 **How it works:**
-- `playwright.config.ts` defines `webServer` that auto-starts a fresh Next.js instance on port 27005
+- `playwright.config.ts` defines `webServer` that auto-starts a fresh Next.js instance on port 27006
 - `reuseExistingServer: false` — always starts its own server, never reuses an existing one
 - `PLAYWRIGHT=1` activates the `e2e-credentials` CredentialsProvider in `auth.ts`
-- `AUTH_URL` is set to `http://localhost:27005` so NextAuth uses non-secure cookies
+- `AUTH_URL` is set to `http://localhost:27006` so NextAuth uses non-secure cookies
 - Global setup inserts the test user into D1; global teardown cleans up
 
 **Git hooks:**
@@ -231,6 +231,6 @@ Playwright tests run a **dedicated** Next.js dev server on **port 27005** with `
 
 | Port | Purpose |
 |------|---------|
-| 7005 | Development server (`bun run dev`) |
-| 17005 | L2 API E2E test server (`run-api-e2e.ts`, auto-managed) |
-| 27005 | L3 Playwright BDD E2E test server (auto-managed) |
+| 7006 | Development server (`bun run dev`) |
+| 17006 | L2 API E2E test server (`run-api-e2e.ts`, auto-managed) |
+| 27006 | L3 Playwright BDD E2E test server (auto-managed) |

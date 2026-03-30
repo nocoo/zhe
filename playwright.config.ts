@@ -5,10 +5,10 @@ import { readFileSync } from 'fs';
 /**
  * Playwright E2E configuration.
  *
- * Tests run on a dedicated port (27005) to avoid conflicts with the
- * regular dev server (7005) and API E2E tests (17005).
+ * Tests run on a dedicated port (27006) to avoid conflicts with the
+ * regular dev server (7006) and API E2E tests (17006).
  *
- * Port convention: dev=7005, API E2E=17005, BDD E2E=27005.
+ * Port convention: dev=7006, API E2E=17006, BDD E2E=27006.
  * The webServer block always starts a fresh instance with PLAYWRIGHT=1
  * so the Credentials provider is available.
  *
@@ -18,7 +18,7 @@ import { readFileSync } from 'fs';
  * test variable is unset, the shell errors out immediately instead of
  * silently falling back to production values.
  */
-const E2E_PORT = 27005;
+const E2E_PORT = 27006;
 const E2E_BASE = `http://localhost:${E2E_PORT}`;
 
 // Load .env.local at config time for KV conditional logic

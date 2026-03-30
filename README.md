@@ -239,7 +239,7 @@ Edit `.env.local` with the required variables (see [Getting Started](docs/02-get
 bun dev
 ```
 
-Visit [http://localhost:7005](http://localhost:7005)
+Visit [http://localhost:7006](http://localhost:7006)
 
 ### 4. Run tests
 
@@ -253,14 +253,14 @@ bun run test:coverage       # coverage report
 
 | Command | Description |
 |---------|-------------|
-| `bun dev` | Dev server (port 7005) |
+| `bun dev` | Dev server (port 7006) |
 | `bun run build` | Production build |
 | `bun run lint` | ESLint (zero-warning policy) |
 | `bun run test:run` | All unit/integration/component tests |
 | `bun run test:unit` | Unit tests only |
 | `bun run test:unit:coverage` | Unit tests + coverage gate |
 | `bun run test:api` | API E2E tests (mock-level) |
-| `bun run test:e2e:pw` | Playwright BDD E2E (port 27005) |
+| `bun run test:e2e:pw` | Playwright BDD E2E (port 27006) |
 | `bun run test:e2e:pw:ui` | Playwright UI mode |
 | `bun run test:coverage` | Coverage report |
 
@@ -308,8 +308,8 @@ zhe/
 
 | Port | Purpose |
 |------|---------|
-| 7005 | Development server |
-| 27005 | Playwright BDD E2E (auto-managed, isolated) |
+| 7006 | Development server |
+| 27006 | Playwright BDD E2E (auto-managed, isolated) |
 
 ## Documentation
 
