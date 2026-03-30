@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.9.3] - 2026-03-30
+
+### Added
+- Add fade-up entry animation with staggered delays
+
+### Changed
+- Standardize logo assets per basalt B-3 spec
+- Upgrade dashboard to gen 2 context architecture (B-2 spec)
+- Add mock INSERT fidelity rule to retrospective
+
+### Fixed
+- Update L3 Playwright selectors for current page structure
+- Resolve button-in-button hydration error in CollapsibleNavGroup
+- Add tabular-nums and font-display to stat card numbers
+- Add aria-sort to storage-page sort controls
+- Badge transparent border, font-medium, semantic tinted variants
+- Remove card border/shadow anti-pattern, use bg-secondary base
+
 ## [v1.8.6] - 2026-03-29
 
 ### Changed
