@@ -30,7 +30,7 @@ setup('authenticate', async ({ page, context }) => {
   // Step 3: Navigate to dashboard — the session cookie should be set
   // from the POST response above
   await page.goto('/dashboard');
-  await expect(page.locator('h1')).toContainText('链接管理', { timeout: 15_000 });
+  await expect(page.locator('h2')).toContainText('全部链接', { timeout: 15_000 });
 
   // Save signed-in state
   await context.storageState({ path: authFile });

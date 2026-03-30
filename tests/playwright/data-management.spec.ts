@@ -44,7 +44,7 @@ test.describe.serial('Data Management', () => {
     await goToDataManagement(page);
 
     // Page heading
-    await expect(page.locator('main h1')).toContainText('数据管理');
+    await expect(page.locator('[aria-current="page"]')).toContainText('数据管理');
 
     // Export card
     await expect(page.getByRole('heading', { name: '数据导出' })).toBeVisible();

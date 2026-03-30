@@ -46,7 +46,7 @@ test.describe.serial('Upload UI', () => {
 
     // Header
     await expect(page.getByRole('heading', { name: '文件上传' })).toBeVisible();
-    await expect(page.locator('[data-testid="upload-file-count"]')).toContainText('共');
+    await expect(page.locator('[data-testid="upload-file-count"]').first()).toContainText('共');
 
     // Upload zone
     await expect(page.locator('[data-testid="upload-zone"]')).toBeVisible();
@@ -63,7 +63,7 @@ test.describe.serial('Upload UI', () => {
     await goToUploads(page);
 
     // Upload a small text file
-    const fileInput = page.locator('[data-testid="upload-input"]');
+    const fileInput = page.locator('[data-testid="upload-input"]').first();
     await fileInput.setInputFiles({
       name: 'e2e-test-file.txt',
       mimeType: 'text/plain',
@@ -92,7 +92,7 @@ test.describe.serial('Upload UI', () => {
     await expect(page.locator('[data-testid="upload-item"]')).toHaveCount(1, { timeout: 15_000 });
 
     // Upload another file
-    const fileInput = page.locator('[data-testid="upload-input"]');
+    const fileInput = page.locator('[data-testid="upload-input"]').first();
     await fileInput.setInputFiles({
       name: 'e2e-test-file-2.txt',
       mimeType: 'text/plain',
@@ -183,7 +183,7 @@ test.describe.serial('Upload UI', () => {
   test('PNG auto-convert toggle shows/hides quality slider', async ({ page }) => {
     await goToUploads(page);
 
-    const pngSwitch = page.locator('[data-testid="png-convert-switch"]');
+    const pngSwitch = page.locator('[data-testid="png-convert-switch"]').first();
 
     // Initially off — quality slider should not be visible
     const qualityLabel = page.getByText('质量', { exact: true });
@@ -201,7 +201,7 @@ test.describe.serial('Upload UI', () => {
   test('PNG convert toggle persists across page reload', async ({ page }) => {
     await goToUploads(page);
 
-    const pngSwitch = page.locator('[data-testid="png-convert-switch"]');
+    const pngSwitch = page.locator('[data-testid="png-convert-switch"]').first();
 
     // Turn on
     await pngSwitch.click();
@@ -216,7 +216,7 @@ test.describe.serial('Upload UI', () => {
     await expect(page.getByText('质量', { exact: true })).toBeVisible({ timeout: 5_000 });
 
     // Clean up: turn it off
-    await page.locator('[data-testid="png-convert-switch"]').click();
+    await page.locator('[data-testid="png-convert-switch"]').first().click();
     await expect(page.getByText('质量', { exact: true })).not.toBeVisible();
   });
 

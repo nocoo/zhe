@@ -45,13 +45,13 @@ test.describe('Auth guard (authenticated)', () => {
     await page.goto('/dashboard');
 
     // Should stay on dashboard — header shows correct title
-    await expect(page.locator('h1')).toContainText('链接管理');
+    await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
   });
 
   test('authenticated user visiting / is redirected to dashboard', async ({ page }) => {
     await page.goto('/');
     await page.waitForURL('**/dashboard');
 
-    await expect(page.locator('h1')).toContainText('链接管理');
+    await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
   });
 });

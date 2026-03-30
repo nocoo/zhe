@@ -99,19 +99,21 @@ test.describe('Overview page', () => {
     await page.goto('/dashboard/overview');
 
     // Wait for the overview page to load (stat cards appear)
-    await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
+    const main = page.locator('main');
+    await main.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
-    // Verify all 3 sections are present
-    await expect(page.locator('[data-testid="section-links"]')).toBeVisible();
-    await expect(page.locator('[data-testid="section-kv"]')).toBeVisible();
-    await expect(page.locator('[data-testid="section-uploads"]')).toBeVisible();
+    // Verify all 3 sections are present (scoped to main to avoid dev overlay duplicates)
+    await expect(main.locator('[data-testid="section-links"]').first()).toBeVisible();
+    await expect(main.locator('[data-testid="section-kv"]').first()).toBeVisible();
+    await expect(main.locator('[data-testid="section-uploads"]').first()).toBeVisible();
   });
 
   test('stat cards display non-zero link stats', async ({ page }) => {
     await page.goto('/dashboard/overview');
-    await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
+    const main = page.locator('main');
+    await main.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
-    const linksSection = page.locator('[data-testid="section-links"]');
+    const linksSection = main.locator('[data-testid="section-links"]').first();
 
     // Total links card: should show at least 3 (our seeded links)
     const totalLinksCard = linksSection.locator('[data-testid="stat-card"][data-stat-label="总链接数"]');
@@ -135,7 +137,7 @@ test.describe('Overview page', () => {
     await page.goto('/dashboard/overview');
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
-    const topLinksList = page.locator('[data-testid="top-links-list"]');
+    const topLinksList = page.locator('[data-testid="top-links-list"]').first();
     await expect(topLinksList).toBeVisible({ timeout: 10_000 });
 
     // Our 3 seeded links should appear in the top links
@@ -152,7 +154,7 @@ test.describe('Overview page', () => {
     await page.goto('/dashboard/overview');
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
-    const uploadsSection = page.locator('[data-testid="section-uploads"]');
+    const uploadsSection = page.locator('[data-testid="section-uploads"]').first();
 
     // Total uploads card: should show at least 2
     const totalUploadsCard = uploadsSection.locator('[data-testid="stat-card"][data-stat-label="总上传数"]');
@@ -176,14 +178,14 @@ test.describe('Overview page', () => {
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
     // Click trend chart should NOT show empty state
-    const linksSection = page.locator('[data-testid="section-links"]');
+    const linksSection = page.locator('[data-testid="section-links"]').first();
     await expect(linksSection.getByText('暂无点击数据')).toBeHidden();
 
     // Device breakdown donut should NOT show empty state
     await expect(linksSection.getByText('暂无数据').first()).toBeHidden();
 
     // Upload trend chart should NOT show empty state
-    const uploadsSection = page.locator('[data-testid="section-uploads"]');
+    const uploadsSection = page.locator('[data-testid="section-uploads"]').first();
     await expect(uploadsSection.getByText('暂无上传数据')).toBeHidden();
   });
 
@@ -192,7 +194,7 @@ test.describe('Overview page', () => {
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
 
     // KV section should be visible (either with data or "无法加载" message)
-    const kvSection = page.locator('[data-testid="section-kv"]');
+    const kvSection = page.locator('[data-testid="section-kv"]').first();
     await expect(kvSection).toBeVisible();
 
     // Should show "最近同步" and "KV 键数" labels (either as stat cards or error)
@@ -213,6 +215,6 @@ test.describe('Overview page', () => {
 
     // Stat cards should appear
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
-    await expect(page.locator('[data-testid="section-links"]')).toBeVisible();
+    await expect(page.locator('[data-testid="section-links"]').first()).toBeVisible();
   });
 });

@@ -35,30 +35,30 @@ test.describe('Storage Management', () => {
     await expect(main.getByText('临时文件', { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // R2 storage sub-text shows file count
-    await expect(page.getByText(/个文件/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/个文件/).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('D1 section shows connected badge and table list', async ({ page }) => {
     await goToStorage(page);
 
     // D1 header with badge
-    await expect(page.getByText('Cloudflare D1')).toBeVisible();
+    await expect(page.getByText('Cloudflare D1').first()).toBeVisible();
     await expect(page.getByText('connected').first()).toBeVisible();
 
     // D1 table headers
-    await expect(page.getByText('Table')).toBeVisible();
-    await expect(page.getByText('Rows')).toBeVisible();
+    await expect(page.getByText('Table').first()).toBeVisible();
+    await expect(page.getByText('Rows').first()).toBeVisible();
 
     // Known D1 tables should appear
-    await expect(page.getByText('links')).toBeVisible();
-    await expect(page.getByText('uploads')).toBeVisible();
+    await expect(page.getByText('links').first()).toBeVisible();
+    await expect(page.getByText('uploads').first()).toBeVisible();
   });
 
   test('R2 section shows connected badge', async ({ page }) => {
     await goToStorage(page);
 
     // R2 header with badge
-    await expect(page.getByText('Cloudflare R2')).toBeVisible();
+    await expect(page.getByText('Cloudflare R2').first()).toBeVisible();
     // At least one "connected" badge (D1 and/or R2)
     const connectedBadges = page.getByText('connected');
     await expect(connectedBadges.first()).toBeVisible();
@@ -81,9 +81,9 @@ test.describe('Storage Management', () => {
   test('sort controls for R2 files are functional', async ({ page }) => {
     await goToStorage(page);
 
-    // Sort buttons
-    const timeBtn = page.getByRole('button', { name: /时间/ });
-    const sizeBtn = page.getByRole('button', { name: /大小/ });
+    // Sort buttons (use columnheader role — buttons have role="columnheader")
+    const timeBtn = page.getByRole('columnheader', { name: /时间/ }).first();
+    const sizeBtn = page.getByRole('columnheader', { name: /大小/ }).first();
 
     await expect(timeBtn).toBeVisible();
     await expect(sizeBtn).toBeVisible();
@@ -105,6 +105,6 @@ test.describe('Storage Management', () => {
     await goToStorage(page);
 
     // The D1 summary card should show "已连接"
-    await expect(page.getByText('已连接')).toBeVisible();
+    await expect(page.getByText('已连接').first()).toBeVisible();
   });
 });
