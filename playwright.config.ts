@@ -48,6 +48,14 @@ try {
   // .env.local doesn't exist — fine, env comes from shell
 }
 
+// Validate D1_PROXY_URL points to test Worker (prevents production Worker use)
+const proxyUrl = process.env.D1_PROXY_URL;
+if (proxyUrl && !proxyUrl.includes('-test')) {
+  throw new Error(
+    `D1_PROXY_URL must point to test Worker (contain "-test"). Got: "${proxyUrl}"`
+  );
+}
+
 // Build webServer command with test environment overrides
 const webServerCommandParts = [
   'PLAYWRIGHT=1',
@@ -59,6 +67,9 @@ const webServerCommandParts = [
   process.env.CLOUDFLARE_KV_NAMESPACE_ID
     ? 'CLOUDFLARE_KV_NAMESPACE_ID=${KV_TEST_NAMESPACE_ID:?KV_TEST_NAMESPACE_ID not set}'
     : '',
+  // D1 Proxy: HARD GATE for proxy path coverage
+  'D1_PROXY_URL=${D1_PROXY_URL:?D1_PROXY_URL not set - proxy coverage mandatory}',
+  'D1_PROXY_SECRET=${D1_PROXY_SECRET:?D1_PROXY_SECRET not set}',
   `bun run next dev --turbopack -p ${E2E_PORT}`,
 ].filter(Boolean).join(' ');
 

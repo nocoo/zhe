@@ -289,6 +289,30 @@ async function main(): Promise<void> {
     console.log('[api-e2e] WORKER_SECRET not set — using test default.');
   }
 
+  // ---- D1 Proxy: HARD GATE for proxy path coverage ----
+  // All D1 queries now route through Worker proxy in production. Tests MUST
+  // exercise the proxy path to catch regressions before they reach production.
+  const proxyUrl = process.env.D1_PROXY_URL;
+  const proxySecret = process.env.D1_PROXY_SECRET;
+
+  if (!proxyUrl) {
+    console.error('❌ [api-e2e] D1_PROXY_URL must be set — proxy path coverage is mandatory.');
+    console.error('   Set D1_PROXY_URL=https://zhe-edge-test.xxx.workers.dev in .env.local');
+    console.error('   This is a HARD GATE because the proxy is the only D1 path in production.\n');
+    process.exit(1);
+  }
+  if (!proxyUrl.includes('-test')) {
+    console.error('❌ [api-e2e] D1_PROXY_URL must point to test Worker (contain "-test").');
+    console.error(`   Got: "${proxyUrl}"`);
+    console.error('   This guard prevents accidentally running tests against production Worker.\n');
+    process.exit(1);
+  }
+  if (!proxySecret) {
+    console.error('❌ [api-e2e] D1_PROXY_SECRET must be set when D1_PROXY_URL is configured.');
+    console.error('   Set D1_PROXY_SECRET in .env.local (must match the test Worker secret).\n');
+    process.exit(1);
+  }
+
   const exitCode = await runTests();
   process.exit(exitCode);
 }
