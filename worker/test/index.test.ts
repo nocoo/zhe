@@ -25,10 +25,21 @@ interface MockKV {
   put: ReturnType<typeof vi.fn>;
 }
 
+interface MockD1PreparedStatement {
+  bind: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
+}
+
+interface MockD1Database {
+  prepare: ReturnType<typeof vi.fn>;
+}
+
 interface MockEnv {
   LINKS_KV: MockKV;
+  DB: MockD1Database;
   ORIGIN_URL: string;
   WORKER_SECRET: string;
+  D1_PROXY_SECRET: string;
 }
 
 interface MockCtx {
@@ -78,8 +89,15 @@ function makeEnv(overrides?: Partial<MockEnv>): MockEnv {
       get: vi.fn().mockResolvedValue(null),
       put: vi.fn().mockResolvedValue(undefined),
     },
+    DB: {
+      prepare: vi.fn().mockImplementation(() => ({
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({ results: [], meta: { changes: 0, last_row_id: 0 } }),
+      } as MockD1PreparedStatement)),
+    },
     ORIGIN_URL: 'https://zhe-origin.railway.app',
     WORKER_SECRET: 'test-worker-secret',
+    D1_PROXY_SECRET: 'test-d1-proxy-secret',
     ...overrides,
   };
 }
@@ -704,6 +722,541 @@ describe('zhe-edge Worker — scheduled handler', () => {
       'Sync-kv cron fetch error:',
       expect.any(Error),
     );
+  });
+});
+
+// ─── D1 Proxy Handler Tests ─────────────────────────────────────────────────
+
+describe('zhe-edge Worker — D1 proxy handler', () => {
+  describe('authentication', () => {
+    it('returns 401 when Authorization header is missing', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns 401 when Authorization header has wrong scheme', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: { Authorization: 'Basic dXNlcjpwYXNz' },
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns 401 when Bearer token is wrong', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer wrong-secret' },
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('returns 401 when using WORKER_SECRET instead of D1_PROXY_SECRET', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer test-worker-secret' }, // WORKER_SECRET, not D1_PROXY_SECRET
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    });
+  });
+
+  describe('request validation', () => {
+    it('returns 400 when body is not valid JSON', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: 'not json',
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Invalid JSON body' });
+    });
+
+    it('returns 400 when sql field is missing', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ params: [] }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Missing or empty sql field' });
+    });
+
+    it('returns 400 when sql field is empty string', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: '   ' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data).toEqual({ success: false, error: 'Missing or empty sql field' });
+    });
+  });
+
+  describe('SQL execution', () => {
+    it('executes SELECT and returns results', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({
+          results: [{ id: 1, name: 'test' }],
+          meta: { changes: 0, last_row_id: 0 },
+        }),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'SELECT * FROM users WHERE id = ?', params: [1] }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toEqual({
+        success: true,
+        results: [{ id: 1, name: 'test' }],
+        meta: { changes: 0, last_row_id: 0 },
+      });
+      expect(env.DB.prepare).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?');
+      expect(mockStmt.bind).toHaveBeenCalledWith(1);
+    });
+
+    it('executes INSERT and returns meta with last_row_id', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({
+          results: [],
+          meta: { changes: 1, last_row_id: 42 },
+        }),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sql: 'INSERT INTO users (name) VALUES (?)',
+            params: ['alice'],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toEqual({
+        success: true,
+        results: [],
+        meta: { changes: 1, last_row_id: 42 },
+      });
+    });
+
+    it('executes UPDATE and returns changes count', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({
+          results: [],
+          meta: { changes: 3, last_row_id: 0 },
+        }),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sql: 'UPDATE users SET active = ? WHERE role = ?',
+            params: [true, 'admin'],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.meta.changes).toBe(3);
+    });
+
+    it('executes DELETE and returns changes count', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({
+          results: [],
+          meta: { changes: 5, last_row_id: 0 },
+        }),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sql: 'DELETE FROM sessions WHERE expires_at < ?',
+            params: [Date.now()],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.meta.changes).toBe(5);
+    });
+
+    it('defaults params to empty array when not provided', async () => {
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockResolvedValue({
+          results: [{ count: 10 }],
+          meta: { changes: 0, last_row_id: 0 },
+        }),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'SELECT COUNT(*) as count FROM users' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(mockStmt.bind).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('error handling', () => {
+    it('normalizes UNIQUE constraint error (HTTP 200, stripped message)', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockRejectedValue(new Error('UNIQUE constraint failed: users.email')),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sql: 'INSERT INTO users (email) VALUES (?)',
+            params: ['dup@example.com'],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      // CRITICAL: HTTP 200 with success: false (matches D1 HTTP API behavior)
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toEqual({
+        success: false,
+        error: 'UNIQUE constraint failed', // No table/column detail
+      });
+      consoleSpy.mockRestore();
+    });
+
+    it('normalizes case-insensitive "unique" in error message', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockRejectedValue(new Error('constraint violation: Unique index on users')),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'INSERT INTO users (id) VALUES (?)', params: [1] }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.error).toBe('UNIQUE constraint failed');
+      consoleSpy.mockRestore();
+    });
+
+    it('sanitizes syntax error to generic message (HTTP 200)', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockRejectedValue(new Error('near "SELEC": syntax error')),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'SELEC * FROM users' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      // CRITICAL: HTTP 200 with success: false
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toEqual({
+        success: false,
+        error: 'D1 query failed', // Sanitized, no internal detail
+      });
+      expect(consoleSpy).toHaveBeenCalledWith('D1 proxy error:', expect.stringContaining('syntax error'));
+      consoleSpy.mockRestore();
+    });
+
+    it('sanitizes FOREIGN KEY error to generic message (HTTP 200)', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockRejectedValue(new Error('FOREIGN KEY constraint failed')),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sql: 'INSERT INTO posts (user_id) VALUES (?)',
+            params: [9999],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.error).toBe('D1 query failed');
+      consoleSpy.mockRestore();
+    });
+
+    it('sanitizes generic database error (HTTP 200)', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      stubOriginFetch();
+      const env = makeEnv();
+      const mockStmt: MockD1PreparedStatement = {
+        bind: vi.fn().mockReturnThis(),
+        all: vi.fn().mockRejectedValue(new Error('database is locked')),
+      };
+      env.DB.prepare.mockReturnValue(mockStmt);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.error).toBe('D1 query failed');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('routing', () => {
+    it('handles /api/d1-query instead of forwarding to origin', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sql: 'SELECT 1' }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      // Should be handled by Worker, NOT forwarded to origin
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+    });
+
+    it('forwards GET /api/d1-query to origin (not handled by proxy)', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-query', { method: 'GET' }),
+        env,
+        makeCtx(),
+      );
+
+      // GET method should be forwarded to origin (reserved path)
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(res.status).toBe(200);
+    });
+
+    it('forwards other /api/* paths to origin', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+
+      const res = await worker.fetch(
+        makeRequest('/api/health'),
+        env,
+        makeCtx(),
+      );
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url] = fetchMock.mock.calls[0];
+      expect(url).toBe('https://zhe-origin.railway.app/api/health');
+      expect(res.status).toBe(200);
+    });
   });
 });
 
