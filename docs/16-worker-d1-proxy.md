@@ -60,19 +60,21 @@ Success response:
 }
 ```
 
-Error response:
+Error response (always HTTP 200, error in body):
 ```json
 {
   "success": false,
-  "error": "UNIQUE constraint failed: links.slug"
+  "error": "UNIQUE constraint failed"
 }
 ```
 
-**Error contract**: The Worker proxy MUST match existing `d1-client.ts` error sanitization behavior:
+**Error contract**: The Worker proxy MUST match existing `d1-client.ts` error handling exactly:
 
-1. **UNIQUE constraint errors only** — preserve verbatim in `error` field. Callers depend on detecting `UNIQUE constraint failed` for skip-on-duplicate logic (`actions/settings.ts:64`).
+1. **UNIQUE constraint errors** — normalize to `"UNIQUE constraint failed"` (no table/column detail). The current fallback path strips schema detail (`lib/db/d1-client.ts:67,80`), so proxy must do the same.
 
-2. **All other errors** (syntax, auth, network, other constraints like FOREIGN KEY) — sanitize to generic `D1 query failed`. This matches the existing security measure documented in CHANGELOG.md:552 ("D1 error message sanitization to prevent internal detail leakage").
+2. **All other errors** (syntax, auth, network, FOREIGN KEY, etc.) — sanitize to `"D1 query failed"`.
+
+3. **HTTP status** — Always return HTTP 200 with `{ success: false, error: "..." }` for query-level errors. This matches the Cloudflare D1 HTTP API behavior where the outer HTTP response is 200 but `data.success` is false. Using non-2xx would break the existing client pattern which checks `response.ok` before parsing JSON (`lib/db/d1-client.ts:62`).
 
 Worker handler implementation:
 ```typescript
@@ -81,16 +83,25 @@ try {
   return Response.json({ success: true, results: result.results, meta: result.meta });
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  // Preserve UNIQUE constraint errors only (matches d1-client.ts:65)
+  // Normalize UNIQUE errors (strip table/column detail to match d1-client.ts:67,80)
   if (/unique/i.test(message)) {
-    return Response.json({ success: false, error: message }, { status: 400 });
+    return Response.json({ success: false, error: 'UNIQUE constraint failed' });
   }
-  // Sanitize all other errors including FOREIGN KEY, syntax, etc.
-  return Response.json({ success: false, error: 'D1 query failed' }, { status: 500 });
+  // Sanitize all other errors
+  return Response.json({ success: false, error: 'D1 query failed' });
 }
 ```
 
-Proxy client (`executeViaWorkerProxy`) throws the `error` field as-is, matching `executeViaHttpApi` behavior.
+Proxy client (`executeViaWorkerProxy`):
+```typescript
+const res = await fetch(url, { method: 'POST', headers, body, signal });
+// Always parse JSON — proxy returns 200 even for errors (matches D1 HTTP API)
+const data = await res.json();
+if (!data.success) {
+  throw new Error(data.error); // "UNIQUE constraint failed" or "D1 query failed"
+}
+return data.results;
+```
 
 ### Security Model
 
@@ -260,9 +271,9 @@ database_id = "xxx-prod-id"
 - Auth validation (missing/invalid token → 401)
 - Wrong secret (WORKER_SECRET instead of D1_PROXY_SECRET) → 401
 - SQL execution (SELECT, INSERT, UPDATE, DELETE)
-- Error sanitization: syntax error → `{ success: false, error: "D1 query failed" }`
-- Error sanitization: FOREIGN KEY error → `{ success: false, error: "D1 query failed" }`
-- UNIQUE preservation: UNIQUE violation → `{ success: false, error: "UNIQUE constraint failed: ..." }`
+- Error normalization: UNIQUE violation → HTTP 200, `{ success: false, error: "UNIQUE constraint failed" }` (no table detail)
+- Error sanitization: syntax error → HTTP 200, `{ success: false, error: "D1 query failed" }`
+- Error sanitization: FOREIGN KEY error → HTTP 200, `{ success: false, error: "D1 query failed" }`
 - Routing: verify `/api/d1-query` is handled, not forwarded
 
 ### Phase 2: Client Integration
