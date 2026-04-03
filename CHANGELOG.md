@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.9.4] - 2026-04-03
+
+### Added
+- Add missing Badge variants per B-4 spec
+- Add Skeleton loading component
+
+### Changed
+- Add dev server to superset run config
+- Extract Barcode to standalone component
+- Extract GoogleIcon to standalone component
+- Migrate ports 7005/17005/27005 → 7006/17006/27006
+
+### Fixed
+- Correct dark mode --input token per B-5 spec
+- Add Tooltip for logout button in expanded view
+- Correct osv-scanner config path to match actual filename
+
 ## [v1.9.3] - 2026-03-30
 
 ### Added
