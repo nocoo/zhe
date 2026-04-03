@@ -223,6 +223,21 @@ function recordClickAsync(
   );
 }
 
+// ─── Timing-Safe Comparison ─────────────────────────────────────────────────
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Uses Web Crypto API's crypto.subtle.timingSafeEqual for constant-time comparison.
+ * Critical for high-privilege endpoints like D1 proxy.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const encoder = new TextEncoder();
+  const aBytes = encoder.encode(a);
+  const bBytes = encoder.encode(b);
+  return crypto.subtle.timingSafeEqual(aBytes, bBytes);
+}
+
 // ─── D1 Proxy Handler ───────────────────────────────────────────────────────
 
 interface D1ProxyRequest {
@@ -259,7 +274,7 @@ async function handleD1Query(request: Request, env: Env): Promise<Response> {
   }
 
   const token = authHeader.slice(7);
-  if (token !== env.D1_PROXY_SECRET) {
+  if (!timingSafeEqual(token, env.D1_PROXY_SECRET)) {
     return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 

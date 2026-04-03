@@ -2,15 +2,22 @@ name = "zhe-edge"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+# ─── D1 Database Binding ────────────────────────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "<YOUR_D1_DATABASE_NAME>"
+database_id = "<YOUR_D1_DATABASE_ID>"
+
 # ─── KV Namespace Binding ────────────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "LINKS_KV"
 id = "<YOUR_KV_NAMESPACE_ID>"
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
-# ORIGIN_URL      — Railway backend URL (e.g. https://zhe.to or Railway internal)
-# WORKER_SECRET   — shared secret for both /api/cron/cleanup and /api/record-click
+# ORIGIN_URL        — Railway backend URL (e.g. https://zhe.to)
+# WORKER_SECRET     — Shared secret for /api/record-click, /api/cron/*
+# D1_PROXY_SECRET   — Dedicated secret for /api/d1-query (separate from WORKER_SECRET)
 
 # ─── Cron Triggers ───────────────────────────────────────────────────────────
 [triggers]
-crons = ["*/30 * * * *"]  # every 30 minutes — cleanup expired tmp files
+crons = ["*/30 * * * *"]  # every 30 minutes — cleanup expired tmp files + D1 → KV delta sync

@@ -65,6 +65,35 @@ Object.defineProperty(globalThis, 'caches', {
   configurable: true,
 });
 
+// ─── Crypto API Mock (timingSafeEqual) ──────────────────────────────────────
+// Cloudflare Workers runtime has crypto.subtle.timingSafeEqual, but Node/Bun doesn't.
+// Mock it for test environment.
+
+if (!globalThis.crypto?.subtle?.timingSafeEqual) {
+  const originalCrypto = globalThis.crypto || {};
+  const originalSubtle = originalCrypto.subtle || {};
+  Object.defineProperty(globalThis, 'crypto', {
+    value: {
+      ...originalCrypto,
+      subtle: {
+        ...originalSubtle,
+        timingSafeEqual: (a: ArrayBuffer, b: ArrayBuffer) => {
+          const aView = new Uint8Array(a);
+          const bView = new Uint8Array(b);
+          if (aView.length !== bView.length) return false;
+          let result = 0;
+          for (let i = 0; i < aView.length; i++) {
+            result |= aView[i] ^ bView[i];
+          }
+          return result === 0;
+        },
+      },
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
 // ─── Import Worker (dynamic to allow global fetch mock) ─────────────────────
 
 let worker: {
