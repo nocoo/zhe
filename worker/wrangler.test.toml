@@ -1,0 +1,30 @@
+# Test Worker configuration for L2/L3 E2E tests.
+# Deploy with: wrangler deploy -c wrangler.test.toml
+#
+# This Worker binds to TEST resources only — it MUST NOT connect to production.
+# See docs/16-worker-d1-proxy.md for isolation requirements.
+
+name = "zhe-edge-test"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# ─── D1 Database Binding (TEST) ─────────────────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "zhe-db-test"
+database_id = "d97aebb3-14c5-4650-8e51-95b13081ba6a"
+
+# ─── KV Namespace Binding (TEST) ────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "LINKS_KV"
+id = "359bfc2301864c70832131cf003c85b0"
+
+# ─── Environment Variables (set via `wrangler secret put -c wrangler.test.toml`) ─
+# ORIGIN_URL        — Test origin URL (e.g. http://localhost:17006 for L2)
+# WORKER_SECRET     — Shared secret for /api/record-click, /api/cron/*
+# D1_PROXY_SECRET   — Dedicated secret for /api/d1-query (separate from WORKER_SECRET)
+
+# ─── Cron Triggers ───────────────────────────────────────────────────────────
+# Same as production — test Worker can exercise cron paths if needed
+[triggers]
+crons = ["*/30 * * * *"]
