@@ -51,7 +51,7 @@ Content-Type: application/json
 }
 ```
 
-Response:
+Success response:
 ```json
 {
   "success": true,
@@ -59,6 +59,19 @@ Response:
   "meta": { "changes": 0, "last_row_id": 0 }
 }
 ```
+
+Error response:
+```json
+{
+  "success": false,
+  "error": "UNIQUE constraint failed: links.slug"
+}
+```
+
+**Error contract**: The `error` field MUST preserve D1's original error message verbatim, especially constraint violations. Existing code relies on detecting `UNIQUE constraint failed` to handle duplicate slugs (see `actions/settings.ts:64`). The proxy client (`executeViaWorkerProxy`) must:
+1. Check `response.success === false`
+2. Throw `new Error(response.error)` to preserve the exact message
+3. Never wrap or sanitize constraint error text
 
 ### Security Model
 
@@ -181,8 +194,14 @@ Once queries route through Worker, this protection is **bypassed** — the Worke
 **Verification in test harness:**
 ```typescript
 // scripts/run-api-e2e.ts — add after existing D1 isolation check
-if (process.env.D1_PROXY_URL && !process.env.D1_PROXY_URL.includes('-test')) {
+const proxyUrl = process.env.D1_PROXY_URL;
+const proxySecret = process.env.D1_PROXY_SECRET;
+
+if (proxyUrl && !proxyUrl.includes('-test')) {
   throw new Error('D1_PROXY_URL must point to test Worker in test environment');
+}
+if (proxyUrl && !proxySecret) {
+  throw new Error('D1_PROXY_SECRET must be set when D1_PROXY_URL is configured (prevents silent HTTP API fallback)');
 }
 ```
 
@@ -213,7 +232,8 @@ database_id = "xxx-prod-id"
 - Auth validation (missing/invalid token → 401)
 - Wrong secret (WORKER_SECRET instead of D1_PROXY_SECRET) → 401
 - SQL execution (SELECT, INSERT, UPDATE, DELETE)
-- Error handling (syntax error, constraint violation)
+- Error response format (syntax error → `{ success: false, error: "..." }`)
+- Constraint violation preservation (`UNIQUE constraint failed` in error message)
 - Routing: verify `/api/d1-query` is handled, not forwarded
 
 ### Phase 2: Client Integration
@@ -245,9 +265,10 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 ### Phase 3: Test Harness Update
 
 **Commit 7: Update L2/L3 harness for test Worker**
-- `scripts/run-api-e2e.ts`: Set `D1_PROXY_URL` to test Worker
-- `playwright.config.ts` / `tests/e2e/global-setup.ts`: Same
+- `scripts/run-api-e2e.ts`: Set both `D1_PROXY_URL` and `D1_PROXY_SECRET` to test Worker
+- `tests/playwright/global-setup.ts`: Set both `D1_PROXY_URL` and `D1_PROXY_SECRET`
 - Add safety check: reject if `D1_PROXY_URL` doesn't contain `-test`
+- Add safety check: reject if `D1_PROXY_SECRET` is not set (prevents silent fallback to HTTP API)
 
 **Commit 8: Add L2 test for proxy endpoint**
 - Real HTTP call to test Worker
@@ -299,7 +320,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `D1_PROXY_URL` | `https://zhe-edge-test.xxx.workers.dev` | Test Worker |
-| `D1_PROXY_SECRET` | `<test-secret>` | Can be same across dev/CI |
+| `D1_PROXY_SECRET` | `<test-secret>` | Required, prevents silent HTTP fallback |
 
 ## 6DQ Coverage
 
