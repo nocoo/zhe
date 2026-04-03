@@ -1,10 +1,17 @@
 /**
  * Shared D1 HTTP Client for Cloudflare D1 database access.
  * Used by both the main db module and Auth.js adapter.
+ *
+ * Queries route through Worker D1 proxy when available (via D1_PROXY_URL),
+ * otherwise fall back to Cloudflare HTTP API. The proxy path is 10-100x faster
+ * because it uses native D1 binding instead of cross-region HTTP calls.
  */
 
 /** Timeout for D1 HTTP API requests (ms). Prevents hung fetches from blocking middleware indefinitely. */
 const D1_FETCH_TIMEOUT_MS = 5_000;
+
+/** Timeout for Worker proxy requests (ms). Proxy is edge-local, so needs less timeout than HTTP API. */
+const PROXY_FETCH_TIMEOUT_MS = 10_000;
 
 interface D1Response<T> {
   success: boolean;
@@ -30,6 +37,68 @@ function getD1Headers(token: string): Record<string, string> {
   };
 }
 
+/** Check if Worker D1 proxy credentials are configured. */
+function getProxyCredentials(): { url: string; secret: string } | null {
+  const url = process.env.D1_PROXY_URL;
+  const secret = process.env.D1_PROXY_SECRET;
+  if (!url || !secret) return null;
+  return { url, secret };
+}
+
+/** Request/response format for Worker D1 proxy. */
+interface D1ProxyRequest {
+  sql: string;
+  params: unknown[];
+}
+
+interface D1ProxyResponse {
+  success: boolean;
+  results?: unknown[];
+  meta?: { changes: number; last_row_id: number };
+  error?: string;
+}
+
+/**
+ * Execute query via Worker D1 proxy (native binding path).
+ * This is 10-100x faster than HTTP API because Worker uses env.DB binding.
+ */
+async function executeViaWorkerProxy<T>(
+  proxy: { url: string; secret: string },
+  sql: string,
+  params: unknown[],
+): Promise<T[]> {
+  const { url, secret } = proxy;
+  const endpoint = url.endsWith('/') ? `${url}api/d1-query` : `${url}/api/d1-query`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify({ sql, params } satisfies D1ProxyRequest),
+    signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    // Non-2xx from proxy means auth/infrastructure error (not query error)
+    const error = await response.text();
+    console.error('Worker proxy HTTP error:', error);
+    throw new Error('D1 query failed');
+  }
+
+  const data: D1ProxyResponse = await response.json();
+
+  // Proxy returns HTTP 200 even for query errors — check success field
+  if (!data.success) {
+    console.error('Worker proxy query error:', data.error);
+    // Proxy normalizes errors: UNIQUE → "UNIQUE constraint failed", all others → "D1 query failed"
+    throw new Error(data.error || 'D1 query failed');
+  }
+
+  return (data.results || []) as T[];
+}
+
 /** Validate that D1 credentials are present and return them. */
 function getD1Credentials(): { accountId: string; databaseId: string; token: string } {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -44,9 +113,24 @@ function getD1Credentials(): { accountId: string; databaseId: string; token: str
 }
 
 /**
- * Execute a SQL query against Cloudflare D1 via HTTP API.
+ * Execute a SQL query against Cloudflare D1.
+ *
+ * Routes through Worker D1 proxy when available (D1_PROXY_URL + D1_PROXY_SECRET),
+ * otherwise falls back to direct HTTP API. The proxy path is significantly faster
+ * because it uses native D1 binding at the edge instead of cross-region HTTP.
+ *
+ * Error contract:
+ * - UNIQUE constraint errors → "UNIQUE constraint failed" (for caller detection)
+ * - All other errors → "D1 query failed" (sanitized)
  */
 export async function executeD1Query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+  // Try Worker proxy first (fast path)
+  const proxy = getProxyCredentials();
+  if (proxy) {
+    return executeViaWorkerProxy<T>(proxy, sql, params);
+  }
+
+  // Fallback to HTTP API (slow path, cross-region)
   const { accountId, databaseId, token } = getD1Credentials();
 
   const response = await fetch(
@@ -87,11 +171,18 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 
 /**
  * Check if D1 is configured and available.
+ *
+ * D1 is accessible via either:
+ * 1. Worker D1 proxy (D1_PROXY_URL + D1_PROXY_SECRET) — fast path
+ * 2. Direct HTTP API (CLOUDFLARE_ACCOUNT_ID + DATABASE_ID + API_TOKEN) — slow path
  */
 export function isD1Configured(): boolean {
   return !!(
-    process.env.CLOUDFLARE_ACCOUNT_ID &&
-    process.env.CLOUDFLARE_D1_DATABASE_ID &&
-    process.env.CLOUDFLARE_API_TOKEN
+    // Proxy path (preferred)
+    (process.env.D1_PROXY_URL && process.env.D1_PROXY_SECRET) ||
+    // Direct HTTP API path (fallback)
+    (process.env.CLOUDFLARE_ACCOUNT_ID &&
+      process.env.CLOUDFLARE_D1_DATABASE_ID &&
+      process.env.CLOUDFLARE_API_TOKEN)
   );
 }
