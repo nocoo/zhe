@@ -493,15 +493,20 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
               {user?.email}
             </p>
           </div>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              aria-label="Sign out"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
-            >
-              <LogOut className="h-4 w-4" strokeWidth={1.5} />
-            </button>
-          </form>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  aria-label="Sign out"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </form>
+            </TooltipTrigger>
+            <TooltipContent side="top">Sign out</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </aside>
