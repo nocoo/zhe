@@ -246,28 +246,30 @@ if (!proxySecret) {
 
 ## Implementation Plan
 
-### Phase 1: Worker Infrastructure
+### Phase 1: Worker Infrastructure ✅
 
-**Commit 1: Add test Worker config (wrangler.test.toml)**
+**Commit 1: Add test Worker config (wrangler.test.toml)** ✅ COMPLETE
 - D1 binding → `zhe-db-test`
 - KV binding → `zhe-test`
 - Worker name → `zhe-edge-test`
 
-**Commit 2: Add D1 binding to production Worker (wrangler.toml)**
+**Commit 2: Add D1 binding to production Worker (wrangler.toml)** ✅ COMPLETE (LOCAL ONLY)
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "zhe"
-database_id = "xxx-prod-id"
+database_name = "zhe-db"
+database_id = "2ec5605c-613a-4c3a-a815-1ff7776bf6ab"
 ```
 
-**Commit 3: Add /api/d1-query handler with routing fix**
+> Note: `wrangler.toml` is gitignored (contains database IDs). Configure locally before deploy.
+
+**Commit 3: Add /api/d1-query handler with routing fix** ✅ COMPLETE
 - Insert handler BEFORE reserved path check
 - Verify `Authorization: Bearer {D1_PROXY_SECRET}`
 - Execute via `env.DB.prepare(sql).bind(...params).all()`
 - Return standardized response format
 
-**Commit 4: Add Worker D1 proxy tests**
+**Commit 4: Add Worker D1 proxy tests** ✅ COMPLETE
 - Auth validation (missing/invalid token → 401)
 - Wrong secret (WORKER_SECRET instead of D1_PROXY_SECRET) → 401
 - SQL execution (SELECT, INSERT, UPDATE, DELETE)
@@ -276,9 +278,9 @@ database_id = "xxx-prod-id"
 - Error sanitization: FOREIGN KEY error → HTTP 200, `{ success: false, error: "D1 query failed" }`
 - Routing: verify `/api/d1-query` is handled, not forwarded
 
-### Phase 2: Client Integration
+### Phase 2: Client Integration ✅
 
-**Commit 5: Add D1_PROXY_SECRET and proxy client in d1-client.ts**
+**Commit 5: Add D1_PROXY_SECRET and proxy client in d1-client.ts** ✅ COMPLETE
 ```typescript
 function getProxyCredentials(): { url: string; secret: string } | null {
   const url = process.env.D1_PROXY_URL;
@@ -296,15 +298,15 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 }
 ```
 
-**Commit 6: Add d1-client proxy path unit tests**
+**Commit 6: Add d1-client proxy path unit tests** ✅ COMPLETE
 - Mock fetch for proxy endpoint
 - Verify Authorization header uses D1_PROXY_SECRET (not WORKER_SECRET)
 - Verify request/response format
 - Verify fallback when proxy not configured
 
-### Phase 3: Test Harness Update
+### Phase 3: Test Harness Update ✅
 
-**Commit 7: Update L2/L3 harness for test Worker (HARD GATE)**
+**Commit 7: Update L2/L3 harness for test Worker (HARD GATE)** ✅ COMPLETE
 
 L2 (`scripts/run-api-e2e.ts`):
 - Hard-require `D1_PROXY_URL` and `D1_PROXY_SECRET` — fail if either is missing
@@ -316,20 +318,49 @@ L3 (`playwright.config.ts`):
 
 **Note**: `tests/playwright/global-setup.ts` runs in the test runner process, NOT the Next.js app process. Environment variables for the app must be injected via `playwright.config.ts:webServerCommandParts`.
 
-**Commit 8: Add L2 test for proxy endpoint**
+**Commit 8: Add L2 test for proxy endpoint** ✅ COMPLETE
 - Real HTTP call to test Worker
 - Verify roundtrip through test D1
 
-### Phase 4: Deployment + Rollout
+### Phase 4: Deployment + Rollout ⏳ PENDING MANUAL STEPS
 
-**Commit 9: Deploy Workers**
-- `wrangler deploy` (prod Worker with D1 binding)
-- `wrangler deploy -c wrangler.test.toml` (test Worker)
-- `wrangler secret put D1_PROXY_SECRET` (both environments)
+> **The following commits require manual execution by the user:**
+>
+> 1. Deploy Workers to Cloudflare
+> 2. Enable proxy in Railway environment variables
+>
+> See instructions below.
 
-**Commit 10: Enable proxy in Railway**
-- Set `D1_PROXY_URL=https://zhe-edge.xxx.workers.dev`
-- Set `D1_PROXY_SECRET=<new-high-entropy-secret>`
+**Commit 9: Deploy Workers** ⏳ MANUAL STEP REQUIRED
+```bash
+# Deploy production Worker
+cd worker
+wrangler deploy
+
+# Deploy test Worker
+wrangler deploy -c wrangler.test.toml
+
+# Set D1_PROXY_SECRET for production Worker
+wrangler secret put D1_PROXY_SECRET --env production
+# Paste a high-entropy secret when prompted
+
+# Set D1_PROXY_SECRET for test Worker
+wrangler secret put D1_PROXY_SECRET -c wrangler.test.toml
+# Use the same OR a different secret for test (recommended: same for simplicity)
+```
+
+**Commit 10: Enable proxy in Railway** ⏳ MANUAL STEP REQUIRED
+```bash
+# In Railway dashboard, add environment variables:
+D1_PROXY_URL=https://zhe-edge.<your-subdomain>.workers.dev
+D1_PROXY_SECRET=<same-secret-set-in-wrangler-above>
+```
+
+After enabling the proxy:
+1. Monitor logs for any errors
+2. Run L2 tests: `bun run test:api` — should pass via test Worker
+3. Run L3 tests: `bun run test:e2e:pw` — should pass via test Worker
+4. Check metrics: D1 query latency should drop from 200-500ms to 5-20ms
 
 ## Environment Variables
 
