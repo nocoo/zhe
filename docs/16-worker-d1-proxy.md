@@ -70,9 +70,9 @@ Error response:
 
 **Error contract**: The Worker proxy MUST match existing `d1-client.ts` error sanitization behavior:
 
-1. **Constraint errors** (UNIQUE, FOREIGN KEY, etc.) — preserve verbatim in `error` field. Callers depend on detecting `UNIQUE constraint failed` for skip-on-duplicate logic (`actions/settings.ts:64`).
+1. **UNIQUE constraint errors only** — preserve verbatim in `error` field. Callers depend on detecting `UNIQUE constraint failed` for skip-on-duplicate logic (`actions/settings.ts:64`).
 
-2. **All other errors** (syntax, auth, network) — sanitize to generic `D1 query failed`. This matches the existing security measure documented in CHANGELOG.md:552 ("D1 error message sanitization to prevent internal detail leakage").
+2. **All other errors** (syntax, auth, network, other constraints like FOREIGN KEY) — sanitize to generic `D1 query failed`. This matches the existing security measure documented in CHANGELOG.md:552 ("D1 error message sanitization to prevent internal detail leakage").
 
 Worker handler implementation:
 ```typescript
@@ -81,11 +81,11 @@ try {
   return Response.json({ success: true, results: result.results, meta: result.meta });
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  // Preserve constraint errors for caller detection
-  if (/unique|constraint/i.test(message)) {
+  // Preserve UNIQUE constraint errors only (matches d1-client.ts:65)
+  if (/unique/i.test(message)) {
     return Response.json({ success: false, error: message }, { status: 400 });
   }
-  // Sanitize all other errors
+  // Sanitize all other errors including FOREIGN KEY, syntax, etc.
   return Response.json({ success: false, error: 'D1 query failed' }, { status: 500 });
 }
 ```
@@ -261,7 +261,8 @@ database_id = "xxx-prod-id"
 - Wrong secret (WORKER_SECRET instead of D1_PROXY_SECRET) → 401
 - SQL execution (SELECT, INSERT, UPDATE, DELETE)
 - Error sanitization: syntax error → `{ success: false, error: "D1 query failed" }`
-- Constraint preservation: UNIQUE violation → `{ success: false, error: "UNIQUE constraint failed: ..." }`
+- Error sanitization: FOREIGN KEY error → `{ success: false, error: "D1 query failed" }`
+- UNIQUE preservation: UNIQUE violation → `{ success: false, error: "UNIQUE constraint failed: ..." }`
 - Routing: verify `/api/d1-query` is handled, not forwarded
 
 ### Phase 2: Client Integration
