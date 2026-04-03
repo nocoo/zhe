@@ -46,8 +46,10 @@
 
 export interface Env {
   LINKS_KV: KVNamespace;
+  DB: D1Database;
   ORIGIN_URL: string;
   WORKER_SECRET: string;
+  D1_PROXY_SECRET: string;
 }
 
 /** Minimal data stored per slug in KV — mirrors lib/kv/client.ts KVLinkData. */
@@ -221,6 +223,89 @@ function recordClickAsync(
   );
 }
 
+// ─── D1 Proxy Handler ───────────────────────────────────────────────────────
+
+interface D1ProxyRequest {
+  sql: string;
+  params?: unknown[];
+}
+
+interface D1ProxyResponse {
+  success: boolean;
+  results?: unknown[];
+  meta?: { changes: number; last_row_id: number };
+  error?: string;
+}
+
+/**
+ * Handle D1 proxy requests from Railway backend.
+ * This enables Railway to execute D1 queries via Worker's native binding
+ * instead of the high-latency Cloudflare HTTP API.
+ *
+ * Security:
+ * - Requires dedicated D1_PROXY_SECRET (separate from WORKER_SECRET)
+ * - Worker is a dumb SQL proxy; Railway handles auth and constructs scoped queries
+ * - Uses parameterized queries only (no SQL concatenation)
+ *
+ * Error handling matches d1-client.ts behavior:
+ * - UNIQUE constraint errors → preserve message for caller detection
+ * - All other errors → sanitize to "D1 query failed"
+ */
+async function handleD1Query(request: Request, env: Env): Promise<Response> {
+  // Verify D1_PROXY_SECRET (NOT WORKER_SECRET)
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const token = authHeader.slice(7);
+  if (token !== env.D1_PROXY_SECRET) {
+    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Parse request body
+  let body: D1ProxyRequest;
+  try {
+    body = await request.json() as D1ProxyRequest;
+  } catch {
+    return Response.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { sql, params = [] } = body;
+  if (typeof sql !== 'string' || !sql.trim()) {
+    return Response.json({ success: false, error: 'Missing or empty sql field' }, { status: 400 });
+  }
+
+  // Execute query via native D1 binding
+  try {
+    const stmt = env.DB.prepare(sql).bind(...params);
+    const result = await stmt.all();
+
+    return Response.json({
+      success: true,
+      results: result.results,
+      meta: { changes: result.meta.changes, last_row_id: result.meta.last_row_id },
+    } satisfies D1ProxyResponse);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    // Normalize UNIQUE errors (strip table/column detail to match d1-client.ts:67,80)
+    if (/unique/i.test(message)) {
+      return Response.json({
+        success: false,
+        error: 'UNIQUE constraint failed',
+      } satisfies D1ProxyResponse);
+    }
+
+    // Sanitize all other errors
+    console.error('D1 proxy error:', message);
+    return Response.json({
+      success: false,
+      error: 'D1 query failed',
+    } satisfies D1ProxyResponse);
+  }
+}
+
 // ─── Fetch Handler ──────────────────────────────────────────────────────────
 
 async function handleFetch(
@@ -230,6 +315,12 @@ async function handleFetch(
 ): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
+
+  // 0. D1 proxy endpoint — MUST be checked BEFORE reserved path logic
+  //    Otherwise /api/* gets forwarded to origin and this handler never runs
+  if (pathname === '/api/d1-query' && request.method === 'POST') {
+    return handleD1Query(request, env);
+  }
 
   // 1. Root path → forward to origin
   if (pathname === '/' || pathname === '') {
