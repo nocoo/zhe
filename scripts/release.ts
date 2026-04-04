@@ -482,8 +482,10 @@ async function main(): Promise<void> {
   // --- Phase 3: Stale version verification ---
   console.log('🔍 Phase 3: Checking for stale version strings...\n');
 
+  // Use word boundaries to avoid false positives (e.g., "1.9.4" matching "1707618622812934144")
+  const versionPattern = `\\b${currentVersion.replace(/\./g, '\\.')}\\b`;
   const rgResult = await run('rg', [
-    currentVersion,
+    versionPattern,
     '--glob',
     '*.ts',
     '--glob',
