@@ -8,22 +8,20 @@
  * The proxy endpoint only exists on the Worker.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { unwrap } from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Helpers for direct Worker API calls
 // ---------------------------------------------------------------------------
 
-const WORKER_URL = process.env.D1_PROXY_URL;
-const PROXY_SECRET = process.env.D1_PROXY_SECRET;
+const WORKER_URL = process.env.D1_PROXY_URL ?? '';
+const PROXY_SECRET = process.env.D1_PROXY_SECRET ?? '';
 
 if (!WORKER_URL) throw new Error('D1_PROXY_URL not set in test environment');
 if (!PROXY_SECRET) throw new Error('D1_PROXY_SECRET not set in test environment');
 
 /** Build absolute URL to test Worker's /api/d1-query endpoint. */
 function workerProxyUrl(): string {
-  // Non-null assertion: we throw above if undefined
-  const base = WORKER_URL!.endsWith('/') ? WORKER_URL!.slice(0, -1) : WORKER_URL!;
+  const base = WORKER_URL.endsWith('/') ? WORKER_URL.slice(0, -1) : WORKER_URL;
   return `${base}/api/d1-query`;
 }
 
@@ -36,7 +34,7 @@ async function proxyQuery(sql: string, params: unknown[] = []): Promise<{
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${PROXY_SECRET!}`,
+      Authorization: `Bearer ${PROXY_SECRET}`,
     },
     body: JSON.stringify({ sql, params }),
   });
@@ -155,10 +153,10 @@ describe('POST /api/d1-query — SQL execution', () => {
 
     expect(status).toBe(200);
     expect(body.success).toBe(true);
-    expect(unwrap(body.results)).toHaveLength(1);
-    const row = unwrap(body.results)[0] as { user_id: string; value: string };
-    expect(row.user_id).toBe(TEST_USER_ID);
-    expect(row.value).toBe('test-select');
+    expect(body.results).toHaveLength(1);
+    const row = body.results?.[0] as { user_id: string; value: string } | undefined;
+    expect(row?.user_id).toBe(TEST_USER_ID);
+    expect(row?.value).toBe('test-select');
   });
 
   it('executes INSERT and returns last_row_id', async () => {
