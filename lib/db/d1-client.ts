@@ -10,8 +10,8 @@
 /** Timeout for D1 HTTP API requests (ms). Prevents hung fetches from blocking middleware indefinitely. */
 const D1_FETCH_TIMEOUT_MS = 5_000;
 
-/** Timeout for Worker proxy requests (ms). Proxy is edge-local, so needs less timeout than HTTP API. */
-const PROXY_FETCH_TIMEOUT_MS = 10_000;
+/** Timeout for Worker proxy requests (ms). Proxy is edge-local, so can use shorter timeout than HTTP API. */
+const PROXY_FETCH_TIMEOUT_MS = 3_000;
 
 interface D1Response<T> {
   success: boolean;
