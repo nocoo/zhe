@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.10.0] - 2026-04-04
+
+### Added
+- Add Worker D1 proxy client path
+- Add /api/d1-query endpoint for D1 proxy
+- Add test Worker config (wrangler.test.toml)
+
+### Changed
+- Add Folder CRUD E2E test
+- Mark D1 proxy commits 1-8 complete, add deployment instructions
+- Add D1 proxy endpoint L2 E2E test
+- Add HARD GATE for D1 proxy in L2/L3 test harnesses
+- Add proxy path unit tests
+- Add D1 proxy handler tests
+- Normalize UNIQUE errors, always return HTTP 200
+- Narrow error preservation to UNIQUE only
+- Hard gate tests, fix Playwright wiring, scope error sanitization
+- Fix test wiring, error contract, and path
+- Address security and isolation concerns
+- Add Worker D1 Proxy design document
+
+### Fixed
+- Use word boundaries to avoid version false positives
+- Fix hydration mismatch for viewMode
+- Reduce proxy timeout to 3s (not 10s)
+- Use timing-safe comparison for D1 proxy auth
+
+### Removed
+- Remove HTTP API fallback, use Worker proxy only
+
 ## [v1.9.4] - 2026-04-03
 
 ### Added
