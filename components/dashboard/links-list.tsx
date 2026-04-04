@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { LinkCard } from "./link-card";
 import { InboxTriage } from "./inbox-triage";
@@ -21,12 +21,6 @@ import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 type ViewMode = "list" | "grid";
 
 const VIEW_MODE_KEY = "zhe_links_view_mode";
-
-function getStoredViewMode(): ViewMode {
-  if (typeof window === "undefined") return "list";
-  const stored = localStorage.getItem(VIEW_MODE_KEY);
-  return stored === "grid" ? "grid" : "list";
-}
 
 function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   if (viewMode === "grid") {
@@ -85,10 +79,19 @@ export function LinksList() {
 
   const isMobile = useIsMobile();
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
+  // Initialize with "list" to match SSR, then sync from localStorage in useEffect
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterFolderId, setFilterFolderId] = useState<string | null>(null);
   const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
+
+  // Sync viewMode from localStorage after hydration to avoid SSR mismatch
+  useEffect(() => {
+    const stored = localStorage.getItem(VIEW_MODE_KEY);
+    if (stored === "grid") {
+      setViewMode("grid");
+    }
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
