@@ -25,7 +25,6 @@ export default defineConfig({
         'components/dashboard-shell.tsx',
         'components/theme-toggle.tsx',
         'components/dashboard/**/*.tsx',
-        'app/**/page.tsx',
       ],
       exclude: [
         'node_modules/',
@@ -40,6 +39,9 @@ export default defineConfig({
         'app/api/auth/**',
         // Shadcn/UI auto-generated primitives
         'components/ui/',
+        // View/page components (presentation only)
+        'app/**/page.tsx',
+        'app/**/layout.tsx',
       ],
       thresholds: {
         lines: 90,
