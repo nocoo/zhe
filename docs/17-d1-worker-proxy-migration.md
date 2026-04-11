@@ -451,7 +451,7 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 
 **Goal**: Expose typed business endpoints for CLI consumption.
 
-**Status**: In Progress (3.1, 3.2 completed 2026-04-12)
+**Status**: Completed (2026-04-12)
 
 | Commit | Scope | Description | Status |
 |--------|-------|-------------|--------|
@@ -461,15 +461,17 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 | | | - Uses ScopedDB internally | |
 | 3.2 | Links | `feat(api): add /api/v1/links/[id] endpoint` | ✅ `7d3cac6` |
 | | | - `GET` (detail), `PATCH` (update), `DELETE` | |
-| 3.3 | Folders | `feat(api): add /api/v1/folders endpoint` | |
-| | | - `GET`, `POST` | |
+| 3.3 | Folders | `feat(api): add /api/v1/folders endpoints` | ✅ `d80aa4b` |
+| | | - `GET` (list), `POST` (create) | |
+| | | - `GET`, `PATCH`, `DELETE` for `[id]` | |
 | | | - Scope: `folders:read`, `folders:write` | |
-| 3.4 | Folders | `feat(api): add /api/v1/folders/[id] endpoint` | |
-| | | - `GET`, `PATCH`, `DELETE` | |
-| 3.5 | Tags | `feat(api): add /api/v1/tags endpoints` | |
-| | | - CRUD + link-tag association | |
-| 3.6 | Uploads | `feat(api): add /api/v1/uploads endpoints` | |
-| | | - `GET` (list), `POST` (presigned URL), `DELETE` | |
+| 3.4 | Uploads | `feat(api): add /api/v1/uploads endpoints` | ✅ `19e34c5` |
+| | | - `GET` (list), `GET` (detail), `DELETE` | |
+| | | - Scope: `uploads:read`, `uploads:write` | |
+| 3.5 | Tags | `feat(api): add /api/v1/tags endpoints` | ✅ `d533148` |
+| | | - `GET` (list), `POST` (create) | |
+| | | - `GET`, `PATCH`, `DELETE` for `[id]` | |
+| | | - Scope: `tags:read`, `tags:write` | |
 
 ### Phase 4: CLI Implementation
 
