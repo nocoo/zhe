@@ -428,22 +428,24 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 | | | - List keys (show prefix only), create, revoke | |
 | | | - Show full key only once on creation | |
 
-### Phase 2: API Auth Middleware
+### Phase 2: API Auth Middleware ✅
 
 **Goal**: Build reusable auth middleware for API routes.
 
-| Commit | Scope | Description |
-|--------|-------|-------------|
-| 2.1 | Middleware | `feat(api): add api-key auth middleware` |
-| | | - Extract `Authorization: Bearer <key>` header |
-| | | - Verify key, check `revoked_at`, update `last_used_at` |
-| | | - Return `{ userId, scopes }` or 401/403 |
-| 2.2 | Rate limit | `feat(api): add per-key rate limiting` |
-| | | - In-memory sliding window (later: Redis/KV) |
-| | | - Return 429 with `Retry-After` header |
-| 2.3 | Audit | `feat(api): add API audit logging` |
-| | | - Log key prefix, endpoint, timestamp, response status |
-| | | - Fire-and-forget to avoid blocking |
+**Status**: Completed (2026-04-12)
+
+| Commit | Scope | Description | Status |
+|--------|-------|-------------|--------|
+| 2.1 | Middleware | `feat(api): add api-key auth middleware` | ✅ `de957e2` |
+| | | - Extract `Authorization: Bearer <key>` header | |
+| | | - Verify key, check `revoked_at`, update `last_used_at` | |
+| | | - Return `{ userId, scopes }` or 401/403 | |
+| 2.2 | Rate limit | `feat(api): add per-key rate limiting` | ✅ `4e571b7` |
+| | | - In-memory sliding window (later: Redis/KV) | |
+| | | - Return 429 with `Retry-After` header | |
+| 2.3 | Audit | `feat(api): add API audit logging` | ✅ `116d3de` |
+| | | - Log key prefix, endpoint, timestamp, response status | |
+| | | - Fire-and-forget to avoid blocking | |
 
 ### Phase 3: Business API Endpoints
 
