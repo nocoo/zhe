@@ -28,12 +28,12 @@ describe("useApiKeysViewModel", () => {
     const { result } = renderHook(() => useApiKeysViewModel());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    let createResult: any;
+    let createResult: Awaited<ReturnType<typeof result.current.handleCreate>> | undefined;
     await act(async () => {
       createResult = await result.current.handleCreate("Test", ["links:read"]);
     });
 
-    expect(createResult.success).toBe(true);
+    expect(createResult?.success).toBe(true);
     expect(result.current.newlyCreatedKey).toMatch(/^zhe_/);
     expect(result.current.keys).toHaveLength(1);
   });
@@ -42,14 +42,16 @@ describe("useApiKeysViewModel", () => {
     const { result } = renderHook(() => useApiKeysViewModel());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    let createResult: any;
+    let createResult: Awaited<ReturnType<typeof result.current.handleCreate>> | undefined;
     await act(async () => {
       createResult = await result.current.handleCreate("Revokable", ["links:read"]);
     });
     expect(result.current.keys).toHaveLength(1);
 
     await act(async () => {
-      await result.current.handleRevoke(createResult.data.id);
+      if (createResult?.success && createResult.data) {
+        await result.current.handleRevoke(createResult.data.id);
+      }
     });
     expect(result.current.keys).toHaveLength(0);
   });

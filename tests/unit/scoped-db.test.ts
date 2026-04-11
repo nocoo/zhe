@@ -1283,7 +1283,7 @@ describe('ScopedDB', () => {
 
       const revoked = await db.revokeApiKey('key-rev');
       expect(revoked).not.toBeNull();
-      expect(revoked!.revokedAt).not.toBeNull();
+      expect(revoked?.revokedAt).not.toBeNull();
 
       const keys = await db.getApiKeys();
       expect(keys).toHaveLength(0);

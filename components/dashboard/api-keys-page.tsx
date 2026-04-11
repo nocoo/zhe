@@ -84,7 +84,7 @@ export function ApiKeysPage() {
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1"
-                  onClick={() => copyToClipboard(vm.newlyCreatedKey!)}
+                  onClick={() => vm.newlyCreatedKey && copyToClipboard(vm.newlyCreatedKey)}
                   data-testid="copy-new-key-btn"
                 >
                   <Copy className="h-3.5 w-3.5" />
