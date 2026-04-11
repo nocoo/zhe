@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   generateApiKey,
-  hashApiKey,
   verifyApiKey,
   parseScopes,
   serializeScopes,
-  API_SCOPES,
 } from "@/models/api-key";
 
 describe("api-key model", () => {
