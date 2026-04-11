@@ -11,10 +11,26 @@ import { kvPutLink } from "@/lib/kv/client";
 import { markKVDirty } from "@/lib/kv/dirty";
 
 /**
+ * Deprecation headers for webhook-token-based API.
+ *
+ * This endpoint is deprecated in favor of /api/v1/links with API key auth.
+ * Users should migrate to api_key-based authentication for better security
+ * and more features.
+ */
+const DEPRECATION_HEADERS = {
+  "Deprecation": "true",
+  "Sunset": "2026-10-01",
+  "Link": '</api/v1/links>; rel="successor-version"',
+  "X-Deprecation-Notice": "This endpoint is deprecated. Migrate to /api/v1/links with API key authentication. See /dashboard/api-keys to create an API key.",
+};
+
+/**
  * HEAD /api/link/create/[token]
  *
  * Test connection endpoint. Verifies the token is valid and the webhook is
  * reachable. Returns 200 with no body on success, 404 if token is invalid.
+ *
+ * @deprecated Use /api/v1/links with API key authentication instead.
  */
 export async function HEAD(
   _request: Request,
@@ -24,10 +40,10 @@ export async function HEAD(
 
   const webhook = await getWebhookByToken(token);
   if (!webhook) {
-    return new Response(null, { status: 404 });
+    return new Response(null, { status: 404, headers: DEPRECATION_HEADERS });
   }
 
-  return new Response(null, { status: 200 });
+  return new Response(null, { status: 200, headers: DEPRECATION_HEADERS });
 }
 
 /**
@@ -36,6 +52,8 @@ export async function HEAD(
  * Returns webhook status, usage stats, and OpenAPI 3.1 specification.
  * Includes total link count, total clicks, 5 most recent links,
  * rate limit config, and full API documentation.
+ *
+ * @deprecated Use /api/v1/links with API key authentication instead.
  */
 export async function GET(
   request: Request,
@@ -47,7 +65,7 @@ export async function GET(
   if (!webhook) {
     return NextResponse.json(
       { error: "Invalid webhook token" },
-      { status: 404 },
+      { status: 404, headers: DEPRECATION_HEADERS },
     );
   }
 
@@ -68,8 +86,13 @@ export async function GET(
         recentLinks: stats.recentLinks,
       },
       docs,
+      deprecation: {
+        message: "This endpoint is deprecated. Please migrate to /api/v1/links with API key authentication.",
+        sunset: "2026-10-01",
+        migrationGuide: "/dashboard/api-keys",
+      },
     },
-    { status: 200 },
+    { status: 200, headers: DEPRECATION_HEADERS },
   );
 }
 
@@ -85,6 +108,8 @@ export async function GET(
  *
  * Response (201):
  *   { slug, shortUrl, originalUrl }
+ *
+ * @deprecated Use POST /api/v1/links with API key authentication instead.
  */
 export async function POST(
   request: Request,
@@ -97,7 +122,7 @@ export async function POST(
   if (!webhook) {
     return NextResponse.json(
       { error: "Invalid webhook token" },
-      { status: 404 },
+      { status: 404, headers: DEPRECATION_HEADERS },
     );
   }
 
@@ -109,7 +134,7 @@ export async function POST(
       { error: "Rate limit exceeded" },
       {
         status: 429,
-        headers: { "Retry-After": String(retryAfterSeconds) },
+        headers: { ...DEPRECATION_HEADERS, "Retry-After": String(retryAfterSeconds) },
       },
     );
   }
@@ -121,7 +146,7 @@ export async function POST(
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body" },
-      { status: 400 },
+      { status: 400, headers: DEPRECATION_HEADERS },
     );
   }
 
@@ -129,7 +154,7 @@ export async function POST(
   if (!validation.success || !validation.data) {
     return NextResponse.json(
       { error: validation.error ?? "Invalid payload" },
-      { status: 400 },
+      { status: 400, headers: DEPRECATION_HEADERS },
     );
   }
 
@@ -145,7 +170,7 @@ export async function POST(
         shortUrl: `${origin}/${existingLink.slug}`,
         originalUrl: existingLink.originalUrl,
       },
-      { status: 200 },
+      { status: 200, headers: DEPRECATION_HEADERS },
     );
   }
 
@@ -165,7 +190,7 @@ export async function POST(
     if (!sanitized) {
       return NextResponse.json(
         { error: "Invalid custom slug" },
-        { status: 400 },
+        { status: 400, headers: DEPRECATION_HEADERS },
       );
     }
 
@@ -173,7 +198,7 @@ export async function POST(
     if (exists) {
       return NextResponse.json(
         { error: "Custom slug already taken" },
-        { status: 409 },
+        { status: 409, headers: DEPRECATION_HEADERS },
       );
     }
 
@@ -212,6 +237,6 @@ export async function POST(
       shortUrl,
       originalUrl: link.originalUrl,
     },
-    { status: 201 },
+    { status: 201, headers: DEPRECATION_HEADERS },
   );
 }
