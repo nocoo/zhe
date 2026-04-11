@@ -94,3 +94,35 @@ export async function revokeApiKeyAction(id: string) {
 
   return { success: true as const };
 }
+
+/**
+ * Create an API key for migrating from webhook token.
+ * Creates a key with links:read and links:write scopes.
+ */
+export async function migrateFromWebhookAction() {
+  const db = await getScopedDB();
+  if (!db) return { success: false as const, error: "Unauthorized" };
+
+  const { fullKey, prefix, keyHash } = generateApiKey();
+  const id = nanoid();
+
+  const key = await db.createApiKey({
+    id,
+    prefix,
+    keyHash,
+    name: "Migrated from Webhook",
+    scopes: serializeScopes(["links:read", "links:write"]),
+  });
+
+  return {
+    success: true as const,
+    data: {
+      id: key.id,
+      prefix: key.prefix,
+      name: key.name,
+      scopes: key.scopes,
+      createdAt: key.createdAt,
+      fullKey, // Only returned on creation — never stored or returned again
+    },
+  };
+}

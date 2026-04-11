@@ -5,7 +5,7 @@ import { buildOpenApiSpec, buildAgentPrompt, RATE_LIMIT_ABSOLUTE_MAX } from "@/m
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Webhook, Copy } from "lucide-react";
+import { Webhook, Copy, AlertTriangle, KeyRound, ArrowRight, Check } from "lucide-react";
 
 export function WebhookPage({ initialData }: { initialData?: WebhookInitialData }) {
   const {
@@ -13,6 +13,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
     isLoading: webhookLoading,
     isGenerating,
     isRevoking,
+    isMigrating,
+    migratedApiKey,
     rateLimit,
     setRateLimit,
     webhookUrl,
@@ -20,6 +22,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
     handleGenerate,
     handleRevoke,
     handleRateLimitChange,
+    handleMigrate,
   } = useWebhookViewModel(initialData);
 
   function copyToClipboard(text: string) {
@@ -44,6 +47,60 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
             <p className="text-sm text-muted-foreground">加载中...</p>
           ) : token && webhookUrl ? (
             <div className="space-y-4" data-testid="webhook-token-section">
+              {/* Deprecation warning */}
+              <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3" data-testid="webhook-deprecation-warning">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
+                  <div className="space-y-2">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Webhook 令牌即将弃用</strong>。请迁移到 API Key 认证方式，获得更好的安全性和更多功能。
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      弃用日期：2026-10-01。届时 Webhook API 将停止服务。
+                    </p>
+                    {migratedApiKey ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center gap-1 text-sm text-green-700 dark:text-green-400">
+                          <Check className="h-4 w-4" />
+                          <span>迁移成功！请保存以下 API Key（仅显示一次）：</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="rounded bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-mono text-green-800 dark:text-green-300 break-all" data-testid="migrated-api-key">
+                            {migratedApiKey}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 shrink-0"
+                            onClick={() => copyToClipboard(migratedApiKey)}
+                            aria-label="复制 API Key"
+                            data-testid="copy-migrated-key-btn"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          使用方式：在 API 请求中添加 <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">Authorization: Bearer {migratedApiKey.substring(0, 12)}...</code>
+                        </p>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                        onClick={handleMigrate}
+                        disabled={isMigrating}
+                        data-testid="migrate-to-apikey-btn"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        {isMigrating ? "迁移中..." : "一键迁移到 API Key"}
+                        {!isMigrating && <ArrowRight className="h-3.5 w-3.5" />}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Token display */}
               <div className="space-y-1.5">
                 <p className="text-xs text-muted-foreground">令牌</p>

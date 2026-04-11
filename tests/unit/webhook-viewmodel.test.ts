@@ -9,12 +9,17 @@ const mockGetWebhookToken = vi.fn();
 const mockCreateWebhookToken = vi.fn();
 const mockRevokeWebhookToken = vi.fn();
 const mockUpdateWebhookRateLimit = vi.fn();
+const mockMigrateFromWebhookAction = vi.fn();
 
 vi.mock('@/actions/webhook', () => ({
   getWebhookToken: (...args: unknown[]) => mockGetWebhookToken(...args),
   createWebhookToken: (...args: unknown[]) => mockCreateWebhookToken(...args),
   revokeWebhookToken: (...args: unknown[]) => mockRevokeWebhookToken(...args),
   updateWebhookRateLimit: (...args: unknown[]) => mockUpdateWebhookRateLimit(...args),
+}));
+
+vi.mock('@/actions/api-keys', () => ({
+  migrateFromWebhookAction: (...args: unknown[]) => mockMigrateFromWebhookAction(...args),
 }));
 
 // Import after mocks
@@ -461,5 +466,93 @@ describe('useWebhookViewModel', () => {
 
     // Optimistic value stays since we don't rollback
     expect(result.current.rateLimit).toBe(7);
+  });
+
+  // ====================================================================
+  // handleMigrate
+  // ====================================================================
+
+  it('migrates to API key successfully', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockMigrateFromWebhookAction.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'key-123',
+        prefix: 'zhe_abcdefgh',
+        name: 'Migrated from Webhook',
+        scopes: 'links:read,links:write',
+        createdAt: '2026-01-15T00:00:00.000Z',
+        fullKey: 'zhe_abcdefghijklmnopqrstuvwxyz12345',
+      },
+    });
+
+    await act(async () => {
+      await result.current.handleMigrate();
+    });
+
+    expect(mockMigrateFromWebhookAction).toHaveBeenCalledOnce();
+    expect(result.current.migratedApiKey).toBe('zhe_abcdefghijklmnopqrstuvwxyz12345');
+    expect(result.current.isMigrating).toBe(false);
+  });
+
+  it('sets isMigrating while migrating', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    let resolveMigrate!: (v: unknown) => void;
+    mockMigrateFromWebhookAction.mockReturnValue(
+      new Promise((r) => { resolveMigrate = r; }),
+    );
+
+    let migratePromise: Promise<void>;
+    act(() => {
+      migratePromise = result.current.handleMigrate();
+    });
+
+    expect(result.current.isMigrating).toBe(true);
+
+    await act(async () => {
+      resolveMigrate({ success: true, data: { fullKey: 'zhe_test' } });
+      await unwrap(migratePromise);
+    });
+
+    expect(result.current.isMigrating).toBe(false);
+  });
+
+  it('handles migrate failure gracefully', async () => {
+    mockGetWebhookToken.mockResolvedValue({
+      success: true,
+      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+    });
+
+    const { result } = renderHook(() => useWebhookViewModel());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockMigrateFromWebhookAction.mockResolvedValue({
+      success: false,
+      error: 'Server error',
+    });
+
+    await act(async () => {
+      await result.current.handleMigrate();
+    });
+
+    expect(result.current.migratedApiKey).toBeNull();
+    expect(result.current.isMigrating).toBe(false);
   });
 });

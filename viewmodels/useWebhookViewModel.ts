@@ -7,6 +7,7 @@ import {
   revokeWebhookToken,
   updateWebhookRateLimit as updateRateLimitAction,
 } from "@/actions/webhook";
+import { migrateFromWebhookAction } from "@/actions/api-keys";
 import { RATE_LIMIT_DEFAULT_MAX } from "@/models/webhook";
 
 /** Initial data from SSR prefetch */
@@ -32,6 +33,8 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
   const [isLoading, setIsLoading] = useState(!initialData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migratedApiKey, setMigratedApiKey] = useState<string | null>(null);
 
   // Load token on mount
   useEffect(() => {
@@ -91,6 +94,18 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     }
   }, []);
 
+  const handleMigrate = useCallback(async () => {
+    setIsMigrating(true);
+    try {
+      const result = await migrateFromWebhookAction();
+      if (result.success && result.data) {
+        setMigratedApiKey(result.data.fullKey);
+      }
+    } finally {
+      setIsMigrating(false);
+    }
+  }, []);
+
   const webhookUrl = useMemo(
     () => (token ? `${siteUrl}/api/link/create/${token}` : null),
     [siteUrl, token],
@@ -109,10 +124,13 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     isLoading,
     isGenerating,
     isRevoking,
+    isMigrating,
+    migratedApiKey,
     webhookUrl,
     tmpUploadUrl,
     handleGenerate,
     handleRevoke,
     handleRateLimitChange,
+    handleMigrate,
   };
 }
