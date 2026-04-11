@@ -1180,6 +1180,18 @@ vi.mock('@/lib/db/d1-client', async () => {
 
       // ---- API Keys ----
 
+      // SELECT ... FROM api_keys WHERE key_hash = ? (verifyApiKeyAndGetUser)
+      if (sqlLower.includes('from api_keys') && sqlLower.includes('where key_hash = ?')) {
+        const [keyHash] = params;
+        const mockKeys = getMockApiKeys();
+        for (const key of mockKeys.values()) {
+          if (key.key_hash === keyHash) {
+            return [key] as T[];
+          }
+        }
+        return [];
+      }
+
       // SELECT * FROM api_keys WHERE user_id = ? AND revoked_at IS NULL
       if (sqlLower.includes('from api_keys') && sqlLower.includes('where user_id = ?') && sqlLower.includes('revoked_at is null')) {
         const [userId] = params;

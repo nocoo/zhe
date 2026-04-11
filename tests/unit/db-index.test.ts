@@ -4,7 +4,10 @@ import {
   getLinkByUserAndUrl,
   getFolderByUserAndName,
   getWebhookByToken,
+  verifyApiKeyAndGetUser,
 } from '@/lib/db';
+import { ScopedDB } from '@/lib/db/scoped';
+import { hashApiKey } from '@/models/api-key';
 import { clearMockStorage, getMockFolders, getMockWebhooks } from '../mocks/db-storage';
 import { unwrap } from '../test-utils';
 
@@ -236,5 +239,79 @@ describe('Link DB Operations', () => {
       expect(webhook).not.toBeNull();
       expect(unwrap(webhook).rateLimit).toBe(5);
     });
+  });
+});
+
+describe('API Key Authentication', () => {
+  const TEST_USER = 'user-apikey-test';
+
+  beforeEach(() => {
+    clearMockStorage();
+  });
+
+  it('verifyApiKeyAndGetUser returns null for non-existent key', async () => {
+    const result = await verifyApiKeyAndGetUser('zhe_nonexistent_key_12345');
+    expect(result).toBeNull();
+  });
+
+  it('verifyApiKeyAndGetUser returns null for revoked key', async () => {
+    const db = new ScopedDB(TEST_USER);
+    const fullKey = 'zhe_revokedkey_12345678';
+    const keyHash = hashApiKey(fullKey);
+
+    await db.createApiKey({
+      id: 'key-revoked',
+      prefix: 'zhe_revoked',
+      keyHash,
+      name: 'Revoked Key',
+      scopes: 'links:read',
+    });
+
+    // Revoke the key
+    await db.revokeApiKey('key-revoked');
+
+    const result = await verifyApiKeyAndGetUser(fullKey);
+    expect(result).toBeNull();
+  });
+
+  it('verifyApiKeyAndGetUser returns user info for valid key', async () => {
+    const db = new ScopedDB(TEST_USER);
+    const fullKey = 'zhe_validkey_123456789';
+    const keyHash = hashApiKey(fullKey);
+
+    await db.createApiKey({
+      id: 'key-valid',
+      prefix: 'zhe_validk',
+      keyHash,
+      name: 'Valid Key',
+      scopes: 'links:read,links:write',
+    });
+
+    const result = await verifyApiKeyAndGetUser(fullKey);
+
+    expect(result).not.toBeNull();
+    expect(result?.userId).toBe(TEST_USER);
+    expect(result?.keyId).toBe('key-valid');
+    expect(result?.scopes).toContain('links:read');
+    expect(result?.scopes).toContain('links:write');
+  });
+
+  it('verifyApiKeyAndGetUser returns null for wrong key (hash mismatch)', async () => {
+    const db = new ScopedDB(TEST_USER);
+    const correctKey = 'zhe_correctkey_12345678';
+    const wrongKey = 'zhe_wrongkey_123456789';
+    const keyHash = hashApiKey(correctKey);
+
+    await db.createApiKey({
+      id: 'key-hashtest',
+      prefix: 'zhe_correct',
+      keyHash,
+      name: 'Hash Test Key',
+      scopes: 'links:read',
+    });
+
+    // Try with wrong key (different hash)
+    const result = await verifyApiKeyAndGetUser(wrongKey);
+    expect(result).toBeNull();
   });
 });
