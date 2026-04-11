@@ -381,6 +381,15 @@ export class ScopedDB {
     return rowToUpload(row);
   }
 
+  /** Get a single upload by id, only if owned by this user. */
+  async getUploadById(id: number): Promise<Upload | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM uploads WHERE id = ? AND user_id = ? LIMIT 1',
+      [id, this.userId],
+    );
+    return rows[0] ? rowToUpload(rows[0]) : null;
+  }
+
   /** Delete an upload by id. Returns true if deleted. */
   async deleteUpload(id: number): Promise<boolean> {
     const rows = await executeD1Query<Record<string, unknown>>(

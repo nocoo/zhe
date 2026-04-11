@@ -268,6 +268,41 @@ export async function seedBackyPushConfig(
 }
 
 // ---------------------------------------------------------------------------
+// Upload helpers
+// ---------------------------------------------------------------------------
+
+export interface SeedUploadOptions {
+  userId?: string;
+  key?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  publicUrl?: string;
+}
+
+/** Insert an upload into D1 and return the upload info. */
+export async function seedUpload(userId?: string, options: SeedUploadOptions = {}): Promise<{ id: number; key: string }> {
+  const uid = userId ?? TEST_USER.id;
+  const key = options.key ?? `test-uploads/${nanoid(8)}.txt`;
+  const fileName = options.fileName ?? 'test-file.txt';
+  const fileType = options.fileType ?? 'text/plain';
+  const fileSize = options.fileSize ?? 1024;
+  const publicUrl = options.publicUrl ?? `https://cdn.example.com/${key}`;
+  const now = Math.floor(Date.now() / 1000);
+
+  await executeD1(
+    `INSERT INTO uploads (user_id, key, file_name, file_type, file_size, public_url, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [uid, key, fileName, fileType, fileSize, publicUrl, now],
+  );
+
+  // Retrieve the auto-generated ID
+  const rows = await queryD1<{ id: number }>('SELECT id FROM uploads WHERE key = ?', [key]);
+  if (rows.length === 0) throw new Error(`Seeded upload not found: ${key}`);
+  return { id: unwrap(rows[0]).id, key };
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 
