@@ -406,25 +406,27 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 
 > **Note**: Business API route names (`/api/links`, `/api/folders`, etc.) are placeholders. Replace with actual route names when implementation begins.
 
-### Phase 1: API Key Infrastructure
+### Phase 1: API Key Infrastructure ✅
 
 **Goal**: Build the api_key system without any CLI yet.
 
-| Commit | Scope | Description |
-|--------|-------|-------------|
-| 1.1 | Schema | `feat(db): add api_keys table migration` |
-| | | - `id`, `prefix`, `key_hash`, `user_id`, `name`, `scopes`, `created_at`, `last_used_at`, `revoked_at` |
-| 1.2 | Model | `feat(models): add api-key model with hash/verify` |
-| | | - `hashApiKey()`, `verifyApiKey()`, `generateApiKey()` with prefix |
-| | | - Unit tests for hash/verify round-trip |
-| 1.3 | ScopedDB | `feat(db): add api_keys CRUD to ScopedDB` |
-| | | - `getApiKeys()`, `createApiKey()`, `revokeApiKey()`, `updateApiKeyLastUsed()` |
-| | | - Integration tests |
-| 1.4 | Actions | `feat(actions): add api-keys server actions` |
-| | | - `createApiKey()`, `listApiKeys()`, `revokeApiKey()` |
-| 1.5 | UI | `feat(settings): add API keys management UI` |
-| | | - List keys (show prefix only), create, revoke |
-| | | - Show full key only once on creation |
+**Status**: Completed (PR #1 merged 2026-04-12)
+
+| Commit | Scope | Description | Status |
+|--------|-------|-------------|--------|
+| 1.1 | Schema | `feat(db): add api_keys table migration` | ✅ `2fb15cc` |
+| | | - `id`, `prefix`, `key_hash`, `user_id`, `name`, `scopes`, `created_at`, `last_used_at`, `revoked_at` | |
+| 1.2 | Model | `feat(models): add api-key model with hash/verify` | ✅ `ab4091b` |
+| | | - `hashApiKey()`, `verifyApiKey()`, `generateApiKey()` with prefix | |
+| | | - Unit tests for hash/verify round-trip | |
+| 1.3 | ScopedDB | `feat(db): add api_keys CRUD to ScopedDB` | ✅ `ea8e7dd` |
+| | | - `getApiKeys()`, `createApiKey()`, `revokeApiKey()`, `updateApiKeyLastUsed()` | |
+| | | - Integration tests | |
+| 1.4 | Actions | `feat(actions): add api-keys server actions` | ✅ `da62419` |
+| | | - `createApiKey()`, `listApiKeys()`, `revokeApiKey()` | |
+| 1.5 | UI | `feat(settings): add API keys management UI` | ✅ `a790a07` |
+| | | - List keys (show prefix only), create, revoke | |
+| | | - Show full key only once on creation | |
 
 ### Phase 2: API Auth Middleware
 
