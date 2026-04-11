@@ -5,7 +5,7 @@
  * scoped.ts (ScopedDB user-owned operations) to eliminate duplication.
  */
 
-import type { Link, Analytics, Folder, Upload, Webhook, Tag, LinkTag, UserSettings } from './schema';
+import type { Link, Analytics, Folder, Upload, Webhook, Tag, LinkTag, UserSettings, ApiKey } from './schema';
 
 export function rowToLink(row: Record<string, unknown>): Link {
   return {
@@ -100,5 +100,19 @@ export function rowToUserSettings(row: Record<string, unknown>): UserSettings {
     xrayApiUrl: (row.xray_api_url as string) ?? null,
     xrayApiToken: (row.xray_api_token as string) ?? null,
     backyPullKey: (row.backy_pull_key as string) ?? null,
+  };
+}
+
+export function rowToApiKey(row: Record<string, unknown>): ApiKey {
+  return {
+    id: row.id as string,
+    prefix: row.prefix as string,
+    keyHash: row.key_hash as string,
+    userId: row.user_id as string,
+    name: row.name as string,
+    scopes: row.scopes as string,
+    createdAt: new Date(row.created_at as number),
+    lastUsedAt: row.last_used_at ? new Date(row.last_used_at as number) : null,
+    revokedAt: row.revoked_at ? new Date(row.revoked_at as number) : null,
   };
 }

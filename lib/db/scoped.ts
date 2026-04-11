@@ -10,8 +10,8 @@
  */
 
 import { executeD1Query } from './d1-client';
-import { rowToLink, rowToAnalytics, rowToFolder, rowToUpload, rowToWebhook, rowToTag, rowToLinkTag, rowToUserSettings } from './mappers';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings } from './schema';
+import { rowToLink, rowToAnalytics, rowToFolder, rowToUpload, rowToWebhook, rowToTag, rowToLinkTag, rowToUserSettings, rowToApiKey } from './mappers';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings, ApiKey } from './schema';
 
 // ============================================
 // ScopedDB — all user-owned data operations
@@ -807,6 +807,56 @@ export class ScopedDB {
       [this.userId],
     );
     return rows[0] ? rowToUserSettings(rows[0]) : null;
+  }
+
+  // ---- API Keys ------------------------------------------------
+
+  /** Get all API keys for this user (excluding revoked). */
+  async getApiKeys(): Promise<ApiKey[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT * FROM api_keys WHERE user_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`,
+      [this.userId],
+    );
+    return rows.map(rowToApiKey);
+  }
+
+  /** Create a new API key. */
+  async createApiKey(data: {
+    id: string;
+    prefix: string;
+    keyHash: string;
+    name: string;
+    scopes: string;
+  }): Promise<ApiKey> {
+    const now = Math.floor(Date.now() / 1000);
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO api_keys (id, prefix, key_hash, user_id, name, scopes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [data.id, data.prefix, data.keyHash, this.userId, data.name, data.scopes, now],
+    );
+    const row = rows[0];
+    if (!row) throw new Error('INSERT RETURNING * returned no rows');
+    return rowToApiKey(row);
+  }
+
+  /** Revoke an API key (soft delete). Only revokes keys owned by this user. */
+  async revokeApiKey(id: string): Promise<ApiKey | null> {
+    const now = Math.floor(Date.now() / 1000);
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `UPDATE api_keys SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL RETURNING *`,
+      [now, id, this.userId],
+    );
+    return rows[0] ? rowToApiKey(rows[0]) : null;
+  }
+
+  /** Update last_used_at timestamp for an API key. */
+  async updateApiKeyLastUsed(id: string): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await executeD1Query(
+      `UPDATE api_keys SET last_used_at = ? WHERE id = ?`,
+      [now, id],
+    );
   }
 
 }

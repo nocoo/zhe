@@ -142,6 +142,18 @@ export const tweetCache = sqliteTable('tweet_cache', {
   updatedAt: integer('updated_at').notNull(),
 });
 
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey(),
+  prefix: text("prefix").notNull(),     // First 8 chars for display (e.g., "zhe_xxxx")
+  keyHash: text("key_hash").notNull(),  // SHA-256 hash of the full key
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),         // User-provided label (e.g., "CLI key")
+  scopes: text("scopes").notNull(),     // Comma-separated scopes (e.g., "links:read,links:write")
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
 // ============================================
 // Type exports
 // ============================================
@@ -167,3 +179,6 @@ export type LinkTag = typeof linkTags.$inferSelect;
 export type UserSettings = typeof userSettings.$inferSelect;
 
 export type TweetCache = typeof tweetCache.$inferSelect;
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;

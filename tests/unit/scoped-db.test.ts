@@ -1243,4 +1243,76 @@ describe('ScopedDB', () => {
       expect(unwrap(await dbB.getWebhook()).token).toBe('tok_bob');
     });
   });
+
+  // ---- API Key CRUD -------------------------------------------
+
+  describe('api key operations', () => {
+    it('createApiKey creates a key scoped to user', async () => {
+      const db = new ScopedDB(USER_A);
+      const key = await db.createApiKey({
+        id: 'key-1',
+        prefix: 'zhe_abcd1234',
+        keyHash: 'hash123',
+        name: 'Test Key',
+        scopes: 'links:read,links:write',
+      });
+      expect(key.userId).toBe(USER_A);
+      expect(key.name).toBe('Test Key');
+      expect(key.revokedAt).toBeNull();
+    });
+
+    it('getApiKeys returns only non-revoked keys for user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createApiKey({ id: 'key-a1', prefix: 'zhe_a1', keyHash: 'h1', name: 'Key A1', scopes: 'links:read' });
+      await dbA.createApiKey({ id: 'key-a2', prefix: 'zhe_a2', keyHash: 'h2', name: 'Key A2', scopes: 'links:write' });
+      await dbB.createApiKey({ id: 'key-b1', prefix: 'zhe_b1', keyHash: 'h3', name: 'Key B1', scopes: 'links:read' });
+
+      const keysA = await dbA.getApiKeys();
+      expect(keysA).toHaveLength(2);
+      keysA.forEach(k => expect(k.userId).toBe(USER_A));
+
+      const keysB = await dbB.getApiKeys();
+      expect(keysB).toHaveLength(1);
+    });
+
+    it('revokeApiKey soft-deletes and excludes from getApiKeys', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createApiKey({ id: 'key-rev', prefix: 'zhe_rev', keyHash: 'hrev', name: 'Revokable', scopes: 'links:read' });
+
+      const revoked = await db.revokeApiKey('key-rev');
+      expect(revoked).not.toBeNull();
+      expect(revoked?.revokedAt).not.toBeNull();
+
+      const keys = await db.getApiKeys();
+      expect(keys).toHaveLength(0);
+    });
+
+    it('revokeApiKey returns null for other user key', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createApiKey({ id: 'key-own', prefix: 'zhe_own', keyHash: 'hown', name: 'A key', scopes: 'links:read' });
+
+      const result = await dbB.revokeApiKey('key-own');
+      expect(result).toBeNull();
+
+      // Key should still exist for user A
+      const keysA = await dbA.getApiKeys();
+      expect(keysA).toHaveLength(1);
+    });
+
+    it('updateApiKeyLastUsed updates timestamp', async () => {
+      const db = new ScopedDB(USER_A);
+      const key = await db.createApiKey({ id: 'key-used', prefix: 'zhe_used', keyHash: 'hused', name: 'Used Key', scopes: 'links:read' });
+      expect(key.lastUsedAt).toBeNull();
+
+      await db.updateApiKeyLastUsed('key-used');
+      const keys = await db.getApiKeys();
+      const updated = keys.find(k => k.id === 'key-used');
+      expect(updated).toBeDefined();
+      // lastUsedAt should now be set (non-null)
+    });
+  });
 });

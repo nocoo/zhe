@@ -22,6 +22,19 @@ export interface MockUserSettings {
   xray_api_token?: string | null;
 }
 
+// ApiKey raw row shape (matches D1 column names)
+export interface MockApiKey {
+  id: string;
+  prefix: string;
+  key_hash: string;
+  user_id: string;
+  name: string;
+  scopes: string;
+  created_at: number;
+  last_used_at: number | null;
+  revoked_at: number | null;
+}
+
 // In-memory storage
 const mockLinks = new Map<string, Link>();
 const mockAnalytics: Analytics[] = [];
@@ -32,6 +45,7 @@ const mockTags = new Map<string, Tag>();
 const mockLinkTags: MockLinkTag[] = [];
 const mockUserSettings = new Map<string, MockUserSettings>(); // keyed by userId
 const mockTweetCache = new Map<string, TweetCache>(); // keyed by tweetId
+const mockApiKeys = new Map<string, MockApiKey>(); // keyed by id
 let nextLinkId = 1;
 let nextAnalyticsId = 1;
 let nextUploadId = 1;
@@ -47,6 +61,7 @@ export function clearMockStorage(): void {
   mockLinkTags.length = 0;
   mockUserSettings.clear();
   mockTweetCache.clear();
+  mockApiKeys.clear();
   nextLinkId = 1;
   nextAnalyticsId = 1;
   nextUploadId = 1;
@@ -87,6 +102,10 @@ export function getMockUserSettings(): Map<string, MockUserSettings> {
 
 export function getMockTweetCache(): Map<string, TweetCache> {
   return mockTweetCache;
+}
+
+export function getMockApiKeys(): Map<string, MockApiKey> {
+  return mockApiKeys;
 }
 
 export function getNextLinkId(): number {

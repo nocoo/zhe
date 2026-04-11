@@ -34,7 +34,7 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getMockApiKeys, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
   
   const queryFn = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
       const mockLinks = getMockLinks();
@@ -1176,6 +1176,65 @@ vi.mock('@/lib/db/d1-client', async () => {
           fetched_at: cached.fetchedAt,
           updated_at: cached.updatedAt,
         }] as T[];
+      }
+
+      // ---- API Keys ----
+
+      // SELECT * FROM api_keys WHERE user_id = ? AND revoked_at IS NULL
+      if (sqlLower.includes('from api_keys') && sqlLower.includes('where user_id = ?') && sqlLower.includes('revoked_at is null')) {
+        const [userId] = params;
+        const mockKeys = getMockApiKeys();
+        const results: unknown[] = [];
+        for (const key of mockKeys.values()) {
+          if (key.user_id === userId && key.revoked_at === null) {
+            results.push(key);
+          }
+        }
+        // ORDER BY created_at DESC
+        results.sort((a, b) => ((b as Record<string, unknown>).created_at as number) - ((a as Record<string, unknown>).created_at as number));
+        return results as T[];
+      }
+
+      // INSERT INTO api_keys
+      if (sqlLower.startsWith('insert into api_keys')) {
+        const [id, prefix, keyHash, userId, name, scopes, createdAt] = params;
+        const mockKeys = getMockApiKeys();
+        const apiKey = {
+          id: id as string,
+          prefix: prefix as string,
+          key_hash: keyHash as string,
+          user_id: userId as string,
+          name: name as string,
+          scopes: scopes as string,
+          created_at: createdAt as number,
+          last_used_at: null,
+          revoked_at: null,
+        };
+        mockKeys.set(id as string, apiKey);
+        return [apiKey] as T[];
+      }
+
+      // UPDATE api_keys SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+      if (sqlLower.includes('update api_keys') && sqlLower.includes('set revoked_at = ?') && sqlLower.includes('where id = ?') && sqlLower.includes('user_id = ?')) {
+        const [revokedAt, id, userId] = params;
+        const mockKeys = getMockApiKeys();
+        const key = mockKeys.get(id as string);
+        if (key && key.user_id === userId && key.revoked_at === null) {
+          key.revoked_at = revokedAt as number;
+          return [key] as T[];
+        }
+        return [];
+      }
+
+      // UPDATE api_keys SET last_used_at = ? WHERE id = ?
+      if (sqlLower.includes('update api_keys') && sqlLower.includes('set last_used_at = ?') && sqlLower.includes('where id = ?')) {
+        const [lastUsedAt, id] = params;
+        const mockKeys = getMockApiKeys();
+        const key = mockKeys.get(id as string);
+        if (key) {
+          key.last_used_at = lastUsedAt as number;
+        }
+        return [];
       }
 
       console.warn('Unhandled SQL in mock:', sql);

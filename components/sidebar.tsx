@@ -16,6 +16,7 @@ import {
   Radar,
   CloudUpload,
   ChevronUp,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +96,7 @@ const OTHER_NAV_GROUPS: NavGroup[] = [
       { title: "存储管理", icon: HardDrive, href: "/dashboard/storage" },
       { title: "数据管理", icon: Database, href: "/dashboard/data-management" },
       { title: "Webhook", icon: Webhook, href: "/dashboard/webhook" },
+      { title: "API Keys", icon: Key, href: "/dashboard/api-keys" },
     ],
   },
 ];
