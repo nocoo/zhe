@@ -477,6 +477,8 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 
 **Goal**: Build the CLI tool that consumes the business API.
 
+**Status**: Deferred — API endpoints ready, CLI to be implemented as separate project.
+
 | Commit | Scope | Description |
 |--------|-------|-------------|
 | 4.1 | CLI scaffold | `feat(cli): initialize CLI project` |
@@ -498,16 +500,18 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 
 **Goal**: Deprecate old webhook-style auth, migrate to api_key.
 
-| Commit | Scope | Description |
-|--------|-------|-------------|
-| 5.1 | Deprecation | `chore(api): mark webhook token as deprecated` |
-| | | - Add deprecation warning header to `/api/link/create/[token]` |
-| | | - Log usage for migration tracking |
-| 5.2 | Migration | `feat(settings): add webhook-to-apikey migration` |
-| | | - One-click create api_key with same permissions |
-| 5.3 | Docs | `docs: update API documentation for v1 endpoints` |
-| 5.4 | Cleanup | `chore(api): remove deprecated webhook endpoints` |
-| | | - Only after migration period (e.g., 3 months) |
+**Status**: In Progress (5.1 completed 2026-04-12)
+
+| Commit | Scope | Description | Status |
+|--------|-------|-------------|--------|
+| 5.1 | Deprecation | `chore(api): mark webhook token as deprecated` | ✅ `3bafc01` |
+| | | - Add deprecation warning header to `/api/link/create/[token]` | |
+| | | - RFC 8594 headers: Deprecation, Sunset, Link | |
+| 5.2 | Migration | `feat(settings): add webhook-to-apikey migration` | |
+| | | - One-click create api_key with same permissions | |
+| 5.3 | Docs | `docs: update API documentation for v1 endpoints` | |
+| 5.4 | Cleanup | `chore(api): remove deprecated webhook endpoints` | |
+| | | - Only after migration period (e.g., 3 months) | |
 
 ---
 
