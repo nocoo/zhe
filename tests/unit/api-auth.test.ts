@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { authenticateApiKey, hasScope, requireAuth, apiError } from "@/lib/api/auth";
+import { authenticateApiKey, hasScope, requireAuth, requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { clearAllRateLimits } from "@/lib/api/rate-limit";
 import * as db from "@/lib/db";
 import type { ApiScope } from "@/models/api-key";
 
@@ -12,6 +13,7 @@ vi.mock("@/lib/db", () => ({
 describe("API Key Auth Middleware", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAllRateLimits();
   });
 
   describe("authenticateApiKey", () => {
@@ -183,6 +185,90 @@ describe("API Key Auth Middleware", () => {
 
       expect(result).not.toBeInstanceOf(Response);
       expect(result).toEqual(mockAuth);
+    });
+  });
+
+  describe("requireAuthWithRateLimit", () => {
+    it("returns auth result with rate limit headers on success", async () => {
+      const mockAuth = {
+        userId: "user-123",
+        keyId: "key-rl-1",
+        scopes: ["links:read"] as ApiScope[],
+      };
+      vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
+
+      const request = new NextRequest("http://localhost/api/test", {
+        headers: { Authorization: "Bearer zhe_validkey123" },
+      });
+
+      const result = await requireAuthWithRateLimit(request, "links:read");
+
+      expect(result).not.toBeInstanceOf(Response);
+      if (!(result instanceof Response)) {
+        expect(result.auth).toEqual(mockAuth);
+        expect(result.headers["X-RateLimit-Limit"]).toBe("100");
+        expect(result.headers["X-RateLimit-Remaining"]).toBeDefined();
+        expect(result.headers["X-RateLimit-Reset"]).toBeDefined();
+      }
+    });
+
+    it("returns 429 when rate limit exceeded", async () => {
+      const mockAuth = {
+        userId: "user-123",
+        keyId: "key-rl-2",
+        scopes: ["links:read"] as ApiScope[],
+      };
+      vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
+
+      const config = { maxRequests: 2, windowMs: 60_000 };
+
+      // Use up the rate limit
+      for (let i = 0; i < 2; i++) {
+        const request = new NextRequest("http://localhost/api/test", {
+          headers: { Authorization: "Bearer zhe_validkey123" },
+        });
+        await requireAuthWithRateLimit(request, "links:read", config);
+      }
+
+      // This request should be rate limited
+      const request = new NextRequest("http://localhost/api/test", {
+        headers: { Authorization: "Bearer zhe_validkey123" },
+      });
+      const result = await requireAuthWithRateLimit(request, "links:read", config);
+
+      expect(result).toBeInstanceOf(Response);
+      const response = result as Response;
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("60");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("0");
+    });
+
+    it("returns 401 when auth fails", async () => {
+      const request = new NextRequest("http://localhost/api/test");
+      const result = await requireAuthWithRateLimit(request, "links:read");
+
+      expect(result).toBeInstanceOf(Response);
+      const response = result as Response;
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 403 when scope is missing", async () => {
+      const mockAuth = {
+        userId: "user-123",
+        keyId: "key-rl-3",
+        scopes: ["links:read"] as ApiScope[],
+      };
+      vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
+
+      const request = new NextRequest("http://localhost/api/test", {
+        headers: { Authorization: "Bearer zhe_validkey123" },
+      });
+
+      const result = await requireAuthWithRateLimit(request, "links:write");
+
+      expect(result).toBeInstanceOf(Response);
+      const response = result as Response;
+      expect(response.status).toBe(403);
     });
   });
 });

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyApiKeyAndGetUser, type ApiKeyVerifyResult } from "@/lib/db";
 import type { ApiScope } from "@/models/api-key";
+import { checkRateLimit, type RateLimitConfig } from "./rate-limit";
 
 export type AuthResult =
   | { success: true; auth: ApiKeyVerifyResult }
@@ -119,4 +120,57 @@ export async function requireAuth(
   }
 
   return result.auth;
+}
+
+/**
+ * Authenticate, authorize, and rate-limit a request in one step.
+ * Returns the auth result if successful, or a NextResponse error if not.
+ *
+ * Includes standard rate limit headers in the response.
+ *
+ * @param request - The incoming request
+ * @param requiredScope - The scope required for this operation
+ * @param rateLimitConfig - Optional custom rate limit configuration
+ * @returns Auth result or NextResponse error (with rate limit headers)
+ */
+export async function requireAuthWithRateLimit(
+  request: NextRequest,
+  requiredScope: ApiScope,
+  rateLimitConfig?: RateLimitConfig,
+): Promise<{ auth: ApiKeyVerifyResult; headers: Record<string, string> } | NextResponse> {
+  const result = await authenticateApiKey(request);
+
+  if (!result.success) {
+    return apiError(result.error, result.status);
+  }
+
+  if (!hasScope(result.auth, requiredScope)) {
+    return apiError(
+      `Insufficient permissions. Required scope: ${requiredScope}`,
+      403,
+    );
+  }
+
+  // Check rate limit
+  const rateLimit = checkRateLimit(result.auth.keyId, rateLimitConfig);
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": String(rateLimitConfig?.maxRequests ?? 100),
+    "X-RateLimit-Remaining": String(rateLimit.remaining),
+    "X-RateLimit-Reset": String(rateLimit.resetAt),
+  };
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      {
+        status: 429,
+        headers: {
+          ...rateLimitHeaders,
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      },
+    );
+  }
+
+  return { auth: result.auth, headers: rateLimitHeaders };
 }
