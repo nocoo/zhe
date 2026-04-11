@@ -154,6 +154,17 @@ export const apiKeys = sqliteTable("api_keys", {
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
 });
 
+export const apiAuditLogs = sqliteTable("api_audit_logs", {
+  id: text("id").primaryKey(),
+  keyId: text("key_id").notNull().references(() => apiKeys.id, { onDelete: "cascade" }),
+  keyPrefix: text("key_prefix").notNull(),
+  userId: text("user_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code").notNull(),
+  timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
+});
+
 // ============================================
 // Type exports
 // ============================================
@@ -182,3 +193,6 @@ export type TweetCache = typeof tweetCache.$inferSelect;
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+
+export type ApiAuditLog = typeof apiAuditLogs.$inferSelect;
+export type NewApiAuditLog = typeof apiAuditLogs.$inferInsert;

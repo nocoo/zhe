@@ -1249,6 +1249,26 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // ---- API Audit Logs ----
+
+      // INSERT INTO api_audit_logs
+      if (sqlLower.startsWith('insert into api_audit_logs')) {
+        // Fire-and-forget audit logs — just accept the insert
+        return [];
+      }
+
+      // SELECT * FROM api_audit_logs WHERE key_id = ?
+      if (sqlLower.includes('from api_audit_logs') && sqlLower.includes('where key_id = ?')) {
+        // For testing, return empty array (no audit logs stored in mock)
+        return [];
+      }
+
+      // SELECT * FROM api_audit_logs WHERE user_id = ?
+      if (sqlLower.includes('from api_audit_logs') && sqlLower.includes('where user_id = ?')) {
+        // For testing, return empty array
+        return [];
+      }
+
       console.warn('Unhandled SQL in mock:', sql);
       return [];
     };
