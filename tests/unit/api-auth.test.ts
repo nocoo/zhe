@@ -77,6 +77,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-456",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read", "links:write"] as ApiScope[],
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
@@ -100,6 +101,7 @@ describe("API Key Auth Middleware", () => {
       const auth = {
         userId: "user-123",
         keyId: "key-456",
+        keyPrefix: "zhe_test1234",
         scopes: ["links:read", "links:write"] as ApiScope[],
       };
 
@@ -111,6 +113,7 @@ describe("API Key Auth Middleware", () => {
       const auth = {
         userId: "user-123",
         keyId: "key-456",
+        keyPrefix: "zhe_test1234",
         scopes: ["links:read"] as ApiScope[],
       };
 
@@ -152,6 +155,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-456",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read"] as ApiScope[], // Only read, no write
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
@@ -173,6 +177,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-456",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read", "links:write"] as ApiScope[],
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
@@ -193,6 +198,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-rl-1",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read"] as ApiScope[],
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
@@ -216,6 +222,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-rl-2",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read"] as ApiScope[],
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);
@@ -256,6 +263,7 @@ describe("API Key Auth Middleware", () => {
       const mockAuth = {
         userId: "user-123",
         keyId: "key-rl-3",
+        keyPrefix: "zhe_validkey1",
         scopes: ["links:read"] as ApiScope[],
       };
       vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue(mockAuth);

@@ -12,6 +12,7 @@ import { hashApiKey, verifyApiKey, parseScopes, type ApiScope } from '@/models/a
 export type ApiKeyVerifyResult = {
   userId: string;
   keyId: string;
+  keyPrefix: string;
   scopes: ApiScope[];
 };
 
@@ -33,7 +34,7 @@ export async function verifyApiKeyAndGetUser(
 
   // Look up by hash (indexed column)
   const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT id, user_id, scopes, revoked_at, key_hash
+    `SELECT id, prefix, user_id, scopes, revoked_at, key_hash
      FROM api_keys
      WHERE key_hash = ?
      LIMIT 1`,
@@ -50,6 +51,7 @@ export async function verifyApiKeyAndGetUser(
   if (!verifyApiKey(key, row.key_hash as string)) return null;
 
   const keyId = row.id as string;
+  const keyPrefix = row.prefix as string;
   const userId = row.user_id as string;
   const scopes = parseScopes(row.scopes as string);
 
@@ -58,7 +60,7 @@ export async function verifyApiKeyAndGetUser(
     // Silently ignore errors — this is non-critical
   });
 
-  return { userId, keyId, scopes };
+  return { userId, keyId, keyPrefix, scopes };
 }
 
 /**

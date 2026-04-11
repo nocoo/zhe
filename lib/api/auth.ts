@@ -101,10 +101,15 @@ export function apiError(
  * if (authResult instanceof NextResponse) return authResult;
  * const { userId, scopes } = authResult;
  * ```
+ *
+ * Multiple scopes (any one is sufficient):
+ * ```ts
+ * const authResult = await requireAuth(request, ["links:read", "links:write"]);
+ * ```
  */
 export async function requireAuth(
   request: NextRequest,
-  requiredScope: ApiScope,
+  requiredScope: ApiScope | ApiScope[],
 ): Promise<ApiKeyVerifyResult | NextResponse> {
   const result = await authenticateApiKey(request);
 
@@ -112,9 +117,12 @@ export async function requireAuth(
     return apiError(result.error, result.status);
   }
 
-  if (!hasScope(result.auth, requiredScope)) {
+  const requiredScopes = Array.isArray(requiredScope) ? requiredScope : [requiredScope];
+  const hasAnyScope = requiredScopes.some((scope) => hasScope(result.auth, scope));
+
+  if (!hasAnyScope) {
     return apiError(
-      `Insufficient permissions. Required scope: ${requiredScope}`,
+      `Insufficient permissions. Required scope: ${requiredScopes.join(" or ")}`,
       403,
     );
   }
@@ -129,13 +137,13 @@ export async function requireAuth(
  * Includes standard rate limit headers in the response.
  *
  * @param request - The incoming request
- * @param requiredScope - The scope required for this operation
+ * @param requiredScope - The scope(s) required for this operation (any one is sufficient)
  * @param rateLimitConfig - Optional custom rate limit configuration
  * @returns Auth result or NextResponse error (with rate limit headers)
  */
 export async function requireAuthWithRateLimit(
   request: NextRequest,
-  requiredScope: ApiScope,
+  requiredScope: ApiScope | ApiScope[],
   rateLimitConfig?: RateLimitConfig,
 ): Promise<{ auth: ApiKeyVerifyResult; headers: Record<string, string> } | NextResponse> {
   const result = await authenticateApiKey(request);
@@ -144,9 +152,12 @@ export async function requireAuthWithRateLimit(
     return apiError(result.error, result.status);
   }
 
-  if (!hasScope(result.auth, requiredScope)) {
+  const requiredScopes = Array.isArray(requiredScope) ? requiredScope : [requiredScope];
+  const hasAnyScope = requiredScopes.some((scope) => hasScope(result.auth, scope));
+
+  if (!hasAnyScope) {
     return apiError(
-      `Insufficient permissions. Required scope: ${requiredScope}`,
+      `Insufficient permissions. Required scope: ${requiredScopes.join(" or ")}`,
       403,
     );
   }

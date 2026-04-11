@@ -272,10 +272,69 @@ export async function seedBackyPushConfig(
 // ---------------------------------------------------------------------------
 
 /** Delete all test data owned by the test user. Analytics cascade automatically. */
-export async function cleanupTestData(): Promise<void> {
-  await executeD1('DELETE FROM links WHERE user_id = ?', [TEST_USER.id]);
-  await executeD1('DELETE FROM folders WHERE user_id = ?', [TEST_USER.id]);
-  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER.id]);
-  await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id]);
-  await executeD1('DELETE FROM user_settings WHERE user_id = ?', [TEST_USER.id]);
+export async function cleanupTestData(userId?: string): Promise<void> {
+  const uid = userId ?? TEST_USER.id;
+  await executeD1('DELETE FROM api_audit_logs WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM api_keys WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM links WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM folders WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM uploads WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM user_settings WHERE user_id = ?', [uid]);
+  // If a custom user was created, clean it up too
+  if (userId && userId !== TEST_USER.id) {
+    await executeD1('DELETE FROM users WHERE id = ?', [uid]);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// API Key helpers
+// ---------------------------------------------------------------------------
+
+import { createHash, randomBytes } from 'crypto';
+
+/** Hash an API key using SHA-256 (matches models/api-key.ts). */
+function hashApiKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
+}
+
+export interface SeedApiKeyOptions {
+  name?: string;
+  scopes?: string;
+}
+
+/**
+ * Seed an API key for a user and return the full key (plaintext).
+ * This is the only time the full key is available.
+ */
+export async function seedApiKey(userId: string, options: SeedApiKeyOptions = {}): Promise<string> {
+  const name = options.name ?? 'Test API Key';
+  const scopes = options.scopes ?? 'links:read,links:write';
+
+  // Generate a full API key
+  const randomPart = randomBytes(24).toString('base64url');
+  const fullKey = `zhe_${randomPart}`;
+  const prefix = fullKey.substring(0, 12);
+  const keyHash = hashApiKey(fullKey);
+  const id = `key-${nanoid(8)}`;
+  const now = Math.floor(Date.now() / 1000);
+
+  await executeD1(
+    `INSERT INTO api_keys (id, prefix, key_hash, user_id, name, scopes, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, prefix, keyHash, userId, name, scopes, now],
+  );
+
+  return fullKey;
+}
+
+/**
+ * Seed a test user with a specific ID.
+ * Use this when you need isolated test data per test suite.
+ */
+export async function seedTestUser(userId: string): Promise<void> {
+  await executeD1(
+    'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+    [userId, `Test User ${userId}`, `${userId}@test.local`],
+  );
 }

@@ -292,6 +292,7 @@ describe('API Key Authentication', () => {
     expect(result).not.toBeNull();
     expect(result?.userId).toBe(TEST_USER);
     expect(result?.keyId).toBe('key-valid');
+    expect(result?.keyPrefix).toBe('zhe_validk');
     expect(result?.scopes).toContain('links:read');
     expect(result?.scopes).toContain('links:write');
   });
