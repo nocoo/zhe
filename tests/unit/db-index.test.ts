@@ -4,8 +4,8 @@ import {
   getLinkByUserAndUrl,
   getFolderByUserAndName,
   getWebhookByToken,
-  verifyApiKeyAndGetUser,
 } from '@/lib/db';
+import { verifyApiKeyAndGetUser } from '@/lib/db/api-keys';
 import { ScopedDB } from '@/lib/db/scoped';
 import { hashApiKey } from '@/models/api-key';
 import { clearMockStorage, getMockFolders, getMockWebhooks } from '../mocks/db-storage';

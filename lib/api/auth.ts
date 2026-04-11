@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyApiKeyAndGetUser, type ApiKeyVerifyResult } from "@/lib/db";
+import { verifyApiKeyAndGetUser, type ApiKeyVerifyResult } from "@/lib/db/api-keys";
 import type { ApiScope } from "@/models/api-key";
 import { checkRateLimit, type RateLimitConfig } from "./rate-limit";
 
