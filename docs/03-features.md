@@ -215,6 +215,8 @@ Content-Type: multipart/form-data
 
 ## Webhook API
 
+> ⚠️ **弃用通知**：Webhook Token API 将于 2026-10-01 停止服务。请迁移到 [API Key 认证的 v1 API](#api-v1推荐)。在 `/dashboard/settings` 的 Webhook 设置中可以一键迁移。
+
 通过令牌认证的 HTTP API，支持外部系统自动创建短链接：
 
 ### 创建链接
@@ -330,16 +332,146 @@ Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
 
 ## API 路由一览
 
+### Legacy Webhook API（已弃用）
+
+> ⚠️ **弃用通知**：Webhook Token API 将于 2026-10-01 停止服务。请迁移到 API Key 认证的 v1 API。
+
 | 路由 | 方法 | 说明 |
 |------|------|------|
-| `/api/health` | GET | 健康检查（返回版本号和状态） |
-| `/api/live` | GET | 存活探针（仅返回版本号，无外部依赖检查） |
 | `/api/link/create/[token]` | POST | Webhook 创建链接 |
 | `/api/link/create/[token]` | GET | Webhook 统计 + API 文档 |
 | `/api/link/create/[token]` | HEAD | Webhook 健康检查 |
 | `/api/tmp/upload/[token]` | POST | 临时文件上传 |
 | `/api/tmp/upload/[token]` | GET | 临时上传 API 使用文档 |
 | `/api/tmp/upload/[token]` | HEAD | 临时上传健康检查 |
+
+### API v1（推荐）
+
+使用 API Key 认证的 RESTful API。在 `/dashboard/api-keys` 页面创建和管理 API Key。
+
+#### 认证方式
+
+```
+Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### 速率限制
+
+每个 API Key 默认 60 次请求/分钟。超限时返回 `429 Too Many Requests`，`Retry-After` header 指示等待秒数。
+
+#### 作用域
+
+| 作用域 | 说明 |
+|--------|------|
+| `links:read` | 读取链接列表和详情 |
+| `links:write` | 创建、更新、删除链接 |
+| `folders:read` | 读取文件夹列表和详情 |
+| `folders:write` | 创建、更新、删除文件夹 |
+| `tags:read` | 读取标签列表和详情 |
+| `tags:write` | 创建、更新、删除标签 |
+| `uploads:read` | 读取上传文件列表和详情 |
+| `uploads:write` | 删除上传文件 |
+
+#### 端点列表
+
+| 路由 | 方法 | 作用域 | 说明 |
+|------|------|--------|------|
+| `/api/v1/links` | GET | `links:read` | 获取链接列表 |
+| `/api/v1/links` | POST | `links:write` | 创建链接 |
+| `/api/v1/links/[id]` | GET | `links:read` | 获取链接详情 |
+| `/api/v1/links/[id]` | PATCH | `links:write` | 更新链接 |
+| `/api/v1/links/[id]` | DELETE | `links:write` | 删除链接 |
+| `/api/v1/folders` | GET | `folders:read` | 获取文件夹列表 |
+| `/api/v1/folders` | POST | `folders:write` | 创建文件夹 |
+| `/api/v1/folders/[id]` | GET | `folders:read` | 获取文件夹详情 |
+| `/api/v1/folders/[id]` | PATCH | `folders:write` | 更新文件夹 |
+| `/api/v1/folders/[id]` | DELETE | `folders:write` | 删除文件夹 |
+| `/api/v1/tags` | GET | `tags:read` | 获取标签列表 |
+| `/api/v1/tags` | POST | `tags:write` | 创建标签 |
+| `/api/v1/tags/[id]` | GET | `tags:read` | 获取标签详情 |
+| `/api/v1/tags/[id]` | PATCH | `tags:write` | 更新标签 |
+| `/api/v1/tags/[id]` | DELETE | `tags:write` | 删除标签 |
+| `/api/v1/uploads` | GET | `uploads:read` | 获取上传文件列表 |
+| `/api/v1/uploads/[id]` | GET | `uploads:read` | 获取上传文件详情 |
+| `/api/v1/uploads/[id]` | DELETE | `uploads:write` | 删除上传文件 |
+
+#### 链接 API 详情
+
+**GET /api/v1/links** — 获取链接列表
+
+查询参数：
+- `limit` (number, 1-100, default: 50) — 每页数量
+- `offset` (number, default: 0) — 偏移量
+- `folder` (string) — 按文件夹 ID 过滤
+
+响应：
+```json
+{
+  "links": [
+    {
+      "id": 123,
+      "slug": "abc123",
+      "originalUrl": "https://example.com",
+      "title": "Example",
+      "description": "An example website",
+      "faviconUrl": "https://example.com/favicon.ico",
+      "screenshotUrl": null,
+      "note": "My note",
+      "isCustom": true,
+      "clicks": 42,
+      "folderId": "folder-id",
+      "expiresAt": null,
+      "createdAt": "2026-01-15T00:00:00.000Z"
+    }
+  ],
+  "total": 100
+}
+```
+
+**POST /api/v1/links** — 创建链接
+
+请求体：
+```json
+{
+  "url": "https://example.com",
+  "customSlug": "my-link",     // 可选
+  "folderId": "folder-id",     // 可选
+  "note": "备注",              // 可选
+  "expiresAt": "2026-12-31"    // 可选，ISO 8601 格式
+}
+```
+
+响应 (201)：
+```json
+{
+  "link": {
+    "id": 123,
+    "slug": "my-link",
+    "shortUrl": "https://zhe.to/my-link",
+    "originalUrl": "https://example.com"
+  }
+}
+```
+
+**PATCH /api/v1/links/[id]** — 更新链接
+
+请求体（所有字段可选）：
+```json
+{
+  "originalUrl": "https://example.com/new",
+  "slug": "new-slug",
+  "folderId": "new-folder-id",
+  "note": "新备注",
+  "expiresAt": "2027-01-01"
+}
+```
+
+### 内部路由
+
+| 路由 | 方法 | 说明 |
+|------|------|------|
+| `/api/health` | GET | 健康检查（返回版本号和状态） |
+| `/api/live` | GET | 存活探针（仅返回版本号，无外部依赖检查） |
 | `/api/record-click` | POST | Worker 上报点击分析 |
 | `/api/lookup` | GET | Slug 查找（Worker KV miss 回退） |
 | `/api/worker-status` | GET | Worker 健康状态 |

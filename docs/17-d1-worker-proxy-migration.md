@@ -507,7 +507,7 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 | 5.1 | Deprecation | `chore(api): mark webhook token as deprecated` | ✅ `3bafc01` |
 | | | - Add deprecation warning header to `/api/link/create/[token]` | |
 | | | - RFC 8594 headers: Deprecation, Sunset, Link | |
-| 5.2 | Migration | `feat(settings): add webhook-to-apikey migration` | |
+| 5.2 | Migration | `feat(settings): add webhook-to-apikey migration` | ✅ `e27d18c` |
 | | | - One-click create api_key with same permissions | |
 | 5.3 | Docs | `docs: update API documentation for v1 endpoints` | |
 | 5.4 | Cleanup | `chore(api): remove deprecated webhook endpoints` | |
