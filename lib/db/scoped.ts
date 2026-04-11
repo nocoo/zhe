@@ -601,6 +601,15 @@ export class ScopedDB {
     return rows.map(rowToTag);
   }
 
+  /** Get a single tag by id, only if owned by this user. */
+  async getTagById(id: string): Promise<Tag | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM tags WHERE id = ? AND user_id = ? LIMIT 1',
+      [id, this.userId],
+    );
+    return rows[0] ? rowToTag(rows[0]) : null;
+  }
+
   /** Create a new tag owned by this user. */
   async createTag(data: { name: string; color: string }): Promise<Tag> {
     const now = Date.now();

@@ -268,6 +268,33 @@ export async function seedBackyPushConfig(
 }
 
 // ---------------------------------------------------------------------------
+// Tag helpers
+// ---------------------------------------------------------------------------
+
+export interface SeedTagOptions {
+  userId?: string;
+  name?: string;
+  color?: string;
+}
+
+/** Insert a tag into D1 and return the tag info. */
+export async function seedTag(userId?: string, options: SeedTagOptions = {}): Promise<{ id: string; name: string }> {
+  const uid = userId ?? TEST_USER.id;
+  const id = `tag-${nanoid(8)}`;
+  const name = options.name ?? `Test Tag ${nanoid(4)}`;
+  const color = options.color ?? '#ff5500';
+  const now = Math.floor(Date.now() / 1000);
+
+  await executeD1(
+    `INSERT INTO tags (id, user_id, name, color, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, uid, name, color, now],
+  );
+
+  return { id, name };
+}
+
+// ---------------------------------------------------------------------------
 // Upload helpers
 // ---------------------------------------------------------------------------
 
@@ -311,6 +338,7 @@ export async function cleanupTestData(userId?: string): Promise<void> {
   const uid = userId ?? TEST_USER.id;
   await executeD1('DELETE FROM api_audit_logs WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM api_keys WHERE user_id = ?', [uid]);
+  await executeD1('DELETE FROM tags WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM links WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM folders WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM webhooks WHERE user_id = ?', [uid]);
