@@ -17,6 +17,16 @@ import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, We
 // ScopedDB — all user-owned data operations
 // ============================================
 
+/** Filter options for getLinks. */
+export interface GetLinksOptions {
+  /** Keyword search across slug, originalUrl, note, metaTitle, metaDescription */
+  query?: string;
+  /** Filter by folder ID. Use 'inbox' for links with no folder (folder_id IS NULL) */
+  folderId?: string | 'inbox';
+  /** Filter by tag ID */
+  tagId?: string;
+}
+
 export class ScopedDB {
   constructor(private readonly userId: string) {
     if (!userId) {
@@ -26,12 +36,51 @@ export class ScopedDB {
 
   // ---- Links ------------------------------------------------
 
-  /** Get all links owned by this user. */
-  async getLinks(): Promise<Link[]> {
-    const rows = await executeD1Query<Record<string, unknown>>(
-      'SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC',
-      [this.userId],
-    );
+  /** Get all links owned by this user, with optional filters. */
+  async getLinks(options: GetLinksOptions = {}): Promise<Link[]> {
+    const { query, folderId, tagId } = options;
+
+    // Build dynamic WHERE clauses
+    const conditions: string[] = ['l.user_id = ?'];
+    const params: unknown[] = [this.userId];
+
+    // Keyword search: LIKE across multiple columns
+    if (query) {
+      const searchPattern = `%${query}%`;
+      conditions.push(`(
+        l.slug LIKE ? OR
+        l.original_url LIKE ? OR
+        l.note LIKE ? OR
+        l.meta_title LIKE ? OR
+        l.meta_description LIKE ?
+      )`);
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    // Folder filter
+    if (folderId === 'inbox') {
+      conditions.push('l.folder_id IS NULL');
+    } else if (folderId) {
+      conditions.push('l.folder_id = ?');
+      params.push(folderId);
+    }
+
+    // Tag filter: JOIN with link_tags
+    let joinClause = '';
+    if (tagId) {
+      joinClause = 'JOIN link_tags lt ON l.id = lt.link_id';
+      conditions.push('lt.tag_id = ?');
+      params.push(tagId);
+    }
+
+    const sql = `
+      SELECT l.* FROM links l
+      ${joinClause}
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY l.created_at DESC
+    `;
+
+    const rows = await executeD1Query<Record<string, unknown>>(sql, params);
     return rows.map(rowToLink);
   }
 

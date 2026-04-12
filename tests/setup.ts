@@ -193,15 +193,71 @@ vi.mock('@/lib/db/d1-client', async () => {
         return results as T[];
       }
 
-      // SELECT FROM links WHERE user_id = ?
-      if (sqlLower.startsWith('select') && sqlLower.includes('from links') && sqlLower.includes('where user_id = ?')) {
-        const [userId] = params;
+      // SELECT FROM links WHERE user_id = ? (also handles l.user_id from aliased queries)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from links') && (sqlLower.includes('where user_id = ?') || sqlLower.includes('where l.user_id = ?'))) {
+        // Find the userId parameter (first param after any search params)
+        // For dynamic queries, userId is always the first param
+        const userId = params[0];
         const results: unknown[] = [];
+
+        // Check if this is a tag filter query (has JOIN link_tags)
+        const hasTagFilter = sqlLower.includes('join link_tags');
+        const linkTags = hasTagFilter ? getMockLinkTags() : null;
+
+        // Find query and tagId params based on SQL patterns
+        let queryPattern: string | null = null;
+        let folderId: string | null = null;
+        let tagId: string | null = null;
+        const folderIsNull = sqlLower.includes('folder_id is null');
+
+        let paramIndex = 1; // Start after userId
+
+        // Check for LIKE patterns (keyword search)
+        if (sqlLower.includes('like ?')) {
+          queryPattern = params[paramIndex] as string;
+          paramIndex += 5; // 5 LIKE params for search
+        }
+
+        // Check for folder_id = ? (not IS NULL)
+        if (sqlLower.includes('folder_id = ?')) {
+          folderId = params[paramIndex] as string;
+          paramIndex++;
+        }
+
+        // Check for tag_id = ?
+        if (sqlLower.includes('tag_id = ?')) {
+          tagId = params[paramIndex] as string;
+        }
+
         for (const link of mockLinks.values()) {
           const rawLink = link as unknown as Record<string, unknown>;
-          if (rawLink.user_id === userId) {
-            results.push(link);
+
+          // Must match userId
+          if (rawLink.user_id !== userId) continue;
+
+          // Keyword search filter
+          if (queryPattern) {
+            const search = queryPattern.replace(/%/g, '').toLowerCase();
+            const matchesSearch =
+              (rawLink.slug as string || '').toLowerCase().includes(search) ||
+              (rawLink.original_url as string || '').toLowerCase().includes(search) ||
+              (rawLink.note as string || '').toLowerCase().includes(search) ||
+              (rawLink.meta_title as string || '').toLowerCase().includes(search) ||
+              (rawLink.meta_description as string || '').toLowerCase().includes(search);
+            if (!matchesSearch) continue;
           }
+
+          // Folder filter
+          if (folderIsNull && rawLink.folder_id !== null) continue;
+          if (folderId && rawLink.folder_id !== folderId) continue;
+
+          // Tag filter
+          if (tagId && linkTags) {
+            const hasTag = linkTags.some(lt => lt.link_id === rawLink.id && lt.tag_id === tagId);
+            if (!hasTag) continue;
+          }
+
+          results.push(link);
         }
         // Sort by created_at DESC
         results.sort((a, b) => {

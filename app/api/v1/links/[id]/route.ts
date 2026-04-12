@@ -288,6 +288,8 @@ function linkToResponse(link: Link): Record<string, unknown> {
     isCustom: link.isCustom,
     clicks: link.clicks,
     note: link.note,
+    metaTitle: link.metaTitle,
+    metaDescription: link.metaDescription,
     screenshotUrl: link.screenshotUrl,
     expiresAt: link.expiresAt?.toISOString() ?? null,
     createdAt: link.createdAt.toISOString(),

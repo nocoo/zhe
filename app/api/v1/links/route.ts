@@ -18,7 +18,9 @@ import type { Link } from "@/lib/db/schema";
  * GET /api/v1/links
  *
  * Query params:
- *   - folderId (optional): Filter by folder
+ *   - q (optional): Keyword search across slug, URL, note, title, description
+ *   - folderId (optional): Filter by folder. Use "null" for inbox (no folder)
+ *   - tagId (optional): Filter by tag ID
  *   - limit (optional): Max results (default 100, max 500)
  *   - offset (optional): Pagination offset
  *
@@ -35,14 +37,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const db = new ScopedDB(userId);
-    let links = await db.getLinks();
-
-    // Filter by folder if specified
     const url = new URL(request.url);
-    const folderId = url.searchParams.get("folderId");
-    if (folderId) {
-      links = links.filter((link) => link.folderId === folderId);
+
+    // Build filter options - only include defined values
+    const queryParam = url.searchParams.get("q");
+    const folderIdParam = url.searchParams.get("folderId");
+    const tagIdParam = url.searchParams.get("tagId");
+
+    // Special handling: folderId=null means inbox (links with no folder)
+    const options: { query?: string; folderId?: string | 'inbox'; tagId?: string } = {};
+    if (queryParam) options.query = queryParam;
+    if (folderIdParam === "null") {
+      options.folderId = "inbox";
+    } else if (folderIdParam) {
+      options.folderId = folderIdParam;
     }
+    if (tagIdParam) options.tagId = tagIdParam;
+
+    let links = await db.getLinks(options);
 
     // Apply pagination
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
@@ -197,6 +209,8 @@ function linkToResponse(link: Link): Record<string, unknown> {
     isCustom: link.isCustom,
     clicks: link.clicks,
     note: link.note,
+    metaTitle: link.metaTitle,
+    metaDescription: link.metaDescription,
     screenshotUrl: link.screenshotUrl,
     expiresAt: link.expiresAt?.toISOString() ?? null,
     createdAt: link.createdAt.toISOString(),
