@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiClientError } from "../src/api/client.js";
+import { CLI_VERSION } from "../src/version.js";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -26,7 +27,7 @@ describe("ApiClient", () => {
 			client.listLinks();
 			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
 			const headers = options.headers as Record<string, string>;
-			expect(headers["User-Agent"]).toBe("zhe-cli/1.0.0");
+			expect(headers["User-Agent"]).toBe(`zhe-cli/${CLI_VERSION}`);
 		});
 
 		it("allows custom version", () => {

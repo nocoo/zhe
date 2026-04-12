@@ -15,11 +15,12 @@ import { logoutCommand } from "./commands/logout.js";
 import { openCommand } from "./commands/open.js";
 import { tagsCommand } from "./commands/tags.js";
 import { updateCommand } from "./commands/update.js";
+import { CLI_VERSION } from "./version.js";
 
 const main = defineCommand({
 	meta: {
 		name: "zhe",
-		version: "1.0.0",
+		version: CLI_VERSION,
 		description: "CLI for managing zhe.to short links",
 	},
 	subCommands: {

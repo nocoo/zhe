@@ -2,6 +2,7 @@
  * HTTP client for zhe.to API v1
  */
 
+import { CLI_VERSION } from "../version.js";
 import type {
 	ApiError,
 	CreateLinkRequest,
@@ -20,7 +21,7 @@ export class ApiClient {
 	private apiKey: string;
 	private userAgent: string;
 
-	constructor(apiKey: string, version = "1.0.0") {
+	constructor(apiKey: string, version = CLI_VERSION) {
 		this.apiKey = apiKey;
 		this.userAgent = `zhe-cli/${version}`;
 	}
