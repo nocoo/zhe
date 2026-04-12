@@ -52,6 +52,28 @@ export const updateCommand = defineCommand({
 			alias: "e",
 			description: 'New expiration (use "never" to remove)',
 		},
+		title: {
+			type: "string",
+			alias: "t",
+			description: 'Meta title (use "" to clear)',
+		},
+		desc: {
+			type: "string",
+			alias: "d",
+			description: 'Meta description (use "" to clear)',
+		},
+		screenshot: {
+			type: "string",
+			description: 'Screenshot URL (use "" to clear)',
+		},
+		"add-tag": {
+			type: "string",
+			description: "Add tag to link (by name or ID)",
+		},
+		"remove-tag": {
+			type: "string",
+			description: "Remove tag from link (by name or ID)",
+		},
 		json: {
 			type: "boolean",
 			description: "Output as JSON",
@@ -99,10 +121,37 @@ export const updateCommand = defineCommand({
 			data.expiresAt = args.expires === "never" ? null : args.expires;
 		}
 
+		if (args.title !== undefined) {
+			data.metaTitle = args.title === "" ? null : args.title;
+		}
+
+		if (args.desc !== undefined) {
+			data.metaDescription = args.desc === "" ? null : args.desc;
+		}
+
+		if (args.screenshot !== undefined) {
+			data.screenshotUrl = args.screenshot === "" ? null : args.screenshot;
+		}
+
+		const addTag = args["add-tag"] as string | undefined;
+		const removeTag = args["remove-tag"] as string | undefined;
+
+		if (addTag) {
+			data.addTags = [addTag];
+		}
+
+		if (removeTag) {
+			data.removeTags = [removeTag];
+		}
+
 		// Check if there's anything to update
 		if (Object.keys(data).length === 0) {
 			console.log(pc.yellow("No changes specified."));
-			console.log(pc.dim("Use --url, --slug, --folder, --note, or --expires"));
+			console.log(
+				pc.dim(
+					"Use --url, --slug, --folder, --note, --expires, --title, --desc, --screenshot, --add-tag, or --remove-tag",
+				),
+			);
 			process.exit(EXIT_INVALID_ARGS);
 		}
 

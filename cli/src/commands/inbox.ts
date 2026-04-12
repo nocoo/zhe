@@ -1,5 +1,5 @@
 /**
- * zhe list — List all links
+ * zhe inbox — List uncategorized links (no folder)
  */
 
 import { defineCommand, pc } from "@nocoo/cli-base";
@@ -10,45 +10,19 @@ import {
 	EXIT_ERROR,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { ListLinksParams } from "../api/types.js";
 import { getApiKey, getOutputFormat } from "../config.js";
 import { formatLinksMinimal, formatLinksTable } from "../utils.js";
 
-export const listCommand = defineCommand({
+export const inboxCommand = defineCommand({
 	meta: {
-		name: "list",
-		description: "List all links",
+		name: "inbox",
+		description: "List uncategorized links (no folder)",
 	},
 	args: {
-		query: {
-			type: "string",
-			alias: "q",
-			description: "Search by slug, URL, note, or title",
-		},
-		folder: {
-			type: "string",
-			alias: "f",
-			description: "Filter by folder ID",
-		},
-		inbox: {
-			type: "boolean",
-			alias: "i",
-			description: "Show uncategorized links only (no folder)",
-		},
-		tag: {
-			type: "string",
-			alias: "t",
-			description: "Filter by tag ID",
-		},
 		limit: {
 			type: "string",
 			alias: "l",
 			description: "Max results (default: 50, max: 500)",
-		},
-		offset: {
-			type: "string",
-			alias: "o",
-			description: "Pagination offset (default: 0)",
 		},
 		json: {
 			type: "boolean",
@@ -69,14 +43,10 @@ export const listCommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		try {
-			// Build params object, only including defined fields
-			const params: ListLinksParams = {};
-			if (args.limit) params.limit = Number.parseInt(args.limit, 10);
-			if (args.offset) params.offset = Number.parseInt(args.offset, 10);
-			if (args.query) params.query = args.query;
-			if (args.inbox) params.inbox = true;
-			if (args.folder) params.folderId = args.folder;
-			if (args.tag) params.tagId = args.tag;
+			const params = {
+				inbox: true,
+				...(args.limit ? { limit: Number.parseInt(args.limit, 10) } : {}),
+			};
 
 			const response = await client.listLinks(params);
 
@@ -93,7 +63,11 @@ export const listCommand = defineCommand({
 					console.log(formatLinksMinimal(response.links));
 					break;
 				default:
-					console.log(formatLinksTable(response.links));
+					if (response.links.length === 0) {
+						console.log(pc.dim("No uncategorized links found."));
+					} else {
+						console.log(formatLinksTable(response.links));
+					}
 			}
 		} catch (error) {
 			handleApiError(error);

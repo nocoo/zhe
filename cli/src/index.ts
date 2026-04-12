@@ -6,11 +6,14 @@
 import { defineCommand, runMain } from "@nocoo/cli-base";
 import { createCommand } from "./commands/create.js";
 import { deleteCommand } from "./commands/delete.js";
+import { foldersCommand } from "./commands/folders.js";
 import { getCommand } from "./commands/get.js";
+import { inboxCommand } from "./commands/inbox.js";
 import { listCommand } from "./commands/list.js";
 import { loginCommand } from "./commands/login.js";
 import { logoutCommand } from "./commands/logout.js";
 import { openCommand } from "./commands/open.js";
+import { tagsCommand } from "./commands/tags.js";
 import { updateCommand } from "./commands/update.js";
 
 const main = defineCommand({
@@ -23,6 +26,9 @@ const main = defineCommand({
 		login: loginCommand,
 		logout: logoutCommand,
 		list: listCommand,
+		inbox: inboxCommand,
+		folders: foldersCommand,
+		tags: tagsCommand,
 		create: createCommand,
 		get: getCommand,
 		update: updateCommand,

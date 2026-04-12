@@ -85,6 +85,51 @@ describe("ApiClient", () => {
 			expect(url).toContain("offset=5");
 			expect(url).toContain("folderId=folder-123");
 		});
+
+		it("appends query param for keyword search", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ links: [] }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.listLinks({ query: "github" });
+
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toContain("q=github");
+		});
+
+		it("sets folderId=null for inbox filter", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ links: [] }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.listLinks({ inbox: true });
+
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toContain("folderId=null");
+		});
+
+		it("appends tagId param for tag filter", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ links: [] }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.listLinks({ tagId: "tag-123" });
+
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toContain("tagId=tag-123");
+		});
 	});
 
 	describe("getLink", () => {
@@ -198,6 +243,48 @@ describe("ApiClient", () => {
 			expect(url).toBe("https://zhe.to/api/v1/links/123");
 			expect(options.method).toBe("PATCH");
 		});
+
+		it("sends metadata fields when provided", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ link: {} }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateLink(123, {
+				metaTitle: "My Title",
+				metaDescription: "My Description",
+				screenshotUrl: "https://example.com/ss.png",
+			});
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body.metaTitle).toBe("My Title");
+			expect(body.metaDescription).toBe("My Description");
+			expect(body.screenshotUrl).toBe("https://example.com/ss.png");
+		});
+
+		it("sends tag operations when provided", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ link: {} }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateLink(123, {
+				addTags: ["tag-1"],
+				removeTags: ["tag-2"],
+			});
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body.addTags).toEqual(["tag-1"]);
+			expect(body.removeTags).toEqual(["tag-2"]);
+		});
 	});
 
 	describe("deleteLink", () => {
@@ -215,6 +302,48 @@ describe("ApiClient", () => {
 			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
 			expect(url).toBe("https://zhe.to/api/v1/links/123");
 			expect(options.method).toBe("DELETE");
+		});
+	});
+
+	describe("listFolders", () => {
+		it("returns folders from API", async () => {
+			const folders = [
+				{ id: "folder-1", name: "Work", icon: "briefcase", createdAt: "2026-01-01" },
+			];
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ folders }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.listFolders();
+
+			expect(result.folders).toEqual(folders);
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toBe("https://zhe.to/api/v1/folders");
+		});
+	});
+
+	describe("listTags", () => {
+		it("returns tags from API", async () => {
+			const tags = [
+				{ id: "tag-1", name: "Important", color: "#ff0000", createdAt: "2026-01-01" },
+			];
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ tags }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.listTags();
+
+			expect(result.tags).toEqual(tags);
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toBe("https://zhe.to/api/v1/tags");
 		});
 	});
 

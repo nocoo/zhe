@@ -74,6 +74,11 @@ export async function GET(
  *   - folderId: New folder ID (or null to remove)
  *   - expiresAt: New expiration (ISO 8601, or null to remove)
  *   - note: New note (or null to remove)
+ *   - metaTitle: Meta title (or null to remove)
+ *   - metaDescription: Meta description (or null to remove)
+ *   - screenshotUrl: Screenshot URL (or null to remove)
+ *   - addTags: Array of tag IDs to add
+ *   - removeTags: Array of tag IDs to remove
  *
  * Response: { link: Link }
  */
@@ -164,9 +169,45 @@ export async function PATCH(
       }
     }
 
+    // Validate and set screenshotUrl
+    if (body.screenshotUrl !== undefined) {
+      if (body.screenshotUrl !== null && typeof body.screenshotUrl !== "string") {
+        return apiError("screenshotUrl must be a string or null", 400);
+      }
+      updateData.screenshotUrl = body.screenshotUrl;
+    }
+
     // Handle note update separately (not in Link update)
     if (body.note !== undefined) {
       await db.updateLinkNote(linkId, body.note);
+    }
+
+    // Handle metadata updates
+    if (body.metaTitle !== undefined || body.metaDescription !== undefined) {
+      const metaData: { metaTitle?: string | null; metaDescription?: string | null } = {};
+      if (body.metaTitle !== undefined) {
+        metaData.metaTitle = body.metaTitle;
+      }
+      if (body.metaDescription !== undefined) {
+        metaData.metaDescription = body.metaDescription;
+      }
+      await db.updateLinkMetadata(linkId, metaData);
+    }
+
+    // Handle tag operations
+    if (body.addTags && Array.isArray(body.addTags)) {
+      for (const tagId of body.addTags) {
+        if (typeof tagId === "string") {
+          await db.addTagToLink(linkId, tagId);
+        }
+      }
+    }
+    if (body.removeTags && Array.isArray(body.removeTags)) {
+      for (const tagId of body.removeTags) {
+        if (typeof tagId === "string") {
+          await db.removeTagFromLink(linkId, tagId);
+        }
+      }
     }
 
     // Perform the update
@@ -174,7 +215,7 @@ export async function PATCH(
     if (Object.keys(updateData).length > 0) {
       updatedLink = await db.updateLink(linkId, updateData);
     } else {
-      // If only note was updated, re-fetch the link
+      // If only note/metadata/tags was updated, re-fetch the link
       updatedLink = await db.getLinkById(linkId);
     }
 

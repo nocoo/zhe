@@ -2,15 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
 	formatDate,
 	formatDateTime,
+	formatFoldersTable,
 	formatLinkDetail,
 	formatLinksMinimal,
 	formatLinksTable,
+	formatTagsTable,
 	isValidApiKeyFormat,
 	maskApiKey,
 	parseLinkId,
 	truncate,
 } from "../src/utils.js";
-import type { Link } from "../src/api/types.js";
+import type { Folder, Link, Tag } from "../src/api/types.js";
 
 describe("maskApiKey", () => {
 	it("masks API key preserving prefix and suffix", () => {
@@ -208,5 +210,51 @@ describe("parseLinkId", () => {
 
 	it("returns null for float string", () => {
 		expect(parseLinkId("12.5")).toBe(12); // parseInt behavior
+	});
+});
+
+describe("formatFoldersTable", () => {
+	it("returns 'No folders found' for empty array", () => {
+		expect(formatFoldersTable([])).toBe("No folders found.");
+	});
+
+	it("formats folders as table", () => {
+		const folders: Folder[] = [
+			{
+				id: "abc123-def456-ghi789",
+				name: "Work",
+				icon: "folder",
+				createdAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatFoldersTable(folders);
+		expect(result).toContain("ID");
+		expect(result).toContain("NAME");
+		expect(result).toContain("Work");
+		expect(result).toContain("folder");
+	});
+});
+
+describe("formatTagsTable", () => {
+	it("returns 'No tags found' for empty array", () => {
+		expect(formatTagsTable([])).toBe("No tags found.");
+	});
+
+	it("formats tags as table", () => {
+		const tags: Tag[] = [
+			{
+				id: "tag123-456-789",
+				name: "Important",
+				color: "#ff0000",
+				createdAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatTagsTable(tags);
+		expect(result).toContain("ID");
+		expect(result).toContain("NAME");
+		expect(result).toContain("Important");
+		expect(result).toContain("#ff0000");
 	});
 });

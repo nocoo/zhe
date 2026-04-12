@@ -2,7 +2,7 @@
  * Shared utilities for zhe CLI
  */
 
-import type { Link } from "./api/types.js";
+import type { Folder, Link, Tag } from "./api/types.js";
 
 /**
  * Mask an API key for display: zhe_abcd...wxyz
@@ -122,4 +122,50 @@ export function parseLinkId(input: string): number | null {
 		return null;
 	}
 	return id;
+}
+
+/**
+ * Format folders as a table
+ */
+export function formatFoldersTable(folders: Folder[]): string {
+	if (folders.length === 0) {
+		return "No folders found.";
+	}
+
+	const header =
+		"ID                                   NAME               ICON     CREATED";
+	const separator = "─".repeat(header.length);
+
+	const rows = folders.map((folder) => {
+		const id = folder.id.padEnd(36);
+		const name = truncate(folder.name, 18).padEnd(18);
+		const icon = truncate(folder.icon, 8).padEnd(8);
+		const created = formatDate(folder.createdAt);
+		return `${id} ${name} ${icon} ${created}`;
+	});
+
+	return [header, separator, ...rows].join("\n");
+}
+
+/**
+ * Format tags as a table
+ */
+export function formatTagsTable(tags: Tag[]): string {
+	if (tags.length === 0) {
+		return "No tags found.";
+	}
+
+	const header =
+		"ID                                   NAME               COLOR    CREATED";
+	const separator = "─".repeat(header.length);
+
+	const rows = tags.map((tag) => {
+		const id = tag.id.padEnd(36);
+		const name = truncate(tag.name, 18).padEnd(18);
+		const color = tag.color.padEnd(8);
+		const created = formatDate(tag.createdAt);
+		return `${id} ${name} ${color} ${created}`;
+	});
+
+	return [header, separator, ...rows].join("\n");
 }

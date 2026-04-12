@@ -5,9 +5,11 @@
 import type {
 	ApiError,
 	CreateLinkRequest,
+	FoldersResponse,
 	LinkResponse,
 	LinksResponse,
 	ListLinksParams,
+	TagsResponse,
 	UpdateLinkRequest,
 } from "./types.js";
 
@@ -104,7 +106,13 @@ export class ApiClient {
 		const searchParams = new URLSearchParams();
 		if (params.limit) searchParams.set("limit", String(params.limit));
 		if (params.offset) searchParams.set("offset", String(params.offset));
-		if (params.folderId) searchParams.set("folderId", params.folderId);
+		if (params.query) searchParams.set("q", params.query);
+		if (params.inbox) {
+			searchParams.set("folderId", "null");
+		} else if (params.folderId) {
+			searchParams.set("folderId", params.folderId);
+		}
+		if (params.tagId) searchParams.set("tagId", params.tagId);
 
 		const query = searchParams.toString();
 		const path = query ? `/links?${query}` : "/links";
@@ -137,6 +145,20 @@ export class ApiClient {
 	 */
 	async deleteLink(id: number): Promise<void> {
 		await this.request<Record<string, never>>("DELETE", `/links/${id}`);
+	}
+
+	/**
+	 * List all folders
+	 */
+	async listFolders(): Promise<FoldersResponse> {
+		return this.request<FoldersResponse>("GET", "/folders");
+	}
+
+	/**
+	 * List all tags
+	 */
+	async listTags(): Promise<TagsResponse> {
+		return this.request<TagsResponse>("GET", "/tags");
 	}
 
 	/**
