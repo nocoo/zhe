@@ -92,7 +92,8 @@ describe('useUploadsViewModel', () => {
     });
     // Default: empty uploads from server
     mockFetchUploads.mockResolvedValue({ success: true, data: [] });
-    localStorage.clear();
+    localStorage.removeItem('autoConvertPng');
+    localStorage.removeItem('jpegQuality');
   });
 
   afterEach(() => {

@@ -1,8 +1,31 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 
 // Stub `server-only` so server modules can be imported in Vitest (jsdom)
 vi.mock('server-only', () => ({}));
+
+// Polyfill localStorage for Node.js 25+ where --localstorage-file may interfere with jsdom
+// Create persistent mock storage that survives vi.unstubAllGlobals()
+const mockStorage = new Map<string, string>();
+const localStorageMock = {
+  getItem: (key: string) => mockStorage.get(key) ?? null,
+  setItem: (key: string, value: string) => mockStorage.set(key, value),
+  removeItem: (key: string) => mockStorage.delete(key),
+  clear: () => mockStorage.clear(),
+  key: (index: number) => Array.from(mockStorage.keys())[index] ?? null,
+  get length() { return mockStorage.size; },
+};
+
+// Apply localStorage mock before each test to ensure it survives vi.unstubAllGlobals()
+beforeEach(() => {
+  if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.getItem !== 'function') {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
+  }
+});
 
 // Polyfill ResizeObserver for jsdom (required by cmdk)
 if (typeof globalThis.ResizeObserver === 'undefined') {
