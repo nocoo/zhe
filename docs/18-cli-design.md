@@ -29,6 +29,15 @@
 
 ---
 
+## Design Principles
+
+1. **No server-side changes required for v1**: CLI is a pure client that consumes existing API v1 endpoints
+2. **Manual API Key entry**: Users create API Keys in dashboard, paste into CLI
+3. **Minimal blast radius**: API Key never exposed in browser history, logs, or URLs
+4. **Feature parity with API v1**: Commands map 1:1 to existing endpoints
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -38,7 +47,7 @@
 | CLI Framework | citty (via @nocoo/cli-base) |
 | Logging | consola (via @nocoo/cli-base) |
 | Config | ConfigManager (via @nocoo/cli-base) |
-| Auth | Browser OAuth → API Key |
+| Auth | Manual API Key entry (v1) |
 | HTTP | Native fetch |
 | Testing | Vitest (95%+ coverage) |
 | Linting | TypeScript + Biome |
@@ -53,9 +62,8 @@ zhe-cli/
 ├── src/
 │   ├── index.ts              # Entry point, main command definition
 │   ├── commands/
-│   │   ├── login.ts          # `zhe login` — Browser OAuth flow
+│   │   ├── login.ts          # `zhe login` — Prompt for API Key
 │   │   ├── logout.ts         # `zhe logout` — Clear credentials
-│   │   ├── whoami.ts         # `zhe whoami` — Show current user
 │   │   ├── list.ts           # `zhe list` — List links
 │   │   ├── create.ts         # `zhe create <url>` — Create link
 │   │   ├── get.ts            # `zhe get <id>` — Get link details
@@ -94,11 +102,6 @@ interface ZheConfig {
   // API authentication
   apiKey?: string;           // zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   
-  // User info (cached from login)
-  userId?: string;
-  userName?: string;
-  userEmail?: string;
-  
   // Preferences
   defaultFolderId?: string;  // Default folder for new links
   outputFormat?: "table" | "json" | "minimal";
@@ -112,46 +115,53 @@ interface ZheConfig {
 
 ---
 
-## Authentication Flow
+## Authentication
 
-### Login
+### Phase 1: Manual API Key Entry (v1)
+
+Users create an API Key in the dashboard (`/dashboard/api-keys`) and paste it into the CLI.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  1. User runs `zhe login`                                   │
 │                                                             │
-│  2. CLI opens browser: https://zhe.to/cli-auth?nonce=xxx   │
+│  2. CLI prompts: "Enter your API Key:"                     │
+│     (User pastes: zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)     │
 │                                                             │
-│  3. User authenticates via GitHub OAuth                     │
+│  3. CLI validates key format (must start with zhe_)        │
 │                                                             │
-│  4. Server redirects to: http://localhost:PORT/callback     │
-│     with ?token=zhe_xxx (newly created API Key)            │
+│  4. CLI makes test request to verify key works             │
+│     GET /api/v1/links?limit=1                               │
 │                                                             │
-│  5. CLI captures token, saves to config, closes server      │
-│                                                             │
-│  6. CLI displays: "✓ Logged in as user@example.com"        │
+│  5. If valid: save to config, display success              │
+│     If invalid: display error, don't save                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Server-Side Implementation Required
+**Security**:
+- API Key entered via stdin, not command line argument (avoids shell history)
+- Stored in config file with `0600` permissions
+- Never displayed after initial entry (only prefix shown: `zhe_abcd...`)
 
-New endpoint: `GET /cli-auth`
+### Phase 2: Browser OAuth (Future Enhancement)
 
-1. Redirect to GitHub OAuth with `state` containing nonce
-2. On callback, create API Key with scopes `links:read,links:write`
-3. Redirect to `http://localhost:PORT/callback?token=zhe_xxx&user=...`
+> **Note**: This requires server-side changes and is deferred to a future release.
 
-This uses `performLogin()` from `@nocoo/cli-base` which handles:
-- Starting local loopback server
-- XSS protection via nonce validation
-- Browser opening
-- Timeout handling
+If implemented, must use **authorization code flow** with one-time code exchange:
+
+1. CLI opens browser with nonce
+2. User authenticates, server generates one-time `code` (not the API Key)
+3. Server redirects to `http://localhost:PORT/callback?code=xxx&nonce=yyy`
+4. CLI exchanges code for API Key via secure POST request
+5. Code is immediately invalidated after use
+
+This avoids exposing the API Key in browser history, URL bars, or logs.
 
 ### Token Storage
 
 - API Key stored in config file (not in environment)
 - File permissions: `0600`
-- Never logged or displayed after initial save
+- Only prefix displayed in CLI output: `zhe_abcd...wxyz`
 
 ---
 
@@ -168,27 +178,40 @@ This uses `performLogin()` from `@nocoo/cli-base` which handles:
 
 ### `zhe login`
 
-Authenticate with zhe.to via browser OAuth.
+Authenticate by entering an API Key.
 
 ```bash
 zhe login
 ```
 
 **Flow:**
-1. Open browser to `https://zhe.to/cli-auth?nonce=xxx`
-2. User authenticates, server creates API Key
-3. Token saved to config
-4. Display success message with user info
+1. Prompt for API Key (hidden input)
+2. Validate format (`zhe_` prefix, correct length)
+3. Test with `GET /api/v1/links?limit=1`
+4. If valid: save to config
+5. Display result
 
-**Output:**
+**Output (success):**
 ```
-Opening browser for authentication...
-✓ Logged in as user@example.com
+Enter your API Key: ************************************
+✓ Authenticated successfully
+  API Key: zhe_abcd...wxyz
+  
+To create an API Key, visit: https://zhe.to/dashboard/api-keys
+```
+
+**Output (failure):**
+```
+Enter your API Key: ************************************
+✗ Invalid API Key
+
+To create an API Key, visit: https://zhe.to/dashboard/api-keys
 ```
 
 **Errors:**
-- `Login timeout (2 minutes)` — browser not completed in time
-- `Login cancelled` — user closed callback without completing
+- `Invalid API Key format` — doesn't match `zhe_` prefix
+- `Authentication failed` — key rejected by server (401)
+- `Permission denied` — key lacks `links:read` scope (403)
 
 ---
 
@@ -206,29 +229,8 @@ zhe logout
 ```
 
 **Behavior:**
-- Removes `apiKey`, `userId`, `userName`, `userEmail` from config
+- Removes `apiKey` from config
 - Does NOT revoke the API Key on server (user can do this in dashboard)
-
----
-
-### `zhe whoami`
-
-Show current authenticated user.
-
-```bash
-zhe whoami
-```
-
-**Output (authenticated):**
-```
-user@example.com (John Doe)
-API Key: zhe_abcd...wxyz (linked 2026-04-01)
-```
-
-**Output (not authenticated):**
-```
-Not logged in. Run `zhe login` to authenticate.
-```
 
 ---
 
@@ -248,6 +250,11 @@ zhe list [options]
 --json               Output as JSON
 ```
 
+**API Call:**
+```
+GET /api/v1/links?limit={limit}&offset={offset}&folderId={folderId}
+```
+
 **Output (table, default):**
 ```
 ID     SLUG        URL                              CLICKS  CREATED
@@ -255,8 +262,6 @@ ID     SLUG        URL                              CLICKS  CREATED
 123    my-link     https://example.com/page         42      2026-04-01
 124    abc123      https://google.com               15      2026-04-02
 125    project     https://github.com/user/repo     8       2026-04-03
-
-3 links total
 ```
 
 **Output (JSON):**
@@ -282,6 +287,8 @@ zhe.to/abc123
 zhe.to/project
 ```
 
+**Note**: Total count not displayed (API doesn't return it). Use `--json` and pipe to `jq length` if needed.
+
 ---
 
 ### `zhe create <url>`
@@ -304,6 +311,18 @@ zhe create <url> [options]
 --copy                 Copy short URL to clipboard
 --open                 Open short URL in browser
 --json                 Output as JSON
+```
+
+**API Call:**
+```
+POST /api/v1/links
+{
+  "url": "...",
+  "slug": "...",
+  "folderId": "...",
+  "note": "...",
+  "expiresAt": "..."
+}
 ```
 
 **Examples:**
@@ -330,19 +349,10 @@ zhe create https://example.com --json
 ✓ Created https://zhe.to/abc123
 ```
 
-**Output (verbose):**
-```
-✓ Created link
-  Short URL:  https://zhe.to/abc123
-  Original:   https://example.com/long/path
-  Slug:       abc123 (auto-generated)
-  Created:    2026-04-12 09:30:00
-```
-
 **Errors:**
-- `Slug "xxx" is already in use` — conflict, try different slug
-- `Invalid URL format` — malformed URL
-- `Expiration date must be in the future` — past date provided
+- `Slug "xxx" is already in use` — conflict (409)
+- `Invalid URL format` — malformed URL (400)
+- `Expiration date must be in the future` — past date (400)
 
 ---
 
@@ -355,11 +365,16 @@ zhe get <id> [options]
 ```
 
 **Arguments:**
-- `id` (required): Link ID (numeric) or slug
+- `id` (required): Link ID (numeric only)
 
 **Options:**
 ```
 --json    Output as JSON
+```
+
+**API Call:**
+```
+GET /api/v1/links/{id}
 ```
 
 **Output (default):**
@@ -370,7 +385,7 @@ Link #123
   Original:     https://example.com/page
   Slug:         my-link (custom)
   Clicks:       42
-  Folder:       Work (folder-id)
+  Folder:       folder-id
   Note:         Important project link
   Expires:      Never
   Created:      2026-04-01 10:00:00
@@ -395,7 +410,10 @@ Link #123
 ```
 
 **Errors:**
-- `Link not found` — ID doesn't exist or belongs to another user
+- `Link not found` — ID doesn't exist (404)
+- `Invalid link ID` — non-numeric ID (400)
+
+**Note**: Only numeric IDs are supported. Slug lookup is not available in v1 API.
 
 ---
 
@@ -418,6 +436,18 @@ zhe update <id> [options]
 -n, --note <text>      New note (use "" to clear)
 -e, --expires <date>   New expiration (use "never" to remove)
 --json                 Output as JSON
+```
+
+**API Call:**
+```
+PATCH /api/v1/links/{id}
+{
+  "originalUrl": "...",
+  "slug": "...",
+  "folderId": "..." | null,
+  "note": "..." | null,
+  "expiresAt": "..." | null
+}
 ```
 
 **Examples:**
@@ -447,13 +477,12 @@ zhe update 123 --note ""
 **Output (default):**
 ```
 ✓ Updated link #123
-  https://zhe.to/better-name → https://example.com/new-path
 ```
 
 **Errors:**
-- `Link not found` — ID doesn't exist
-- `Slug "xxx" is already in use` — conflict
-- `Invalid URL format` — malformed URL
+- `Link not found` — ID doesn't exist (404)
+- `Slug "xxx" is already in use` — conflict (409)
+- `Invalid URL format` — malformed URL (400)
 
 ---
 
@@ -474,10 +503,15 @@ zhe delete <id> [options]
 --json       Output as JSON
 ```
 
+**API Call:**
+```
+DELETE /api/v1/links/{id}
+```
+
 **Flow:**
 ```bash
 zhe delete 123
-# Output: Delete link #123 (https://zhe.to/my-link)? [y/N]
+# Output: Delete link #123? [y/N]
 # User types: y
 # Output: ✓ Deleted
 
@@ -491,7 +525,7 @@ zhe delete 123 --yes
 ```
 
 **Errors:**
-- `Link not found` — ID doesn't exist
+- `Link not found` — ID doesn't exist (404)
 
 ---
 
@@ -547,7 +581,7 @@ X-RateLimit-Reset: 1712930400
 ```
 
 Client behavior:
-1. If `X-RateLimit-Remaining` is low, show warning
+1. If `X-RateLimit-Remaining` is low (< 10), show warning
 2. On `429 Too Many Requests`, wait and retry once
 3. Display `Retry-After` value to user if still limited
 
@@ -562,10 +596,10 @@ interface ApiError {
 const errorMessages: Record<number, string> = {
   400: "Invalid request",
   401: "Not authenticated. Run `zhe login`.",
-  403: "Permission denied",
+  403: "Permission denied. Check your API Key scopes.",
   404: "Not found",
   409: "Conflict",
-  429: "Rate limit exceeded",
+  429: "Rate limit exceeded. Try again later.",
   500: "Server error",
 };
 ```
@@ -579,8 +613,8 @@ const errorMessages: Record<number, string> = {
 | Error | Message |
 |-------|---------|
 | No API key | `Not authenticated. Run \`zhe login\` first.` |
-| Invalid API key | `Authentication failed. Run \`zhe login\` to re-authenticate.` |
-| Expired API key | `API key revoked. Run \`zhe login\` to get a new key.` |
+| Invalid API key | `Authentication failed. Check your API Key or run \`zhe login\`.` |
+| Insufficient scope | `Permission denied. Your API Key lacks the required scope.` |
 
 ### Network Errors
 
@@ -598,6 +632,7 @@ const errorMessages: Record<number, string> = {
 | Invalid slug | `Invalid slug. Use only letters, numbers, hyphens, underscores.` |
 | Slug taken | `Slug "xxx" is already in use.` |
 | Past expiration | `Expiration date must be in the future.` |
+| Invalid ID | `Invalid link ID. Must be a number.` |
 
 ---
 
@@ -683,28 +718,45 @@ zhe --version
 
 ---
 
-## Future Enhancements
+## Implementation Phases
 
-### Phase 2: Folders
+### Phase 1: Core CRUD (v1.0.0)
+
+Pure client implementation, no server changes required.
+
+| Command | API Endpoint | Status |
+|---------|--------------|--------|
+| `zhe login` | Manual API Key entry | Planned |
+| `zhe logout` | Local config only | Planned |
+| `zhe list` | `GET /api/v1/links` | Planned |
+| `zhe create` | `POST /api/v1/links` | Planned |
+| `zhe get` | `GET /api/v1/links/{id}` | Planned |
+| `zhe update` | `PATCH /api/v1/links/{id}` | Planned |
+| `zhe delete` | `DELETE /api/v1/links/{id}` | Planned |
+| `zhe open` | Browser open (no API) | Planned |
+
+### Phase 2: Browser OAuth Login (Future)
+
+Requires server-side `/cli-auth` endpoint with authorization code flow.
+
+**Security requirements**:
+- One-time authorization code, not API Key in URL
+- Code exchanged for API Key via POST request
+- Code invalidated immediately after use
+
+### Phase 3: Folders
 
 ```bash
-zhe folders list
-zhe folders create <name> [--icon <emoji>]
-zhe folders delete <id>
+zhe folders list         # GET /api/v1/folders
+zhe folders create <name> # POST /api/v1/folders
+zhe folders delete <id>  # DELETE /api/v1/folders/{id}
 ```
 
-### Phase 3: Bulk Operations
+### Phase 4: Bulk Operations
 
 ```bash
 zhe import <file.csv>    # Bulk create from CSV
 zhe export [--format csv|json]  # Export all links
-```
-
-### Phase 4: Analytics
-
-```bash
-zhe stats <id>           # Show click statistics
-zhe stats <id> --chart   # ASCII chart of clicks over time
 ```
 
 ### Phase 5: Interactive Mode
@@ -718,57 +770,19 @@ zhe                      # Enter interactive REPL
 
 ---
 
-## Server-Side Requirements
+## API v1 Compatibility Matrix
 
-### New Endpoint: `/cli-auth`
-
-**Purpose**: OAuth flow that returns an API Key for CLI authentication.
-
-**Implementation**:
-
-```typescript
-// app/cli-auth/page.tsx (or route handler)
-
-export default async function CliAuthPage({
-  searchParams,
-}: {
-  searchParams: { nonce?: string; port?: string };
-}) {
-  const { nonce, port } = searchParams;
-  
-  // 1. Validate nonce format
-  if (!nonce || !port) {
-    return <Error message="Invalid request" />;
-  }
-  
-  // 2. Check if user is authenticated
-  const session = await auth();
-  if (!session?.user?.id) {
-    // Redirect to GitHub OAuth with state containing nonce + port
-    return redirect(`/api/auth/signin/github?callbackUrl=/cli-auth?nonce=${nonce}&port=${port}`);
-  }
-  
-  // 3. Create API Key for CLI
-  const { fullKey, prefix, keyHash } = generateApiKey();
-  await db.createApiKey({
-    id: nanoid(),
-    prefix,
-    keyHash,
-    userId: session.user.id,
-    name: "CLI Login",
-    scopes: "links:read,links:write",
-  });
-  
-  // 4. Redirect to local callback with token
-  return redirect(`http://localhost:${port}/callback?token=${fullKey}&nonce=${nonce}&user=${session.user.email}`);
-}
-```
-
-**Security Considerations**:
-- Nonce prevents CSRF attacks
-- Port validation (must be numeric, reasonable range)
-- API Key has limited scopes by default
-- User can see and revoke CLI keys in dashboard
+| CLI Feature | API Endpoint | Supported |
+|-------------|--------------|-----------|
+| List links | `GET /api/v1/links` | ✅ |
+| Create link | `POST /api/v1/links` | ✅ |
+| Get link by ID | `GET /api/v1/links/{id}` | ✅ |
+| Get link by slug | — | ❌ Not available |
+| Update link | `PATCH /api/v1/links/{id}` | ✅ |
+| Delete link | `DELETE /api/v1/links/{id}` | ✅ |
+| List total count | — | ❌ Not in response |
+| User info / whoami | — | ❌ No endpoint |
+| Key introspection | — | ❌ No endpoint |
 
 ---
 
