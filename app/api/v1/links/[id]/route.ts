@@ -171,8 +171,16 @@ export async function PATCH(
 
     // Validate and set screenshotUrl
     if (body.screenshotUrl !== undefined) {
-      if (body.screenshotUrl !== null && typeof body.screenshotUrl !== "string") {
-        return apiError("screenshotUrl must be a string or null", 400);
+      if (body.screenshotUrl !== null) {
+        if (typeof body.screenshotUrl !== "string") {
+          return apiError("screenshotUrl must be a string or null", 400);
+        }
+        // Validate URL format
+        try {
+          new URL(body.screenshotUrl);
+        } catch {
+          return apiError("Invalid screenshotUrl format", 400);
+        }
       }
       updateData.screenshotUrl = body.screenshotUrl;
     }
@@ -194,20 +202,32 @@ export async function PATCH(
       await db.updateLinkMetadata(linkId, metaData);
     }
 
-    // Handle tag operations
+    // Handle tag operations - collect errors for failed operations
+    const tagErrors: string[] = [];
     if (body.addTags && Array.isArray(body.addTags)) {
       for (const tagId of body.addTags) {
         if (typeof tagId === "string") {
-          await db.addTagToLink(linkId, tagId);
+          const success = await db.addTagToLink(linkId, tagId);
+          if (!success) {
+            tagErrors.push(`Failed to add tag: ${tagId} (tag not found or not owned)`);
+          }
         }
       }
     }
     if (body.removeTags && Array.isArray(body.removeTags)) {
       for (const tagId of body.removeTags) {
         if (typeof tagId === "string") {
-          await db.removeTagFromLink(linkId, tagId);
+          const success = await db.removeTagFromLink(linkId, tagId);
+          if (!success) {
+            tagErrors.push(`Failed to remove tag: ${tagId} (not associated with this link)`);
+          }
         }
       }
+    }
+
+    // If any tag operations failed, return error
+    if (tagErrors.length > 0) {
+      return apiError(tagErrors.join("; "), 400);
     }
 
     // Perform the update

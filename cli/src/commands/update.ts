@@ -68,11 +68,11 @@ export const updateCommand = defineCommand({
 		},
 		"add-tag": {
 			type: "string",
-			description: "Add tag to link (by name or ID)",
+			description: "Add tag to link (by ID)",
 		},
 		"remove-tag": {
 			type: "string",
-			description: "Remove tag from link (by name or ID)",
+			description: "Remove tag from link (by ID)",
 		},
 		json: {
 			type: "boolean",
