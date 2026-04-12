@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.13.0] - 2026-04-12
+
+### Added
+- Make PATCH /api/v1/links/:id transactional with D1 batch
+- Add filters, inbox, folders, tags commands and enhanced update
+- Add query/inbox/tag filters to GET /api/v1/links
+
+### Changed
+- Add regression tests for PATCH tag validation
+- Skip flaky config test that reads real user config
+- Sync version to 1.11.3
+
+### Fixed
+- Store expiresAt as milliseconds in PATCH batch
+- Validate removeTags in PATCH /api/v1/links/:id
+- Add mutual exclusion check for --inbox and --folder
+- Read version from package.json instead of hardcoding
+- Ensure atomic validation in PATCH /api/v1/links/:id
+- Validate tag operations and screenshotUrl in PATCH endpoint
+- Exclude cli/ from Next.js tsconfig
+
 ## [v1.12.0] - 2026-04-12
 
 ### Added
