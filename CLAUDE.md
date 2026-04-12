@@ -10,12 +10,14 @@ The **only** authoritative version number lives in `package.json` `"version"` fi
 - **Display format**: `v1.2.3` (git tags, GitHub releases, CHANGELOG headers, UI/docs)
 - All runtime references import `APP_VERSION` from `lib/version.ts`, which reads `package.json` at build time
 - **No hardcoded version strings anywhere** — `package.json` is the only place to update
+- **Monorepo version sync**: When releasing, `cli/package.json` version must match root `package.json` version. The CLI is published to npm as `@nocoo/zhe`.
 
 ### Version References
 
 | File | Role |
 |------|------|
 | `package.json` | `"version"` field — **the only place to update** |
+| `cli/package.json` | Must match root version when releasing CLI to npm |
 | `lib/version.ts` | Reads `package.json` and exports `APP_VERSION` |
 | `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
 | `app/api/live/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
