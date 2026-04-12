@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.11.0] - 2026-04-12
+
+### Added
+- Add webhook-to-apikey migration
+- Add /api/v1/tags endpoints
+- Add /api/v1/uploads endpoints
+- Add /api/v1/folders endpoints
+- Add /api/v1/links/[id] endpoint
+- Add /api/v1/links endpoint
+- Add API audit logging
+- Add per-key rate limiting
+- Add api-key auth middleware
+- Add API keys management UI
+- Add api-keys server actions
+- Add api_keys CRUD to ScopedDB
+- Add api_keys table migration
+- Add api-key model with hash/verify
+
+### Changed
+- Fix API rate limit default to 100 req/min
+- Fix API documentation to match implementation
+- Mark Phase 5 as completed
+- Update API documentation for v1 endpoints
+- Update Phase 4 and 5 progress
+- Mark webhook token endpoint as deprecated
+- Update Phase 3 progress (all completed)
+- Update Phase 3 progress (3.1, 3.2 completed)
+- Separate api-keys db module for Edge Runtime compatibility
+- Mark Phase 2 as completed
+- Mark Phase 1 as completed
+- Fix security vulnerabilities
+- Add D1 Worker proxy migration documentation
+- Exclude page/layout components from coverage calculation
+- Migrate to nocoo/base-ci@v2026
+
+### Fixed
+- Clear env vars in beforeEach to avoid .env.local pollution
+- Add index on api_keys.key_hash for auth performance
+- Clarify webhook migration is two-step process
+- Connect rate limiting to all v1 routes
+- Replace non-null assertions with optional chaining
+
+### Removed
+- Remove unsupported enable-l3 input
+
 ## [v1.10.0] - 2026-04-04
 
 ### Added
