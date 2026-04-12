@@ -400,9 +400,9 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 **GET /api/v1/links** — 获取链接列表
 
 查询参数：
-- `limit` (number, 1-100, default: 50) — 每页数量
+- `limit` (number, 1-500, default: 100) — 每页数量
 - `offset` (number, default: 0) — 偏移量
-- `folder` (string) — 按文件夹 ID 过滤
+- `folderId` (string) — 按文件夹 ID 过滤
 
 响应：
 ```json
@@ -412,9 +412,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       "id": 123,
       "slug": "abc123",
       "originalUrl": "https://example.com",
-      "title": "Example",
-      "description": "An example website",
-      "faviconUrl": "https://example.com/favicon.ico",
+      "shortUrl": "https://zhe.to/abc123",
       "screenshotUrl": null,
       "note": "My note",
       "isCustom": true,
@@ -423,8 +421,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       "expiresAt": null,
       "createdAt": "2026-01-15T00:00:00.000Z"
     }
-  ],
-  "total": 100
+  ]
 }
 ```
 
@@ -434,7 +431,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```json
 {
   "url": "https://example.com",
-  "customSlug": "my-link",     // 可选
+  "slug": "my-link",           // 可选，自定义 slug
   "folderId": "folder-id",     // 可选
   "note": "备注",              // 可选
   "expiresAt": "2026-12-31"    // 可选，ISO 8601 格式
@@ -448,7 +445,14 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     "id": 123,
     "slug": "my-link",
     "shortUrl": "https://zhe.to/my-link",
-    "originalUrl": "https://example.com"
+    "originalUrl": "https://example.com",
+    "folderId": null,
+    "isCustom": true,
+    "clicks": 0,
+    "note": null,
+    "screenshotUrl": null,
+    "expiresAt": null,
+    "createdAt": "2026-01-15T00:00:00.000Z"
   }
 }
 ```
