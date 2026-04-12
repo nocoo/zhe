@@ -494,6 +494,65 @@ describe("/api/v1/links", () => {
       // Cleanup
       await executeD1("DELETE FROM tags WHERE id = ?", [tag.id]);
     });
+
+    it("updates expiresAt correctly (stored as milliseconds)", async () => {
+      // Set expiration to 1 year from now
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+      const isoDate = futureDate.toISOString();
+
+      const response = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expiresAt: isoDate }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      // Verify the returned expiresAt is in the future (not 1970)
+      const returnedDate = new Date(body.link.expiresAt);
+      expect(returnedDate.getFullYear()).toBeGreaterThanOrEqual(new Date().getFullYear());
+
+      // Verify it's within 1 minute of our target (allowing for test execution time)
+      const diffMs = Math.abs(returnedDate.getTime() - futureDate.getTime());
+      expect(diffMs).toBeLessThan(60000); // Within 1 minute
+    });
+
+    it("clears expiresAt when set to null", async () => {
+      // First set an expiration
+      const futureDate = new Date();
+      futureDate.setFullYear(futureDate.getFullYear() + 1);
+
+      await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expiresAt: futureDate.toISOString() }),
+        },
+      );
+
+      // Now clear it
+      const response = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expiresAt: null }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.link.expiresAt).toBeNull();
+    });
   });
 
   describe("DELETE /api/v1/links/[id]", () => {

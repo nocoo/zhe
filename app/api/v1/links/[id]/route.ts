@@ -289,7 +289,8 @@ export async function PATCH(
       }
       if (updateData.expiresAt !== undefined) {
         setClauses.push('expires_at = ?');
-        setParams.push(updateData.expiresAt ? Math.floor(updateData.expiresAt.getTime() / 1000) : null);
+        // Store as milliseconds (matching scoped.ts and mappers.ts)
+        setParams.push(updateData.expiresAt ? updateData.expiresAt.getTime() : null);
       }
       if (updateData.isCustom !== undefined) {
         setClauses.push('is_custom = ?');
