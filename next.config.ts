@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // CI runs `tsc --noEmit` as a dedicated type-check step which correctly
+  // respects tsconfig.json `exclude: ["cli"]`. next build's built-in checker
+  // ignores the exclude and scans cli/, failing on cli-only deps like
+  // @nocoo/cli-base. Skip the redundant (and broken) check here.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // Replace Next.js's built-in polyfill-module with an empty shim.
   // These polyfills (Array.prototype.at, Object.fromEntries, Object.hasOwn,
   // etc.) are natively supported by all modern browsers we target, saving ~11 KiB.
