@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import type { Folder } from "@/lib/db/schema";
@@ -17,12 +17,13 @@ import type { Folder } from "@/lib/db/schema";
  * Response: { folders: Folder[] }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "folders:read");
+  const authResult = await requireAuthWithRateLimit(request, "folders:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ folders: folders.map(folderToResponse) });
+    return NextResponse.json({ folders: folders.map(folderToResponse) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/folders GET]", error);
     return apiError("Internal server error", 500);
@@ -54,12 +55,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Response: { folder: Folder }
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "folders:write");
+  const authResult = await requireAuthWithRateLimit(request, "folders:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       statusCode: 201,
     });
 
-    return NextResponse.json({ folder: folderToResponse(folder) }, { status: 201 });
+    return NextResponse.json({ folder: folderToResponse(folder) }, { status: 201, headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/folders POST]", error);
     return apiError("Internal server error", 500);

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
@@ -25,12 +25,13 @@ import type { Link } from "@/lib/db/schema";
  * Response: { links: Link[] }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "links:read");
+  const authResult = await requireAuthWithRateLimit(request, "links:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -50,14 +51,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     logApiRequest({
       keyId,
-      keyPrefix: authResult.keyPrefix,
+      keyPrefix,
       userId,
       endpoint: "/api/v1/links",
       method: "GET",
       statusCode: 200,
     });
 
-    return NextResponse.json({ links: links.map(linkToResponse) });
+    return NextResponse.json({ links: links.map(linkToResponse) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/links GET]", error);
     return apiError("Internal server error", 500);
@@ -77,12 +78,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Response: { link: Link }
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "links:write");
+  const authResult = await requireAuthWithRateLimit(request, "links:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const body = await request.json();
@@ -167,14 +169,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     logApiRequest({
       keyId,
-      keyPrefix: authResult.keyPrefix,
+      keyPrefix,
       userId,
       endpoint: "/api/v1/links",
       method: "POST",
       statusCode: 201,
     });
 
-    return NextResponse.json({ link: linkToResponse(link) }, { status: 201 });
+    return NextResponse.json({ link: linkToResponse(link) }, { status: 201, headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/links POST]", error);
     return apiError("Internal server error", 500);

@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
@@ -27,12 +27,13 @@ export async function GET(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "links:read");
+  const authResult = await requireAuthWithRateLimit(request, "links:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
   const linkId = parseInt(id, 10);
 
@@ -57,7 +58,7 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json({ link: linkToResponse(link) });
+    return NextResponse.json({ link: linkToResponse(link) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/links/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -80,12 +81,13 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "links:write");
+  const authResult = await requireAuthWithRateLimit(request, "links:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
   const linkId = parseInt(id, 10);
 
@@ -209,7 +211,7 @@ export async function PATCH(
       statusCode: 200,
     });
 
-    return NextResponse.json({ link: linkToResponse(updatedLink) });
+    return NextResponse.json({ link: linkToResponse(updatedLink) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/links/${id} PATCH]`, error);
     return apiError("Internal server error", 500);
@@ -225,12 +227,13 @@ export async function DELETE(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "links:write");
+  const authResult = await requireAuthWithRateLimit(request, "links:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
   const linkId = parseInt(id, 10);
 
@@ -264,7 +267,7 @@ export async function DELETE(
       statusCode: 200,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/links/${id} DELETE]`, error);
     return apiError("Internal server error", 500);

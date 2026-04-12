@@ -483,4 +483,28 @@ describe("/api/v1/links", () => {
       expect(getResponse.status).toBe(404);
     });
   });
+
+  describe("Rate Limiting", () => {
+    it("returns rate limit headers on successful request", async () => {
+      const response = await authenticatedFetch(API_URL, apiKeyReadOnly);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("X-RateLimit-Limit")).toBeDefined();
+      expect(response.headers.get("X-RateLimit-Remaining")).toBeDefined();
+      expect(response.headers.get("X-RateLimit-Reset")).toBeDefined();
+    });
+
+    it("returns rate limit headers on POST request", async () => {
+      const response = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/rate-limit-test" }),
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.headers.get("X-RateLimit-Limit")).toBeDefined();
+      expect(response.headers.get("X-RateLimit-Remaining")).toBeDefined();
+      expect(response.headers.get("X-RateLimit-Reset")).toBeDefined();
+    });
+  });
 });

@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import type { Upload } from "@/lib/db/schema";
@@ -19,12 +19,13 @@ import type { Upload } from "@/lib/db/schema";
  * Response: { uploads: Upload[] }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "uploads:read");
+  const authResult = await requireAuthWithRateLimit(request, "uploads:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ uploads: uploads.map(uploadToResponse) });
+    return NextResponse.json({ uploads: uploads.map(uploadToResponse) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/uploads GET]", error);
     return apiError("Internal server error", 500);

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import type { Tag } from "@/lib/db/schema";
@@ -17,12 +17,13 @@ import type { Tag } from "@/lib/db/schema";
  * Response: { tags: Tag[] }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "tags:read");
+  const authResult = await requireAuthWithRateLimit(request, "tags:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ tags: tags.map(tagToResponse) });
+    return NextResponse.json({ tags: tags.map(tagToResponse) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/tags GET]", error);
     return apiError("Internal server error", 500);
@@ -54,12 +55,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Response: { tag: Tag }
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "tags:write");
+  const authResult = await requireAuthWithRateLimit(request, "tags:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
 
   try {
     const db = new ScopedDB(userId);
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       statusCode: 201,
     });
 
-    return NextResponse.json({ tag: tagToResponse(tag) }, { status: 201 });
+    return NextResponse.json({ tag: tagToResponse(tag) }, { status: 201, headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/tags POST]", error);
     return apiError("Internal server error", 500);

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import { deleteR2Object } from "@/lib/r2/client";
@@ -25,12 +25,13 @@ export async function GET(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "uploads:read");
+  const authResult = await requireAuthWithRateLimit(request, "uploads:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
   const uploadId = parseInt(id, 10);
 
@@ -55,7 +56,7 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json({ upload: uploadToResponse(upload) });
+    return NextResponse.json({ upload: uploadToResponse(upload) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/uploads/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -71,12 +72,13 @@ export async function DELETE(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "uploads:write");
+  const authResult = await requireAuthWithRateLimit(request, "uploads:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
   const uploadId = parseInt(id, 10);
 
@@ -113,7 +115,7 @@ export async function DELETE(
       statusCode: 200,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/uploads/${id} DELETE]`, error);
     return apiError("Internal server error", 500);

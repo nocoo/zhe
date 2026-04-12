@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiError } from "@/lib/api/auth";
+import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
 import type { Tag } from "@/lib/db/schema";
@@ -25,12 +25,13 @@ export async function GET(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "tags:read");
+  const authResult = await requireAuthWithRateLimit(request, "tags:read");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
 
   try {
@@ -50,7 +51,7 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json({ tag: tagToResponse(tag) });
+    return NextResponse.json({ tag: tagToResponse(tag) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/tags/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -70,12 +71,13 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "tags:write");
+  const authResult = await requireAuthWithRateLimit(request, "tags:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
 
   try {
@@ -139,7 +141,7 @@ export async function PATCH(
       statusCode: 200,
     });
 
-    return NextResponse.json({ tag: tagToResponse(updatedTag) });
+    return NextResponse.json({ tag: tagToResponse(updatedTag) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/tags/${id} PATCH]`, error);
     return apiError("Internal server error", 500);
@@ -155,12 +157,13 @@ export async function DELETE(
   request: NextRequest,
   context: RouteContext,
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request, "tags:write");
+  const authResult = await requireAuthWithRateLimit(request, "tags:write");
   if (authResult instanceof NextResponse) {
     return authResult;
   }
 
-  const { userId, keyId, keyPrefix } = authResult;
+  const { auth, headers: rateLimitHeaders } = authResult;
+  const { userId, keyId, keyPrefix } = auth;
   const { id } = await context.params;
 
   try {
@@ -180,7 +183,7 @@ export async function DELETE(
       statusCode: 200,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/tags/${id} DELETE]`, error);
     return apiError("Internal server error", 500);
