@@ -185,7 +185,37 @@ export async function PATCH(
       updateData.screenshotUrl = body.screenshotUrl;
     }
 
-    // Handle note update separately (not in Link update)
+    // === VALIDATION PHASE ===
+    // Validate all tag operations BEFORE any writes to ensure atomicity
+
+    const tagsToAdd: string[] = [];
+    const tagsToRemove: string[] = [];
+
+    if (body.addTags && Array.isArray(body.addTags)) {
+      for (const tagId of body.addTags) {
+        if (typeof tagId === "string") {
+          // Verify tag exists and is owned by this user
+          const tag = await db.getTagById(tagId);
+          if (!tag) {
+            return apiError(`Tag not found: ${tagId}`, 400);
+          }
+          tagsToAdd.push(tagId);
+        }
+      }
+    }
+
+    if (body.removeTags && Array.isArray(body.removeTags)) {
+      for (const tagId of body.removeTags) {
+        if (typeof tagId === "string") {
+          tagsToRemove.push(tagId);
+        }
+      }
+    }
+
+    // === WRITE PHASE ===
+    // All validations passed, now perform writes
+
+    // Handle note update
     if (body.note !== undefined) {
       await db.updateLinkNote(linkId, body.note);
     }
@@ -202,35 +232,15 @@ export async function PATCH(
       await db.updateLinkMetadata(linkId, metaData);
     }
 
-    // Handle tag operations - collect errors for failed operations
-    const tagErrors: string[] = [];
-    if (body.addTags && Array.isArray(body.addTags)) {
-      for (const tagId of body.addTags) {
-        if (typeof tagId === "string") {
-          const success = await db.addTagToLink(linkId, tagId);
-          if (!success) {
-            tagErrors.push(`Failed to add tag: ${tagId} (tag not found or not owned)`);
-          }
-        }
-      }
+    // Handle tag operations (already validated)
+    for (const tagId of tagsToAdd) {
+      await db.addTagToLink(linkId, tagId);
     }
-    if (body.removeTags && Array.isArray(body.removeTags)) {
-      for (const tagId of body.removeTags) {
-        if (typeof tagId === "string") {
-          const success = await db.removeTagFromLink(linkId, tagId);
-          if (!success) {
-            tagErrors.push(`Failed to remove tag: ${tagId} (not associated with this link)`);
-          }
-        }
-      }
+    for (const tagId of tagsToRemove) {
+      await db.removeTagFromLink(linkId, tagId);
     }
 
-    // If any tag operations failed, return error
-    if (tagErrors.length > 0) {
-      return apiError(tagErrors.join("; "), 400);
-    }
-
-    // Perform the update
+    // Perform the main link update
     let updatedLink: Link | null;
     if (Object.keys(updateData).length > 0) {
       updatedLink = await db.updateLink(linkId, updateData);
