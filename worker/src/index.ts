@@ -321,6 +321,85 @@ async function handleD1Query(request: Request, env: Env): Promise<Response> {
   }
 }
 
+/** Request format for batch endpoint. */
+interface D1BatchRequest {
+  statements: Array<{ sql: string; params?: unknown[] }>;
+}
+
+/** Response format for batch endpoint. */
+interface D1BatchResponse {
+  success: boolean;
+  results?: Array<{ results: unknown[]; meta: { changes: number; last_row_id: number } }>;
+  error?: string;
+}
+
+/**
+ * Handle D1 batch requests — execute multiple statements in a single transaction.
+ * Uses D1's native batch() API which provides atomicity: all succeed or all fail.
+ */
+async function handleD1Batch(request: Request, env: Env): Promise<Response> {
+  // Verify D1_PROXY_SECRET
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const token = authHeader.slice(7);
+  if (!timingSafeEqual(token, env.D1_PROXY_SECRET)) {
+    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Parse request body
+  let body: D1BatchRequest;
+  try {
+    body = await request.json() as D1BatchRequest;
+  } catch {
+    return Response.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { statements } = body;
+  if (!Array.isArray(statements) || statements.length === 0) {
+    return Response.json({ success: false, error: 'Missing or empty statements array' }, { status: 400 });
+  }
+
+  // Build prepared statements
+  const preparedStatements: D1PreparedStatement[] = [];
+  for (const stmt of statements) {
+    if (typeof stmt.sql !== 'string' || !stmt.sql.trim()) {
+      return Response.json({ success: false, error: 'Invalid statement: missing sql' }, { status: 400 });
+    }
+    preparedStatements.push(env.DB.prepare(stmt.sql).bind(...(stmt.params || [])));
+  }
+
+  // Execute batch — D1 guarantees atomicity
+  try {
+    const results = await env.DB.batch(preparedStatements);
+
+    return Response.json({
+      success: true,
+      results: results.map(r => ({
+        results: r.results,
+        meta: { changes: r.meta.changes, last_row_id: r.meta.last_row_id },
+      })),
+    } satisfies D1BatchResponse);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (/unique/i.test(message)) {
+      return Response.json({
+        success: false,
+        error: 'UNIQUE constraint failed',
+      } satisfies D1BatchResponse);
+    }
+
+    console.error('D1 batch error:', message);
+    return Response.json({
+      success: false,
+      error: 'D1 batch failed',
+    } satisfies D1BatchResponse);
+  }
+}
+
 // ─── Fetch Handler ──────────────────────────────────────────────────────────
 
 async function handleFetch(
@@ -331,10 +410,13 @@ async function handleFetch(
   const url = new URL(request.url);
   const { pathname } = url;
 
-  // 0. D1 proxy endpoint — MUST be checked BEFORE reserved path logic
-  //    Otherwise /api/* gets forwarded to origin and this handler never runs
+  // 0. D1 proxy endpoints — MUST be checked BEFORE reserved path logic
+  //    Otherwise /api/* gets forwarded to origin and these handlers never run
   if (pathname === '/api/d1-query' && request.method === 'POST') {
     return handleD1Query(request, env);
+  }
+  if (pathname === '/api/d1-batch' && request.method === 'POST') {
+    return handleD1Batch(request, env);
   }
 
   // 1. Root path → forward to origin

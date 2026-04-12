@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
+import { executeD1Batch, type D1Statement } from "@/lib/db/d1-client";
 import { slugExists } from "@/lib/db";
 import { kvPutLink, kvDeleteLink } from "@/lib/kv/client";
 import type { Link } from "@/lib/db/schema";
@@ -221,41 +222,98 @@ export async function PATCH(
     }
 
     // === WRITE PHASE ===
-    // All validations passed, now perform writes
+    // All validations passed. Execute all writes in a single atomic batch.
 
-    // Handle note update
+    const statements: D1Statement[] = [];
+
+    // 1. Note update
     if (body.note !== undefined) {
-      await db.updateLinkNote(linkId, body.note);
+      statements.push({
+        sql: 'UPDATE links SET note = ? WHERE id = ? AND user_id = ?',
+        params: [body.note, linkId, userId],
+      });
     }
 
-    // Handle metadata updates
+    // 2. Metadata updates
     if (body.metaTitle !== undefined || body.metaDescription !== undefined) {
-      const metaData: { metaTitle?: string | null; metaDescription?: string | null } = {};
+      const metaClauses: string[] = [];
+      const metaParams: unknown[] = [];
       if (body.metaTitle !== undefined) {
-        metaData.metaTitle = body.metaTitle;
+        metaClauses.push('meta_title = ?');
+        metaParams.push(body.metaTitle);
       }
       if (body.metaDescription !== undefined) {
-        metaData.metaDescription = body.metaDescription;
+        metaClauses.push('meta_description = ?');
+        metaParams.push(body.metaDescription);
       }
-      await db.updateLinkMetadata(linkId, metaData);
+      metaParams.push(linkId, userId);
+      statements.push({
+        sql: `UPDATE links SET ${metaClauses.join(', ')} WHERE id = ? AND user_id = ?`,
+        params: metaParams,
+      });
     }
 
-    // Handle tag operations (already validated)
+    // 3. Add tags
     for (const tagId of tagsToAdd) {
-      await db.addTagToLink(linkId, tagId);
-    }
-    for (const tagId of tagsToRemove) {
-      await db.removeTagFromLink(linkId, tagId);
+      statements.push({
+        sql: 'INSERT OR IGNORE INTO link_tags (link_id, tag_id) VALUES (?, ?)',
+        params: [linkId, tagId],
+      });
     }
 
-    // Perform the main link update
-    let updatedLink: Link | null;
-    if (Object.keys(updateData).length > 0) {
-      updatedLink = await db.updateLink(linkId, updateData);
-    } else {
-      // If only note/metadata/tags was updated, re-fetch the link
-      updatedLink = await db.getLinkById(linkId);
+    // 4. Remove tags
+    for (const tagId of tagsToRemove) {
+      statements.push({
+        sql: `DELETE FROM link_tags WHERE link_id = ? AND tag_id = ?
+              AND link_id IN (SELECT id FROM links WHERE user_id = ?)`,
+        params: [linkId, tagId, userId],
+      });
     }
+
+    // 5. Main link update (if any fields changed)
+    if (Object.keys(updateData).length > 0) {
+      const setClauses: string[] = [];
+      const setParams: unknown[] = [];
+
+      if (updateData.originalUrl !== undefined) {
+        setClauses.push('original_url = ?');
+        setParams.push(updateData.originalUrl);
+      }
+      if (updateData.slug !== undefined) {
+        setClauses.push('slug = ?');
+        setParams.push(updateData.slug);
+      }
+      if (updateData.folderId !== undefined) {
+        setClauses.push('folder_id = ?');
+        setParams.push(updateData.folderId);
+      }
+      if (updateData.expiresAt !== undefined) {
+        setClauses.push('expires_at = ?');
+        setParams.push(updateData.expiresAt ? Math.floor(updateData.expiresAt.getTime() / 1000) : null);
+      }
+      if (updateData.isCustom !== undefined) {
+        setClauses.push('is_custom = ?');
+        setParams.push(updateData.isCustom ? 1 : 0);
+      }
+      if (updateData.screenshotUrl !== undefined) {
+        setClauses.push('screenshot_url = ?');
+        setParams.push(updateData.screenshotUrl);
+      }
+
+      setParams.push(linkId, userId);
+      statements.push({
+        sql: `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ?`,
+        params: setParams,
+      });
+    }
+
+    // Execute all statements atomically
+    if (statements.length > 0) {
+      await executeD1Batch(statements);
+    }
+
+    // Re-fetch the updated link
+    const updatedLink = await db.getLinkById(linkId);
 
     if (!updatedLink) {
       return apiError("Link not found", 404);

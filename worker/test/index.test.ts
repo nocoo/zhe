@@ -32,6 +32,7 @@ interface MockD1PreparedStatement {
 
 interface MockD1Database {
   prepare: ReturnType<typeof vi.fn>;
+  batch: ReturnType<typeof vi.fn>;
 }
 
 interface MockEnv {
@@ -123,6 +124,7 @@ function makeEnv(overrides?: Partial<MockEnv>): MockEnv {
         bind: vi.fn().mockReturnThis(),
         all: vi.fn().mockResolvedValue({ results: [], meta: { changes: 0, last_row_id: 0 } }),
       } as MockD1PreparedStatement)),
+      batch: vi.fn().mockResolvedValue([]),
     },
     ORIGIN_URL: 'https://zhe-origin.railway.app',
     WORKER_SECRET: 'test-worker-secret',
@@ -1285,6 +1287,75 @@ describe('zhe-edge Worker — D1 proxy handler', () => {
       const [url] = fetchMock.mock.calls[0];
       expect(url).toBe('https://zhe-origin.railway.app/api/health');
       expect(res.status).toBe(200);
+    });
+
+    it('handles /api/d1-batch instead of forwarding to origin', async () => {
+      const fetchMock = stubOriginFetch();
+      const env = makeEnv();
+
+      // Mock batch to return results
+      env.DB.batch = vi.fn().mockResolvedValue([
+        { results: [{ id: 1 }], meta: { changes: 1, last_row_id: 1 } },
+      ]);
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-batch', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            statements: [{ sql: 'UPDATE links SET note = ? WHERE id = ?', params: ['test', 1] }],
+          }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      // Should be handled by Worker, NOT forwarded to origin
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.results).toHaveLength(1);
+    });
+
+    it('returns 401 for /api/d1-batch without auth', async () => {
+      const env = makeEnv();
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statements: [{ sql: 'SELECT 1' }] }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 400 for /api/d1-batch with empty statements', async () => {
+      const env = makeEnv();
+
+      const res = await worker.fetch(
+        makeRequest('/api/d1-batch', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer test-d1-proxy-secret',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ statements: [] }),
+        }),
+        env,
+        makeCtx(),
+      );
+
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain('empty statements');
     });
   });
 });

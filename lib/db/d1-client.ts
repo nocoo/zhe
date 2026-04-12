@@ -23,6 +23,23 @@ interface D1ProxyResponse {
   error?: string;
 }
 
+/** Request/response format for batch endpoint. */
+interface D1BatchRequest {
+  statements: Array<{ sql: string; params?: unknown[] }>;
+}
+
+interface D1BatchResponse {
+  success: boolean;
+  results?: Array<{ results: unknown[]; meta: { changes: number; last_row_id: number } }>;
+  error?: string;
+}
+
+/** A single SQL statement with optional parameters. */
+export interface D1Statement {
+  sql: string;
+  params?: unknown[];
+}
+
 /** Check if Worker D1 proxy credentials are configured. */
 function getProxyCredentials(): { url: string; secret: string } {
   const url = process.env.D1_PROXY_URL;
@@ -73,6 +90,46 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
   }
 
   return (data.results || []) as T[];
+}
+
+/**
+ * Execute multiple SQL statements in a single atomic batch.
+ * Uses D1's native batch() API — all statements succeed or all fail.
+ *
+ * Returns an array of result arrays, one per statement.
+ */
+export async function executeD1Batch<T>(statements: D1Statement[]): Promise<T[][]> {
+  if (statements.length === 0) {
+    return [];
+  }
+
+  const { url, secret } = getProxyCredentials();
+  const endpoint = url.endsWith('/') ? `${url}api/d1-batch` : `${url}/api/d1-batch`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify({ statements } satisfies D1BatchRequest),
+    signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Worker proxy HTTP error (batch):', error);
+    throw new Error('D1 batch failed');
+  }
+
+  const data: D1BatchResponse = await response.json();
+
+  if (!data.success) {
+    console.error('Worker proxy batch error:', data.error);
+    throw new Error(data.error || 'D1 batch failed');
+  }
+
+  return (data.results || []).map(r => r.results as T[]);
 }
 
 /**
