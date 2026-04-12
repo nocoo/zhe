@@ -128,7 +128,7 @@ Users create an API Key in the dashboard (`/dashboard/api-keys`) and paste it in
 │  2. CLI prompts: "Enter your API Key:"                     │
 │     (User pastes: zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)     │
 │                                                             │
-│  3. CLI validates key format (must start with zhe_)        │
+│  3. CLI validates key format (prefix zhe_, non-empty)      │
 │                                                             │
 │  4. CLI makes test request to verify key works             │
 │     GET /api/v1/links?limit=1                               │
@@ -167,6 +167,8 @@ This avoids exposing the API Key in browser history, URL bars, or logs.
 
 ## Commands
 
+> **Note**: This document supersedes the command naming examples in [17-d1-worker-proxy-migration.md](17-d1-worker-proxy-migration.md) Phase 4. The flat naming (`zhe login`, `zhe create`) is preferred over subcommands (`zhe auth login`, `zhe link create`).
+
 ### Global Options
 
 ```
@@ -186,17 +188,24 @@ zhe login
 
 **Flow:**
 1. Prompt for API Key (hidden input)
-2. Validate format (`zhe_` prefix, correct length)
+2. Validate format (`zhe_` prefix, non-empty) — loose check, server is source of truth
 3. Test with `GET /api/v1/links?limit=1`
 4. If valid: save to config
 5. Display result
 
+> **Note**: Login only verifies read access (`links:read`). For full CRUD, your API Key must also include `links:write`. Write operations will fail at runtime if the key lacks `links:write` scope.
+
+**Required scopes for full CLI functionality:**
+- `links:read` — list, get
+- `links:write` — create, update, delete
+
 **Output (success):**
 ```
 Enter your API Key: ************************************
-✓ Authenticated successfully
+✓ API Key saved (read access verified)
   API Key: zhe_abcd...wxyz
   
+Note: Write operations require `links:write` scope.
 To create an API Key, visit: https://zhe.to/dashboard/api-keys
 ```
 

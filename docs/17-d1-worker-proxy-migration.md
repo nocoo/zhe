@@ -479,19 +479,22 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 
 **Status**: Deferred — API endpoints ready, CLI to be implemented as separate project.
 
+> **Note**: See [18-cli-design.md](18-cli-design.md) for detailed CLI design. The examples below are outdated; the final CLI uses flat command naming (`zhe login`, `zhe create`) instead of subcommands.
+
 | Commit | Scope | Description |
 |--------|-------|-------------|
 | 4.1 | CLI scaffold | `feat(cli): initialize CLI project` |
 | | | - Separate package or monorepo workspace |
 | | | - Config file for api_key storage |
 | 4.2 | Auth | `feat(cli): add auth commands` |
-| | | - `zhe auth login` — prompt for api_key, store securely |
-| | | - `zhe auth logout` — clear stored key |
-| | | - `zhe auth status` — show current user |
+| | | - `zhe login` — prompt for api_key, store securely |
+| | | - `zhe logout` — clear stored key |
 | 4.3 | Links | `feat(cli): add link commands` |
-| | | - `zhe link create <url>` |
-| | | - `zhe link list` |
-| | | - `zhe link delete <id>` |
+| | | - `zhe create <url>` |
+| | | - `zhe list` |
+| | | - `zhe get <id>` |
+| | | - `zhe update <id>` |
+| | | - `zhe delete <id>` |
 | 4.4 | Folders | `feat(cli): add folder commands` |
 | 4.5 | Interactive | `feat(cli): add interactive mode` |
 | | | - `zhe` without args opens TUI |
