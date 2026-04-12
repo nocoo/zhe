@@ -8,6 +8,7 @@ import {
 	ApiClientError,
 	EXIT_AUTH_REQUIRED,
 	EXIT_ERROR,
+	EXIT_INVALID_ARGS,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
 import type { ListLinksParams } from "../api/types.js";
@@ -64,6 +65,12 @@ export const listCommand = defineCommand({
 		if (!apiKey) {
 			console.log(pc.red("Not authenticated. Run `zhe login` first."));
 			process.exit(EXIT_AUTH_REQUIRED);
+		}
+
+		// Validate mutually exclusive options
+		if (args.inbox && args.folder) {
+			console.log(pc.red("Cannot use --inbox and --folder together."));
+			process.exit(EXIT_INVALID_ARGS);
 		}
 
 		const client = new ApiClient(apiKey);
