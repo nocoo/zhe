@@ -205,8 +205,16 @@ export async function PATCH(
     }
 
     if (body.removeTags && Array.isArray(body.removeTags)) {
+      // Get current tags associated with this link to validate removeTags
+      const currentLinkTags = await db.getTagsForLink(linkId);
+      const currentTagIds = new Set(currentLinkTags.map(t => t.id));
+
       for (const tagId of body.removeTags) {
         if (typeof tagId === "string") {
+          // Verify tag is currently associated with this link
+          if (!currentTagIds.has(tagId)) {
+            return apiError(`Tag not associated with this link: ${tagId}`, 400);
+          }
           tagsToRemove.push(tagId);
         }
       }

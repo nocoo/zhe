@@ -729,6 +729,18 @@ export class ScopedDB {
     return rows.map(rowToLinkTag);
   }
 
+  /** Get all tags associated with a specific link. */
+  async getTagsForLink(linkId: number): Promise<Tag[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT t.* FROM tags t
+       JOIN link_tags lt ON t.id = lt.tag_id
+       JOIN links l ON lt.link_id = l.id
+       WHERE lt.link_id = ? AND l.user_id = ?`,
+      [linkId, this.userId],
+    );
+    return rows.map(rowToTag);
+  }
+
   /** Add a tag to a link (only if both are owned by this user). */
   async addTagToLink(linkId: number, tagId: string): Promise<boolean> {
     // Verify ownership of both link and tag
