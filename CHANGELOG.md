@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.11.1] - 2026-04-12
+
+### Changed
+- Document CLI version sync requirement in CLAUDE.md
+- Bump version to 1.11.0 for npm release
+- Refine CLI design login semantics and command naming
+- Revise CLI design to align with API v1 and security model
+- Add CLI design document (18-cli-design.md)
+
+### Fixed
+- Resolve exactOptionalPropertyTypes TypeScript errors
+- 指定 l2-command 为 test:api，修复 L2 E2E 找不到脚本
+- Fix localStorage mock for Node.js 25+
+
 ## [v1.11.0] - 2026-04-12
 
 ### Added
