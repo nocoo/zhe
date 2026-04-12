@@ -357,7 +357,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 #### 速率限制
 
-每个 API Key 默认 60 次请求/分钟。超限时返回 `429 Too Many Requests`，`Retry-After` header 指示等待秒数。
+每个 API Key 默认 100 次请求/分钟。超限时返回 `429 Too Many Requests`，`Retry-After` header 指示等待秒数。
 
 #### 作用域
 
