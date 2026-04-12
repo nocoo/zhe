@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedTestUser, seedApiKey, cleanupTestData } from "../helpers/seed";
+import { seedTestUser, seedApiKey, cleanupTestData, seedTag, executeD1 } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -423,6 +423,76 @@ describe("/api/v1/links", () => {
       const body = await response.json();
       expect(body.link.slug).toBe(newSlug);
       expect(body.link.isCustom).toBe(true);
+    });
+
+    it("returns 400 when addTags references non-existent tag", async () => {
+      const response = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addTags: ["non-existent-tag-id"] }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain("Tag not found");
+    });
+
+    it("returns 400 when removeTags references tag not associated with link", async () => {
+      // Create a tag that exists but is not associated with the link
+      const tag = await seedTag(TEST_USER_ID, { name: `orphan-tag-${Date.now()}` });
+
+      const response = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ removeTags: [tag.id] }),
+        },
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain("Tag not associated with this link");
+
+      // Cleanup
+      await executeD1("DELETE FROM tags WHERE id = ?", [tag.id]);
+    });
+
+    it("successfully adds and removes tags from link", async () => {
+      // Create a tag
+      const tag = await seedTag(TEST_USER_ID, { name: `test-tag-${Date.now()}` });
+
+      // Add tag to link
+      const addResponse = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addTags: [tag.id] }),
+        },
+      );
+      expect(addResponse.status).toBe(200);
+
+      // Remove tag from link
+      const removeResponse = await authenticatedFetch(
+        `${API_URL}/${testLinkId}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ removeTags: [tag.id] }),
+        },
+      );
+      expect(removeResponse.status).toBe(200);
+
+      // Cleanup
+      await executeD1("DELETE FROM tags WHERE id = ?", [tag.id]);
     });
   });
 
