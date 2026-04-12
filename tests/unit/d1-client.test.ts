@@ -37,6 +37,8 @@ function mockProxyResponse<T>(results: T[], success = true, error?: string) {
 
 describe('executeD1Query', () => {
   beforeEach(() => {
+    // Clear env vars from .env.local that vitest may have loaded
+    clearEnv();
     mockFetch.mockReset();
   });
 
@@ -209,6 +211,11 @@ describe('executeD1Query', () => {
 });
 
 describe('isD1Configured', () => {
+  beforeEach(() => {
+    // Clear env vars from .env.local that vitest may have loaded
+    clearEnv();
+  });
+
   afterEach(() => {
     clearEnv();
   });
