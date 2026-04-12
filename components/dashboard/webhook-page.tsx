@@ -53,7 +53,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                   <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
                   <div className="space-y-2">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Webhook 令牌即将弃用</strong>。请迁移到 API Key 认证方式，获得更好的安全性和更多功能。
+                      <strong>Webhook 令牌即将弃用</strong>。请创建 API Key 并更新你的集成，然后撤销 Webhook 令牌。
                     </p>
                     <p className="text-xs text-amber-700 dark:text-amber-300">
                       弃用日期：2026-10-01。届时 Webhook API 将停止服务。
@@ -62,7 +62,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                       <div className="space-y-2 pt-1">
                         <div className="flex items-center gap-1 text-sm text-green-700 dark:text-green-400">
                           <Check className="h-4 w-4" />
-                          <span>迁移成功！请保存以下 API Key（仅显示一次）：</span>
+                          <span>API Key 已创建！请保存以下密钥（仅显示一次）：</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <code className="rounded bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-mono text-green-800 dark:text-green-300 break-all" data-testid="migrated-api-key">
@@ -80,7 +80,10 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                           </Button>
                         </div>
                         <p className="text-xs text-amber-700 dark:text-amber-300">
-                          使用方式：在 API 请求中添加 <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">Authorization: Bearer {migratedApiKey.substring(0, 12)}...</code>
+                          使用方式：<code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">Authorization: Bearer {migratedApiKey.substring(0, 12)}...</code>
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          <strong>下一步：</strong>更新你的集成使用新 API Key，然后点击下方「撤销令牌」按钮停用旧 Webhook。
                         </p>
                       </div>
                     ) : (
@@ -93,7 +96,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                         data-testid="migrate-to-apikey-btn"
                       >
                         <KeyRound className="h-3.5 w-3.5" />
-                        {isMigrating ? "迁移中..." : "一键迁移到 API Key"}
+                        {isMigrating ? "创建中..." : "创建 API Key"}
                         {!isMigrating && <ArrowRight className="h-3.5 w-3.5" />}
                       </Button>
                     )}
