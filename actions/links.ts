@@ -183,12 +183,16 @@ export async function updateLink(
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Validate URL if provided
+    // Validate URL if provided (same as createLink)
     if (data.originalUrl) {
+      let parsedUrl: URL;
       try {
-        new URL(data.originalUrl);
+        parsedUrl = new URL(data.originalUrl);
       } catch {
         return { success: false, error: 'Invalid URL' };
+      }
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return { success: false, error: 'URL must use http or https protocol' };
       }
     }
 
