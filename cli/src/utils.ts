@@ -86,8 +86,10 @@ export function formatLinksMinimal(links: Link[]): string {
 
 /**
  * Format a single link for detailed display
+ * @param link - The link to format
+ * @param folderName - Optional folder name (if not provided, shows folder ID)
  */
-export function formatLinkDetail(link: Link): string {
+export function formatLinkDetail(link: Link, folderName?: string): string {
 	const lines = [
 		`Link #${link.id}`,
 		"",
@@ -98,7 +100,8 @@ export function formatLinkDetail(link: Link): string {
 	];
 
 	if (link.folderId) {
-		lines.push(`  Folder:       ${link.folderId}`);
+		const folderDisplay = folderName ?? link.folderId;
+		lines.push(`  Folder:       ${folderDisplay}`);
 	}
 
 	if (link.note) {

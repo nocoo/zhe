@@ -12,7 +12,7 @@ import {
 	EXIT_INVALID_ARGS,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { CreateLinkRequest } from "../api/types.js";
+import type { CreateLinkRequest, Folder } from "../api/types.js";
 import { getApiKey } from "../config.js";
 
 export const createCommand = defineCommand({
@@ -101,10 +101,51 @@ export const createCommand = defineCommand({
 
 			// Output
 			if (args.json) {
+				// If link has folderId, fetch folder name for enriched JSON output
+				if (response.link.folderId) {
+					try {
+						const foldersResponse = await client.listFolders();
+						const folder = foldersResponse.folders.find(
+							(f: Folder) => f.id === response.link.folderId,
+						);
+						if (folder) {
+							// Add folderName to JSON output
+							const enrichedResponse = {
+								...response,
+								link: {
+									...response.link,
+									folderName: folder.name,
+								},
+							};
+							console.log(JSON.stringify(enrichedResponse, null, 2));
+							return;
+						}
+					} catch {
+						// If folder fetch fails, continue with original response
+					}
+				}
 				console.log(JSON.stringify(response, null, 2));
 			} else {
 				const suffix = copied ? " (copied to clipboard)" : "";
-				console.log(pc.green(`✓ Created ${pc.cyan(shortUrl)}${suffix}`));
+				let folderInfo = "";
+				// If link has folderId, fetch and display folder name
+				if (response.link.folderId) {
+					try {
+						const foldersResponse = await client.listFolders();
+						const folder = foldersResponse.folders.find(
+							(f: Folder) => f.id === response.link.folderId,
+						);
+						if (folder) {
+							folderInfo = ` in ${pc.yellow(folder.name)}`;
+						}
+					} catch {
+						// If folder fetch fails, show folder ID as fallback
+						folderInfo = ` in folder ${response.link.folderId}`;
+					}
+				}
+				console.log(
+					pc.green(`✓ Created ${pc.cyan(shortUrl)}${folderInfo}${suffix}`),
+				);
 			}
 		} catch (error) {
 			handleApiError(error);

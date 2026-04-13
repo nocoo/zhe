@@ -12,6 +12,7 @@ import {
 	EXIT_NOT_FOUND,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
+import type { Folder } from "../api/types.js";
 import { getApiKey } from "../config.js";
 import { formatLinkDetail, parseLinkId } from "../utils.js";
 
@@ -50,10 +51,38 @@ export const getCommand = defineCommand({
 		try {
 			const response = await client.getLink(id);
 
+			// If link has folderId, fetch folder name for better display
+			let folderName: string | undefined;
+			if (response.link.folderId) {
+				try {
+					const foldersResponse = await client.listFolders();
+					const folder = foldersResponse.folders.find(
+						(f: Folder) => f.id === response.link.folderId,
+					);
+					if (folder) {
+						folderName = folder.name;
+					}
+				} catch {
+					// If folder fetch fails, continue without folder name
+				}
+			}
+
 			if (args.json) {
-				console.log(JSON.stringify(response, null, 2));
+				// Enrich JSON output with folderName if available
+				if (folderName) {
+					const enrichedResponse = {
+						...response,
+						link: {
+							...response.link,
+							folderName,
+						},
+					};
+					console.log(JSON.stringify(enrichedResponse, null, 2));
+				} else {
+					console.log(JSON.stringify(response, null, 2));
+				}
 			} else {
-				console.log(formatLinkDetail(response.link));
+				console.log(formatLinkDetail(response.link, folderName));
 			}
 		} catch (error) {
 			handleApiError(error);
