@@ -525,6 +525,71 @@ describe('ScopedDB', () => {
       const links = await db.getLinks();
       expect(unwrap(links[0]).folderId).toBeNull();
     });
+
+    it('getFoldersWithLinkCount returns folders with link counts', async () => {
+      const db = new ScopedDB(USER_A);
+      const folderA = await db.createFolder({ name: 'Folder A' });
+      const folderB = await db.createFolder({ name: 'Folder B' });
+
+      // Add 2 links to folderA, 1 link to folderB
+      await db.createLink({
+        originalUrl: 'https://a1.com',
+        slug: 'a1',
+        folderId: folderA.id,
+      });
+      await db.createLink({
+        originalUrl: 'https://a2.com',
+        slug: 'a2',
+        folderId: folderA.id,
+      });
+      await db.createLink({
+        originalUrl: 'https://b1.com',
+        slug: 'b1',
+        folderId: folderB.id,
+      });
+
+      const foldersWithCount = await db.getFoldersWithLinkCount();
+
+      // Should be sorted by createdAt DESC, so folderB first
+      expect(foldersWithCount).toHaveLength(2);
+      const folderBResult = foldersWithCount.find(f => f.id === folderB.id);
+      const folderAResult = foldersWithCount.find(f => f.id === folderA.id);
+      expect(folderBResult?.linkCount).toBe(1);
+      expect(folderAResult?.linkCount).toBe(2);
+    });
+
+    it('getFoldersWithLinkCount returns 0 for folders without links', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createFolder({ name: 'Empty Folder' });
+
+      const foldersWithCount = await db.getFoldersWithLinkCount();
+
+      expect(foldersWithCount).toHaveLength(1);
+      expect(foldersWithCount[0]?.linkCount).toBe(0);
+    });
+
+    it('getFoldersWithLinkCount only counts own folders', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const folderA = await dbA.createFolder({ name: 'Alice Folder' });
+      await dbB.createFolder({ name: 'Bob Folder' });
+
+      // Add link to Alice's folder
+      await dbA.createLink({
+        originalUrl: 'https://alice.com',
+        slug: 'alice',
+        folderId: folderA.id,
+      });
+
+      const aliceFolders = await dbA.getFoldersWithLinkCount();
+      const bobFolders = await dbB.getFoldersWithLinkCount();
+
+      expect(aliceFolders).toHaveLength(1);
+      expect(aliceFolders[0]?.linkCount).toBe(1);
+      expect(bobFolders).toHaveLength(1);
+      expect(bobFolders[0]?.linkCount).toBe(0);
+    });
   });
 
   // ---- Uploads -----------------------------------------------

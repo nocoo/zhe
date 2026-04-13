@@ -188,6 +188,7 @@ export const ideaTags = sqliteTable("idea_tags", {
 
 export type Folder = typeof folders.$inferSelect;
 export type NewFolder = typeof folders.$inferInsert;
+export type FolderWithLinkCount = Folder & { linkCount: number };
 
 export type Link = typeof links.$inferSelect;
 export type NewLink = typeof links.$inferInsert;

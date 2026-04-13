@@ -9,12 +9,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
-import type { Folder } from "@/lib/db/schema";
+import type { Folder, FolderWithLinkCount } from "@/lib/db/schema";
 
 /**
  * GET /api/v1/folders
  *
- * Response: { folders: Folder[] }
+ * Response: { folders: FolderWithLinkCount[] }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "folders:read");
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const db = new ScopedDB(userId);
-    const folders = await db.getFolders();
+    const folders = await db.getFoldersWithLinkCount();
 
     logApiRequest({
       keyId,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ folders: folders.map(folderToResponse) }, { headers: rateLimitHeaders });
+    return NextResponse.json({ folders: folders.map(folderWithCountToResponse) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/folders GET]", error);
     return apiError("Internal server error", 500);
@@ -116,5 +116,15 @@ function folderToResponse(folder: Folder): Record<string, unknown> {
     name: folder.name,
     icon: folder.icon,
     createdAt: folder.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Transform a FolderWithLinkCount to API response format.
+ */
+function folderWithCountToResponse(folder: FolderWithLinkCount): Record<string, unknown> {
+  return {
+    ...folderToResponse(folder),
+    linkCount: folder.linkCount,
   };
 }

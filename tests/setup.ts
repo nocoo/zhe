@@ -758,6 +758,32 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // SELECT f.*, COUNT(l.id) AS link_count FROM folders f LEFT JOIN links l ... (folders with link count)
+      if (sqlLower.includes('from folders f') && sqlLower.includes('left join links') && sqlLower.includes('count(l.id)')) {
+        const [userId] = params;
+        const results: unknown[] = [];
+        for (const folder of mockFolders.values()) {
+          const raw = folder as unknown as Record<string, unknown>;
+          if (raw.user_id === userId) {
+            // Count links that belong to this folder
+            let linkCount = 0;
+            for (const link of mockLinks.values()) {
+              const linkRaw = link as unknown as Record<string, unknown>;
+              if (linkRaw.folder_id === raw.id) {
+                linkCount++;
+              }
+            }
+            results.push({ ...raw, link_count: linkCount });
+          }
+        }
+        results.sort((a, b) => {
+          const aTime = (a as Record<string, unknown>).created_at as number;
+          const bTime = (b as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
       // SELECT FROM folders WHERE user_id = ? (list all user folders)
       if (sqlLower.startsWith('select') && sqlLower.includes('from folders') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
         const [userId] = params;

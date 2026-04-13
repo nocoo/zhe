@@ -11,7 +11,7 @@
 
 import { executeD1Query, executeD1Batch, type D1Statement } from './d1-client';
 import { rowToLink, rowToAnalytics, rowToFolder, rowToUpload, rowToWebhook, rowToTag, rowToLinkTag, rowToUserSettings, rowToApiKey, rowToIdea, rowToIdeaTag } from './mappers';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings, ApiKey, IdeaTag } from './schema';
+import type { Link, Analytics, Folder, FolderWithLinkCount, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings, ApiKey, IdeaTag } from './schema';
 import { generateExcerpt } from '../markdown';
 
 // ============================================
@@ -353,6 +353,23 @@ export class ScopedDB {
       [this.userId],
     );
     return rows.map(rowToFolder);
+  }
+
+  /** Get all folders with link counts via LEFT JOIN. */
+  async getFoldersWithLinkCount(): Promise<FolderWithLinkCount[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT f.*, COUNT(l.id) AS link_count
+       FROM folders f
+       LEFT JOIN links l ON f.id = l.folder_id
+       WHERE f.user_id = ?
+       GROUP BY f.id
+       ORDER BY f.created_at DESC`,
+      [this.userId],
+    );
+    return rows.map((row) => ({
+      ...rowToFolder(row),
+      linkCount: Number(row.link_count) || 0,
+    }));
   }
 
   /** Get a single folder by id, only if owned by this user. */
