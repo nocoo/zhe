@@ -48,6 +48,19 @@ bun run release -- 2.0.0     # explicit version
 bun run release -- --dry-run # preview without side effects
 ```
 
+**⚠️ Pre-release Migration Check**: Before running `bun run release`, verify D1 migrations are applied to both environments:
+
+```bash
+# Check test environment
+wrangler d1 execute zhe-db-test --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --remote
+
+# Check production environment
+wrangler d1 execute zhe-db --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --remote
+
+# If tables are missing, apply the migration
+wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql
+```
+
 The script performs these steps automatically:
 1. Preflight: verify clean working tree, branch, `gh` auth
 2. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
@@ -164,6 +177,7 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 - **Always commit lockfile with dependency changes**: When adding/removing dependencies in `package.json`, always `bun install` and commit the updated `bun.lock` in the same commit. `--frozen-lockfile` in CI/CD (Railway Dockerfile) will reject builds if the lockfile doesn't match the manifest.
 - **Playwright globalSetup/globalTeardown share the same Node process**: Unlike test workers, `globalSetup` and `globalTeardown` run sequentially in Playwright's main process. Any `process.env` mutation in globalSetup is visible in globalTeardown. This means teardown must **not** repeat the "prod vs test inequality check" (`testDbId === prodDbId`) because globalSetup already overwrote `CLOUDFLARE_D1_DATABASE_ID` to `testDbId` — making them always equal. Instead, teardown should confirm the override is still in effect (`currentDbId === testDbId`).
 - **Mock INSERT must read params, never hardcode return values**: When a mock DB intercepts an INSERT statement, it must destructure **all** columns from the params array and use them in the returned row. Hardcoding fields to `null` (e.g. `screenshot_url: null, note: null`) masks bugs where the real SQL omits a column — the test passes because the mock always returns null regardless of input. When adding a new column to an INSERT: (1) update the SQL, (2) update the mock's param destructuring, (3) add a test that round-trips the new field through create → read. A broader check: whenever a schema migration adds a column, grep for all INSERT statements touching that table and verify each one includes the new column.
+- **D1 migration must be applied to both test and prod**: After adding a new migration file in `drizzle/migrations/`, it must be executed on **both** `zhe-db-test` and `zhe-db` (production) before release. Test environment often gets the migration first during development, but production can be forgotten. Always verify both environments have the same table structure before release. (2026-04-13: ideas API returned 500 because `0020_add_ideas.sql` was only applied to test, not prod.)
 
 ## Testing
 
