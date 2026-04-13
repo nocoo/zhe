@@ -17,6 +17,7 @@ import {
   CloudUpload,
   ChevronUp,
   Key,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,7 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
     label: "概览",
     items: [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
+      { title: "Ideas", icon: Lightbulb, href: "/dashboard/ideas" },
     ],
   },
 ];

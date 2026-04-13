@@ -175,9 +175,9 @@ describe('Sidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (1 overview + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
+      // All items (2 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(10);
+      expect(navLinks.length).toBe(11);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -473,9 +473,9 @@ describe('Sidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 1 overview + 2 folder nav + 2 dynamic folders + 7 static = 12
+      // All items are links: 2 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 13
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(12);
+      expect(navLinks.length).toBe(13);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -663,9 +663,9 @@ describe('Sidebar', () => {
     it('renders all nav links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include: 1 overview + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 4 系统 (storage+data-management+webhook+api-keys) = 10
+      // Should include: 2 概览 section (overview+ideas) + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 4 系统 (storage+data-management+webhook+api-keys) = 11
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(10);
+      expect(navLinks.length).toBe(11);
     });
   });
 
