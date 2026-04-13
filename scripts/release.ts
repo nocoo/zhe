@@ -442,10 +442,17 @@ async function main(): Promise<void> {
       const prodTables = parseTables(prodTablesResult.stdout);
       const testTables = parseTables(testTablesResult.stdout);
 
+      // Ignore tables that are expected to differ between environments
+      const ignoredTables = new Set([
+        '_test_marker',   // test-only safety marker
+        'd1_proxy_test',  // test-only proxy verification
+        '_cf_KV',         // Cloudflare internal (may differ)
+      ]);
+
       // Tables only in test (migration applied to test but not prod — the dangerous case)
-      const onlyInTest = testTables.filter(t => !prodTables.includes(t));
+      const onlyInTest = testTables.filter(t => !prodTables.includes(t) && !ignoredTables.has(t));
       // Tables only in prod (unlikely but worth reporting)
-      const onlyInProd = prodTables.filter(t => !testTables.includes(t));
+      const onlyInProd = prodTables.filter(t => !testTables.includes(t) && !ignoredTables.has(t));
 
       if (onlyInTest.length > 0 || onlyInProd.length > 0) {
         console.error('   ❌ D1 migration parity FAILED — table mismatch detected:');
