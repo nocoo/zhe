@@ -13,6 +13,8 @@ export const API_SCOPES = [
   "tags:write",
   "uploads:read",
   "uploads:write",
+  "ideas:read",
+  "ideas:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];
