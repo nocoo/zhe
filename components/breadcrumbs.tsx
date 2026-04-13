@@ -17,9 +17,11 @@ const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/api-keys": "API Keys",
 };
 
+/** Match /dashboard/ideas/:id (numeric id) */
+const IDEA_EDIT_PATTERN = /^\/dashboard\/ideas\/\d+$/;
+
 export function Breadcrumbs() {
   const pathname = usePathname();
-  const pageLabel = ROUTE_LABELS[pathname] ?? "链接管理";
 
   // Root dashboard page — just show the title
   if (pathname === "/dashboard") {
@@ -38,6 +40,37 @@ export function Breadcrumbs() {
       </nav>
     );
   }
+
+  // Dynamic route: /dashboard/ideas/:id → "想法 > 编辑想法"
+  if (IDEA_EDIT_PATTERN.test(pathname)) {
+    return (
+      <nav aria-label="Breadcrumb">
+        <ol className="flex items-center gap-1.5">
+          <li>
+            <Link
+              href="/dashboard/ideas"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              想法
+            </Link>
+          </li>
+          <li>
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+          </li>
+          <li>
+            <span
+              className="text-lg md:text-xl font-semibold font-display text-foreground"
+              aria-current="page"
+            >
+              编辑想法
+            </span>
+          </li>
+        </ol>
+      </nav>
+    );
+  }
+
+  const pageLabel = ROUTE_LABELS[pathname] ?? "链接管理";
 
   return (
     <nav aria-label="Breadcrumb">
