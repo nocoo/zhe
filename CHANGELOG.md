@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.1] - 2026-04-13
+
+### Added
+- Add --yes flag to skip interactive confirmation
+- Add D1 migration parity check to release preflight
+
+### Changed
+- Sync version to 1.16.0 to match root package.json
+- Update ideas design doc to match actual createIdea implementation
+- Add retrospective on D1 batch last_insert_rowid() pitfall
+
+### Fixed
+- Avoid last_insert_rowid() across multiple INSERTs in D1 batch
+
 ## [v1.16.0] - 2026-04-13
 
 ### Added
