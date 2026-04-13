@@ -2,7 +2,7 @@
  * zhe open <slug> — Open short URL in browser
  */
 
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
 import { defineCommand, pc } from "@nocoo/cli-base";
 import { EXIT_INVALID_ARGS } from "../api/client.js";
 
@@ -38,21 +38,25 @@ export const openCommand = defineCommand({
 function openInBrowser(url: string): void {
 	const platform = process.platform;
 	let command: string;
+	let args: string[];
 
 	if (platform === "darwin") {
-		command = `open "${url}"`;
+		command = "open";
+		args = [url];
 	} else if (platform === "linux") {
-		command = `xdg-open "${url}"`;
+		command = "xdg-open";
+		args = [url];
 	} else if (platform === "win32") {
-		command = `start "" "${url}"`;
+		command = "cmd";
+		args = ["/c", "start", "", url];
 	} else {
 		console.log(pc.dim(`Unable to open browser on ${platform}. Visit: ${url}`));
 		return;
 	}
 
-	exec(command, (error) => {
-		if (error) {
-			console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
-		}
+	const child = spawn(command, args, { stdio: "ignore", detached: true });
+	child.unref();
+	child.on("error", () => {
+		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
 	});
 }

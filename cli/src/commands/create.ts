@@ -2,7 +2,7 @@
  * zhe create <url> — Create a new short link
  */
 
-import { exec } from "node:child_process";
+import { exec, spawn } from "node:child_process";
 import { defineCommand, pc } from "@nocoo/cli-base";
 import {
 	ApiClient,
@@ -198,18 +198,23 @@ async function copyToClipboard(text: string): Promise<boolean> {
 function openInBrowser(url: string): void {
 	const platform = process.platform;
 	let command: string;
+	let args: string[];
 
 	if (platform === "darwin") {
-		command = `open "${url}"`;
+		command = "open";
+		args = [url];
 	} else if (platform === "linux") {
-		command = `xdg-open "${url}"`;
+		command = "xdg-open";
+		args = [url];
 	} else if (platform === "win32") {
-		command = `start "" "${url}"`;
+		command = "cmd";
+		args = ["/c", "start", "", url];
 	} else {
 		return;
 	}
 
-	exec(command);
+	const child = spawn(command, args, { stdio: "ignore", detached: true });
+	child.unref();
 }
 
 function handleApiError(error: unknown): never {
