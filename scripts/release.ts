@@ -15,6 +15,7 @@
  *   bun run release -- major     # major bump
  *   bun run release -- 2.0.0     # explicit version
  *   bun run release -- --dry-run # preview without side effects
+ *   bun run release -- --yes    # skip interactive confirmation
  *
  * Env:
  *   Requires `gh` CLI authenticated for GitHub release creation.
@@ -382,8 +383,9 @@ async function main(): Promise<void> {
   // --- Parse args ---
   const rawArgs = process.argv.slice(2).filter((a) => a !== '--');
   const isDryRun = rawArgs.includes('--dry-run');
+  const isYes = rawArgs.includes('--yes') || rawArgs.includes('-y');
   const bumpArg =
-    rawArgs.find((a) => a !== '--dry-run') ?? 'patch';
+    rawArgs.find((a) => !a.startsWith('--') && a !== '-y') ?? 'patch';
 
   if (isDryRun) {
     console.log('🏜️  Dry-run mode — no changes will be made\n');
@@ -617,12 +619,16 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const proceed = await confirm('   Proceed?');
-  if (!proceed) {
-    console.log(
-      '\n   Aborted. Commit is preserved locally — push manually when ready.',
-    );
-    process.exit(0);
+  if (isYes) {
+    console.log('   --yes flag: skipping confirmation');
+  } else {
+    const proceed = await confirm('   Proceed?');
+    if (!proceed) {
+      console.log(
+        '\n   Aborted. Commit is preserved locally — push manually when ready.',
+      );
+      process.exit(0);
+    }
   }
 
   // Push
