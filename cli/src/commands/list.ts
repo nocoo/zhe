@@ -64,6 +64,11 @@ export const listCommand = defineCommand({
 			type: "boolean",
 			description: "Output short URLs only",
 		},
+		wide: {
+			type: "boolean",
+			alias: "w",
+			description: "Show full URLs without truncation",
+		},
 	},
 	async run({ args }) {
 		const apiKey = getApiKey();
@@ -121,7 +126,7 @@ export const listCommand = defineCommand({
 					console.log(formatLinksMinimal(response.links));
 					break;
 				default:
-					console.log(formatLinksTable(response.links));
+					console.log(formatLinksTable(response.links, { wide: args.wide }));
 			}
 		} catch (error) {
 			handleApiError(error);

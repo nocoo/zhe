@@ -106,6 +106,56 @@ describe("formatLinksTable", () => {
 		expect(result).toContain("123");
 		expect(result).toContain("my-link");
 	});
+
+	it("truncates long URLs in default mode", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "very-long-slug-name-here",
+				originalUrl: "https://example.com/very/long/path/that/should/be/truncated",
+				shortUrl: "https://zhe.to/very-long-slug-name-here",
+				isCustom: true,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatLinksTable(links);
+		expect(result).toContain("...");
+	});
+
+	it("shows full URLs in wide mode", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "very-long-slug-name-here",
+				originalUrl: "https://example.com/very/long/path/that/should/not/be/truncated",
+				shortUrl: "https://zhe.to/very-long-slug-name-here",
+				isCustom: true,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatLinksTable(links, { wide: true });
+		expect(result).toContain("very-long-slug-name-here");
+		expect(result).toContain("https://example.com/very/long/path/that/should/not/be/truncated");
+		expect(result).not.toContain("...");
+	});
 });
 
 describe("formatLinksMinimal", () => {

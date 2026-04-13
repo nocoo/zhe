@@ -53,13 +53,43 @@ export function truncate(str: string, maxLength: number): string {
 }
 
 /**
+ * Options for formatLinksTable
+ */
+export interface FormatLinksTableOptions {
+	wide?: boolean;
+}
+
+/**
  * Format links as a table
  */
-export function formatLinksTable(links: Link[]): string {
+export function formatLinksTable(
+	links: Link[],
+	options: FormatLinksTableOptions = {},
+): string {
 	if (links.length === 0) {
 		return "No links found.";
 	}
 
+	const { wide = false } = options;
+
+	if (wide) {
+		// Wide mode: no truncation
+		const header = "ID     SLUG                 URL                                              CLICKS  CREATED";
+		const separator = "─".repeat(header.length);
+
+		const rows = links.map((link) => {
+			const id = String(link.id).padEnd(6);
+			const slug = link.slug.padEnd(20);
+			const url = link.originalUrl.padEnd(48);
+			const clicks = String(link.clicks).padEnd(7);
+			const created = formatDate(link.createdAt);
+			return `${id} ${slug} ${url} ${clicks} ${created}`;
+		});
+
+		return [header, separator, ...rows].join("\n");
+	}
+
+	// Default compact mode with truncation
 	const header =
 		"ID     SLUG        URL                              CLICKS  CREATED";
 	const separator = "─".repeat(header.length);
