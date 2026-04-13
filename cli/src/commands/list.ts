@@ -69,6 +69,11 @@ export const listCommand = defineCommand({
 			alias: "w",
 			description: "Show full URLs without truncation",
 		},
+		count: {
+			type: "boolean",
+			alias: "c",
+			description: "Show only the count of matching links",
+		},
 	},
 	async run({ args }) {
 		const apiKey = getApiKey();
@@ -112,6 +117,12 @@ export const listCommand = defineCommand({
 			}
 
 			const response = await client.listLinks(params);
+
+			// Count-only mode
+			if (args.count) {
+				console.log(response.links.length);
+				return;
+			}
 
 			// Determine output format
 			let format = getOutputFormat();
