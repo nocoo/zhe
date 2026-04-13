@@ -187,15 +187,16 @@ export function formatFoldersTable(folders: Folder[]): string {
 	}
 
 	const header =
-		"ID                                   NAME               ICON     CREATED";
+		"ID                                   NAME               LINKS  ICON     CREATED";
 	const separator = "─".repeat(header.length);
 
 	const rows = folders.map((folder) => {
 		const id = folder.id.padEnd(36);
 		const name = truncate(folder.name, 18).padEnd(18);
+		const links = String(folder.linkCount).padEnd(6);
 		const icon = truncate(folder.icon, 8).padEnd(8);
 		const created = formatDate(folder.createdAt);
-		return `${id} ${name} ${icon} ${created}`;
+		return `${id} ${name} ${links} ${icon} ${created}`;
 	});
 
 	return [header, separator, ...rows].join("\n");

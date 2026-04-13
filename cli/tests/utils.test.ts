@@ -276,6 +276,7 @@ describe("formatFoldersTable", () => {
 				id: "abc123-def456-ghi789",
 				name: "Work",
 				icon: "folder",
+				linkCount: 12,
 				createdAt: "2026-04-01T00:00:00.000Z",
 			},
 		];
@@ -283,7 +284,9 @@ describe("formatFoldersTable", () => {
 		const result = formatFoldersTable(folders);
 		expect(result).toContain("ID");
 		expect(result).toContain("NAME");
+		expect(result).toContain("LINKS");
 		expect(result).toContain("Work");
+		expect(result).toContain("12");
 		expect(result).toContain("folder");
 	});
 });
@@ -319,12 +322,14 @@ describe("resolveFolderName", () => {
 					id: "abc123-def456-ghi789-jkl012-mno345",
 					name: "Work",
 					icon: "folder",
+					linkCount: 5,
 					createdAt: "2026-04-01T00:00:00.000Z",
 				},
 				{
 					id: "xyz987-uvw654-rst321-opq098-lmn765",
 					name: "Personal",
 					icon: "home",
+					linkCount: 3,
 					createdAt: "2026-04-02T00:00:00.000Z",
 				},
 			],
@@ -361,12 +366,14 @@ describe("resolveFolderName", () => {
 						id: "id1",
 						name: "Same",
 						icon: "folder",
+						linkCount: 0,
 						createdAt: "2026-04-01T00:00:00.000Z",
 					},
 					{
 						id: "id2",
 						name: "same",
 						icon: "folder",
+						linkCount: 0,
 						createdAt: "2026-04-02T00:00:00.000Z",
 					},
 				],

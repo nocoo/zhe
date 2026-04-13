@@ -23,6 +23,7 @@ export interface Folder {
 	id: string;
 	name: string;
 	icon: string;
+	linkCount: number;
 	createdAt: string;
 }
 
