@@ -36,9 +36,45 @@ import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
 import {
   useIdeasViewModel,
   type IdeasSortBy,
+  type IdeasViewMode,
 } from "@/viewmodels/useIdeasViewModel";
 import { getTagStyles } from "@/models/tags";
 import type { IdeaListItem } from "@/lib/db/scoped";
+
+function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
+  if (viewMode === "grid") {
+    return (
+      <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="rounded-card bg-secondary overflow-hidden">
+            <div className="p-4 space-y-2">
+              <div className="h-4 w-3/4 rounded bg-muted" />
+              <div className="h-3 w-full rounded bg-muted" />
+              <div className="h-3 w-1/2 rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-pulse space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-card bg-secondary p-4 flex items-center gap-4"
+        >
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-4 w-48 rounded bg-muted" />
+            <div className="h-3 w-64 rounded bg-muted" />
+          </div>
+          <div className="h-3 w-16 rounded bg-muted shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function IdeasPage() {
   const vm = useIdeasViewModel();
@@ -182,18 +218,20 @@ export function IdeasPage() {
             </button>
           )}
 
-          <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            新想法
+          <Button
+            size="sm"
+            className="rounded-widget h-7 w-7 p-0"
+            onClick={() => vm.setIsCreateModalOpen(true)}
+            aria-label="新想法"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.5} />
           </Button>
         </div>
       </div>
 
       {/* Content */}
       {vm.loading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <IdeasSkeleton viewMode={vm.viewMode} />
       ) : vm.ideas.length === 0 ? (
         <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
           <Lightbulb className="w-10 h-10 mx-auto text-muted-foreground mb-4" strokeWidth={1.5} />
@@ -208,9 +246,13 @@ export function IdeasPage() {
               : "点击上方按钮记录您的第一个想法"}
           </p>
           {!vm.searchQuery && !vm.selectedTagId && (
-            <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              新想法
+            <Button
+              size="sm"
+              className="rounded-widget h-7 w-7 p-0"
+              onClick={() => vm.setIsCreateModalOpen(true)}
+              aria-label="新想法"
+            >
+              <Plus className="w-4 h-4" strokeWidth={1.5} />
             </Button>
           )}
         </div>

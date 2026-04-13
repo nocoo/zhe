@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
 import { getTagStyles } from "@/models/tags";
@@ -67,22 +66,31 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
     return (
       <div>
         {/* Toolbar skeleton */}
-        <div className="flex items-center gap-3 mb-4">
-          <Skeleton className="h-8 w-8 rounded-md" />
-          <Skeleton className="h-8 flex-1 max-w-md rounded-md" />
-          <div className="flex-1" />
-          <Skeleton className="h-8 w-20 rounded-md" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="h-7 w-7 rounded-md bg-muted" />
+            <div className="h-8 w-48 rounded-lg bg-muted" />
+          </div>
+          <div className="flex items-center gap-2 animate-pulse">
+            <div className="h-5 w-12 rounded bg-muted hidden sm:block" />
+            <div className="h-5 w-12 rounded bg-muted hidden sm:block" />
+            <div className="h-7 w-7 rounded-md bg-muted" />
+          </div>
         </div>
         {/* Content skeleton */}
-        <div className="-mx-3 md:-mx-5 -mb-3 md:-mb-5 grid grid-cols-1 md:grid-cols-2 border-t">
-          <div className="p-6">
-            <Skeleton className="h-[400px]" />
+        <div className="-mx-3 md:-mx-5 -mb-3 md:-mb-5 grid grid-cols-1 md:grid-cols-2 border-t" style={{ height: "calc(100vh - 12rem)" }}>
+          <div className="p-6 animate-pulse space-y-3">
+            <div className="h-4 w-3/4 rounded bg-muted" />
+            <div className="h-4 w-full rounded bg-muted" />
+            <div className="h-4 w-5/6 rounded bg-muted" />
+            <div className="h-4 w-2/3 rounded bg-muted" />
+            <div className="h-4 w-1/2 rounded bg-muted" />
           </div>
-          <div className="p-6 border-t md:border-t-0 md:border-l">
-            <Skeleton className="h-4 w-3/4 mb-3" />
-            <Skeleton className="h-4 w-1/2 mb-3" />
-            <Skeleton className="h-4 w-2/3 mb-3" />
-            <Skeleton className="h-4 w-1/3" />
+          <div className="p-6 border-t md:border-t-0 md:border-l animate-pulse space-y-3">
+            <div className="h-4 w-3/4 rounded bg-muted" />
+            <div className="h-4 w-1/2 rounded bg-muted" />
+            <div className="h-4 w-2/3 rounded bg-muted" />
+            <div className="h-4 w-1/3 rounded bg-muted" />
           </div>
         </div>
       </div>
@@ -156,15 +164,16 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
           )}
           <Button
             size="sm"
+            className="rounded-widget h-7 w-7 p-0"
             onClick={handleSave}
             disabled={!dirty || vm.isSaving}
+            aria-label="保存"
           >
             {vm.isSaving ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Save className="h-4 w-4 mr-1.5" />
+              <Save className="h-4 w-4" strokeWidth={1.5} />
             )}
-            保存
           </Button>
         </div>
       </div>
