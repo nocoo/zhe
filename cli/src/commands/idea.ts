@@ -212,7 +212,7 @@ const getSubcommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		if (Number.isNaN(id) || id <= 0) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}
@@ -348,7 +348,7 @@ const updateSubcommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		if (Number.isNaN(id) || id <= 0) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}
@@ -424,7 +424,7 @@ const deleteSubcommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		if (Number.isNaN(id) || id <= 0) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}
