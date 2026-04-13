@@ -165,6 +165,23 @@ export const apiAuditLogs = sqliteTable("api_audit_logs", {
   timestamp: integer("timestamp", { mode: "timestamp" }).notNull(),
 });
 
+export const ideas = sqliteTable("ideas", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title"),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const ideaTags = sqliteTable("idea_tags", {
+  ideaId: integer("idea_id").notNull().references(() => ideas.id, { onDelete: "cascade" }),
+  tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+}, (table) => ({
+  compositePk: primaryKey({ columns: [table.ideaId, table.tagId] }),
+}));
+
 // ============================================
 // Type exports
 // ============================================
@@ -196,3 +213,8 @@ export type NewApiKey = typeof apiKeys.$inferInsert;
 
 export type ApiAuditLog = typeof apiAuditLogs.$inferSelect;
 export type NewApiAuditLog = typeof apiAuditLogs.$inferInsert;
+
+export type Idea = typeof ideas.$inferSelect;
+export type NewIdea = typeof ideas.$inferInsert;
+
+export type IdeaTag = typeof ideaTags.$inferSelect;
