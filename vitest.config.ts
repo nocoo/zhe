@@ -42,6 +42,9 @@ export default defineConfig({
         // View/page components (presentation only)
         'app/**/page.tsx',
         'app/**/layout.tsx',
+        // Large page components tested via E2E
+        'components/dashboard/ideas-page.tsx',
+        'components/dashboard/api-keys-page.tsx',
       ],
       thresholds: {
         lines: 90,
