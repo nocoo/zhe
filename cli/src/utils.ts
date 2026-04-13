@@ -57,6 +57,7 @@ export function truncate(str: string, maxLength: number): string {
  */
 export interface FormatLinksTableOptions {
 	wide?: boolean;
+	folderMap?: Map<string, string>;
 }
 
 /**
@@ -70,11 +71,14 @@ export function formatLinksTable(
 		return "No links found.";
 	}
 
-	const { wide = false } = options;
+	const { wide = false, folderMap } = options;
+	const showFolders = links.some((l) => l.folderId);
 
 	if (wide) {
 		// Wide mode: no truncation
-		const header = "ID     SLUG                 URL                                              CLICKS  CREATED";
+		const header = showFolders
+			? "ID     SLUG                 URL                                              FOLDER           CLICKS  CREATED"
+			: "ID     SLUG                 URL                                              CLICKS  CREATED";
 		const separator = "─".repeat(header.length);
 
 		const rows = links.map((link) => {
@@ -83,6 +87,13 @@ export function formatLinksTable(
 			const url = link.originalUrl.padEnd(48);
 			const clicks = String(link.clicks).padEnd(7);
 			const created = formatDate(link.createdAt);
+			if (showFolders) {
+				const folderName = link.folderId
+					? (folderMap?.get(link.folderId) ?? link.folderId.slice(0, 8))
+					: "";
+				const folder = folderName.padEnd(16);
+				return `${id} ${slug} ${url} ${folder} ${clicks} ${created}`;
+			}
 			return `${id} ${slug} ${url} ${clicks} ${created}`;
 		});
 
@@ -90,8 +101,9 @@ export function formatLinksTable(
 	}
 
 	// Default compact mode with truncation
-	const header =
-		"ID     SLUG        URL                              CLICKS  CREATED";
+	const header = showFolders
+		? "ID     SLUG        URL                              FOLDER       CLICKS  CREATED"
+		: "ID     SLUG        URL                              CLICKS  CREATED";
 	const separator = "─".repeat(header.length);
 
 	const rows = links.map((link) => {
@@ -100,6 +112,13 @@ export function formatLinksTable(
 		const url = truncate(link.originalUrl, 32).padEnd(32);
 		const clicks = String(link.clicks).padEnd(7);
 		const created = formatDate(link.createdAt);
+		if (showFolders) {
+			const folderName = link.folderId
+				? (folderMap?.get(link.folderId) ?? link.folderId.slice(0, 8))
+				: "";
+			const folder = truncate(folderName, 12).padEnd(12);
+			return `${id} ${slug} ${url} ${folder} ${clicks} ${created}`;
+		}
 		return `${id} ${slug} ${url} ${clicks} ${created}`;
 	});
 

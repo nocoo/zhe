@@ -19,6 +19,7 @@ import {
 	resolveFolderName,
 	resolveTagName,
 } from "../utils.js";
+import type { Folder } from "../api/types.js";
 
 export const listCommand = defineCommand({
 	meta: {
@@ -124,6 +125,20 @@ export const listCommand = defineCommand({
 				return;
 			}
 
+			// Build folder name map for table output
+			let folderMap: Map<string, string> | undefined;
+			const hasFolders = response.links.some((l) => l.folderId);
+			if (hasFolders) {
+				try {
+					const foldersResponse = await client.listFolders();
+					folderMap = new Map(
+						foldersResponse.folders.map((f: Folder) => [f.id, f.name]),
+					);
+				} catch {
+					// If folder fetch fails, continue without folder names
+				}
+			}
+
 			// Determine output format
 			let format = getOutputFormat();
 			if (args.json) format = "json";
@@ -137,7 +152,9 @@ export const listCommand = defineCommand({
 					console.log(formatLinksMinimal(response.links));
 					break;
 				default:
-					console.log(formatLinksTable(response.links, { wide: args.wide }));
+					console.log(
+						formatLinksTable(response.links, { wide: args.wide, folderMap }),
+					);
 			}
 		} catch (error) {
 			handleApiError(error);
