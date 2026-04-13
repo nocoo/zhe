@@ -7,6 +7,7 @@ import Link from "next/link";
 /** Route-to-label mapping for breadcrumbs */
 const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/overview": "概览",
+  "/dashboard/ideas": "想法",
   "/dashboard/uploads": "系统集成",
   "/dashboard/backy": "Backy",
   "/dashboard/xray": "Xray",

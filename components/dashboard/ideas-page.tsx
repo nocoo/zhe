@@ -116,14 +116,14 @@ export function IdeasPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Lightbulb className="h-6 w-6 text-muted-foreground" />
-            <h1 className="text-xl font-semibold">Ideas</h1>
+            <h1 className="text-xl font-semibold">想法</h1>
             <Badge variant="secondary" className="text-xs">
               {vm.allIdeas.length}
             </Badge>
           </div>
           <Button onClick={() => vm.setIsCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            New Idea
+            新想法
           </Button>
         </div>
 
@@ -133,7 +133,7 @@ export function IdeasPage() {
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search ideas..."
+              placeholder="搜索想法..."
               value={vm.searchQuery}
               onChange={(e) => vm.setSearchQuery(e.target.value)}
               className="pl-9 pr-8"
@@ -159,7 +159,7 @@ export function IdeasPage() {
                 <SelectValue placeholder="All tags" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All tags</SelectItem>
+                <SelectItem value="all">所有标签</SelectItem>
                 {vm.tagFilterOptions.map((tag) => (
                   <SelectItem key={tag.id} value={tag.id}>
                     <div className="flex items-center gap-2">
@@ -184,8 +184,8 @@ export function IdeasPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="updatedAt">Last updated</SelectItem>
-              <SelectItem value="createdAt">Created</SelectItem>
+              <SelectItem value="updatedAt">最近更新</SelectItem>
+              <SelectItem value="createdAt">创建时间</SelectItem>
             </SelectContent>
           </Select>
 
@@ -214,7 +214,7 @@ export function IdeasPage() {
           {/* Clear filters */}
           {(vm.searchQuery || vm.selectedTagId) && (
             <Button variant="ghost" size="sm" onClick={vm.clearFilters}>
-              Clear filters
+              清除筛选
             </Button>
           )}
         </div>
@@ -231,18 +231,18 @@ export function IdeasPage() {
             <Lightbulb className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-1">
               {vm.searchQuery || vm.selectedTagId
-                ? "No ideas found"
-                : "No ideas yet"}
+                ? "未找到想法"
+                : "还没有想法"}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               {vm.searchQuery || vm.selectedTagId
-                ? "Try adjusting your filters"
-                : "Capture your thoughts and ideas here"}
+                ? "试试调整筛选条件"
+                : "在这里记录您的想法"}
             </p>
             {!vm.searchQuery && !vm.selectedTagId && (
               <Button onClick={() => vm.setIsCreateModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Idea
+                新想法
               </Button>
             )}
           </div>
@@ -279,26 +279,26 @@ export function IdeasPage() {
       <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>New Idea</DialogTitle>
+            <DialogTitle>新想法</DialogTitle>
             <DialogDescription>
-              Capture a new thought or idea. Markdown is supported.
+              记录新的想法，支持 Markdown 格式。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="new-title">Title (optional)</Label>
+              <Label htmlFor="new-title">标题 (可选)</Label>
               <Input
                 id="new-title"
-                placeholder="Give your idea a title..."
+                placeholder="为您的想法添加标题..."
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="new-content">Content</Label>
+              <Label htmlFor="new-content">内容</Label>
               <Textarea
                 id="new-content"
-                placeholder="Write your idea here... (Markdown supported)"
+                placeholder="在这里写下您的想法... (支持 Markdown)"
                 value={newContent}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewContent(e.target.value)}
                 rows={8}
@@ -306,7 +306,7 @@ export function IdeasPage() {
             </div>
             {vm.tags.length > 0 && (
               <div>
-                <Label>Tags</Label>
+                <Label>标签</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {vm.tags.map((tag) => {
                     const isSelected = newTagIds.includes(tag.id);
@@ -329,14 +329,14 @@ export function IdeasPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => vm.setIsCreateModalOpen(false)}>
-              Cancel
+              取消
             </Button>
             <Button
               onClick={handleCreate}
               disabled={!newContent.trim() || vm.isSaving}
             >
               {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create
+              创建
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -346,7 +346,7 @@ export function IdeasPage() {
       <Dialog open={vm.isEditModalOpen} onOpenChange={handleCloseEdit}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Idea</DialogTitle>
+            <DialogTitle>编辑想法</DialogTitle>
           </DialogHeader>
           {vm.loadingDetail ? (
             <div className="flex items-center justify-center py-8">
@@ -355,19 +355,19 @@ export function IdeasPage() {
           ) : (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="edit-title">Title</Label>
+                <Label htmlFor="edit-title">标题</Label>
                 <Input
                   id="edit-title"
-                  placeholder="Title (leave empty to use date)"
+                  placeholder="标题 (留空则使用日期)"
                   value={editTitle ?? ""}
                   onChange={(e) => setEditTitle(e.target.value || null)}
                 />
               </div>
               <div>
-                <Label htmlFor="edit-content">Content</Label>
+                <Label htmlFor="edit-content">内容</Label>
                 <Textarea
                   id="edit-content"
-                  placeholder="Write your idea here..."
+                  placeholder="在这里写下您的想法..."
                   value={editContent}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditContent(e.target.value)}
                   rows={8}
@@ -375,7 +375,7 @@ export function IdeasPage() {
               </div>
               {vm.tags.length > 0 && (
                 <div>
-                  <Label>Tags</Label>
+                  <Label>标签</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {vm.tags.map((tag) => {
                       const isSelected = editTagIds.includes(tag.id);
@@ -399,14 +399,14 @@ export function IdeasPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseEdit}>
-              Cancel
+              取消
             </Button>
             <Button
               onClick={handleSaveEdit}
               disabled={!editContent.trim() || vm.isSaving || vm.loadingDetail}
             >
               {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save
+              保存
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -416,14 +416,14 @@ export function IdeasPage() {
       <Dialog open={vm.isDeleteConfirmOpen} onOpenChange={vm.cancelDelete}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Idea</DialogTitle>
+            <DialogTitle>删除想法</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this idea? This action cannot be undone.
+              确定要删除这个想法吗？此操作无法撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={vm.cancelDelete}>
-              Cancel
+              取消
             </Button>
             <Button
               variant="destructive"
@@ -431,7 +431,7 @@ export function IdeasPage() {
               disabled={vm.isDeleting}
             >
               {vm.isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
+              删除
             </Button>
           </DialogFooter>
         </DialogContent>

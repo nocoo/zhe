@@ -186,28 +186,28 @@ describe("IdeaCard", () => {
     it("calls onEdit when edit button is clicked", () => {
       const onEdit = vi.fn();
       render(<IdeaCard {...defaultProps} onEdit={onEdit} />);
-      fireEvent.click(screen.getByLabelText("Edit idea"));
+      fireEvent.click(screen.getByLabelText("编辑想法"));
       expect(onEdit).toHaveBeenCalledWith(defaultProps.idea);
     });
 
     it("calls onDelete when delete button is clicked", () => {
       const onDelete = vi.fn();
       render(<IdeaCard {...defaultProps} onDelete={onDelete} />);
-      fireEvent.click(screen.getByLabelText("Delete idea"));
+      fireEvent.click(screen.getByLabelText("删除想法"));
       expect(onDelete).toHaveBeenCalledWith(defaultProps.idea);
     });
 
     it("does not trigger onClick when edit button is clicked", () => {
       const onClick = vi.fn();
       render(<IdeaCard {...defaultProps} onClick={onClick} />);
-      fireEvent.click(screen.getByLabelText("Edit idea"));
+      fireEvent.click(screen.getByLabelText("编辑想法"));
       expect(onClick).not.toHaveBeenCalled();
     });
 
     it("does not trigger onClick when delete button is clicked", () => {
       const onClick = vi.fn();
       render(<IdeaCard {...defaultProps} onClick={onClick} />);
-      fireEvent.click(screen.getByLabelText("Delete idea"));
+      fireEvent.click(screen.getByLabelText("删除想法"));
       expect(onClick).not.toHaveBeenCalled();
     });
   });
@@ -314,14 +314,14 @@ describe("IdeaRow", () => {
     it("calls onEdit when edit button is clicked", () => {
       const onEdit = vi.fn();
       render(<IdeaRow {...defaultProps} onEdit={onEdit} />);
-      fireEvent.click(screen.getByLabelText("Edit idea"));
+      fireEvent.click(screen.getByLabelText("编辑想法"));
       expect(onEdit).toHaveBeenCalledWith(defaultProps.idea);
     });
 
     it("calls onDelete when delete button is clicked", () => {
       const onDelete = vi.fn();
       render(<IdeaRow {...defaultProps} onDelete={onDelete} />);
-      fireEvent.click(screen.getByLabelText("Delete idea"));
+      fireEvent.click(screen.getByLabelText("删除想法"));
       expect(onDelete).toHaveBeenCalledWith(defaultProps.idea);
     });
 
@@ -329,8 +329,8 @@ describe("IdeaRow", () => {
       const onClick = vi.fn();
       render(<IdeaRow {...defaultProps} onClick={onClick} />);
 
-      fireEvent.click(screen.getByLabelText("Edit idea"));
-      fireEvent.click(screen.getByLabelText("Delete idea"));
+      fireEvent.click(screen.getByLabelText("编辑想法"));
+      fireEvent.click(screen.getByLabelText("删除想法"));
 
       expect(onClick).not.toHaveBeenCalled();
     });

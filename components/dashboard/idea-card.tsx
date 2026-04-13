@@ -138,7 +138,7 @@ export const IdeaCard = memo(function IdeaCard({
             size="icon"
             className="h-7 w-7"
             onClick={handleEdit}
-            aria-label="Edit idea"
+            aria-label="编辑想法"
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -147,7 +147,7 @@ export const IdeaCard = memo(function IdeaCard({
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive"
             onClick={handleDelete}
-            aria-label="Delete idea"
+            aria-label="删除想法"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -256,7 +256,7 @@ export const IdeaRow = memo(function IdeaRow({
           size="icon"
           className="h-8 w-8"
           onClick={handleEdit}
-          aria-label="Edit idea"
+          aria-label="编辑想法"
         >
           <Pencil className="h-4 w-4" />
         </Button>
@@ -265,7 +265,7 @@ export const IdeaRow = memo(function IdeaRow({
           size="icon"
           className="h-8 w-8 text-destructive hover:text-destructive"
           onClick={handleDelete}
-          aria-label="Delete idea"
+          aria-label="删除想法"
         >
           <Trash2 className="h-4 w-4" />
         </Button>

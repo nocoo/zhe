@@ -77,7 +77,7 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
     label: "概览",
     items: [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
-      { title: "Ideas", icon: Lightbulb, href: "/dashboard/ideas" },
+      { title: "想法", icon: Lightbulb, href: "/dashboard/ideas" },
     ],
   },
 ];
