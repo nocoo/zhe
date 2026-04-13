@@ -9,14 +9,12 @@ import { unwrap } from "../test-utils";
 // ---------------------------------------------------------------------------
 
 const mockGetIdeas = vi.fn();
-const mockGetIdea = vi.fn();
 const mockCreateIdea = vi.fn();
 const mockUpdateIdea = vi.fn();
 const mockDeleteIdea = vi.fn();
 
 vi.mock("@/actions/ideas", () => ({
   getIdeas: (...args: unknown[]) => mockGetIdeas(...args),
-  getIdea: (...args: unknown[]) => mockGetIdea(...args),
   createIdea: (...args: unknown[]) => mockCreateIdea(...args),
   updateIdea: (...args: unknown[]) => mockUpdateIdea(...args),
   deleteIdea: (...args: unknown[]) => mockDeleteIdea(...args),
@@ -455,50 +453,6 @@ describe("useIdeasViewModel", () => {
 
       expect(result.current.ideas).toHaveLength(0);
       expect(result.current.isDeleteConfirmOpen).toBe(false);
-    });
-  });
-
-  // ================================================================
-  // Fetch Idea Detail
-  // ================================================================
-
-  describe("fetch idea detail", () => {
-    it("fetches and sets selected idea", async () => {
-      const detail = makeIdeaDetail({ id: 1 });
-      mockGetIdea.mockResolvedValue({ success: true, data: detail });
-
-      const { result } = renderHook(() => useIdeasViewModel());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let fetchedIdea: IdeaDetail | null = null;
-      await act(async () => {
-        fetchedIdea = await result.current.fetchIdeaDetail(1);
-      });
-
-      expect(fetchedIdea).toEqual(detail);
-      expect(result.current.selectedIdea).toEqual(detail);
-      expect(result.current.loadingDetail).toBe(false);
-    });
-
-    it("handles fetch detail error", async () => {
-      mockGetIdea.mockResolvedValue({ success: false, error: "Not found" });
-
-      const { result } = renderHook(() => useIdeasViewModel());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let fetchedIdea: IdeaDetail | null = null;
-      await act(async () => {
-        fetchedIdea = await result.current.fetchIdeaDetail(999);
-      });
-
-      expect(fetchedIdea).toBeNull();
-      expect(result.current.error).toBe("Not found");
     });
   });
 

@@ -840,7 +840,7 @@ describe("SearchCommandDialog", () => {
       expect(screen.getByText("想法 (2)")).toBeInTheDocument();
     });
 
-    it("navigates to ideas page when clicking an idea", async () => {
+    it("navigates to idea editor page when clicking an idea", async () => {
       mockState.ideas = [makeIdea({ id: 1, title: "React Patterns" })];
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
@@ -851,7 +851,7 @@ describe("SearchCommandDialog", () => {
       const item = getCmdkItem("idea-1");
       fireEvent.click(unwrap(item));
 
-      expect(mockPush).toHaveBeenCalledWith("/dashboard/ideas");
+      expect(mockPush).toHaveBeenCalledWith("/dashboard/ideas/1");
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
 

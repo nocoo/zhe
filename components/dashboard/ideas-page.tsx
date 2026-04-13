@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   LayoutGrid,
@@ -41,17 +42,12 @@ import type { IdeaListItem } from "@/lib/db/scoped";
 
 export function IdeasPage() {
   const vm = useIdeasViewModel();
+  const router = useRouter();
 
   // Create modal state
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
-
-  // Edit modal state
-  const [editTitle, setEditTitle] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [editTagIds, setEditTagIds] = useState<string[]>([]);
-  const [editingIdea, setEditingIdea] = useState<IdeaListItem | null>(null);
 
   const handleCreate = async () => {
     const success = await vm.handleCreateIdea({
@@ -66,39 +62,8 @@ export function IdeasPage() {
     }
   };
 
-  const handleEdit = (idea: IdeaListItem) => {
-    setEditingIdea(idea);
-    setEditTitle(idea.title);
-    setEditContent(""); // Will be fetched
-    setEditTagIds(idea.tagIds);
-    vm.setIsEditModalOpen(true);
-    // Fetch full content
-    vm.fetchIdeaDetail(idea.id).then((detail) => {
-      if (detail) {
-        setEditContent(detail.content);
-      }
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingIdea) return;
-    const success = await vm.handleUpdateIdea(editingIdea.id, {
-      content: editContent,
-      title: editTitle,
-      tagIds: editTagIds,
-    });
-    if (success) {
-      setEditingIdea(null);
-    }
-  };
-
-  const handleCloseEdit = () => {
-    vm.setIsEditModalOpen(false);
-    setEditingIdea(null);
-  };
-
-  const handleIdeaClick = async (idea: IdeaListItem) => {
-    handleEdit(idea);
+  const handleNavigateToIdea = (idea: IdeaListItem) => {
+    router.push(`/dashboard/ideas/${idea.id}`);
   };
 
   const toggleTag = (tagId: string, current: string[], setter: (ids: string[]) => void) => {
@@ -253,9 +218,9 @@ export function IdeasPage() {
                 key={idea.id}
                 idea={idea}
                 tags={vm.tags}
-                onEdit={handleEdit}
+                onEdit={handleNavigateToIdea}
                 onDelete={vm.confirmDelete}
-                onClick={handleIdeaClick}
+                onClick={handleNavigateToIdea}
               />
             ))}
           </div>
@@ -266,9 +231,9 @@ export function IdeasPage() {
                 key={idea.id}
                 idea={idea}
                 tags={vm.tags}
-                onEdit={handleEdit}
+                onEdit={handleNavigateToIdea}
                 onDelete={vm.confirmDelete}
-                onClick={handleIdeaClick}
+                onClick={handleNavigateToIdea}
               />
             ))}
           </div>
@@ -337,76 +302,6 @@ export function IdeasPage() {
             >
               {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               创建
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Modal */}
-      <Dialog open={vm.isEditModalOpen} onOpenChange={handleCloseEdit}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>编辑想法</DialogTitle>
-          </DialogHeader>
-          {vm.loadingDetail ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-title">标题</Label>
-                <Input
-                  id="edit-title"
-                  placeholder="标题 (留空则使用日期)"
-                  value={editTitle ?? ""}
-                  onChange={(e) => setEditTitle(e.target.value || null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-content">内容</Label>
-                <Textarea
-                  id="edit-content"
-                  placeholder="在这里写下您的想法..."
-                  value={editContent}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditContent(e.target.value)}
-                  rows={8}
-                />
-              </div>
-              {vm.tags.length > 0 && (
-                <div>
-                  <Label>标签</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {vm.tags.map((tag) => {
-                      const isSelected = editTagIds.includes(tag.id);
-                      const styles = getTagStyles(tag.color);
-                      return (
-                        <Badge
-                          key={tag.id}
-                          variant={isSelected ? "default" : "outline"}
-                          className="cursor-pointer"
-                          style={isSelected ? styles.badge : undefined}
-                          onClick={() => toggleTag(tag.id, editTagIds, setEditTagIds)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseEdit}>
-              取消
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={!editContent.trim() || vm.isSaving || vm.loadingDetail}
-            >
-              {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              保存
             </Button>
           </DialogFooter>
         </DialogContent>
