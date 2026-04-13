@@ -82,3 +82,51 @@ export interface ListLinksParams {
 	inbox?: boolean;
 	tagId?: string;
 }
+
+// ── Ideas ──
+
+export interface Idea {
+	id: number;
+	title: string | null;
+	content: string;
+	excerpt: string | null;
+	tags: Tag[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface IdeaListItem {
+	id: number;
+	title: string | null;
+	excerpt: string | null;
+	tags: Tag[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface IdeasResponse {
+	ideas: IdeaListItem[];
+}
+
+export interface IdeaResponse {
+	idea: Idea;
+}
+
+export interface CreateIdeaRequest {
+	content: string;
+	title?: string;
+	tagIds?: string[];
+}
+
+export interface UpdateIdeaRequest {
+	content?: string;
+	title?: string | null;
+	tagIds?: string[];
+}
+
+export interface ListIdeasParams {
+	limit?: number;
+	offset?: number;
+	tagId?: string;
+	q?: string;
+}
