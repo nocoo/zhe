@@ -8,6 +8,7 @@ import { createCommand } from "./commands/create.js";
 import { deleteCommand } from "./commands/delete.js";
 import { foldersCommand } from "./commands/folders.js";
 import { getCommand } from "./commands/get.js";
+import { ideaCommand } from "./commands/idea.js";
 import { inboxCommand } from "./commands/inbox.js";
 import { listCommand } from "./commands/list.js";
 import { loginCommand } from "./commands/login.js";
@@ -30,6 +31,7 @@ const main = defineCommand({
 		inbox: inboxCommand,
 		folders: foldersCommand,
 		tags: tagsCommand,
+		idea: ideaCommand,
 		create: createCommand,
 		get: getCommand,
 		update: updateCommand,
