@@ -11,15 +11,13 @@ import {
 	EXIT_INVALID_ARGS,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { ListLinksParams } from "../api/types.js";
+import type { Folder, ListLinksParams } from "../api/types.js";
 import { getApiKey, getOutputFormat } from "../config.js";
 import {
 	formatLinksMinimal,
 	formatLinksTable,
-	resolveFolderName,
 	resolveTagName,
 } from "../utils.js";
-import type { Folder } from "../api/types.js";
 
 export const listCommand = defineCommand({
 	meta: {
@@ -113,6 +111,14 @@ export const listCommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		try {
+			// Pre-fetch folders if needed (for --folder flag or display)
+			let cachedFolders: Folder[] | undefined;
+			const needsFolders = !!args.folder;
+			if (needsFolders) {
+				const foldersResponse = await client.listFolders();
+				cachedFolders = foldersResponse.folders;
+			}
+
 			// Build params object, only including defined fields
 			const params: ListLinksParams = {};
 			if (args.limit) params.limit = Number.parseInt(args.limit, 10);
@@ -122,9 +128,9 @@ export const listCommand = defineCommand({
 			if (args.sort) params.sort = args.sort as "created" | "clicks";
 			if (args.order) params.order = args.order as "asc" | "desc";
 
-			// Resolve folder name to ID
-			if (args.folder) {
-				const folderId = await resolveFolderName(client, args.folder);
+			// Resolve folder name to ID using cached folders
+			if (args.folder && cachedFolders) {
+				const folderId = resolveFolderNameFromCache(args.folder, cachedFolders);
 				if (folderId === null) {
 					process.exit(EXIT_INVALID_ARGS);
 				}
@@ -153,10 +159,9 @@ export const listCommand = defineCommand({
 			const hasFolders = response.links.some((l) => l.folderId);
 			if (hasFolders) {
 				try {
-					const foldersResponse = await client.listFolders();
-					folderMap = new Map(
-						foldersResponse.folders.map((f: Folder) => [f.id, f.name]),
-					);
+					// Reuse cached folders if available, otherwise fetch
+					const folders = cachedFolders ?? (await client.listFolders()).folders;
+					folderMap = new Map(folders.map((f: Folder) => [f.id, f.name]));
 				} catch {
 					// If folder fetch fails, continue without folder names
 				}
@@ -197,4 +202,43 @@ function handleApiError(error: unknown): never {
 		process.exit(EXIT_ERROR);
 	}
 	throw error;
+}
+
+/**
+ * Resolve folder name to ID from cached folders list.
+ * If input looks like a UUID, use it directly.
+ * Returns null if folder is not found (with error message printed).
+ */
+function resolveFolderNameFromCache(
+	input: string,
+	folders: Folder[],
+): string | null {
+	// Check if input looks like a UUID (36 chars with dashes)
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	if (uuidPattern.test(input)) {
+		return input; // Assume it's already an ID
+	}
+
+	// Otherwise, resolve by name
+	const matches = folders.filter(
+		(f: Folder) => f.name.toLowerCase() === input.toLowerCase(),
+	);
+
+	if (matches.length === 0) {
+		console.log(pc.red(`Folder not found: ${input}`));
+		return null;
+	}
+
+	if (matches.length > 1) {
+		console.log(
+			pc.red(
+				`Multiple folders match "${input}". Please use the folder ID instead.`,
+			),
+		);
+		console.log(pc.dim("Use `zhe folders` to see all folder IDs."));
+		return null;
+	}
+
+	return matches[0].id;
 }
