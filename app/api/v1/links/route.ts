@@ -24,7 +24,7 @@ import type { Link } from "@/lib/db/schema";
  *   - limit (optional): Max results (default 100, max 500)
  *   - offset (optional): Pagination offset
  *
- * Response: { links: Link[] }
+ * Response: { links: Link[], total: number }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "links:read");
@@ -54,12 +54,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     if (tagIdParam) options.tagId = tagIdParam;
 
-    let links = await db.getLinks(options);
+    const allLinks = await db.getLinks(options);
+    const total = allLinks.length;
 
     // Apply pagination
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
-    links = links.slice(offset, offset + limit);
+    const links = allLinks.slice(offset, offset + limit);
 
     logApiRequest({
       keyId,
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ links: links.map(linkToResponse) }, { headers: rateLimitHeaders });
+    return NextResponse.json({ links: links.map(linkToResponse), total }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error("[/api/v1/links GET]", error);
     return apiError("Internal server error", 500);

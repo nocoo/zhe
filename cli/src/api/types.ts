@@ -36,6 +36,7 @@ export interface Tag {
 
 export interface LinksResponse {
 	links: Link[];
+	total: number;
 }
 
 export interface LinkResponse {

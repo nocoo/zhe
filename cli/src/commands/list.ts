@@ -119,9 +119,9 @@ export const listCommand = defineCommand({
 
 			const response = await client.listLinks(params);
 
-			// Count-only mode
+			// Count-only mode: use total from API response
 			if (args.count) {
-				console.log(response.links.length);
+				console.log(response.total);
 				return;
 			}
 
