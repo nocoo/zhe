@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.14.0] - 2026-04-13
+
+### Added
+- Show link count in folders list
+- Add link count to folders endpoint
+- Add folder name column to list output
+- Add --count flag to list for quick count
+- Add --wide flag to list for full URL display
+- Add folder/tag name resolution for all commands
+
+### Fixed
+- Add total count to links response for accurate --count
+- Remove non-null assertion in search dialog test
+
 ## [v1.13.2] - 2026-04-13
 
 ### Added
