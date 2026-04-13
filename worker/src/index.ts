@@ -395,7 +395,7 @@ async function handleD1Batch(request: Request, env: Env): Promise<Response> {
     console.error('D1 batch error:', message);
     return Response.json({
       success: false,
-      error: 'D1 batch failed',
+      error: `D1 batch failed: ${message}`,
     } satisfies D1BatchResponse);
   }
 }
