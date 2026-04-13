@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.3] - 2026-04-13
+
+### Added
+- Add breadcrumb support for idea editor route
+- Add /dashboard/ideas/[id] route
+- Add IdeaEditorPage component
+- Add useIdeaEditorViewModel hook
+- Add MarkdownPreview component
+- Add markdown rendering deps and shadcn scroll-area
+
+### Changed
+- Replace edit modal with dedicated editor page navigation
+- Sync version to 1.16.1 for npm release
+
+### Fixed
+- Use icon-only buttons and proper skeletons for ideas pages
+- Align ideas page layout with links-list pattern
+- Resolve tag names for idea display instead of crashing on undefined
+
 ## [v1.16.2] - 2026-04-13
 
 ### Added
