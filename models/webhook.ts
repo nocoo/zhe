@@ -1,4 +1,8 @@
 import { isValidSlug } from "@/lib/constants";
+import {
+  evictExpiredTimestamps,
+  calculateRetryAfterMs,
+} from "@/lib/sliding-window";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -153,7 +157,6 @@ export function checkRateLimit(
   maxRequests: number = RATE_LIMIT_DEFAULT_MAX,
 ): RateLimitResult {
   const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW_MS;
 
   let timestamps = tokenBuckets.get(token);
   if (!timestamps) {
@@ -161,18 +164,13 @@ export function checkRateLimit(
     tokenBuckets.set(token, timestamps);
   }
 
-  // Evict expired entries
-  const firstValid = timestamps.findIndex((t) => t > windowStart);
-  if (firstValid > 0) {
-    timestamps.splice(0, firstValid);
-  } else if (firstValid === -1) {
-    timestamps.length = 0;
-  }
+  // Evict expired entries using shared helper
+  evictExpiredTimestamps(timestamps, RATE_LIMIT_WINDOW_MS, now);
 
   if (timestamps.length >= maxRequests) {
     // Earliest entry determines when a slot opens
-    const retryAfterMs = (timestamps[0] ?? now) + RATE_LIMIT_WINDOW_MS - now;
-    return { allowed: false, retryAfterMs: Math.max(1, retryAfterMs) };
+    const retryAfterMs = calculateRetryAfterMs(timestamps[0] ?? now, RATE_LIMIT_WINDOW_MS, now);
+    return { allowed: false, retryAfterMs };
   }
 
   timestamps.push(now);
