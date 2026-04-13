@@ -330,6 +330,55 @@ export async function seedUpload(userId?: string, options: SeedUploadOptions = {
 }
 
 // ---------------------------------------------------------------------------
+// Idea helpers
+// ---------------------------------------------------------------------------
+
+export interface SeedIdeaOptions {
+  userId?: string;
+  title?: string | null;
+  content?: string;
+  tagIds?: string[];
+}
+
+/** Insert an idea into D1 and return the idea info. */
+export async function seedIdea(
+  userId?: string,
+  options: SeedIdeaOptions = {},
+): Promise<{ id: number; title: string | null; content: string }> {
+  const uid = userId ?? TEST_USER.id;
+  const title = options.title === undefined ? null : options.title;
+  const content = options.content ?? `Test idea content ${nanoid(8)}`;
+  const excerpt = content.substring(0, 200);
+  const now = Date.now();
+
+  await executeD1(
+    `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [uid, title, content, excerpt, now, now],
+  );
+
+  // Retrieve the auto-generated ID
+  const rows = await queryD1<{ id: number }>(
+    'SELECT id FROM ideas WHERE user_id = ? AND content = ? ORDER BY id DESC LIMIT 1',
+    [uid, content],
+  );
+  if (rows.length === 0) throw new Error('Seeded idea not found');
+  const id = unwrap(rows[0]).id;
+
+  // Attach tags if provided
+  if (options.tagIds && options.tagIds.length > 0) {
+    for (const tagId of options.tagIds) {
+      await executeD1(
+        'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
+        [id, tagId],
+      );
+    }
+  }
+
+  return { id, title, content };
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 
@@ -338,6 +387,8 @@ export async function cleanupTestData(userId?: string): Promise<void> {
   const uid = userId ?? TEST_USER.id;
   await executeD1('DELETE FROM api_audit_logs WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM api_keys WHERE user_id = ?', [uid]);
+  // idea_tags is cleaned up by CASCADE on ideas delete
+  await executeD1('DELETE FROM ideas WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM tags WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM links WHERE user_id = ?', [uid]);
   await executeD1('DELETE FROM folders WHERE user_id = ?', [uid]);
