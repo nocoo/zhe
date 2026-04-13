@@ -5,6 +5,12 @@
  * Each key has its own request counter with a configurable window.
  */
 
+import {
+  evictExpiredTimestamps,
+  calculateResetAt,
+  calculateRetryAfterMs,
+} from "@/lib/sliding-window";
+
 /** Rate limit configuration */
 export interface RateLimitConfig {
   /** Maximum requests allowed in the window */
@@ -43,15 +49,6 @@ interface WindowEntry {
 const windows = new Map<string, WindowEntry>();
 
 /**
- * Clean up old timestamps from a window entry.
- * Removes timestamps older than the window duration.
- */
-function cleanWindow(entry: WindowEntry, windowMs: number, now: number): void {
-  const cutoff = now - windowMs;
-  entry.timestamps = entry.timestamps.filter((ts) => ts > cutoff);
-}
-
-/**
  * Check rate limit for a given key.
  *
  * @param keyId - The API key ID to check
@@ -72,14 +69,19 @@ export function checkRateLimit(
     windows.set(keyId, entry);
   }
 
-  // Clean old timestamps
-  cleanWindow(entry, windowMs, now);
+  // Clean old timestamps using shared helper
+  evictExpiredTimestamps(entry.timestamps, windowMs, now);
 
   // Calculate remaining and reset time
   const count = entry.timestamps.length;
   const remaining = Math.max(0, maxRequests - count);
-  const resetAt = Math.ceil((now + windowMs) / 1000);
-  const retryAfterSeconds = Math.ceil(windowMs / 1000);
+
+  // resetAt should be based on when the oldest request in the window expires
+  // If there are timestamps, the oldest one determines when a slot opens up
+  // Use ?? fallback to satisfy TypeScript's strict null checks
+  const oldestTimestamp = (entry.timestamps.length > 0 ? entry.timestamps[0] : now) ?? now;
+  const resetAt = calculateResetAt(oldestTimestamp, windowMs);
+  const retryAfterSeconds = Math.max(1, Math.ceil(calculateRetryAfterMs(oldestTimestamp, windowMs, now) / 1000));
 
   // Check if allowed
   if (count >= maxRequests) {
@@ -125,6 +127,6 @@ export function getRateLimitCount(keyId: string, config: RateLimitConfig = DEFAU
   const entry = windows.get(keyId);
   if (!entry) return 0;
 
-  cleanWindow(entry, config.windowMs, Date.now());
+  evictExpiredTimestamps(entry.timestamps, config.windowMs, Date.now());
   return entry.timestamps.length;
 }
