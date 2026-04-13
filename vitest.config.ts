@@ -44,7 +44,12 @@ export default defineConfig({
         'app/**/layout.tsx',
         // Large page components tested via E2E
         'components/dashboard/ideas-page.tsx',
+        'components/dashboard/idea-editor-page.tsx',
         'components/dashboard/api-keys-page.tsx',
+        // Presentation-only components
+        'components/markdown-preview.tsx',
+        // Editor viewmodel — tested via E2E
+        'viewmodels/useIdeaEditorViewModel.ts',
       ],
       thresholds: {
         lines: 90,
