@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.13.1] - 2026-04-13
+
+### Added
+- Add zhe idea command with tag name resolution
+- Add idea API client methods
+- Add idea API types
+- Add ideas to global search command dialog
+- Add filterIdeas model utility with L1 tests
+- Add /dashboard/ideas page
+- Add IdeaCard and IdeaRow components
+- Add useIdeasViewModel with tests
+- Add ideas to DashboardServiceProvider
+- Add Ideas to sidebar navigation
+- Add /api/v1/ideas REST endpoints
+- Add ideas:read and ideas:write API scopes
+- Add idea CRUD server actions
+- Add ScopedDB methods for ideas with atomic tag binding
+- Add stripMarkdown utility
+- Add ideas and idea_tags tables
+
+### Changed
+- Add ideas actions tests, exclude page components from coverage
+- Mark ideas feature implementation complete
+- Add tests for idea API client methods
+- Update ideas feature status (steps 1-13 complete)
+- Add L1 component tests for IdeaCard and IdeaRow
+- Update component tests for ideas DashboardService
+- Add L2 E2E tests for /api/v1/ideas endpoint
+- Sync version to 1.13.0 for npm release
+
+### Fixed
+- Conditional prefetch and duplicate tag detection
+- Remove root-level quick-add, fix single tag, restore delete confirm
+- Display folder name instead of folder ID
+
 ## [v1.13.0] - 2026-04-12
 
 ### Added
