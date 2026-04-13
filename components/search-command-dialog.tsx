@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Link2, FolderOpen, Copy, Search } from "lucide-react";
+import { Link2, FolderOpen, Copy, Search, Lightbulb } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,7 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useDashboardState } from "@/contexts/dashboard-service";
+import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
 import {
   buildShortUrl,
   filterLinks,
@@ -20,6 +20,7 @@ import {
   highlightMatches,
 } from "@/models/links";
 import type { HighlightSegment } from "@/models/links";
+import { filterIdeas } from "@/models/ideas";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
@@ -54,13 +55,32 @@ function HighlightText({
   );
 }
 
+/** Format date for idea title display when no title is provided */
+function formatIdeaDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function SearchCommandDialog({
   open,
   onOpenChange,
 }: SearchCommandDialogProps) {
-  const { links, folders, tags, linkTags, siteUrl } = useDashboardState();
+  const { links, folders, tags, linkTags, siteUrl, ideas } = useDashboardState();
+  const { ensureIdeasLoaded } = useDashboardActions();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Lazy-load ideas when the dialog opens
+  useEffect(() => {
+    if (open) {
+      ensureIdeasLoaded();
+    }
+  }, [open, ensureIdeasLoaded]);
 
   const trimmedQuery = searchQuery.trim();
 
@@ -68,6 +88,12 @@ export function SearchCommandDialog({
   const filteredLinks = useMemo(
     () => filterLinks(links, searchQuery, { tags, linkTags }),
     [links, searchQuery, tags, linkTags],
+  );
+
+  /** Filter ideas using substring match on title, excerpt, tags */
+  const filteredIdeas = useMemo(
+    () => filterIdeas(ideas, searchQuery, { tags }),
+    [ideas, searchQuery, tags],
   );
 
   /** Build a lookup: linkId → Tag[] for rendering tag badges */
@@ -125,12 +151,40 @@ export function SearchCommandDialog({
     [siteUrl, onOpenChange],
   );
 
+  /** Navigate to the ideas page (with a specific idea in the future) */
+  const handleNavigateToIdea = useCallback(
+    (_ideaId: number) => {
+      onOpenChange(false);
+      // Navigate to ideas page; in the future we can pass ideaId as query param
+      router.push(`/dashboard/ideas`);
+    },
+    [onOpenChange, router],
+  );
+
+  /** Build a lookup: ideaId → Tag[] for rendering tag badges */
+  const tagsByIdeaId = useMemo(() => {
+    const tagById = new Map<string, Tag>();
+    for (const t of tags) tagById.set(t.id, t);
+    const result = new Map<number, Tag[]>();
+    for (const idea of ideas) {
+      const ideaTags: Tag[] = [];
+      for (const tagId of idea.tagIds) {
+        const tag = tagById.get(tagId);
+        if (tag) ideaTags.push(tag);
+      }
+      if (ideaTags.length > 0) {
+        result.set(idea.id, ideaTags);
+      }
+    }
+    return result;
+  }, [ideas, tags]);
+
   const hasQuery = trimmedQuery.length > 0;
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="搜索链接、标题、备注、标签..."
+        placeholder="搜索链接、想法、标题、备注、标签..."
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
@@ -139,15 +193,16 @@ export function SearchCommandDialog({
         {!hasQuery ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Search className="h-6 w-6 mb-3 text-muted-foreground/40" />
-            <p className="text-sm">输入关键词搜索链接</p>
+            <p className="text-sm">输入关键词搜索</p>
             <p className="text-xs text-muted-foreground/60 mt-1">
-              支持搜索短链、URL、标题、描述、备注、标签
+              支持搜索短链、URL、标题、描述、备注、想法、标签
             </p>
           </div>
         ) : (
           <>
-            <CommandEmpty>没有找到匹配的链接</CommandEmpty>
-            <CommandGroup heading={`链接 (${filteredLinks.length})`}>
+            <CommandEmpty>没有找到匹配的结果</CommandEmpty>
+            {filteredLinks.length > 0 && (
+              <CommandGroup heading={`链接 (${filteredLinks.length})`}>
               {filteredLinks.map((link) => {
                 const folderName = getFolderName(link.folderId);
                 const linkTagList = tagsByLinkId.get(link.id);
@@ -293,6 +348,79 @@ export function SearchCommandDialog({
                 );
               })}
             </CommandGroup>
+            )}
+
+            {/* Ideas group */}
+            {filteredIdeas.length > 0 && (
+              <CommandGroup heading={`想法 (${filteredIdeas.length})`}>
+                {filteredIdeas.map((idea) => {
+                  const ideaTagList = tagsByIdeaId.get(idea.id);
+                  const displayTitle = idea.title || formatIdeaDate(idea.createdAt);
+
+                  return (
+                    <CommandItem
+                      key={`idea-${idea.id}`}
+                      value={`idea-${idea.id}`}
+                      className="flex items-start gap-2.5 py-2"
+                      onSelect={() => handleNavigateToIdea(idea.id)}
+                    >
+                      {/* Icon */}
+                      <div className="mt-0.5 shrink-0">
+                        <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
+                          <Lightbulb className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        {/* Title */}
+                        <p className="truncate text-sm font-medium leading-tight">
+                          <HighlightText
+                            segments={highlightMatches(displayTitle, trimmedQuery)}
+                          />
+                        </p>
+
+                        {/* Excerpt (if available) */}
+                        {idea.excerpt && (
+                          <p className="truncate text-xs text-muted-foreground/70 mt-0.5 leading-tight">
+                            <HighlightText
+                              segments={highlightMatches(idea.excerpt, trimmedQuery)}
+                            />
+                          </p>
+                        )}
+
+                        {/* Tags row */}
+                        {ideaTagList && ideaTagList.length > 0 && (
+                          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
+                            {ideaTagList.slice(0, 3).map((tag) => {
+                              const styles = getTagStyles(tag.color);
+                              return (
+                                <span
+                                  key={tag.id}
+                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium leading-normal"
+                                  style={styles.badge}
+                                >
+                                  <span
+                                    className="h-1 w-1 rounded-full"
+                                    style={styles.dot}
+                                  />
+                                  {tag.name}
+                                </span>
+                              );
+                            })}
+                            {ideaTagList.length > 3 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{ideaTagList.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
           </>
         )}
       </CommandList>
