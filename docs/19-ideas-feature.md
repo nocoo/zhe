@@ -1,6 +1,6 @@
 # Ideas Feature
 
-> **Status**: Implementation in progress. Steps 1-13 completed.
+> **Status**: Implementation complete. All 16 steps done.
 
 ---
 
@@ -606,9 +606,9 @@ Request (all fields optional):
 | 11 | `feat(ui): add IdeaCard and IdeaRow components` | `components/dashboard/ideas/*` | ✅ |
 | 12 | `feat(ui): add /dashboard/ideas page` | `app/(dashboard)/dashboard/ideas/page.tsx` | ✅ |
 | 13 | `feat(ui): add ideas to global search` | `components/search-command-dialog.tsx` | ✅ |
-| 14 | `test(ui): add L1 component tests for ideas` | `tests/components/ideas.test.tsx` | ⏳ |
-| 15 | `feat(cli): add zhe idea command with tag name resolution` | `cli/src/commands/idea.ts`, `cli/src/index.ts` | ⏳ |
-| 16 | `test(cli): add tests for idea command` | `cli/tests/commands/idea.test.ts` | ⏳ |
+| 14 | `test(ui): add L1 component tests for ideas` | `tests/components/ideas.test.tsx` | ✅ |
+| 15 | `feat(cli): add zhe idea command with tag name resolution` | `cli/src/commands/idea.ts`, `cli/src/index.ts` | ✅ |
+| 16 | `test(cli): add tests for idea command` | `cli/tests/commands/idea.test.ts` | ✅ |
 
 ---
 
