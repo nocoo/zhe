@@ -59,7 +59,10 @@ vi.mock('@/contexts/dashboard-service', () => ({
     folders: [],
     tags: [],
     linkTags: [],
+    ideas: [],
     loading: false,
+    ideasLoading: false,
+    siteUrl: 'https://zhe.to',
   }),
   useDashboardActions: () => ({
     handleLinkCreated: vi.fn(),
@@ -74,6 +77,11 @@ vi.mock('@/contexts/dashboard-service', () => ({
     handleTagUpdated: vi.fn(),
     handleLinkTagAdded: vi.fn(),
     handleLinkTagRemoved: vi.fn(),
+    ensureIdeasLoaded: vi.fn(),
+    refreshIdeas: vi.fn().mockResolvedValue(undefined),
+    handleIdeaCreated: vi.fn(),
+    handleIdeaUpdated: vi.fn(),
+    handleIdeaDeleted: vi.fn(),
   }),
   DashboardServiceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
