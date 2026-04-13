@@ -48,21 +48,15 @@ bun run release -- 2.0.0     # explicit version
 bun run release -- --dry-run # preview without side effects
 ```
 
-**⚠️ Pre-release Migration Check**: Before running `bun run release`, verify D1 migrations are applied to both environments:
+**⚠️ Pre-release Migration Check**: The release script automatically verifies D1 migration parity between `zhe-db` (prod) and `zhe-db-test` (test) during preflight. If tables differ, it prints which tables are missing and exits with an error. To fix:
 
 ```bash
-# Check test environment
-wrangler d1 execute zhe-db-test --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --remote
-
-# Check production environment
-wrangler d1 execute zhe-db --command "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name" --remote
-
-# If tables are missing, apply the migration
+# Apply the missing migration to prod
 wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql
 ```
 
 The script performs these steps automatically:
-1. Preflight: verify clean working tree, branch, `gh` auth
+1. Preflight: verify clean working tree, branch, `gh` auth, **D1 migration parity (hard gate)**
 2. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
 3. Run `bun install` to sync `bun.lock` (prevents `--frozen-lockfile` failures in CI)
 4. Generate CHANGELOG.md section from `git log` (conventional commit classification)

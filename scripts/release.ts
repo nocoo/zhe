@@ -418,6 +418,54 @@ async function main(): Promise<void> {
     console.log('⚠️  gh CLI not authenticated — will skip GitHub release');
   }
 
+  // D1 migration parity check (prod vs test must have identical tables)
+  console.log('   🔄 Checking D1 migration parity (prod vs test)...');
+  const tableQuery = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";
+  const [prodTablesResult, testTablesResult] = await Promise.all([
+    run('wrangler', ['d1', 'execute', 'zhe-db', '--command', tableQuery, '--remote', '--json']),
+    run('wrangler', ['d1', 'execute', 'zhe-db-test', '--command', tableQuery, '--remote', '--json']),
+  ]);
+
+  if (prodTablesResult.code !== 0 || testTablesResult.code !== 0) {
+    console.log('   ⚠️  Could not verify D1 migration parity (wrangler unavailable or auth issue)');
+    if (prodTablesResult.code !== 0) console.log(`      prod: ${prodTablesResult.stderr.trim().slice(0, 120)}`);
+    if (testTablesResult.code !== 0) console.log(`      test: ${testTablesResult.stderr.trim().slice(0, 120)}`);
+    console.log('   ⚠️  Proceeding without migration check — verify manually!');
+  } else {
+    try {
+      const parseTables = (jsonStr: string): string[] => {
+        const data = JSON.parse(jsonStr);
+        // wrangler --json output: [{ results: [{ name: "..." }, ...] }]
+        const results = data?.[0]?.results ?? [];
+        return (results as Array<{ name: string }>).map(r => r.name).sort();
+      };
+      const prodTables = parseTables(prodTablesResult.stdout);
+      const testTables = parseTables(testTablesResult.stdout);
+
+      // Tables only in test (migration applied to test but not prod — the dangerous case)
+      const onlyInTest = testTables.filter(t => !prodTables.includes(t));
+      // Tables only in prod (unlikely but worth reporting)
+      const onlyInProd = prodTables.filter(t => !testTables.includes(t));
+
+      if (onlyInTest.length > 0 || onlyInProd.length > 0) {
+        console.error('   ❌ D1 migration parity FAILED — table mismatch detected:');
+        if (onlyInTest.length > 0) {
+          console.error(`      Tables only in test (missing in prod): ${onlyInTest.join(', ')}`);
+          console.error('      → Apply migration to prod: wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql');
+        }
+        if (onlyInProd.length > 0) {
+          console.error(`      Tables only in prod (missing in test): ${onlyInProd.join(', ')}`);
+        }
+        process.exit(1);
+      }
+
+      console.log(`   ✅ D1 migration parity OK (${prodTables.length} tables match)`);
+    } catch {
+      console.log('   ⚠️  Could not parse D1 table list — proceeding without migration check');
+    }
+  }
+  console.log('');
+
   // Current version & bump
   const currentVersion = readCurrentVersion();
   const newVersion = bumpVersion(currentVersion, bumpArg);
