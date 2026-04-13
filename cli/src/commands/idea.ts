@@ -67,21 +67,32 @@ function formatTags(tags: Tag[]): string {
 
 /**
  * Resolve a single tag name to tag ID via API.
- * Returns null if tag is not found (with error message printed).
+ * Returns null if tag is not found or if multiple tags match (with error message printed).
  */
 async function resolveTagName(
 	client: ApiClient,
 	tagName: string,
 ): Promise<string | null> {
 	const { tags } = await client.listTags();
-	const tag = tags.find(
+	const matches = tags.filter(
 		(t: Tag) => t.name.toLowerCase() === tagName.toLowerCase(),
 	);
-	if (!tag) {
+
+	if (matches.length === 0) {
 		console.log(pc.red(`Tag not found: ${tagName}. Create it first.`));
 		return null;
 	}
-	return tag.id;
+
+	if (matches.length > 1) {
+		console.log(
+			pc.red(
+				`Multiple tags match "${tagName}". Tag names must be unique. Please rename or delete duplicates via the web UI.`,
+			),
+		);
+		return null;
+	}
+
+	return matches[0].id;
 }
 
 async function confirm(message: string): Promise<boolean> {
@@ -419,12 +430,12 @@ const deleteSubcommand = defineCommand({
 		}
 
 		try {
-			// Get idea first to show info in confirmation
-			const { idea } = await client.getIdea(id);
-			const title = idea.title || formatDate(idea.createdAt);
-
-			// Confirmation prompt unless --yes flag
+			// Only fetch idea for confirmation prompt (requires ideas:read)
+			// With --yes flag, skip prefetch to allow write-only keys
 			if (!args.yes) {
+				const { idea } = await client.getIdea(id);
+				const title = idea.title || formatDate(idea.createdAt);
+
 				const confirmed = await confirm(`Delete idea #${id} (${title})?`);
 				if (!confirmed) {
 					console.log(pc.dim("Cancelled."));
