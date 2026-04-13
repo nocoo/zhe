@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.0] - 2026-04-13
+
+### Added
+- Translate Ideas feature to Chinese "想法"
+- Add --sort and --order options to list command
+
+### Changed
+- Add pre-release migration check to CLAUDE.md
+- Sync version to 1.15.0 for npm release
+
+### Fixed
+- Add API Keys breadcrumb label and fix timestamp display
+
 ## [v1.15.0] - 2026-04-13
 
 ### Added
