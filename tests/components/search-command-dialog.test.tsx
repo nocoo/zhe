@@ -862,7 +862,8 @@ describe("SearchCommandDialog", () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
       // The idea has no title but its excerpt should still match
-      mockState.ideas[0]!.excerpt = "Search term here";
+      const idea = mockState.ideas[0];
+      if (idea) idea.excerpt = "Search term here";
       await userEvent.type(input, "search");
 
       const item = getCmdkItem("idea-1");
