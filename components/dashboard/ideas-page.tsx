@@ -75,40 +75,32 @@ export function IdeasPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex flex-col gap-4 px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Lightbulb className="h-6 w-6 text-muted-foreground" />
-            <h1 className="text-xl font-semibold">想法</h1>
-            <Badge variant="secondary" className="text-xs">
-              {vm.allIdeas.length}
-            </Badge>
-          </div>
-          <Button onClick={() => vm.setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            新想法
-          </Button>
-        </div>
+    <div>
+      {/* Header — single row matching links-list pattern */}
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <h2 className="text-lg font-semibold text-foreground shrink-0">想法</h2>
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
+          <p className="text-sm text-muted-foreground whitespace-nowrap">
+            {vm.searchQuery || vm.selectedTagId
+              ? `${vm.ideas.length} / ${vm.allIdeas.length} 条想法`
+              : `共 ${vm.allIdeas.length} 条想法`}
+          </p>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="搜索想法..."
               value={vm.searchQuery}
               onChange={(e) => vm.setSearchQuery(e.target.value)}
-              className="pl-9 pr-8"
+              className="pl-8 pr-7 h-8 w-[160px] text-xs rounded-lg"
             />
             {vm.searchQuery && (
               <button
                 onClick={() => vm.setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
               >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
+                <X className="h-3 w-3 text-muted-foreground" />
               </button>
             )}
           </div>
@@ -119,8 +111,8 @@ export function IdeasPage() {
               value={vm.selectedTagId ?? "all"}
               onValueChange={(v) => vm.setSelectedTagId(v === "all" ? null : v)}
             >
-              <SelectTrigger className="w-[140px]">
-                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectTrigger className="w-[120px] h-8 text-xs rounded-lg">
+                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue placeholder="All tags" />
               </SelectTrigger>
               <SelectContent>
@@ -145,7 +137,7 @@ export function IdeasPage() {
             value={vm.sortBy}
             onValueChange={(v) => vm.setSortBy(v as IdeasSortBy)}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[120px] h-8 text-xs rounded-lg">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -154,91 +146,101 @@ export function IdeasPage() {
             </SelectContent>
           </Select>
 
-          {/* View mode */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={vm.viewMode === "grid" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-8 w-8 rounded-r-none"
+          {/* View mode toggle — matching links-list pill style */}
+          <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+            <button
               onClick={() => vm.setViewMode("grid")}
               aria-label="Grid view"
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                vm.viewMode === "grid"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={vm.viewMode === "list" ? "secondary" : "ghost"}
-              size="icon"
-              className="h-8 w-8 rounded-l-none"
+              <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
               onClick={() => vm.setViewMode("list")}
               aria-label="List view"
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                vm.viewMode === "list"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <List className="h-4 w-4" />
-            </Button>
+              <List className="w-4 h-4" strokeWidth={1.5} />
+            </button>
           </div>
 
           {/* Clear filters */}
           {(vm.searchQuery || vm.selectedTagId) && (
-            <Button variant="ghost" size="sm" onClick={vm.clearFilters}>
-              清除筛选
-            </Button>
+            <button
+              onClick={vm.clearFilters}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              清除
+            </button>
           )}
+
+          <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            新想法
+          </Button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {vm.loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : vm.ideas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center">
-            <Lightbulb className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-1">
-              {vm.searchQuery || vm.selectedTagId
-                ? "未找到想法"
-                : "还没有想法"}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {vm.searchQuery || vm.selectedTagId
-                ? "试试调整筛选条件"
-                : "在这里记录您的想法"}
-            </p>
-            {!vm.searchQuery && !vm.selectedTagId && (
-              <Button onClick={() => vm.setIsCreateModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                新想法
-              </Button>
-            )}
-          </div>
-        ) : vm.viewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {vm.ideas.map((idea) => (
-              <IdeaCard
-                key={idea.id}
-                idea={idea}
-                tags={vm.tags}
-                onEdit={handleNavigateToIdea}
-                onDelete={vm.confirmDelete}
-                onClick={handleNavigateToIdea}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {vm.ideas.map((idea) => (
-              <IdeaRow
-                key={idea.id}
-                idea={idea}
-                tags={vm.tags}
-                onEdit={handleNavigateToIdea}
-                onDelete={vm.confirmDelete}
-                onClick={handleNavigateToIdea}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {vm.loading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : vm.ideas.length === 0 ? (
+        <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
+          <Lightbulb className="w-10 h-10 mx-auto text-muted-foreground mb-4" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground mb-2">
+            {vm.searchQuery || vm.selectedTagId
+              ? "未找到想法"
+              : "暂无想法"}
+          </p>
+          <p className="text-xs text-muted-foreground mb-6">
+            {vm.searchQuery || vm.selectedTagId
+              ? "试试调整筛选条件"
+              : "点击上方按钮记录您的第一个想法"}
+          </p>
+          {!vm.searchQuery && !vm.selectedTagId && (
+            <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              新想法
+            </Button>
+          )}
+        </div>
+      ) : vm.viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {vm.ideas.map((idea) => (
+            <IdeaCard
+              key={idea.id}
+              idea={idea}
+              tags={vm.tags}
+              onEdit={handleNavigateToIdea}
+              onDelete={vm.confirmDelete}
+              onClick={handleNavigateToIdea}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {vm.ideas.map((idea) => (
+            <IdeaRow
+              key={idea.id}
+              idea={idea}
+              tags={vm.tags}
+              onEdit={handleNavigateToIdea}
+              onDelete={vm.confirmDelete}
+              onClick={handleNavigateToIdea}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Create Modal */}
       <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>

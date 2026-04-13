@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
 import { getTagStyles } from "@/models/tags";
@@ -66,17 +65,18 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
   // ── Loading skeleton ──
   if (vm.loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div>
         {/* Toolbar skeleton */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b">
-          <Skeleton className="h-8 w-8" />
-          <Skeleton className="h-8 flex-1 max-w-md" />
-          <Skeleton className="h-8 w-20" />
+        <div className="flex items-center gap-3 mb-4">
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-8 flex-1 max-w-md rounded-md" />
+          <div className="flex-1" />
+          <Skeleton className="h-8 w-20 rounded-md" />
         </div>
         {/* Content skeleton */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-0">
+        <div className="-mx-3 md:-mx-5 -mb-3 md:-mb-5 grid grid-cols-1 md:grid-cols-2 border-t">
           <div className="p-6">
-            <Skeleton className="h-full min-h-[300px]" />
+            <Skeleton className="h-[400px]" />
           </div>
           <div className="p-6 border-t md:border-t-0 md:border-l">
             <Skeleton className="h-4 w-3/4 mb-3" />
@@ -92,7 +92,7 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
   // ── Not found state ──
   if (vm.notFound) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
         <h2 className="text-xl font-semibold text-foreground">未找到想法</h2>
         <p className="text-sm text-muted-foreground">该想法不存在或已被删除</p>
         <Button variant="outline" onClick={() => router.push("/dashboard/ideas")}>
@@ -104,54 +104,53 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-b">
-        {/* Back */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => router.push("/dashboard/ideas")}
-          aria-label="返回想法列表"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div>
+      {/* ── Toolbar — matching links-list header pattern ── */}
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Back */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-widget h-7 w-7 p-0 shrink-0"
+            onClick={() => router.push("/dashboard/ideas")}
+            aria-label="返回想法列表"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
 
-        {/* Title input */}
-        <Input
-          placeholder="标题 (可选)"
-          value={vm.title ?? ""}
-          onChange={(e) => vm.setTitle(e.target.value || null)}
-          className="flex-1 max-w-md h-8 text-sm"
-        />
+          {/* Title input */}
+          <Input
+            placeholder="标题 (可选)"
+            value={vm.title ?? ""}
+            onChange={(e) => vm.setTitle(e.target.value || null)}
+            className="flex-1 max-w-md h-8 text-sm rounded-lg"
+          />
+        </div>
 
-        {/* Tags */}
-        {vm.tags.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {vm.tags.map((tag) => {
-              const isSelected = vm.tagIds.includes(tag.id);
-              const styles = getTagStyles(tag.color);
-              return (
-                <Badge
-                  key={tag.id}
-                  variant={isSelected ? "default" : "outline"}
-                  className="cursor-pointer text-xs"
-                  style={isSelected ? styles.badge : undefined}
-                  onClick={() => vm.toggleTag(tag.id)}
-                >
-                  {tag.name}
-                </Badge>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
+          {/* Tags */}
+          {vm.tags.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
+              {vm.tags.map((tag) => {
+                const isSelected = vm.tagIds.includes(tag.id);
+                const styles = getTagStyles(tag.color);
+                return (
+                  <Badge
+                    key={tag.id}
+                    variant={isSelected ? "default" : "outline"}
+                    className="cursor-pointer text-xs"
+                    style={isSelected ? styles.badge : undefined}
+                    onClick={() => vm.toggleTag(tag.id)}
+                  >
+                    {tag.name}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Dirty indicator + Save */}
-        <div className="flex items-center gap-2 shrink-0">
+          {/* Dirty indicator + Save */}
           {dirty && (
             <span className="text-xs text-muted-foreground">未保存</span>
           )}
@@ -170,34 +169,32 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
         </div>
       </div>
 
-      {/* ── Editor + Preview split ── */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 min-h-0">
+      {/* ── Editor + Preview split — bleeds to card edges ── */}
+      <div className="-mx-3 md:-mx-5 -mb-3 md:-mb-5 grid grid-cols-1 md:grid-cols-2 border-t" style={{ height: "calc(100vh - 12rem)" }}>
         {/* Left: Editor */}
         <div className="flex flex-col min-h-0">
-          <div className="px-6 py-2 border-b bg-muted/30">
+          <div className="px-4 py-2 border-b bg-muted/30">
             <span className="text-xs text-muted-foreground font-medium">编辑</span>
           </div>
-          <ScrollArea className="flex-1">
+          <div className="flex-1 min-h-0 overflow-auto">
             <textarea
               value={vm.content}
               onChange={(e) => vm.setContent(e.target.value)}
               placeholder="在这里写下您的想法... (支持 Markdown)"
-              className="w-full h-full min-h-[400px] md:min-h-0 resize-none border-0 bg-transparent px-6 py-4 text-sm font-mono leading-relaxed focus:outline-none placeholder:text-muted-foreground/50"
+              className="w-full h-full resize-none border-0 bg-transparent px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none placeholder:text-muted-foreground/50"
               spellCheck
             />
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Right: Preview */}
         <div className="flex flex-col min-h-0 border-t md:border-t-0 md:border-l">
-          <div className="px-6 py-2 border-b bg-muted/30">
+          <div className="px-4 py-2 border-b bg-muted/30">
             <span className="text-xs text-muted-foreground font-medium">预览</span>
           </div>
-          <ScrollArea className="flex-1">
-            <div className="px-6 py-4">
-              <MarkdownPreview content={vm.content} />
-            </div>
-          </ScrollArea>
+          <div className="flex-1 min-h-0 overflow-auto px-4 py-3">
+            <MarkdownPreview content={vm.content} />
+          </div>
         </div>
       </div>
 
