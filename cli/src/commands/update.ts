@@ -14,7 +14,7 @@ import {
 } from "../api/client.js";
 import type { UpdateLinkRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
-import { parseLinkId } from "../utils.js";
+import { parseLinkId, resolveFolderName, resolveTagName } from "../utils.js";
 
 export const updateCommand = defineCommand({
 	meta: {
@@ -40,7 +40,7 @@ export const updateCommand = defineCommand({
 		folder: {
 			type: "string",
 			alias: "f",
-			description: 'New folder ID (use "none" to remove)',
+			description: 'Folder name or ID (use "none" to remove)',
 		},
 		note: {
 			type: "string",
@@ -68,11 +68,11 @@ export const updateCommand = defineCommand({
 		},
 		"add-tag": {
 			type: "string",
-			description: "Add tag to link (by ID)",
+			description: "Add tag to link (by name or ID)",
 		},
 		"remove-tag": {
 			type: "string",
-			description: "Remove tag from link (by ID)",
+			description: "Remove tag from link (by name or ID)",
 		},
 		json: {
 			type: "boolean",
@@ -93,6 +93,8 @@ export const updateCommand = defineCommand({
 			process.exit(EXIT_INVALID_ARGS);
 		}
 
+		const client = new ApiClient(apiKey);
+
 		// Build update payload
 		const data: UpdateLinkRequest = {};
 
@@ -109,8 +111,17 @@ export const updateCommand = defineCommand({
 			data.slug = args.slug;
 		}
 
+		// Resolve folder name to ID
 		if (args.folder !== undefined) {
-			data.folderId = args.folder === "none" ? null : args.folder;
+			if (args.folder === "none") {
+				data.folderId = null;
+			} else {
+				const folderId = await resolveFolderName(client, args.folder);
+				if (folderId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				data.folderId = folderId;
+			}
 		}
 
 		if (args.note !== undefined) {
@@ -133,15 +144,24 @@ export const updateCommand = defineCommand({
 			data.screenshotUrl = args.screenshot === "" ? null : args.screenshot;
 		}
 
+		// Resolve tag names to IDs
 		const addTag = args["add-tag"] as string | undefined;
 		const removeTag = args["remove-tag"] as string | undefined;
 
 		if (addTag) {
-			data.addTags = [addTag];
+			const tagId = await resolveTagName(client, addTag);
+			if (tagId === null) {
+				process.exit(EXIT_INVALID_ARGS);
+			}
+			data.addTags = [tagId];
 		}
 
 		if (removeTag) {
-			data.removeTags = [removeTag];
+			const tagId = await resolveTagName(client, removeTag);
+			if (tagId === null) {
+				process.exit(EXIT_INVALID_ARGS);
+			}
+			data.removeTags = [tagId];
 		}
 
 		// Check if there's anything to update
@@ -154,8 +174,6 @@ export const updateCommand = defineCommand({
 			);
 			process.exit(EXIT_INVALID_ARGS);
 		}
-
-		const client = new ApiClient(apiKey);
 
 		try {
 			const response = await client.updateLink(id, data);

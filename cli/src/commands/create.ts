@@ -14,6 +14,7 @@ import {
 } from "../api/client.js";
 import type { CreateLinkRequest, Folder } from "../api/types.js";
 import { getApiKey } from "../config.js";
+import { resolveFolderName } from "../utils.js";
 
 export const createCommand = defineCommand({
 	meta: {
@@ -34,7 +35,7 @@ export const createCommand = defineCommand({
 		folder: {
 			type: "string",
 			alias: "f",
-			description: "Folder ID",
+			description: "Folder name or ID",
 		},
 		note: {
 			type: "string",
@@ -80,9 +81,17 @@ export const createCommand = defineCommand({
 			// Build request object, only including defined fields
 			const createRequest: CreateLinkRequest = { url };
 			if (args.slug) createRequest.slug = args.slug;
-			if (args.folder) createRequest.folderId = args.folder;
 			if (args.note) createRequest.note = args.note;
 			if (args.expires) createRequest.expiresAt = args.expires;
+
+			// Resolve folder name to ID if provided
+			if (args.folder) {
+				const folderId = await resolveFolderName(client, args.folder);
+				if (folderId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				createRequest.folderId = folderId;
+			}
 
 			const response = await client.createLink(createRequest);
 

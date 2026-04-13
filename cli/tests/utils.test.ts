@@ -10,6 +10,8 @@ import {
 	isValidApiKeyFormat,
 	maskApiKey,
 	parseLinkId,
+	resolveFolderName,
+	resolveTagName,
 	truncate,
 } from "../src/utils.js";
 import type { Folder, Link, Tag } from "../src/api/types.js";
@@ -256,5 +258,132 @@ describe("formatTagsTable", () => {
 		expect(result).toContain("NAME");
 		expect(result).toContain("Important");
 		expect(result).toContain("#ff0000");
+	});
+});
+
+describe("resolveFolderName", () => {
+	const mockClient = {
+		listFolders: async () => ({
+			folders: [
+				{
+					id: "abc123-def456-ghi789-jkl012-mno345",
+					name: "Work",
+					icon: "folder",
+					createdAt: "2026-04-01T00:00:00.000Z",
+				},
+				{
+					id: "xyz987-uvw654-rst321-opq098-lmn765",
+					name: "Personal",
+					icon: "home",
+					createdAt: "2026-04-02T00:00:00.000Z",
+				},
+			],
+		}),
+		listTags: async () => ({ tags: [] }),
+	};
+
+	it("returns UUID directly if input looks like UUID", async () => {
+		const uuid = "abc123de-f456-7890-abcd-ef1234567890";
+		const result = await resolveFolderName(mockClient as never, uuid);
+		expect(result).toBe(uuid);
+	});
+
+	it("resolves folder name to ID (case-insensitive)", async () => {
+		const result = await resolveFolderName(mockClient as never, "work");
+		expect(result).toBe("abc123-def456-ghi789-jkl012-mno345");
+	});
+
+	it("resolves folder name to ID (exact case)", async () => {
+		const result = await resolveFolderName(mockClient as never, "Personal");
+		expect(result).toBe("xyz987-uvw654-rst321-opq098-lmn765");
+	});
+
+	it("returns null for non-existent folder", async () => {
+		const result = await resolveFolderName(mockClient as never, "NonExistent");
+		expect(result).toBeNull();
+	});
+
+	it("returns null for duplicate folder names", async () => {
+		const duplicateClient = {
+			listFolders: async () => ({
+				folders: [
+					{
+						id: "id1",
+						name: "Same",
+						icon: "folder",
+						createdAt: "2026-04-01T00:00:00.000Z",
+					},
+					{
+						id: "id2",
+						name: "same",
+						icon: "folder",
+						createdAt: "2026-04-02T00:00:00.000Z",
+					},
+				],
+			}),
+		};
+		const result = await resolveFolderName(duplicateClient as never, "same");
+		expect(result).toBeNull();
+	});
+});
+
+describe("resolveTagName", () => {
+	const mockClient = {
+		listTags: async () => ({
+			tags: [
+				{
+					id: "tag-abc-123-456-789-012-345",
+					name: "Important",
+					color: "#ff0000",
+					createdAt: "2026-04-01T00:00:00.000Z",
+				},
+				{
+					id: "tag-xyz-987-654-321-098-765",
+					name: "Urgent",
+					color: "#ff9900",
+					createdAt: "2026-04-02T00:00:00.000Z",
+				},
+			],
+		}),
+		listFolders: async () => ({ folders: [] }),
+	};
+
+	it("returns UUID directly if input looks like UUID", async () => {
+		const uuid = "abc123de-f456-7890-abcd-ef1234567890";
+		const result = await resolveTagName(mockClient as never, uuid);
+		expect(result).toBe(uuid);
+	});
+
+	it("resolves tag name to ID (case-insensitive)", async () => {
+		const result = await resolveTagName(mockClient as never, "important");
+		expect(result).toBe("tag-abc-123-456-789-012-345");
+	});
+
+	it("returns null for non-existent tag", async () => {
+		const result = await resolveTagName(mockClient as never, "NonExistent");
+		expect(result).toBeNull();
+	});
+
+	it("returns null for duplicate tag names", async () => {
+		const duplicateClient = {
+			listTags: async () => ({
+				tags: [
+					{
+						id: "id1",
+						name: "Same",
+						color: "#ff0000",
+						createdAt: "2026-04-01T00:00:00.000Z",
+					},
+					{
+						id: "id2",
+						name: "same",
+						color: "#ff9900",
+						createdAt: "2026-04-02T00:00:00.000Z",
+					},
+				],
+			}),
+		};
+		const result = await resolveTagName(duplicateClient as never, "same");
+		expect(result).toBeNull();
 	});
 });

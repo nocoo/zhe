@@ -13,7 +13,12 @@ import {
 } from "../api/client.js";
 import type { ListLinksParams } from "../api/types.js";
 import { getApiKey, getOutputFormat } from "../config.js";
-import { formatLinksMinimal, formatLinksTable } from "../utils.js";
+import {
+	formatLinksMinimal,
+	formatLinksTable,
+	resolveFolderName,
+	resolveTagName,
+} from "../utils.js";
 
 export const listCommand = defineCommand({
 	meta: {
@@ -29,7 +34,7 @@ export const listCommand = defineCommand({
 		folder: {
 			type: "string",
 			alias: "f",
-			description: "Filter by folder ID",
+			description: "Filter by folder name or ID",
 		},
 		inbox: {
 			type: "boolean",
@@ -39,7 +44,7 @@ export const listCommand = defineCommand({
 		tag: {
 			type: "string",
 			alias: "t",
-			description: "Filter by tag ID",
+			description: "Filter by tag name or ID",
 		},
 		limit: {
 			type: "string",
@@ -82,8 +87,24 @@ export const listCommand = defineCommand({
 			if (args.offset) params.offset = Number.parseInt(args.offset, 10);
 			if (args.query) params.query = args.query;
 			if (args.inbox) params.inbox = true;
-			if (args.folder) params.folderId = args.folder;
-			if (args.tag) params.tagId = args.tag;
+
+			// Resolve folder name to ID
+			if (args.folder) {
+				const folderId = await resolveFolderName(client, args.folder);
+				if (folderId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				params.folderId = folderId;
+			}
+
+			// Resolve tag name to ID
+			if (args.tag) {
+				const tagId = await resolveTagName(client, args.tag);
+				if (tagId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				params.tagId = tagId;
+			}
 
 			const response = await client.listLinks(params);
 

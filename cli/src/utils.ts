@@ -2,6 +2,8 @@
  * Shared utilities for zhe CLI
  */
 
+import { pc } from "@nocoo/cli-base";
+import type { ApiClient } from "./api/client.js";
 import type { Folder, Link, Tag } from "./api/types.js";
 
 /**
@@ -171,4 +173,82 @@ export function formatTagsTable(tags: Tag[]): string {
 	});
 
 	return [header, separator, ...rows].join("\n");
+}
+
+/**
+ * Resolve a folder name to folder ID via API.
+ * If input looks like a UUID, use it directly.
+ * Returns null if folder is not found (with error message printed).
+ */
+export async function resolveFolderName(
+	client: ApiClient,
+	input: string,
+): Promise<string | null> {
+	// Check if input looks like a UUID (36 chars with dashes)
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	if (uuidPattern.test(input)) {
+		return input; // Assume it's already an ID
+	}
+
+	// Otherwise, resolve by name
+	const { folders } = await client.listFolders();
+	const matches = folders.filter(
+		(f: Folder) => f.name.toLowerCase() === input.toLowerCase(),
+	);
+
+	if (matches.length === 0) {
+		console.log(pc.red(`Folder not found: ${input}`));
+		return null;
+	}
+
+	if (matches.length > 1) {
+		console.log(
+			pc.red(
+				`Multiple folders match "${input}". Please use the folder ID instead.`,
+			),
+		);
+		console.log(pc.dim("Use `zhe folders` to see all folder IDs."));
+		return null;
+	}
+
+	return matches[0].id;
+}
+
+/**
+ * Resolve a tag name to tag ID via API.
+ * If input looks like a UUID, use it directly.
+ * Returns null if tag is not found (with error message printed).
+ */
+export async function resolveTagName(
+	client: ApiClient,
+	input: string,
+): Promise<string | null> {
+	// Check if input looks like a UUID
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	if (uuidPattern.test(input)) {
+		return input;
+	}
+
+	const { tags } = await client.listTags();
+	const matches = tags.filter(
+		(t: Tag) => t.name.toLowerCase() === input.toLowerCase(),
+	);
+
+	if (matches.length === 0) {
+		console.log(pc.red(`Tag not found: ${input}. Create it first.`));
+		return null;
+	}
+
+	if (matches.length > 1) {
+		console.log(
+			pc.red(
+				`Multiple tags match "${input}". Please use the tag ID or rename duplicates.`,
+			),
+		);
+		return null;
+	}
+
+	return matches[0].id;
 }
