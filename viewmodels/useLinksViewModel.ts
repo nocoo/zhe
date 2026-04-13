@@ -401,7 +401,7 @@ export function useInlineLinkEditViewModel(
       if (!linkResult.success || !linkResult.data) {
         setError(linkResult.error || "Failed to update link");
         setIsSaving(false);
-        return true; // indicates save attempted (for caller to decide on edit mode)
+        return false; // main update failed, save did not succeed
       }
 
       // Update note (only if changed)
