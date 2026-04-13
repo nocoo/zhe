@@ -36,6 +36,10 @@ export interface GetLinksOptions {
   sortBy?: LinkSortField;
   /** Sort order (default: desc) */
   sortOrder?: SortOrder;
+  /** Maximum number of results to return */
+  limit?: number;
+  /** Number of results to skip */
+  offset?: number;
 }
 
 /** Filter options for getIdeas. */
@@ -44,6 +48,10 @@ export interface GetIdeasOptions {
   query?: string;
   /** Filter by tag ID */
   tagId?: string;
+  /** Maximum number of results to return */
+  limit?: number;
+  /** Number of results to skip */
+  offset?: number;
 }
 
 /** Lightweight shape for list views and search (no full content). */
@@ -70,9 +78,9 @@ export class ScopedDB {
 
   // ---- Links ------------------------------------------------
 
-  /** Get all links owned by this user, with optional filters. */
+  /** Get links owned by this user, with optional filters and pagination. */
   async getLinks(options: GetLinksOptions = {}): Promise<Link[]> {
-    const { query, folderId, tagId, sortBy = 'created', sortOrder = 'desc' } = options;
+    const { query, folderId, tagId, sortBy = 'created', sortOrder = 'desc', limit, offset } = options;
 
     // Build dynamic WHERE clauses
     const conditions: string[] = ['l.user_id = ?'];
@@ -111,15 +119,73 @@ export class ScopedDB {
     const sortColumn = sortBy === 'clicks' ? 'l.clicks' : 'l.created_at';
     const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
+    // Build LIMIT/OFFSET clause
+    let paginationClause = '';
+    if (limit !== undefined) {
+      paginationClause = ' LIMIT ?';
+      params.push(limit);
+      if (offset !== undefined) {
+        paginationClause += ' OFFSET ?';
+        params.push(offset);
+      }
+    }
+
     const sql = `
       SELECT l.* FROM links l
       ${joinClause}
       WHERE ${conditions.join(' AND ')}
-      ORDER BY ${sortColumn} ${sortDirection}
+      ORDER BY ${sortColumn} ${sortDirection}${paginationClause}
     `;
 
     const rows = await executeD1Query<Record<string, unknown>>(sql, params);
     return rows.map(rowToLink);
+  }
+
+  /** Count links owned by this user, with optional filters. */
+  async countLinks(options: Omit<GetLinksOptions, 'limit' | 'offset' | 'sortBy' | 'sortOrder'> = {}): Promise<number> {
+    const { query, folderId, tagId } = options;
+
+    // Build dynamic WHERE clauses
+    const conditions: string[] = ['l.user_id = ?'];
+    const params: unknown[] = [this.userId];
+
+    // Keyword search: LIKE across multiple columns
+    if (query) {
+      const searchPattern = `%${query}%`;
+      conditions.push(`(
+        l.slug LIKE ? OR
+        l.original_url LIKE ? OR
+        l.note LIKE ? OR
+        l.meta_title LIKE ? OR
+        l.meta_description LIKE ?
+      )`);
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    // Folder filter
+    if (folderId === 'inbox') {
+      conditions.push('l.folder_id IS NULL');
+    } else if (folderId) {
+      conditions.push('l.folder_id = ?');
+      params.push(folderId);
+    }
+
+    // Tag filter: JOIN with link_tags
+    let joinClause = '';
+    if (tagId) {
+      joinClause = 'JOIN link_tags lt ON l.id = lt.link_id';
+      conditions.push('lt.tag_id = ?');
+      params.push(tagId);
+    }
+
+    const sql = `
+      SELECT COUNT(*) as count FROM links l
+      ${joinClause}
+      WHERE ${conditions.join(' AND ')}
+    `;
+
+    const rows = await executeD1Query<{ count: number }>(sql, params);
+    return rows[0]?.count ?? 0;
   }
 
   /** Get a single link by id, only if owned by this user. */
@@ -996,10 +1062,68 @@ export class ScopedDB {
   // ---- Ideas ------------------------------------------------
 
   /**
-   * Get all ideas owned by this user, with optional filters.
+   * Get ideas owned by this user, with optional filters and pagination.
    * Returns lightweight IdeaListItem (no full content).
    */
   async getIdeas(options: GetIdeasOptions = {}): Promise<IdeaListItem[]> {
+    const { query, tagId, limit, offset } = options;
+
+    // Build dynamic WHERE clauses
+    const conditions: string[] = ['i.user_id = ?'];
+    const params: unknown[] = [this.userId];
+
+    // Keyword search: LIKE across title and excerpt
+    if (query) {
+      const searchPattern = `%${query}%`;
+      conditions.push(`(i.title LIKE ? OR i.excerpt LIKE ?)`);
+      params.push(searchPattern, searchPattern);
+    }
+
+    // Tag filter: JOIN with idea_tags
+    let joinClause = '';
+    if (tagId) {
+      joinClause = 'JOIN idea_tags it ON i.id = it.idea_id';
+      conditions.push('it.tag_id = ?');
+      params.push(tagId);
+    }
+
+    // Build LIMIT/OFFSET clause
+    let paginationClause = '';
+    if (limit !== undefined) {
+      paginationClause = ' LIMIT ?';
+      params.push(limit);
+      if (offset !== undefined) {
+        paginationClause += ' OFFSET ?';
+        params.push(offset);
+      }
+    }
+
+    const sql = `
+      SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at
+      FROM ideas i
+      ${joinClause}
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY i.created_at DESC${paginationClause}
+    `;
+
+    const rows = await executeD1Query<Record<string, unknown>>(sql, params);
+    const ideaIds = rows.map(r => r.id as number);
+
+    // Fetch tag associations for these ideas
+    const tagMap = await this.getIdeaTagMap(ideaIds);
+
+    return rows.map(row => ({
+      id: row.id as number,
+      title: (row.title as string) ?? null,
+      excerpt: (row.excerpt as string) ?? null,
+      tagIds: tagMap.get(row.id as number) ?? [],
+      createdAt: new Date(row.created_at as number),
+      updatedAt: new Date(row.updated_at as number),
+    }));
+  }
+
+  /** Count ideas owned by this user, with optional filters. */
+  async countIdeas(options: Omit<GetIdeasOptions, 'limit' | 'offset'> = {}): Promise<number> {
     const { query, tagId } = options;
 
     // Build dynamic WHERE clauses
@@ -1022,27 +1146,14 @@ export class ScopedDB {
     }
 
     const sql = `
-      SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at
+      SELECT COUNT(*) as count
       FROM ideas i
       ${joinClause}
       WHERE ${conditions.join(' AND ')}
-      ORDER BY i.created_at DESC
     `;
 
-    const rows = await executeD1Query<Record<string, unknown>>(sql, params);
-    const ideaIds = rows.map(r => r.id as number);
-
-    // Fetch tag associations for these ideas
-    const tagMap = await this.getIdeaTagMap(ideaIds);
-
-    return rows.map(row => ({
-      id: row.id as number,
-      title: (row.title as string) ?? null,
-      excerpt: (row.excerpt as string) ?? null,
-      tagIds: tagMap.get(row.id as number) ?? [],
-      createdAt: new Date(row.created_at as number),
-      updatedAt: new Date(row.updated_at as number),
-    }));
+    const rows = await executeD1Query<{ count: number }>(sql, params);
+    return rows[0]?.count ?? 0;
   }
 
   /** Get a single idea by id, only if owned by this user. Returns full detail shape. */
