@@ -262,11 +262,22 @@ vi.mock('@/lib/db/d1-client', async () => {
 
           results.push(link);
         }
-        // Sort by created_at DESC
+        // Parse ORDER BY clause for sorting
+        const orderByMatch = sqlLower.match(/order by (\S+)\s+(asc|desc)/i);
+        const sortColumn = orderByMatch?.[1] || 'l.created_at';
+        const sortOrder = orderByMatch?.[2]?.toLowerCase() || 'desc';
+
         results.sort((a, b) => {
-          const aTime = (a as Record<string, unknown>).created_at as number;
-          const bTime = (b as Record<string, unknown>).created_at as number;
-          return bTime - aTime;
+          let aVal: number;
+          let bVal: number;
+          if (sortColumn === 'l.clicks') {
+            aVal = (a as Record<string, unknown>).clicks as number;
+            bVal = (b as Record<string, unknown>).clicks as number;
+          } else {
+            aVal = (a as Record<string, unknown>).created_at as number;
+            bVal = (b as Record<string, unknown>).created_at as number;
+          }
+          return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
         });
         return results as T[];
       }

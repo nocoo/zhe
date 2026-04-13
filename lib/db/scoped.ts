@@ -18,6 +18,12 @@ import { generateExcerpt } from '../markdown';
 // ScopedDB — all user-owned data operations
 // ============================================
 
+/** Sort field for links. */
+export type LinkSortField = 'created' | 'clicks';
+
+/** Sort order. */
+export type SortOrder = 'asc' | 'desc';
+
 /** Filter options for getLinks. */
 export interface GetLinksOptions {
   /** Keyword search across slug, originalUrl, note, metaTitle, metaDescription */
@@ -26,6 +32,10 @@ export interface GetLinksOptions {
   folderId?: string | 'inbox';
   /** Filter by tag ID */
   tagId?: string;
+  /** Sort by field (default: created) */
+  sortBy?: LinkSortField;
+  /** Sort order (default: desc) */
+  sortOrder?: SortOrder;
 }
 
 /** Filter options for getIdeas. */
@@ -62,7 +72,7 @@ export class ScopedDB {
 
   /** Get all links owned by this user, with optional filters. */
   async getLinks(options: GetLinksOptions = {}): Promise<Link[]> {
-    const { query, folderId, tagId } = options;
+    const { query, folderId, tagId, sortBy = 'created', sortOrder = 'desc' } = options;
 
     // Build dynamic WHERE clauses
     const conditions: string[] = ['l.user_id = ?'];
@@ -97,11 +107,15 @@ export class ScopedDB {
       params.push(tagId);
     }
 
+    // Build ORDER BY clause
+    const sortColumn = sortBy === 'clicks' ? 'l.clicks' : 'l.created_at';
+    const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+
     const sql = `
       SELECT l.* FROM links l
       ${joinClause}
       WHERE ${conditions.join(' AND ')}
-      ORDER BY l.created_at DESC
+      ORDER BY ${sortColumn} ${sortDirection}
     `;
 
     const rows = await executeD1Query<Record<string, unknown>>(sql, params);

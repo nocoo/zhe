@@ -123,6 +123,47 @@ describe("/api/v1/links", () => {
       const body = await response.json();
       expect(body.links.length).toBeLessThanOrEqual(5);
     });
+
+    it("supports sorting by clicks", async () => {
+      const response = await authenticatedFetch(`${API_URL}?sort=clicks&order=desc`, apiKeyReadOnly);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(Array.isArray(body.links)).toBe(true);
+      // Verify descending order by clicks
+      for (let i = 1; i < body.links.length; i++) {
+        expect(body.links[i - 1].clicks).toBeGreaterThanOrEqual(body.links[i].clicks);
+      }
+    });
+
+    it("supports sorting by created date ascending", async () => {
+      const response = await authenticatedFetch(`${API_URL}?sort=created&order=asc`, apiKeyReadOnly);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(Array.isArray(body.links)).toBe(true);
+      // Verify ascending order by createdAt
+      for (let i = 1; i < body.links.length; i++) {
+        expect(new Date(body.links[i - 1].createdAt).getTime())
+          .toBeLessThanOrEqual(new Date(body.links[i].createdAt).getTime());
+      }
+    });
+
+    it("returns 400 for invalid sort value", async () => {
+      const response = await authenticatedFetch(`${API_URL}?sort=invalid`, apiKeyReadOnly);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain("Invalid sort value");
+    });
+
+    it("returns 400 for invalid order value", async () => {
+      const response = await authenticatedFetch(`${API_URL}?order=invalid`, apiKeyReadOnly);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toContain("Invalid order value");
+    });
   });
 
   describe("POST /api/v1/links", () => {

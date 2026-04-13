@@ -47,6 +47,15 @@ export const listCommand = defineCommand({
 			alias: "t",
 			description: "Filter by tag name or ID",
 		},
+		sort: {
+			type: "string",
+			alias: "s",
+			description: "Sort by: created (default), clicks",
+		},
+		order: {
+			type: "string",
+			description: "Sort order: desc (default), asc",
+		},
 		limit: {
 			type: "string",
 			alias: "l",
@@ -89,6 +98,18 @@ export const listCommand = defineCommand({
 			process.exit(EXIT_INVALID_ARGS);
 		}
 
+		// Validate sort option
+		if (args.sort && args.sort !== "created" && args.sort !== "clicks") {
+			console.log(pc.red("Invalid --sort value. Use 'created' or 'clicks'."));
+			process.exit(EXIT_INVALID_ARGS);
+		}
+
+		// Validate order option
+		if (args.order && args.order !== "asc" && args.order !== "desc") {
+			console.log(pc.red("Invalid --order value. Use 'asc' or 'desc'."));
+			process.exit(EXIT_INVALID_ARGS);
+		}
+
 		const client = new ApiClient(apiKey);
 
 		try {
@@ -98,6 +119,8 @@ export const listCommand = defineCommand({
 			if (args.offset) params.offset = Number.parseInt(args.offset, 10);
 			if (args.query) params.query = args.query;
 			if (args.inbox) params.inbox = true;
+			if (args.sort) params.sort = args.sort as "created" | "clicks";
+			if (args.order) params.order = args.order as "asc" | "desc";
 
 			// Resolve folder name to ID
 			if (args.folder) {

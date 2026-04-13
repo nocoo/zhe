@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
-import { ScopedDB } from "@/lib/db/scoped";
+import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/slug";
 import { kvPutLink } from "@/lib/kv/client";
@@ -21,6 +21,8 @@ import type { Link } from "@/lib/db/schema";
  *   - q (optional): Keyword search across slug, URL, note, title, description
  *   - folderId (optional): Filter by folder. Use "null" for inbox (no folder)
  *   - tagId (optional): Filter by tag ID
+ *   - sort (optional): Sort field - "created" (default) or "clicks"
+ *   - order (optional): Sort order - "desc" (default) or "asc"
  *   - limit (optional): Max results (default 100, max 500)
  *   - offset (optional): Pagination offset
  *
@@ -43,9 +45,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const queryParam = url.searchParams.get("q");
     const folderIdParam = url.searchParams.get("folderId");
     const tagIdParam = url.searchParams.get("tagId");
+    const sortParam = url.searchParams.get("sort");
+    const orderParam = url.searchParams.get("order");
 
     // Special handling: folderId=null means inbox (links with no folder)
-    const options: { query?: string; folderId?: string | 'inbox'; tagId?: string } = {};
+    const options: {
+      query?: string;
+      folderId?: string | 'inbox';
+      tagId?: string;
+      sortBy?: LinkSortField;
+      sortOrder?: SortOrder;
+    } = {};
     if (queryParam) options.query = queryParam;
     if (folderIdParam === "null") {
       options.folderId = "inbox";
@@ -53,6 +63,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       options.folderId = folderIdParam;
     }
     if (tagIdParam) options.tagId = tagIdParam;
+
+    // Validate and apply sort options
+    if (sortParam) {
+      if (sortParam !== 'created' && sortParam !== 'clicks') {
+        return apiError("Invalid sort value. Use 'created' or 'clicks'.", 400);
+      }
+      options.sortBy = sortParam;
+    }
+    if (orderParam) {
+      if (orderParam !== 'asc' && orderParam !== 'desc') {
+        return apiError("Invalid order value. Use 'asc' or 'desc'.", 400);
+      }
+      options.sortOrder = orderParam;
+    }
 
     const allLinks = await db.getLinks(options);
     const total = allLinks.length;

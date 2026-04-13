@@ -87,6 +87,36 @@ describe('ScopedDB', () => {
       expect(linksB.every(l => l.userId === USER_B)).toBe(true);
     });
 
+    it('getLinks sorts by created date ascending', async () => {
+      const db = new ScopedDB(USER_A);
+      // Create links in sequence with small delay between them
+      await db.createLink({ originalUrl: 'https://first.com', slug: 'sort-first' });
+      await db.createLink({ originalUrl: 'https://second.com', slug: 'sort-second' });
+
+      const linksAsc = await db.getLinks({ sortBy: 'created', sortOrder: 'asc' });
+
+      expect(linksAsc[0]?.slug).toBe('sort-first');
+      expect(linksAsc[1]?.slug).toBe('sort-second');
+    });
+
+    it('getLinks sorts by clicks descending', async () => {
+      const db = new ScopedDB(USER_A);
+      // Create links with different click counts
+      await db.createLink({ originalUrl: 'https://low.com', slug: 'clicks-low', clicks: 5 });
+      await db.createLink({ originalUrl: 'https://high.com', slug: 'clicks-high', clicks: 100 });
+      await db.createLink({ originalUrl: 'https://mid.com', slug: 'clicks-mid', clicks: 50 });
+
+      const linksDesc = await db.getLinks({ sortBy: 'clicks', sortOrder: 'desc' });
+
+      // Find our test links in the result
+      const highIndex = linksDesc.findIndex(l => l.slug === 'clicks-high');
+      const midIndex = linksDesc.findIndex(l => l.slug === 'clicks-mid');
+      const lowIndex = linksDesc.findIndex(l => l.slug === 'clicks-low');
+
+      expect(highIndex).toBeLessThan(midIndex);
+      expect(midIndex).toBeLessThan(lowIndex);
+    });
+
     it('getLinkById returns null for other user link', async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);

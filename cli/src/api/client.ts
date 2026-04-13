@@ -119,6 +119,8 @@ export class ApiClient {
 			searchParams.set("folderId", params.folderId);
 		}
 		if (params.tagId) searchParams.set("tagId", params.tagId);
+		if (params.sort) searchParams.set("sort", params.sort);
+		if (params.order) searchParams.set("order", params.order);
 
 		const query = searchParams.toString();
 		const path = query ? `/links?${query}` : "/links";

@@ -83,6 +83,8 @@ export interface ListLinksParams {
 	query?: string;
 	inbox?: boolean;
 	tagId?: string;
+	sort?: "created" | "clicks";
+	order?: "asc" | "desc";
 }
 
 // ── Ideas ──
