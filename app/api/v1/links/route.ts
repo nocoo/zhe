@@ -81,9 +81,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const allLinks = await db.getLinks(options);
     const total = allLinks.length;
 
-    // Apply pagination
-    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
-    const offset = parseInt(url.searchParams.get("offset") ?? "0");
+    // Apply pagination with validation
+    const limitParam = url.searchParams.get("limit");
+    const offsetParam = url.searchParams.get("offset");
+
+    let limit = 100;
+    if (limitParam !== null) {
+      const parsed = parseInt(limitParam, 10);
+      if (isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+        return apiError("Invalid 'limit' parameter. Must be a non-negative integer.", 400);
+      }
+      limit = Math.min(parsed, 500);
+    }
+
+    let offset = 0;
+    if (offsetParam !== null) {
+      const parsed = parseInt(offsetParam, 10);
+      if (isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
+        return apiError("Invalid 'offset' parameter. Must be a non-negative integer.", 400);
+      }
+      offset = parsed;
+    }
+
     const links = allLinks.slice(offset, offset + limit);
 
     logApiRequest({
@@ -123,17 +142,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { auth, headers: rateLimitHeaders } = authResult;
   const { userId, keyId, keyPrefix } = auth;
 
+  let body: unknown;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return apiError("Invalid JSON body", 400);
+  }
 
+  if (typeof body !== "object" || body === null) {
+    return apiError("Request body must be an object", 400);
+  }
+
+  const bodyObj = body as Record<string, unknown>;
+
+  try {
     // Validate required fields
-    if (!body.url || typeof body.url !== "string") {
+    if (!bodyObj.url || typeof bodyObj.url !== "string") {
       return apiError("Missing or invalid 'url' field", 400);
     }
 
     // Validate URL format
     try {
-      new URL(body.url);
+      new URL(bodyObj.url);
     } catch {
       return apiError("Invalid URL format", 400);
     }
@@ -142,30 +172,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Generate or validate slug
     let slug: string;
-    const isCustom = !!body.slug;
+    const isCustom = !!bodyObj.slug;
 
-    if (body.slug) {
+    if (bodyObj.slug !== undefined) {
+      if (typeof bodyObj.slug !== "string") {
+        return apiError("'slug' must be a string", 400);
+      }
       // Validate custom slug format
-      if (!/^[a-zA-Z0-9_-]+$/.test(body.slug)) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(bodyObj.slug)) {
         return apiError("Invalid slug format. Use only letters, numbers, hyphens, and underscores.", 400);
       }
-      if (body.slug.length < 3 || body.slug.length > 50) {
+      if (bodyObj.slug.length < 3 || bodyObj.slug.length > 50) {
         return apiError("Slug must be between 3 and 50 characters", 400);
       }
 
       // Check availability
-      const exists = await slugExists(body.slug);
+      const exists = await slugExists(bodyObj.slug);
       if (exists) {
         return apiError("Slug already in use", 409);
       }
-      slug = body.slug;
+      slug = bodyObj.slug;
     } else {
       slug = await generateUniqueSlug(slugExists);
     }
 
     // Validate folder if specified
-    if (body.folderId) {
-      const folder = await db.getFolderById(body.folderId);
+    if (bodyObj.folderId !== undefined) {
+      if (typeof bodyObj.folderId !== "string") {
+        return apiError("'folderId' must be a string", 400);
+      }
+      const folder = await db.getFolderById(bodyObj.folderId);
       if (!folder) {
         return apiError("Folder not found", 404);
       }
@@ -173,8 +209,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Parse expiration
     let expiresAt: Date | undefined;
-    if (body.expiresAt) {
-      const parsed = new Date(body.expiresAt);
+    if (bodyObj.expiresAt !== undefined) {
+      if (typeof bodyObj.expiresAt !== "string") {
+        return apiError("'expiresAt' must be a string (ISO 8601 format)", 400);
+      }
+      const parsed = new Date(bodyObj.expiresAt);
       if (isNaN(parsed.getTime())) {
         return apiError("Invalid expiresAt format. Use ISO 8601.", 400);
       }
@@ -184,14 +223,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       expiresAt = parsed;
     }
 
+    // Validate note if provided
+    if (bodyObj.note !== undefined && bodyObj.note !== null && typeof bodyObj.note !== "string") {
+      return apiError("'note' must be a string or null", 400);
+    }
+
     // Create the link
     const link = await db.createLink({
-      originalUrl: body.url,
+      originalUrl: bodyObj.url,
       slug,
       isCustom,
-      folderId: body.folderId ?? null,
+      folderId: typeof bodyObj.folderId === "string" ? bodyObj.folderId : null,
       expiresAt,
-      note: body.note ?? null,
+      note: typeof bodyObj.note === "string" ? bodyObj.note : null,
       screenshotUrl: null,
     });
 
