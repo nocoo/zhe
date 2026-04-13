@@ -5,12 +5,17 @@
 import { CLI_VERSION } from "../version.js";
 import type {
 	ApiError,
+	CreateIdeaRequest,
 	CreateLinkRequest,
 	FoldersResponse,
+	IdeaResponse,
+	IdeasResponse,
 	LinkResponse,
 	LinksResponse,
+	ListIdeasParams,
 	ListLinksParams,
 	TagsResponse,
+	UpdateIdeaRequest,
 	UpdateLinkRequest,
 } from "./types.js";
 
@@ -177,6 +182,51 @@ export class ApiClient {
 			}
 			throw error;
 		}
+	}
+
+	// ── Ideas ──
+
+	/**
+	 * List ideas with optional filters
+	 */
+	async listIdeas(params: ListIdeasParams = {}): Promise<IdeasResponse> {
+		const searchParams = new URLSearchParams();
+		if (params.limit) searchParams.set("limit", String(params.limit));
+		if (params.offset) searchParams.set("offset", String(params.offset));
+		if (params.q) searchParams.set("q", params.q);
+		if (params.tagId) searchParams.set("tagId", params.tagId);
+
+		const query = searchParams.toString();
+		const path = query ? `/ideas?${query}` : "/ideas";
+		return this.request<IdeasResponse>("GET", path);
+	}
+
+	/**
+	 * Get a single idea by ID (includes full content)
+	 */
+	async getIdea(id: number): Promise<IdeaResponse> {
+		return this.request<IdeaResponse>("GET", `/ideas/${id}`);
+	}
+
+	/**
+	 * Create a new idea
+	 */
+	async createIdea(data: CreateIdeaRequest): Promise<IdeaResponse> {
+		return this.request<IdeaResponse>("POST", "/ideas", data);
+	}
+
+	/**
+	 * Update an existing idea
+	 */
+	async updateIdea(id: number, data: UpdateIdeaRequest): Promise<IdeaResponse> {
+		return this.request<IdeaResponse>("PATCH", `/ideas/${id}`, data);
+	}
+
+	/**
+	 * Delete an idea
+	 */
+	async deleteIdea(id: number): Promise<void> {
+		await this.request<Record<string, never>>("DELETE", `/ideas/${id}`);
 	}
 }
 
