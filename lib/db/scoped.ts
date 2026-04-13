@@ -205,7 +205,7 @@ export class ScopedDB {
     }
     if (data.folderId !== undefined) {
       setClauses.push('folder_id = ?');
-      params.push(data.folderId);
+      params.push(data.folderId ?? null); // Allow explicit null to clear folder
     }
     if (data.expiresAt !== undefined) {
       setClauses.push('expires_at = ?');
