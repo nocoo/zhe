@@ -60,6 +60,11 @@ export function parseBrowser(ua: string): string {
   if (!ua) return 'Unknown';
   
   // Order matters - check more specific patterns first
+  // iOS browsers first (they include Safari in UA but are different browsers)
+  if (ua.includes('CriOS/')) return 'Chrome'; // Chrome on iOS
+  if (ua.includes('FxiOS/')) return 'Firefox'; // Firefox on iOS
+  if (ua.includes('EdgiOS/')) return 'Edge'; // Edge on iOS
+  // Desktop/Android browsers
   if (ua.includes('Edg/')) return 'Edge';
   if (ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
   if (ua.includes('Chrome/') && !ua.includes('Chromium/')) return 'Chrome';
