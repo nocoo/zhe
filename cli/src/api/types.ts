@@ -94,7 +94,7 @@ export interface Idea {
 	title: string | null;
 	content: string;
 	excerpt: string | null;
-	tags: Tag[];
+	tagIds: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -103,7 +103,7 @@ export interface IdeaListItem {
 	id: number;
 	title: string | null;
 	excerpt: string | null;
-	tags: Tag[];
+	tagIds: string[];
 	createdAt: string;
 	updatedAt: string;
 }
