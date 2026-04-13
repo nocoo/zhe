@@ -111,9 +111,10 @@ export function rowToApiKey(row: Record<string, unknown>): ApiKey {
     userId: row.user_id as string,
     name: row.name as string,
     scopes: row.scopes as string,
-    createdAt: new Date(row.created_at as number),
-    lastUsedAt: row.last_used_at ? new Date(row.last_used_at as number) : null,
-    revokedAt: row.revoked_at ? new Date(row.revoked_at as number) : null,
+    // API keys store timestamps in seconds (not ms), so multiply by 1000
+    createdAt: new Date((row.created_at as number) * 1000),
+    lastUsedAt: row.last_used_at ? new Date((row.last_used_at as number) * 1000) : null,
+    revokedAt: row.revoked_at ? new Date((row.revoked_at as number) * 1000) : null,
   };
 }
 

@@ -13,6 +13,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/storage": "存储管理",
   "/dashboard/data-management": "数据管理",
   "/dashboard/webhook": "Webhook",
+  "/dashboard/api-keys": "API Keys",
 };
 
 export function Breadcrumbs() {
