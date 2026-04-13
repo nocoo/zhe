@@ -540,4 +540,209 @@ describe("ApiClient", () => {
 			}
 		});
 	});
+
+	// ── Ideas ──
+
+	describe("listIdeas", () => {
+		it("returns ideas from API", async () => {
+			const ideas = [
+				{ id: 1, title: "Test Idea", excerpt: "Some text", tags: [], createdAt: "2026-01-15", updatedAt: "2026-01-15" },
+			];
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ ideas }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.listIdeas();
+
+			expect(result.ideas).toEqual(ideas);
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toBe("https://zhe.to/api/v1/ideas");
+		});
+
+		it("appends query params for limit, offset, tagId", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ ideas: [] }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.listIdeas({ limit: 10, offset: 5, tagId: "tag-123" });
+
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toContain("limit=10");
+			expect(url).toContain("offset=5");
+			expect(url).toContain("tagId=tag-123");
+		});
+
+		it("appends query param for keyword search", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ ideas: [] }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.listIdeas({ q: "react" });
+
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toContain("q=react");
+		});
+	});
+
+	describe("getIdea", () => {
+		it("returns idea details by ID", async () => {
+			const idea = { id: 42, title: "My Idea", content: "Full content", tags: [] };
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ idea }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.getIdea(42);
+
+			expect(result.idea).toEqual(idea);
+			const [url] = mockFetch.mock.calls[0] as [string];
+			expect(url).toBe("https://zhe.to/api/v1/ideas/42");
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.getIdea(999)).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("createIdea", () => {
+		it("creates an idea and returns response", async () => {
+			const idea = { id: 1, title: null, content: "My thought", tags: [] };
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({ idea }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.createIdea({ content: "My thought" });
+
+			expect(result.idea).toEqual(idea);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/ideas");
+			expect(options.method).toBe("POST");
+			expect(JSON.parse(options.body as string)).toEqual({
+				content: "My thought",
+			});
+		});
+
+		it("sends optional fields when provided", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({ idea: {} }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.createIdea({
+				content: "Body text",
+				title: "My Title",
+				tagIds: ["tag-1", "tag-2"],
+			});
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body.content).toBe("Body text");
+			expect(body.title).toBe("My Title");
+			expect(body.tagIds).toEqual(["tag-1", "tag-2"]);
+		});
+
+		it("throws ApiClientError on 400 validation error", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				headers: new Headers(),
+				json: async () => ({ error: "Invalid tag IDs" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(
+				client.createIdea({ content: "Test", tagIds: ["invalid"] }),
+			).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("updateIdea", () => {
+		it("updates an idea", async () => {
+			const idea = { id: 42, title: "Updated", content: "New content", tags: [] };
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ idea }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.updateIdea(42, { title: "Updated" });
+
+			expect(result.idea).toEqual(idea);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/ideas/42");
+			expect(options.method).toBe("PATCH");
+		});
+
+		it("sends content, title, and tagIds when provided", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ idea: {} }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateIdea(42, {
+				content: "New content",
+				title: null,
+				tagIds: ["tag-1"],
+			});
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body.content).toBe("New content");
+			expect(body.title).toBeNull();
+			expect(body.tagIds).toEqual(["tag-1"]);
+		});
+	});
+
+	describe("deleteIdea", () => {
+		it("deletes an idea", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 204,
+				headers: new Headers(),
+				json: async () => ({}),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.deleteIdea(42);
+
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/ideas/42");
+			expect(options.method).toBe("DELETE");
+		});
+	});
 });
