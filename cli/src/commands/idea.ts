@@ -2,6 +2,7 @@
  * zhe idea — Manage ideas (Markdown notes)
  */
 
+import * as readline from "node:readline";
 import { defineCommand, pc } from "@nocoo/cli-base";
 import {
 	ApiClient,
@@ -12,12 +13,7 @@ import {
 	EXIT_NOT_FOUND,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type {
-	CreateIdeaRequest,
-	IdeaListItem,
-	Tag,
-	UpdateIdeaRequest,
-} from "../api/types.js";
+import type { CreateIdeaRequest, Tag, UpdateIdeaRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
 
 // ── Helpers ──
@@ -70,38 +66,36 @@ function formatTags(tags: Tag[]): string {
 }
 
 /**
- * Resolve tag names to tag IDs via API.
- * Returns null if any tag is not found (with error message printed).
+ * Resolve a single tag name to tag ID via API.
+ * Returns null if tag is not found (with error message printed).
  */
-async function resolveTagNames(
+async function resolveTagName(
 	client: ApiClient,
-	tagNames: string[],
-): Promise<string[] | null> {
-	if (tagNames.length === 0) return [];
-
+	tagName: string,
+): Promise<string | null> {
 	const { tags } = await client.listTags();
-	const tagIds: string[] = [];
-	const notFound: string[] = [];
-
-	for (const name of tagNames) {
-		const tag = tags.find(
-			(t: Tag) => t.name.toLowerCase() === name.toLowerCase(),
-		);
-		if (tag) {
-			tagIds.push(tag.id);
-		} else {
-			notFound.push(name);
-		}
-	}
-
-	if (notFound.length > 0) {
-		console.log(
-			pc.red(`Tag not found: ${notFound.join(", ")}. Create it first.`),
-		);
+	const tag = tags.find(
+		(t: Tag) => t.name.toLowerCase() === tagName.toLowerCase(),
+	);
+	if (!tag) {
+		console.log(pc.red(`Tag not found: ${tagName}. Create it first.`));
 		return null;
 	}
+	return tag.id;
+}
 
-	return tagIds;
+async function confirm(message: string): Promise<boolean> {
+	return new Promise((resolve) => {
+		const rl = readline.createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+
+		rl.question(`${message} [y/N] `, (answer) => {
+			rl.close();
+			resolve(answer.toLowerCase() === "y");
+		});
+	});
 }
 
 // ── Subcommands ──
@@ -140,11 +134,11 @@ const listSubcommand = defineCommand({
 			// Resolve tag name to ID if provided
 			let tagId: string | undefined;
 			if (args.tag) {
-				const tagIds = await resolveTagNames(client, [args.tag]);
-				if (tagIds === null) {
+				const resolved = await resolveTagName(client, args.tag);
+				if (resolved === null) {
 					process.exit(EXIT_INVALID_ARGS);
 				}
-				tagId = tagIds[0];
+				tagId = resolved;
 			}
 
 			const response = await client.listIdeas({
@@ -255,7 +249,7 @@ const addSubcommand = defineCommand({
 		tag: {
 			type: "string",
 			alias: "T",
-			description: "Add tag by name (repeatable)",
+			description: "Add tag by name",
 		},
 		json: {
 			type: "boolean",
@@ -273,21 +267,20 @@ const addSubcommand = defineCommand({
 		}
 
 		try {
-			// Resolve tag names to IDs
-			const tagNames = Array.isArray(args.tag)
-				? args.tag
-				: args.tag
-					? [args.tag]
-					: [];
-			const tagIds = await resolveTagNames(client, tagNames);
-			if (tagIds === null) {
-				process.exit(EXIT_INVALID_ARGS);
+			// Resolve tag name to ID if provided
+			let tagIds: string[] | undefined;
+			if (args.tag) {
+				const tagId = await resolveTagName(client, args.tag);
+				if (tagId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				tagIds = [tagId];
 			}
 
 			const request: CreateIdeaRequest = {
 				content,
 				...(args.title && { title: args.title }),
-				...(tagIds.length > 0 && { tagIds }),
+				...(tagIds && { tagIds }),
 			};
 
 			const response = await client.createIdea(request);
@@ -332,7 +325,7 @@ const updateSubcommand = defineCommand({
 		tag: {
 			type: "string",
 			alias: "T",
-			description: "Set tags by name (replaces all, repeatable)",
+			description: "Set tag by name (replaces all existing tags)",
 		},
 		json: {
 			type: "boolean",
@@ -356,18 +349,18 @@ const updateSubcommand = defineCommand({
 			request.title = args.title === "" ? null : args.title;
 		}
 
-		// Resolve tag names if provided
-		const tagNames = Array.isArray(args.tag)
-			? args.tag
-			: args.tag
-				? [args.tag]
-				: [];
-		if (tagNames.length > 0) {
-			const tagIds = await resolveTagNames(client, tagNames);
-			if (tagIds === null) {
-				process.exit(EXIT_INVALID_ARGS);
+		// Resolve tag name if provided
+		if (args.tag !== undefined) {
+			if (args.tag === "") {
+				// Empty string means clear all tags
+				request.tagIds = [];
+			} else {
+				const tagId = await resolveTagName(client, args.tag);
+				if (tagId === null) {
+					process.exit(EXIT_INVALID_ARGS);
+				}
+				request.tagIds = [tagId];
 			}
-			request.tagIds = tagIds;
 		}
 
 		if (Object.keys(request).length === 0) {
@@ -426,16 +419,17 @@ const deleteSubcommand = defineCommand({
 		}
 
 		try {
-			// Get idea first to show info
+			// Get idea first to show info in confirmation
 			const { idea } = await client.getIdea(id);
 			const title = idea.title || formatDate(idea.createdAt);
 
+			// Confirmation prompt unless --yes flag
 			if (!args.yes) {
-				console.log(
-					pc.yellow(`Are you sure you want to delete idea #${id} (${title})?`),
-				);
-				console.log(pc.dim("Run with --yes to skip this prompt."));
-				process.exit(0);
+				const confirmed = await confirm(`Delete idea #${id} (${title})?`);
+				if (!confirmed) {
+					console.log(pc.dim("Cancelled."));
+					return;
+				}
 			}
 
 			await client.deleteIdea(id);
@@ -459,84 +453,11 @@ export const ideaCommand = defineCommand({
 		name: "idea",
 		description: "Manage ideas (Markdown notes)",
 	},
-	args: {
-		content: {
-			type: "positional",
-			description: "Quick-add: content for a new idea",
-			required: false,
-		},
-		tag: {
-			type: "string",
-			alias: "T",
-			description: "Add tag by name (for quick-add)",
-		},
-		json: {
-			type: "boolean",
-			description: "Output as JSON (for quick-add)",
-		},
-	},
 	subCommands: {
 		list: listSubcommand,
 		get: getSubcommand,
 		add: addSubcommand,
 		update: updateSubcommand,
 		delete: deleteSubcommand,
-	},
-	async run({ args }) {
-		// If content is provided as positional arg, do quick-add
-		if (args.content) {
-			// Delegate to add subcommand logic
-			const apiKey = requireAuth();
-			const client = new ApiClient(apiKey);
-
-			const content = args.content as string;
-			if (!content.trim()) {
-				console.log(pc.red("Content cannot be empty."));
-				process.exit(EXIT_INVALID_ARGS);
-			}
-
-			try {
-				// Resolve tag names to IDs
-				const tagNames = Array.isArray(args.tag)
-					? args.tag
-					: args.tag
-						? [args.tag]
-						: [];
-				const tagIds = await resolveTagNames(client, tagNames);
-				if (tagIds === null) {
-					process.exit(EXIT_INVALID_ARGS);
-				}
-
-				const request: CreateIdeaRequest = {
-					content,
-					...(tagIds.length > 0 && { tagIds }),
-				};
-
-				const response = await client.createIdea(request);
-
-				if (args.json) {
-					console.log(JSON.stringify(response, null, 2));
-					return;
-				}
-
-				const { idea } = response;
-				const title = idea.title || formatDate(idea.createdAt);
-				console.log(
-					pc.green(`✓ Created idea ${pc.cyan(`#${idea.id}`)} (${title})`),
-				);
-			} catch (error) {
-				handleApiError(error);
-			}
-		} else {
-			// Show help
-			console.log("Usage: zhe idea <content>       Quick-add an idea");
-			console.log("       zhe idea add [options]   Create with options");
-			console.log("       zhe idea list [options]  List all ideas");
-			console.log("       zhe idea get <id>        Get full content");
-			console.log("       zhe idea update <id>     Update an idea");
-			console.log("       zhe idea delete <id>     Delete an idea");
-			console.log();
-			console.log("Run `zhe idea <command> --help` for more info.");
-		}
 	},
 });

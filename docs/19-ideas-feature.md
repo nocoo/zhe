@@ -335,46 +335,45 @@ All CLI commands accept **tag names** (not IDs) for user convenience. The CLI re
 
 ```bash
 # User types tag name
-zhe idea add --tag work --tag urgent
+zhe idea add "My thought" --tag work
 
 # CLI internally:
-# 1. GET /api/v1/tags → find IDs for "work" and "urgent"
-# 2. POST /api/v1/ideas with tagIds: ["id1", "id2"]
+# 1. GET /api/v1/tags → find ID for "work"
+# 2. POST /api/v1/ideas with tagIds: ["id1"]
 # 3. If tag name not found → error "Tag 'xxx' not found. Create it first."
 ```
+
+> **Note**: Only a single `--tag` is supported per command. For multiple tags, use the web UI.
 
 No auto-creation of tags. This keeps behavior consistent across Web/CLI/API.
 
 **Scope Requirement**: CLI tag resolution requires `tags:read` scope in addition to `ideas:*` scopes. When creating an API Key for CLI usage with idea tag support, include both `ideas:read`, `ideas:write`, and `tags:read`.
 
-### `zhe idea <content>`
-
-Quick-add an idea with content as argument:
-
-```bash
-# Quick add (content as argument)
-zhe idea "My quick thought about something"
-
-# Output: ✓ Created idea #42 (Apr 13, 14:32)
-
-# With tags (resolved by name)
-zhe idea "My thought" --tag work --tag urgent
-```
-
 ### `zhe idea add`
 
-Interactive mode for longer content:
+Create a new idea:
 
 ```bash
-zhe idea add [options]
+zhe idea add <content> [options]
 
 Options:
   -t, --title <title>    Optional title
-  --tag <name>           Add tag by name (repeatable)
+  -T, --tag <name>       Add tag by name (single tag)
   --json                 Output as JSON
 ```
 
-Opens `$EDITOR` (or prompts for inline input) for Markdown content.
+Examples:
+
+```bash
+# Add idea with content
+zhe idea add "My quick thought about something"
+
+# With title
+zhe idea add "Details here..." -t "Meeting Notes"
+
+# With tag (resolved by name)
+zhe idea add "My thought" --tag work
+```
 
 ### `zhe idea list`
 
@@ -385,7 +384,8 @@ zhe idea list [options]
 
 Options:
   -l, --limit <n>        Max results (default: 20)
-  --tag <name>           Filter by tag name
+  -t, --tag <name>       Filter by tag name (single tag)
+  -q, --query <text>     Search title and excerpt
   --json                 Output as JSON
 ```
 
@@ -425,9 +425,9 @@ Update idea:
 zhe idea update <id> [options]
 
 Options:
-  -c, --content <text>   New content (or opens $EDITOR if omitted)
+  -c, --content <text>   New content
   -t, --title <title>    New title (use "" to clear)
-  --tag <name>           Set tags (replaces all existing tags)
+  -T, --tag <name>       Set tag (replaces all existing tags, single tag)
   --json                 Output as JSON
 ```
 
