@@ -57,8 +57,11 @@ export { clearMockStorage } from './mocks/db-storage';
 
 // Mock the D1 client with in-memory storage
 vi.mock('@/lib/db/d1-client', async () => {
-  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getMockApiKeys, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId } = await import('./mocks/db-storage');
-  
+  const { getMockLinks, getMockAnalytics, getMockUploads, getMockFolders, getMockWebhooks, getMockTags, getMockLinkTags, getMockUserSettings, getMockTweetCache, getMockApiKeys, getMockIdeas, getMockIdeaTags, getNextLinkId, getNextAnalyticsId, getNextUploadId, getNextWebhookId, getNextIdeaId } = await import('./mocks/db-storage');
+
+  // Track last_insert_rowid for batch operations
+  let lastInsertRowId = 0;
+
   const queryFn = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
       const mockLinks = getMockLinks();
       const mockAnalytics = getMockAnalytics();
@@ -863,7 +866,7 @@ vi.mock('@/lib/db/d1-client', async () => {
       }
 
       // SELECT FROM tags WHERE user_id = ? (list all user tags)
-      if (sqlLower.startsWith('select') && sqlLower.includes('from tags') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?')) {
+      if (sqlLower.startsWith('select') && sqlLower.includes('from tags') && sqlLower.includes('where user_id = ?') && !sqlLower.includes('and id = ?') && !sqlLower.includes('where id = ?') && !sqlLower.includes('and id in (')) {
         const [userId] = params;
         const mockTags = getMockTags();
         const results: unknown[] = [];
@@ -1348,12 +1351,228 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // ---- Ideas ----
+
+      // INSERT INTO ideas
+      if (sqlLower.startsWith('insert into ideas')) {
+        const [userId, title, content, excerpt, createdAt, updatedAt] = params;
+        const id = getNextIdeaId();
+        lastInsertRowId = id;
+        const idea = {
+          id,
+          user_id: userId as string,
+          title: title as string | null,
+          content: content as string,
+          excerpt: excerpt as string | null,
+          created_at: createdAt as number,
+          updated_at: updatedAt as number,
+        };
+        const mockIdeas = getMockIdeas();
+        mockIdeas.set(id, idea);
+        return [idea] as T[];
+      }
+
+      // SELECT * FROM ideas WHERE id = ? AND user_id = ? (single idea lookup)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from ideas') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
+        const [id, userId] = params;
+        const mockIdeas = getMockIdeas();
+        const idea = mockIdeas.get(id as number);
+        if (idea && idea.user_id === userId) {
+          return [idea] as T[];
+        }
+        return [];
+      }
+
+      // SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at FROM ideas i ... (list query)
+      if (sqlLower.includes('from ideas i') && !sqlLower.includes('where id = ?')) {
+        const mockIdeas = getMockIdeas();
+        const mockIdeaTags = getMockIdeaTags();
+        const results: unknown[] = [];
+
+        // Parse user_id and optional tag filter from params
+        const userId = params[0];
+        const tagId = sqlLower.includes('it.tag_id = ?') ? params[params.length - 1] : undefined;
+
+        for (const idea of mockIdeas.values()) {
+          if (idea.user_id !== userId) continue;
+
+          // Check tag filter if present
+          if (tagId) {
+            const hasTag = mockIdeaTags.some(it => it.idea_id === idea.id && it.tag_id === tagId);
+            if (!hasTag) continue;
+          }
+
+          // Check keyword search if present (title or excerpt LIKE %)
+          if (sqlLower.includes('i.title like ?')) {
+            const searchPattern = params[1] as string;
+            const keyword = searchPattern.slice(1, -1); // Remove % wrappers
+            const matchesTitle = idea.title?.toLowerCase().includes(keyword.toLowerCase());
+            const matchesExcerpt = idea.excerpt?.toLowerCase().includes(keyword.toLowerCase());
+            if (!matchesTitle && !matchesExcerpt) continue;
+          }
+
+          results.push({
+            id: idea.id,
+            title: idea.title,
+            excerpt: idea.excerpt,
+            created_at: idea.created_at,
+            updated_at: idea.updated_at,
+          });
+        }
+
+        // ORDER BY created_at DESC
+        results.sort((a, b) => {
+          const aTime = (a as Record<string, unknown>).created_at as number;
+          const bTime = (b as Record<string, unknown>).created_at as number;
+          return bTime - aTime;
+        });
+        return results as T[];
+      }
+
+      // UPDATE ideas SET ... WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('update ideas set')) {
+        const mockIdeas = getMockIdeas();
+        const id = params[params.length - 2] as number;
+        const userId = params[params.length - 1] as string;
+
+        const idea = mockIdeas.get(id);
+        if (!idea || idea.user_id !== userId) return [];
+
+        // Parse SET clause
+        const setMatch = sql.match(/set\s+(.+?)\s+where/i);
+        if (setMatch && setMatch[1]) {
+          const setClauses = setMatch[1].split(',').map(s => s.trim());
+          let paramIndex = 0;
+          for (const clause of setClauses) {
+            const field = (clause.split('=')[0] ?? '').trim();
+            if (field === 'updated_at') {
+              idea.updated_at = params[paramIndex] as number;
+            } else if (field === 'title') {
+              idea.title = params[paramIndex] as string | null;
+            } else if (field === 'content') {
+              idea.content = params[paramIndex] as string;
+            } else if (field === 'excerpt') {
+              idea.excerpt = params[paramIndex] as string | null;
+            }
+            paramIndex++;
+          }
+        }
+        return [idea] as T[];
+      }
+
+      // DELETE FROM ideas WHERE id = ? AND user_id = ?
+      if (sqlLower.startsWith('delete from ideas') && sqlLower.includes('where id = ?')) {
+        const [id, userId] = params;
+        const mockIdeas = getMockIdeas();
+        const idea = mockIdeas.get(id as number);
+        if (idea && idea.user_id === userId) {
+          mockIdeas.delete(id as number);
+          // Cascade delete idea_tags
+          const mockIdeaTags = getMockIdeaTags();
+          for (let i = mockIdeaTags.length - 1; i >= 0; i--) {
+            const entry = mockIdeaTags[i];
+            if (entry && entry.idea_id === id) {
+              mockIdeaTags.splice(i, 1);
+            }
+          }
+          return [{ id }] as T[];
+        }
+        return [];
+      }
+
+      // ---- Idea-Tags ----
+
+      // INSERT INTO idea_tags (idea_id, tag_id) VALUES (last_insert_rowid(), ?)
+      if (sqlLower.startsWith('insert into idea_tags') && sqlLower.includes('last_insert_rowid()')) {
+        const [tagId] = params;
+        const mockIdeaTags = getMockIdeaTags();
+        mockIdeaTags.push({ idea_id: lastInsertRowId, tag_id: tagId as string });
+        return [] as T[];
+      }
+
+      // INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)
+      if (sqlLower.startsWith('insert into idea_tags') && !sqlLower.includes('last_insert_rowid()')) {
+        const [ideaId, tagId] = params;
+        const mockIdeaTags = getMockIdeaTags();
+        mockIdeaTags.push({ idea_id: ideaId as number, tag_id: tagId as string });
+        return [] as T[];
+      }
+
+      // DELETE FROM idea_tags WHERE idea_id = ?
+      if (sqlLower.startsWith('delete from idea_tags') && sqlLower.includes('where idea_id = ?')) {
+        const [ideaId] = params;
+        const mockIdeaTags = getMockIdeaTags();
+        for (let i = mockIdeaTags.length - 1; i >= 0; i--) {
+          const entry = mockIdeaTags[i];
+          if (entry && entry.idea_id === ideaId) {
+            mockIdeaTags.splice(i, 1);
+          }
+        }
+        return [] as T[];
+      }
+
+      // SELECT idea_id, tag_id FROM idea_tags WHERE idea_id IN (...)
+      if (sqlLower.includes('from idea_tags') && sqlLower.includes('where idea_id in')) {
+        const mockIdeaTags = getMockIdeaTags();
+        const results: unknown[] = [];
+        for (const ideaId of params) {
+          for (const entry of mockIdeaTags) {
+            if (entry.idea_id === ideaId) {
+              results.push(entry);
+            }
+          }
+        }
+        return results as T[];
+      }
+
+      // SELECT it.* FROM idea_tags it JOIN ideas i ON it.idea_id = i.id WHERE i.user_id = ?
+      if (sqlLower.includes('from idea_tags it') && sqlLower.includes('join ideas i')) {
+        const [userId] = params;
+        const mockIdeas = getMockIdeas();
+        const mockIdeaTags = getMockIdeaTags();
+        const results: unknown[] = [];
+        for (const entry of mockIdeaTags) {
+          const idea = mockIdeas.get(entry.idea_id);
+          if (idea && idea.user_id === userId) {
+            results.push(entry);
+          }
+        }
+        return results as T[];
+      }
+
+      // SELECT id FROM tags WHERE user_id = ? AND id IN (...) (pre-validation for createIdea)
+      if (sqlLower.includes('from tags') && sqlLower.includes('where user_id = ?') && sqlLower.includes('and id in (')) {
+        const [userId, ...tagIds] = params;
+        const mockTags = getMockTags();
+        const results: { id: string }[] = [];
+        for (const tagId of tagIds) {
+          for (const tag of mockTags.values()) {
+            const raw = tag as unknown as Record<string, unknown>;
+            if (raw.id === tagId && raw.user_id === userId) {
+              results.push({ id: tagId as string });
+            }
+          }
+        }
+        return results as T[];
+      }
+
       console.warn('Unhandled SQL in mock:', sql);
       return [];
     };
 
+  // Batch function: executes multiple statements in sequence, each returning results
+  const batchFn = async <T>(statements: Array<{ sql: string; params?: unknown[] }>): Promise<T[][]> => {
+    const results: T[][] = [];
+    for (const stmt of statements) {
+      const result = await queryFn<T>(stmt.sql, stmt.params ?? []);
+      results.push(result);
+    }
+    return results;
+  };
+
   return {
     isD1Configured: () => true,
     executeD1Query: queryFn,
+    executeD1Batch: batchFn,
   };
 });

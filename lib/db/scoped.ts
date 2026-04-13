@@ -9,9 +9,10 @@
  * functions in ./index.ts — they intentionally have no user scope.
  */
 
-import { executeD1Query } from './d1-client';
-import { rowToLink, rowToAnalytics, rowToFolder, rowToUpload, rowToWebhook, rowToTag, rowToLinkTag, rowToUserSettings, rowToApiKey } from './mappers';
-import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings, ApiKey } from './schema';
+import { executeD1Query, executeD1Batch, type D1Statement } from './d1-client';
+import { rowToLink, rowToAnalytics, rowToFolder, rowToUpload, rowToWebhook, rowToTag, rowToLinkTag, rowToUserSettings, rowToApiKey, rowToIdea, rowToIdeaTag } from './mappers';
+import type { Link, Analytics, Folder, NewLink, NewFolder, Upload, NewUpload, Webhook, Tag, LinkTag, UserSettings, ApiKey, IdeaTag } from './schema';
+import { generateExcerpt } from '../markdown';
 
 // ============================================
 // ScopedDB — all user-owned data operations
@@ -25,6 +26,29 @@ export interface GetLinksOptions {
   folderId?: string | 'inbox';
   /** Filter by tag ID */
   tagId?: string;
+}
+
+/** Filter options for getIdeas. */
+export interface GetIdeasOptions {
+  /** Keyword search across title and excerpt */
+  query?: string;
+  /** Filter by tag ID */
+  tagId?: string;
+}
+
+/** Lightweight shape for list views and search (no full content). */
+export interface IdeaListItem {
+  id: number;
+  title: string | null;
+  excerpt: string | null;
+  tagIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Full shape for detail view / edit. */
+export interface IdeaDetail extends IdeaListItem {
+  content: string;
 }
 
 export class ScopedDB {
@@ -936,6 +960,281 @@ export class ScopedDB {
       `UPDATE api_keys SET last_used_at = ? WHERE id = ?`,
       [now, id],
     );
+  }
+
+  // ---- Ideas ------------------------------------------------
+
+  /**
+   * Get all ideas owned by this user, with optional filters.
+   * Returns lightweight IdeaListItem (no full content).
+   */
+  async getIdeas(options: GetIdeasOptions = {}): Promise<IdeaListItem[]> {
+    const { query, tagId } = options;
+
+    // Build dynamic WHERE clauses
+    const conditions: string[] = ['i.user_id = ?'];
+    const params: unknown[] = [this.userId];
+
+    // Keyword search: LIKE across title and excerpt
+    if (query) {
+      const searchPattern = `%${query}%`;
+      conditions.push(`(i.title LIKE ? OR i.excerpt LIKE ?)`);
+      params.push(searchPattern, searchPattern);
+    }
+
+    // Tag filter: JOIN with idea_tags
+    let joinClause = '';
+    if (tagId) {
+      joinClause = 'JOIN idea_tags it ON i.id = it.idea_id';
+      conditions.push('it.tag_id = ?');
+      params.push(tagId);
+    }
+
+    const sql = `
+      SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at
+      FROM ideas i
+      ${joinClause}
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY i.created_at DESC
+    `;
+
+    const rows = await executeD1Query<Record<string, unknown>>(sql, params);
+    const ideaIds = rows.map(r => r.id as number);
+
+    // Fetch tag associations for these ideas
+    const tagMap = await this.getIdeaTagMap(ideaIds);
+
+    return rows.map(row => ({
+      id: row.id as number,
+      title: (row.title as string) ?? null,
+      excerpt: (row.excerpt as string) ?? null,
+      tagIds: tagMap.get(row.id as number) ?? [],
+      createdAt: new Date(row.created_at as number),
+      updatedAt: new Date(row.updated_at as number),
+    }));
+  }
+
+  /** Get a single idea by id, only if owned by this user. Returns full detail shape. */
+  async getIdeaById(id: number): Promise<IdeaDetail | null> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'SELECT * FROM ideas WHERE id = ? AND user_id = ? LIMIT 1',
+      [id, this.userId],
+    );
+    if (!rows[0]) return null;
+
+    const idea = rowToIdea(rows[0]);
+    const tagMap = await this.getIdeaTagMap([id]);
+
+    return {
+      id: idea.id,
+      title: idea.title,
+      excerpt: idea.excerpt,
+      content: idea.content,
+      tagIds: tagMap.get(id) ?? [],
+      createdAt: idea.createdAt,
+      updatedAt: idea.updatedAt,
+    };
+  }
+
+  /**
+   * Create a new idea with atomic tag binding.
+   * Validates tagIds belong to user, then uses D1 batch for atomicity.
+   */
+  async createIdea(data: {
+    content: string;
+    title?: string;
+    tagIds?: string[];
+  }): Promise<IdeaDetail> {
+    const now = Date.now();
+    const excerpt = generateExcerpt(data.content, 200);
+    const tagIds = data.tagIds ?? [];
+
+    // Step 1: Pre-validate tagIds belong to user (fail-fast before batch)
+    if (tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(', ');
+      const validTags = await executeD1Query<{ id: string }>(
+        `SELECT id FROM tags WHERE user_id = ? AND id IN (${placeholders})`,
+        [this.userId, ...tagIds],
+      );
+      if (validTags.length !== tagIds.length) {
+        const validIds = new Set(validTags.map(t => t.id));
+        const invalid = tagIds.filter(id => !validIds.has(id));
+        throw new Error(`Invalid tag IDs: ${invalid.join(', ')}`);
+      }
+    }
+
+    // Step 2: Build batch statements with RETURNING *
+    const statements: D1Statement[] = [
+      {
+        sql: `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              RETURNING *`,
+        params: [this.userId, data.title ?? null, data.content, excerpt, now, now],
+      },
+    ];
+
+    // Add tag binding statements (tagIds already validated above)
+    for (const tagId of tagIds) {
+      statements.push({
+        sql: `INSERT INTO idea_tags (idea_id, tag_id)
+              VALUES (last_insert_rowid(), ?)`,
+        params: [tagId],
+      });
+    }
+
+    // Step 3: Single atomic batch — all succeed or all fail
+    const results = await executeD1Batch<Record<string, unknown>>(statements);
+
+    // First result is the idea INSERT RETURNING *
+    const ideaRow = results[0]?.[0];
+    if (!ideaRow) {
+      throw new Error('Failed to create idea');
+    }
+
+    const idea = rowToIdea(ideaRow);
+    return {
+      id: idea.id,
+      title: idea.title,
+      excerpt: idea.excerpt,
+      content: idea.content,
+      tagIds,
+      createdAt: idea.createdAt,
+      updatedAt: idea.updatedAt,
+    };
+  }
+
+  /**
+   * Update an idea with atomic tag sync.
+   * Updates updated_at when any of title, content, or tags change.
+   */
+  async updateIdea(
+    id: number,
+    data: {
+      title?: string | null;
+      content?: string;
+      tagIds?: string[];
+    },
+  ): Promise<IdeaDetail | null> {
+    // Verify ownership first
+    const existing = await this.getIdeaById(id);
+    if (!existing) return null;
+
+    const now = Date.now();
+    const tagIds = data.tagIds;
+
+    // Step 1: Pre-validate tagIds if provided
+    if (tagIds && tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(', ');
+      const validTags = await executeD1Query<{ id: string }>(
+        `SELECT id FROM tags WHERE user_id = ? AND id IN (${placeholders})`,
+        [this.userId, ...tagIds],
+      );
+      if (validTags.length !== tagIds.length) {
+        const validIds = new Set(validTags.map(t => t.id));
+        const invalid = tagIds.filter(tid => !validIds.has(tid));
+        throw new Error(`Invalid tag IDs: ${invalid.join(', ')}`);
+      }
+    }
+
+    // Step 2: Build update statements
+    const statements: D1Statement[] = [];
+
+    // Build SET clause for idea update
+    const setClauses: string[] = ['updated_at = ?'];
+    const setParams: unknown[] = [now];
+
+    if (data.title !== undefined) {
+      setClauses.push('title = ?');
+      setParams.push(data.title);
+    }
+    if (data.content !== undefined) {
+      setClauses.push('content = ?');
+      setParams.push(data.content);
+      // Regenerate excerpt when content changes
+      setClauses.push('excerpt = ?');
+      setParams.push(generateExcerpt(data.content, 200));
+    }
+
+    statements.push({
+      sql: `UPDATE ideas SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+      params: [...setParams, id, this.userId],
+    });
+
+    // If tagIds provided, sync tags: delete all existing, then insert new
+    if (tagIds !== undefined) {
+      statements.push({
+        sql: 'DELETE FROM idea_tags WHERE idea_id = ?',
+        params: [id],
+      });
+      for (const tagId of tagIds) {
+        statements.push({
+          sql: 'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
+          params: [id, tagId],
+        });
+      }
+    }
+
+    // Step 3: Single atomic batch
+    const results = await executeD1Batch<Record<string, unknown>>(statements);
+
+    const ideaRow = results[0]?.[0];
+    if (!ideaRow) return null;
+
+    const idea = rowToIdea(ideaRow);
+    return {
+      id: idea.id,
+      title: idea.title,
+      excerpt: idea.excerpt,
+      content: idea.content,
+      tagIds: tagIds ?? existing.tagIds,
+      createdAt: idea.createdAt,
+      updatedAt: idea.updatedAt,
+    };
+  }
+
+  /** Delete an idea by id. Returns true if deleted. Cascade deletes idea_tags. */
+  async deleteIdea(id: number): Promise<boolean> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      'DELETE FROM ideas WHERE id = ? AND user_id = ? RETURNING id',
+      [id, this.userId],
+    );
+    return rows.length > 0;
+  }
+
+  /** Get all idea-tag associations for this user's ideas. */
+  async getIdeaTags(): Promise<IdeaTag[]> {
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT it.* FROM idea_tags it
+       JOIN ideas i ON it.idea_id = i.id
+       WHERE i.user_id = ?`,
+      [this.userId],
+    );
+    return rows.map(rowToIdeaTag);
+  }
+
+  /** Helper: Get a map of idea_id → tagIds[] for efficient list population. */
+  private async getIdeaTagMap(ideaIds: number[]): Promise<Map<number, string[]>> {
+    const map = new Map<number, string[]>();
+    if (ideaIds.length === 0) return map;
+
+    const placeholders = ideaIds.map(() => '?').join(', ');
+    const rows = await executeD1Query<Record<string, unknown>>(
+      `SELECT idea_id, tag_id FROM idea_tags WHERE idea_id IN (${placeholders})`,
+      ideaIds,
+    );
+
+    for (const row of rows) {
+      const ideaId = row.idea_id as number;
+      const tagId = row.tag_id as string;
+      const existing = map.get(ideaId);
+      if (existing) {
+        existing.push(tagId);
+      } else {
+        map.set(ideaId, [tagId]);
+      }
+    }
+
+    return map;
   }
 
 }

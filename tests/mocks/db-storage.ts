@@ -11,6 +11,23 @@ export interface MockLinkTag {
   tag_id: string;
 }
 
+// IdeaTag raw row shape (matches D1 column names)
+export interface MockIdeaTag {
+  idea_id: number;
+  tag_id: string;
+}
+
+// Idea raw row shape (matches D1 column names)
+export interface MockIdea {
+  id: number;
+  user_id: string;
+  title: string | null;
+  content: string;
+  excerpt: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
 // UserSettings raw row shape (matches D1 column names)
 export interface MockUserSettings {
   user_id: string;
@@ -46,10 +63,13 @@ const mockLinkTags: MockLinkTag[] = [];
 const mockUserSettings = new Map<string, MockUserSettings>(); // keyed by userId
 const mockTweetCache = new Map<string, TweetCache>(); // keyed by tweetId
 const mockApiKeys = new Map<string, MockApiKey>(); // keyed by id
+const mockIdeas = new Map<number, MockIdea>(); // keyed by id
+const mockIdeaTags: MockIdeaTag[] = [];
 let nextLinkId = 1;
 let nextAnalyticsId = 1;
 let nextUploadId = 1;
 let nextWebhookId = 1;
+let nextIdeaId = 1;
 
 export function clearMockStorage(): void {
   mockLinks.clear();
@@ -62,10 +82,13 @@ export function clearMockStorage(): void {
   mockUserSettings.clear();
   mockTweetCache.clear();
   mockApiKeys.clear();
+  mockIdeas.clear();
+  mockIdeaTags.length = 0;
   nextLinkId = 1;
   nextAnalyticsId = 1;
   nextUploadId = 1;
   nextWebhookId = 1;
+  nextIdeaId = 1;
 }
 
 export function getMockLinks(): Map<string, Link> {
@@ -108,6 +131,14 @@ export function getMockApiKeys(): Map<string, MockApiKey> {
   return mockApiKeys;
 }
 
+export function getMockIdeas(): Map<number, MockIdea> {
+  return mockIdeas;
+}
+
+export function getMockIdeaTags(): MockIdeaTag[] {
+  return mockIdeaTags;
+}
+
 export function getNextLinkId(): number {
   return nextLinkId++;
 }
@@ -122,4 +153,8 @@ export function getNextUploadId(): number {
 
 export function getNextWebhookId(): number {
   return nextWebhookId++;
+}
+
+export function getNextIdeaId(): number {
+  return nextIdeaId++;
 }

@@ -5,7 +5,7 @@
  * scoped.ts (ScopedDB user-owned operations) to eliminate duplication.
  */
 
-import type { Link, Analytics, Folder, Upload, Webhook, Tag, LinkTag, UserSettings, ApiKey } from './schema';
+import type { Link, Analytics, Folder, Upload, Webhook, Tag, LinkTag, UserSettings, ApiKey, Idea, IdeaTag } from './schema';
 
 export function rowToLink(row: Record<string, unknown>): Link {
   return {
@@ -114,5 +114,24 @@ export function rowToApiKey(row: Record<string, unknown>): ApiKey {
     createdAt: new Date(row.created_at as number),
     lastUsedAt: row.last_used_at ? new Date(row.last_used_at as number) : null,
     revokedAt: row.revoked_at ? new Date(row.revoked_at as number) : null,
+  };
+}
+
+export function rowToIdea(row: Record<string, unknown>): Idea {
+  return {
+    id: row.id as number,
+    userId: row.user_id as string,
+    title: (row.title as string) ?? null,
+    content: row.content as string,
+    excerpt: (row.excerpt as string) ?? null,
+    createdAt: new Date(row.created_at as number),
+    updatedAt: new Date(row.updated_at as number),
+  };
+}
+
+export function rowToIdeaTag(row: Record<string, unknown>): IdeaTag {
+  return {
+    ideaId: row.idea_id as number,
+    tagId: row.tag_id as string,
   };
 }

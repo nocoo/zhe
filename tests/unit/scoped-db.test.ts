@@ -1315,4 +1315,273 @@ describe('ScopedDB', () => {
       // lastUsedAt should now be set (non-null)
     });
   });
+
+  // ---- Ideas CRUD ------------------------------------------
+
+  describe('idea operations', () => {
+    it('getIdeas returns empty array when no ideas exist', async () => {
+      const db = new ScopedDB(USER_A);
+      const ideas = await db.getIdeas();
+      expect(ideas).toEqual([]);
+    });
+
+    it('createIdea creates an idea with generated excerpt', async () => {
+      const db = new ScopedDB(USER_A);
+      const content = '# My Idea\n\nThis is **bold** and *italic* text with a [link](https://example.com).';
+      const idea = await db.createIdea({ content });
+
+      expect(idea.id).toBeTruthy();
+      expect(idea.content).toBe(content);
+      expect(idea.title).toBeNull();
+      expect(idea.excerpt).toBe('My Idea This is bold and italic text with a link.');
+      expect(idea.tagIds).toEqual([]);
+      expect(idea.createdAt).toBeInstanceOf(Date);
+      expect(idea.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('createIdea with title stores title', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'Body text', title: 'My Title' });
+
+      expect(idea.title).toBe('My Title');
+      expect(idea.content).toBe('Body text');
+    });
+
+    it('createIdea with valid tagIds creates idea with tags atomically', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag1 = await db.createTag({ name: 'work', color: 'blue' });
+      const tag2 = await db.createTag({ name: 'project', color: 'green' });
+
+      const idea = await db.createIdea({
+        content: 'Tagged idea',
+        tagIds: [tag1.id, tag2.id],
+      });
+
+      expect(idea.tagIds).toHaveLength(2);
+      expect(idea.tagIds).toContain(tag1.id);
+      expect(idea.tagIds).toContain(tag2.id);
+    });
+
+    it('createIdea with invalid tagId throws error', async () => {
+      const db = new ScopedDB(USER_A);
+
+      await expect(
+        db.createIdea({ content: 'Body', tagIds: ['non-existent-tag'] }),
+      ).rejects.toThrow('Invalid tag IDs: non-existent-tag');
+    });
+
+    it('createIdea with other user tagId throws error', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const bobTag = await dbB.createTag({ name: 'bob-tag', color: 'red' });
+
+      await expect(
+        dbA.createIdea({ content: 'Body', tagIds: [bobTag.id] }),
+      ).rejects.toThrow(`Invalid tag IDs: ${bobTag.id}`);
+    });
+
+    it('createIdea with empty tagIds array creates idea without tags', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'No tags', tagIds: [] });
+
+      expect(idea.tagIds).toEqual([]);
+    });
+
+    it('getIdeas only returns own ideas', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      await dbA.createIdea({ content: 'Alice idea 1' });
+      await dbA.createIdea({ content: 'Alice idea 2' });
+      await dbB.createIdea({ content: 'Bob idea' });
+
+      const ideasA = await dbA.getIdeas();
+      const ideasB = await dbB.getIdeas();
+
+      expect(ideasA).toHaveLength(2);
+      expect(ideasB).toHaveLength(1);
+    });
+
+    it('getIdeas returns list shape without content', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createIdea({ content: 'Full markdown content here' });
+
+      const ideas = await db.getIdeas();
+      expect(ideas).toHaveLength(1);
+
+      const idea = unwrap(ideas[0]);
+      expect(idea.id).toBeTruthy();
+      expect(idea.excerpt).toBeTruthy();
+      expect(idea.createdAt).toBeInstanceOf(Date);
+      expect(idea.updatedAt).toBeInstanceOf(Date);
+      // List shape should not include full content
+      expect((idea as unknown as Record<string, unknown>).content).toBeUndefined();
+    });
+
+    it('getIdeas filters by tagId', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'filter-tag', color: 'blue' });
+
+      await db.createIdea({ content: 'Tagged', tagIds: [tag.id] });
+      await db.createIdea({ content: 'Not tagged' });
+
+      const filtered = await db.getIdeas({ tagId: tag.id });
+      expect(filtered).toHaveLength(1);
+      expect(unwrap(filtered[0]).tagIds).toContain(tag.id);
+    });
+
+    it('getIdeaById returns null for non-existent idea', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.getIdeaById(999);
+      expect(idea).toBeNull();
+    });
+
+    it('getIdeaById returns null for other user idea', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const idea = await dbA.createIdea({ content: 'Alice private' });
+
+      expect(await dbA.getIdeaById(idea.id)).not.toBeNull();
+      expect(await dbB.getIdeaById(idea.id)).toBeNull();
+    });
+
+    it('getIdeaById returns detail shape with full content', async () => {
+      const db = new ScopedDB(USER_A);
+      const created = await db.createIdea({ content: 'Full content here' });
+
+      const detail = unwrap(await db.getIdeaById(created.id));
+      expect(detail.content).toBe('Full content here');
+      expect(detail.id).toBe(created.id);
+    });
+
+    it('updateIdea updates title and content', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'Original', title: 'Old Title' });
+      const originalUpdatedAt = idea.updatedAt;
+
+      // Small delay to ensure updatedAt changes
+      await new Promise(r => setTimeout(r, 10));
+
+      const updated = unwrap(await db.updateIdea(idea.id, {
+        title: 'New Title',
+        content: 'New content',
+      }));
+
+      expect(updated.title).toBe('New Title');
+      expect(updated.content).toBe('New content');
+      expect(updated.excerpt).toBe('New content'); // Excerpt regenerated
+      expect(updated.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+    });
+
+    it('updateIdea sets title to null', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'Body', title: 'Has Title' });
+
+      const updated = unwrap(await db.updateIdea(idea.id, { title: null }));
+
+      expect(updated.title).toBeNull();
+    });
+
+    it('updateIdea syncs tags atomically', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag1 = await db.createTag({ name: 'tag1', color: 'blue' });
+      const tag2 = await db.createTag({ name: 'tag2', color: 'green' });
+      const tag3 = await db.createTag({ name: 'tag3', color: 'red' });
+
+      const idea = await db.createIdea({ content: 'Body', tagIds: [tag1.id, tag2.id] });
+      expect(idea.tagIds).toHaveLength(2);
+
+      // Replace tags: remove tag1, keep tag2, add tag3
+      const updated = unwrap(await db.updateIdea(idea.id, { tagIds: [tag2.id, tag3.id] }));
+
+      expect(updated.tagIds).toHaveLength(2);
+      expect(updated.tagIds).toContain(tag2.id);
+      expect(updated.tagIds).toContain(tag3.id);
+      expect(updated.tagIds).not.toContain(tag1.id);
+    });
+
+    it('updateIdea with invalid tagId throws error', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'Body' });
+
+      await expect(
+        db.updateIdea(idea.id, { tagIds: ['non-existent'] }),
+      ).rejects.toThrow('Invalid tag IDs: non-existent');
+    });
+
+    it('updateIdea returns null for non-existent idea', async () => {
+      const db = new ScopedDB(USER_A);
+      const result = await db.updateIdea(999, { title: 'New' });
+      expect(result).toBeNull();
+    });
+
+    it('updateIdea returns null for other user idea', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const idea = await dbA.createIdea({ content: 'Alice idea' });
+
+      expect(await dbB.updateIdea(idea.id, { title: 'Hacked' })).toBeNull();
+    });
+
+    it('deleteIdea removes the idea', async () => {
+      const db = new ScopedDB(USER_A);
+      const idea = await db.createIdea({ content: 'To delete' });
+
+      expect(await db.deleteIdea(idea.id)).toBe(true);
+
+      const ideas = await db.getIdeas();
+      expect(ideas).toHaveLength(0);
+    });
+
+    it('deleteIdea returns false for non-existent idea', async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.deleteIdea(999)).toBe(false);
+    });
+
+    it('deleteIdea returns false for other user idea', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const idea = await dbA.createIdea({ content: 'Alice idea' });
+
+      expect(await dbB.deleteIdea(idea.id)).toBe(false);
+
+      // Idea should still exist for user A
+      const ideasA = await dbA.getIdeas();
+      expect(ideasA).toHaveLength(1);
+    });
+
+    it('deleteIdea cascade deletes idea_tags', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'tag', color: 'blue' });
+      const idea = await db.createIdea({ content: 'Body', tagIds: [tag.id] });
+
+      await db.deleteIdea(idea.id);
+
+      const ideaTags = await db.getIdeaTags();
+      expect(ideaTags).toHaveLength(0);
+    });
+
+    it('getIdeaTags returns only associations for own ideas', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const tagA = await dbA.createTag({ name: 'a-tag', color: 'blue' });
+      const tagB = await dbB.createTag({ name: 'b-tag', color: 'red' });
+
+      await dbA.createIdea({ content: 'Alice', tagIds: [tagA.id] });
+      await dbB.createIdea({ content: 'Bob', tagIds: [tagB.id] });
+
+      const ideaTagsA = await dbA.getIdeaTags();
+      const ideaTagsB = await dbB.getIdeaTags();
+
+      expect(ideaTagsA).toHaveLength(1);
+      expect(unwrap(ideaTagsA[0]).tagId).toBe(tagA.id);
+      expect(ideaTagsB).toHaveLength(1);
+      expect(unwrap(ideaTagsB[0]).tagId).toBe(tagB.id);
+    });
+  });
 });
