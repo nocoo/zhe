@@ -47,7 +47,9 @@ const mockService: DashboardService = {
   folders: [],
   tags: [],
   linkTags: [],
+  ideas: [],
   loading: false,
+  ideasLoading: false,
   siteUrl: 'http://localhost:3000',
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
@@ -61,6 +63,11 @@ const mockService: DashboardService = {
   handleTagUpdated: vi.fn(),
   handleLinkTagAdded: vi.fn(),
   handleLinkTagRemoved: vi.fn(),
+  ensureIdeasLoaded: vi.fn().mockResolvedValue(undefined),
+  refreshIdeas: vi.fn().mockResolvedValue(undefined),
+  handleIdeaCreated: vi.fn(),
+  handleIdeaDeleted: vi.fn(),
+  handleIdeaUpdated: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({

@@ -9,8 +9,10 @@ import {
   useState,
 } from "react";
 import type { Link, Folder, Tag, LinkTag } from "@/models/types";
+import type { IdeaListItem } from "@/lib/db/scoped";
 import { getDashboardData } from "@/actions/dashboard";
 import { getLinks } from "@/actions/links";
+import { getIdeas } from "@/actions/ideas";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -23,8 +25,12 @@ export interface DashboardState {
   tags: Tag[];
   /** All link-tag associations for the current user */
   linkTags: LinkTag[];
+  /** All ideas for the current user (list shape, no full content) */
+  ideas: IdeaListItem[];
   /** True while the initial links fetch is in progress */
   loading: boolean;
+  /** True while ideas are being fetched (lazy-loaded) */
+  ideasLoading: boolean;
   /** Site origin for building short URLs */
   siteUrl: string;
 }
@@ -52,6 +58,15 @@ export interface DashboardActions {
   // Link-Tags — call after server action succeeds to sync memory
   handleLinkTagAdded: (linkTag: LinkTag) => void;
   handleLinkTagRemoved: (linkId: number, tagId: string) => void;
+
+  // Ideas — lazy-loaded and memory sync
+  /** Lazy-load ideas on first access (for global search, etc.) */
+  ensureIdeasLoaded: () => Promise<void>;
+  /** Re-fetch all ideas from the server */
+  refreshIdeas: () => Promise<void>;
+  handleIdeaCreated: (idea: IdeaListItem) => void;
+  handleIdeaDeleted: (id: number) => void;
+  handleIdeaUpdated: (idea: IdeaListItem) => void;
 }
 
 // ── Combined interface (backward-compatible) ──
@@ -79,7 +94,10 @@ export function DashboardServiceProvider({
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [tags, setTags] = useState<Tag[]>([]);
   const [linkTags, setLinkTags] = useState<LinkTag[]>([]);
+  const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideasLoaded, setIdeasLoaded] = useState(false);
   const siteUrl =
     typeof window !== "undefined" ? window.location.origin : "";
 
@@ -178,6 +196,53 @@ export function DashboardServiceProvider({
     );
   }, []);
 
+  // ── Ideas CRUD (lazy-loaded + memory sync) ──
+
+  const ensureIdeasLoaded = useCallback(async () => {
+    if (ideasLoaded || ideasLoading) return;
+    setIdeasLoading(true);
+    try {
+      const result = await getIdeas();
+      if (result.success && result.data) {
+        setIdeas(result.data);
+      }
+      setIdeasLoaded(true);
+    } catch (error) {
+      console.error("Failed to load ideas:", error);
+    } finally {
+      setIdeasLoading(false);
+    }
+  }, [ideasLoaded, ideasLoading]);
+
+  const refreshIdeas = useCallback(async () => {
+    setIdeasLoading(true);
+    try {
+      const result = await getIdeas();
+      if (result.success && result.data) {
+        setIdeas(result.data);
+      }
+      setIdeasLoaded(true);
+    } catch (error) {
+      console.error("Failed to refresh ideas:", error);
+    } finally {
+      setIdeasLoading(false);
+    }
+  }, []);
+
+  const handleIdeaCreated = useCallback((idea: IdeaListItem) => {
+    setIdeas((prev) => [idea, ...prev]);
+  }, []);
+
+  const handleIdeaDeleted = useCallback((id: number) => {
+    setIdeas((prev) => prev.filter((i) => i.id !== id));
+  }, []);
+
+  const handleIdeaUpdated = useCallback((updatedIdea: IdeaListItem) => {
+    setIdeas((prev) =>
+      prev.map((i) => (i.id === updatedIdea.id ? updatedIdea : i)),
+    );
+  }, []);
+
   // ── Stable state value (changes when data changes) ──
 
   const stateValue = useMemo<DashboardState>(
@@ -186,10 +251,12 @@ export function DashboardServiceProvider({
       folders,
       tags,
       linkTags,
+      ideas,
       loading,
+      ideasLoading,
       siteUrl,
     }),
-    [links, folders, tags, linkTags, loading, siteUrl],
+    [links, folders, tags, linkTags, ideas, loading, ideasLoading, siteUrl],
   );
 
   // ── Stable actions value (never changes — all callbacks have [] deps) ──
@@ -208,6 +275,11 @@ export function DashboardServiceProvider({
       handleTagUpdated,
       handleLinkTagAdded,
       handleLinkTagRemoved,
+      ensureIdeasLoaded,
+      refreshIdeas,
+      handleIdeaCreated,
+      handleIdeaDeleted,
+      handleIdeaUpdated,
     }),
     [
       handleLinkCreated,
@@ -222,6 +294,11 @@ export function DashboardServiceProvider({
       handleTagUpdated,
       handleLinkTagAdded,
       handleLinkTagRemoved,
+      ensureIdeasLoaded,
+      refreshIdeas,
+      handleIdeaCreated,
+      handleIdeaDeleted,
+      handleIdeaUpdated,
     ],
   );
 

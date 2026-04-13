@@ -29,7 +29,9 @@ const mockState: DashboardState = {
   folders: [],
   tags: [],
   linkTags: [],
+  ideas: [],
   loading: false,
+  ideasLoading: false,
   siteUrl: "https://zhe.to",
 };
 
