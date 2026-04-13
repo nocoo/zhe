@@ -78,13 +78,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       options.sortOrder = orderParam;
     }
 
-    const allLinks = await db.getLinks(options);
-    const total = allLinks.length;
-
-    // Apply pagination
+    // Parse pagination parameters
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
-    const links = allLinks.slice(offset, offset + limit);
+
+    // Count total matching links (for pagination metadata)
+    const total = await db.countLinks(options);
+
+    // Fetch paginated links from DB
+    const links = await db.getLinks({ ...options, limit, offset });
 
     logApiRequest({
       keyId,
