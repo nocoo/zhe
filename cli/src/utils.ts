@@ -290,12 +290,15 @@ export function openInBrowser(url: string): void {
 	}
 
 	const child = spawn(command, args, { stdio: "ignore" });
+	const fallback = () => console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+	let failed = false;
 	child.on("error", () => {
-		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+		failed = true;
+		fallback();
 	});
 	child.on("close", (code) => {
-		if (code !== 0) {
-			console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+		if (!failed && code !== 0) {
+			fallback();
 		}
 	});
 }
