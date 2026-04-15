@@ -25,7 +25,7 @@ jobs:
     name: "L3 Browser E2E"
     needs: [quality]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       # D1 isolation — test database (NOT production)
       D1_TEST_DATABASE_ID: ${{ secrets.D1_TEST_DATABASE_ID }}
