@@ -14,7 +14,7 @@ import {
 } from "../api/client.js";
 import type { CreateLinkRequest, Folder } from "../api/types.js";
 import { getApiKey } from "../config.js";
-import { resolveFolderName } from "../utils.js";
+import { openInBrowser, resolveFolderName } from "../utils.js";
 
 export const createCommand = defineCommand({
 	meta: {
@@ -193,23 +193,6 @@ async function copyToClipboard(text: string): Promise<boolean> {
 		child.stdin?.write(text);
 		child.stdin?.end();
 	});
-}
-
-function openInBrowser(url: string): void {
-	const platform = process.platform;
-	let command: string;
-
-	if (platform === "darwin") {
-		command = `open "${url}"`;
-	} else if (platform === "linux") {
-		command = `xdg-open "${url}"`;
-	} else if (platform === "win32") {
-		command = `start "" "${url}"`;
-	} else {
-		return;
-	}
-
-	exec(command);
 }
 
 function handleApiError(error: unknown): never {
