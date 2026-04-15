@@ -289,10 +289,14 @@ export function openInBrowser(url: string): void {
 		return;
 	}
 
-	const child = spawn(command, args, { stdio: "ignore", detached: true });
-	child.unref();
+	const child = spawn(command, args, { stdio: "ignore" });
 	child.on("error", () => {
 		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+	});
+	child.on("close", (code) => {
+		if (code !== 0) {
+			console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+		}
 	});
 }
 
