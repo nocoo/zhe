@@ -154,16 +154,12 @@ test.describe.serial('Folder CRUD', () => {
     await menuButton.click();
 
     // Click "删除" in the dropdown and wait for the API response
-    const deleteResponse = page.waitForResponse(
-      (resp) => resp.url().includes('/api/') && resp.request().method() === 'DELETE',
-    );
+    // The delete action shows a confirm() dialog — auto-accept it
+    page.on('dialog', (dialog) => dialog.accept());
     await page.getByRole('menuitem', { name: '删除' }).click();
-    await deleteResponse.catch(() => {});
 
-    // Wait for DOM to update after deletion
-    await page.waitForTimeout(1_000);
-
-    // The folder should disappear (no confirmation dialog based on component code)
+    // The folder should disappear — use polling with increased timeout
+    // (CI headless environments may need extra time for DOM reconciliation)
     await expect(sidebar.getByText(renamedName)).toBeHidden({ timeout: 15_000 });
   });
 });

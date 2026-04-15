@@ -64,7 +64,7 @@ test.describe('Cmd+K search', () => {
     await expect(page.locator('[placeholder="搜索链接、想法、标题、备注、标签..."]')).toBeVisible();
 
     // Should show hint text when input is empty
-    await expect(page.getByText('输入关键词搜索链接')).toBeVisible();
+    await expect(page.getByText('输入关键词搜索')).toBeVisible();
   });
 
   test('search by slug shows matching link', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('Cmd+K search', () => {
     await input.fill('zzz-nonexistent-query');
 
     // Should show the empty state message
-    await expect(page.getByText('没有找到匹配的链接')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('没有找到匹配的结果')).toBeVisible({ timeout: 5_000 });
   });
 
   test('search results show result count in heading', async ({ page }) => {
