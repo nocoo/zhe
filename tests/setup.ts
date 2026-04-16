@@ -105,6 +105,16 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [link] as T[];
       }
       
+      // SELECT id, slug, original_url, expires_at FROM links (getAllLinksForKV — no WHERE)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from links') && !sqlLower.includes('where')) {
+        const results: unknown[] = [];
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          results.push(rawLink);
+        }
+        return results as T[];
+      }
+
       // SELECT COUNT(1) FROM links WHERE slug = ? (slugExists)
       if (sqlLower.includes('count(1)') && sqlLower.includes('from links') && sqlLower.includes('where slug = ?')) {
         const [slug] = params;

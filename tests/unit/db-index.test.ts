@@ -1,14 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createLink,
+  getLinkBySlug,
+  slugExists,
   getLinkByUserAndUrl,
+  getAllLinksForKV,
+  recordClick,
   getFolderByUserAndName,
   getWebhookByToken,
+  getWebhookStats,
+  getTweetCacheById,
+  upsertTweetCache,
+  verifyBackyPullWebhook,
 } from '@/lib/db';
 import { verifyApiKeyAndGetUser } from '@/lib/db/api-keys';
 import { ScopedDB } from '@/lib/db/scoped';
 import { hashApiKey } from '@/models/api-key';
-import { clearMockStorage, getMockFolders, getMockWebhooks } from '../mocks/db-storage';
+import { clearMockStorage, getMockFolders, getMockWebhooks, getMockUserSettings } from '../mocks/db-storage';
 import { unwrap } from '../test-utils';
 
 describe('Link DB Operations', () => {
@@ -238,6 +246,281 @@ describe('Link DB Operations', () => {
 
       expect(webhook).not.toBeNull();
       expect(unwrap(webhook).rateLimit).toBe(5);
+    });
+  });
+  describe('getLinkBySlug', () => {
+    it('should return the link when slug exists', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/slug-test',
+        slug: 'my-slug',
+      });
+
+      const found = await getLinkBySlug('my-slug');
+
+      expect(found).not.toBeNull();
+      expect(unwrap(found).slug).toBe('my-slug');
+      expect(unwrap(found).originalUrl).toBe('https://example.com/slug-test');
+    });
+
+    it('should return null when slug does not exist', async () => {
+      const found = await getLinkBySlug('nonexistent');
+      expect(found).toBeNull();
+    });
+  });
+
+  describe('slugExists', () => {
+    it('should return true when slug exists', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/exists',
+        slug: 'exists-slug',
+      });
+
+      expect(await slugExists('exists-slug')).toBe(true);
+    });
+
+    it('should return false when slug does not exist', async () => {
+      expect(await slugExists('no-such-slug')).toBe(false);
+    });
+  });
+
+  describe('getAllLinksForKV', () => {
+    it('should return all links with KV fields', async () => {
+      await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/kv1',
+        slug: 'kv1',
+      });
+      await createLink({
+        userId: 'user-2',
+        originalUrl: 'https://example.com/kv2',
+        slug: 'kv2',
+        expiresAt: new Date('2027-01-01'),
+      });
+
+      const links = await getAllLinksForKV();
+
+      expect(links).toHaveLength(2);
+      expect(links[0]).toHaveProperty('slug');
+      expect(links[0]).toHaveProperty('originalUrl');
+      expect(links[0]).toHaveProperty('expiresAt');
+      // First link has no expiry
+      const noExpiry = links.find(l => l.slug === 'kv1');
+      expect(unwrap(noExpiry).expiresAt).toBeNull();
+      // Second link has expiry
+      const withExpiry = links.find(l => l.slug === 'kv2');
+      expect(unwrap(withExpiry).expiresAt).toBeTypeOf('number');
+    });
+
+    it('should return empty array when no links exist', async () => {
+      const links = await getAllLinksForKV();
+      expect(links).toEqual([]);
+    });
+  });
+
+  describe('recordClick', () => {
+    it('should insert analytics record and increment clicks', async () => {
+      const link = await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/click',
+        slug: 'click-test',
+      });
+
+      const analytics = await recordClick({
+        linkId: link.id,
+        country: 'US',
+        city: 'NYC',
+        device: 'Desktop',
+        browser: 'Chrome',
+        os: 'macOS',
+        referer: 'https://google.com',
+      });
+
+      expect(analytics).toBeDefined();
+      expect(analytics.linkId).toBe(link.id);
+      expect(analytics.country).toBe('US');
+      expect(analytics.createdAt).toBeInstanceOf(Date);
+
+      // Verify click count was incremented
+      const updated = await getLinkBySlug('click-test');
+      expect(unwrap(updated).clicks).toBe(1);
+    });
+
+    it('should handle null optional fields', async () => {
+      const link = await createLink({
+        userId: 'user-1',
+        originalUrl: 'https://example.com/click2',
+        slug: 'click2',
+      });
+
+      const analytics = await recordClick({ linkId: link.id });
+
+      expect(analytics.country).toBeNull();
+      expect(analytics.city).toBeNull();
+    });
+  });
+
+  describe('getWebhookStats', () => {
+    it('should return stats for user with links', async () => {
+      await createLink({
+        userId: 'user-stats',
+        originalUrl: 'https://example.com/s1',
+        slug: 'stat1',
+        clicks: 5,
+      });
+      await createLink({
+        userId: 'user-stats',
+        originalUrl: 'https://example.com/s2',
+        slug: 'stat2',
+        clicks: 10,
+      });
+
+      const stats = await getWebhookStats('user-stats');
+
+      expect(stats.totalLinks).toBe(2);
+      expect(stats.totalClicks).toBe(15);
+      expect(stats.recentLinks).toHaveLength(2);
+      expect(stats.recentLinks[0]).toHaveProperty('slug');
+      expect(stats.recentLinks[0]).toHaveProperty('createdAt');
+    });
+
+    it('should return zero stats for user with no links', async () => {
+      const stats = await getWebhookStats('no-links-user');
+
+      expect(stats.totalLinks).toBe(0);
+      expect(stats.totalClicks).toBe(0);
+      expect(stats.recentLinks).toEqual([]);
+    });
+  });
+
+  describe('getTweetCacheById', () => {
+    it('should return cached tweet when it exists', async () => {
+      const data = {
+        tweetId: 'tweet-123',
+        authorUsername: 'testuser',
+        authorName: 'Test User',
+        authorAvatar: 'https://avatar.url',
+        tweetText: 'Hello world',
+        tweetUrl: 'https://twitter.com/testuser/status/123',
+        lang: 'en',
+        tweetCreatedAt: '2026-01-01T00:00:00Z',
+        rawData: '{}',
+      };
+      await upsertTweetCache(data);
+
+      const cached = await getTweetCacheById('tweet-123');
+
+      expect(cached).not.toBeNull();
+      expect(unwrap(cached).tweetId).toBe('tweet-123');
+      expect(unwrap(cached).authorUsername).toBe('testuser');
+      expect(unwrap(cached).lang).toBe('en');
+    });
+
+    it('should return null when tweet is not cached', async () => {
+      const cached = await getTweetCacheById('nonexistent');
+      expect(cached).toBeNull();
+    });
+  });
+
+  describe('upsertTweetCache', () => {
+    it('should insert a new tweet cache entry', async () => {
+      const result = await upsertTweetCache({
+        tweetId: 'tweet-new',
+        authorUsername: 'user1',
+        authorName: 'User One',
+        authorAvatar: 'https://avatar.url',
+        tweetText: 'Test tweet',
+        tweetUrl: 'https://twitter.com/user1/status/new',
+        lang: null,
+        tweetCreatedAt: '2026-01-01T00:00:00Z',
+        rawData: '{"test":true}',
+      });
+
+      expect(result.tweetId).toBe('tweet-new');
+      expect(result.lang).toBeNull();
+      expect(result.fetchedAt).toBeTypeOf('number');
+    });
+
+    it('should update existing tweet cache entry on conflict', async () => {
+      await upsertTweetCache({
+        tweetId: 'tweet-upsert',
+        authorUsername: 'old',
+        authorName: 'Old Name',
+        authorAvatar: 'https://old.url',
+        tweetText: 'Old text',
+        tweetUrl: 'https://twitter.com/old/status/upsert',
+        lang: 'en',
+        tweetCreatedAt: '2026-01-01T00:00:00Z',
+        rawData: '{}',
+      });
+
+      const updated = await upsertTweetCache({
+        tweetId: 'tweet-upsert',
+        authorUsername: 'new',
+        authorName: 'New Name',
+        authorAvatar: 'https://new.url',
+        tweetText: 'New text',
+        tweetUrl: 'https://twitter.com/new/status/upsert',
+        lang: 'ja',
+        tweetCreatedAt: '2026-02-01T00:00:00Z',
+        rawData: '{"updated":true}',
+      });
+
+      expect(updated.tweetId).toBe('tweet-upsert');
+      expect(updated.authorUsername).toBe('new');
+    });
+  });
+
+  describe('verifyBackyPullWebhook', () => {
+    it('should return userId when key is valid', async () => {
+      const mockSettings = getMockUserSettings();
+      mockSettings.set('user-backy', {
+        user_id: 'user-backy',
+        preview_style: 'favicon',
+        backy_webhook_url: null,
+        backy_api_key: null,
+        backy_pull_key: 'valid-pull-key',
+        xray_api_url: null,
+        xray_api_token: null,
+      });
+
+      const result = await verifyBackyPullWebhook('valid-pull-key');
+
+      expect(result).not.toBeNull();
+      expect(unwrap(result).userId).toBe('user-backy');
+    });
+
+    it('should return null when key is invalid', async () => {
+      const result = await verifyBackyPullWebhook('invalid-key');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('createLink error branch', () => {
+    // The error branch (line 61: "INSERT RETURNING * returned no rows") can't be
+    // triggered with the mock since the mock always returns a row, but we test the
+    // happy path with all optional fields to cover the full parameter mapping.
+    it('should create a link with all optional fields', async () => {
+      const link = await createLink({
+        userId: 'user-full',
+        folderId: 'folder-1',
+        originalUrl: 'https://example.com/full',
+        slug: 'full-link',
+        isCustom: true,
+        expiresAt: new Date('2027-06-01'),
+        clicks: 42,
+        note: 'test note',
+        screenshotUrl: 'https://screenshot.url/img.png',
+      });
+
+      expect(link.userId).toBe('user-full');
+      expect(link.folderId).toBe('folder-1');
+      expect(link.isCustom).toBe(true);
+      expect(link.expiresAt).toBeInstanceOf(Date);
+      expect(link.clicks).toBe(42);
+      expect(link.note).toBe('test note');
+      expect(link.screenshotUrl).toBe('https://screenshot.url/img.png');
     });
   });
 });
