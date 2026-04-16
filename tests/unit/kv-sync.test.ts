@@ -36,8 +36,8 @@ describe('performKVSync', () => {
     mockIsKVConfigured.mockReset();
     clearCronHistory();
     _resetDirtyFlag(true);
-    // Default: no orphaned keys
-    mockKvListKeys.mockResolvedValue([]);
+    // Default: no orphaned keys, successful list
+    mockKvListKeys.mockResolvedValue({ keys: [], error: false });
     mockKvBulkDeleteLinks.mockResolvedValue({ success: 0, failed: 0 });
   });
 
@@ -205,7 +205,7 @@ describe('performKVSync', () => {
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
     // KV has 'abc' (in D1) and 'orphan1', 'orphan2' (not in D1)
-    mockKvListKeys.mockResolvedValue(['abc', 'orphan1', 'orphan2']);
+    mockKvListKeys.mockResolvedValue({ keys: ['abc', 'orphan1', 'orphan2'], error: false });
     mockKvBulkDeleteLinks.mockResolvedValue({ success: 2, failed: 0 });
 
     const result = await performKVSync();
@@ -228,7 +228,7 @@ describe('performKVSync', () => {
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
     // KV only has 'abc' which is in D1
-    mockKvListKeys.mockResolvedValue(['abc']);
+    mockKvListKeys.mockResolvedValue({ keys: ['abc'], error: false });
 
     const result = await performKVSync();
 
@@ -244,7 +244,7 @@ describe('performKVSync', () => {
     mockGetAllLinksForKV.mockResolvedValue([]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 0 });
     // KV has orphans but D1 is empty
-    mockKvListKeys.mockResolvedValue(['orphan1', 'orphan2']);
+    mockKvListKeys.mockResolvedValue({ keys: ['orphan1', 'orphan2'], error: false });
     mockKvBulkDeleteLinks.mockResolvedValue({ success: 2, failed: 0 });
 
     const result = await performKVSync();
@@ -262,12 +262,52 @@ describe('performKVSync', () => {
       { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
-    mockKvListKeys.mockResolvedValue(['abc', 'orphan1']);
+    mockKvListKeys.mockResolvedValue({ keys: ['abc', 'orphan1'], error: false });
     mockKvBulkDeleteLinks.mockResolvedValue({ success: 0, failed: 1 });
 
     _resetDirtyFlag(true);
     const result = await performKVSync();
 
+    expect(result.deleted).toBe(0);
+    expect(isKVDirty()).toBe(true);
+
+    const history = getCronHistory();
+    expect(unwrap(history[0]).status).toBe('error');
+
+    consoleSpy.mockRestore();
+  });
+
+  it('skips orphan deletion when write phase has failures', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 0, failed: 1 });
+
+    const result = await performKVSync();
+
+    expect(mockKvListKeys).not.toHaveBeenCalled();
+    expect(mockKvBulkDeleteLinks).not.toHaveBeenCalled();
+    expect(result.deleted).toBe(0);
+    expect(isKVDirty()).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps dirty flag when list keys fails', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
+    mockKvListKeys.mockResolvedValue({ keys: [], error: true });
+
+    _resetDirtyFlag(true);
+    const result = await performKVSync();
+
+    expect(mockKvBulkDeleteLinks).not.toHaveBeenCalled();
     expect(result.deleted).toBe(0);
     expect(isKVDirty()).toBe(true);
 
