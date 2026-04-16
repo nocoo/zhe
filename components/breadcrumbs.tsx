@@ -30,7 +30,7 @@ export function Breadcrumbs() {
         <ol className="flex items-center gap-1.5">
           <li>
             <span
-              className="text-lg md:text-xl font-semibold font-display text-foreground"
+              className="text-foreground font-medium"
               aria-current="page"
             >
               链接管理
@@ -59,7 +59,7 @@ export function Breadcrumbs() {
           </li>
           <li>
             <span
-              className="text-lg md:text-xl font-semibold font-display text-foreground"
+              className="text-foreground font-medium"
               aria-current="page"
             >
               编辑想法
@@ -88,7 +88,7 @@ export function Breadcrumbs() {
         </li>
         <li>
           <span
-            className="text-lg md:text-xl font-semibold font-display text-foreground"
+            className="text-foreground font-medium"
             aria-current="page"
           >
             {pageLabel}
