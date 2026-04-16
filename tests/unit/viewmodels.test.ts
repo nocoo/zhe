@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { Link, AnalyticsStats } from '@/models/types';
+import type { AnalyticsStats } from '@/models/types';
+import { makeLink } from '../fixtures';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -64,26 +65,6 @@ import { copyToClipboard } from '@/lib/utils';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15'),
-    ...overrides,
-  };
-}
 
 const SITE_URL = 'https://zhe.to';
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { Link, Tag, LinkTag, Folder } from '@/models/types';
+import type { LinkTag } from '@/models/types';
+import { makeLink, makeTag, makeFolder } from '../fixtures';
 
 // ── Mocks ──
 
@@ -14,48 +15,6 @@ import { useInboxViewModel, type InboxCallbacks } from '@/viewmodels/useInboxVie
 import { createTag, addTagToLink, removeTagFromLink } from '@/actions/tags';
 
 // ── Helpers ──
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15'),
-    ...overrides,
-  };
-}
-
-function makeTag(overrides: Partial<Tag> = {}): Tag {
-  return {
-    id: 'tag-1',
-    userId: 'user-1',
-    name: 'important',
-    color: 'red',
-    createdAt: new Date('2026-01-01'),
-    ...overrides,
-  };
-}
-
-function makeFolder(overrides: Partial<Folder> = {}): Folder {
-  return {
-    id: 'folder-1',
-    userId: 'user-1',
-    name: 'Work',
-    icon: 'folder',
-    createdAt: new Date('2026-01-01'),
-    ...overrides,
-  };
-}
 
 function makeCallbacks(): InboxCallbacks {
   return {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Folder } from '@/models/types';
+import { makeFolder } from '../fixtures';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -51,19 +52,6 @@ import {
 
 // ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
-
-function makeFolder(overrides: Partial<Folder> = {}): Folder {
-  return {
-    id: 'folder-1',
-    userId: 'user-1',
-    name: 'Work',
-    icon: 'briefcase',
-    createdAt: new Date('2026-01-10'),
-    ...overrides,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
