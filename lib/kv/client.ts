@@ -128,14 +128,16 @@ export async function kvDeleteLink(slug: string): Promise<void> {
 /**
  * List all keys in the KV namespace.
  * Automatically handles pagination via cursor.
- * Returns an array of key names (slugs).
+ * Returns { keys, error } where error indicates a failure occurred.
+ * On error, keys contains whatever was collected before the failure.
  */
-export async function kvListKeys(): Promise<string[]> {
+export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> {
   const creds = getKVCredentials();
-  if (!creds) return [];
+  if (!creds) return { keys: [], error: false };
 
   const keys: string[] = [];
   let cursor: string | undefined;
+  let error = false;
 
   try {
     do {
@@ -155,6 +157,7 @@ export async function kvListKeys(): Promise<string[]> {
       if (!response.ok) {
         const text = await response.text();
         console.error('KV list keys failed:', response.status, text);
+        error = true;
         break;
       }
 
@@ -166,6 +169,7 @@ export async function kvListKeys(): Promise<string[]> {
 
       if (!json.success) {
         console.error('KV list keys returned unsuccessful response');
+        error = true;
         break;
       }
 
@@ -177,9 +181,10 @@ export async function kvListKeys(): Promise<string[]> {
     } while (cursor);
   } catch (err) {
     console.error('KV list keys error:', err);
+    error = true;
   }
 
-  return keys;
+  return { keys, error };
 }
 
 /**

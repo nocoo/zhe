@@ -393,7 +393,7 @@ describe('kvListKeys', () => {
 
   it('returns empty array when KV is not configured', async () => {
     const result = await kvListKeys();
-    expect(result).toEqual([]);
+    expect(result).toEqual({ keys: [], error: false });
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -420,7 +420,7 @@ describe('kvListKeys', () => {
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
 
-    expect(result).toEqual(['slug-a', 'slug-b']);
+    expect(result).toEqual({ keys: ['slug-a', 'slug-b'], error: false });
   });
 
   it('handles pagination via cursor', async () => {
@@ -455,10 +455,10 @@ describe('kvListKeys', () => {
     const [url2] = unwrap(mockFetch.mock.calls[1]);
     expect(url2).toBe(`${BASE_URL}/keys?cursor=cursor-abc`);
 
-    expect(result).toEqual(['key-1', 'key-2', 'key-3']);
+    expect(result).toEqual({ keys: ['key-1', 'key-2', 'key-3'], error: false });
   });
 
-  it('returns partial results on non-ok response', async () => {
+  it('returns error flag on non-ok response', async () => {
     setEnv();
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockResolvedValueOnce({
@@ -469,7 +469,7 @@ describe('kvListKeys', () => {
 
     const result = await kvListKeys();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ keys: [], error: true });
     expect(consoleSpy).toHaveBeenCalledWith(
       'KV list keys failed:',
       500,
@@ -478,7 +478,7 @@ describe('kvListKeys', () => {
     consoleSpy.mockRestore();
   });
 
-  it('returns partial results on unsuccessful response', async () => {
+  it('returns error flag on unsuccessful response', async () => {
     setEnv();
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockResolvedValueOnce({
@@ -491,21 +491,21 @@ describe('kvListKeys', () => {
 
     const result = await kvListKeys();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ keys: [], error: true });
     expect(consoleSpy).toHaveBeenCalledWith(
       'KV list keys returned unsuccessful response',
     );
     consoleSpy.mockRestore();
   });
 
-  it('returns partial results on network error', async () => {
+  it('returns error flag on network error', async () => {
     setEnv();
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('network failure'));
 
     const result = await kvListKeys();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ keys: [], error: true });
     expect(consoleSpy).toHaveBeenCalledWith(
       'KV list keys error:',
       expect.any(Error),
@@ -513,7 +513,7 @@ describe('kvListKeys', () => {
     consoleSpy.mockRestore();
   });
 
-  it('returns collected keys even if pagination fails midway', async () => {
+  it('returns collected keys with error flag if pagination fails midway', async () => {
     setEnv();
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch
@@ -529,8 +529,8 @@ describe('kvListKeys', () => {
 
     const result = await kvListKeys();
 
-    // Should return keys collected before the error
-    expect(result).toEqual(['key-1']);
+    // Should return keys collected before the error, with error flag
+    expect(result).toEqual({ keys: ['key-1'], error: true });
     consoleSpy.mockRestore();
   });
 });
