@@ -195,6 +195,22 @@ describe('UploadZone', () => {
 
     expect(clickSpy).toHaveBeenCalled();
   });
+
+  it('calls onFiles when file is selected via input change', () => {
+    render(
+      <UploadZone
+        isDragOver={false}
+        onDragOver={mockOnDragOver}
+        onFiles={mockOnFiles}
+      />,
+    );
+
+    const input = screen.getByTestId('upload-input');
+    const file = new File(['data'], 'selected.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(mockOnFiles).toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------

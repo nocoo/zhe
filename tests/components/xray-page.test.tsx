@@ -651,6 +651,33 @@ describe('XrayPage', () => {
     );
   });
 
+  // ── Input onChange handlers ──
+
+  it('calls setApiUrl when custom URL input changes', () => {
+    mockVm.urlMode = 'custom';
+    render(<XrayPage />);
+
+    const input = screen.getByTestId('xray-api-url');
+    fireEvent.change(input, { target: { value: 'https://custom.example.com' } });
+    expect(mockVm.setApiUrl).toHaveBeenCalledWith('https://custom.example.com');
+  });
+
+  it('calls setApiToken when API key input changes', () => {
+    render(<XrayPage />);
+
+    const input = screen.getByTestId('xray-api-token');
+    fireEvent.change(input, { target: { value: 'my-secret-token' } });
+    expect(mockVm.setApiToken).toHaveBeenCalledWith('my-secret-token');
+  });
+
+  it('calls setTweetInput when tweet URL input changes', () => {
+    render(<XrayPage />);
+
+    const input = screen.getByTestId('xray-tweet-input');
+    fireEvent.change(input, { target: { value: 'https://x.com/user/status/456' } });
+    expect(mockVm.setTweetInput).toHaveBeenCalledWith('https://x.com/user/status/456');
+  });
+
   // ── Enter key to fetch ──
 
   it('triggers fetch on Enter key when extractedId exists', () => {
