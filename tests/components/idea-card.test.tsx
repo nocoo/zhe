@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
-import type { IdeaListItem } from "@/lib/db/scoped";
-import type { Tag } from "@/models/types";
+import { makeIdea, makeTag } from "../fixtures";
 
 // Mock tag styles
 vi.mock("@/models/tags", () => ({
@@ -13,28 +12,8 @@ vi.mock("@/models/tags", () => ({
 }));
 
 // Test helpers
-function makeIdea(overrides: Partial<IdeaListItem> = {}): IdeaListItem {
-  return {
-    id: 1,
-    title: "Test Idea",
-    excerpt: "This is a test excerpt",
-    tagIds: [],
-    createdAt: new Date("2026-01-15T10:00:00Z"),
-    updatedAt: new Date("2026-01-15T12:00:00Z"),
-    ...overrides,
-  };
-}
 
-function makeTag(overrides: Partial<Tag> = {}): Tag {
-  return {
-    id: "tag-1",
-    userId: "user-1",
-    name: "Work",
-    color: "#ff0000",
-    createdAt: new Date("2026-01-01"),
-    ...overrides,
-  };
-}
+import type { Tag } from "@/models/types";
 
 describe("IdeaCard", () => {
   const defaultProps = {

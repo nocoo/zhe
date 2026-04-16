@@ -1,4 +1,5 @@
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
+import type { IdeaListItem } from '@/lib/db/scoped';
 
 /**
  * Creates a minimal Link fixture with sensible defaults.
@@ -59,6 +60,21 @@ export function makeLinkTag(overrides: Partial<LinkTag> = {}): LinkTag {
   return {
     linkId: 1,
     tagId: 'tag-1',
+    ...overrides,
+  };
+}
+
+/**
+ * Creates a minimal IdeaListItem fixture with sensible defaults.
+ */
+export function makeIdea(overrides: Partial<IdeaListItem> = {}): IdeaListItem {
+  return {
+    id: 1,
+    title: 'Test Idea',
+    excerpt: 'Test excerpt',
+    tagIds: [],
+    createdAt: new Date('2026-01-15T10:00:00Z'),
+    updatedAt: new Date('2026-01-15T12:00:00Z'),
     ...overrides,
   };
 }

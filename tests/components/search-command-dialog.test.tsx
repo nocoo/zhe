@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Link, Folder } from "@/models/types";
-import type { IdeaListItem } from "@/lib/db/scoped";
 import { unwrap } from "../test-utils";
+import { makeLink, makeFolder, makeIdea } from "../fixtures";
 
 // ── Mocks ──
 
@@ -79,49 +78,6 @@ function expectItemWithText(slug: string, text: string) {
  */
 function expectNoItem(slug: string) {
   expect(getCmdkItem(slug)).toBeNull();
-}
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: "user-1",
-    folderId: null,
-    originalUrl: "https://example.com",
-    slug: "abc123",
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date("2026-01-15"),
-    ...overrides,
-  };
-}
-
-function makeFolder(overrides: Partial<Folder> = {}): Folder {
-  return {
-    id: "folder-1",
-    userId: "user-1",
-    name: "Work",
-    icon: "briefcase",
-    createdAt: new Date("2026-01-01"),
-    ...overrides,
-  };
-}
-
-function makeIdea(overrides: Partial<IdeaListItem> = {}): IdeaListItem {
-  return {
-    id: 1,
-    title: "Test Idea",
-    excerpt: "Test excerpt",
-    tagIds: [],
-    createdAt: new Date("2026-01-15T10:00:00Z"),
-    updatedAt: new Date("2026-01-15T12:00:00Z"),
-    ...overrides,
-  };
 }
 
 function renderDialog(props: { open?: boolean; onOpenChange?: () => void } = {}) {
