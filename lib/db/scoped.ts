@@ -1068,8 +1068,14 @@ export class ScopedDB {
   }
 
   /**
-   * Create a new idea with atomic tag binding.
-   * Validates tagIds belong to user, then uses D1 batch for atomicity.
+   * Create a new idea with tag binding.
+   * Validates tagIds belong to user, then inserts idea and binds tags.
+   *
+   * Note: D1 batch() cannot share variables across statements (last_insert_rowid()
+   * returns the most recent INSERT across ALL statements). So we:
+   * 1. Insert the idea and get its ID via RETURNING
+   * 2. Batch-insert tag bindings with the concrete ID
+   * 3. If step 2 fails, delete the idea (compensating transaction)
    */
   async createIdea(data: {
     content: string;
@@ -1080,7 +1086,7 @@ export class ScopedDB {
     const excerpt = generateExcerpt(data.content, 200);
     const tagIds = data.tagIds ?? [];
 
-    // Step 1: Pre-validate tagIds belong to user (fail-fast before batch)
+    // Step 1: Pre-validate tagIds belong to user (fail-fast before any mutation)
     if (tagIds.length > 0) {
       const placeholders = tagIds.map(() => '?').join(', ');
       const validTags = await executeD1Query<{ id: string }>(
@@ -1094,9 +1100,7 @@ export class ScopedDB {
       }
     }
 
-    // Step 2: Insert idea first to get the concrete ID
-    // (Cannot use last_insert_rowid() in batch — it returns the most recent
-    // INSERT across ALL statements, not just a specific table)
+    // Step 2: Insert idea to get its concrete ID
     const [ideaRow] = await executeD1Query<Record<string, unknown>>(
       `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)
@@ -1110,11 +1114,18 @@ export class ScopedDB {
 
     // Step 3: Batch-insert tag bindings with explicit idea ID
     if (tagIds.length > 0) {
-      const tagStatements: D1Statement[] = tagIds.map((tagId) => ({
-        sql: `INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)`,
-        params: [idea.id, tagId],
-      }));
-      await executeD1Batch(tagStatements);
+      try {
+        const tagStatements: D1Statement[] = tagIds.map((tagId) => ({
+          sql: `INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)`,
+          params: [idea.id, tagId],
+        }));
+        await executeD1Batch(tagStatements);
+      } catch (err) {
+        // Compensating transaction: delete the idea if tag binding fails
+        console.error('createIdea: tag binding failed, rolling back idea', err);
+        await executeD1Query('DELETE FROM ideas WHERE id = ?', [idea.id]);
+        throw err;
+      }
     }
 
     return {
