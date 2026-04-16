@@ -250,4 +250,26 @@ describe('performKVSync', () => {
 
     consoleSpy.mockRestore();
   });
+
+  it('keeps dirty flag when orphan deletion fails', async () => {
+    mockIsKVConfigured.mockReturnValue(true);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetAllLinksForKV.mockResolvedValue([
+      { id: 1, slug: 'abc', originalUrl: 'https://a.com', expiresAt: null },
+    ]);
+    mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
+    mockKvListKeys.mockResolvedValue(['abc', 'orphan1']);
+    mockKvBulkDeleteLinks.mockResolvedValue({ success: 0, failed: 1 });
+
+    _resetDirtyFlag(true);
+    const result = await performKVSync();
+
+    expect(result.deleted).toBe(0);
+    expect(isKVDirty()).toBe(true);
+
+    const history = getCronHistory();
+    expect(unwrap(history[0]).status).toBe('error');
+
+    consoleSpy.mockRestore();
+  });
 });

@@ -88,15 +88,18 @@ export async function performKVSync(): Promise<SyncResult> {
   const orphanedSlugs = kvKeys.filter((key) => !d1Slugs.has(key));
 
   let deleted = 0;
+  let deleteFailed = 0;
   if (orphanedSlugs.length > 0) {
     const deleteResult = await kvBulkDeleteLinks(orphanedSlugs);
     deleted = deleteResult.success;
+    deleteFailed = deleteResult.failed;
     console.log(
-      `sync-kv: deleted ${deleted} orphaned slugs, ${deleteResult.failed} failed`,
+      `sync-kv: deleted ${deleted} orphaned slugs, ${deleteFailed} failed`,
     );
   }
 
   const durationMs = Date.now() - startTime;
+  const hasFailures = result.failed > 0 || deleteFailed > 0;
 
   console.log(
     `sync-kv: synced ${result.success} links, ${result.failed} failed, deleted ${deleted} orphans, ${durationMs}ms`,
@@ -104,14 +107,15 @@ export async function performKVSync(): Promise<SyncResult> {
 
   recordCronResult({
     timestamp: new Date().toISOString(),
-    status: result.failed > 0 ? 'error' : 'success',
+    status: hasFailures ? 'error' : 'success',
     synced: result.success,
     failed: result.failed,
     total: links.length,
     durationMs,
   });
 
-  if (result.failed === 0) {
+  // Only clear dirty flag if both put and delete succeeded
+  if (!hasFailures) {
     clearKVDirty();
   }
 
