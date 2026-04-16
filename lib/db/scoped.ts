@@ -1094,26 +1094,27 @@ export class ScopedDB {
       }
     }
 
-    // Step 2: Insert the idea first, get its ID via RETURNING
-    const ideaRows = await executeD1Query<Record<string, unknown>>(
+    // Step 2: Insert idea first to get the concrete ID
+    // (Cannot use last_insert_rowid() in batch — it returns the most recent
+    // INSERT across ALL statements, not just a specific table)
+    const [ideaRow] = await executeD1Query<Record<string, unknown>>(
       `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            RETURNING *`,
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING *`,
       [this.userId, data.title ?? null, data.content, excerpt, now, now],
     );
-    const ideaRow = ideaRows[0];
     if (!ideaRow) {
       throw new Error('Failed to create idea');
     }
     const idea = rowToIdea(ideaRow);
 
-    // Step 3: Insert tag bindings using the concrete idea ID
+    // Step 3: Batch-insert tag bindings with explicit idea ID
     if (tagIds.length > 0) {
-      const statements: D1Statement[] = tagIds.map(tagId => ({
-        sql: 'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
+      const tagStatements: D1Statement[] = tagIds.map((tagId) => ({
+        sql: `INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)`,
         params: [idea.id, tagId],
       }));
-      await executeD1Batch(statements);
+      await executeD1Batch(tagStatements);
     }
 
     return {
