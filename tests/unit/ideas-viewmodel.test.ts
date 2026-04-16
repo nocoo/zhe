@@ -457,6 +457,89 @@ describe("useIdeasViewModel", () => {
   });
 
   // ================================================================
+  // Exception handling (thrown errors, not error responses)
+  // ================================================================
+
+  describe("exception handling", () => {
+    it("handles fetch exception gracefully", async () => {
+      mockGetIdeas.mockRejectedValue(new Error("Network failure"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.ideas).toEqual([]);
+    });
+
+    it("ignores fetch result after unmount (cancelled)", async () => {
+      let resolve: ((v: unknown) => void) | undefined;
+      mockGetIdeas.mockImplementation(
+        () => new Promise((r) => { resolve = r; }),
+      );
+
+      const { result, unmount } = renderHook(() => useIdeasViewModel());
+      expect(result.current.loading).toBe(true);
+
+      // Unmount before fetch resolves
+      unmount();
+
+      // Resolve after unmount — should not throw
+      if (resolve) resolve({ success: true, data: [makeIdea({ id: 99 })] });
+      // No assertion needed; just verifying no crash
+    });
+
+    it("handles create idea exception", async () => {
+      mockCreateIdea.mockRejectedValue(new Error("Server down"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let success: boolean = true;
+      await act(async () => {
+        success = await result.current.handleCreateIdea({ content: "Test" });
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to create idea");
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it("handles update idea exception", async () => {
+      mockUpdateIdea.mockRejectedValue(new Error("Server down"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let success: boolean = true;
+      await act(async () => {
+        success = await result.current.handleUpdateIdea(1, { title: "X" });
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to update idea");
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it("handles delete idea exception", async () => {
+      mockDeleteIdea.mockRejectedValue(new Error("Server down"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let success: boolean = true;
+      await act(async () => {
+        success = await result.current.handleDeleteIdea(1);
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to delete idea");
+      expect(result.current.isDeleting).toBe(false);
+    });
+  });
+
+  // ================================================================
   // Helpers
   // ================================================================
 
