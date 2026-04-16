@@ -1,0 +1,2 @@
+{"type":"config","name":"Optimize test suite execution speed while maintaining 95%+ coverage","metricName":"test_time_s","metricUnit":"s","bestDirection":"lower"}
+{"run":1,"commit":"558b134","metric":10.8,"metrics":{"passing_tests":821,"total_tests":2092},"status":"keep","description":"Baseline: 2092 tests, 821 pass, 1271 fail, 10.80s","timestamp":1776382079646,"segment":0,"confidence":null,"iterationTokens":639,"asi":{"hypothesis":"Baseline measurement","test_command":"bun test --run"}}
