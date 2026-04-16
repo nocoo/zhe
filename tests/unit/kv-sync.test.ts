@@ -213,6 +213,10 @@ describe('performKVSync', () => {
     expect(result.deleted).toBe(2);
     expect(mockKvBulkDeleteLinks).toHaveBeenCalledWith(['orphan1', 'orphan2']);
 
+    // Verify deleted is recorded in cron history
+    const history = getCronHistory();
+    expect(unwrap(history[0]).deleted).toBe(2);
+
     consoleSpy.mockRestore();
   });
 

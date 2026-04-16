@@ -110,6 +110,7 @@ export async function performKVSync(): Promise<SyncResult> {
     status: hasFailures ? 'error' : 'success',
     synced: result.success,
     failed: result.failed,
+    deleted,
     total: links.length,
     durationMs,
   });
