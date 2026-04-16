@@ -1,7 +1,7 @@
 vi.unmock('@/lib/db/d1-client');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
+import { executeD1Query, executeD1Batch, isD1Configured } from '@/lib/db/d1-client';
 import { unwrap } from '../test-utils';
 
 const mockFetch = vi.fn();
@@ -188,6 +188,29 @@ describe('executeD1Query', () => {
     expect(url).toBe('https://zhe-edge-test.workers.dev/api/d1-query');
   });
 
+  it('throws fallback "D1 query failed" when data.error is undefined', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false }),
+    });
+
+    await expect(executeD1Query('SELECT 1')).rejects.toThrow('D1 query failed');
+    consoleSpy.mockRestore();
+  });
+
+  it('returns empty array when data.results is undefined', async () => {
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+
+    const data = await executeD1Query('SELECT 1');
+    expect(data).toEqual([]);
+  });
+
   it('throws when fetch times out via AbortSignal', async () => {
     setProxyEnv();
     mockFetch.mockImplementationOnce(
@@ -207,6 +230,127 @@ describe('executeD1Query', () => {
     );
 
     await expect(executeD1Query('SELECT 1')).rejects.toThrow();
+  });
+});
+
+describe('executeD1Batch', () => {
+  beforeEach(() => {
+    clearEnv();
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    clearEnv();
+  });
+
+  it('returns empty array for empty statements', async () => {
+    const result = await executeD1Batch([]);
+    expect(result).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('sends correct URL and headers', async () => {
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        results: [{ results: [{ id: 1 }], meta: { changes: 1, last_row_id: 1 } }],
+      }),
+    });
+
+    await executeD1Batch([{ sql: 'INSERT INTO t VALUES (?)', params: [1] }]);
+
+    const [url, init] = unwrap(mockFetch.mock.calls[0]);
+    expect(url).toBe('https://zhe-edge-test.workers.dev/api/d1-batch');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe('Bearer test-d1-proxy-secret');
+  });
+
+  it('handles proxy URL with trailing slash', async () => {
+    setProxyEnv({ D1_PROXY_URL: 'https://zhe-edge-test.workers.dev/' });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, results: [] }),
+    });
+
+    await executeD1Batch([{ sql: 'SELECT 1' }]);
+
+    const [url] = unwrap(mockFetch.mock.calls[0]);
+    expect(url).toBe('https://zhe-edge-test.workers.dev/api/d1-batch');
+  });
+
+  it('returns mapped results from batch response', async () => {
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        results: [
+          { results: [{ id: 1 }], meta: { changes: 1, last_row_id: 1 } },
+          { results: [{ id: 2 }, { id: 3 }], meta: { changes: 0, last_row_id: 0 } },
+        ],
+      }),
+    });
+
+    const data = await executeD1Batch([
+      { sql: 'INSERT INTO t VALUES (?)', params: [1] },
+      { sql: 'SELECT * FROM t' },
+    ]);
+
+    expect(data).toEqual([[{ id: 1 }], [{ id: 2 }, { id: 3 }]]);
+  });
+
+  it('throws on HTTP error', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    });
+
+    await expect(executeD1Batch([{ sql: 'SELECT 1' }])).rejects.toThrow('D1 batch failed');
+    consoleSpy.mockRestore();
+  });
+
+  it('throws on batch query error with message', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false, error: 'FOREIGN KEY constraint failed' }),
+    });
+
+    await expect(executeD1Batch([{ sql: 'DELETE FROM t' }])).rejects.toThrow('FOREIGN KEY constraint failed');
+    consoleSpy.mockRestore();
+  });
+
+  it('throws fallback "D1 batch failed" when data.error is undefined', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: false }),
+    });
+
+    await expect(executeD1Batch([{ sql: 'SELECT 1' }])).rejects.toThrow('D1 batch failed');
+    consoleSpy.mockRestore();
+  });
+
+  it('returns empty array when data.results is undefined', async () => {
+    setProxyEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+
+    const data = await executeD1Batch([{ sql: 'SELECT 1' }]);
+    expect(data).toEqual([]);
+  });
+
+  it('throws when credentials are missing', async () => {
+    await expect(executeD1Batch([{ sql: 'SELECT 1' }])).rejects.toThrow('D1 proxy not configured');
   });
 });
 
