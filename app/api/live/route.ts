@@ -14,8 +14,8 @@ export async function GET() {
   return NextResponse.json(
     {
       status: 'ok',
-      timestamp: new Date().toISOString(),
       version: APP_VERSION,
+      component: 'zhe',
     },
     {
       status: 200,
