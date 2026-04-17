@@ -345,7 +345,7 @@ export function useInlineLinkEditViewModel(
   // Form fields — initialised from the link
   const [editUrl, setEditUrl] = useState(link.originalUrl);
   const [editSlug, setEditSlug] = useState(link.slug);
-  const [editFolderId, setEditFolderId] = useState<string | undefined>(link.folderId ?? undefined);
+  const [editFolderId, setEditFolderId] = useState<string | null>(link.folderId ?? null);
   const [editNote, setEditNote] = useState(link.note ?? "");
   const [editScreenshotUrl, setEditScreenshotUrl] = useState(link.screenshotUrl ?? "");
 
@@ -353,7 +353,7 @@ export function useInlineLinkEditViewModel(
   useEffect(() => {
     setEditUrl(link.originalUrl);
     setEditSlug(link.slug);
-    setEditFolderId(link.folderId ?? undefined);
+    setEditFolderId(link.folderId ?? null);
     setEditNote(link.note ?? "");
     setEditScreenshotUrl(link.screenshotUrl ?? "");
   }, [link.id, link.originalUrl, link.slug, link.folderId, link.note, link.screenshotUrl]);
@@ -382,10 +382,13 @@ export function useInlineLinkEditViewModel(
 
     try {
       // Build update payload — include slug only if changed
-      const payload: { originalUrl: string; folderId?: string; slug?: string; screenshotUrl?: string | null } = {
+      const payload: { originalUrl: string; folderId?: string | null; slug?: string; screenshotUrl?: string | null } = {
         originalUrl: editUrl,
-        ...(editFolderId !== undefined && { folderId: editFolderId }),
       };
+      // Include folderId when it differs from the original (null means "move to inbox")
+      if (editFolderId !== link.folderId) {
+        payload.folderId = editFolderId ?? null;
+      }
       if (editSlug !== link.slug) {
         payload.slug = editSlug;
       }

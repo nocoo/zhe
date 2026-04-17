@@ -85,7 +85,7 @@ describe('useInlineLinkEditViewModel', () => {
         useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
       );
 
-      expect(result.current.editFolderId).toBeUndefined();
+      expect(result.current.editFolderId).toBeNull();
       expect(result.current.editNote).toBe('');
       expect(result.current.editScreenshotUrl).toBe('');
     });

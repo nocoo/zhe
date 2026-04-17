@@ -171,7 +171,7 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
  */
 export async function updateLink(
   linkId: number,
-  data: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; screenshotUrl?: string | null }
+  data: { originalUrl?: string; folderId?: string | null; expiresAt?: Date; slug?: string; screenshotUrl?: string | null }
 ): Promise<ActionResult<Link>> {
   try {
     const db = await getScopedDB();
@@ -197,7 +197,7 @@ export async function updateLink(
     }
 
     // Validate and sanitize slug if provided
-    const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
+    const updateData: { originalUrl?: string; folderId?: string | null; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
       ...(data.originalUrl !== undefined && { originalUrl: data.originalUrl }),
       ...(data.folderId !== undefined && { folderId: data.folderId }),
       ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt }),
