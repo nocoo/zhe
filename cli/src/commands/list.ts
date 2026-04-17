@@ -111,10 +111,15 @@ export const listCommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		try {
-			// Pre-fetch folders if needed (for --folder flag or display)
+			// Pre-fetch folders only when needed:
+			// - --folder is a non-UUID name that must be resolved
+			// (a UUID can be used directly without folders:read scope)
 			let cachedFolders: Folder[] | undefined;
-			const needsFolders = !!args.folder;
-			if (needsFolders) {
+			const uuidPattern =
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+			const folderArg = args.folder as string | undefined;
+			const needsFolderResolution = !!folderArg && !uuidPattern.test(folderArg);
+			if (needsFolderResolution) {
 				const foldersResponse = await client.listFolders();
 				cachedFolders = foldersResponse.folders;
 			}
@@ -128,13 +133,17 @@ export const listCommand = defineCommand({
 			if (args.sort) params.sort = args.sort as "created" | "clicks";
 			if (args.order) params.order = args.order as "asc" | "desc";
 
-			// Resolve folder name to ID using cached folders
-			if (args.folder && cachedFolders) {
-				const folderId = resolveFolderNameFromCache(args.folder, cachedFolders);
-				if (folderId === null) {
-					process.exit(EXIT_INVALID_ARGS);
+			// Resolve folder argument: UUIDs pass through; names use cache
+			if (folderArg) {
+				if (uuidPattern.test(folderArg)) {
+					params.folderId = folderArg;
+				} else if (cachedFolders) {
+					const folderId = resolveFolderNameFromCache(folderArg, cachedFolders);
+					if (folderId === null) {
+						process.exit(EXIT_INVALID_ARGS);
+					}
+					params.folderId = folderId;
 				}
-				params.folderId = folderId;
 			}
 
 			// Resolve tag name to ID
