@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parsePaginationParams, parseJsonBody, isErrorResponse } from '@/lib/api/validation';
+import { parsePaginationParams, parseJsonBody, isErrorResponse, validateUrl } from '@/lib/api/validation';
 import { NextResponse } from 'next/server';
 
 describe('parsePaginationParams', () => {
@@ -184,5 +184,46 @@ describe('isErrorResponse', () => {
 
   it('returns false for undefined', () => {
     expect(isErrorResponse(undefined)).toBe(false);
+  });
+});
+
+describe('validateUrl', () => {
+  it('returns parsed URL for valid https URL', () => {
+    const result = validateUrl('https://example.com/path?query=1');
+    expect(result).toBeInstanceOf(URL);
+    if (result instanceof URL) {
+      expect(result.hostname).toBe('example.com');
+      expect(result.pathname).toBe('/path');
+    }
+  });
+
+  it('returns parsed URL for valid http URL', () => {
+    const result = validateUrl('http://example.com');
+    expect(result).toBeInstanceOf(URL);
+  });
+
+  it('returns error for invalid URL', () => {
+    const result = validateUrl('not-a-url');
+    expect(result).toBe('Invalid URL');
+  });
+
+  it('returns error for javascript: protocol', () => {
+    const result = validateUrl('javascript:alert(1)');
+    expect(result).toBe('URL must use http or https protocol');
+  });
+
+  it('returns error for file: protocol', () => {
+    const result = validateUrl('file:///etc/passwd');
+    expect(result).toBe('URL must use http or https protocol');
+  });
+
+  it('returns error for data: protocol', () => {
+    const result = validateUrl('data:text/html,<script>alert(1)</script>');
+    expect(result).toBe('URL must use http or https protocol');
+  });
+
+  it('returns error for ftp: protocol', () => {
+    const result = validateUrl('ftp://ftp.example.com/file');
+    expect(result).toBe('URL must use http or https protocol');
   });
 });

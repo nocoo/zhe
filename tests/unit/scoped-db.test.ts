@@ -1756,6 +1756,17 @@ describe('ScopedDB', () => {
       expect(unwrap(updated).folderId).toBe(folder.id);
     });
 
+    it('updateLink clears folderId when set to null', async () => {
+      const db = new ScopedDB(USER_A);
+      const folder = await db.createFolder({ name: 'ToClear' });
+      const link = await db.createLink({ originalUrl: 'https://a.com', slug: 'clear-folder', folderId: folder.id });
+      expect(link.folderId).toBe(folder.id);
+
+      // Explicitly set folderId to null to clear it (move to inbox)
+      const cleared = await db.updateLink(link.id, { folderId: null });
+      expect(unwrap(cleared).folderId).toBeNull();
+    });
+
     it('updateLink updates expiresAt', async () => {
       const db = new ScopedDB(USER_A);
       const link = await db.createLink({ originalUrl: 'https://a.com', slug: 'upd-expires' });
