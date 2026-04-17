@@ -3,9 +3,12 @@
 ## Completed
 - [x] Remove unnecessary setTimeout in beforeEach (~1s improvement)
 - [x] Create shared test fixtures (makeLink, makeFolder, makeTag, makeLinkTag, makeIdea, makeUpload) in tests/fixtures.ts
-- [x] Update multiple test files to use shared fixtures (links-model, viewmodels, edit-link-viewmodel, inbox-viewmodel, settings-model, folder-viewmodel, links-list, inbox-triage, sidebar, search-command-dialog, idea-card, upload-viewmodel, upload)
+- [x] Update multiple test files to use shared fixtures:
+  - links-model, viewmodels, edit-link-viewmodel, inbox-viewmodel, settings-model
+  - folder-viewmodel, links-list, inbox-triage, sidebar, search-command-dialog
+  - idea-card, upload-viewmodel, upload, ideas-viewmodel
 
-**Result: ~50% reduction in test execution time (10.8s → ~6s)**
+**Result: ~45-50% reduction in test execution time (10.8s → ~5.5-6.2s)**
 
 ## Promising but Deferred
 
@@ -36,6 +39,7 @@
 
 ## Notes
 - Baseline: 10.80s (2092 tests, 821 pass)
-- Current: ~9.7s (same tests, same pass count)
+- Current: ~5.5-6.2s (same tests, same pass count)
 - Component tests are the slowest (2.5-3.5s each, mostly failing)
 - Worker tests are most efficient (72 tests in 64ms)
+- Key insight: Shared fixtures dramatically reduce module parsing/evaluation time
