@@ -1226,7 +1226,7 @@ describe('useInlineLinkEditViewModel', () => {
       saved = await result.current.saveEdit();
     });
 
-    expect(saved).toBe(true); // save attempted
+    expect(saved).toBe(false); // save failed, returns false
     expect(result.current.error).toBe('Slug taken');
     expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
   });

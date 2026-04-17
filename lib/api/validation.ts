@@ -69,3 +69,25 @@ export async function parseJsonBody(
 export function isErrorResponse(value: unknown): value is NextResponse {
   return value instanceof NextResponse;
 }
+
+/**
+ * Allowed URL protocols for user-provided URLs.
+ */
+const ALLOWED_PROTOCOLS = ['http:', 'https:'];
+
+/**
+ * Validate that a URL string is well-formed and uses an allowed protocol.
+ * Returns the parsed URL on success, or an error message string on failure.
+ */
+export function validateUrl(url: string): URL | string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return 'Invalid URL';
+  }
+  if (!ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
+    return 'URL must use http or https protocol';
+  }
+  return parsed;
+}

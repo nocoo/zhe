@@ -7,6 +7,7 @@ import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
 import { kvPutLink, kvDeleteLink } from '@/lib/kv/client';
 import { markKVDirty } from '@/lib/kv/dirty';
+import { validateUrl } from '@/lib/api/validation';
 import type { Link } from '@/lib/db/schema';
 
 export interface CreateLinkInput {
@@ -37,14 +38,9 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     const { db, userId } = ctx;
 
     // Validate URL
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(input.originalUrl);
-    } catch {
-      return { success: false, error: 'Invalid URL' };
-    }
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      return { success: false, error: 'URL must use http or https protocol' };
+    const urlResult = validateUrl(input.originalUrl);
+    if (typeof urlResult === 'string') {
+      return { success: false, error: urlResult };
     }
 
     let slug: string;
@@ -185,14 +181,9 @@ export async function updateLink(
 
     // Validate URL if provided (same as createLink)
     if (data.originalUrl) {
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(data.originalUrl);
-      } catch {
-        return { success: false, error: 'Invalid URL' };
-      }
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        return { success: false, error: 'URL must use http or https protocol' };
+      const urlResult = validateUrl(data.originalUrl);
+      if (typeof urlResult === 'string') {
+        return { success: false, error: urlResult };
       }
     }
 
