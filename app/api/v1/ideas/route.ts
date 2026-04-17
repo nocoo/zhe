@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
 import { ScopedDB, type IdeaListItem, type IdeaDetail } from "@/lib/db/scoped";
 
 /**
@@ -45,26 +46,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let ideas = await db.getIdeas(options);
 
     // Apply pagination with validation
-    const limitParam = url.searchParams.get("limit");
-    const offsetParam = url.searchParams.get("offset");
-
-    let limit = 100;
-    if (limitParam !== null) {
-      const parsed = parseInt(limitParam, 10);
-      if (isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-        return apiError("Invalid 'limit' parameter. Must be a non-negative integer.", 400);
-      }
-      limit = Math.min(parsed, 500);
+    const paginationResult = parsePaginationParams(url);
+    if (isErrorResponse(paginationResult)) {
+      return paginationResult;
     }
-
-    let offset = 0;
-    if (offsetParam !== null) {
-      const parsed = parseInt(offsetParam, 10);
-      if (isNaN(parsed) || !Number.isInteger(parsed) || parsed < 0) {
-        return apiError("Invalid 'offset' parameter. Must be a non-negative integer.", 400);
-      }
-      offset = parsed;
-    }
+    const { limit, offset } = paginationResult;
 
     ideas = ideas.slice(offset, offset + limit);
 
@@ -106,18 +92,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { auth, headers: rateLimitHeaders } = authResult;
   const { userId, keyId, keyPrefix } = auth;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("Invalid JSON body", 400);
+  const bodyResult = await parseJsonBody(request);
+  if (isErrorResponse(bodyResult)) {
+    return bodyResult;
   }
-
-  if (typeof body !== "object" || body === null) {
-    return apiError("Request body must be an object", 400);
-  }
-
-  const bodyObj = body as Record<string, unknown>;
+  const bodyObj = bodyResult;
 
   try {
     // Validate required fields
@@ -125,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return apiError("Missing or invalid 'content' field", 400);
     }
 
-    const content = (bodyObj.content as string).trim();
+    const content = bodyObj.content.trim();
     if (!content) {
       return apiError("Content cannot be empty", 400);
     }

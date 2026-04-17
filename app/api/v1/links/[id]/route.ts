@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { parseJsonBody, isErrorResponse } from "@/lib/api/validation";
 import { ScopedDB } from "@/lib/db/scoped";
 import { executeD1Batch, type D1Statement } from "@/lib/db/d1-client";
 import { slugExists } from "@/lib/db";
@@ -104,18 +105,11 @@ export async function PATCH(
   try {
     const db = new ScopedDB(userId);
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return apiError("Invalid JSON body", 400);
+    const bodyResult = await parseJsonBody(request);
+    if (isErrorResponse(bodyResult)) {
+      return bodyResult;
     }
-
-    if (typeof body !== "object" || body === null) {
-      return apiError("Request body must be an object", 400);
-    }
-
-    const bodyObj = body as Record<string, unknown>;
+    const bodyObj = bodyResult;
 
     // Get existing link first
     const existingLink = await db.getLinkById(linkId);
