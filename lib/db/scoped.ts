@@ -194,7 +194,14 @@ export class ScopedDB {
   /** Update a link by id. Returns updated link or null if not found/not owned. */
   async updateLink(
     id: number,
-    data: Partial<Pick<Link, 'originalUrl' | 'folderId' | 'expiresAt' | 'slug' | 'isCustom' | 'screenshotUrl'>>,
+    data: {
+      originalUrl?: string;
+      folderId?: string | null;
+      expiresAt?: Date | null;
+      slug?: string;
+      isCustom?: boolean;
+      screenshotUrl?: string | null;
+    },
   ): Promise<Link | null> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
@@ -205,7 +212,7 @@ export class ScopedDB {
     }
     if (data.folderId !== undefined) {
       setClauses.push('folder_id = ?');
-      params.push(data.folderId);
+      params.push(data.folderId ?? null); // Allow explicit null to clear folder
     }
     if (data.expiresAt !== undefined) {
       setClauses.push('expires_at = ?');

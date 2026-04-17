@@ -7,6 +7,7 @@ import { uploadBufferToR2 } from '@/lib/r2/client';
 import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
 import { kvPutLink, kvDeleteLink } from '@/lib/kv/client';
 import { markKVDirty } from '@/lib/kv/dirty';
+import { validateUrl } from '@/lib/api/validation';
 import type { Link } from '@/lib/db/schema';
 
 export interface CreateLinkInput {
@@ -37,14 +38,9 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     const { db, userId } = ctx;
 
     // Validate URL
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(input.originalUrl);
-    } catch {
-      return { success: false, error: 'Invalid URL' };
-    }
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      return { success: false, error: 'URL must use http or https protocol' };
+    const urlResult = validateUrl(input.originalUrl);
+    if (typeof urlResult === 'string') {
+      return { success: false, error: urlResult };
     }
 
     let slug: string;
@@ -175,7 +171,7 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
  */
 export async function updateLink(
   linkId: number,
-  data: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; screenshotUrl?: string | null }
+  data: { originalUrl?: string; folderId?: string | null; expiresAt?: Date; slug?: string; screenshotUrl?: string | null }
 ): Promise<ActionResult<Link>> {
   try {
     const db = await getScopedDB();
@@ -183,12 +179,11 @@ export async function updateLink(
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Validate URL if provided
+    // Validate URL if provided (same as createLink)
     if (data.originalUrl) {
-      try {
-        new URL(data.originalUrl);
-      } catch {
-        return { success: false, error: 'Invalid URL' };
+      const urlResult = validateUrl(data.originalUrl);
+      if (typeof urlResult === 'string') {
+        return { success: false, error: urlResult };
       }
     }
 
@@ -202,7 +197,7 @@ export async function updateLink(
     }
 
     // Validate and sanitize slug if provided
-    const updateData: { originalUrl?: string; folderId?: string; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
+    const updateData: { originalUrl?: string; folderId?: string | null; expiresAt?: Date; slug?: string; isCustom?: boolean; screenshotUrl?: string | null } = {
       ...(data.originalUrl !== undefined && { originalUrl: data.originalUrl }),
       ...(data.folderId !== undefined && { folderId: data.folderId }),
       ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt }),

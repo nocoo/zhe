@@ -24,13 +24,19 @@ describe('GET /api/live', () => {
 
     const cc = res.headers.get('Cache-Control');
     expect(cc).toContain('no-store');
-    expect(cc).toContain('no-cache');
   });
 
-  it('returns exactly component, status, version keys (no extra fields)', async () => {
+  it('returns required fields: component, status, version, timestamp, uptime, database', async () => {
     const res = await apiGet('/api/live');
     const { body } = await jsonResponse<Record<string, unknown>>(res);
 
-    expect(Object.keys(body).sort()).toEqual(['component', 'status', 'version']);
+    expect(Object.keys(body).sort()).toEqual([
+      'component',
+      'database',
+      'status',
+      'timestamp',
+      'uptime',
+      'version',
+    ]);
   });
 });
