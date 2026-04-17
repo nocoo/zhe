@@ -1094,35 +1094,46 @@ export class ScopedDB {
       }
     }
 
-    // Step 2: Build batch statements with RETURNING *
-    const statements: D1Statement[] = [
-      {
-        sql: `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)
-              RETURNING *`,
-        params: [this.userId, data.title ?? null, data.content, excerpt, now, now],
-      },
-    ];
-
-    // Add tag binding statements (tagIds already validated above)
-    for (const tagId of tagIds) {
-      statements.push({
-        sql: `INSERT INTO idea_tags (idea_id, tag_id)
-              VALUES (last_insert_rowid(), ?)`,
-        params: [tagId],
-      });
-    }
-
-    // Step 3: Single atomic batch — all succeed or all fail
-    const results = await executeD1Batch<Record<string, unknown>>(statements);
-
-    // First result is the idea INSERT RETURNING *
-    const ideaRow = results[0]?.[0];
+    // Step 2: Insert the idea first to obtain its concrete row ID.
+    //
+    // We cannot rely on `last_insert_rowid()` inside a multi-statement batch:
+    // in D1 batches, `last_insert_rowid()` returns the most recent INSERT's
+    // ID across ALL statements, so the second idea_tags INSERT would observe
+    // the first idea_tags INSERT's ID instead of the ideas INSERT's ID,
+    // causing FOREIGN KEY violations. Insert the parent row first via a
+    // single query with RETURNING *, then batch the children with the
+    // explicit ID. (See CLAUDE.md retrospective.)
+    const ideaRows = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [this.userId, data.title ?? null, data.content, excerpt, now, now],
+    );
+    const ideaRow = ideaRows[0];
     if (!ideaRow) {
       throw new Error('Failed to create idea');
     }
-
     const idea = rowToIdea(ideaRow);
+
+    // Step 3: Batch-insert tag bindings with the concrete idea ID.
+    if (tagIds.length > 0) {
+      const tagStatements: D1Statement[] = tagIds.map((tagId) => ({
+        sql: `INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)`,
+        params: [idea.id, tagId],
+      }));
+      try {
+        await executeD1Batch<Record<string, unknown>>(tagStatements);
+      } catch (err) {
+        // Compensating delete — roll back the parent row so the operation
+        // remains atomic from the caller's perspective.
+        await executeD1Query(
+          `DELETE FROM ideas WHERE id = ? AND user_id = ?`,
+          [idea.id, this.userId],
+        ).catch(() => {});
+        throw err;
+      }
+    }
+
     return {
       id: idea.id,
       title: idea.title,
