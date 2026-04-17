@@ -12,10 +12,11 @@ import { useLinkMutations } from '@/viewmodels/useLinkMutations';
 import type { Tag, LinkTag } from '@/models/types';
 
 describe('useLinkMutations — getUnassignedTags', () => {
+  const now = new Date();
   const allTags: Tag[] = [
-    { id: 'tag-1', name: 'React', color: '#f00', userId: 'u1' },
-    { id: 'tag-2', name: 'Vue', color: '#0f0', userId: 'u1' },
-    { id: 'tag-3', name: 'Svelte', color: '#00f', userId: 'u1' },
+    { id: 'tag-1', name: 'React', color: '#f00', userId: 'u1', createdAt: now },
+    { id: 'tag-2', name: 'Vue', color: '#0f0', userId: 'u1', createdAt: now },
+    { id: 'tag-3', name: 'Svelte', color: '#00f', userId: 'u1', createdAt: now },
   ];
 
   const allLinkTags: LinkTag[] = [
