@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import type { IdeaListItem, IdeaDetail } from "@/lib/db/scoped";
-import type { Tag } from "@/models/types";
+import type { IdeaDetail } from "@/lib/db/scoped";
 import { unwrap } from "../test-utils";
+import { makeIdea, makeTag } from "../fixtures";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -20,9 +20,9 @@ vi.mock("@/actions/ideas", () => ({
   deleteIdea: (...args: unknown[]) => mockDeleteIdea(...args),
 }));
 
-const mockTags: Tag[] = [
-  { id: "tag-1", userId: "user-1", name: "Work", color: "#ff0000", createdAt: new Date() },
-  { id: "tag-2", userId: "user-1", name: "Personal", color: "#00ff00", createdAt: new Date() },
+const mockTags = [
+  makeTag({ id: "tag-1", name: "Work", color: "#ff0000" }),
+  makeTag({ id: "tag-2", name: "Personal", color: "#00ff00" }),
 ];
 
 const mockHandleIdeaCreated = vi.fn();
@@ -43,16 +43,6 @@ import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-
-const makeIdea = (overrides: Partial<IdeaListItem> = {}): IdeaListItem => ({
-  id: 1,
-  title: "Test Idea",
-  excerpt: "This is a test idea excerpt",
-  tagIds: [],
-  createdAt: new Date("2026-01-15T10:00:00Z"),
-  updatedAt: new Date("2026-01-15T12:00:00Z"),
-  ...overrides,
-});
 
 const makeIdeaDetail = (overrides: Partial<IdeaDetail> = {}): IdeaDetail => ({
   ...makeIdea(overrides),

@@ -146,10 +146,7 @@ const FAKE_LINK = {
 // ---------------------------------------------------------------------------
 
 describe('actions/links — uncovered paths', () => {
-  beforeEach(async () => {
-    // Flush fire-and-forget microtasks (e.g. enrichLink) from previous tests
-    // before clearing mocks, so stale calls don't pollute the next test.
-    await new Promise((r) => setTimeout(r, 0));
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 

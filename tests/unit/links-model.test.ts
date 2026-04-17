@@ -16,30 +16,9 @@ import {
   isTwitterUrl,
   GITHUB_REPO_PREVIEW_URL,
 } from '@/models/links';
-import type { Link } from '@/models/types';
 import type { AnalyticsStats } from '@/models/types';
 import { unwrap } from '../test-utils';
-
-// Helper to create a minimal Link fixture
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15'),
-    ...overrides,
-  };
-}
+import { makeLink } from '../fixtures';
 
 describe('models/links', () => {
   afterEach(() => {

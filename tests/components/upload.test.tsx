@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { makeUpload } from '../fixtures';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -36,26 +37,11 @@ import { useUploadsViewModel, useUploadItemViewModel } from '@/viewmodels/useUpl
 import { UploadZone } from '@/components/dashboard/upload-zone';
 import { UploadItem, UploadingItem } from '@/components/dashboard/upload-item';
 import { UploadList } from '@/components/dashboard/upload-list';
-import type { Upload } from '@/lib/db/schema';
 import type { UploadingFile } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function makeUpload(overrides: Partial<Upload> = {}): Upload {
-  return {
-    id: 1,
-    userId: 'user-1',
-    key: '20260212/abc.png',
-    fileName: 'photo.png',
-    fileType: 'image/png',
-    fileSize: 1024,
-    publicUrl: 'https://s.zhe.to/20260212/abc.png',
-    createdAt: new Date('2026-02-12'),
-    ...overrides,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // UploadZone tests

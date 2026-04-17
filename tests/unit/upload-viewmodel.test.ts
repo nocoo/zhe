@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { Upload } from '@/lib/db/schema';
 import { unwrap } from '../test-utils';
+import { makeUpload } from '../fixtures';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -52,20 +52,6 @@ import { DEFAULT_JPEG_QUALITY } from '@/models/upload';
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function makeUpload(overrides: Partial<Upload> = {}): Upload {
-  return {
-    id: 1,
-    userId: 'user-1',
-    key: '20260212/abc-def.png',
-    fileName: 'photo.png',
-    fileType: 'image/png',
-    fileSize: 1024,
-    publicUrl: 'https://s.zhe.to/20260212/abc-def.png',
-    createdAt: new Date('2026-02-12'),
-    ...overrides,
-  };
-}
 
 function makeFile(name = 'photo.png', type = 'image/png', size = 1024): File {
   const content = new Uint8Array(size);

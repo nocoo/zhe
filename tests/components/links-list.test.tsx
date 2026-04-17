@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 import { unwrap } from '../test-utils';
+import { makeLink, makeFolder, makeTag } from '../fixtures';
 
 let mockSearchParamsFolder: string | null = null;
 
@@ -77,65 +78,53 @@ vi.mock('@/contexts/dashboard-service', () => ({
 import { LinksList } from '@/components/dashboard/links-list';
 
 const mockLinks: Link[] = [
-  {
+  makeLink({
     id: 1,
     userId: 'u1',
     slug: 'abc',
     originalUrl: 'https://example.com/1',
-    isCustom: false,
     clicks: 10,
     createdAt: new Date('2026-01-01'),
-    expiresAt: null,
     folderId: 'f1',
     metaTitle: 'Example 1',
-    metaDescription: null,
     metaFavicon: 'https://example.com/favicon.ico',
     screenshotUrl: 'https://screenshot.example.com/1.png',
-    note: null,
-  },
-  {
+  }),
+  makeLink({
     id: 2,
     userId: 'u1',
     slug: 'def',
     originalUrl: 'https://example.com/2',
-    isCustom: false,
     clicks: 5,
     createdAt: new Date('2026-01-02'),
-    expiresAt: null,
     folderId: 'f2',
     metaTitle: 'Example 2',
-    metaDescription: null,
     metaFavicon: 'https://example.com/favicon.ico',
     screenshotUrl: 'https://screenshot.example.com/2.png',
-    note: null,
-  },
-  {
+  }),
+  makeLink({
     id: 3,
     userId: 'u1',
     slug: 'ghi',
     originalUrl: 'https://example.com/3',
-    isCustom: false,
     clicks: 0,
     createdAt: new Date('2026-01-03'),
-    expiresAt: null,
     folderId: null,
     metaTitle: 'Example 3',
-    metaDescription: null,
     metaFavicon: 'https://example.com/favicon.ico',
     screenshotUrl: 'https://screenshot.example.com/3.png',
-    note: null,
-  },
+  }),
 ];
 
 const mockFolders: Folder[] = [
-  { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
-  { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
+  makeFolder({ id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') }),
+  makeFolder({ id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') }),
 ];
 
 const mockTags: Tag[] = [
-  { id: 't1', userId: 'u1', name: 'dev', color: 'cobalt', createdAt: new Date('2026-01-01') },
-  { id: 't2', userId: 'u1', name: 'design', color: 'rose', createdAt: new Date('2026-01-02') },
-  { id: 't3', userId: 'u1', name: 'blog', color: 'green', createdAt: new Date('2026-01-03') },
+  makeTag({ id: 't1', userId: 'u1', name: 'dev', color: 'cobalt', createdAt: new Date('2026-01-01') }),
+  makeTag({ id: 't2', userId: 'u1', name: 'design', color: 'rose', createdAt: new Date('2026-01-02') }),
+  makeTag({ id: 't3', userId: 'u1', name: 'blog', color: 'green', createdAt: new Date('2026-01-03') }),
 ];
 
 const mockLinkTags: LinkTag[] = [
