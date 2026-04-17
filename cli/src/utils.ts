@@ -168,14 +168,30 @@ export function formatLinkDetail(link: Link, folderName?: string): string {
 }
 
 /**
- * Parse a link ID from string, return null if invalid
+ * Strict positive-integer parser.
+ * Rejects empty strings, 0, negatives, decimals, scientific notation,
+ * hex literals, and any junk-suffixed input (e.g. "12abc", "1e2", "0x10").
+ * Only accepts decimal digit sequences without a leading zero.
  */
-export function parseLinkId(input: string): number | null {
-	const id = Number.parseInt(input, 10);
-	if (Number.isNaN(id) || id <= 0) {
+const STRICT_POSITIVE_INT = /^[1-9]\d*$/;
+
+export function parsePositiveInt(input: string): number | null {
+	if (!STRICT_POSITIVE_INT.test(input)) {
+		return null;
+	}
+	const id = Number(input);
+	if (!Number.isSafeInteger(id) || id <= 0) {
 		return null;
 	}
 	return id;
+}
+
+/**
+ * Parse a link ID from string, return null if invalid.
+ * Uses strict positive-integer parsing.
+ */
+export function parseLinkId(input: string): number | null {
+	return parsePositiveInt(input);
 }
 
 /**
