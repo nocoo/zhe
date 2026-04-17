@@ -6,6 +6,13 @@ import { NextResponse } from 'next/server';
 import { apiError } from './auth';
 
 /**
+ * Strict non-negative integer regex.
+ * Only allows decimal digits (0-9), no leading zeros except for "0" itself.
+ * Rejects: empty string, whitespace, floats, hex (0x10), scientific notation (1e2), negative numbers.
+ */
+const STRICT_NON_NEG_INT = /^(0|[1-9]\d*)$/;
+
+/**
  * Parse and validate pagination parameters from URL search params.
  * Returns validated { limit, offset } or an error response.
  *
@@ -22,21 +29,19 @@ export function parsePaginationParams(
 
   let limit = defaultLimit;
   if (limitParam !== null) {
-    // Strict integer parsing: reject floats, trailing chars, etc.
-    const parsed = Number(limitParam);
-    if (!Number.isInteger(parsed) || parsed < 0) {
+    // Strict integer parsing: only decimal digits, no hex/scientific/empty/whitespace
+    if (!STRICT_NON_NEG_INT.test(limitParam)) {
       return apiError("Invalid 'limit' parameter. Must be a non-negative integer.", 400);
     }
-    limit = Math.min(parsed, maxLimit);
+    limit = Math.min(Number(limitParam), maxLimit);
   }
 
   let offset = 0;
   if (offsetParam !== null) {
-    const parsed = Number(offsetParam);
-    if (!Number.isInteger(parsed) || parsed < 0) {
+    if (!STRICT_NON_NEG_INT.test(offsetParam)) {
       return apiError("Invalid 'offset' parameter. Must be a non-negative integer.", 400);
     }
-    offset = parsed;
+    offset = Number(offsetParam);
   }
 
   return { limit, offset };

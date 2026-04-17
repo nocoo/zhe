@@ -100,6 +100,58 @@ describe('parsePaginationParams', () => {
 
     expect(isErrorResponse(result)).toBe(true);
   });
+
+  it('returns error for empty limit string', () => {
+    const url = new URL('https://example.com/api?limit=');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for empty offset string', () => {
+    const url = new URL('https://example.com/api?offset=');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for whitespace-only limit', () => {
+    const url = new URL('https://example.com/api?limit=%20');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for scientific notation limit (1e2)', () => {
+    const url = new URL('https://example.com/api?limit=1e2');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for hex limit (0x10)', () => {
+    const url = new URL('https://example.com/api?limit=0x10');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for leading zeros (007)', () => {
+    const url = new URL('https://example.com/api?limit=007');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('accepts zero as valid limit', () => {
+    const url = new URL('https://example.com/api?limit=0');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(false);
+    if (!isErrorResponse(result)) {
+      expect(result.limit).toBe(0);
+    }
+  });
 });
 
 describe('parseJsonBody', () => {
