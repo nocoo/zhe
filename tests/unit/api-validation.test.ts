@@ -72,6 +72,34 @@ describe('parsePaginationParams', () => {
 
     expect(isErrorResponse(result)).toBe(true);
   });
+
+  it('returns error for float limit', () => {
+    const url = new URL('https://example.com/api?limit=1.5');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for float offset', () => {
+    const url = new URL('https://example.com/api?offset=2.7');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for limit with trailing characters', () => {
+    const url = new URL('https://example.com/api?limit=10abc');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
+
+  it('returns error for offset with trailing characters', () => {
+    const url = new URL('https://example.com/api?offset=5xyz');
+    const result = parsePaginationParams(url);
+
+    expect(isErrorResponse(result)).toBe(true);
+  });
 });
 
 describe('parseJsonBody', () => {

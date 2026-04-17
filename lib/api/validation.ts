@@ -22,8 +22,9 @@ export function parsePaginationParams(
 
   let limit = defaultLimit;
   if (limitParam !== null) {
-    const parsed = parseInt(limitParam, 10);
-    if (isNaN(parsed) || parsed < 0) {
+    // Strict integer parsing: reject floats, trailing chars, etc.
+    const parsed = Number(limitParam);
+    if (!Number.isInteger(parsed) || parsed < 0) {
       return apiError("Invalid 'limit' parameter. Must be a non-negative integer.", 400);
     }
     limit = Math.min(parsed, maxLimit);
@@ -31,8 +32,8 @@ export function parsePaginationParams(
 
   let offset = 0;
   if (offsetParam !== null) {
-    const parsed = parseInt(offsetParam, 10);
-    if (isNaN(parsed) || parsed < 0) {
+    const parsed = Number(offsetParam);
+    if (!Number.isInteger(parsed) || parsed < 0) {
       return apiError("Invalid 'offset' parameter. Must be a non-negative integer.", 400);
     }
     offset = parsed;
