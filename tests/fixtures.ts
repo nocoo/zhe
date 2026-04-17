@@ -1,5 +1,6 @@
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { IdeaListItem } from '@/lib/db/scoped';
+import type { Upload } from '@/lib/db/schema';
 
 /**
  * Creates a minimal Link fixture with sensible defaults.
@@ -75,6 +76,23 @@ export function makeIdea(overrides: Partial<IdeaListItem> = {}): IdeaListItem {
     tagIds: [],
     createdAt: new Date('2026-01-15T10:00:00Z'),
     updatedAt: new Date('2026-01-15T12:00:00Z'),
+    ...overrides,
+  };
+}
+
+/**
+ * Creates a minimal Upload fixture with sensible defaults.
+ */
+export function makeUpload(overrides: Partial<Upload> = {}): Upload {
+  return {
+    id: 1,
+    userId: 'user-1',
+    key: '20260212/abc.png',
+    fileName: 'photo.png',
+    fileType: 'image/png',
+    fileSize: 1024,
+    publicUrl: 'https://s.zhe.to/20260212/abc.png',
+    createdAt: new Date('2026-02-12'),
     ...overrides,
   };
 }
