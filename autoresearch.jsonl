@@ -1,0 +1,6 @@
+{"type":"config","name":"Speed up zhe pre-commit + pre-push hooks","metricName":"total_seconds","metricUnit":"s","bestDirection":"lower"}
+<<<<<<< Updated upstream
+=======
+{"run":1,"commit":"1498c9b","metric":252.942,"metrics":{"l1_unit_cov_s":6.903,"l1_integration_s":1.073,"g1_typecheck_s":1.766,"g1_lint_s":1.719,"g2_gitleaks_s":0.602,"l2_api_s":234.82,"g2_osv_s":5.592},"status":"keep","description":"Baseline: pre-commit + pre-push end-to-end timing","timestamp":1776551406590,"segment":0,"confidence":null,"iterationTokens":198,"asi":{"hypothesis":"Establish baseline; main hot spot is l2_api (235s).","bottleneck":"l2_api dominates 93% of total"}}
+>>>>>>> Stashed changes
+{"type":"config","name":"Speed up zhe pre-commit + pre-push hooks (real hook bench)","metricName":"total_seconds","metricUnit":"s","bestDirection":"lower"}

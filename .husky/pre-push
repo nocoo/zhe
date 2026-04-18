@@ -1,8 +1,28 @@
-# L2: Integration/API tests
-bun run test:api
-
-# G2: Dependency vulnerability scanning (hard gate)
-source "$(dirname "$0")/../scripts/ensure-tools.sh"
+# Run L2 API tests and osv-scanner in parallel (independent).
+set -o pipefail
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HOOK_DIR/../scripts/ensure-tools.sh"
 require_tool osv-scanner "dependency audit"
 [ -f bun.lock ] || { echo "❌ bun.lock not found" >&2; exit 1; }
-osv-scanner scan --lockfile=bun.lock
+
+TMPDIR_HOOK=$(mktemp -d -t zhe-prepush-XXXXXX)
+trap 'rm -rf "$TMPDIR_HOOK"' EXIT
+
+( bun run test:api                         >"$TMPDIR_HOOK/api.log"  2>&1; echo $? >"$TMPDIR_HOOK/api.exit" ) &
+API_PID=$!
+( osv-scanner scan --lockfile=bun.lock     >"$TMPDIR_HOOK/osv.log"  2>&1; echo $? >"$TMPDIR_HOOK/osv.exit" ) &
+OSV_PID=$!
+
+wait "$API_PID" 2>/dev/null || true
+wait "$OSV_PID" 2>/dev/null || true
+
+API_STATUS=$(cat "$TMPDIR_HOOK/api.exit" 2>/dev/null || echo 1)
+OSV_STATUS=$(cat "$TMPDIR_HOOK/osv.exit" 2>/dev/null || echo 1)
+
+echo "━━━ test:api (exit=$API_STATUS) ━━━"
+cat "$TMPDIR_HOOK/api.log"
+echo "━━━ osv-scanner (exit=$OSV_STATUS) ━━━"
+cat "$TMPDIR_HOOK/osv.log"
+
+[ "$API_STATUS" -eq 0 ] || { echo "❌ pre-push: test:api failed" >&2; exit "$API_STATUS"; }
+[ "$OSV_STATUS" -eq 0 ] || { echo "❌ pre-push: osv-scanner failed" >&2; exit "$OSV_STATUS"; }
