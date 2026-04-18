@@ -55,6 +55,32 @@ describe('parseBrowser', () => {
     expect(parseBrowser('')).toBe('Unknown');
     expect(parseBrowser('curl/7.64.1')).toBe('Unknown');
   });
+
+  // iOS browsers all include "Safari" in their UA but should be detected
+  // as their actual browser, not Safari (regression: GH issue #8).
+  it('should detect Chrome on iOS (CriOS) instead of Safari', () => {
+    expect(
+      parseBrowser(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1',
+      ),
+    ).toBe('Chrome');
+  });
+
+  it('should detect Firefox on iOS (FxiOS) instead of Safari', () => {
+    expect(
+      parseBrowser(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/120.0 Mobile/15E148 Safari/605.1.15',
+      ),
+    ).toBe('Firefox');
+  });
+
+  it('should detect Edge on iOS (EdgiOS) instead of Safari', () => {
+    expect(
+      parseBrowser(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 EdgiOS/120.0.0.0 Mobile/15E148 Safari/604.1',
+      ),
+    ).toBe('Edge');
+  });
 });
 
 describe('parseOS', () => {

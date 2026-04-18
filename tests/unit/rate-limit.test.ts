@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   checkRateLimit,
   resetRateLimit,
@@ -80,6 +80,47 @@ describe("Rate Limiting", () => {
       // 101st should be blocked
       const result = checkRateLimit("key-default");
       expect(result.allowed).toBe(false);
+    });
+
+    describe("sliding-window resetAt / retryAfter semantics", () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it("retryAfterSeconds reflects time until oldest request expires, not full window", () => {
+        const config: RateLimitConfig = { maxRequests: 1, windowMs: 30_000 };
+
+        // First call at t=0 fills the bucket
+        vi.setSystemTime(new Date(1_700_000_000_000));
+        const first = checkRateLimit("key-slide", config);
+        expect(first.allowed).toBe(true);
+
+        // 20s later, second call is blocked. The oldest timestamp expires
+        // 10s from now, so retryAfter should be ~10s (NOT 30s).
+        vi.setSystemTime(new Date(1_700_000_020_000));
+        const blocked = checkRateLimit("key-slide", config);
+        expect(blocked.allowed).toBe(false);
+        expect(blocked.retryAfterSeconds).toBe(10);
+      });
+
+      it("resetAt is anchored to oldest timestamp + windowMs, not now + windowMs", () => {
+        const config: RateLimitConfig = { maxRequests: 1, windowMs: 30_000 };
+
+        vi.setSystemTime(new Date(1_700_000_000_000));
+        checkRateLimit("key-reset-anchor", config);
+
+        // 20s later
+        vi.setSystemTime(new Date(1_700_000_020_000));
+        const blocked = checkRateLimit("key-reset-anchor", config);
+
+        // resetAt should be (1_700_000_000_000 + 30_000) / 1000 = 1_700_000_030
+        // Old (buggy) behavior would yield (now + windowMs) / 1000 = 1_700_000_050
+        expect(blocked.resetAt).toBe(1_700_000_030);
+      });
     });
   });
 
