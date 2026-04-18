@@ -8,7 +8,7 @@
  */
 
 /** Timeout for Worker proxy requests (ms). */
-const PROXY_FETCH_TIMEOUT_MS = 3_000;
+const PROXY_FETCH_TIMEOUT_MS = 10_000;
 
 /** Request/response format for Worker D1 proxy. */
 interface D1ProxyRequest {
