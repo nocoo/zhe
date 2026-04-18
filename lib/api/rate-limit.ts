@@ -76,10 +76,9 @@ export function checkRateLimit(
   const count = entry.timestamps.length;
   const remaining = Math.max(0, maxRequests - count);
 
-  // resetAt should be based on when the oldest request in the window expires
-  // If there are timestamps, the oldest one determines when a slot opens up
-  // Use ?? fallback to satisfy TypeScript's strict null checks
-  const oldestTimestamp = (entry.timestamps.length > 0 ? entry.timestamps[0] : now) ?? now;
+  // resetAt should be based on when the oldest request in the window expires.
+  // If empty, fall back to `now` so resetAt = now + windowMs (full window ahead).
+  const oldestTimestamp = entry.timestamps[0] ?? now;
   const resetAt = calculateResetAt(oldestTimestamp, windowMs);
   const retryAfterSeconds = Math.max(1, Math.ceil(calculateRetryAfterMs(oldestTimestamp, windowMs, now) / 1000));
 

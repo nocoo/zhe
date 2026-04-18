@@ -8,7 +8,12 @@
 /**
  * Evict expired entries from a timestamp array (mutates in place).
  *
- * @param timestamps - Array of request timestamps (milliseconds)
+ * IMPORTANT: Assumes `timestamps` is sorted ascending (push-only insertion).
+ * The eviction relies on the first non-expired index marking the boundary
+ * between expired and valid entries — out-of-order arrays will lose valid
+ * entries or retain expired ones.
+ *
+ * @param timestamps - Array of request timestamps (milliseconds), ascending
  * @param windowMs - Window duration in milliseconds
  * @param now - Current time in milliseconds
  * @returns The mutated timestamps array
