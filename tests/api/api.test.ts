@@ -12,19 +12,21 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { apiGet, apiPostWorker, jsonResponse } from './helpers/http';
-import { ensureTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
+import { seedTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
 import { unwrap } from '../test-utils';
+
+const TEST_USER_ID = 'api-root-test-user';
 
 // ---------------------------------------------------------------------------
 // Setup: ensure test user exists, clean up before/after
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  await ensureTestUser();
-  await cleanupTestData();
+  await cleanupTestData(TEST_USER_ID);
+  await seedTestUser(TEST_USER_ID);
 });
 
 afterAll(async () => {
-  await cleanupTestData();
+  await cleanupTestData(TEST_USER_ID);
 });
 
 // ============================================================
@@ -64,7 +66,7 @@ describe('GET /api/lookup', () => {
 
   it('returns the link when slug exists', async () => {
     const slug = testSlug('lookup');
-    await seedLink({ slug, originalUrl: 'https://github.com' });
+    await seedLink({ slug, originalUrl: 'https://github.com', userId: TEST_USER_ID });
 
     const res = await apiGet(`/api/lookup?slug=${slug}`);
     const { status, body } = await jsonResponse<{ found: boolean; originalUrl: string; slug: string; expiresAt: string | null }>(res);
@@ -82,6 +84,7 @@ describe('GET /api/lookup', () => {
       slug,
       originalUrl: 'https://expired.example.com',
       expiresAt: new Date(Date.now() - 86_400_000).toISOString(), // expired yesterday
+      userId: TEST_USER_ID,
     });
 
     const res = await apiGet(`/api/lookup?slug=${slug}`);
@@ -112,7 +115,7 @@ describe('POST /api/record-click', () => {
   });
 
   it('records a click successfully with full metadata', async () => {
-    const { id: linkId, slug } = await seedLink({ slug: testSlug('click-full') });
+    const { id: linkId, slug } = await seedLink({ slug: testSlug('click-full'), userId: TEST_USER_ID });
 
     const res = await apiPostWorker('/api/record-click', {
       linkId,
@@ -135,7 +138,7 @@ describe('POST /api/record-click', () => {
   });
 
   it('records a click with minimal metadata', async () => {
-    const { id: linkId } = await seedLink({ slug: testSlug('click-min') });
+    const { id: linkId } = await seedLink({ slug: testSlug('click-min'), userId: TEST_USER_ID });
 
     const res = await apiPostWorker('/api/record-click', { linkId });
     const { status, body } = await jsonResponse<{ success: boolean }>(res);
@@ -154,7 +157,7 @@ describe('Redirect flow (lookup → analytics)', () => {
 
   beforeEach(async () => {
     flowSlug = testSlug('flow');
-    const seeded = await seedLink({ slug: flowSlug, originalUrl: 'https://example.com/target' });
+    const seeded = await seedLink({ slug: flowSlug, originalUrl: 'https://example.com/target', userId: TEST_USER_ID });
     flowLinkId = seeded.id;
   });
 

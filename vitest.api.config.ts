@@ -18,7 +18,8 @@ export default defineConfig({
       'tests/api/**/*.test.ts',
     ],
     testTimeout: 15_000, // real HTTP can be slower
-    fileParallelism: false, // serialize: shared D1 test data + single dev server
+    fileParallelism: true,
+    maxConcurrency: 4,
   },
   resolve: {
     alias: {

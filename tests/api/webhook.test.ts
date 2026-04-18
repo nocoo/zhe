@@ -8,20 +8,21 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, apiPost, jsonResponse } from './helpers/http';
-import { ensureTestUser, seedWebhook, seedLink, seedFolder, cleanupTestData, testSlug } from './helpers/seed';
+import { seedTestUser, seedWebhook, seedLink, seedFolder, cleanupTestData, testSlug } from './helpers/seed';
 import { unwrap } from '../test-utils';
 
+const TEST_USER_ID = 'api-webhook-test-user';
 let webhookToken: string;
 
 beforeAll(async () => {
-  await ensureTestUser();
-  await cleanupTestData();
-  const wh = await seedWebhook();
+  await cleanupTestData(TEST_USER_ID);
+  await seedTestUser(TEST_USER_ID);
+  const wh = await seedWebhook({ userId: TEST_USER_ID });
   webhookToken = wh.token;
 });
 
 afterAll(async () => {
-  await cleanupTestData();
+  await cleanupTestData(TEST_USER_ID);
 });
 
 // ============================================================
@@ -147,7 +148,7 @@ describe('POST /api/link/create/[token]', () => {
 
   it('returns 409 when custom slug is already taken', async () => {
     const slug = testSlug('wh-taken');
-    await seedLink({ slug, originalUrl: 'https://existing.com' });
+    await seedLink({ slug, originalUrl: 'https://existing.com', userId: TEST_USER_ID });
 
     const res = await apiPost(`/api/link/create/${webhookToken}`, {
       url: 'https://example.com/conflict',
@@ -185,7 +186,7 @@ describe('POST /api/link/create/[token]', () => {
   });
 
   it('assigns link to folder when folder name matches', async () => {
-    const folderId = await seedFolder('WebhookTestFolder');
+    const folderId = await seedFolder('WebhookTestFolder', TEST_USER_ID);
 
     const res = await apiPost(`/api/link/create/${webhookToken}`, {
       url: `https://example.com/${testSlug('wh-folder')}`,
@@ -210,14 +211,15 @@ describe('POST /api/link/create/[token]', () => {
 
   it('link created via POST appears in GET stats', async () => {
     // Create a dedicated user for clean stats
+    const statsUserId = `${TEST_USER_ID}-stats`;
     const { executeD1 } = await import('./helpers/seed');
     await executeD1(
       'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
-      ['wh-stats-user', 'WH Stats User', 'wh-stats@test.local'],
+      [statsUserId, 'WH Stats User', `${statsUserId}@test.local`],
     );
 
     // Create a new webhook with its own user to get clean stats
-    const { token: freshToken, userId } = await seedWebhook({ userId: 'wh-stats-user' });
+    const { token: freshToken, userId } = await seedWebhook({ userId: statsUserId });
 
     const res = await apiPost(`/api/link/create/${freshToken}`, {
       url: `https://example.com/${testSlug('wh-stats')}`,

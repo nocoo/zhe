@@ -8,18 +8,19 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiHead, apiPost, jsonResponse } from './helpers/http';
-import { ensureTestUser, seedBackyPullKey, cleanupTestData } from './helpers/seed';
+import { seedTestUser, seedBackyPullKey, cleanupTestData } from './helpers/seed';
 
+const TEST_USER_ID = 'api-backy-test-user';
 let pullKey: string;
 
 beforeAll(async () => {
-  await ensureTestUser();
-  await cleanupTestData();
-  pullKey = await seedBackyPullKey();
+  await cleanupTestData(TEST_USER_ID);
+  await seedTestUser(TEST_USER_ID);
+  pullKey = await seedBackyPullKey(TEST_USER_ID);
 });
 
 afterAll(async () => {
-  await cleanupTestData();
+  await cleanupTestData(TEST_USER_ID);
 });
 
 // ============================================================

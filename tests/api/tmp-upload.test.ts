@@ -8,21 +8,22 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, jsonResponse } from './helpers/http';
-import { ensureTestUser, seedWebhook, cleanupTestData } from './helpers/seed';
+import { seedTestUser, seedWebhook, cleanupTestData } from './helpers/seed';
 
 const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17006';
+const TEST_USER_ID = 'api-tmp-upload-test-user';
 
 let webhookToken: string;
 
 beforeAll(async () => {
-  await ensureTestUser();
-  await cleanupTestData();
-  const wh = await seedWebhook();
+  await cleanupTestData(TEST_USER_ID);
+  await seedTestUser(TEST_USER_ID);
+  const wh = await seedWebhook({ userId: TEST_USER_ID });
   webhookToken = wh.token;
 });
 
 afterAll(async () => {
-  await cleanupTestData();
+  await cleanupTestData(TEST_USER_ID);
 });
 
 // ============================================================
