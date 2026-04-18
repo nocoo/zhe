@@ -105,6 +105,16 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [link] as T[];
       }
       
+      // SELECT id, slug, original_url, expires_at FROM links (getAllLinksForKV — no WHERE)
+      if (sqlLower.startsWith('select') && sqlLower.includes('from links') && !sqlLower.includes('where')) {
+        const results: unknown[] = [];
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          results.push(rawLink);
+        }
+        return results as T[];
+      }
+
       // SELECT COUNT(1) FROM links WHERE slug = ? (slugExists)
       if (sqlLower.includes('count(1)') && sqlLower.includes('from links') && sqlLower.includes('where slug = ?')) {
         const [slug] = params;
@@ -619,7 +629,21 @@ vi.mock('@/lib/db/d1-client', async () => {
       }
       
       // SELECT FROM links WHERE id = ? AND user_id = ?
-      if (sqlLower.includes('from links') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
+      // Also handles: SELECT * FROM links WHERE id IN (...) AND user_id = ?
+      if (sqlLower.includes('from links') && sqlLower.includes('where id') && sqlLower.includes('user_id = ?')) {
+        // Check if this is an IN (...) query (getLinksByIds)
+        if (sqlLower.includes('id in (')) {
+          const userId = params[params.length - 1];
+          const ids = params.slice(0, -1);
+          const results: unknown[] = [];
+          for (const link of mockLinks.values()) {
+            const rawLink = link as unknown as Record<string, unknown>;
+            if (ids.includes(rawLink.id) && rawLink.user_id === userId) {
+              results.push(link);
+            }
+          }
+          return results as T[];
+        }
         const [id, userId] = params;
         for (const link of mockLinks.values()) {
           const rawLink = link as unknown as Record<string, unknown>;
@@ -728,13 +752,17 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
-      // SELECT key FROM uploads WHERE id = ? AND user_id = ?
+      // SELECT FROM uploads WHERE id = ? AND user_id = ? (getUploadById or getUploadKey)
       if (sqlLower.includes('from uploads') && sqlLower.includes('where id = ?') && sqlLower.includes('and user_id = ?')) {
         const [id, userId] = params;
         for (const upload of mockUploads.values()) {
           const raw = upload as unknown as Record<string, unknown>;
           if (raw.id === id && raw.user_id === userId) {
-            return [{ key: raw.key }] as T[];
+            // If SELECT key only, return just key; otherwise return full row
+            if (sqlLower.startsWith('select key')) {
+              return [{ key: raw.key }] as T[];
+            }
+            return [upload] as T[];
           }
         }
         return [];
@@ -972,6 +1000,33 @@ vi.mock('@/lib/db/d1-client', async () => {
       }
 
       // ---- Link-Tags ----
+
+      // SELECT t.* FROM tags t JOIN link_tags lt ... WHERE lt.link_id = ? AND l.user_id = ? (getTagsForLink)
+      if (sqlLower.includes('from tags t') && sqlLower.includes('join link_tags') && sqlLower.includes('link_id = ?')) {
+        const [linkId, userId] = params;
+        const linkTags = getMockLinkTags();
+        const mockTags = getMockTags();
+        // Verify link ownership
+        let linkOwned = false;
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.id === linkId && rawLink.user_id === userId) { linkOwned = true; break; }
+        }
+        if (!linkOwned) return [] as T[];
+        const results: unknown[] = [];
+        for (const lt of linkTags) {
+          if (lt.link_id === linkId) {
+            for (const tag of mockTags.values()) {
+              const rawTag = tag as unknown as Record<string, unknown>;
+              if (rawTag.id === lt.tag_id) {
+                results.push(tag);
+                break;
+              }
+            }
+          }
+        }
+        return results as T[];
+      }
 
       // SELECT id FROM links WHERE id = ? AND user_id = ? (ownership check for addTagToLink)
       // This is already handled above by "SELECT FROM links WHERE id = ? AND user_id = ?"

@@ -65,9 +65,28 @@ function formatDate(isoDate: string): string {
 	}).format(date);
 }
 
-function formatTags(tags: Tag[]): string {
-	if (tags.length === 0) return "";
-	return tags.map((t) => `[${t.name}]`).join(" ");
+function formatTags(tagIds: string[], tagMap?: Map<string, string>): string {
+	if (!tagIds || tagIds.length === 0) return "";
+	return tagIds
+		.map((id) => `[${tagMap?.get(id) ?? id.slice(0, 8)}]`)
+		.join(" ");
+}
+
+/**
+ * Build a tagId→name map by fetching all tags from API.
+ * Returns undefined on failure (display degrades to truncated IDs).
+ */
+async function buildTagMap(
+	client: ApiClient,
+	tagIds: string[],
+): Promise<Map<string, string> | undefined> {
+	if (tagIds.length === 0) return undefined;
+	try {
+		const { tags } = await client.listTags();
+		return new Map(tags.map((t: Tag) => [t.id, t.name]));
+	} catch {
+		return undefined;
+	}
 }
 
 async function confirm(message: string): Promise<boolean> {
@@ -143,6 +162,10 @@ const listSubcommand = defineCommand({
 				return;
 			}
 
+			// Build tag name map for display (like links' folder prefetch)
+			const allTagIds = response.ideas.flatMap((i) => i.tagIds ?? []);
+			const tagMap = await buildTagMap(client, allTagIds);
+
 			// Table format
 			console.log(
 				pc.dim("ID    TIME             TITLE                    TAGS"),
@@ -155,7 +178,7 @@ const listSubcommand = defineCommand({
 					0,
 					24,
 				);
-				const tags = formatTags(idea.tags);
+				const tags = formatTags(idea.tagIds, tagMap);
 				console.log(
 					`${pc.cyan(String(idea.id).padEnd(6))}${time.padEnd(17)}${title.padEnd(25)}${pc.yellow(tags)}`,
 				);
@@ -201,7 +224,8 @@ const getSubcommand = defineCommand({
 			}
 
 			const { idea } = response;
-			const tags = formatTags(idea.tags);
+			const tagMap = await buildTagMap(client, idea.tagIds ?? []);
+			const tags = formatTags(idea.tagIds, tagMap);
 			const title = idea.title || formatDate(idea.createdAt);
 
 			console.log(pc.dim("─".repeat(40)));

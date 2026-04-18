@@ -143,7 +143,9 @@ export function DashboardServiceProvider({
 
   const refreshLinks = useCallback(async () => {
     const result = await getLinks();
-    setLinks(result.data ?? []);
+    if (result.success && result.data) {
+      setLinks(result.data);
+    }
   }, []);
 
   // ── Folders CRUD (memory sync) ──
@@ -205,8 +207,8 @@ export function DashboardServiceProvider({
       const result = await getIdeas();
       if (result.success && result.data) {
         setIdeas(result.data);
+        setIdeasLoaded(true);
       }
-      setIdeasLoaded(true);
     } catch (error) {
       console.error("Failed to load ideas:", error);
     } finally {

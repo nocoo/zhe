@@ -2,6 +2,7 @@
  * Shared utilities for zhe CLI
  */
 
+import { spawn } from "node:child_process";
 import { pc } from "@nocoo/cli-base";
 import type { ApiClient } from "./api/client.js";
 import type { Folder, Link, Tag } from "./api/types.js";
@@ -279,6 +280,43 @@ export async function resolveFolderName(
 	}
 
 	return matches[0].id;
+}
+
+/**
+ * Open a URL in the default browser.
+ * Uses spawn() with argv to prevent shell injection.
+ */
+export function openInBrowser(url: string): void {
+	const platform = process.platform;
+	let command: string;
+	let args: string[];
+
+	if (platform === "darwin") {
+		command = "open";
+		args = [url];
+	} else if (platform === "linux") {
+		command = "xdg-open";
+		args = [url];
+	} else if (platform === "win32") {
+		command = "cmd";
+		args = ["/c", "start", "", url];
+	} else {
+		console.log(pc.dim(`Unable to open browser on ${platform}. Visit: ${url}`));
+		return;
+	}
+
+	const child = spawn(command, args, { stdio: "ignore" });
+	const fallback = () => console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+	let failed = false;
+	child.on("error", () => {
+		failed = true;
+		fallback();
+	});
+	child.on("close", (code) => {
+		if (!failed && code !== 0) {
+			fallback();
+		}
+	});
 }
 
 /**

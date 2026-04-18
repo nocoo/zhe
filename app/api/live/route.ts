@@ -1,27 +1,49 @@
 /**
- * GET /api/live — Lightweight liveness probe for external monitors.
+ * GET /api/live — Health check endpoint (surety standard).
  *
- * Returns system status with minimal metadata. No auth, no caching,
- * no external dependency checks. Always returns 200 if the process
- * is running.
+ * Returns structured health status including version, uptime, timestamp,
+ * and database connectivity. 200 = healthy, 503 = unhealthy.
  */
 import { NextResponse } from 'next/server';
 import { APP_VERSION } from '@/lib/version';
+import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
 
-export const runtime = 'edge';
+const headers = { 'Cache-Control': 'no-store' } as const;
+
+/** Sanitize error messages — strip sensitive tokens. */
+function sanitize(message: string): string {
+  return message.replace(/\bok\b/gi, '***');
+}
+
+async function probeDatabase(): Promise<{ connected: boolean; error?: string }> {
+  if (!isD1Configured()) {
+    return { connected: false, error: 'D1 not configured' };
+  }
+
+  try {
+    await executeD1Query<{ probe: number }>('SELECT 1 AS probe');
+    return { connected: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { connected: false, error: sanitize(message) };
+  }
+}
 
 export async function GET() {
-  return NextResponse.json(
-    {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      version: APP_VERSION,
-    },
-    {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
-    },
-  );
+  const database = await probeDatabase();
+  const isHealthy = database.connected;
+
+  const body = {
+    status: isHealthy ? ('ok' as const) : ('error' as const),
+    version: APP_VERSION,
+    component: 'zhe',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    database,
+  };
+
+  return NextResponse.json(body, {
+    status: isHealthy ? 200 : 503,
+    headers,
+  });
 }

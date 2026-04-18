@@ -151,12 +151,11 @@ export function SearchCommandDialog({
     [siteUrl, onOpenChange],
   );
 
-  /** Navigate to the ideas page (with a specific idea in the future) */
+  /** Navigate to the idea editor page */
   const handleNavigateToIdea = useCallback(
-    (_ideaId: number) => {
+    (ideaId: number) => {
       onOpenChange(false);
-      // Navigate to ideas page; in the future we can pass ideaId as query param
-      router.push(`/dashboard/ideas`);
+      router.push(`/dashboard/ideas/${ideaId}`);
     },
     [onOpenChange, router],
   );

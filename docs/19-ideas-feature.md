@@ -138,65 +138,67 @@ interface IdeaDetail extends IdeaListItem {
 Unlike links (where tags are fire-and-forget), idea tags are bound atomically using `executeD1Batch()`:
 
 ```typescript
-// createIdea implementation sketch — uses D1 batch for atomicity
+// createIdea implementation — query + batch (NOT single batch with last_insert_rowid)
 async createIdea(data: { content: string; title?: string; tagIds?: string[] }): Promise<IdeaDetail> {
   const now = Date.now();
-  const excerpt = stripMarkdown(data.content).slice(0, 200);
-  
-  // Step 1: Pre-validate tagIds belong to user (fail-fast before batch)
-  if (data.tagIds?.length) {
+  const excerpt = generateExcerpt(data.content, 200);
+  const tagIds = data.tagIds ?? [];
+
+  // Step 1: Pre-validate tagIds belong to user (fail-fast)
+  if (tagIds.length > 0) {
+    const placeholders = tagIds.map(() => '?').join(', ');
     const validTags = await executeD1Query<{ id: string }>(
-      `SELECT id FROM tags WHERE user_id = ? AND id IN (${data.tagIds.map(() => '?').join(',')})`,
-      [this.userId, ...data.tagIds]
+      `SELECT id FROM tags WHERE user_id = ? AND id IN (${placeholders})`,
+      [this.userId, ...tagIds],
     );
-    if (validTags.length !== data.tagIds.length) {
+    if (validTags.length !== tagIds.length) {
       const validIds = new Set(validTags.map(t => t.id));
-      const invalid = data.tagIds.filter(id => !validIds.has(id));
+      const invalid = tagIds.filter(id => !validIds.has(id));
       throw new Error(`Invalid tag IDs: ${invalid.join(', ')}`);
     }
   }
-  
-  // Step 2: Build batch statements
-  const statements: D1Statement[] = [
-    {
-      sql: `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            RETURNING *`,
-      params: [this.userId, data.title ?? null, data.content, excerpt, now, now],
-    },
-  ];
-  
-  // Add tag binding statements (tagIds already validated above)
-  if (data.tagIds?.length) {
-    for (const tagId of data.tagIds) {
-      statements.push({
-        sql: `INSERT INTO idea_tags (idea_id, tag_id)
-              VALUES (last_insert_rowid(), ?)`,
-        params: [tagId],
-      });
-    }
-  }
-  
-  // Step 3: Single atomic batch — all succeed or all fail
-  const results = await executeD1Batch<Record<string, unknown>>(statements);
-  
-  // First result is the idea INSERT RETURNING *
-  const ideaRow = results[0]?.[0];
+
+  // Step 2: Insert idea via single query with RETURNING * to get the concrete ID
+  const ideaRows = await executeD1Query<Record<string, unknown>>(
+    `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+          RETURNING *`,
+    [this.userId, data.title ?? null, data.content, excerpt, now, now],
+  );
+  const ideaRow = ideaRows[0];
   if (!ideaRow) {
     throw new Error('Failed to create idea');
   }
-  
-  return { ...rowToIdea(ideaRow), tagIds: data.tagIds ?? [] };
+  const idea = rowToIdea(ideaRow);
+
+  // Step 3: Insert tag bindings using the concrete idea.id (NOT last_insert_rowid)
+  if (tagIds.length > 0) {
+    const statements: D1Statement[] = tagIds.map(tagId => ({
+      sql: 'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
+      params: [idea.id, tagId],
+    }));
+    await executeD1Batch(statements);
+  }
+
+  return { id: idea.id, title: idea.title, excerpt: idea.excerpt, ... };
 }
 ```
 
+> **⚠️ D1 batch pitfall**: Do NOT use `last_insert_rowid()` in a D1 `batch()` call with
+> multiple INSERT statements. In D1's batch API, `last_insert_rowid()` returns the rowid
+> of the **most recent INSERT across ALL statements in the batch**, not just the parent
+> table. With 2+ child INSERTs, the second child's `last_insert_rowid()` resolves to the
+> first child's rowid — causing FOREIGN KEY constraint failures. Always use
+> `RETURNING *` on the parent INSERT as a separate query, then pass the concrete ID to
+> the child batch. See `CLAUDE.md` Retrospective for details.
+
 **Key design points**:
 
-1. **Pre-validation**: TagIds are validated **before** the batch. If any tagId doesn't exist or doesn't belong to the user, we fail immediately without touching the database.
+1. **Pre-validation**: TagIds are validated **before** any writes. If any tagId doesn't exist or doesn't belong to the user, we fail immediately.
 
-2. **RETURNING \***: The INSERT uses `RETURNING *` so the batch result includes the created idea row.
+2. **Query + Batch (not single batch)**: The idea INSERT is a standalone `executeD1Query` with `RETURNING *` to get the concrete `idea.id`. Tag bindings are a separate `executeD1Batch` using that explicit ID.
 
-3. **Batch atomicity**: If any INSERT fails (e.g., constraint violation), the entire batch rolls back. The pre-validation ensures tag INSERTs won't silently insert 0 rows.
+3. **No `last_insert_rowid()`**: The child INSERT statements use the concrete `idea.id` parameter, avoiding the D1 batch rowid pitfall entirely.
 
 **Test requirement**: L1 unit tests must include:
 - Case 1: Create with invalid tagId → error returned, no idea created

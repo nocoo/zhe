@@ -6,6 +6,8 @@ import {
   kvPutLink,
   kvDeleteLink,
   kvBulkPutLinks,
+  kvListKeys,
+  kvBulkDeleteLinks,
   type KVLinkData,
 } from '@/lib/kv/client';
 import { unwrap } from '../test-utils';
@@ -380,5 +382,231 @@ describe('kvBulkPutLinks', () => {
 
     const body = JSON.parse(unwrap(unwrap(mockFetch.mock.calls[0])[1]).body);
     expect(body[0]).not.toHaveProperty('expiration');
+  });
+});
+
+// ─── kvListKeys ─────────────────────────────────────────────────────────────
+
+describe('kvListKeys', () => {
+  beforeEach(() => mockFetch.mockReset());
+  afterEach(() => clearEnv());
+
+  it('returns empty array when KV is not configured', async () => {
+    const result = await kvListKeys();
+    expect(result).toEqual({ keys: [], error: false });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('sends correct GET request and returns key names', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: [{ name: 'slug-a' }, { name: 'slug-b' }],
+        result_info: {},
+      }),
+    });
+
+    const result = await kvListKeys();
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, init] = unwrap(mockFetch.mock.calls[0]);
+
+    expect(url).toBe(`${BASE_URL}/keys`);
+    expect(init.method).toBe('GET');
+    expect(init.headers).toEqual({
+      Authorization: 'Bearer test-api-token',
+    });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+
+    expect(result).toEqual({ keys: ['slug-a', 'slug-b'], error: false });
+  });
+
+  it('handles pagination via cursor', async () => {
+    setEnv();
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: [{ name: 'key-1' }, { name: 'key-2' }],
+          result_info: { cursor: 'cursor-abc' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: [{ name: 'key-3' }],
+          result_info: {},
+        }),
+      });
+
+    const result = await kvListKeys();
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // First call should not have cursor
+    const [url1] = unwrap(mockFetch.mock.calls[0]);
+    expect(url1).toBe(`${BASE_URL}/keys`);
+
+    // Second call should have cursor
+    const [url2] = unwrap(mockFetch.mock.calls[1]);
+    expect(url2).toBe(`${BASE_URL}/keys?cursor=cursor-abc`);
+
+    expect(result).toEqual({ keys: ['key-1', 'key-2', 'key-3'], error: false });
+  });
+
+  it('returns error flag on non-ok response', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    });
+
+    const result = await kvListKeys();
+
+    expect(result).toEqual({ keys: [], error: true });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'KV list keys failed:',
+      500,
+      'Internal Server Error',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('returns error flag on unsuccessful response', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        result: [],
+      }),
+    });
+
+    const result = await kvListKeys();
+
+    expect(result).toEqual({ keys: [], error: true });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'KV list keys returned unsuccessful response',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('returns error flag on network error', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockRejectedValueOnce(new Error('network failure'));
+
+    const result = await kvListKeys();
+
+    expect(result).toEqual({ keys: [], error: true });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'KV list keys error:',
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('returns collected keys with error flag if pagination fails midway', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          result: [{ name: 'key-1' }],
+          result_info: { cursor: 'next-cursor' },
+        }),
+      })
+      .mockRejectedValueOnce(new Error('timeout'));
+
+    const result = await kvListKeys();
+
+    // Should return keys collected before the error, with error flag
+    expect(result).toEqual({ keys: ['key-1'], error: true });
+    consoleSpy.mockRestore();
+  });
+});
+
+// ─── kvBulkDeleteLinks ──────────────────────────────────────────────────────
+
+describe('kvBulkDeleteLinks', () => {
+  beforeEach(() => mockFetch.mockReset());
+  afterEach(() => clearEnv());
+
+  it('returns zeros when KV is not configured', async () => {
+    const result = await kvBulkDeleteLinks(['slug-a', 'slug-b']);
+    expect(result).toEqual({ success: 0, failed: 0 });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('returns zeros for empty slugs array', async () => {
+    setEnv();
+    const result = await kvBulkDeleteLinks([]);
+    expect(result).toEqual({ success: 0, failed: 0 });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('sends correct bulk DELETE request', async () => {
+    setEnv();
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    const result = await kvBulkDeleteLinks(['slug-a', 'slug-b', 'slug-c']);
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, init] = unwrap(mockFetch.mock.calls[0]);
+
+    expect(url).toBe(`${BASE_URL}/bulk`);
+    expect(init.method).toBe('DELETE');
+    expect(init.headers).toEqual({
+      Authorization: 'Bearer test-api-token',
+      'Content-Type': 'application/json',
+    });
+    expect(JSON.parse(init.body)).toEqual(['slug-a', 'slug-b', 'slug-c']);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+
+    expect(result).toEqual({ success: 3, failed: 0 });
+  });
+
+  it('counts failed entries on non-ok response', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    });
+
+    const result = await kvBulkDeleteLinks(['a', 'b']);
+
+    expect(result).toEqual({ success: 0, failed: 2 });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'KV bulk delete failed (batch 0):',
+      500,
+      'Internal Server Error',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('counts failed entries on network error', async () => {
+    setEnv();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockRejectedValueOnce(new Error('network down'));
+
+    const result = await kvBulkDeleteLinks(['x', 'y', 'z']);
+
+    expect(result).toEqual({ success: 0, failed: 3 });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'KV bulk delete error (batch 0):',
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
   });
 });

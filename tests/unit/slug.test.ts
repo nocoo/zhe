@@ -60,7 +60,7 @@ describe('generateUniqueSlug', () => {
 
   it('respects custom maxRetries', async () => {
     const checkExists = vi.fn().mockResolvedValue(true);
-    
+
     await expect(generateUniqueSlug(checkExists, 5)).rejects.toThrow(
       'Failed to generate unique slug after 5 attempts'
     );

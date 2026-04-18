@@ -86,7 +86,7 @@ export const IdeaCard = memo(function IdeaCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer",
+        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/80 cursor-pointer",
         className,
       )}
       onClick={handleClick}
@@ -128,7 +128,7 @@ export const IdeaCard = memo(function IdeaCard({
       )}
 
       {/* Footer: date and actions */}
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
         <span className="text-xs text-muted-foreground">
           {formatRelativeDate(idea.updatedAt)}
         </span>
@@ -199,7 +199,7 @@ export const IdeaRow = memo(function IdeaRow({
   return (
     <div
       className={cn(
-        "group flex items-center gap-4 rounded-lg border bg-card px-4 py-3 transition-all hover:shadow-sm cursor-pointer",
+        "group flex items-center gap-4 rounded-card border-0 bg-secondary shadow-none px-4 py-3 transition-colors hover:bg-secondary/80 cursor-pointer",
         className,
       )}
       onClick={handleClick}

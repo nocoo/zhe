@@ -1,30 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import type { IdeaListItem, IdeaDetail } from "@/lib/db/scoped";
-import type { Tag } from "@/models/types";
+import type { IdeaDetail } from "@/lib/db/scoped";
 import { unwrap } from "../test-utils";
+import { makeIdea, makeTag } from "../fixtures";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
 const mockGetIdeas = vi.fn();
-const mockGetIdea = vi.fn();
 const mockCreateIdea = vi.fn();
 const mockUpdateIdea = vi.fn();
 const mockDeleteIdea = vi.fn();
 
 vi.mock("@/actions/ideas", () => ({
   getIdeas: (...args: unknown[]) => mockGetIdeas(...args),
-  getIdea: (...args: unknown[]) => mockGetIdea(...args),
   createIdea: (...args: unknown[]) => mockCreateIdea(...args),
   updateIdea: (...args: unknown[]) => mockUpdateIdea(...args),
   deleteIdea: (...args: unknown[]) => mockDeleteIdea(...args),
 }));
 
-const mockTags: Tag[] = [
-  { id: "tag-1", userId: "user-1", name: "Work", color: "#ff0000", createdAt: new Date() },
-  { id: "tag-2", userId: "user-1", name: "Personal", color: "#00ff00", createdAt: new Date() },
+const mockTags = [
+  makeTag({ id: "tag-1", name: "Work", color: "#ff0000" }),
+  makeTag({ id: "tag-2", name: "Personal", color: "#00ff00" }),
 ];
 
 const mockHandleIdeaCreated = vi.fn();
@@ -45,16 +43,6 @@ import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-
-const makeIdea = (overrides: Partial<IdeaListItem> = {}): IdeaListItem => ({
-  id: 1,
-  title: "Test Idea",
-  excerpt: "This is a test idea excerpt",
-  tagIds: [],
-  createdAt: new Date("2026-01-15T10:00:00Z"),
-  updatedAt: new Date("2026-01-15T12:00:00Z"),
-  ...overrides,
-});
 
 const makeIdeaDetail = (overrides: Partial<IdeaDetail> = {}): IdeaDetail => ({
   ...makeIdea(overrides),
@@ -459,13 +447,12 @@ describe("useIdeasViewModel", () => {
   });
 
   // ================================================================
-  // Fetch Idea Detail
+  // Exception handling (thrown errors, not error responses)
   // ================================================================
 
-  describe("fetch idea detail", () => {
-    it("fetches and sets selected idea", async () => {
-      const detail = makeIdeaDetail({ id: 1 });
-      mockGetIdea.mockResolvedValue({ success: true, data: detail });
+  describe("exception handling", () => {
+    it("handles fetch exception gracefully", async () => {
+      mockGetIdeas.mockRejectedValue(new Error("Network failure"));
 
       const { result } = renderHook(() => useIdeasViewModel());
 
@@ -473,32 +460,72 @@ describe("useIdeasViewModel", () => {
         expect(result.current.loading).toBe(false);
       });
 
-      let fetchedIdea: IdeaDetail | null = null;
-      await act(async () => {
-        fetchedIdea = await result.current.fetchIdeaDetail(1);
-      });
-
-      expect(fetchedIdea).toEqual(detail);
-      expect(result.current.selectedIdea).toEqual(detail);
-      expect(result.current.loadingDetail).toBe(false);
+      expect(result.current.ideas).toEqual([]);
     });
 
-    it("handles fetch detail error", async () => {
-      mockGetIdea.mockResolvedValue({ success: false, error: "Not found" });
+    it("ignores fetch result after unmount (cancelled)", async () => {
+      let resolve: ((v: unknown) => void) | undefined;
+      mockGetIdeas.mockImplementation(
+        () => new Promise((r) => { resolve = r; }),
+      );
+
+      const { result, unmount } = renderHook(() => useIdeasViewModel());
+      expect(result.current.loading).toBe(true);
+
+      // Unmount before fetch resolves
+      unmount();
+
+      // Resolve after unmount — should not throw
+      if (resolve) resolve({ success: true, data: [makeIdea({ id: 99 })] });
+      // No assertion needed; just verifying no crash
+    });
+
+    it("handles create idea exception", async () => {
+      mockCreateIdea.mockRejectedValue(new Error("Server down"));
 
       const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let fetchedIdea: IdeaDetail | null = null;
+      let success: boolean = true;
       await act(async () => {
-        fetchedIdea = await result.current.fetchIdeaDetail(999);
+        success = await result.current.handleCreateIdea({ content: "Test" });
       });
 
-      expect(fetchedIdea).toBeNull();
-      expect(result.current.error).toBe("Not found");
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to create idea");
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it("handles update idea exception", async () => {
+      mockUpdateIdea.mockRejectedValue(new Error("Server down"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let success: boolean = true;
+      await act(async () => {
+        success = await result.current.handleUpdateIdea(1, { title: "X" });
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to update idea");
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it("handles delete idea exception", async () => {
+      mockDeleteIdea.mockRejectedValue(new Error("Server down"));
+
+      const { result } = renderHook(() => useIdeasViewModel());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let success: boolean = true;
+      await act(async () => {
+        success = await result.current.handleDeleteIdea(1);
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to delete idea");
+      expect(result.current.isDeleting).toBe(false);
     });
   });
 

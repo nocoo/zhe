@@ -643,7 +643,7 @@ function InlineEditArea({
           </Label>
           <Select
             value={editVm.editFolderId ?? "__inbox__"}
-            onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? undefined : v)}
+            onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? null : v)}
           >
             <SelectTrigger id={`edit-folder-${link.id}`} className="h-8 w-40 rounded-widget border-border bg-background text-xs">
               <SelectValue />

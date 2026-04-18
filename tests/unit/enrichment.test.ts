@@ -160,6 +160,20 @@ describe('actions/enrichment', () => {
         metaFavicon: null,
       });
     });
+    it('twitter canHandle returns false for invalid URLs', async () => {
+      mockFetchMetadata.mockResolvedValue({
+        title: null,
+        description: null,
+        favicon: null,
+      });
+
+      // Invalid URL triggers catch block in twitterEnrichmentStrategy.canHandle (line 68)
+      await enrichLink('not-a-valid-url', 9, FAKE_USER_ID);
+
+      // Should fall through to default strategy, not twitter
+      expect(mockFetchAndCacheTweet).not.toHaveBeenCalled();
+      expect(mockFetchMetadata).toHaveBeenCalledWith('not-a-valid-url');
+    });
   });
 
   // ====================================================================

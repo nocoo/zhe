@@ -11,6 +11,7 @@ const mockHandleGenerate = vi.fn();
 const mockHandleRevoke = vi.fn();
 const mockHandleRateLimitChange = vi.fn();
 const mockSetRateLimit = vi.fn();
+const mockHandleMigrate = vi.fn();
 
 const mockWebhookVm = {
   token: null as string | null,
@@ -20,11 +21,14 @@ const mockWebhookVm = {
   isLoading: false,
   isGenerating: false,
   isRevoking: false,
+  isMigrating: false,
+  migratedApiKey: null as string | null,
   webhookUrl: null as string | null,
   tmpUploadUrl: null as string | null,
   handleGenerate: mockHandleGenerate,
   handleRevoke: mockHandleRevoke,
   handleRateLimitChange: mockHandleRateLimitChange,
+  handleMigrate: mockHandleMigrate,
 };
 
 vi.mock('@/viewmodels/useWebhookViewModel', () => ({
@@ -44,6 +48,8 @@ describe('WebhookPage', () => {
     mockWebhookVm.isLoading = false;
     mockWebhookVm.isGenerating = false;
     mockWebhookVm.isRevoking = false;
+    mockWebhookVm.isMigrating = false;
+    mockWebhookVm.migratedApiKey = null;
     mockWebhookVm.webhookUrl = null;
     mockWebhookVm.tmpUploadUrl = null;
   });
@@ -399,6 +405,50 @@ describe('WebhookPage', () => {
       const calledWith = unwrap(writeTextMock.mock.calls[0])[0] as string;
       expect(calledWith).toContain('https://zhe.example.com/api/link/create/abc-123-def');
       expect(calledWith).toContain('Schema Discovery');
+    });
+
+    // ================================================================
+    // Migration to API Key
+    // ================================================================
+
+    it('shows migrated API key when migratedApiKey is set', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
+      mockWebhookVm.tmpUploadUrl = 'https://zhe.example.com/api/tmp/upload/abc-123-def';
+      mockWebhookVm.migratedApiKey = 'zhe_test-migrated-key-1234';
+      render(<WebhookPage />);
+
+      expect(screen.getByTestId('migrated-api-key')).toHaveTextContent('zhe_test-migrated-key-1234');
+      expect(screen.getByText(/API Key 已创建/)).toBeInTheDocument();
+    });
+
+    it('copies migrated API key to clipboard', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
+      mockWebhookVm.tmpUploadUrl = 'https://zhe.example.com/api/tmp/upload/abc-123-def';
+      mockWebhookVm.migratedApiKey = 'zhe_test-migrated-key-1234';
+
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText: writeTextMock } });
+
+      render(<WebhookPage />);
+
+      fireEvent.click(screen.getByTestId('copy-migrated-key-btn'));
+      expect(writeTextMock).toHaveBeenCalledWith('zhe_test-migrated-key-1234');
+    });
+
+    it('copies tmp upload URL to clipboard', () => {
+      mockWebhookVm.token = 'abc-123-def';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/abc-123-def';
+      mockWebhookVm.tmpUploadUrl = 'https://zhe.example.com/api/tmp/upload/abc-123-def';
+
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText: writeTextMock } });
+
+      render(<WebhookPage />);
+
+      fireEvent.click(screen.getByTestId('copy-tmp-url-btn'));
+      expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/tmp/upload/abc-123-def');
     });
   });
 });

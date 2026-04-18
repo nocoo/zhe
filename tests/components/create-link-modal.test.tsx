@@ -39,6 +39,8 @@ vi.mock("@/actions/tags", () => ({
   createTag: vi.fn(),
 }));
 
+import { createTag } from "@/actions/tags";
+
 describe("CreateLinkModal", () => {
   const defaultProps = {
     siteUrl: "https://zhe.to",
@@ -90,6 +92,15 @@ describe("CreateLinkModal", () => {
     ).toBeInTheDocument();
   });
 
+  it("calls setUrl when URL input changes", () => {
+    mockVm.isOpen = true;
+    render(<CreateLinkModal {...defaultProps} />);
+
+    const input = screen.getByPlaceholderText("https://example.com/very-long-url");
+    fireEvent.change(input, { target: { value: "https://new-url.com" } });
+    expect(mockVm.setUrl).toHaveBeenCalledWith("https://new-url.com");
+  });
+
   it("shows custom slug input only in custom mode", () => {
     mockVm.isOpen = true;
     mockVm.mode = "simple";
@@ -102,6 +113,11 @@ describe("CreateLinkModal", () => {
 
     expect(screen.getByLabelText("自定义 slug")).toBeInTheDocument();
     expect(screen.getByText("zhe.to/")).toBeInTheDocument();
+
+    // Test slug input onChange
+    const slugInput = screen.getByPlaceholderText("my-custom-link");
+    fireEvent.change(slugInput, { target: { value: "my-slug" } });
+    expect(mockVm.setCustomSlug).toHaveBeenCalledWith("my-slug");
   });
 
   it("shows error message when error is set", () => {
@@ -291,6 +307,70 @@ describe("CreateLinkModal", () => {
 
       expect(screen.getByTestId("tag-badge")).toBeInTheDocument();
       expect(screen.getByText("design")).toBeInTheDocument();
+    });
+  });
+
+  describe("mode switching", () => {
+    it("calls setMode('simple') when simple mode button clicked", async () => {
+      const user = userEvent.setup();
+      mockVm.isOpen = true;
+      mockVm.mode = "custom";
+      render(<CreateLinkModal {...defaultProps} />);
+
+      await user.click(screen.getByText("简单模式"));
+      expect(mockVm.setMode).toHaveBeenCalledWith("simple");
+    });
+
+    it("calls setMode('custom') when custom mode button clicked", async () => {
+      const user = userEvent.setup();
+      mockVm.isOpen = true;
+      mockVm.mode = "simple";
+      render(<CreateLinkModal {...defaultProps} />);
+
+      await user.click(screen.getByText("自定义 slug"));
+      expect(mockVm.setMode).toHaveBeenCalledWith("custom");
+    });
+  });
+
+  describe("tag creation", () => {
+    const tags = [
+      { id: "t1", userId: "u1", name: "design", color: "#ff0000", createdAt: new Date("2026-01-01") },
+    ];
+
+    it("calls createTag and onTagCreated when a new tag is created", async () => {
+      const onTagCreated = vi.fn();
+      const newTag = { id: "t-new", userId: "u1", name: "newTag", color: "#0000ff", createdAt: new Date() };
+      vi.mocked(createTag).mockResolvedValue({ success: true, data: newTag });
+
+      const user = userEvent.setup();
+      mockVm.isOpen = true;
+      mockVm.selectedTagIds = new Set();
+
+      render(
+        <CreateLinkModal
+          {...defaultProps}
+          tags={tags}
+          onTagCreated={onTagCreated}
+        />,
+      );
+
+      // Open tag picker
+      await user.click(screen.getByTestId("tag-picker-trigger"));
+
+      // Type a new tag name
+      const input = screen.getByPlaceholderText("搜索或创建标签...");
+      await user.type(input, "newTag");
+
+      // Click the create option
+      await user.click(screen.getByTestId("tag-create-option"));
+
+      expect(createTag).toHaveBeenCalledWith({ name: "newTag" });
+
+      // Wait for async
+      await vi.waitFor(() => {
+        expect(onTagCreated).toHaveBeenCalledWith(newTag);
+        expect(mockVm.addTag).toHaveBeenCalledWith("t-new");
+      });
     });
   });
 });

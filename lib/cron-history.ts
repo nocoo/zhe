@@ -10,6 +10,7 @@ export interface CronHistoryEntry {
   status: 'success' | 'error' | 'skipped';
   synced: number;
   failed: number;
+  deleted?: number; // orphaned slugs deleted from KV
   total: number;
   durationMs: number;
   error?: string;

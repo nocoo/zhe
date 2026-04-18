@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.3] - 2026-04-13
+
+### Added
+- Add breadcrumb support for idea editor route
+- Add /dashboard/ideas/[id] route
+- Add IdeaEditorPage component
+- Add useIdeaEditorViewModel hook
+- Add MarkdownPreview component
+- Add markdown rendering deps and shadcn scroll-area
+
+### Changed
+- Replace edit modal with dedicated editor page navigation
+- Sync version to 1.16.1 for npm release
+
+### Fixed
+- Use icon-only buttons and proper skeletons for ideas pages
+- Align ideas page layout with links-list pattern
+- Resolve tag names for idea display instead of crashing on undefined
+
+## [v1.16.2] - 2026-04-13
+
+### Added
+- Add breadcrumb support for idea editor route
+- Add /dashboard/ideas/[id] route
+- Add IdeaEditorPage component
+- Add useIdeaEditorViewModel hook
+- Add MarkdownPreview component
+- Add markdown rendering deps and shadcn scroll-area
+
+### Changed
+- Replace edit modal with dedicated editor page navigation
+- Sync version to 1.16.1 for npm release
+
+### Fixed
+- Use icon-only buttons and proper skeletons for ideas pages
+- Align ideas page layout with links-list pattern
+- Resolve tag names for idea display instead of crashing on undefined
+
+## [v1.16.1] - 2026-04-13
+
+### Added
+- Add --yes flag to skip interactive confirmation
+- Add D1 migration parity check to release preflight
+
+### Changed
+- Sync version to 1.16.0 to match root package.json
+- Update ideas design doc to match actual createIdea implementation
+- Add retrospective on D1 batch last_insert_rowid() pitfall
+
+### Fixed
+- Avoid last_insert_rowid() across multiple INSERTs in D1 batch
+
+## [v1.16.0] - 2026-04-13
+
+### Added
+- Translate Ideas feature to Chinese "想法"
+- Add --sort and --order options to list command
+
+### Changed
+- Add pre-release migration check to CLAUDE.md
+- Sync version to 1.15.0 for npm release
+
+### Fixed
+- Add API Keys breadcrumb label and fix timestamp display
+
 ## [v1.15.0] - 2026-04-13
 
 ### Added
