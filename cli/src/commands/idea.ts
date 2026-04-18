@@ -13,9 +13,13 @@ import {
 	EXIT_NOT_FOUND,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { CreateIdeaRequest, Tag, UpdateIdeaRequest } from "../api/types.js";
+import type {
+	CreateIdeaRequest,
+	Tag,
+	UpdateIdeaRequest,
+} from "../api/types.js";
 import { getApiKey } from "../config.js";
-import { resolveTagName } from "../utils.js";
+import { parsePositiveInt, resolveTagName } from "../utils.js";
 
 // ── Helpers ──
 
@@ -205,8 +209,8 @@ const getSubcommand = defineCommand({
 		const apiKey = requireAuth();
 		const client = new ApiClient(apiKey);
 
-		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		const id = parsePositiveInt(args.id as string);
+		if (id === null) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}
@@ -342,8 +346,8 @@ const updateSubcommand = defineCommand({
 		const apiKey = requireAuth();
 		const client = new ApiClient(apiKey);
 
-		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		const id = parsePositiveInt(args.id as string);
+		if (id === null) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}
@@ -418,8 +422,8 @@ const deleteSubcommand = defineCommand({
 		const apiKey = requireAuth();
 		const client = new ApiClient(apiKey);
 
-		const id = Number.parseInt(args.id as string, 10);
-		if (Number.isNaN(id)) {
+		const id = parsePositiveInt(args.id as string);
+		if (id === null) {
 			console.log(pc.red("Invalid idea ID."));
 			process.exit(EXIT_INVALID_ARGS);
 		}

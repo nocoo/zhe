@@ -52,8 +52,6 @@ export class ApiClient {
 				signal: controller.signal,
 			});
 
-			clearTimeout(timeoutId);
-
 			// Handle rate limit warning
 			const remaining = response.headers.get("X-RateLimit-Remaining");
 			if (remaining && Number.parseInt(remaining, 10) < 10) {
@@ -64,6 +62,7 @@ export class ApiClient {
 
 			if (!response.ok) {
 				const errorBody = (await response.json().catch(() => ({}))) as ApiError;
+				clearTimeout(timeoutId);
 				throw new ApiClientError(
 					response.status,
 					errorBody.error || getDefaultErrorMessage(response.status),
@@ -72,10 +71,13 @@ export class ApiClient {
 
 			// Handle 204 No Content
 			if (response.status === 204) {
+				clearTimeout(timeoutId);
 				return {} as T;
 			}
 
-			return (await response.json()) as T;
+			const result = (await response.json()) as T;
+			clearTimeout(timeoutId);
+			return result;
 		} catch (error) {
 			clearTimeout(timeoutId);
 
