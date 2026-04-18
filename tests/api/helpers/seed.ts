@@ -163,7 +163,7 @@ export interface SeedLinkOptions {
   expiresAt?: string | null;
 }
 
-/** Insert a link into D1 and return the slug. */
+/** Insert a link into D1 and return the slug + auto-id (single round trip via RETURNING). */
 export async function seedLink(options: SeedLinkOptions = {}): Promise<{ slug: string; id: number }> {
   const slug = options.slug ?? testSlug();
   const originalUrl = options.originalUrl ?? 'https://example.com';
@@ -173,14 +173,12 @@ export async function seedLink(options: SeedLinkOptions = {}): Promise<{ slug: s
   const expiresAt = options.expiresAt ?? null;
   const now = new Date().toISOString();
 
-  await executeD1(
+  const rows = await queryD1<{ id: number }>(
     `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, clicks, expires_at, created_at)
-     VALUES (?, NULL, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, NULL, ?, ?, ?, ?, ?, ?)
+     RETURNING id`,
     [userId, originalUrl, slug, isCustom ? 1 : 0, clicks, expiresAt, now],
   );
-
-  // Retrieve the auto-generated ID
-  const rows = await queryD1<{ id: number }>('SELECT id FROM links WHERE slug = ?', [slug]);
   if (rows.length === 0) throw new Error(`Seeded link not found: ${slug}`);
   return { slug, id: unwrap(rows[0]).id };
 }
@@ -307,7 +305,7 @@ export interface SeedUploadOptions {
   publicUrl?: string;
 }
 
-/** Insert an upload into D1 and return the upload info. */
+/** Insert an upload into D1 and return the upload info (single round trip via RETURNING). */
 export async function seedUpload(userId?: string, options: SeedUploadOptions = {}): Promise<{ id: number; key: string }> {
   const uid = userId ?? TEST_USER.id;
   const key = options.key ?? `test-uploads/${nanoid(8)}.txt`;
@@ -317,14 +315,12 @@ export async function seedUpload(userId?: string, options: SeedUploadOptions = {
   const publicUrl = options.publicUrl ?? `https://cdn.example.com/${key}`;
   const now = Math.floor(Date.now() / 1000);
 
-  await executeD1(
+  const rows = await queryD1<{ id: number }>(
     `INSERT INTO uploads (user_id, key, file_name, file_type, file_size, public_url, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     RETURNING id`,
     [uid, key, fileName, fileType, fileSize, publicUrl, now],
   );
-
-  // Retrieve the auto-generated ID
-  const rows = await queryD1<{ id: number }>('SELECT id FROM uploads WHERE key = ?', [key]);
   if (rows.length === 0) throw new Error(`Seeded upload not found: ${key}`);
   return { id: unwrap(rows[0]).id, key };
 }
@@ -351,16 +347,11 @@ export async function seedIdea(
   const excerpt = content.substring(0, 200);
   const now = Date.now();
 
-  await executeD1(
-    `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [uid, title, content, excerpt, now, now],
-  );
-
-  // Retrieve the auto-generated ID
   const rows = await queryD1<{ id: number }>(
-    'SELECT id FROM ideas WHERE user_id = ? AND content = ? ORDER BY id DESC LIMIT 1',
-    [uid, content],
+    `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     RETURNING id`,
+    [uid, title, content, excerpt, now, now],
   );
   if (rows.length === 0) throw new Error('Seeded idea not found');
   const id = unwrap(rows[0]).id;
