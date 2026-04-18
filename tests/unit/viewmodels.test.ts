@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { Link, AnalyticsStats } from '@/models/types';
+import type { AnalyticsStats } from '@/models/types';
+import { makeLink } from '../fixtures';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -55,34 +56,15 @@ import {
   useLinkCardViewModel,
   useCreateLinkViewModel,
   useAutoRefreshMetadata,
+  useInlineLinkEditViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, getAnalyticsStats, refreshLinkMetadata, batchRefreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
+import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata, batchRefreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15'),
-    ...overrides,
-  };
-}
 
 const SITE_URL = 'https://zhe.to';
 
@@ -573,6 +555,50 @@ describe('useLinkCardViewModel', () => {
 
     // Screenshot fetch is now a server action — it should NOT be called on mount
     expect(fetchAndSaveScreenshot).not.toHaveBeenCalled();
+  });
+
+  it('handleFaviconError sets faviconError to true', () => {
+    const linkWithFavicon = makeLink({ metaFavicon: 'https://example.com/favicon.ico' });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(linkWithFavicon, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    act(() => {
+      result.current.handleFaviconError();
+    });
+
+    expect(result.current.faviconError).toBe(true);
+  });
+
+  it('handleCopyOriginalUrl copies original URL to clipboard', async () => {
+    vi.mocked(copyToClipboard).mockResolvedValue(true);
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    await act(async () => {
+      await result.current.handleCopyOriginalUrl();
+    });
+
+    expect(copyToClipboard).toHaveBeenCalledWith('https://example.com');
+    expect(result.current.copiedOriginalUrl).toBe(true);
+  });
+
+  it('handleFetchPreview catches thrown errors and shows error toast', async () => {
+    vi.mocked(fetchAndSaveScreenshot).mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    await act(async () => {
+      await result.current.handleFetchPreview('microlink');
+    });
+
+    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图出错', { description: '请稍后重试' });
+    expect(result.current.isFetchingPreview).toBe(false);
   });
 });
 
@@ -1097,5 +1123,150 @@ describe('useDashboardLayoutViewModel', () => {
     // Body scroll is now managed by Sheet, not the ViewModel
     expect(result.current.mobileOpen).toBe(true);
     expect(document.body.style.overflow).toBe('');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useCreateLinkViewModel — tag operations
+// ---------------------------------------------------------------------------
+describe('useCreateLinkViewModel — addTag / removeTag', () => {
+  const mockOnSuccess = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('addTag adds a tag ID to selectedTagIds', () => {
+    const { result } = renderHook(() =>
+      useCreateLinkViewModel(SITE_URL, mockOnSuccess),
+    );
+
+    act(() => {
+      result.current.addTag('tag-1');
+    });
+
+    expect(result.current.selectedTagIds.has('tag-1')).toBe(true);
+  });
+
+  it('removeTag removes a tag ID from selectedTagIds', () => {
+    const { result } = renderHook(() =>
+      useCreateLinkViewModel(SITE_URL, mockOnSuccess),
+    );
+
+    act(() => {
+      result.current.addTag('tag-1');
+      result.current.addTag('tag-2');
+    });
+
+    act(() => {
+      result.current.removeTag('tag-1');
+    });
+
+    expect(result.current.selectedTagIds.has('tag-1')).toBe(false);
+    expect(result.current.selectedTagIds.has('tag-2')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useInlineLinkEditViewModel
+// ---------------------------------------------------------------------------
+describe('useInlineLinkEditViewModel', () => {
+  const link = makeLink();
+  const callbacks = {
+    onLinkUpdated: vi.fn(),
+    onLinkTagsChanged: vi.fn(),
+    onTagCreated: vi.fn(),
+    onLinkTagAdded: vi.fn(),
+    onLinkTagRemoved: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('initialises form fields from the link', () => {
+    const { result } = renderHook(() =>
+      useInlineLinkEditViewModel(link, [], [], callbacks),
+    );
+
+    expect(result.current.editUrl).toBe('https://example.com');
+    expect(result.current.editSlug).toBe('abc123');
+    expect(result.current.editNote).toBe('');
+    expect(result.current.isSaving).toBe(false);
+    expect(result.current.error).toBe('');
+  });
+
+  it('saveEdit updates link and calls onLinkUpdated on success', async () => {
+    const updatedLink = makeLink({ originalUrl: 'https://new.com' });
+    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
+
+    const { result } = renderHook(() =>
+      useInlineLinkEditViewModel(link, [], [], callbacks),
+    );
+
+    let saved: boolean | undefined;
+    await act(async () => {
+      saved = await result.current.saveEdit();
+    });
+
+    expect(saved).toBe(true);
+    expect(callbacks.onLinkUpdated).toHaveBeenCalled();
+    expect(result.current.error).toBe('');
+  });
+
+  it('saveEdit sets error when updateLink returns failure', async () => {
+    vi.mocked(updateLink).mockResolvedValue({ success: false, error: 'Slug taken' });
+
+    const { result } = renderHook(() =>
+      useInlineLinkEditViewModel(link, [], [], callbacks),
+    );
+
+    let saved: boolean | undefined;
+    await act(async () => {
+      saved = await result.current.saveEdit();
+    });
+
+    expect(saved).toBe(false); // save failed, returns false
+    expect(result.current.error).toBe('Slug taken');
+    expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
+  });
+
+  it('saveEdit sets generic error when updateLink throws', async () => {
+    vi.mocked(updateLink).mockRejectedValue(new Error('Network failure'));
+
+    const { result } = renderHook(() =>
+      useInlineLinkEditViewModel(link, [], [], callbacks),
+    );
+
+    let saved: boolean | undefined;
+    await act(async () => {
+      saved = await result.current.saveEdit();
+    });
+
+    expect(saved).toBe(false);
+    expect(result.current.error).toBe('An unexpected error occurred');
+  });
+
+  it('saveEdit shows note error when note update fails', async () => {
+    const updatedLink = makeLink({ note: 'old note' });
+    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
+    vi.mocked(updateLinkNote).mockResolvedValue({ success: false, error: 'Note too long' });
+
+    const linkWithNote = makeLink({ note: 'old note' });
+    const { result } = renderHook(() =>
+      useInlineLinkEditViewModel(linkWithNote, [], [], callbacks),
+    );
+
+    // Change the note to trigger the note-update path
+    act(() => {
+      result.current.setEditNote('new note');
+    });
+
+    await act(async () => {
+      await result.current.saveEdit();
+    });
+
+    expect(result.current.error).toBe('Link saved but note update failed');
+    expect(callbacks.onLinkUpdated).toHaveBeenCalled();
   });
 });

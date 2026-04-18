@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { IdeaListItem, IdeaDetail } from "@/lib/db/scoped";
-import { getIdeas, getIdea, createIdea, updateIdea, deleteIdea } from "@/actions/ideas";
+import type { IdeaListItem } from "@/lib/db/scoped";
+import { getIdeas, createIdea, updateIdea, deleteIdea } from "@/actions/ideas";
 import type { Tag } from "@/models/types";
 import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
 
@@ -28,9 +28,7 @@ export interface IdeasFilterOptions {
 export function useIdeasViewModel() {
   // ── Local state (not from DashboardService - ideas are lazy-loaded) ──
   const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
-  const [selectedIdea, setSelectedIdea] = useState<IdeaDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingDetail, setLoadingDetail] = useState(false);
 
   // ── View state ──
   const [viewMode, setViewMode] = useState<IdeasViewMode>("grid");
@@ -42,7 +40,6 @@ export function useIdeasViewModel() {
 
   // ── Modal state ──
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [ideaToDelete, setIdeaToDelete] = useState<IdeaListItem | null>(null);
 
@@ -129,27 +126,6 @@ export function useIdeasViewModel() {
     [tags],
   );
 
-  // ── Fetch single idea detail ──
-  const fetchIdeaDetail = useCallback(async (id: number): Promise<IdeaDetail | null> => {
-    setLoadingDetail(true);
-    setError(null);
-    try {
-      const result = await getIdea(id);
-      if (result.success && result.data) {
-        setSelectedIdea(result.data);
-        return result.data;
-      }
-      setError(result.error ?? "Failed to fetch idea");
-      return null;
-    } catch (err) {
-      console.error("Failed to fetch idea detail:", err);
-      setError("Failed to fetch idea");
-      return null;
-    } finally {
-      setLoadingDetail(false);
-    }
-  }, []);
-
   // ── Create idea ──
   const handleCreateIdea = useCallback(
     async (data: { content: string; title?: string; tagIds?: string[] }): Promise<boolean> => {
@@ -208,9 +184,7 @@ export function useIdeasViewModel() {
           setIdeas((prev) =>
             prev.map((idea) => (idea.id === id ? updatedIdea : idea)),
           );
-          setSelectedIdea(result.data);
           handleIdeaUpdated(updatedIdea);
-          setIsEditModalOpen(false);
           return true;
         }
         setError(result.error ?? "Failed to update idea");
@@ -236,9 +210,6 @@ export function useIdeasViewModel() {
         if (result.success) {
           setIdeas((prev) => prev.filter((idea) => idea.id !== id));
           handleIdeaDeleted(id);
-          if (selectedIdea?.id === id) {
-            setSelectedIdea(null);
-          }
           setIsDeleteConfirmOpen(false);
           setIdeaToDelete(null);
           return true;
@@ -253,7 +224,7 @@ export function useIdeasViewModel() {
         setIsDeleting(false);
       }
     },
-    [handleIdeaDeleted, selectedIdea?.id],
+    [handleIdeaDeleted],
   );
 
   // ── Confirm delete ──
@@ -288,9 +259,7 @@ export function useIdeasViewModel() {
     // State
     ideas: filteredIdeas,
     allIdeas: ideas,
-    selectedIdea,
     loading,
-    loadingDetail,
     isSaving,
     isDeleting,
     error,
@@ -312,14 +281,11 @@ export function useIdeasViewModel() {
     // Modal state
     isCreateModalOpen,
     setIsCreateModalOpen,
-    isEditModalOpen,
-    setIsEditModalOpen,
     isDeleteConfirmOpen,
     ideaToDelete,
 
     // Actions
     refreshIdeas,
-    fetchIdeaDetail,
     handleCreateIdea,
     handleUpdateIdea,
     handleDeleteIdea,

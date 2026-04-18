@@ -51,6 +51,15 @@ describe('parseBrowser', () => {
     expect(parseBrowser('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0')).toBe('Opera');
   });
 
+  it('should detect IE', () => {
+    expect(parseBrowser('Mozilla/5.0 (Windows NT 10.0; Trident/7.0; rv:11.0) like Gecko')).toBe('IE');
+    expect(parseBrowser('Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1)')).toBe('IE');
+  });
+
+  it('should detect Chromium', () => {
+    expect(parseBrowser('Mozilla/5.0 (X11; Linux x86_64) Chromium/120.0.0.0')).toBe('Chromium');
+  });
+
   it('should return Unknown for unrecognized browsers', () => {
     expect(parseBrowser('')).toBe('Unknown');
     expect(parseBrowser('curl/7.64.1')).toBe('Unknown');
@@ -88,6 +97,8 @@ describe('parseOS', () => {
     expect(parseOS('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('Windows 10');
     expect(parseOS('Mozilla/5.0 (Windows NT 6.1; Win64; x64)')).toBe('Windows 7');
     expect(parseOS('Mozilla/5.0 (Windows NT 6.3; Win64; x64)')).toBe('Windows 8.1');
+    expect(parseOS('Mozilla/5.0 (Windows NT 6.2; Win64; x64)')).toBe('Windows 8');
+    expect(parseOS('Mozilla/5.0 (Windows; U; Win 9x 4.90)')).toBe('Windows');
   });
 
   it('should detect macOS', () => {

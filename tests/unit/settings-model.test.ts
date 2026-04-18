@@ -9,28 +9,8 @@ import {
   BACKUP_SCHEMA_VERSION,
   type ExportedLink,
 } from '@/models/settings';
-import type { Link } from '@/models/types';
 import { unwrap } from '../test-utils';
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15T00:00:00.000Z'),
-    ...overrides,
-  };
-}
+import { makeLink } from '../fixtures';
 
 describe('models/settings', () => {
   describe('serializeLinksForExport', () => {

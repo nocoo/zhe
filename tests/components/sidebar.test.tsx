@@ -3,6 +3,8 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
 import { unwrap } from '../test-utils';
+import { makeLink } from '../fixtures';
+import type { Link } from '@/models/types';
 
 let mockPathname = '/dashboard';
 let mockSearchParamsFolder: string | null = null;
@@ -35,7 +37,6 @@ vi.mock('@/actions/folders', () => ({
 }));
 
 // Mock DashboardService context — mutable links array for count badge tests
-import type { Link } from '@/models/types';
 
 let mockLinks: Link[] = [];
 
@@ -88,26 +89,6 @@ vi.mock('@/components/sidebar-context', () => ({
 }));
 
 import { Sidebar } from '@/components/sidebar';
-
-function makeLink(overrides: Partial<Link> = {}): Link {
-  return {
-    id: 1,
-    userId: 'user-1',
-    folderId: null,
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
-    isCustom: false,
-    expiresAt: null,
-    clicks: 0,
-    metaTitle: null,
-    metaDescription: null,
-    metaFavicon: null,
-    screenshotUrl: null,
-    note: null,
-    createdAt: new Date('2026-01-15'),
-    ...overrides,
-  };
-}
 
 function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
   mockFoldersVm = {

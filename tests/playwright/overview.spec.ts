@@ -22,6 +22,23 @@ test.describe('Overview page', () => {
   test.beforeAll(async () => {
     loadEnvFile(resolve(process.cwd(), '.env.local'));
 
+    // Clean up leftover data from previous CI runs to prevent data pollution
+    await executeD1(
+      "DELETE FROM analytics WHERE link_id IN (SELECT id FROM links WHERE user_id = ? AND slug LIKE 'e2e-ov-%')",
+      [TEST_USER.id],
+      { softFail: true },
+    );
+    await executeD1(
+      "DELETE FROM links WHERE user_id = ? AND slug LIKE 'e2e-ov-%'",
+      [TEST_USER.id],
+      { softFail: true },
+    );
+    await executeD1(
+      "DELETE FROM uploads WHERE user_id = ? AND key LIKE 'e2e-upload-%'",
+      [TEST_USER.id],
+      { softFail: true },
+    );
+
     // Seed 3 links with different click counts
     await executeD1(
       'INSERT INTO links (user_id, original_url, slug, is_custom, clicks, created_at) VALUES (?, ?, ?, 1, ?, ?)',

@@ -34,6 +34,7 @@ const mockGetLinkById = vi.fn();
 const mockGetLinksByIds = vi.fn();
 const mockUpdateLinkScreenshot = vi.fn();
 const mockUpdateLinkNote = vi.fn();
+const mockAddTagToLink = vi.fn();
 
 vi.mock('@/lib/db/scoped', () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
@@ -48,6 +49,7 @@ vi.mock('@/lib/db/scoped', () => ({
       getLinksByIds: mockGetLinksByIds,
       updateLinkScreenshot: mockUpdateLinkScreenshot,
       updateLinkNote: mockUpdateLinkNote,
+      addTagToLink: mockAddTagToLink,
     };
   }),
 }));
@@ -57,6 +59,13 @@ const mockRefreshLinkEnrichment = vi.fn();
 vi.mock('@/actions/enrichment', () => ({
   enrichLink: (...args: unknown[]) => mockEnrichLink(...args),
   refreshLinkEnrichment: (...args: unknown[]) => mockRefreshLinkEnrichment(...args),
+}));
+
+const mockFetchMicrolinkScreenshot = vi.fn();
+const mockFetchScreenshotDomains = vi.fn();
+vi.mock('@/models/links', () => ({
+  fetchMicrolinkScreenshot: (...args: unknown[]) => mockFetchMicrolinkScreenshot(...args),
+  fetchScreenshotDomains: (...args: unknown[]) => mockFetchScreenshotDomains(...args),
 }));
 
 const mockUploadBufferToR2 = vi.fn();
@@ -71,6 +80,18 @@ vi.mock('@/models/upload', () => ({
   hashUserId: (...args: unknown[]) => mockHashUserId(...args),
   generateObjectKey: (...args: unknown[]) => mockGenerateObjectKey(...args),
   buildPublicUrl: (...args: unknown[]) => mockBuildPublicUrl(...args),
+}));
+
+const mockKvPutLink = vi.fn();
+const mockKvDeleteLink = vi.fn();
+vi.mock('@/lib/kv/client', () => ({
+  kvPutLink: (...args: unknown[]) => mockKvPutLink(...args),
+  kvDeleteLink: (...args: unknown[]) => mockKvDeleteLink(...args),
+}));
+
+const mockMarkKVDirty = vi.fn();
+vi.mock('@/lib/kv/dirty', () => ({
+  markKVDirty: (...args: unknown[]) => mockMarkKVDirty(...args),
 }));
 
 // Suppress console.error noise from catch blocks
@@ -90,6 +111,7 @@ import {
   batchRefreshLinkMetadata,
   updateLinkNote,
   saveScreenshot,
+  fetchAndSaveScreenshot,
 } from '@/actions/links';
 
 // ---------------------------------------------------------------------------
@@ -124,10 +146,7 @@ const FAKE_LINK = {
 // ---------------------------------------------------------------------------
 
 describe('actions/links — uncovered paths', () => {
-  beforeEach(async () => {
-    // Flush fire-and-forget microtasks (e.g. enrichLink) from previous tests
-    // before clearing mocks, so stale calls don't pollute the next test.
-    await new Promise((r) => setTimeout(r, 0));
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
@@ -317,6 +336,27 @@ describe('actions/links — uncovered paths', () => {
         expect.not.objectContaining({ screenshotUrl: expect.any(String) }),
       );
     });
+
+    it('associates tags with the link when tagIds are provided', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGenerateUniqueSlug.mockResolvedValue('slug-tags');
+      const createdLink = { ...FAKE_LINK, id: 20, slug: 'slug-tags' };
+      mockCreateLink.mockResolvedValue(createdLink);
+      mockAddTagToLink.mockResolvedValue(undefined);
+
+      const result = await createLink({
+        originalUrl: 'https://example.com',
+        tagIds: ['tag-1', 'tag-2'],
+      });
+
+      expect(result.success).toBe(true);
+      // Flush fire-and-forget microtask
+      await vi.waitFor(() => {
+        expect(mockAddTagToLink).toHaveBeenCalledTimes(2);
+      });
+      expect(mockAddTagToLink).toHaveBeenCalledWith(20, 'tag-1');
+      expect(mockAddTagToLink).toHaveBeenCalledWith(20, 'tag-2');
+    });
   });
 
   // ====================================================================
@@ -391,6 +431,20 @@ describe('actions/links — uncovered paths', () => {
 
       expect(result).toEqual({ success: true });
       expect(mockDeleteLink).toHaveBeenCalledWith(1);
+    });
+
+    it('evicts slug from KV when deleting a link', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinkById.mockResolvedValue({ ...FAKE_LINK, id: 1, slug: 'del-slug' });
+      mockDeleteLink.mockResolvedValue(true);
+
+      const result = await deleteLink(1);
+
+      expect(result).toEqual({ success: true });
+      expect(mockMarkKVDirty).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(mockKvDeleteLink).toHaveBeenCalledWith('del-slug');
+      });
     });
   });
 
@@ -514,6 +568,24 @@ describe('actions/links — uncovered paths', () => {
 
       expect(result.success).toBe(true);
       expect(mockUpdateLink).toHaveBeenCalled();
+    });
+
+    it('evicts old slug from KV when slug changes', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockSanitizeSlug.mockReturnValue('new-slug');
+      mockGetLinkBySlug.mockResolvedValue(null);
+      mockGetLinkById.mockResolvedValue({ ...FAKE_LINK, id: 1, slug: 'old-slug' });
+      const updatedLink = { ...FAKE_LINK, slug: 'new-slug', isCustom: true };
+      mockUpdateLink.mockResolvedValue(updatedLink);
+
+      const result = await updateLink(1, { slug: 'new-slug' });
+
+      expect(result.success).toBe(true);
+      expect(mockMarkKVDirty).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(mockKvDeleteLink).toHaveBeenCalledWith('old-slug');
+        expect(mockKvPutLink).toHaveBeenCalledWith('new-slug', expect.any(Object));
+      });
     });
 
     it('passes screenshotUrl to db.updateLink', async () => {
@@ -716,6 +788,21 @@ describe('actions/links — uncovered paths', () => {
       expect(result).toEqual({
         success: false,
         error: 'Failed to refresh metadata',
+      });
+    });
+
+    it('returns error when re-fetch after enrichment returns null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinkById
+        .mockResolvedValueOnce({ ...FAKE_LINK, id: 9 })
+        .mockResolvedValueOnce(null);
+      mockRefreshLinkEnrichment.mockResolvedValue({ success: true });
+
+      const result = await refreshLinkMetadata(9);
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Link not found after refresh',
       });
     });
   });
@@ -1103,6 +1190,165 @@ describe('actions/links — uncovered paths', () => {
       expect(result).toEqual({ success: false, error: 'Screenshot download timed out' });
 
       vi.unstubAllGlobals();
+    });
+  });
+
+  // ====================================================================
+  // saveScreenshot — additional branches
+  // ====================================================================
+  describe('saveScreenshot — extra branches', () => {
+    const MICROLINK_URL = 'https://iad.microlink.io/screenshot.png';
+
+    beforeEach(() => {
+      process.env.R2_USER_HASH_SALT = 'test-salt';
+      process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
+      mockHashUserId.mockResolvedValue('abc123');
+      mockGenerateObjectKey.mockReturnValue('abc123/20260218/uuid.png');
+      mockBuildPublicUrl.mockReturnValue('https://s.zhe.to/abc123/20260218/uuid.png');
+      mockUploadBufferToR2.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      delete process.env.R2_USER_HASH_SALT;
+      delete process.env.R2_PUBLIC_DOMAIN;
+    });
+
+    it('rejects screenshots exceeding 10MB after download (body size check)', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const bigBuffer = new ArrayBuffer(11 * 1024 * 1024);
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png', 'content-length': '0' }),
+        arrayBuffer: vi.fn().mockResolvedValue(bigBuffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Screenshot too large' });
+      expect(mockUploadBufferToR2).not.toHaveBeenCalled();
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns generic error for non-abort fetch errors', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const networkError = new Error('network failure');
+      networkError.name = 'TypeError';
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(networkError));
+
+      const result = await saveScreenshot(1, MICROLINK_URL);
+
+      expect(result).toEqual({ success: false, error: 'Failed to download screenshot' });
+
+      vi.unstubAllGlobals();
+    });
+  });
+
+  // ====================================================================
+  // fetchAndSaveScreenshot
+  // ====================================================================
+  describe('fetchAndSaveScreenshot', () => {
+    const MICROLINK_URL = 'https://iad.microlink.io/screenshot.png';
+    const R2_PUBLIC_URL = 'https://s.zhe.to/abc123/20260218/uuid.png';
+    const FAKE_IMAGE_BYTES = new Uint8Array([137, 80, 78, 71]);
+
+    beforeEach(() => {
+      process.env.R2_USER_HASH_SALT = 'test-salt';
+      process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
+      mockHashUserId.mockResolvedValue('abc123');
+      mockGenerateObjectKey.mockReturnValue('abc123/20260218/uuid.png');
+      mockBuildPublicUrl.mockReturnValue(R2_PUBLIC_URL);
+      mockUploadBufferToR2.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      delete process.env.R2_USER_HASH_SALT;
+      delete process.env.R2_PUBLIC_DOMAIN;
+    });
+
+    it('returns Unauthorized when not authenticated', async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'microlink');
+
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    });
+
+    it('fetches screenshot via microlink source and saves it', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockFetchMicrolinkScreenshot.mockResolvedValue(MICROLINK_URL);
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: R2_PUBLIC_URL };
+      mockUpdateLinkScreenshot.mockResolvedValue(updatedLink);
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'microlink');
+
+      expect(result).toEqual({ success: true, data: updatedLink });
+      expect(mockFetchMicrolinkScreenshot).toHaveBeenCalledWith('https://example.com');
+
+      vi.unstubAllGlobals();
+    });
+
+    it('fetches screenshot via screenshotDomains source', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockFetchScreenshotDomains.mockResolvedValue('https://screenshot.domains/img.png');
+      const mockFetchResponse = {
+        ok: true,
+        headers: new Headers({ 'content-type': 'image/png' }),
+        arrayBuffer: vi.fn().mockResolvedValue(FAKE_IMAGE_BYTES.buffer),
+      };
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockFetchResponse));
+      const updatedLink = { ...FAKE_LINK, screenshotUrl: R2_PUBLIC_URL };
+      mockUpdateLinkScreenshot.mockResolvedValue(updatedLink);
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'screenshotDomains');
+
+      expect(result).toEqual({ success: true, data: updatedLink });
+      expect(mockFetchScreenshotDomains).toHaveBeenCalledWith('https://example.com');
+
+      vi.unstubAllGlobals();
+    });
+
+    it('returns error when microlink returns null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockFetchMicrolinkScreenshot.mockResolvedValue(null);
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'microlink');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Microlink did not return a valid screenshot',
+      });
+    });
+
+    it('returns error when screenshotDomains returns null', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockFetchScreenshotDomains.mockResolvedValue(null);
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'screenshotDomains');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Screenshot Domains did not return a valid screenshot',
+      });
+    });
+
+    it('catches provider errors and returns generic failure', async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockFetchMicrolinkScreenshot.mockRejectedValue(new Error('provider down'));
+
+      const result = await fetchAndSaveScreenshot(1, 'https://example.com', 'microlink');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to fetch and save screenshot',
+      });
     });
   });
 });

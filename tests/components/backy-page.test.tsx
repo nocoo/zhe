@@ -1,11 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BackyPage } from '@/components/dashboard/backy-page';
 import type { BackyPushDetail } from '@/models/backy';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+
+const mockCopyToClipboard = vi.fn();
+vi.mock('@/lib/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/utils')>();
+  return {
+    ...actual,
+    copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
+  };
+});
 
 const mockBackyHandleSave = vi.fn();
 const mockBackyHandleTest = vi.fn();
@@ -441,5 +451,83 @@ describe('BackyPage', () => {
 
     const revokeBtn = screen.getByRole('button', { name: /撤销/ });
     expect(revokeBtn).toBeDisabled();
+  });
+
+  // ==================================================================
+  // Input onChange handlers
+  // ==================================================================
+
+  it('calls setWebhookUrl when webhook URL input changes', () => {
+    mockBackyViewModel.isConfigured = false;
+    render(<BackyPage />);
+
+    const input = screen.getByTestId('backy-webhook-url');
+    fireEvent.change(input, { target: { value: 'https://new-url.com' } });
+
+    expect(mockBackyViewModel.setWebhookUrl).toHaveBeenCalledWith('https://new-url.com');
+  });
+
+  it('calls setApiKey when API key input changes', () => {
+    mockBackyViewModel.isConfigured = false;
+    render(<BackyPage />);
+
+    const input = screen.getByTestId('backy-api-key');
+    fireEvent.change(input, { target: { value: 'new-key-123' } });
+
+    expect(mockBackyViewModel.setApiKey).toHaveBeenCalledWith('new-key-123');
+  });
+
+  // ==================================================================
+  // CopyButton
+  // ==================================================================
+
+  it('copies webhook URL when copy button clicked', async () => {
+    mockCopyToClipboard.mockResolvedValue(true);
+    const user = userEvent.setup();
+    mockBackyViewModel.pullKey = 'test-key-123';
+
+    render(<BackyPage />);
+
+    const copyBtn = screen.getByRole('button', { name: '复制 Webhook URL' });
+    await user.click(copyBtn);
+
+    expect(mockCopyToClipboard).toHaveBeenCalled();
+  });
+
+  it('copies key when copy key button clicked', async () => {
+    mockCopyToClipboard.mockResolvedValue(true);
+    const user = userEvent.setup();
+    mockBackyViewModel.pullKey = 'test-key-123';
+
+    render(<BackyPage />);
+
+    const copyBtn = screen.getByRole('button', { name: '复制 Key' });
+    await user.click(copyBtn);
+
+    expect(mockCopyToClipboard).toHaveBeenCalledWith('test-key-123');
+  });
+
+  it('shows check icon on copy button after successful copy, then resets', async () => {
+    vi.useFakeTimers();
+    mockCopyToClipboard.mockResolvedValue(true);
+    mockBackyViewModel.pullKey = 'test-key-123';
+
+    render(<BackyPage />);
+
+    const copyBtn = screen.getByRole('button', { name: '复制 Key' });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    // Check icon should appear
+    expect(copyBtn.querySelector('.text-success')).toBeInTheDocument();
+
+    // Advance past timeout
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+
+    expect(copyBtn.querySelector('.text-success')).not.toBeInTheDocument();
+    vi.useRealTimers();
   });
 });

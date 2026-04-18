@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
 import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/slug";
@@ -81,9 +82,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const allLinks = await db.getLinks(options);
     const total = allLinks.length;
 
-    // Apply pagination
-    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
-    const offset = parseInt(url.searchParams.get("offset") ?? "0");
+    // Apply pagination with validation
+    const paginationResult = parsePaginationParams(url);
+    if (isErrorResponse(paginationResult)) {
+      return paginationResult;
+    }
+    const { limit, offset } = paginationResult;
+
     const links = allLinks.slice(offset, offset + limit);
 
     logApiRequest({
@@ -123,17 +128,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { auth, headers: rateLimitHeaders } = authResult;
   const { userId, keyId, keyPrefix } = auth;
 
-  try {
-    const body = await request.json();
+  const bodyResult = await parseJsonBody(request);
+  if (isErrorResponse(bodyResult)) {
+    return bodyResult;
+  }
+  const bodyObj = bodyResult;
 
+  try {
     // Validate required fields
-    if (!body.url || typeof body.url !== "string") {
+    if (!bodyObj.url || typeof bodyObj.url !== "string") {
       return apiError("Missing or invalid 'url' field", 400);
     }
 
     // Validate URL format
     try {
-      new URL(body.url);
+      new URL(bodyObj.url);
     } catch {
       return apiError("Invalid URL format", 400);
     }
@@ -142,30 +151,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Generate or validate slug
     let slug: string;
-    const isCustom = !!body.slug;
+    const isCustom = !!bodyObj.slug;
 
-    if (body.slug) {
+    if (bodyObj.slug !== undefined) {
+      if (typeof bodyObj.slug !== "string") {
+        return apiError("'slug' must be a string", 400);
+      }
       // Validate custom slug format
-      if (!/^[a-zA-Z0-9_-]+$/.test(body.slug)) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(bodyObj.slug)) {
         return apiError("Invalid slug format. Use only letters, numbers, hyphens, and underscores.", 400);
       }
-      if (body.slug.length < 3 || body.slug.length > 50) {
+      if (bodyObj.slug.length < 3 || bodyObj.slug.length > 50) {
         return apiError("Slug must be between 3 and 50 characters", 400);
       }
 
       // Check availability
-      const exists = await slugExists(body.slug);
+      const exists = await slugExists(bodyObj.slug);
       if (exists) {
         return apiError("Slug already in use", 409);
       }
-      slug = body.slug;
+      slug = bodyObj.slug;
     } else {
       slug = await generateUniqueSlug(slugExists);
     }
 
     // Validate folder if specified
-    if (body.folderId) {
-      const folder = await db.getFolderById(body.folderId);
+    if (bodyObj.folderId !== undefined) {
+      if (typeof bodyObj.folderId !== "string") {
+        return apiError("'folderId' must be a string", 400);
+      }
+      const folder = await db.getFolderById(bodyObj.folderId);
       if (!folder) {
         return apiError("Folder not found", 404);
       }
@@ -173,8 +188,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Parse expiration
     let expiresAt: Date | undefined;
-    if (body.expiresAt) {
-      const parsed = new Date(body.expiresAt);
+    if (bodyObj.expiresAt !== undefined) {
+      if (typeof bodyObj.expiresAt !== "string") {
+        return apiError("'expiresAt' must be a string (ISO 8601 format)", 400);
+      }
+      const parsed = new Date(bodyObj.expiresAt);
       if (isNaN(parsed.getTime())) {
         return apiError("Invalid expiresAt format. Use ISO 8601.", 400);
       }
@@ -184,14 +202,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       expiresAt = parsed;
     }
 
+    // Validate note if provided
+    if (bodyObj.note !== undefined && bodyObj.note !== null && typeof bodyObj.note !== "string") {
+      return apiError("'note' must be a string or null", 400);
+    }
+
     // Create the link
     const link = await db.createLink({
-      originalUrl: body.url,
+      originalUrl: bodyObj.url,
       slug,
       isCustom,
-      folderId: body.folderId ?? null,
+      folderId: typeof bodyObj.folderId === "string" ? bodyObj.folderId : null,
       expiresAt,
-      note: body.note ?? null,
+      note: typeof bodyObj.note === "string" ? bodyObj.note : null,
       screenshotUrl: null,
     });
 

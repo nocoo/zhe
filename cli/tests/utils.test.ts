@@ -261,7 +261,31 @@ describe("parseLinkId", () => {
 	});
 
 	it("returns null for float string", () => {
-		expect(parseLinkId("12.5")).toBe(12); // parseInt behavior
+		expect(parseLinkId("12.5")).toBeNull();
+	});
+
+	it("returns null for junk-suffixed input", () => {
+		expect(parseLinkId("12abc")).toBeNull();
+	});
+
+	it("returns null for scientific notation", () => {
+		expect(parseLinkId("1e2")).toBeNull();
+	});
+
+	it("returns null for hex literal", () => {
+		expect(parseLinkId("0x10")).toBeNull();
+	});
+
+	it("returns null for empty string", () => {
+		expect(parseLinkId("")).toBeNull();
+	});
+
+	it("returns null for whitespace", () => {
+		expect(parseLinkId("  ")).toBeNull();
+	});
+
+	it("returns null for leading-zero input", () => {
+		expect(parseLinkId("01")).toBeNull();
 	});
 });
 

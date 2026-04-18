@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
 import { ScopedDB, type IdeaListItem, type IdeaDetail } from "@/lib/db/scoped";
 
 /**
@@ -44,9 +45,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     let ideas = await db.getIdeas(options);
 
-    // Apply pagination
-    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500);
-    const offset = parseInt(url.searchParams.get("offset") ?? "0");
+    // Apply pagination with validation
+    const paginationResult = parsePaginationParams(url);
+    if (isErrorResponse(paginationResult)) {
+      return paginationResult;
+    }
+    const { limit, offset } = paginationResult;
+
     ideas = ideas.slice(offset, offset + limit);
 
     logApiRequest({
@@ -87,30 +92,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { auth, headers: rateLimitHeaders } = authResult;
   const { userId, keyId, keyPrefix } = auth;
 
-  try {
-    const body = await request.json();
+  const bodyResult = await parseJsonBody(request);
+  if (isErrorResponse(bodyResult)) {
+    return bodyResult;
+  }
+  const bodyObj = bodyResult;
 
+  try {
     // Validate required fields
-    if (!body.content || typeof body.content !== "string") {
+    if (!bodyObj.content || typeof bodyObj.content !== "string") {
       return apiError("Missing or invalid 'content' field", 400);
     }
 
-    const content = body.content.trim();
+    const content = bodyObj.content.trim();
     if (!content) {
       return apiError("Content cannot be empty", 400);
     }
 
     // Validate title if provided
-    if (body.title !== undefined && body.title !== null && typeof body.title !== "string") {
+    if (bodyObj.title !== undefined && bodyObj.title !== null && typeof bodyObj.title !== "string") {
       return apiError("'title' must be a string or null", 400);
     }
 
     // Validate tagIds if provided
-    if (body.tagIds !== undefined && body.tagIds !== null) {
-      if (!Array.isArray(body.tagIds)) {
+    if (bodyObj.tagIds !== undefined && bodyObj.tagIds !== null) {
+      if (!Array.isArray(bodyObj.tagIds)) {
         return apiError("'tagIds' must be an array", 400);
       }
-      if (!body.tagIds.every((id: unknown) => typeof id === "string")) {
+      if (!bodyObj.tagIds.every((id: unknown) => typeof id === "string")) {
         return apiError("All tag IDs must be strings", 400);
       }
     }
@@ -120,8 +129,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create the idea
     const idea = await db.createIdea({
       content,
-      ...(body.title !== undefined && body.title !== null && { title: body.title }),
-      ...(body.tagIds !== undefined && body.tagIds !== null && { tagIds: body.tagIds }),
+      ...(bodyObj.title !== undefined && bodyObj.title !== null && { title: bodyObj.title as string }),
+      ...(bodyObj.tagIds !== undefined && bodyObj.tagIds !== null && { tagIds: bodyObj.tagIds as string[] }),
     });
 
     logApiRequest({

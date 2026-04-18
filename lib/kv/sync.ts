@@ -11,7 +11,7 @@
  */
 
 import { getAllLinksForKV } from '@/lib/db';
-import { kvBulkPutLinks, isKVConfigured } from '@/lib/kv/client';
+import { kvBulkPutLinks, kvListKeys, kvBulkDeleteLinks, isKVConfigured } from '@/lib/kv/client';
 import { isKVDirty, clearKVDirty } from '@/lib/kv/dirty';
 import { recordCronResult } from '@/lib/cron-history';
 
@@ -20,6 +20,7 @@ export { isKVDirty, clearKVDirty, markKVDirty } from '@/lib/kv/dirty';
 export interface SyncResult {
   synced: number;
   failed: number;
+  deleted: number;
   total: number;
   durationMs: number;
   skipped?: boolean;
@@ -32,7 +33,7 @@ export interface SyncResult {
  */
 export async function performKVSync(): Promise<SyncResult> {
   if (!isKVConfigured()) {
-    return { synced: 0, failed: 0, total: 0, durationMs: 0, error: 'KV not configured' };
+    return { synced: 0, failed: 0, deleted: 0, total: 0, durationMs: 0, error: 'KV not configured' };
   }
 
   if (!isKVDirty()) {
@@ -44,7 +45,7 @@ export async function performKVSync(): Promise<SyncResult> {
       total: 0,
       durationMs: 0,
     });
-    return { synced: 0, failed: 0, total: 0, durationMs: 0, skipped: true };
+    return { synced: 0, failed: 0, deleted: 0, total: 0, durationMs: 0, skipped: true };
   }
 
   const startTime = Date.now();
@@ -66,7 +67,7 @@ export async function performKVSync(): Promise<SyncResult> {
       durationMs,
       error: errorMsg,
     });
-    return { synced: 0, failed: 0, total: 0, durationMs, error: errorMsg };
+    return { synced: 0, failed: 0, deleted: 0, total: 0, durationMs, error: errorMsg };
   }
 
   // 2. Bulk-write to KV
@@ -80,28 +81,63 @@ export async function performKVSync(): Promise<SyncResult> {
   }));
 
   const result = await kvBulkPutLinks(entries);
+
+  // 3. Delete orphaned slugs (KV keys not in D1)
+  // Only proceed if the write phase was fully successful — otherwise we risk
+  // deleting the old slug for a rename while the new slug failed to write.
+  let deleted = 0;
+  let deleteFailed = 0;
+  let listFailed = false;
+
+  if (result.failed === 0) {
+    const d1Slugs = new Set(links.map((link) => link.slug));
+    const listResult = await kvListKeys();
+    listFailed = listResult.error;
+
+    if (!listResult.error) {
+      const orphanedSlugs = listResult.keys.filter((key) => !d1Slugs.has(key));
+
+      if (orphanedSlugs.length > 0) {
+        const deleteResult = await kvBulkDeleteLinks(orphanedSlugs);
+        deleted = deleteResult.success;
+        deleteFailed = deleteResult.failed;
+        console.log(
+          `sync-kv: deleted ${deleted} orphaned slugs, ${deleteFailed} failed`,
+        );
+      }
+    } else {
+      console.log('sync-kv: skipped orphan deletion due to list failure');
+    }
+  } else {
+    console.log('sync-kv: skipped orphan deletion due to write failures');
+  }
+
   const durationMs = Date.now() - startTime;
+  const hasFailures = result.failed > 0 || deleteFailed > 0 || listFailed;
 
   console.log(
-    `sync-kv: synced ${result.success} links, ${result.failed} failed, ${durationMs}ms`,
+    `sync-kv: synced ${result.success} links, ${result.failed} failed, deleted ${deleted} orphans, ${durationMs}ms`,
   );
 
   recordCronResult({
     timestamp: new Date().toISOString(),
-    status: result.failed > 0 ? 'error' : 'success',
+    status: hasFailures ? 'error' : 'success',
     synced: result.success,
     failed: result.failed,
+    deleted,
     total: links.length,
     durationMs,
   });
 
-  if (result.failed === 0) {
+  // Only clear dirty flag if both put and delete succeeded
+  if (!hasFailures) {
     clearKVDirty();
   }
 
   return {
     synced: result.success,
     failed: result.failed,
+    deleted,
     total: links.length,
     durationMs,
   };

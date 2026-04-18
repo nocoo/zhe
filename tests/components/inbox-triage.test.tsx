@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Link, Folder, Tag, LinkTag } from '@/models/types';
+import type { LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 import { unwrap } from '../test-utils';
+import { makeLink, makeFolder, makeTag } from '../fixtures';
 
 // ── Mocks ──
 
@@ -105,36 +106,18 @@ import { InboxTriage } from '@/components/dashboard/inbox-triage';
 
 // ── Test data ──
 
-const makeLink = (overrides: Partial<Link> = {}): Link => ({
-  id: 1,
-  userId: 'u1',
-  slug: 'abc',
-  originalUrl: 'https://example.com/page',
-  isCustom: false,
-  clicks: 0,
-  createdAt: new Date('2026-01-01'),
-  expiresAt: null,
-  folderId: null,
-  metaTitle: 'Example Page',
-  metaDescription: 'A description',
-  metaFavicon: 'https://example.com/favicon.ico',
-  screenshotUrl: null,
-  note: null,
-  ...overrides,
-});
-
 const inboxLink1 = makeLink({ id: 1, metaTitle: 'Inbox Link 1', originalUrl: 'https://example.com/1' });
 const inboxLink2 = makeLink({ id: 2, metaTitle: 'Inbox Link 2', originalUrl: 'https://example.com/2', metaFavicon: null, metaDescription: null });
 const categorizedLink = makeLink({ id: 3, metaTitle: 'Categorized Link', originalUrl: 'https://example.com/3', folderId: 'f1' });
 
-const mockFolders: Folder[] = [
-  { id: 'f1', userId: 'u1', name: 'Work', icon: 'briefcase', createdAt: new Date('2026-01-01') },
-  { id: 'f2', userId: 'u1', name: 'Personal', icon: 'heart', createdAt: new Date('2026-01-02') },
+const mockFolders = [
+  makeFolder({ id: 'f1', userId: 'u1', name: 'Work', icon: 'briefcase', createdAt: new Date('2026-01-01') }),
+  makeFolder({ id: 'f2', userId: 'u1', name: 'Personal', icon: 'heart', createdAt: new Date('2026-01-02') }),
 ];
 
-const mockTags: Tag[] = [
-  { id: 't1', userId: 'u1', name: 'Important', color: 'red', createdAt: new Date('2026-01-01') },
-  { id: 't2', userId: 'u1', name: 'Read Later', color: 'blue', createdAt: new Date('2026-01-02') },
+const mockTags = [
+  makeTag({ id: 't1', userId: 'u1', name: 'Important', color: 'red', createdAt: new Date('2026-01-01') }),
+  makeTag({ id: 't2', userId: 'u1', name: 'Read Later', color: 'blue', createdAt: new Date('2026-01-02') }),
 ];
 
 function setupService(overrides: Partial<DashboardService> = {}) {
@@ -570,7 +553,7 @@ describe('InboxTriage', () => {
       const { createTag } = await import('@/actions/tags');
       (createTag as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: true,
-        data: { id: 't-new', userId: 'u1', name: 'NewTag', color: 'gray', createdAt: new Date() },
+        data: makeTag({ id: 't-new', name: 'NewTag', color: 'gray' }),
       });
 
       const { addTagToLink } = await import('@/actions/tags');

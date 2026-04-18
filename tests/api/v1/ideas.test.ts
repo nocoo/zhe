@@ -248,10 +248,32 @@ describe("/api/v1/ideas", () => {
     });
 
     it("creates idea with tags", async () => {
-      // Seed tags first
-      const tag1 = await seedTag(TEST_USER_ID, { name: "api-tag-1" });
-      const tag2 = await seedTag(TEST_USER_ID, { name: "api-tag-2" });
+      // Create tags via API to ensure data consistency with the server
+      const tag1Response = await authenticatedFetch(
+        `${getBaseUrl()}/api/v1/tags`,
+        apiKeyWithReadWrite,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "api-tag-1", color: "#ff5500" }),
+        },
+      );
+      expect(tag1Response.status).toBe(201);
+      const tag1 = (await tag1Response.json()).tag;
 
+      const tag2Response = await authenticatedFetch(
+        `${getBaseUrl()}/api/v1/tags`,
+        apiKeyWithReadWrite,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "api-tag-2", color: "#0055ff" }),
+        },
+      );
+      expect(tag2Response.status).toBe(201);
+      const tag2 = (await tag2Response.json()).tag;
+
+      // Create idea with tags
       const response = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

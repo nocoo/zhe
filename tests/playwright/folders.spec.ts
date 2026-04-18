@@ -153,10 +153,13 @@ test.describe.serial('Folder CRUD', () => {
     const menuButton = sidebar.locator('button[aria-label="文件夹操作"]');
     await menuButton.click();
 
-    // Click "删除" in the dropdown
+    // Click "删除" in the dropdown and wait for the API response
+    // The delete action shows a confirm() dialog — auto-accept it
+    page.on('dialog', (dialog) => dialog.accept());
     await page.getByRole('menuitem', { name: '删除' }).click();
 
-    // The folder should disappear (no confirmation dialog based on component code)
-    await expect(sidebar.getByText(renamedName)).toBeHidden({ timeout: 10_000 });
+    // The folder should disappear — use polling with increased timeout
+    // (CI headless environments may need extra time for DOM reconciliation)
+    await expect(sidebar.getByText(renamedName)).toBeHidden({ timeout: 15_000 });
   });
 });

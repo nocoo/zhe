@@ -194,7 +194,14 @@ export class ScopedDB {
   /** Update a link by id. Returns updated link or null if not found/not owned. */
   async updateLink(
     id: number,
-    data: Partial<Pick<Link, 'originalUrl' | 'folderId' | 'expiresAt' | 'slug' | 'isCustom' | 'screenshotUrl'>>,
+    data: {
+      originalUrl?: string;
+      folderId?: string | null;
+      expiresAt?: Date | null;
+      slug?: string;
+      isCustom?: boolean;
+      screenshotUrl?: string | null;
+    },
   ): Promise<Link | null> {
     const setClauses: string[] = [];
     const params: unknown[] = [];
@@ -205,7 +212,7 @@ export class ScopedDB {
     }
     if (data.folderId !== undefined) {
       setClauses.push('folder_id = ?');
-      params.push(data.folderId);
+      params.push(data.folderId ?? null); // Allow explicit null to clear folder
     }
     if (data.expiresAt !== undefined) {
       setClauses.push('expires_at = ?');
@@ -1068,8 +1075,14 @@ export class ScopedDB {
   }
 
   /**
-   * Create a new idea with atomic tag binding.
-   * Validates tagIds belong to user, then uses D1 batch for atomicity.
+   * Create a new idea with tag binding.
+   * Validates tagIds belong to user, then inserts idea and binds tags.
+   *
+   * Note: D1 batch() cannot share variables across statements (last_insert_rowid()
+   * returns the most recent INSERT across ALL statements). So we:
+   * 1. Insert the idea and get its ID via RETURNING
+   * 2. Batch-insert tag bindings with the concrete ID
+   * 3. If step 2 fails, delete the idea (compensating transaction)
    */
   async createIdea(data: {
     content: string;
@@ -1080,7 +1093,7 @@ export class ScopedDB {
     const excerpt = generateExcerpt(data.content, 200);
     const tagIds = data.tagIds ?? [];
 
-    // Step 1: Pre-validate tagIds belong to user (fail-fast before batch)
+    // Step 1: Pre-validate tagIds belong to user (fail-fast before any mutation)
     if (tagIds.length > 0) {
       const placeholders = tagIds.map(() => '?').join(', ');
       const validTags = await executeD1Query<{ id: string }>(
@@ -1094,35 +1107,34 @@ export class ScopedDB {
       }
     }
 
-    // Step 2: Build batch statements with RETURNING *
-    const statements: D1Statement[] = [
-      {
-        sql: `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)
-              RETURNING *`,
-        params: [this.userId, data.title ?? null, data.content, excerpt, now, now],
-      },
-    ];
-
-    // Add tag binding statements (tagIds already validated above)
-    for (const tagId of tagIds) {
-      statements.push({
-        sql: `INSERT INTO idea_tags (idea_id, tag_id)
-              VALUES (last_insert_rowid(), ?)`,
-        params: [tagId],
-      });
-    }
-
-    // Step 3: Single atomic batch — all succeed or all fail
-    const results = await executeD1Batch<Record<string, unknown>>(statements);
-
-    // First result is the idea INSERT RETURNING *
-    const ideaRow = results[0]?.[0];
+    // Step 2: Insert idea to get its concrete ID
+    const [ideaRow] = await executeD1Query<Record<string, unknown>>(
+      `INSERT INTO ideas (user_id, title, content, excerpt, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING *`,
+      [this.userId, data.title ?? null, data.content, excerpt, now, now],
+    );
     if (!ideaRow) {
       throw new Error('Failed to create idea');
     }
-
     const idea = rowToIdea(ideaRow);
+
+    // Step 3: Batch-insert tag bindings with explicit idea ID
+    if (tagIds.length > 0) {
+      try {
+        const tagStatements: D1Statement[] = tagIds.map((tagId) => ({
+          sql: `INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)`,
+          params: [idea.id, tagId],
+        }));
+        await executeD1Batch(tagStatements);
+      } catch (err) {
+        // Compensating transaction: delete the idea if tag binding fails
+        console.error('createIdea: tag binding failed, rolling back idea', err);
+        await executeD1Query('DELETE FROM ideas WHERE id = ?', [idea.id]);
+        throw err;
+      }
+    }
+
     return {
       id: idea.id,
       title: idea.title,

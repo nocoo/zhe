@@ -126,6 +126,117 @@ export async function kvDeleteLink(slug: string): Promise<void> {
 }
 
 /**
+ * List all keys in the KV namespace.
+ * Automatically handles pagination via cursor.
+ * Returns { keys, error } where error indicates a failure occurred.
+ * On error, keys contains whatever was collected before the failure.
+ */
+export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> {
+  const creds = getKVCredentials();
+  if (!creds) return { keys: [], error: false };
+
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  let error = false;
+
+  try {
+    do {
+      const url = new URL(
+        `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/keys`,
+      );
+      if (cursor) {
+        url.searchParams.set('cursor', cursor);
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: kvHeaders(creds.token),
+        signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('KV list keys failed:', response.status, text);
+        error = true;
+        break;
+      }
+
+      const json = (await response.json()) as {
+        success: boolean;
+        result: Array<{ name: string }>;
+        result_info?: { cursor?: string };
+      };
+
+      if (!json.success) {
+        console.error('KV list keys returned unsuccessful response');
+        error = true;
+        break;
+      }
+
+      for (const key of json.result) {
+        keys.push(key.name);
+      }
+
+      cursor = json.result_info?.cursor;
+    } while (cursor);
+  } catch (err) {
+    console.error('KV list keys error:', err);
+    error = true;
+  }
+
+  return { keys, error };
+}
+
+/**
+ * Bulk-delete multiple keys from KV in a single API call.
+ * Cloudflare supports up to 10,000 keys per bulk delete.
+ * Returns the number of keys successfully requested for deletion.
+ */
+export async function kvBulkDeleteLinks(
+  slugs: string[],
+): Promise<{ success: number; failed: number }> {
+  const creds = getKVCredentials();
+  if (!creds) return { success: 0, failed: 0 };
+  if (slugs.length === 0) return { success: 0, failed: 0 };
+
+  const BATCH_SIZE = 10_000;
+  let success = 0;
+  let failed = 0;
+
+  for (let i = 0; i < slugs.length; i += BATCH_SIZE) {
+    const batch = slugs.slice(i, i + BATCH_SIZE);
+
+    try {
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
+        {
+          method: 'DELETE',
+          headers: {
+            ...kvHeaders(creds.token),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(batch),
+          signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS * 3),
+        },
+      );
+
+      if (response.ok) {
+        success += batch.length;
+      } else {
+        const text = await response.text();
+        console.error(`KV bulk delete failed (batch ${i / BATCH_SIZE}):`, response.status, text);
+        failed += batch.length;
+      }
+    } catch (err) {
+      console.error(`KV bulk delete error (batch ${i / BATCH_SIZE}):`, err);
+      failed += batch.length;
+    }
+  }
+
+  return { success, failed };
+}
+
+/**
  * Bulk-write multiple link entries to KV in a single API call.
  * Cloudflare supports up to 10,000 key-value pairs per bulk write.
  * Used by the full sync script/cron.

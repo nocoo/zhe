@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { Link, Tag, LinkTag, Folder } from "@/models/types";
@@ -975,5 +975,68 @@ describe("LinkCard", () => {
     await user.click(screen.getByRole("button", { name: "保存" }));
 
     expect(mockEditVm.saveEdit).toHaveBeenCalledTimes(1);
+  });
+
+  // --- Edit form inputs ---
+
+  it("calls setEditUrl when URL input changes in edit area", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Edit link"));
+
+    const urlInput = screen.getByPlaceholderText("https://example.com");
+    await user.clear(urlInput);
+    await user.type(urlInput, "https://new.com");
+
+    expect(mockEditVm.setEditUrl).toHaveBeenCalled();
+  });
+
+  it("calls setEditSlug when slug input changes in edit area", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Edit link"));
+
+    const slugInput = screen.getByPlaceholderText("custom-slug");
+    await user.clear(slugInput);
+    await user.type(slugInput, "new-slug");
+
+    expect(mockEditVm.setEditSlug).toHaveBeenCalled();
+  });
+
+  it("calls setEditScreenshotUrl when screenshot URL input changes in edit area", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...defaultProps} />);
+
+    await user.click(screen.getByTitle("Edit link"));
+
+    const screenshotInput = screen.getByPlaceholderText("https://example.com/screenshot.png");
+    await user.type(screenshotInput, "https://img.com/shot.png");
+
+    expect(mockEditVm.setEditScreenshotUrl).toHaveBeenCalled();
+  });
+
+  it("renders grid mode card with clickable screenshot area", () => {
+    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
+
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+
+    // Click the screenshot area
+    const card = screen.getByTestId("link-card");
+    const clickableArea = card.querySelector(".cursor-pointer");
+    expect(clickableArea).toBeInTheDocument();
+
+    if (clickableArea) {
+      fireEvent.click(clickableArea);
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        "https://example.com/very-long-url",
+        "_blank",
+        "noopener,noreferrer",
+      );
+    }
+
+    windowOpenSpy.mockRestore();
   });
 });

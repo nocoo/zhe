@@ -135,6 +135,31 @@ describe('lib/metadata — fetchMetadata', () => {
     expect(result.favicon).toBe('https://example.com/favicon.ico');
   });
 
+  it('returns null favicon when pageUrl is invalid and no favicons found', async () => {
+    mockUrlMetadata.mockResolvedValue({
+      title: 'Title',
+      description: 'Desc',
+      favicons: [],
+    });
+
+    const result = await fetchMetadata('not-a-valid-url');
+
+    expect(result.title).toBe('Title');
+    expect(result.favicon).toBeNull();
+  });
+
+  it('returns href as-is when resolveUrl base is invalid and href is protocol-relative', async () => {
+    mockUrlMetadata.mockResolvedValue({
+      title: 'Title',
+      description: 'Desc',
+      favicons: [{ href: '//cdn.example.com/icon.png' }],
+    });
+
+    const result = await fetchMetadata('not-a-valid-url');
+
+    expect(result.favicon).toBe('//cdn.example.com/icon.png');
+  });
+
   // ---- Failure / degradation ---------------------------------------------
 
   it('returns all-null metadata when url-metadata throws', async () => {
