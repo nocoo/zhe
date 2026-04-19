@@ -20,7 +20,6 @@ export default defineConfig({
     testTimeout: 15_000, // real HTTP can be slower
     fileParallelism: true,
     maxConcurrency: 4,
-    maxWorkers: 16,
   },
   resolve: {
     alias: {
