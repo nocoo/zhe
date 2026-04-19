@@ -19,14 +19,10 @@ describe("/api/v1/links/[id]", () => {
   beforeAll(async () => {
     await cleanupTestData(TEST_USER_ID);
     await seedTestUser(TEST_USER_ID);
-    apiKeyWithReadWrite = await seedApiKey(TEST_USER_ID, {
-      name: "Full Access",
-      scopes: "links:read,links:write",
-    });
-    apiKeyReadOnly = await seedApiKey(TEST_USER_ID, {
-      name: "Read Only",
-      scopes: "links:read",
-    });
+    [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
+      seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
+    ]);
   });
 
   afterAll(async () => {

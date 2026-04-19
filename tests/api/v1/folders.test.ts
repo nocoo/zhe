@@ -19,24 +19,13 @@ let apiKeyNoScopes: string;
 
 describe("/api/v1/folders", () => {
   beforeAll(async () => {
-    // Seed test user
+    await cleanupTestData(TEST_USER_ID);
     await seedTestUser(TEST_USER_ID);
-
-    // Seed API keys with different scopes
-    apiKeyWithReadWrite = await seedApiKey(TEST_USER_ID, {
-      name: "Full Access",
-      scopes: "folders:read,folders:write",
-    });
-
-    apiKeyReadOnly = await seedApiKey(TEST_USER_ID, {
-      name: "Read Only",
-      scopes: "folders:read",
-    });
-
-    apiKeyNoScopes = await seedApiKey(TEST_USER_ID, {
-      name: "No Scopes",
-      scopes: "",
-    });
+    [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
+      seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "folders:read,folders:write" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "folders:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+    ]);
   });
 
   afterAll(async () => {
