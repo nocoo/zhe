@@ -376,16 +376,24 @@ export async function seedIdea(
 /** Delete all test data owned by the test user. Analytics cascade automatically. */
 export async function cleanupTestData(userId?: string): Promise<void> {
   const uid = userId ?? TEST_USER.id;
-  await executeD1('DELETE FROM api_audit_logs WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM api_keys WHERE user_id = ?', [uid]);
-  // idea_tags is cleaned up by CASCADE on ideas delete
-  await executeD1('DELETE FROM ideas WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM tags WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM links WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM folders WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM uploads WHERE user_id = ?', [uid]);
-  await executeD1('DELETE FROM user_settings WHERE user_id = ?', [uid]);
+  // Cloudflare D1 /query supports multi-statement SQL only when no params are
+  // provided, so we inline the user id (controlled test fixture, no injection
+  // surface). All 9 DELETEs run in a single round trip.
+  const escaped = uid.replace(/'/g, "''");
+  const q = `'${escaped}'`;
+  const sql = [
+    `DELETE FROM api_audit_logs WHERE user_id = ${q}`,
+    `DELETE FROM api_keys WHERE user_id = ${q}`,
+    // idea_tags is cleaned up by CASCADE on ideas delete
+    `DELETE FROM ideas WHERE user_id = ${q}`,
+    `DELETE FROM tags WHERE user_id = ${q}`,
+    `DELETE FROM links WHERE user_id = ${q}`,
+    `DELETE FROM folders WHERE user_id = ${q}`,
+    `DELETE FROM webhooks WHERE user_id = ${q}`,
+    `DELETE FROM uploads WHERE user_id = ${q}`,
+    `DELETE FROM user_settings WHERE user_id = ${q}`,
+  ].join(';\n');
+  await executeD1(sql);
   // If a custom user was created, clean it up too
   if (userId && userId !== TEST_USER.id) {
     await executeD1('DELETE FROM users WHERE id = ?', [uid]);
