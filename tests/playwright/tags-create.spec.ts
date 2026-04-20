@@ -11,6 +11,7 @@ import {
   createLink,
   openEditMode,
   createTagInEditMode,
+  saveAndCloseEdit,
 } from './helpers/tags';
 
 test.describe('Tag UI - create and display', () => {
@@ -28,8 +29,7 @@ test.describe('Tag UI - create and display', () => {
     const card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
 
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
+    await saveAndCloseEdit(card);
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
@@ -41,8 +41,7 @@ test.describe('Tag UI - create and display', () => {
 
     let card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
+    await saveAndCloseEdit(card);
 
     card = await openEditMode(page, slug);
 

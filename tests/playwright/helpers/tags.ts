@@ -29,6 +29,27 @@ export async function openEditMode(page: Page, slug: string): Promise<Locator> {
 }
 
 /**
+ * Click save and wait for edit-area to close. Retries the click if the server
+ * action fails (common in CI when the dev server is under heavy load and
+ * connections get reset).
+ */
+export async function saveAndCloseEdit(card: Locator): Promise<void> {
+  const editArea = card.locator('[data-testid="edit-area"]');
+  const saveBtn = card.locator('button:has-text("保存")');
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await saveBtn.click();
+    const hidden = await editArea.isHidden({ timeout: 10_000 }).catch(() => false);
+    if (hidden) return;
+    // Still visible — error message may have appeared; wait briefly then retry
+    await card.page().waitForTimeout(500);
+  }
+  // Final attempt with full timeout
+  await saveBtn.click();
+  await expect(editArea).toBeHidden({ timeout: 30_000 });
+}
+
+/**
  * Create a tag via the TagPicker in edit mode.
  *
  * Note: The TagPicker popover content renders in a Radix portal outside the

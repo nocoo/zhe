@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import ApiKeysRoute from "@/app/(dashboard)/dashboard/api-keys/page";
