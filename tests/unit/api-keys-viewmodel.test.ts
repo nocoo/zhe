@@ -21,13 +21,13 @@ describe("useApiKeysViewModel", () => {
 
   it("loads empty keys on mount", async () => {
     const { result } = renderHook(() => useApiKeysViewModel());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
     expect(result.current.keys).toEqual([]);
   });
 
   it("creates a key and shows fullKey once", async () => {
     const { result } = renderHook(() => useApiKeysViewModel());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     let createResult: Awaited<ReturnType<typeof result.current.handleCreate>> | undefined;
     await act(async () => {
@@ -41,7 +41,7 @@ describe("useApiKeysViewModel", () => {
 
   it("revokes a key and removes from list", async () => {
     const { result } = renderHook(() => useApiKeysViewModel());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     let createResult: Awaited<ReturnType<typeof result.current.handleCreate>> | undefined;
     await act(async () => {
@@ -59,7 +59,7 @@ describe("useApiKeysViewModel", () => {
 
   it("clearNewKey clears the newly created key", async () => {
     const { result } = renderHook(() => useApiKeysViewModel());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     await act(async () => {
       await result.current.handleCreate("Key", ["links:read"]);

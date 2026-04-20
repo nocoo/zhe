@@ -76,7 +76,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(mockGetIdeas).toHaveBeenCalledTimes(1);
       expect(result.current.ideas).toHaveLength(2);
@@ -89,7 +89,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.ideas).toEqual([]);
     });
@@ -99,7 +99,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.viewMode).toBe("grid");
       expect(result.current.sortBy).toBe("updatedAt");
@@ -124,7 +124,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.setSearchQuery("react");
@@ -146,7 +146,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.setSelectedTagId("tag-1");
@@ -164,7 +164,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.setSearchQuery("test");
@@ -190,7 +190,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.tagFilterOptions).toHaveLength(2);
     });
@@ -212,7 +212,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(unwrap(result.current.ideas[0]).id).toBe(2);
       expect(unwrap(result.current.ideas[1]).id).toBe(1);
@@ -229,7 +229,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.setSortBy("createdAt");
@@ -250,7 +250,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.viewMode).toBe("grid");
 
@@ -275,7 +275,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       let success: boolean = false;
       await act(async () => {
@@ -299,7 +299,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -322,7 +322,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       let success: boolean = false;
       await act(async () => {
@@ -341,7 +341,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -363,7 +363,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.ideas).toHaveLength(2);
 
@@ -385,7 +385,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -406,7 +406,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.confirmDelete(idea);
@@ -432,7 +432,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       act(() => {
         result.current.confirmDelete(idea);
@@ -459,7 +459,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       expect(result.current.ideas).toEqual([]);
     });
@@ -485,7 +485,7 @@ describe("useIdeasViewModel", () => {
       mockCreateIdea.mockRejectedValue(new Error("Server down"));
 
       const { result } = renderHook(() => useIdeasViewModel());
-      await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.loading).toBe(false), { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -501,7 +501,7 @@ describe("useIdeasViewModel", () => {
       mockUpdateIdea.mockRejectedValue(new Error("Server down"));
 
       const { result } = renderHook(() => useIdeasViewModel());
-      await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.loading).toBe(false), { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -517,7 +517,7 @@ describe("useIdeasViewModel", () => {
       mockDeleteIdea.mockRejectedValue(new Error("Server down"));
 
       const { result } = renderHook(() => useIdeasViewModel());
-      await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.loading).toBe(false), { interval: 5 });
 
       let success: boolean = true;
       await act(async () => {
@@ -540,7 +540,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       const tag = result.current.getTagById("tag-1");
       expect(tag?.name).toBe("Work");
@@ -556,7 +556,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       await act(async () => {
         await result.current.handleCreateIdea({ content: "test" });
@@ -578,7 +578,7 @@ describe("useIdeasViewModel", () => {
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
+      }, { interval: 5 });
 
       const newIdeas = [makeIdea({ id: 100 })];
       mockGetIdeas.mockResolvedValue({ success: true, data: newIdeas });

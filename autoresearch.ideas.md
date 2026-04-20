@@ -4,7 +4,17 @@
 
 ### Active backlog
 
-- **NOT waitFor polling.** Tested: monkey-patching `@testing-library/dom` waitFor to use a 5ms interval (down from 50ms) had no effect on `ideas-viewmodel.test.ts` wall (1.34s before & after). The per-test ~50ms cost is React render + state update + microtask drain in `asyncWrapper`, not the poll interval. Confirmed as a dead-end.
+- **Real baseline ~4.7s, not 4.21s.** Re-baselined with 5 trials at HEAD (#97): 4.62 / 4.68 / 4.71 / 4.97 / 6.62 — median 4.71. Earlier "best" 4.11–4.21 runs were lucky single trials. Noise envelope is ±0.5s with P99 occasionally jumping to 6.6s (probably GC + worker startup variance). To find more wins, **either fix the noise source (e.g. force minWorkers=maxWorkers + warm pool) OR target ≥0.7s structural reductions.**
+- **Confirmed dead ends in this session (#89–#96):**
+  - Conditional jest-dom import (skip in node env) — no improvement; saved transform but didn't move wall.
+  - Extracting d1 mock factory body to sibling file (~1600 lines out of setup.ts) — no improvement; transform is cached per worker, not per file.
+  - `deps.optimizer.web` pre-bundling React/RTL/cmdk — significantly worse (+1.5s); optimizer pre-bundle path adds startup cost.
+  - `@vitejs/plugin-react-swc` instead of `plugin-react` — slightly worse for this workload.
+  - `coverage.processingConcurrency=8` — within noise.
+  - Splitting `search-command-dialog.test.tsx` further (after the first split) — no win; per-file overhead ≥ savings.
+  - `vi.mock('@testing-library/dom')` to lower waitFor interval 50→5ms — significantly worse; vi.mock factory has high per-file overhead.
+  - Dropping html+json coverage reporters — no win; reporters write at end, not on hot path.
+
 - **Vitest `projects` with mixed `isolate` settings.** Move tests/unit/* (node) into a project with `isolate: false` to skip per-file thread reuse cost (saves ~50ms × ~50 files = ~2.5s aggregate). Currently fails on 6 `*-actions.test.ts` files due to shared `vi.mock('@/lib/db/scoped')` collisions — would need to rewrite those files to use `vi.doMock` inside `beforeEach` or scoped fake adapters before the switch.
 - **Split `inbox-triage.test.tsx` (43 tests, 1.4s wall).** Largest remaining jsdom file after the search-command-dialog split. Same approach as the dialog split: extract to two siblings with duplicated `vi.mock` boilerplate (mocks must be hoisted per-file; cannot live in a shared helper).
 - **Split `ideas-viewmodel.test.ts` (26 tests, 1.4s wall).** Each test costs ~50ms because of one `waitFor` per test. Splitting alone won't help unless `waitFor` is also fast-pathed.

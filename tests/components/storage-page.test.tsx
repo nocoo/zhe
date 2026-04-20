@@ -261,7 +261,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('R2 总存储')).toBeInTheDocument();
-    });
+    }, { interval: 5 });
 
     expect(mockScanStorage).toHaveBeenCalledOnce();
   });
@@ -274,7 +274,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('权限不足');
-    });
+    }, { interval: 5 });
   });
 
   it('shows fallback error toast when scan fails without error message', async () => {
@@ -285,7 +285,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('扫描存储失败');
-    });
+    }, { interval: 5 });
   });
 
   it('shows error toast when scan throws', async () => {
@@ -296,7 +296,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('扫描存储失败');
-    });
+    }, { interval: 5 });
   });
 
   // ── Rescan ──
@@ -313,7 +313,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(mockScanStorage).toHaveBeenCalledOnce();
-    });
+    }, { interval: 5 });
   });
 
   // ── Selection & cleanup ──
@@ -440,7 +440,7 @@ describe('StoragePage', () => {
       expect(mockCleanupOrphanFiles).toHaveBeenCalledWith([
         'user/20260103/orphan.png',
       ]);
-    });
+    }, { interval: 5 });
 
     expect(toast.success).toHaveBeenCalledWith('已删除 1 个文件');
 
@@ -472,7 +472,7 @@ describe('StoragePage', () => {
       expect(toast.success).toHaveBeenCalledWith(
         '已删除 0 个文件 (1 个已跳过)',
       );
-    });
+    }, { interval: 5 });
   });
 
   it('shows error toast when cleanup fails', async () => {
@@ -497,7 +497,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('清理失败了');
-    });
+    }, { interval: 5 });
   });
 
   it('shows fallback error toast when cleanup fails without message', async () => {
@@ -519,7 +519,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('清理失败');
-    });
+    }, { interval: 5 });
   });
 
   it('shows error toast when cleanup throws', async () => {
@@ -541,7 +541,7 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('清理孤儿文件失败');
-    });
+    }, { interval: 5 });
   });
 
   // ── Sort controls ──
@@ -664,12 +664,12 @@ describe('StoragePage', () => {
 
     await waitFor(() => {
       expect(mockScanStorage).toHaveBeenCalled();
-    });
+    }, { interval: 5 });
 
     // After load fail, nothing should render (null)
     await waitFor(() => {
       // The component should render nothing meaningful
       expect(container.querySelector('.space-y-6')).not.toBeInTheDocument();
-    });
+    }, { interval: 5 });
   });
 });

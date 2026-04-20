@@ -102,7 +102,7 @@ async function renderService(opts?: { initialFolders?: Folder[] }) {
   });
   await waitFor(() => {
     expect(hook.result.current.loading).toBe(false);
-  });
+  }, { interval: 5 });
   return hook;
 }
 

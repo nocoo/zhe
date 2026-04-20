@@ -102,7 +102,7 @@ describe('useWebhookViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.token).toBe('abc-123');
     expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
@@ -117,7 +117,7 @@ describe('useWebhookViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.token).toBeNull();
     expect(result.current.webhookUrl).toBeNull();
@@ -131,7 +131,7 @@ describe('useWebhookViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.token).toBeNull();
   });
@@ -143,7 +143,7 @@ describe('useWebhookViewModel', () => {
   it('generates a new token', async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockCreateWebhookToken.mockResolvedValue({
       success: true,
@@ -165,7 +165,7 @@ describe('useWebhookViewModel', () => {
   it('sets isGenerating while generating', async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     let resolveCreate!: (v: unknown) => void;
     mockCreateWebhookToken.mockReturnValue(
@@ -190,7 +190,7 @@ describe('useWebhookViewModel', () => {
   it('handles generate failure gracefully', async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockCreateWebhookToken.mockResolvedValue({ success: false, error: 'Server error' });
 
@@ -214,7 +214,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'));
+    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
 
     mockRevokeWebhookToken.mockResolvedValue({ success: true });
 
@@ -238,7 +238,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'));
+    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
 
     let resolveRevoke!: (v: unknown) => void;
     mockRevokeWebhookToken.mockReturnValue(
@@ -268,7 +268,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'));
+    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
 
     mockRevokeWebhookToken.mockResolvedValue({ success: false, error: 'DB error' });
 
@@ -292,7 +292,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/my-token');
     expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/my-token');
@@ -305,7 +305,7 @@ describe('useWebhookViewModel', () => {
   it('defaults rateLimit to RATE_LIMIT_DEFAULT_MAX (5)', async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     expect(result.current.rateLimit).toBe(5);
   });
@@ -318,7 +318,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     expect(result.current.rateLimit).toBe(8);
   });
@@ -331,7 +331,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     expect(result.current.rateLimit).toBe(5);
   });
@@ -339,7 +339,7 @@ describe('useWebhookViewModel', () => {
   it('sets rateLimit from handleGenerate response', async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockCreateWebhookToken.mockResolvedValue({
       success: true,
@@ -361,7 +361,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.rateLimit).toBe(9));
+    await waitFor(() => expect(result.current.rateLimit).toBe(9), { interval: 5 });
 
     mockRevokeWebhookToken.mockResolvedValue({ success: true });
 
@@ -384,7 +384,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockUpdateWebhookRateLimit.mockResolvedValue({
       success: true,
@@ -407,7 +407,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockUpdateWebhookRateLimit.mockResolvedValue({
       success: true,
@@ -430,7 +430,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     // Client sends 15 but server clamps to 10
     mockUpdateWebhookRateLimit.mockResolvedValue({
@@ -454,7 +454,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockUpdateWebhookRateLimit.mockResolvedValue({
       success: false,
@@ -481,7 +481,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockMigrateFromWebhookAction.mockResolvedValue({
       success: true,
@@ -512,7 +512,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     let resolveMigrate!: (v: unknown) => void;
     mockMigrateFromWebhookAction.mockReturnValue(
@@ -542,7 +542,7 @@ describe('useWebhookViewModel', () => {
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockMigrateFromWebhookAction.mockResolvedValue({
       success: false,

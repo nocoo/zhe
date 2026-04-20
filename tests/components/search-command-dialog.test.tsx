@@ -555,7 +555,7 @@ describe("SearchCommandDialog", () => {
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
       fireEvent.click(copyBtn);
 
-      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false), { interval: 5 });
     });
 
     it("copies on Enter keydown without opening original URL", async () => {

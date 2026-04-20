@@ -94,7 +94,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.stats).toEqual(mockStats);
     expect(result.current.error).toBeNull();
@@ -107,7 +107,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.error).toBe('Unauthorized');
     expect(result.current.stats).toBeNull();
@@ -120,7 +120,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.error).toBe('加载概览数据失败');
     expect(result.current.stats).toBeNull();
@@ -171,7 +171,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(unwrap(result.current.stats).clickTrend).toEqual([
       { date: '2026-02-10', clicks: 2, origin: 1, worker: 1 },
@@ -222,7 +222,7 @@ describe('useOverviewViewModel', () => {
     // After revalidation completes, data is updated
     await waitFor(() => {
       expect(result.current.revalidating).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.stats).toEqual(freshStats);
     expect(result.current.error).toBeNull();
@@ -245,7 +245,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.revalidating).toBe(false);
-    });
+    }, { interval: 5 });
 
     // Stale data is preserved, no error shown
     expect(result.current.stats).toEqual(staleStats);
@@ -266,7 +266,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.revalidating).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.stats).toEqual(staleStats);
     expect(result.current.error).toBeNull();
@@ -286,7 +286,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.revalidating).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(_cache.stats).toEqual(freshStats);
     expect(_cache.fetchedAt).toBeGreaterThan(oldFetchedAt);
@@ -300,7 +300,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(_cache.stats).toEqual(mockStats);
     expect(_cache.fetchedAt).toBeGreaterThan(0);
@@ -319,7 +319,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.workerHealthLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.workerHealth).toEqual(health);
     // Main stats should still be loading (they never resolved)
@@ -344,7 +344,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.workerHealthLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     // Health remains null on failure — no error propagated
     expect(result.current.workerHealth).toBeNull();
@@ -358,7 +358,7 @@ describe('useOverviewViewModel', () => {
 
     await waitFor(() => {
       expect(result.current.workerHealthLoading).toBe(false);
-    });
+    }, { interval: 5 });
 
     expect(result.current.workerHealth).toBeNull();
   });
