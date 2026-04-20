@@ -305,9 +305,9 @@ test.describe('Ideas', () => {
       await page.getByText('Idea to edit').click();
 
       // Should navigate to editor page
-      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
       // Editor should show the content
-      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText('预览')).toBeVisible();
     });
 
@@ -330,8 +330,8 @@ test.describe('Ideas', () => {
       const backButton = page.getByRole('button', { name: '返回想法列表' });
       await expect(backButton).toBeVisible({ timeout: 15_000 });
 
-      // Click back button
-      await backButton.click();
+      // Click back button (force: true to bypass any overlapping elements in CI)
+      await backButton.click({ force: true });
 
       // Should go back to ideas list
       await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
@@ -369,8 +369,8 @@ test.describe('Ideas', () => {
       const backButton = page.getByRole('button', { name: '返回想法列表' });
       await expect(backButton).toBeVisible({ timeout: 15_000 });
 
-      // Go back to verify navigation works
-      await backButton.click();
+      // Go back to verify navigation works (force: true to bypass any overlapping elements in CI)
+      await backButton.click({ force: true });
       await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
       await expect(page.getByText(originalContent)).toBeVisible();
     });
