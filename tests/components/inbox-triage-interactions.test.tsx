@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 import { unwrap } from '../test-utils';
@@ -151,12 +150,11 @@ describe('InboxTriage (interactions)', () => {
     });
 
     it('renders all folder options when trigger is clicked', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       // Click the first folder select trigger to open the dropdown
       const triggers = screen.getAllByRole('combobox');
-      await user.click(unwrap(triggers[0]));
+      fireEvent.click(unwrap(triggers[0]));
 
       // Radix Select should render listbox with options via portal
       const listbox = screen.getByRole('listbox');
@@ -169,16 +167,15 @@ describe('InboxTriage (interactions)', () => {
     });
 
     it('updates trigger text when a folder option is selected', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       // Open the first folder select
       const triggers = screen.getAllByRole('combobox');
-      await user.click(unwrap(triggers[0]));
+      fireEvent.click(unwrap(triggers[0]));
 
       // Select "Work" folder
       const workOption = screen.getByRole('option', { name: 'Work' });
-      await user.click(workOption);
+      fireEvent.click(workOption);
 
       // Trigger should now show "Work" instead of "Inbox"
       expect(triggers[0]).toHaveTextContent('Work');
@@ -189,7 +186,6 @@ describe('InboxTriage (interactions)', () => {
 
   describe('note input onChange', () => {
     it('updates note value as user types', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
@@ -205,12 +201,10 @@ describe('InboxTriage (interactions)', () => {
     it('triggers save action when clicked', async () => {
       const { updateLink } = await import('@/actions/links');
       (updateLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { ...inboxLink1, folderId: null } });
-
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const saveButtons = screen.getAllByRole('button', { name: '保存' });
-      await user.click(unwrap(saveButtons[0]));
+      fireEvent.click(unwrap(saveButtons[0]));
 
       expect(updateLink).toHaveBeenCalled();
     });
@@ -227,11 +221,10 @@ describe('InboxTriage (interactions)', () => {
         { linkId: 1, tagId: 't1' },
       ];
       setupService({ linkTags });
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const removeBtn = screen.getByLabelText('Remove tag Important');
-      await user.click(removeBtn);
+      fireEvent.click(removeBtn);
 
       // Should trigger optimistic removal through the VM
       expect(mockService.handleLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
@@ -242,11 +235,10 @@ describe('InboxTriage (interactions)', () => {
 
   describe('tag picker', () => {
     it('opens tag picker popover when add tag button is clicked', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(unwrap(addButtons[0]));
+      fireEvent.click(unwrap(addButtons[0]));
 
       expect(screen.getByPlaceholderText('搜索或创建标签...')).toBeInTheDocument();
     });
@@ -254,17 +246,15 @@ describe('InboxTriage (interactions)', () => {
     it('selects an existing tag from picker', async () => {
       const { addTagToLink } = await import('@/actions/tags');
       (addTagToLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       // Open the tag picker for the first inbox link
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(unwrap(addButtons[0]));
+      fireEvent.click(unwrap(addButtons[0]));
 
       // Click on a tag in the picker
       const tagOption = screen.getByText('Important');
-      await user.click(tagOption);
+      fireEvent.click(tagOption);
 
       // Should call onLinkTagAdded optimistically
       expect(mockService.handleLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
@@ -279,12 +269,10 @@ describe('InboxTriage (interactions)', () => {
 
       const { addTagToLink } = await import('@/actions/tags');
       (addTagToLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const addButtons = screen.getAllByLabelText('Add tag');
-      await user.click(unwrap(addButtons[0]));
+      fireEvent.click(unwrap(addButtons[0]));
 
       // Type a non-existing tag name
       const searchInput = screen.getByPlaceholderText('搜索或创建标签...');
@@ -292,7 +280,7 @@ describe('InboxTriage (interactions)', () => {
 
       // The "创建" option should appear
       const createOption = screen.getByText(/创建/);
-      await user.click(createOption);
+      fireEvent.click(createOption);
 
       expect(createTag).toHaveBeenCalledWith({ name: 'NewTag' });
     });
@@ -304,17 +292,15 @@ describe('InboxTriage (interactions)', () => {
     it('calls deleteLink and handleLinkDeleted on successful delete', async () => {
       const { deleteLink } = await import('@/actions/links');
       (deleteLink as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       // Open delete dialog
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(unwrap(deleteButtons[0]));
+      fireEvent.click(unwrap(deleteButtons[0]));
 
       // Click confirm
       const confirmBtn = screen.getByRole('button', { name: '删除' });
-      await user.click(confirmBtn);
+      fireEvent.click(confirmBtn);
 
       expect(deleteLink).toHaveBeenCalledWith(1);
       await vi.waitFor(() => {
@@ -323,17 +309,16 @@ describe('InboxTriage (interactions)', () => {
     });
 
     it('closes dialog on cancel', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(unwrap(deleteButtons[0]));
+      fireEvent.click(unwrap(deleteButtons[0]));
 
       // Dialog is open
       expect(screen.getByText('确认删除')).toBeInTheDocument();
 
       // Cancel
-      await user.click(screen.getByRole('button', { name: '取消' }));
+      fireEvent.click(screen.getByRole('button', { name: '取消' }));
 
       // Dialog should close
       await vi.waitFor(() => {

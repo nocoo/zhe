@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import type { Link, Folder, Tag, LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 import { unwrap } from '../test-utils';
@@ -254,10 +253,9 @@ describe('LinksList', () => {
 
   it('switches to grid view when grid toggle is clicked', async () => {
     localStorage.removeItem('zhe_links_view_mode');
-    const user = userEvent.setup();
     render(<LinksList />);
 
-    await user.click(screen.getByLabelText('Grid view'));
+    fireEvent.click(screen.getByLabelText('Grid view'));
 
     const gridBtn = screen.getByLabelText('Grid view');
     expect(gridBtn.className).toContain('bg-accent');
@@ -268,10 +266,9 @@ describe('LinksList', () => {
 
   it('switches back to list view when list toggle is clicked', async () => {
     localStorage.setItem('zhe_links_view_mode', 'grid');
-    const user = userEvent.setup();
     render(<LinksList />);
 
-    await user.click(screen.getByLabelText('List view'));
+    fireEvent.click(screen.getByLabelText('List view'));
 
     const listBtn = screen.getByLabelText('List view');
     expect(listBtn.className).toContain('bg-accent');
@@ -279,22 +276,20 @@ describe('LinksList', () => {
 
   it('persists view mode to localStorage', async () => {
     localStorage.removeItem('zhe_links_view_mode');
-    const user = userEvent.setup();
     render(<LinksList />);
 
-    await user.click(screen.getByLabelText('Grid view'));
+    fireEvent.click(screen.getByLabelText('Grid view'));
     expect(localStorage.getItem('zhe_links_view_mode')).toBe('grid');
 
-    await user.click(screen.getByLabelText('List view'));
+    fireEvent.click(screen.getByLabelText('List view'));
     expect(localStorage.getItem('zhe_links_view_mode')).toBe('list');
   });
 
   it('uses grid layout container when in grid mode', async () => {
     localStorage.removeItem('zhe_links_view_mode');
-    const user = userEvent.setup();
     const { container } = render(<LinksList />);
 
-    await user.click(screen.getByLabelText('Grid view'));
+    fireEvent.click(screen.getByLabelText('Grid view'));
 
     const gridContainer = container.querySelector('.grid');
     expect(gridContainer).toBeInTheDocument();
@@ -335,10 +330,9 @@ describe('LinksList', () => {
   });
 
   it('calls refreshLinks when refresh button is clicked', async () => {
-    const user = userEvent.setup();
     render(<LinksList />);
 
-    await user.click(screen.getByLabelText('刷新链接'));
+    fireEvent.click(screen.getByLabelText('刷新链接'));
 
     expect(mockService.refreshLinks).toHaveBeenCalledOnce();
   });
@@ -346,10 +340,9 @@ describe('LinksList', () => {
   it('disables refresh button while refreshing', async () => {
     // Make refreshLinks hang so isRefreshing stays true
     mockService.refreshLinks = vi.fn().mockReturnValue(new Promise(() => {}));
-    const user = userEvent.setup();
     render(<LinksList />);
 
-    await user.click(screen.getByLabelText('刷新链接'));
+    fireEvent.click(screen.getByLabelText('刷新链接'));
 
     expect(screen.getByLabelText('刷新链接')).toBeDisabled();
   });
@@ -374,13 +367,12 @@ describe('LinksList', () => {
     });
 
     it('filters links by folder via filter bar', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Open folder dropdown
-      await user.click(screen.getByText('文件夹'));
+      fireEvent.click(screen.getByText('文件夹'));
       // Select "工作" folder
-      await user.click(screen.getByText('工作'));
+      fireEvent.click(screen.getByText('工作'));
 
       // Should show only link 1 (abc)
       expect(screen.getByText('abc')).toBeInTheDocument();
@@ -391,11 +383,10 @@ describe('LinksList', () => {
     });
 
     it('filters links by Inbox (uncategorized) via filter bar', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
-      await user.click(screen.getByText('文件夹'));
-      await user.click(screen.getByText('Inbox'));
+      fireEvent.click(screen.getByText('文件夹'));
+      fireEvent.click(screen.getByText('Inbox'));
 
       // Should show only link 3 (ghi) which has folderId=null
       expect(screen.getByText('ghi')).toBeInTheDocument();
@@ -404,31 +395,29 @@ describe('LinksList', () => {
     });
 
     it('resets folder filter when "全部文件夹" is selected', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Select a folder first
-      await user.click(screen.getByText('文件夹'));
-      await user.click(screen.getByText('工作'));
+      fireEvent.click(screen.getByText('文件夹'));
+      fireEvent.click(screen.getByText('工作'));
       expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
 
       // Now reset to all
-      await user.click(screen.getByText('工作')); // trigger shows selected folder name
-      await user.click(screen.getByText('全部文件夹'));
+      fireEvent.click(screen.getByText('工作')); // trigger shows selected folder name
+      fireEvent.click(screen.getByText('全部文件夹'));
       expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
     });
 
     it('filters links by tag', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Open tag dropdown
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('标签'));
       // Select "dev" tag — use the command item (dropdown), not the tag badge on LinkCard
       const devItems = screen.getAllByText('dev');
       const devDropdownItem = devItems.find(el => el.closest('[cmdk-item]'));
       expect(devDropdownItem).toBeTruthy();
-      await user.click(unwrap(devDropdownItem));
+      fireEvent.click(unwrap(devDropdownItem));
 
       // Only link 1 (abc) has the "dev" tag
       expect(screen.getByText('abc')).toBeInTheDocument();
@@ -438,21 +427,20 @@ describe('LinksList', () => {
     });
 
     it('filters links by multiple tags (intersection)', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Select "dev" tag
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
+      fireEvent.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       // Select "design" tag too (reopen)
-      await user.click(screen.getByText('标签 (1)'));
+      fireEvent.click(screen.getByText('标签 (1)'));
       const designItems = screen.getAllByText('design');
       const designDropdownItem = designItems.find(el => el.closest('[cmdk-item]'));
       // cmdk may filter out already-selected items; click only if present
       if (designDropdownItem) {
-        await user.click(designDropdownItem);
+        fireEvent.click(designDropdownItem);
       }
 
       // Only link 1 (abc) has both "dev" AND "design"
@@ -462,48 +450,45 @@ describe('LinksList', () => {
     });
 
     it('removes tag filter via badge X button', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Select "blog" tag to narrow to link 3 only
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('标签'));
       const blogItems = screen.getAllByText('blog');
-      await user.click(unwrap(blogItems.find(el => el.closest('[cmdk-item]'))));
+      fireEvent.click(unwrap(blogItems.find(el => el.closest('[cmdk-item]'))));
       expect(screen.getByText('1 / 3 条链接')).toBeInTheDocument();
 
       // Remove it via X on the badge
-      await user.click(screen.getByLabelText('Remove filter blog'));
+      fireEvent.click(screen.getByLabelText('Remove filter blog'));
       expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
     });
 
     it('clears all filters via "清除筛选" button', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Apply folder + tag filters
-      await user.click(screen.getByText('文件夹'));
-      await user.click(screen.getByText('工作'));
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('文件夹'));
+      fireEvent.click(screen.getByText('工作'));
+      fireEvent.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
+      fireEvent.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       // Clear all
-      await user.click(screen.getByText('清除筛选'));
+      fireEvent.click(screen.getByText('清除筛选'));
       expect(screen.getByText('共 3 条链接')).toBeInTheDocument();
       expect(screen.queryByText('清除筛选')).not.toBeInTheDocument();
     });
 
     it('combines folder and tag filters', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
       // Filter by folder "个人" (link 2 only) then by tag "design" (link 1, 2)
-      await user.click(screen.getByText('文件夹'));
-      await user.click(screen.getByText('个人'));
+      fireEvent.click(screen.getByText('文件夹'));
+      fireEvent.click(screen.getByText('个人'));
 
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('标签'));
       const designItems = screen.getAllByText('design');
-      await user.click(unwrap(designItems.find(el => el.closest('[cmdk-item]'))));
+      fireEvent.click(unwrap(designItems.find(el => el.closest('[cmdk-item]'))));
 
       // Only link 2 (def) is in folder "个人" AND has tag "design"
       expect(screen.getByText('def')).toBeInTheDocument();
@@ -512,12 +497,11 @@ describe('LinksList', () => {
     });
 
     it('shows tag count on tag button when tags are selected', async () => {
-      const user = userEvent.setup();
       render(<LinksList />);
 
-      await user.click(screen.getByText('标签'));
+      fireEvent.click(screen.getByText('标签'));
       const devItems = screen.getAllByText('dev');
-      await user.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
+      fireEvent.click(unwrap(devItems.find(el => el.closest('[cmdk-item]'))));
 
       expect(screen.getByText('标签 (1)')).toBeInTheDocument();
     });

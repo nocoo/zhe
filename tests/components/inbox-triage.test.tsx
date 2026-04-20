@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
 import { unwrap } from '../test-utils';
@@ -285,7 +284,6 @@ describe('InboxTriage', () => {
     });
 
     it('allows typing into note input', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
@@ -339,22 +337,20 @@ describe('InboxTriage', () => {
     });
 
     it('opens confirmation dialog when clicked', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(unwrap(deleteButtons[0]));
+      fireEvent.click(unwrap(deleteButtons[0]));
 
       expect(screen.getByText('确认删除')).toBeInTheDocument();
       expect(screen.getByText('此操作不可撤销，确定要删除这条链接吗？')).toBeInTheDocument();
     });
 
     it('shows cancel and confirm buttons in dialog', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const deleteButtons = screen.getAllByLabelText('Delete link');
-      await user.click(unwrap(deleteButtons[0]));
+      fireEvent.click(unwrap(deleteButtons[0]));
 
       expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '删除' })).toBeInTheDocument();
@@ -388,10 +384,9 @@ describe('InboxTriage', () => {
     });
 
     it('calls refreshLinks when clicked', async () => {
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
-      await user.click(screen.getByRole('button', { name: '刷新链接' }));
+      fireEvent.click(screen.getByRole('button', { name: '刷新链接' }));
 
       expect(mockService.refreshLinks).toHaveBeenCalledTimes(1);
     });
@@ -402,12 +397,10 @@ describe('InboxTriage', () => {
       (mockService.refreshLinks as ReturnType<typeof vi.fn>).mockReturnValue(
         new Promise<void>((r) => { resolveRefresh = r; }),
       );
-
-      const user = userEvent.setup();
       render(<InboxTriage />);
 
       const btn = screen.getByRole('button', { name: '刷新链接' });
-      await user.click(btn);
+      fireEvent.click(btn);
 
       // Button should be disabled while refreshing
       expect(btn).toBeDisabled();

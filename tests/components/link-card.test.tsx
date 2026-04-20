@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { Link, Tag, LinkTag, Folder } from "@/models/types";
 import type { AnalyticsStats } from "@/models/types";
@@ -311,18 +310,17 @@ describe("LinkCard", () => {
   });
 
   it("toggles inline edit area when edit button is clicked in list mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     // Edit area not visible initially
     expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
 
     // Click edit to open
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
 
     // Click edit again to close
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
     expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
   });
 
@@ -446,11 +444,10 @@ describe("LinkCard", () => {
   // --- Delete confirmation (inside edit mode) ---
 
   it("shows delete button inside edit area when editing", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     // Open edit mode
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
   });
@@ -462,50 +459,46 @@ describe("LinkCard", () => {
   });
 
   it("opens AlertDialog with confirmation text when delete button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     // Open edit mode first
-    await user.click(screen.getByTitle("Edit link"));
-    await user.click(screen.getByLabelText("Delete link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByLabelText("Delete link"));
 
     expect(screen.getByText("确认删除")).toBeInTheDocument();
     expect(screen.getByText("此操作不可撤销，确定要删除这条链接吗？")).toBeInTheDocument();
   });
 
   it("does not call handleDelete when cancel button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
-    await user.click(screen.getByLabelText("Delete link"));
-    await user.click(screen.getByText("取消"));
+    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByLabelText("Delete link"));
+    fireEvent.click(screen.getByText("取消"));
 
     expect(mockVm.handleDelete).not.toHaveBeenCalled();
   });
 
   it("calls handleDelete when confirm delete button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
-    await user.click(screen.getByLabelText("Delete link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByLabelText("Delete link"));
 
     // The AlertDialog confirm button — find within the dialog, not the trigger
     const confirmButtons = screen.getAllByRole("button", { name: "删除" });
     // The last one is the AlertDialogAction inside the dialog
-    await user.click(unwrap(confirmButtons[confirmButtons.length - 1]));
+    fireEvent.click(unwrap(confirmButtons[confirmButtons.length - 1]));
 
     expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
   });
 
   it("disables delete button when isDeleting is true", async () => {
     mockVm.isDeleting = true;
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     // Open edit mode
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     const deleteBtn = screen.getByLabelText("Delete link");
     expect(deleteBtn).toBeDisabled();
@@ -568,12 +561,11 @@ describe("LinkCard", () => {
   });
 
   it("toggles inline edit area when edit button is clicked in grid mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
     expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
 
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
@@ -742,37 +734,33 @@ describe("LinkCard", () => {
   // --- Copy button callbacks ---
 
   it("calls handleCopy when copy link button is clicked in list mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Copy link"));
+    fireEvent.click(screen.getByTitle("Copy link"));
 
     expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
   });
 
   it("calls handleCopyOriginalUrl when copy original URL button is clicked in list mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Copy original URL"));
+    fireEvent.click(screen.getByTitle("Copy original URL"));
 
     expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
   });
 
   it("calls handleCopy when copy link button is clicked in grid mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    await user.click(screen.getByTitle("Copy link"));
+    fireEvent.click(screen.getByTitle("Copy link"));
 
     expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
   });
 
   it("calls handleCopyOriginalUrl when copy original URL button is clicked in grid mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    await user.click(screen.getByTitle("Copy original URL"));
+    fireEvent.click(screen.getByTitle("Copy original URL"));
 
     expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
   });
@@ -780,10 +768,9 @@ describe("LinkCard", () => {
   // --- Refresh metadata callback ---
 
   it("calls handleRefreshMetadata when refresh metadata button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("刷新元数据"));
+    fireEvent.click(screen.getByTitle("刷新元数据"));
 
     expect(mockVm.handleRefreshMetadata).toHaveBeenCalledTimes(1);
   });
@@ -791,11 +778,10 @@ describe("LinkCard", () => {
   // --- Analytics toggle callback ---
 
   it("calls handleToggleAnalytics when analytics button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
     const analyticsButton = screen.getByText(/次点击/);
-    await user.click(analyticsButton);
+    fireEvent.click(analyticsButton);
 
     expect(mockVm.handleToggleAnalytics).toHaveBeenCalledTimes(1);
   });
@@ -871,10 +857,9 @@ describe("LinkCard", () => {
   // --- Screenshot source picker dialog ---
 
   it("opens screenshot source picker dialog when refresh preview is clicked in list mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByLabelText("Refresh preview"));
+    fireEvent.click(screen.getByLabelText("Refresh preview"));
 
     expect(screen.getByText("选择截图来源")).toBeInTheDocument();
     expect(screen.getByText("Microlink")).toBeInTheDocument();
@@ -882,30 +867,27 @@ describe("LinkCard", () => {
   });
 
   it("calls handleFetchPreview with 'microlink' when Microlink source is selected", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByLabelText("Refresh preview"));
-    await user.click(screen.getByText("Microlink"));
+    fireEvent.click(screen.getByLabelText("Refresh preview"));
+    fireEvent.click(screen.getByText("Microlink"));
 
     expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("microlink");
   });
 
   it("calls handleFetchPreview with 'screenshotDomains' when Screenshot Domains source is selected", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByLabelText("Refresh preview"));
-    await user.click(screen.getByText("Screenshot Domains"));
+    fireEvent.click(screen.getByLabelText("Refresh preview"));
+    fireEvent.click(screen.getByText("Screenshot Domains"));
 
     expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("screenshotDomains");
   });
 
   it("opens screenshot source picker dialog when refresh preview is clicked in grid mode", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    await user.click(screen.getByLabelText("Refresh preview"));
+    fireEvent.click(screen.getByLabelText("Refresh preview"));
 
     expect(screen.getByText("选择截图来源")).toBeInTheDocument();
   });
@@ -940,14 +922,13 @@ describe("LinkCard", () => {
   });
 
   it("defaultEditing cards cannot collapse edit area via edit button", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} defaultEditing />);
 
     // Edit area is open
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
 
     // Click edit button — should NOT close
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
@@ -960,20 +941,18 @@ describe("LinkCard", () => {
   });
 
   it("shows save button inside edit area", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
 
   it("calls saveEdit when save button is clicked", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     expect(mockEditVm.saveEdit).toHaveBeenCalledTimes(1);
   });
@@ -981,36 +960,33 @@ describe("LinkCard", () => {
   // --- Edit form inputs ---
 
   it("calls setEditUrl when URL input changes in edit area", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     const urlInput = screen.getByPlaceholderText("https://example.com");
-    await user.clear(urlInput);
+    fireEvent.change(urlInput, { target: { value: '' } });
     fireEvent.change(urlInput, { target: { value: "https://new.com" } });
 
     expect(mockEditVm.setEditUrl).toHaveBeenCalled();
   });
 
   it("calls setEditSlug when slug input changes in edit area", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     const slugInput = screen.getByPlaceholderText("custom-slug");
-    await user.clear(slugInput);
+    fireEvent.change(slugInput, { target: { value: '' } });
     fireEvent.change(slugInput, { target: { value: "new-slug" } });
 
     expect(mockEditVm.setEditSlug).toHaveBeenCalled();
   });
 
   it("calls setEditScreenshotUrl when screenshot URL input changes in edit area", async () => {
-    const user = userEvent.setup();
     render(<LinkCard {...defaultProps} />);
 
-    await user.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByTitle("Edit link"));
 
     const screenshotInput = screen.getByPlaceholderText("https://example.com/screenshot.png");
     fireEvent.change(screenshotInput, { target: { value: "https://img.com/shot.png" } });

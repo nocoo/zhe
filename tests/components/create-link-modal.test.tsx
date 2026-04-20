@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { CreateLinkModal } from "@/components/dashboard/create-link-modal";
 
 const mockVm = {
@@ -213,30 +212,28 @@ describe("CreateLinkModal", () => {
     });
 
     it("calls setFolderId when a folder is selected", async () => {
-      const user = userEvent.setup();
       mockVm.isOpen = true;
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
       const trigger = screen.getByLabelText("文件夹");
-      await user.click(trigger);
+      fireEvent.click(trigger);
 
       const workOption = screen.getByRole("option", { name: "工作" });
-      await user.click(workOption);
+      fireEvent.click(workOption);
 
       expect(mockVm.setFolderId).toHaveBeenCalledWith("f1");
     });
 
     it("calls setFolderId with undefined when Inbox is selected", async () => {
-      const user = userEvent.setup();
       mockVm.isOpen = true;
       mockVm.folderId = "f1";
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
       const trigger = screen.getByLabelText("文件夹");
-      await user.click(trigger);
+      fireEvent.click(trigger);
 
       const inboxOption = screen.getByRole("option", { name: "Inbox" });
-      await user.click(inboxOption);
+      fireEvent.click(inboxOption);
 
       expect(mockVm.setFolderId).toHaveBeenCalledWith(undefined);
     });
@@ -313,22 +310,20 @@ describe("CreateLinkModal", () => {
 
   describe("mode switching", () => {
     it("calls setMode('simple') when simple mode button clicked", async () => {
-      const user = userEvent.setup();
       mockVm.isOpen = true;
       mockVm.mode = "custom";
       render(<CreateLinkModal {...defaultProps} />);
 
-      await user.click(screen.getByText("简单模式"));
+      fireEvent.click(screen.getByText("简单模式"));
       expect(mockVm.setMode).toHaveBeenCalledWith("simple");
     });
 
     it("calls setMode('custom') when custom mode button clicked", async () => {
-      const user = userEvent.setup();
       mockVm.isOpen = true;
       mockVm.mode = "simple";
       render(<CreateLinkModal {...defaultProps} />);
 
-      await user.click(screen.getByText("自定义 slug"));
+      fireEvent.click(screen.getByText("自定义 slug"));
       expect(mockVm.setMode).toHaveBeenCalledWith("custom");
     });
   });
@@ -342,8 +337,6 @@ describe("CreateLinkModal", () => {
       const onTagCreated = vi.fn();
       const newTag = { id: "t-new", userId: "u1", name: "newTag", color: "#0000ff", createdAt: new Date() };
       vi.mocked(createTag).mockResolvedValue({ success: true, data: newTag });
-
-      const user = userEvent.setup();
       mockVm.isOpen = true;
       mockVm.selectedTagIds = new Set();
 
@@ -356,14 +349,14 @@ describe("CreateLinkModal", () => {
       );
 
       // Open tag picker
-      await user.click(screen.getByTestId("tag-picker-trigger"));
+      fireEvent.click(screen.getByTestId("tag-picker-trigger"));
 
       // Type a new tag name
       const input = screen.getByPlaceholderText("搜索或创建标签...");
       fireEvent.change(input, { target: { value: "newTag" } });
 
       // Click the create option
-      await user.click(screen.getByTestId("tag-create-option"));
+      fireEvent.click(screen.getByTestId("tag-create-option"));
 
       expect(createTag).toHaveBeenCalledWith({ name: "newTag" });
 
