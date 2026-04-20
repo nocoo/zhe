@@ -88,6 +88,7 @@ test.describe('Link CRUD', () => {
   });
 
   test.describe('view and interact with links', () => {
+    test.describe.configure({ mode: 'parallel' });
     let testSlug: string;
 
     test.beforeEach(async ({ page }) => {
