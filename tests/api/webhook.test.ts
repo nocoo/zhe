@@ -8,15 +8,14 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, apiPost, jsonResponse } from './helpers/http';
-import { seedTestUser, seedWebhook, seedLink, seedFolder, cleanupTestData, testSlug } from './helpers/seed';
+import {  seedWebhook, seedLink, seedFolder, cleanupTestData, resetAndSeedUser, testSlug } from './helpers/seed';
 import { unwrap } from '../test-utils';
 
 const TEST_USER_ID = 'api-webhook-test-user';
 let webhookToken: string;
 
 beforeAll(async () => {
-  await cleanupTestData(TEST_USER_ID);
-  await seedTestUser(TEST_USER_ID);
+  await resetAndSeedUser(TEST_USER_ID);
   const wh = await seedWebhook({ userId: TEST_USER_ID });
   webhookToken = wh.token;
 });

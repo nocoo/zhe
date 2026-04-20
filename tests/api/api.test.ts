@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { apiGet, apiPostWorker, jsonResponse } from './helpers/http';
-import { seedTestUser, seedLink, cleanupTestData, queryD1, testSlug } from './helpers/seed';
+import {  seedLink, cleanupTestData, resetAndSeedUser, queryD1, testSlug } from './helpers/seed';
 import { unwrap } from '../test-utils';
 
 const TEST_USER_ID = 'api-root-test-user';
@@ -21,8 +21,7 @@ const TEST_USER_ID = 'api-root-test-user';
 // Setup: ensure test user exists, clean up before/after
 // ---------------------------------------------------------------------------
 beforeAll(async () => {
-  await cleanupTestData(TEST_USER_ID);
-  await seedTestUser(TEST_USER_ID);
+  await resetAndSeedUser(TEST_USER_ID);
 });
 
 afterAll(async () => {

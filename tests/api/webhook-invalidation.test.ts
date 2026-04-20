@@ -16,18 +16,17 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { apiGet, apiHead, apiPost } from './helpers/http';
 import {
-  seedTestUser,
+  
   seedWebhook,
   cleanupTestData,
-  executeD1,
+  resetAndSeedUser,  executeD1,
   testSlug,
 } from './helpers/seed';
 
 const TEST_USER_ID = 'api-webhook-invalidation-test-user';
 
 beforeAll(async () => {
-  await cleanupTestData(TEST_USER_ID);
-  await seedTestUser(TEST_USER_ID);
+  await resetAndSeedUser(TEST_USER_ID);
 });
 
 afterAll(async () => {
