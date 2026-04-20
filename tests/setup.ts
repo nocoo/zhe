@@ -36,6 +36,19 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   };
 }
 
+// happy-dom defines navigator.clipboard as a non-configurable getter, breaking
+// tests that do `Object.assign(navigator, { clipboard: ... })`. Redefine the
+// property as a configurable, writable own-property so tests can stub it.
+if (typeof navigator !== 'undefined') {
+  try {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: () => Promise.resolve(), readText: () => Promise.resolve('') },
+      writable: true,
+      configurable: true,
+    });
+  } catch { /* jsdom path: already writable, ignore */ }
+}
+
 // Polyfill DOM Element prototypes for jsdom (required by cmdk / Radix Select).
 // Guard with `typeof Element` so node-environment tests can also load this setup file.
 if (typeof Element !== 'undefined') {
