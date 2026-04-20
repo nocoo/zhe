@@ -16,7 +16,7 @@ export async function createLink(page: Page, url: string, slug: string): Promise
   await page.locator('#url').fill(url);
   await page.locator('#slug').fill(slug);
   await page.locator('button:has-text("创建链接")').click();
-  await expect(page.getByText('创建短链接')).toBeHidden({ timeout: 15_000 });
+  await expect(page.locator('[role="dialog"]:has-text("创建短链接")')).toBeHidden({ timeout: 30_000 });
   await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
 }
 
@@ -48,10 +48,12 @@ export async function createTagInEditMode(
   await expect(createOption).toBeVisible({ timeout: 10_000 });
   await createOption.click();
 
-  // Wait for the popover to close and tag to appear in edit area
-  // CI environment is slower, so increase timeout significantly
+  // Wait for tag badge to appear in edit area
   const editArea = card.locator('[data-testid="edit-area"]');
   await expect(
     editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
   ).toBeVisible({ timeout: 30_000 });
+
+  // Dismiss the popover so it doesn't block the save button
+  await page.keyboard.press('Escape');
 }

@@ -30,7 +30,7 @@ test.describe('Tag UI - assign existing', () => {
 
     let card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').click({ force: true });
+    await card.locator('button:has-text("保存")').click();
     await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     const slug2 = `e2e-tagasn2-${Date.now()}`;
@@ -50,7 +50,10 @@ test.describe('Tag UI - assign existing', () => {
       card.locator('[data-testid="edit-area"]').locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
     ).toBeVisible({ timeout: 10_000 });
 
-    await card.locator('button:has-text("保存")').click({ force: true });
+    // Dismiss the popover so it doesn't block the save button
+    await page.keyboard.press('Escape');
+
+    await card.locator('button:has-text("保存")').click();
     await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     await expect(
