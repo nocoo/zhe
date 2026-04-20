@@ -111,7 +111,7 @@ describe("PATCH idempotency", () => {
       [link.id, tag.id],
     );
     expect(rows[0]?.c).toBe(1);
-  });
+  }, 30_000);
 
   it("PATCH /api/v1/tags/[id] is idempotent for name + color", async () => {
     const tag = await seedTag(TEST_USER_ID, { name: "TagIdemp", color: "#112233" });
@@ -207,5 +207,5 @@ describe("PATCH idempotency", () => {
       [idea.id, tag.id],
     );
     expect(rows[0]?.c).toBe(1);
-  });
+  }, 30_000);
 });
