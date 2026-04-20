@@ -16,7 +16,7 @@ const PROJECT_ROOT = pathResolve(import.meta.dirname ?? process.cwd(), '..');
 const API_E2E_PORT = 17006;
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;
-const HEALTH_POLL_MS = 1_000;
+const HEALTH_POLL_MS = 100;
 
 // ---------------------------------------------------------------------------
 // Env loading
