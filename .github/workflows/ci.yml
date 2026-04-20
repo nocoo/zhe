@@ -8,6 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ─────────────────────────────────────────────────────
+  # L1 + G1 + G2 — Core quality gate from base-ci
+  # ─────────────────────────────────────────────────────
   quality:
     uses: nocoo/base-ci/.github/workflows/bun-quality.yml@v2026
     with:
@@ -16,32 +19,79 @@ jobs:
       typecheck-command: "bun x tsc --noEmit"
       test-command: "bun run test:unit:coverage && bun run test:integration"
       osv-config: "osv-scanner.toml"
-      enable-l2: "true"
-      l2-command: "bun run test:api"
+      # L2/L3/Worker are defined locally for full secret control
+      enable-l2: "false"
+      enable-l3: "false"
+      enable-worker: "false"
     secrets: inherit
 
-  # L3: Browser E2E (Playwright) — runs after L1+G1+G2+L2 pass
-  e2e-browser:
-    name: "L3 Browser E2E"
-    needs: [quality]
+  # ─────────────────────────────────────────────────────
+  # L2: API E2E (real HTTP against test D1/R2/KV)
+  # Runs in PARALLEL with quality for faster CI.
+  # ─────────────────────────────────────────────────────
+  api-e2e:
+    name: "L2 API E2E"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
-      # D1 isolation — test database (NOT production)
+      # D1 — test database
       D1_TEST_DATABASE_ID: ${{ secrets.D1_TEST_DATABASE_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       # D1 Worker proxy — test Worker
-      D1_PROXY_URL: ${{ secrets.D1_PROXY_URL }}
-      D1_PROXY_SECRET: ${{ secrets.D1_PROXY_SECRET }}
-      # R2 isolation — test bucket
+      D1_TEST_PROXY_URL: ${{ secrets.D1_TEST_PROXY_URL }}
+      D1_TEST_PROXY_SECRET: ${{ secrets.D1_TEST_PROXY_SECRET }}
+      # R2 — test bucket
       R2_TEST_BUCKET_NAME: ${{ secrets.R2_TEST_BUCKET_NAME }}
       R2_TEST_PUBLIC_DOMAIN: ${{ secrets.R2_TEST_PUBLIC_DOMAIN }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
       R2_USER_HASH_SALT: ${{ secrets.R2_USER_HASH_SALT }}
-      # KV isolation — test namespace
+      # KV — test namespace
+      KV_TEST_NAMESPACE_ID: ${{ secrets.KV_TEST_NAMESPACE_ID }}
+      # Auth
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build (required for Next.js dev server)
+        run: bun run build --no-lint
+
+      - name: "L2: API E2E tests"
+        run: bun run test:api
+
+  # ─────────────────────────────────────────────────────
+  # L3: Browser E2E (Playwright against test D1/R2/KV)
+  # Runs in PARALLEL with quality for faster CI.
+  # ─────────────────────────────────────────────────────
+  browser-e2e:
+    name: "L3 Browser E2E"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # D1 — test database
+      D1_TEST_DATABASE_ID: ${{ secrets.D1_TEST_DATABASE_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # D1 Worker proxy — test Worker
+      D1_PROXY_URL: ${{ secrets.D1_PROXY_URL }}
+      D1_PROXY_SECRET: ${{ secrets.D1_PROXY_SECRET }}
+      # R2 — test bucket
+      R2_TEST_BUCKET_NAME: ${{ secrets.R2_TEST_BUCKET_NAME }}
+      R2_TEST_PUBLIC_DOMAIN: ${{ secrets.R2_TEST_PUBLIC_DOMAIN }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_USER_HASH_SALT: ${{ secrets.R2_USER_HASH_SALT }}
+      # KV — test namespace
       KV_TEST_NAMESPACE_ID: ${{ secrets.KV_TEST_NAMESPACE_ID }}
       # Auth
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -60,5 +110,28 @@ jobs:
       - name: Build (required for Next.js dev server)
         run: bun run build --no-lint
 
-      - name: Run Playwright E2E tests
+      - name: "L3: Playwright E2E tests"
         run: bun run test:e2e:pw
+
+  # ─────────────────────────────────────────────────────
+  # Worker: Edge Worker unit tests
+  # Runs in PARALLEL with quality for faster CI.
+  # ─────────────────────────────────────────────────────
+  worker-tests:
+    name: "Worker Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - run: bun install --frozen-lockfile
+
+      - name: "Worker: Unit tests"
+        run: bun run test
