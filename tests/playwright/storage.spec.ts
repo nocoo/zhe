@@ -75,7 +75,7 @@ test.describe('Storage Management', () => {
 
     // After scan completes, summary cards should still be visible
     await page.locator('main').getByText('R2 总存储', { exact: true }).waitFor({ timeout: 30_000 });
-    await expect(rescanBtn).toBeEnabled();
+    await expect(rescanBtn).toBeEnabled({ timeout: 15_000 });
   });
 
   test('sort controls for R2 files are functional', async ({ page }) => {

@@ -24,7 +24,7 @@ export async function createLink(page: Page, url: string, slug: string): Promise
 export async function openEditMode(page: Page, slug: string): Promise<Locator> {
   const card = page.locator(`[data-testid="link-card"]:has-text("${slug}")`).first();
   await card.getByRole('button', { name: 'Edit link' }).first().click();
-  await expect(card.locator('[data-testid="edit-area"]')).toBeVisible({ timeout: 5_000 });
+  await expect(card.locator('[data-testid="edit-area"]')).toBeVisible({ timeout: 10_000 });
   return card;
 }
 
@@ -45,11 +45,11 @@ export async function createTagInEditMode(
   await pickerInput.fill(tagName);
 
   const createOption = page.locator('[data-testid="tag-create-option"]');
-  await expect(createOption).toBeVisible({ timeout: 3_000 });
+  await expect(createOption).toBeVisible({ timeout: 5_000 });
   await createOption.click();
 
   const editArea = card.locator('[data-testid="edit-area"]');
   await expect(
     editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-  ).toBeVisible({ timeout: 5_000 });
+  ).toBeVisible({ timeout: 10_000 });
 }

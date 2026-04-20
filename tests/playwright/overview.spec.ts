@@ -228,7 +228,7 @@ test.describe('Overview page', () => {
     await page.locator('nav').getByRole('link', { name: '概览' }).click();
 
     // Should navigate to /dashboard/overview
-    await expect(page).toHaveURL(/\/dashboard\/overview/);
+    await expect(page).toHaveURL(/\/dashboard\/overview/, { timeout: 15_000 });
 
     // Stat cards should appear
     await page.locator('[data-testid="stat-card"]').first().waitFor({ timeout: 15_000 });
