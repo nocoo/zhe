@@ -20,6 +20,12 @@ export default defineConfig({
     testTimeout: 15_000, // real HTTP can be slower
     fileParallelism: true,
     maxConcurrency: 4,
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        isolate: false,
+      },
+    },
   },
   resolve: {
     alias: {
