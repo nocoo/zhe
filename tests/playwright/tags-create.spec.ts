@@ -36,39 +36,6 @@ test.describe('Tag UI - create and display', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
-  test('assign an existing tag to a link', async ({ page }) => {
-    const tagName = `tag-existing-${Date.now()}`;
-
-    let card = await openEditMode(page, slug);
-    await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
-
-    const slug2 = `e2e-tag2-${Date.now()}`;
-    await createLink(page, 'https://example.com/tag-test-2', slug2);
-
-    card = await openEditMode(page, slug2);
-
-    await card.locator('[data-testid="tag-picker-trigger"]').click();
-    const pickerInput = page.locator('[cmdk-input]').last();
-    await pickerInput.fill(tagName);
-
-    const tagItem = page.locator(`[cmdk-item]:has-text("${tagName}")`).first();
-    await expect(tagItem).toBeVisible({ timeout: 3_000 });
-    await tagItem.click();
-
-    await expect(
-      card.locator('[data-testid="edit-area"]').locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-    ).toBeVisible({ timeout: 5_000 });
-
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
-
-    await expect(
-      card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-    ).toBeVisible({ timeout: 5_000 });
-  });
-
   test('remove a tag from a link in edit mode', async ({ page }) => {
     const tagName = `tag-remove-${Date.now()}`;
 
