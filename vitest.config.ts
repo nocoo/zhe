@@ -4,6 +4,10 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  esbuild: {
+    target: 'esnext',
+    legalComments: 'none',
+  },
   test: {
     environment: 'node',
     globals: true,
