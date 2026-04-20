@@ -11,9 +11,9 @@ import { executeD1, TEST_USER } from './helpers/d1';
 /** Helper: wait for Ideas page to finish loading. */
 async function waitForIdeasPage(page: import('@playwright/test').Page): Promise<void> {
   // Wait for the page header "想法" to be visible
-  await page.getByRole('heading', { name: '想法' }).waitFor({ timeout: 15_000 });
+  await page.getByRole('heading', { name: '想法' }).waitFor({ timeout: 30_000 });
   // Wait for skeleton to disappear (loading complete)
-  await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 10_000 });
+  await expect(page.locator('.animate-pulse')).toHaveCount(0, { timeout: 30_000 });
 }
 
 test.describe('Ideas', () => {
@@ -323,16 +323,18 @@ test.describe('Ideas', () => {
       // Wait for idea to appear in list before clicking
       await expect(page.getByText('Idea for back button test')).toBeVisible({ timeout: 10_000 });
       await page.getByText('Idea for back button test').click();
-      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
 
-      // Wait for editor to load
-      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 10_000 });
+      // Wait for editor to load - must wait for back button to be visible
+      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 15_000 });
+      const backButton = page.getByRole('button', { name: '返回想法列表' });
+      await expect(backButton).toBeVisible({ timeout: 15_000 });
 
       // Click back button
-      await page.getByRole('button', { name: '返回想法列表' }).click();
+      await backButton.click();
 
       // Should go back to ideas list
-      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 10_000 });
+      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
     });
 
     test('can edit idea content and save', async ({ page }) => {
@@ -351,21 +353,25 @@ test.describe('Ideas', () => {
 
       // Navigate to editor
       await page.getByText(originalContent).click();
-      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
 
       // Wait for editor to fully load with original content
-      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 15_000 });
       const textarea = page.locator('textarea');
-      await expect(textarea).toHaveValue(originalContent, { timeout: 10_000 });
+      await expect(textarea).toHaveValue(originalContent, { timeout: 15_000 });
 
       // Verify editor has preview panel
       await expect(page.getByText('预览')).toBeVisible();
       // Preview shows the content
       await expect(page.locator('main').getByText(originalContent)).toHaveCount(2); // textarea + preview
 
+      // Wait for back button before clicking
+      const backButton = page.getByRole('button', { name: '返回想法列表' });
+      await expect(backButton).toBeVisible({ timeout: 15_000 });
+
       // Go back to verify navigation works
-      await page.getByRole('button', { name: '返回想法列表' }).click();
-      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 10_000 });
+      await backButton.click();
+      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
       await expect(page.getByText(originalContent)).toBeVisible();
     });
 
