@@ -366,17 +366,21 @@ describe('retry on transient errors', () => {
   });
 
   it('retries on "fetch failed" TypeError and succeeds', async () => {
+    vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setProxyEnv();
 
     mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
     mockProxyResponse([{ id: 1 }]);
 
-    const result = await executeD1Query('SELECT 1');
+    const promise = executeD1Query('SELECT 1');
+    await vi.runAllTimersAsync();
+    const result = await promise;
 
     expect(result).toEqual([{ id: 1 }]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
     consoleSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it('does not retry on non-transient errors', async () => {
@@ -388,6 +392,7 @@ describe('retry on transient errors', () => {
   });
 
   it('gives up after max retries', async () => {
+    vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setProxyEnv();
 
@@ -396,12 +401,19 @@ describe('retry on transient errors', () => {
     mockFetch.mockRejectedValueOnce(err);
     mockFetch.mockRejectedValueOnce(err);
 
-    await expect(executeD1Query('SELECT 1')).rejects.toThrow('fetch failed');
+    const promise = executeD1Query('SELECT 1');
+    // Catch rejection eagerly so unhandled-rejection warning doesn't fire
+    // before the test awaits the promise.
+    promise.catch(() => {});
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('fetch failed');
     expect(mockFetch).toHaveBeenCalledTimes(3);
     consoleSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it('retries batch requests on transient errors', async () => {
+    vi.useFakeTimers();
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setProxyEnv();
 
@@ -414,11 +426,14 @@ describe('retry on transient errors', () => {
       }),
     });
 
-    const result = await executeD1Batch([{ sql: 'INSERT INTO t VALUES (?)', params: [1] }]);
+    const promise = executeD1Batch([{ sql: 'INSERT INTO t VALUES (?)', params: [1] }]);
+    await vi.runAllTimersAsync();
+    const result = await promise;
 
     expect(result).toEqual([[{ id: 1 }]]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
     consoleSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it('does not retry AbortError (timeout)', async () => {
