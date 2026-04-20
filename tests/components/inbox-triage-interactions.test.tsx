@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
@@ -193,7 +193,7 @@ describe('InboxTriage (interactions)', () => {
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
-      await user.type(unwrap(inputs[0]), 'hello world');
+      fireEvent.change(unwrap(inputs[0]), { target: { value: 'hello world' } });
 
       expect(inputs[0]).toHaveValue('hello world');
     });
@@ -288,7 +288,7 @@ describe('InboxTriage (interactions)', () => {
 
       // Type a non-existing tag name
       const searchInput = screen.getByPlaceholderText('搜索或创建标签...');
-      await user.type(searchInput, 'NewTag');
+      fireEvent.change(searchInput, { target: { value: 'NewTag' } });
 
       // The "创建" option should appear
       const createOption = screen.getByText(/创建/);

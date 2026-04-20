@@ -79,7 +79,7 @@ describe("shared-link-components", () => {
 
       // Type a new tag name
       const input = screen.getByPlaceholderText("搜索或创建标签...");
-      await user.type(input, "NewTag");
+      fireEvent.change(input, { target: { value: "NewTag" } });
 
       // Click the create option
       await user.click(screen.getByTestId("tag-create-option"));

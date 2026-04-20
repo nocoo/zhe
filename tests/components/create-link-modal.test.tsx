@@ -360,7 +360,7 @@ describe("CreateLinkModal", () => {
 
       // Type a new tag name
       const input = screen.getByPlaceholderText("搜索或创建标签...");
-      await user.type(input, "newTag");
+      fireEvent.change(input, { target: { value: "newTag" } });
 
       // Click the create option
       await user.click(screen.getByTestId("tag-create-option"));

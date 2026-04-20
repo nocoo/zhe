@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { LinkTag } from '@/models/types';
 import type { DashboardService } from '@/contexts/dashboard-service';
@@ -289,7 +289,7 @@ describe('InboxTriage', () => {
       render(<InboxTriage />);
 
       const inputs = screen.getAllByPlaceholderText('添加备注...');
-      await user.type(unwrap(inputs[0]), 'my note');
+      fireEvent.change(unwrap(inputs[0]), { target: { value: 'my note' } });
 
       expect(inputs[0]).toHaveValue('my note');
     });

@@ -988,7 +988,7 @@ describe("LinkCard", () => {
 
     const urlInput = screen.getByPlaceholderText("https://example.com");
     await user.clear(urlInput);
-    await user.type(urlInput, "https://new.com");
+    fireEvent.change(urlInput, { target: { value: "https://new.com" } });
 
     expect(mockEditVm.setEditUrl).toHaveBeenCalled();
   });
@@ -1001,7 +1001,7 @@ describe("LinkCard", () => {
 
     const slugInput = screen.getByPlaceholderText("custom-slug");
     await user.clear(slugInput);
-    await user.type(slugInput, "new-slug");
+    fireEvent.change(slugInput, { target: { value: "new-slug" } });
 
     expect(mockEditVm.setEditSlug).toHaveBeenCalled();
   });
@@ -1013,7 +1013,7 @@ describe("LinkCard", () => {
     await user.click(screen.getByTitle("Edit link"));
 
     const screenshotInput = screen.getByPlaceholderText("https://example.com/screenshot.png");
-    await user.type(screenshotInput, "https://img.com/shot.png");
+    fireEvent.change(screenshotInput, { target: { value: "https://img.com/shot.png" } });
 
     expect(mockEditVm.setEditScreenshotUrl).toHaveBeenCalled();
   });
