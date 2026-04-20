@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    pool: 'threads',
+    isolate: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['tests/playwright/**', 'node_modules/**'],

@@ -13,6 +13,7 @@ import {
   createLink,
   openEditMode,
   createTagInEditMode,
+  saveAndCloseEdit,
 } from './helpers/tags';
 
 test.describe('Tag UI - assign existing', () => {
@@ -30,8 +31,7 @@ test.describe('Tag UI - assign existing', () => {
 
     let card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
+    await saveAndCloseEdit(card);
 
     const slug2 = `e2e-tagasn2-${Date.now()}`;
     await createLink(page, 'https://example.com/tag-test-2', slug2);
@@ -54,8 +54,7 @@ test.describe('Tag UI - assign existing', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('[cmdk-input]')).toBeHidden({ timeout: 5_000 });
 
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
+    await saveAndCloseEdit(card);
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),

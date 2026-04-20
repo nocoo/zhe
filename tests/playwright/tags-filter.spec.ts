@@ -10,6 +10,7 @@ import {
   createLink,
   openEditMode,
   createTagInEditMode,
+  saveAndCloseEdit,
 } from './helpers/tags';
 
 test.describe('Tag UI - filter by tag', () => {
@@ -37,8 +38,7 @@ test.describe('Tag UI - filter by tag', () => {
 
     const card = await openEditMode(page, slug1);
     await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
+    await saveAndCloseEdit(card);
 
     await context.close();
   });
