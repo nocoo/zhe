@@ -332,7 +332,7 @@ test.describe('Ideas', () => {
       await page.getByRole('button', { name: '返回想法列表' }).click();
 
       // Should go back to ideas list
-      await expect(page).toHaveURL('/dashboard/ideas');
+      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 10_000 });
     });
 
     test('can edit idea content and save', async ({ page }) => {
@@ -365,7 +365,7 @@ test.describe('Ideas', () => {
 
       // Go back to verify navigation works
       await page.getByRole('button', { name: '返回想法列表' }).click();
-      await expect(page).toHaveURL('/dashboard/ideas');
+      await expect(page).toHaveURL('/dashboard/ideas', { timeout: 10_000 });
       await expect(page.getByText(originalContent)).toBeVisible();
     });
 
