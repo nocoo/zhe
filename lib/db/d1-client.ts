@@ -10,6 +10,38 @@
 /** Timeout for Worker proxy requests (ms). */
 const PROXY_FETCH_TIMEOUT_MS = 10_000;
 
+/** Max retries for transient network errors (ECONNRESET, fetch aborted, etc.). */
+const MAX_RETRIES = 2;
+
+/** Base delay between retries (ms). Doubles on each attempt. */
+const RETRY_BASE_DELAY_MS = 200;
+
+function isTransientError(err: unknown): boolean {
+  if (err instanceof TypeError && err.message === 'fetch failed') return true;
+  if (err instanceof DOMException && err.name === 'AbortError') return false;
+  const msg = err instanceof Error ? err.message : '';
+  return msg.includes('ECONNRESET') || msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('UND_ERR_SOCKET');
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      lastError = err;
+      if (attempt < MAX_RETRIES && isTransientError(err)) {
+        const delay = RETRY_BASE_DELAY_MS * 2 ** attempt;
+        console.warn(`[${label}] Transient error (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms:`, err instanceof Error ? err.message : err);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 /** Request/response format for Worker D1 proxy. */
 interface D1ProxyRequest {
   sql: string;
@@ -63,7 +95,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
   const { url, secret } = getProxyCredentials();
   const endpoint = url.endsWith('/') ? `${url}api/d1-query` : `${url}/api/d1-query`;
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -71,7 +103,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
     },
     body: JSON.stringify({ sql, params } satisfies D1ProxyRequest),
     signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
-  });
+  }, 'D1 query');
 
   if (!response.ok) {
     // Non-2xx from proxy means auth/infrastructure error (not query error)
@@ -106,7 +138,7 @@ export async function executeD1Batch<T>(statements: D1Statement[]): Promise<T[][
   const { url, secret } = getProxyCredentials();
   const endpoint = url.endsWith('/') ? `${url}api/d1-batch` : `${url}/api/d1-batch`;
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -114,7 +146,7 @@ export async function executeD1Batch<T>(statements: D1Statement[]): Promise<T[][
     },
     body: JSON.stringify({ statements } satisfies D1BatchRequest),
     signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
-  });
+  }, 'D1 batch');
 
   if (!response.ok) {
     const error = await response.text();

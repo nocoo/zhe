@@ -354,6 +354,81 @@ describe('executeD1Batch', () => {
   });
 });
 
+describe('retry on transient errors', () => {
+  beforeEach(() => {
+    clearEnv();
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    clearEnv();
+  });
+
+  it('retries on "fetch failed" TypeError and succeeds', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setProxyEnv();
+
+    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
+    mockProxyResponse([{ id: 1 }]);
+
+    const result = await executeD1Query('SELECT 1');
+
+    expect(result).toEqual([{ id: 1 }]);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
+  });
+
+  it('does not retry on non-transient errors', async () => {
+    setProxyEnv();
+    mockFetch.mockRejectedValueOnce(new Error('some other error'));
+
+    await expect(executeD1Query('SELECT 1')).rejects.toThrow('some other error');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after max retries', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setProxyEnv();
+
+    const err = new TypeError('fetch failed');
+    mockFetch.mockRejectedValueOnce(err);
+    mockFetch.mockRejectedValueOnce(err);
+    mockFetch.mockRejectedValueOnce(err);
+
+    await expect(executeD1Query('SELECT 1')).rejects.toThrow('fetch failed');
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    consoleSpy.mockRestore();
+  });
+
+  it('retries batch requests on transient errors', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setProxyEnv();
+
+    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        results: [{ results: [{ id: 1 }], meta: { changes: 1, last_row_id: 1 } }],
+      }),
+    });
+
+    const result = await executeD1Batch([{ sql: 'INSERT INTO t VALUES (?)', params: [1] }]);
+
+    expect(result).toEqual([[{ id: 1 }]]);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
+  });
+
+  it('does not retry AbortError (timeout)', async () => {
+    setProxyEnv();
+    mockFetch.mockRejectedValueOnce(new DOMException('The operation was aborted.', 'AbortError'));
+
+    await expect(executeD1Query('SELECT 1')).rejects.toThrow();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('isD1Configured', () => {
   beforeEach(() => {
     // Clear env vars from .env.local that vitest may have loaded
