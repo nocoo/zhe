@@ -56,4 +56,6 @@ export async function createTagInEditMode(
 
   // Dismiss the popover so it doesn't block the save button
   await page.keyboard.press('Escape');
+  // Wait for the popover to fully close
+  await expect(page.locator('[cmdk-input]')).toBeHidden({ timeout: 5_000 });
 }

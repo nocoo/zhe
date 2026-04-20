@@ -52,6 +52,7 @@ test.describe('Tag UI - assign existing', () => {
 
     // Dismiss the popover so it doesn't block the save button
     await page.keyboard.press('Escape');
+    await expect(page.locator('[cmdk-input]')).toBeHidden({ timeout: 5_000 });
 
     await card.locator('button:has-text("保存")').click();
     await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
