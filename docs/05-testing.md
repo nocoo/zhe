@@ -305,6 +305,28 @@ exec bun x tsc --noEmit
 | `@typescript-eslint/no-unnecessary-condition` | error |
 | `@typescript-eslint/prefer-nullish-coalescing` | error |
 
+#### lint-staged 增量 Lint
+
+pre-commit 使用 **lint-staged** 实现增量 lint——只检查暂存区的变更文件，而非整个代码库：
+
+```bash
+# .husky/pre-commit 中
+bunx lint-staged  # 只 lint git add 的文件
+```
+
+**`lint-staged.config.mjs`**：
+```javascript
+export default {
+  '*.{js,jsx,ts,tsx}': ['eslint --fix'],
+  '*.{json,md}': ['prettier --write'],
+};
+```
+
+**优势**：
+- **快速反馈**：只 lint 变更文件，pre-commit 保持 <10 秒
+- **渐进式修复**：不强制一次性修复全量历史问题
+- **自动修复**：`--fix` 自动修正可修复的 lint 错误
+
 #### 命令
 
 ```bash
