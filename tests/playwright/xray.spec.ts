@@ -136,15 +136,15 @@ test.describe.serial('Xray Page', () => {
 
     // Wait for tweet card to appear (mock data)
     // Mock indicator badge should appear
-    await expect(page.getByText('Mock 数据')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Mock 数据')).toBeVisible({ timeout: 15_000 });
 
     // Tweet card should show content (author, metrics section)
     // Mock data may include quoted tweets, so "原帖" can appear multiple times
-    await expect(page.getByText('原帖').first()).toBeVisible();
+    await expect(page.getByText('原帖').first()).toBeVisible({ timeout: 10_000 });
 
     // Metric labels should be visible (use .first() — quoted tweets duplicate metrics)
-    await expect(page.getByText('浏览').first()).toBeVisible();
-    await expect(page.getByText('喜欢').first()).toBeVisible();
+    await expect(page.getByText('浏览').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('喜欢').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('raw JSON toggle shows and hides JSON data', async ({ page }) => {

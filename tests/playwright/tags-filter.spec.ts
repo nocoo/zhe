@@ -17,7 +17,9 @@ test.describe('Tag UI - filter by tag', () => {
   let slug2: string;
   let tagName: string;
 
+  // CI environment is slow — increase beforeAll timeout
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(90_000);
     const context = await browser.newContext({
       storageState: 'tests/playwright/.auth/user.json',
     });

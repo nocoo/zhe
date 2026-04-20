@@ -10,6 +10,8 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['tests/playwright/**', 'node_modules/**'],
+    // Increase default timeout for L2 API E2E tests which hit real HTTP endpoints
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

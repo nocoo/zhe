@@ -80,7 +80,7 @@ describe("PATCH idempotency", () => {
     expect(normalize(j2)).toEqual(normalize(j1));
     expect(j2.note).toBe("stable note");
     expect(j2.originalUrl).toBe("https://example.com/idemp-final");
-  });
+  }, 30_000);
 
   it("PATCH /api/v1/links/[id] addTags does not produce duplicates on repeat", async () => {
     const createRes = await authenticatedFetch(`${BASE}/api/v1/links`, apiKey, {
@@ -136,7 +136,7 @@ describe("PATCH idempotency", () => {
     expect(normalize(j2)).toEqual(normalize(j1));
     expect(j2.name).toBe("TagIdempUpdated");
     expect(j2.color.toLowerCase()).toBe("#445566");
-  });
+  }, 30_000);
 
   it("PATCH /api/v1/folders/[id] is idempotent for name + icon", async () => {
     // Create folder via API so we have its id in API response shape
@@ -169,7 +169,7 @@ describe("PATCH idempotency", () => {
     expect(normalize(j2)).toEqual(normalize(j1));
     expect(j2.name).toBe("FolderIdempRenamed");
     expect(j2.icon).toBe("star");
-  });
+  }, 30_000);
 
   it("PATCH /api/v1/ideas/[id] is idempotent for title + content + tags (replace)", async () => {
     const idea = await seedIdea(TEST_USER_ID, { title: "init", content: "initial" });

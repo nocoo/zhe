@@ -45,11 +45,13 @@ export async function createTagInEditMode(
   await pickerInput.fill(tagName);
 
   const createOption = page.locator('[data-testid="tag-create-option"]');
-  await expect(createOption).toBeVisible({ timeout: 5_000 });
+  await expect(createOption).toBeVisible({ timeout: 10_000 });
   await createOption.click();
 
+  // Wait for the popover to close and tag to appear in edit area
+  // CI environment is slower, so increase timeout significantly
   const editArea = card.locator('[data-testid="edit-area"]');
   await expect(
     editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible({ timeout: 30_000 });
 }

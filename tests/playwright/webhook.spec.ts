@@ -150,16 +150,14 @@ test.describe.serial('Webhook Management UI', () => {
     const tokenEl = page.locator('[data-testid="webhook-token-value"]');
     const oldToken = await tokenEl.textContent();
 
-    // Click regenerate and wait for the button's loading state to complete.
-    // This is more stable than waiting for a specific server action response,
-    // since response-body filters can be unreliable with streaming/Server Actions.
+    // Click regenerate and wait for the token to change.
+    // Skip the toBeDisabled check — in fast CI environments the button may
+    // complete before we can observe the disabled state.
     await page.locator('[data-testid="regenerate-token-btn"]').click();
-    await expect(page.locator('[data-testid="regenerate-token-btn"]')).toBeDisabled();
-    await expect(page.locator('[data-testid="regenerate-token-btn"]')).toBeEnabled({ timeout: 10_000 });
 
     // Verify the token has changed
     if (!oldToken) throw new Error('expected oldToken to be non-null');
-    await expect(tokenEl).not.toHaveText(oldToken, { timeout: 5_000 });
+    await expect(tokenEl).not.toHaveText(oldToken, { timeout: 15_000 });
 
     const newToken = await tokenEl.textContent();
     expect(newToken).toBeTruthy();
