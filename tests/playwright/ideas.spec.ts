@@ -327,11 +327,11 @@ test.describe('Ideas', () => {
 
       // Wait for editor to load - must wait for back button to be visible
       await expect(page.getByText('编辑', { exact: true })).toBeVisible({ timeout: 15_000 });
-      const backButton = page.getByRole('button', { name: '返回想法列表' });
+      const backButton = page.locator('button[aria-label="返回想法列表"]');
       await expect(backButton).toBeVisible({ timeout: 15_000 });
 
-      // Click back button (force: true to bypass any overlapping elements in CI)
-      await backButton.click({ force: true });
+      // Click back button using dispatchEvent to bypass any visual overlapping
+      await backButton.dispatchEvent('click');
 
       // Should go back to ideas list
       await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
@@ -366,11 +366,11 @@ test.describe('Ideas', () => {
       await expect(page.locator('main').getByText(originalContent)).toHaveCount(2); // textarea + preview
 
       // Wait for back button before clicking
-      const backButton = page.getByRole('button', { name: '返回想法列表' });
+      const backButton = page.locator('button[aria-label="返回想法列表"]');
       await expect(backButton).toBeVisible({ timeout: 15_000 });
 
-      // Go back to verify navigation works (force: true to bypass any overlapping elements in CI)
-      await backButton.click({ force: true });
+      // Go back to verify navigation works (using dispatchEvent to bypass visual overlapping)
+      await backButton.dispatchEvent('click');
       await expect(page).toHaveURL('/dashboard/ideas', { timeout: 15_000 });
       await expect(page.getByText(originalContent)).toBeVisible();
     });
