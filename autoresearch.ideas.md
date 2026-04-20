@@ -4,16 +4,32 @@
 
 ### Active backlog
 
-- **Real baseline ~4.7s, not 4.21s.** Re-baselined with 5 trials at HEAD (#97): 4.62 / 4.68 / 4.71 / 4.97 / 6.62 — median 4.71. Earlier "best" 4.11–4.21 runs were lucky single trials. Noise envelope is ±0.5s with P99 occasionally jumping to 6.6s (probably GC + worker startup variance). To find more wins, **either fix the noise source (e.g. force minWorkers=maxWorkers + warm pool) OR target ≥0.7s structural reductions.**
-- **Confirmed dead ends in this session (#89–#96):**
-  - Conditional jest-dom import (skip in node env) — no improvement; saved transform but didn't move wall.
-  - Extracting d1 mock factory body to sibling file (~1600 lines out of setup.ts) — no improvement; transform is cached per worker, not per file.
-  - `deps.optimizer.web` pre-bundling React/RTL/cmdk — significantly worse (+1.5s); optimizer pre-bundle path adds startup cost.
+- **Real baseline ~4.7s, not 4.21s.** Re-baselined with 5 trials at HEAD (#97): 4.62 / 4.68 / 4.71 / 4.97 / 6.62 — median 4.71. Earlier "best" 4.11–4.21 runs were lucky single trials. Noise envelope is ±0.5s with P99 occasionally jumping to 6.6s (probably GC + worker startup variance).
+
+### ✅ Confirmed wins this session (#98–#101): 4.71s → 4.09s (−13%)
+  - **#98**: `{ interval: 5 }` to all 52 waitFor calls in viewmodel + component tests.
+  - **#99**: Replace 47 `userEvent.type` with `fireEvent.change` in `search-command-dialog{,-search}.test.tsx`.
+  - **#100**: Replace remaining 8 `user.type` with `fireEvent.change` in 5 component files.
+  - **#101**: Replace ~60 `user.click` + 2 `user.clear` with `fireEvent.click/change` in 5 component files.
+  - The earlier ideas.md note claiming `waitFor` interval doesn't matter was **WRONG**. Per-file timing improved dramatically (ideas-viewmodel 1.36→0.78s, search-command-dialog 1.6→0.5s).
+
+### Risks / gotchas hit
+  - **shared-link-components.test.tsx**: `user.click` cannot be replaced by `fireEvent.click` because the CopyUrlButton checks state set by an awaited clipboard.writeText → setState. Without the await chain, the assertion fires before the success state lands.
+  - Always remove unused `userEvent` imports after the conversion (eslint hard gate).
+
+### Confirmed dead ends in this session (#89–#96)
+  - Conditional jest-dom import (skip in node env) — no improvement; setup transform is amortized.
+  - Extracting d1 mock factory body to sibling file (~1600 lines out of setup.ts) — transform is cached per worker.
+  - `deps.optimizer.web` pre-bundling React/RTL/cmdk — significantly worse (+1.5s).
   - `@vitejs/plugin-react-swc` instead of `plugin-react` — slightly worse for this workload.
   - `coverage.processingConcurrency=8` — within noise.
-  - Splitting `search-command-dialog.test.tsx` further (after the first split) — no win; per-file overhead ≥ savings.
-  - `vi.mock('@testing-library/dom')` to lower waitFor interval 50→5ms — significantly worse; vi.mock factory has high per-file overhead.
-  - Dropping html+json coverage reporters — no win; reporters write at end, not on hot path.
+  - Splitting `search-command-dialog.test.tsx` further — per-file overhead ≥ savings.
+  - `vi.mock('@testing-library/dom')` to lower waitFor interval globally — vi.mock factory has high per-file overhead.
+  - Dropping html+json coverage reporters — reporters write at end, not on hot path.
+
+### Remaining bottleneck (4.0s wall floor)
+  - 8 jsdom files in 0.6–1.0s range; with ~6 worker threads each handles ~7 files, so ceil(jsdom/workers)×max≈1.0–1.5s. Plus ~2s base setup. Adding workers (#77 maxWorkers=8: 5.11s; #78 maxWorkers=100%: 4.44s) is worse — default is optimal.
+  - Coverage adds ~0.6–1.0s (median diff between unit_s 3.5s and unit_cov_s 4.1s). v8 instrumentation overhead, not configurable further.
 
 - **Vitest `projects` with mixed `isolate` settings.** Move tests/unit/* (node) into a project with `isolate: false` to skip per-file thread reuse cost (saves ~50ms × ~50 files = ~2.5s aggregate). Currently fails on 6 `*-actions.test.ts` files due to shared `vi.mock('@/lib/db/scoped')` collisions — would need to rewrite those files to use `vi.doMock` inside `beforeEach` or scoped fake adapters before the switch.
 - **Split `inbox-triage.test.tsx` (43 tests, 1.4s wall).** Largest remaining jsdom file after the search-command-dialog split. Same approach as the dialog split: extract to two siblings with duplicated `vi.mock` boilerplate (mocks must be hoisted per-file; cannot live in a shared helper).
