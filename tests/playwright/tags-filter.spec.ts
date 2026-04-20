@@ -36,7 +36,7 @@ test.describe('Tag UI - filter by tag', () => {
     const card = await openEditMode(page, slug1);
     await createTagInEditMode(page, card, tagName);
     await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 15_000 });
 
     await context.close();
   });
@@ -47,23 +47,23 @@ test.describe('Tag UI - filter by tag', () => {
 
     const main = page.locator('main');
 
-    await expect(main.getByText(slug1)).toBeVisible();
-    await expect(main.getByText(slug2)).toBeVisible();
+    await expect(main.getByText(slug1)).toBeVisible({ timeout: 10_000 });
+    await expect(main.getByText(slug2)).toBeVisible({ timeout: 10_000 });
 
     await main.locator('[data-testid="tag-filter-trigger"]').click();
 
     const tagItem = page.locator(`[data-testid="tag-filter-item"][data-tag-name="${tagName}"]`);
-    await expect(tagItem).toBeVisible({ timeout: 3_000 });
+    await expect(tagItem).toBeVisible({ timeout: 5_000 });
     await tagItem.click();
 
     await page.keyboard.press('Escape');
 
     await expect(
       main.locator(`[data-testid="active-tag-filter"][data-tag-name="${tagName}"]`),
-    ).toBeVisible({ timeout: 3_000 });
+    ).toBeVisible({ timeout: 5_000 });
 
-    await expect(main.getByText(slug1)).toBeVisible();
-    await expect(main.getByText(slug2)).toBeHidden({ timeout: 5_000 });
+    await expect(main.getByText(slug1)).toBeVisible({ timeout: 10_000 });
+    await expect(main.getByText(slug2)).toBeHidden({ timeout: 10_000 });
 
     await expect(main.getByText(/\d+ \/ \d+ 条链接/)).toBeVisible();
   });

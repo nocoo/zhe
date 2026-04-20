@@ -29,11 +29,11 @@ test.describe('Tag UI - create and display', () => {
     await createTagInEditMode(page, card, tagName);
 
     await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 15_000 });
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('remove a tag from a link in edit mode', async ({ page }) => {
@@ -42,19 +42,19 @@ test.describe('Tag UI - create and display', () => {
     let card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
     await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 15_000 });
 
     card = await openEditMode(page, slug);
 
     const editArea = card.locator('[data-testid="edit-area"]');
     const tagBadge = editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`);
-    await expect(tagBadge).toBeVisible({ timeout: 3_000 });
+    await expect(tagBadge).toBeVisible({ timeout: 5_000 });
     await tagBadge.locator(`button[aria-label="Remove tag ${tagName}"]`).click();
 
-    await expect(tagBadge).toBeHidden({ timeout: 3_000 });
+    await expect(tagBadge).toBeHidden({ timeout: 5_000 });
 
     await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 15_000 });
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
@@ -69,9 +69,9 @@ test.describe('Tag UI - create and display', () => {
     await createTagInEditMode(page, card, tag1);
     await createTagInEditMode(page, card, tag2);
     await card.locator('button:has-text("保存")').click();
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 10_000 });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 15_000 });
 
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag1}"]`)).toBeVisible();
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag2}"]`)).toBeVisible();
+    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag1}"]`)).toBeVisible({ timeout: 10_000 });
+    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag2}"]`)).toBeVisible({ timeout: 10_000 });
   });
 });

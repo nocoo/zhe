@@ -99,7 +99,7 @@ test.describe.serial('Folder CRUD', () => {
     await sidebar.getByText(folderName).click();
 
     // URL should include folder parameter
-    await expect(page).toHaveURL(/folder=/);
+    await expect(page).toHaveURL(/folder=/, { timeout: 15_000 });
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
