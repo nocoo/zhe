@@ -39,10 +39,13 @@ export async function saveAndCloseEdit(card: Locator): Promise<void> {
 
   for (let attempt = 0; attempt < 3; attempt++) {
     await saveBtn.click();
-    const hidden = await editArea.isHidden({ timeout: 10_000 }).catch(() => false);
-    if (hidden) return;
-    // Still visible — error message may have appeared; wait briefly then retry
-    await card.page().waitForTimeout(500);
+    try {
+      await expect(editArea).toBeHidden({ timeout: 10_000 });
+      return;
+    } catch {
+      // Save may have failed due to transient error — retry
+      await card.page().waitForTimeout(500);
+    }
   }
   // Final attempt with full timeout
   await saveBtn.click();
