@@ -5,6 +5,124 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.5] - 2026-04-20
+
+### Added
+- Add deleted field to CronHistoryEntry
+- Upgrade /api/live to surety health check standard
+- Add /api/live health check endpoint (#24)
+
+### Changed
+- Update testing doc with 100% L3 page coverage
+- Add ideas.spec.ts Playwright E2E tests
+- Add api-keys.spec.ts Playwright E2E tests
+- Add lint-staged incremental lint details to G1 section
+- Add --no-verify prohibition section to testing doc
+- Split webhook.test.ts into GET + POST for L2 parallelism
+- Migrate root L2 files to resetAndSeedUser (1 round trip)
+- Split links.test.ts into links + links-post (L2)
+- Split folders.test.ts into folders + folders-by-id (L2)
+- L2 health-poll 1000ms→100ms
+- Link-crud view-and-interact group describe.parallel
+- Split tags-create.spec — 'assign existing' to its own file
+- Cleanup unused seedTestUser imports + fix vitest 4 config shape
+- Combine cleanup+seedUser into 1 D1 round trip
+- Vitest L2 isolate=false
+- Confirm baseline after revert (workers=8)
+- Playwright workers=6→8
+- Playwright workers=5→6
+- Playwright workers=4→5
+- Playwright workers=3→4
+- Confirm workers=3 stability (no code change)
+- Playwright workers=2→3
+- Fix uploads.spec strict-mode flake (3 sites use .first())
+- Worker + L2 + L3 sequential
+- Parallelize L2/L3/Worker jobs, add Worker test coverage
+- Record L3 experiment log
+- Split tags.spec into create + filter (file-level parallel rebalance)
+- Baseline confirm at workers=2 (post-prewarm-revert)
+- Rewrite testing doc as quality system reference
+- Bump Playwright workers from 1 to 2 (-41% wall time)
+- Update L2 test gate from soft to hard in documentation
+- 113 L3 tests serial, workers=1, dev mode (turbopack)
+- Raise vitest coverage thresholds by ~5pp
+- Add token invalidation + 429 rate-limit tests
+- Add 429 trigger test that exhausts the per-key rate limit
+- Add PATCH idempotency tests across links/tags/folders/ideas
+- Log run #19: ideas-by-id PATCH split result
+- Split ideas-by-id PATCH into separate file
+- Split links-by-id PATCH into separate file
+- Promise.all for seedApiKey calls in v1 test beforeAll
+- Split links.test.ts into links + links-by-id (parallel files)
+- Split ideas.test.ts into ideas + ideas-by-id (parallel files)
+- Multi-statement SQL for cleanupTestData (1 round trip, was 9)
+- Revert maxWorkers:16; keep default (more stable, slightly faster)
+- Bump maxWorkers to 16 for L2 (all files in flight)
+- Use RETURNING id in seed helpers (one D1 round trip per seed)
+- Per-file user IDs in 5 root L2 test files; enable fileParallelism (4x)
+- Baseline with real hook bench
+- Fix live endpoint test to match current response shape
+- Add URL validation and folderId null tests
+- Extract URL protocol validation to shared utility
+- Use shared validation utilities in routes
+- Extract shared validation utilities
+- Add unit tests for kvListKeys and kvBulkDeleteLinks
+- Update autoresearch files with final results
+- Use shared fixtures in ideas-viewmodel.test.ts
+- Add makeUpload fixture, use shared fixtures in upload tests
+- Use shared fixtures in more component tests
+- Use shared fixtures in component tests
+- Use shared fixtures in more test files
+- Extract shared fixtures (makeLink, makeFolder, makeTag)
+- Add targeted tests to push near-95% files over threshold
+- Improve coverage for components/viewmodels to ≥95%
+- Add tests for useInlineLinkEditViewModel and uncovered branches
+- Add tests for fetchAndSaveScreenshot, KV sync, tagIds, and edge cases
+- Add tests for uncovered methods and branches
+- Add tests for uncovered functions
+- Add tests for executeD1Batch and missing branches
+- Add L3 browser E2E (Playwright) to CI pipeline (#18)
+- Extract openInBrowser to shared utils
+- Reuse shared resolveTagName from utils.ts
+
+### Fixed
+- Use D1_TEST_PROXY_* for proper test isolation
+- Use D1_PROXY_URL secret for L2 API E2E
+- Increase proxy timeout to 10s for cross-region reliability
+- Replace last_insert_rowid() in createIdea with explicit ID
+- Short-circuit folder UUID before fetching folders
+- Strict positive-integer validation for idea IDs
+- Wire folderId=null through web edit flow to clear folder
+- Use strict regex for pagination params
+- Return false from saveEdit when main update fails
+- Only update state on successful API responses
+- Allow explicit null for folder_id to clear folder
+- Add URL protocol whitelist to updateLink
+- Use strict integer parsing for pagination params
+- Add missing createdAt to Tag fixtures
+- Gate orphan deletion on successful write phase
+- Return error flag from kvListKeys to signal failures
+- Add compensating transaction for tag binding failures
+- Avoid last_insert_rowid() in D1 batch for tag binding
+- Retain dirty flag when orphan deletion fails
+- Delete orphaned slugs during sync
+- Simplify current page label to match basalt convention
+- Apply basalt design compliance to IdeaCard and IdeaRow
+- Migrate L3 controls from border-input/bg-input to basalt tokens (#21)
+- Deduplicate failure message in openInBrowser
+- Restore failure feedback for openInBrowser
+- Unify input validation and JSON error handling (#5)
+- Cache folder list to avoid duplicate fetches
+- Validate idea IDs as positive integers
+- Keep timeout active until response body is fully parsed
+- Prevent command injection in browser open
+
+### Removed
+- Uploads.spec cleanup: DB-level delete to avoid race with overview.spec parallel seed
+- Fix uploads.spec flakes: .first() on text assertions + wait for delete-button enabled
+- Remove autoresearch artifacts
+- Remove unnecessary setTimeout in beforeEach
+
 ## [v1.16.4] - 2026-04-20
 
 ### Added
