@@ -17,6 +17,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      skipFull: true,
       include: [
         'lib/**/*.ts',
         'models/links.ts',
