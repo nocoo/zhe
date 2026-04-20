@@ -515,7 +515,73 @@ KV_TEST_NAMESPACE_ID=xxx
 
 ---
 
-## 八、覆盖率分析与优化空间
+## 八、CI/CD 集成
+
+### GitHub Actions 工作流
+
+项目使用 `base-ci` 可复用工作流实现标准化 CI，所有测试层级在 CI 中并行执行：
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  quality:      # L1 + G1 + G2（来自 base-ci）
+  api-e2e:      # L2 API E2E（本地定义）
+  browser-e2e:  # L3 Playwright（本地定义）
+  worker-tests: # Worker 单元测试（本地定义）
+```
+
+**并行执行**：4 个 job 同时运行，CI 时间从串行 ~15-20 分钟降至 ~8-10 分钟。
+
+### GitHub Secrets 配置
+
+CI 需要以下 secrets 来访问测试资源（在 GitHub repo Settings > Secrets 中配置）：
+
+| Secret | 用途 | 隔离层 |
+|--------|------|--------|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID | - |
+| `CLOUDFLARE_API_TOKEN` | D1/R2/KV API 访问令牌 | - |
+| `CLOUDFLARE_D1_DATABASE_ID` | **生产** D1 ID（用于 `testDbId !== prodDbId` 检查） | D1 |
+| `D1_TEST_DATABASE_ID` | **测试** D1 ID | D1 |
+| `D1_TEST_PROXY_URL` | **测试** Worker URL（必须包含 "-test"） | D1 Proxy |
+| `D1_TEST_PROXY_SECRET` | **测试** Worker D1 代理密钥 | D1 Proxy |
+| `R2_ACCESS_KEY_ID` | R2 S3 访问密钥 ID | R2 |
+| `R2_SECRET_ACCESS_KEY` | R2 S3 访问密钥 | R2 |
+| `R2_ENDPOINT` | R2 S3 端点 | R2 |
+| `R2_USER_HASH_SALT` | 用户哈希盐 | R2 |
+| `R2_TEST_BUCKET_NAME` | **测试** R2 bucket | R2 |
+| `R2_TEST_PUBLIC_DOMAIN` | **测试** R2 公开域名 | R2 |
+| `KV_TEST_NAMESPACE_ID` | **测试** KV namespace | KV |
+| `AUTH_SECRET` | NextAuth 密钥 | Auth |
+| `WORKER_SECRET` | Worker 共享密钥 | Auth |
+
+### CI 隔离验证链
+
+CI 中的 L2/L3 测试通过以下验证链确保不会操作生产资源：
+
+```
+1. ci.yml 只传递 *_TEST_* secrets
+         │
+         ▼
+2. run-api-e2e.ts / playwright.config.ts
+   ├─ 验证 D1_TEST_PROXY_URL 包含 "-test"
+   ├─ 验证 testDbId !== prodDbId
+   └─ 覆盖 CLOUDFLARE_D1_DATABASE_ID = D1_TEST_DATABASE_ID
+         │
+         ▼
+3. global-setup.ts (L3)
+   ├─ 再次验证 testDbId !== prodDbId
+   └─ 查询 _test_marker 表（仅测试 D1 有此表）
+         │
+         ▼
+4. d1.ts helpers
+   └─ 验证 CLOUDFLARE_D1_DATABASE_ID === D1_TEST_DATABASE_ID
+```
+
+任一层验证失败，测试立即终止，不会执行任何数据库操作。
+
+---
+
+## 九、覆盖率分析与优化空间
 
 ### 当前低覆盖文件（分支覆盖率 < 85%）
 

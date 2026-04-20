@@ -1,13 +1,15 @@
 # Autoresearch Rules
 
 ## Goal
-Optimize pre-commit + pre-push hook total wall-clock time without weakening test/lint coverage.
+Optimize total wall-clock time of L2 (API E2E), L3 (Playwright BDD), and Worker test suites without weakening coverage or stability.
 
 ## Primary Metric
-- `total_seconds`: sum of pre-commit + pre-push hook execution time (lower is better)
+- `total_seconds`: sum of worker + L2 + L3 wall-time (lower is better)
+
+Secondary: `worker_s`, `l2_s`, `l3_s`, plus pass/fail/flake counts per layer.
 
 ## Benchmark Command
-`bash autoresearch.bench.sh` — runs both hooks end-to-end against the current HEAD, captures per-stage timing, prints METRIC lines.
+`bash autoresearch.bench.sh` — runs Worker, L2, L3 sequentially against current HEAD; emits METRIC lines.
 
 ## Constraints (no cheating)
 - All five quality layers must keep running and passing: L1 unit+integration+coverage gate (≥90%), G1 typecheck+lint, G2 gitleaks, L2 API E2E, G2 osv-scanner.
