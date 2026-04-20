@@ -11,6 +11,7 @@ import {
   seedTestUser,
   seedApiKey,
   cleanupTestData,
+  resetAndSeedUser,
   seedTag,
   seedIdea,
   executeD1,
@@ -26,8 +27,7 @@ let apiKeyNoScopes: string;
 
 describe("/api/v1/ideas", () => {
   beforeAll(async () => {
-    await cleanupTestData(TEST_USER_ID);
-    await seedTestUser(TEST_USER_ID);
+    await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "ideas:read,ideas:write,tags:read,tags:write" }),
       seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "ideas:read" }),

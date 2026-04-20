@@ -17,6 +17,7 @@ import {
   seedTag,
   seedIdea,
   cleanupTestData,
+  resetAndSeedUser,
   queryD1,
 } from "../helpers/seed";
 
@@ -25,8 +26,7 @@ const TEST_USER_ID = "api-v1-idempotency-test-user";
 let apiKey: string;
 
 beforeAll(async () => {
-  await cleanupTestData(TEST_USER_ID);
-  await seedTestUser(TEST_USER_ID);
+  await resetAndSeedUser(TEST_USER_ID);
   apiKey = await seedApiKey(TEST_USER_ID, {
     name: "Idempotency",
     scopes:

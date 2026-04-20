@@ -400,6 +400,30 @@ export async function cleanupTestData(userId?: string): Promise<void> {
   }
 }
 
+/**
+ * Combined cleanup + user seed in a single D1 round trip.
+ * Saves ~200ms per test file by avoiding the second HTTP call.
+ */
+export async function resetAndSeedUser(userId: string): Promise<void> {
+  const escaped = userId.replace(/'/g, "''");
+  const q = `'${escaped}'`;
+  const name = `Test User ${userId}`.replace(/'/g, "''");
+  const email = `${userId}@test.local`.replace(/'/g, "''");
+  const sql = [
+    `DELETE FROM api_audit_logs WHERE user_id = ${q}`,
+    `DELETE FROM api_keys WHERE user_id = ${q}`,
+    `DELETE FROM ideas WHERE user_id = ${q}`,
+    `DELETE FROM tags WHERE user_id = ${q}`,
+    `DELETE FROM links WHERE user_id = ${q}`,
+    `DELETE FROM folders WHERE user_id = ${q}`,
+    `DELETE FROM webhooks WHERE user_id = ${q}`,
+    `DELETE FROM uploads WHERE user_id = ${q}`,
+    `DELETE FROM user_settings WHERE user_id = ${q}`,
+    `INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (${q}, '${name}', '${email}', NULL, NULL)`,
+  ].join(';\n');
+  await executeD1(sql);
+}
+
 // ---------------------------------------------------------------------------
 // API Key helpers
 // ---------------------------------------------------------------------------

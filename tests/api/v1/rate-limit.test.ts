@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedTestUser, seedApiKey, cleanupTestData } from "../helpers/seed";
+import { seedTestUser, seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
 
 const BASE = getBaseUrl();
 const TEST_USER_ID = "api-v1-ratelimit-test-user";
@@ -22,8 +22,7 @@ describe("v1 rate limit (429)", () => {
   let apiKey: string;
 
   beforeAll(async () => {
-    await cleanupTestData(TEST_USER_ID);
-    await seedTestUser(TEST_USER_ID);
+    await resetAndSeedUser(TEST_USER_ID);
     apiKey = await seedApiKey(TEST_USER_ID, {
       name: "RL trigger",
       scopes: "links:read",

@@ -11,6 +11,7 @@ import {
   seedTestUser,
   seedApiKey,
   cleanupTestData,
+  resetAndSeedUser,
   seedIdea,
 } from "../helpers/seed";
 
@@ -22,8 +23,7 @@ let apiKeyReadOnly: string;
 
 describe("/api/v1/ideas/[id]", () => {
   beforeAll(async () => {
-    await cleanupTestData(TEST_USER_ID);
-    await seedTestUser(TEST_USER_ID);
+    await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "ideas:read,ideas:write,tags:read,tags:write" }),
       seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "ideas:read" }),

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedTestUser, seedApiKey, cleanupTestData, seedTag, executeD1 } from "../helpers/seed";
+import { seedTestUser, seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -17,8 +17,7 @@ let apiKeyReadOnly: string;
 
 describe("/api/v1/links/[id] PATCH", () => {
   beforeAll(async () => {
-    await cleanupTestData(TEST_USER_ID);
-    await seedTestUser(TEST_USER_ID);
+    await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
       seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
