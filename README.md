@@ -335,15 +335,24 @@ zhe/
 
 - **Coverage target**: statements >= 90%, functions >= 85%, branches >= 80%
 - **Zero-warning policy**: ESLint `--max-warnings=0`
-- **Git hooks** (husky, four-layer architecture):
-  - pre-commit: L1 unit tests (with coverage gate) + L2 lint-staged
-  - pre-push: L3 API E2E
-  - on-demand: L4 Playwright BDD E2E
+- **Git hooks** (husky):
+  - **pre-commit**: L1 unit/integration tests + coverage gate + G1 typecheck/lint + G2 gitleaks
+  - **pre-push**: L2 API E2E + G2 osv-scanner (all hard gates)
+  - **on-demand**: L3 Playwright BDD E2E
+
+| Layer | Tests | Gate | Hook |
+|-------|-------|------|------|
+| L1 | Unit + Integration | Hard | pre-commit |
+| L2 | API E2E (real HTTP) | Hard | pre-push |
+| L3 | Playwright BDD E2E | Manual | on-demand |
+| G1 | TypeScript + ESLint | Hard | pre-commit |
+| G2 | gitleaks + osv-scanner | Hard | pre-commit + pre-push |
 
 | Port | Purpose |
 |------|---------|
 | 7006 | Development server |
-| 27006 | Playwright BDD E2E (auto-managed, isolated) |
+| 17006 | L2 API E2E server (auto-managed) |
+| 27006 | L3 Playwright BDD E2E (auto-managed) |
 
 ## Documentation
 

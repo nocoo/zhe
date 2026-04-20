@@ -197,7 +197,7 @@ See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inven
 | Layer | Name | Hook | Gate |
 |-------|------|------|------|
 | L1 | Unit/Component + Integration | pre-commit | Hard |
-| L2 | API E2E (real HTTP) | pre-push | Soft (skips if D1 unreachable) |
+| L2 | API E2E (real HTTP) | pre-push | Hard |
 | L3 | System/E2E (Playwright) | on-demand | Hard |
 | G1 | Static Analysis (tsc + ESLint strict) | pre-commit | Hard |
 | G2 | Security (gitleaks + osv-scanner) | pre-commit + pre-push | Hard |
@@ -234,8 +234,8 @@ Playwright tests run a **dedicated** Next.js dev server on **port 27006** with `
 - Global setup inserts the test user into D1; global teardown cleans up
 
 **Git hooks:**
-- **pre-commit**: L1 (unit + integration + coverage gate) + G1 (typecheck + lint-staged) + G2 (gitleaks advisory)
-- **pre-push**: L2 (API E2E real HTTP, soft gate) + G2 (osv-scanner advisory)
+- **pre-commit**: L1 (unit + integration + coverage gate) + G1 (typecheck + lint-staged) + G2 (gitleaks)
+- **pre-push**: L2 (API E2E real HTTP) + G2 (osv-scanner) — all hard gates
 - **on-demand**: L3 (BDD E2E via `bun run test:e2e:pw`)
 
 ### Port Allocation
