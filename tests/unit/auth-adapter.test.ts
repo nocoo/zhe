@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { D1Adapter } from '@/lib/auth-adapter';
 import { unwrap } from '../test-utils';

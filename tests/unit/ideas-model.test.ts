@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { filterIdeas } from "@/models/ideas";
 import type { IdeaListItem } from "@/lib/db/scoped";

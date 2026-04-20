@@ -1,3 +1,4 @@
+// @vitest-environment node
 vi.unmock('@/lib/kv/client');
 vi.unmock('@/lib/kv/sync');
 vi.unmock('@/lib/kv/dirty');

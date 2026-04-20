@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ScopedDB } from '@/lib/db/scoped';
 import { recordClick, createLink } from '@/lib/db';

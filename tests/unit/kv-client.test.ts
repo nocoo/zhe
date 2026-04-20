@@ -1,3 +1,4 @@
+// @vitest-environment node
 vi.unmock('@/lib/kv/client');
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

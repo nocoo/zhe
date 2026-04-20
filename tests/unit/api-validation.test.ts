@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { parsePaginationParams, parseJsonBody, isErrorResponse, validateUrl } from '@/lib/api/validation';
 import { NextResponse } from 'next/server';

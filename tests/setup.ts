@@ -36,20 +36,21 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   };
 }
 
-// Polyfill Element.scrollIntoView for jsdom (required by cmdk)
-if (typeof Element.prototype.scrollIntoView === 'undefined') {
-  Element.prototype.scrollIntoView = function () {};
-}
-
-// Polyfill pointer capture methods for jsdom (required by Radix Select)
-if (typeof Element.prototype.hasPointerCapture === 'undefined') {
-  Element.prototype.hasPointerCapture = function () { return false; };
-}
-if (typeof Element.prototype.setPointerCapture === 'undefined') {
-  Element.prototype.setPointerCapture = function () {};
-}
-if (typeof Element.prototype.releasePointerCapture === 'undefined') {
-  Element.prototype.releasePointerCapture = function () {};
+// Polyfill DOM Element prototypes for jsdom (required by cmdk / Radix Select).
+// Guard with `typeof Element` so node-environment tests can also load this setup file.
+if (typeof Element !== 'undefined') {
+  if (typeof Element.prototype.scrollIntoView === 'undefined') {
+    Element.prototype.scrollIntoView = function () {};
+  }
+  if (typeof Element.prototype.hasPointerCapture === 'undefined') {
+    Element.prototype.hasPointerCapture = function () { return false; };
+  }
+  if (typeof Element.prototype.setPointerCapture === 'undefined') {
+    Element.prototype.setPointerCapture = function () {};
+  }
+  if (typeof Element.prototype.releasePointerCapture === 'undefined') {
+    Element.prototype.releasePointerCapture = function () {};
+  }
 }
 
 // Re-export clearMockStorage for tests
