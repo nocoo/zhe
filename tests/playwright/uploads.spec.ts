@@ -83,7 +83,7 @@ test.describe.serial('Upload UI', () => {
     await expect(page.locator('[data-testid="upload-file-count"]')).toContainText('共 1 个文件');
 
     // Empty state should be gone
-    await expect(page.locator('[data-testid="upload-empty-state"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="upload-empty-state"]').first()).not.toBeVisible();
   });
 
   test('upload a second file and verify ordering (newest first)', async ({ page }) => {
@@ -237,6 +237,6 @@ test.describe.serial('Upload UI', () => {
     await goToUploads(page);
 
     // Page may take a moment to fetch fresh data after a server-side delete.
-    await expect(page.locator('[data-testid="upload-empty-state"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-testid="upload-empty-state"]').first()).toBeVisible({ timeout: 15_000 });
   });
 });
