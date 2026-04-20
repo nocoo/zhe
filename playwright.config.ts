@@ -48,11 +48,31 @@ try {
   // .env.local doesn't exist — fine, env comes from shell
 }
 
-// Validate D1_PROXY_URL points to test Worker (prevents production Worker use)
-const proxyUrl = process.env.D1_PROXY_URL;
-if (proxyUrl && !proxyUrl.includes('-test')) {
+// Resolve D1 proxy URL: D1_TEST_PROXY_URL > D1_PROXY_URL (must contain "-test")
+// This matches run-api-e2e.ts priority order for consistency.
+const testProxyUrl = process.env.D1_TEST_PROXY_URL;
+const devProxyUrl = process.env.D1_PROXY_URL;
+const resolvedProxyUrl = testProxyUrl || devProxyUrl;
+
+if (!resolvedProxyUrl) {
   throw new Error(
-    `D1_PROXY_URL must point to test Worker (contain "-test"). Got: "${proxyUrl}"`
+    'D1_TEST_PROXY_URL (or D1_PROXY_URL) must be set — proxy coverage mandatory for E2E tests.'
+  );
+}
+if (!resolvedProxyUrl.includes('-test')) {
+  throw new Error(
+    `D1 proxy URL must point to test Worker (contain "-test"). Got: "${resolvedProxyUrl}"`
+  );
+}
+
+// Similarly resolve proxy secret
+const testProxySecret = process.env.D1_TEST_PROXY_SECRET;
+const devProxySecret = process.env.D1_PROXY_SECRET;
+const resolvedProxySecret = testProxySecret || devProxySecret;
+
+if (!resolvedProxySecret) {
+  throw new Error(
+    'D1_TEST_PROXY_SECRET (or D1_PROXY_SECRET) must be set.'
   );
 }
 
@@ -67,9 +87,9 @@ const webServerCommandParts = [
   process.env.CLOUDFLARE_KV_NAMESPACE_ID
     ? 'CLOUDFLARE_KV_NAMESPACE_ID=${KV_TEST_NAMESPACE_ID:?KV_TEST_NAMESPACE_ID not set}'
     : '',
-  // D1 Proxy: HARD GATE for proxy path coverage
-  'D1_PROXY_URL=${D1_PROXY_URL:?D1_PROXY_URL not set - proxy coverage mandatory}',
-  'D1_PROXY_SECRET=${D1_PROXY_SECRET:?D1_PROXY_SECRET not set}',
+  // D1 Proxy: use resolved values (already validated above)
+  `D1_PROXY_URL=${resolvedProxyUrl}`,
+  `D1_PROXY_SECRET=${resolvedProxySecret}`,
   `bun run next dev --turbopack -p ${E2E_PORT}`,
 ].filter(Boolean).join(' ');
 
