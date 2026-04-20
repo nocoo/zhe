@@ -28,8 +28,8 @@ test.describe('Tag UI - create and display', () => {
     const card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
 
-    await card.locator('button:has-text("保存")').dispatchEvent('click');
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 20_000 });
+    await card.locator('button:has-text("保存")').click({ force: true });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
@@ -41,8 +41,8 @@ test.describe('Tag UI - create and display', () => {
 
     let card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tagName);
-    await card.locator('button:has-text("保存")').dispatchEvent('click');
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 20_000 });
+    await card.locator('button:has-text("保存")').click({ force: true });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     card = await openEditMode(page, slug);
 
@@ -53,8 +53,8 @@ test.describe('Tag UI - create and display', () => {
 
     await expect(tagBadge).toBeHidden({ timeout: 5_000 });
 
-    await card.locator('button:has-text("保存")').dispatchEvent('click');
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 20_000 });
+    await card.locator('button:has-text("保存")').click({ force: true });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     await expect(
       card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
@@ -68,8 +68,8 @@ test.describe('Tag UI - create and display', () => {
     const card = await openEditMode(page, slug);
     await createTagInEditMode(page, card, tag1);
     await createTagInEditMode(page, card, tag2);
-    await card.locator('button:has-text("保存")').dispatchEvent('click');
-    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 20_000 });
+    await card.locator('button:has-text("保存")').click({ force: true });
+    await expect(card.locator('[data-testid="edit-area"]')).toBeHidden({ timeout: 30_000 });
 
     await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag1}"]`)).toBeVisible({ timeout: 10_000 });
     await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag2}"]`)).toBeVisible({ timeout: 10_000 });

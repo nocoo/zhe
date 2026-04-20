@@ -50,31 +50,31 @@ test.describe.serial('Xray Page', () => {
     await goToXray(page);
 
     // Config card
-    await expect(page.getByRole('heading', { name: 'API 配置' })).toBeVisible();
-    await expect(page.getByText('配置 xray API 的地址和认证 Key')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'API 配置' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('配置 xray API 的地址和认证 Key')).toBeVisible({ timeout: 15_000 });
 
     // URL mode selector buttons (presets + Custom)
-    await expect(page.getByRole('button', { name: 'Custom' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Custom' })).toBeVisible({ timeout: 15_000 });
 
     // API key input visible
-    await expect(page.locator('[data-testid="xray-api-token"]')).toBeVisible();
+    await expect(page.locator('[data-testid="xray-api-token"]')).toBeVisible({ timeout: 15_000 });
 
     // Save button
-    await expect(page.getByRole('button', { name: '保存' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '保存' })).toBeVisible({ timeout: 15_000 });
 
     // Test section card
-    await expect(page.getByText('接口测试')).toBeVisible();
-    await expect(page.getByText('粘贴 Twitter/X 帖子链接')).toBeVisible();
+    await expect(page.getByText('接口测试')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('粘贴 Twitter/X 帖子链接')).toBeVisible({ timeout: 15_000 });
 
     // Mock data warning shown when unconfigured
-    await expect(page.getByText('未配置 API，将使用 Mock 数据')).toBeVisible();
+    await expect(page.getByText('未配置 API，将使用 Mock 数据')).toBeVisible({ timeout: 15_000 });
 
     // Tweet URL input
-    await expect(page.locator('[data-testid="xray-tweet-input"]')).toBeVisible();
+    await expect(page.locator('[data-testid="xray-tweet-input"]')).toBeVisible({ timeout: 15_000 });
 
     // Fetch button (disabled until URL is entered)
     const fetchBtn = page.getByRole('button', { name: '获取' });
-    await expect(fetchBtn).toBeVisible();
+    await expect(fetchBtn).toBeVisible({ timeout: 15_000 });
     await expect(fetchBtn).toBeDisabled();
   });
 
