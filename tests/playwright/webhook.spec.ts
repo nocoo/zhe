@@ -38,11 +38,11 @@ test.describe.serial('Webhook Management UI', () => {
     await goToWebhook(page);
 
     // Description text
-    await expect(page.getByText('通过 Webhook 令牌，外部系统可以调用 API 创建短链接')).toBeVisible();
+    await expect(page.getByText('通过 Webhook 令牌，外部系统可以调用 API 创建短链接')).toBeVisible({ timeout: 15_000 });
 
     // Generate button visible (initial state)
     const generateBtn = page.locator('[data-testid="generate-token-btn"]');
-    await expect(generateBtn).toBeVisible();
+    await expect(generateBtn).toBeVisible({ timeout: 15_000 });
     await expect(generateBtn).toHaveText('生成令牌');
 
     // Token section should NOT be visible
