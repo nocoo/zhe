@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
 import {
-  seedTestUser,
+
   seedApiKey,
   cleanupTestData,
   resetAndSeedUser,

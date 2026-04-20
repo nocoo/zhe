@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedTestUser, seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
 
 const BASE = getBaseUrl();
 const TEST_USER_ID = "api-v1-ratelimit-test-user";
