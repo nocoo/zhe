@@ -12,7 +12,7 @@
 
 ```
                         ┌─────────────┐
-                        │   L3 (112)  │  ← on-demand (Playwright BDD)
+                        │   L3 (148)  │  ← on-demand (Playwright BDD)
                         │   Manual    │
                     ┌───┴─────────────┴───┐
                     │      L2 (197)       │  ← pre-push (API E2E)
@@ -51,10 +51,10 @@
 | L1 行覆盖率 | 99.33% | ≥ 90% |
 | L2 API 路由覆盖 | 21/21 (100%) | 100% |
 | L2 测试数量 | 197 | - |
-| L3 页面覆盖 | 14/16 (87.5%) | 100% |
-| L3 测试数量 | 112 | - |
+| L3 页面覆盖 | 16/16 (100%) | 100% |
+| L3 测试数量 | 148 | - |
 | Worker 测试数量 | 72 | - |
-| **总测试数量** | **2,964** | - |
+| **总测试数量** | **3,000** | - |
 
 ---
 
@@ -253,13 +253,8 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 | `uploads.spec.ts` | 文件上传 | 10 |
 | `webhook.spec.ts` | Webhook | 9 |
 | `xray.spec.ts` | Xray (Twitter) | 9 |
-
-#### 待补充覆盖
-
-| 页面 | 状态 |
-|------|------|
-| `api-keys` | ❌ 无 L3 覆盖 |
-| `ideas` | ❌ 无 L3 覆盖 |
+| `api-keys.spec.ts` | API Keys 管理 | 15 |
+| `ideas.spec.ts` | 想法 CRUD | 21 |
 
 #### 命令
 
@@ -653,8 +648,6 @@ git push --no-verify
 
 | 优先级 | 任务 | 预计测试增量 |
 |--------|------|-------------|
-| P0 | 添加 `ideas.spec.ts` Playwright 测试 | +8-10 L3 |
-| P0 | 添加 `api-keys.spec.ts` Playwright 测试 | +6-8 L3 |
 | P1 | 提升 `storage.ts` 分支覆盖至 90%+ | +3-5 L1 |
 | P1 | 添加 `api-keys.test.ts` 集成测试 | +8-10 L1 |
 | P2 | Slider 组件边界测试 | +4-6 L1 |
