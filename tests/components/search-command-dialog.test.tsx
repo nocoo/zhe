@@ -131,7 +131,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "nonexistent");
+      fireEvent.change(input, { target: { value: "nonexistent" } });
       expect(screen.getByText("没有找到匹配的结果")).toBeInTheDocument();
     });
 
@@ -141,7 +141,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc", "abc");
       expectItemWithText("abc", "Example Page");
@@ -155,7 +155,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "f1" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("Work")).toBeInTheDocument();
     });
@@ -164,7 +164,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: null })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.queryByText("Work")).not.toBeInTheDocument();
     });
@@ -173,7 +173,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "nonexistent" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc123", "abc123");
     });
@@ -184,7 +184,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("A great page")).toBeInTheDocument();
     });
@@ -195,7 +195,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("My personal note")).toBeInTheDocument();
     });
@@ -211,7 +211,7 @@ describe("SearchCommandDialog", () => {
       renderDialog({ onOpenChange });
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       const item = getCmdkItem("abc123");
       expect(item).toBeTruthy();
@@ -228,7 +228,7 @@ describe("SearchCommandDialog", () => {
       renderDialog();
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       const item = getCmdkItem("abc123");
       fireEvent.click(unwrap(item));
@@ -249,7 +249,7 @@ describe("SearchCommandDialog", () => {
       renderDialog({ onOpenChange });
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       const folderButton = screen.getByText("Work");
       fireEvent.click(folderButton);
@@ -266,7 +266,7 @@ describe("SearchCommandDialog", () => {
       renderDialog();
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       // No folder button should exist
       const folderButtons = document.querySelectorAll("button");
@@ -285,7 +285,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "example");
+      fireEvent.change(input, { target: { value: "example" } });
 
       const copyButtons = screen.getAllByLabelText(/^Copy /);
       expect(copyButtons).toHaveLength(2);
@@ -302,7 +302,7 @@ describe("SearchCommandDialog", () => {
 
       renderDialog({ onOpenChange });
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "test-slug");
+      fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
       fireEvent.click(copyBtn);
@@ -314,7 +314,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "my-link" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "my-link");
+      fireEvent.change(input, { target: { value: "my-link" } });
 
       expect(
         screen.getByLabelText("Copy https://zhe.to/my-link"),
@@ -362,7 +362,7 @@ describe("SearchCommandDialog", () => {
     it("filters links by slug substring", async () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abc");
+      fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc", "abc");
       expectNoItem("xyz");
@@ -372,7 +372,7 @@ describe("SearchCommandDialog", () => {
     it("filters links by URL substring", async () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "google");
+      fireEvent.change(input, { target: { value: "google" } });
 
       expectItemWithText("xyz", "xyz");
       expectNoItem("abc");
@@ -382,7 +382,7 @@ describe("SearchCommandDialog", () => {
     it("does not produce false positives from cross-field matching", async () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "abcgoo");
+      fireEvent.change(input, { target: { value: "abcgoo" } });
 
       expectNoItem("abc");
       expectNoItem("xyz");
@@ -392,7 +392,7 @@ describe("SearchCommandDialog", () => {
     it("shows empty state when no links match search", async () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "nonexistent");
+      fireEvent.change(input, { target: { value: "nonexistent" } });
 
       expect(screen.getByText("没有找到匹配的结果")).toBeInTheDocument();
     });
@@ -400,7 +400,7 @@ describe("SearchCommandDialog", () => {
     it("filtering is case-insensitive", async () => {
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "HELLO");
+      fireEvent.change(input, { target: { value: "HELLO" } });
 
       expectItemWithText("hello", "hello");
       expectNoItem("abc");
@@ -413,7 +413,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "documentation");
+      fireEvent.change(input, { target: { value: "documentation" } });
 
       expectItemWithText("react-docs", "react-docs");
       expectNoItem("vue-guide");
@@ -426,7 +426,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "important");
+      fireEvent.change(input, { target: { value: "important" } });
 
       expectItemWithText("ref", "ref");
       expectNoItem("temp");
@@ -447,7 +447,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "UI");
+      fireEvent.change(input, { target: { value: "UI" } });
 
       expectItemWithText("design", "design");
       expectNoItem("code");
@@ -465,7 +465,7 @@ describe("SearchCommandDialog", () => {
       mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "tagged");
+      fireEvent.change(input, { target: { value: "tagged" } });
 
       expect(screen.getByText("Frontend")).toBeInTheDocument();
     });
@@ -486,7 +486,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "multi");
+      fireEvent.change(input, { target: { value: "multi" } });
 
       expect(screen.getByText("Tag1")).toBeInTheDocument();
       expect(screen.getByText("Tag2")).toBeInTheDocument();
@@ -502,7 +502,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "docs");
+      fireEvent.change(input, { target: { value: "docs" } });
 
       expectItemWithText("docs", "API Reference");
     });
@@ -513,7 +513,7 @@ describe("SearchCommandDialog", () => {
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "docs");
+      fireEvent.change(input, { target: { value: "docs" } });
 
       expectItemWithText("docs", "example.com");
     });
@@ -535,7 +535,7 @@ describe("SearchCommandDialog", () => {
       renderDialog({ onOpenChange });
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "test-slug");
+      fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
       fireEvent.click(copyBtn);
@@ -550,7 +550,7 @@ describe("SearchCommandDialog", () => {
       renderDialog({ onOpenChange });
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "test-slug");
+      fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
       fireEvent.click(copyBtn);
@@ -564,7 +564,7 @@ describe("SearchCommandDialog", () => {
       renderDialog({ onOpenChange });
 
       const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
-      await userEvent.type(input, "test-slug");
+      fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
       fireEvent.keyDown(copyBtn, { key: "Enter" });
