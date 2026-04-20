@@ -1,4 +1,4 @@
-// @vitest-environment node
+// @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { formatNumber, copyToClipboard } from '@/lib/utils';
 
