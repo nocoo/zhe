@@ -231,7 +231,40 @@ bun install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with the required variables (see [Getting Started](docs/02-getting-started.md)).
+Edit `.env.local` with the required variables:
+
+#### Required for development
+
+| Variable | Description | Source |
+|----------|-------------|--------|
+| `AUTH_SECRET` | NextAuth.js secret | `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | Google Cloud Console |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID | Cloudflare Dashboard → Overview |
+| `CLOUDFLARE_D1_DATABASE_ID` | Production D1 database UUID | `wrangler d1 list` |
+| `CLOUDFLARE_API_TOKEN` | API token with D1/KV/R2 permissions | Cloudflare Dashboard → API Tokens |
+
+#### Required for tests (L2/L3 E2E)
+
+These variables are **required** for running tests. The pre-push hook will fail without them.
+
+| Variable | Description | Source |
+|----------|-------------|--------|
+| `D1_TEST_DATABASE_ID` | Test D1 database UUID (must differ from prod) | `wrangler d1 list` (zhe-db-test) |
+| `D1_TEST_PROXY_URL` | Test Worker URL (must contain "-test") | `https://zhe-edge-test.xxx.workers.dev` |
+| `D1_TEST_PROXY_SECRET` | Test Worker D1 proxy secret | Same as test Worker's `D1_PROXY_SECRET` |
+| `R2_TEST_BUCKET_NAME` | Test R2 bucket name | `zhe-test` |
+| `R2_TEST_PUBLIC_DOMAIN` | Test R2 domain (placeholder OK) | `https://test-r2.zhe.to` |
+| `KV_TEST_NAMESPACE_ID` | Test KV namespace ID | `wrangler kv namespace list` |
+
+#### Optional (for D1 proxy acceleration)
+
+| Variable | Description |
+|----------|-------------|
+| `D1_PROXY_URL` | Production Worker URL for dev server |
+| `D1_PROXY_SECRET` | Production Worker D1 proxy secret |
+
+See [Getting Started](docs/02-getting-started.md) for detailed setup instructions.
 
 ### 3. Start dev server
 
@@ -245,7 +278,8 @@ Visit [http://localhost:7006](http://localhost:7006)
 
 ```bash
 bun run test:run            # all unit/integration/component tests
-bun run test:e2e:pw         # Playwright E2E
+bun run test:api            # L2 API E2E (requires test env vars)
+bun run test:e2e:pw         # L3 Playwright E2E (requires test env vars)
 bun run test:coverage       # coverage report
 ```
 

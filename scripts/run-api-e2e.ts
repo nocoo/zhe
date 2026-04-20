@@ -5,8 +5,8 @@
  * All tests/api/*.test.ts files run against a real Next.js dev server
  * on port 17006 with PLAYWRIGHT=1 (enables e2e-credentials auth).
  *
- * Soft gate: if D1 credentials are missing or the server fails to start,
- * prints a warning and exits 0 (skip), allowing git push to proceed.
+ * Hard gate: all required environment variables must be set for the tests
+ * to run. Missing configuration will fail the pre-push hook.
  */
 import { spawn, type ChildProcess } from 'child_process';
 import { resolve as pathResolve } from 'path';
@@ -99,8 +99,8 @@ async function checkPrerequisites(): Promise<boolean> {
   const required = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'];
   const missing = required.filter((k) => !process.env[k]);
   if (missing.length > 0) {
-    console.warn(`\n⚠️  [api-e2e] Missing env vars: ${missing.join(', ')}`);
-    console.warn('   Skipping L2 tests (soft gate). Set these in .env.local to enable.\n');
+    console.error(`\n❌ [api-e2e] Missing env vars: ${missing.join(', ')}`);
+    console.error('   Set these in .env.local to run L2 tests.\n');
     return false;
   }
 
@@ -124,8 +124,8 @@ async function checkPrerequisites(): Promise<boolean> {
       return false;
     }
   } catch (err) {
-    console.warn(`⚠️  [api-e2e] Failed to verify _test_marker: ${err}`);
-    console.warn('   Database may not be initialized. Skipping L2 tests (soft gate).\n');
+    console.error(`❌ [api-e2e] Failed to verify _test_marker: ${err}`);
+    console.error('   Database may not be initialized or network is unreachable.\n');
     return false;
   }
 
@@ -205,7 +205,7 @@ async function runTests(): Promise<number> {
   console.log('\n━━━ L2: Real HTTP API E2E tests ━━━\n');
 
   if (!(await checkPrerequisites())) {
-    return 0; // soft gate
+    return 1; // hard gate — fail the test run
   }
 
   // Check if port is already in use
@@ -224,8 +224,7 @@ async function runTests(): Promise<number> {
     const ready = await waitForHealth();
     if (!ready) {
       console.error(`❌ [api-e2e] Server failed to start within ${HEALTH_TIMEOUT_MS / 1000}s`);
-      console.warn('   Skipping L2 tests (soft gate).\n');
-      return 0; // soft gate
+      return 1;
     }
     return await runHttpTests();
   } finally {
@@ -244,8 +243,9 @@ async function main(): Promise<void> {
   const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
   const testDbId = process.env.D1_TEST_DATABASE_ID;
   if (!testDbId) {
-    console.warn('⚠️  [api-e2e] D1_TEST_DATABASE_ID not set. Skipping L2 tests (soft gate).');
-    return;
+    console.error('❌ [api-e2e] D1_TEST_DATABASE_ID not set.');
+    console.error('   Set D1_TEST_DATABASE_ID in .env.local to run L2 tests.\n');
+    process.exit(1);
   }
   if (testDbId === prodDbId) {
     console.error(
