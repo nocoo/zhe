@@ -1,13 +1,22 @@
 # Autoresearch ideas (deferred / candidate optimizations)
 
-## Active backlog for L2 + L3 + Worker bench
+## Current focus: L1 unit tests (vitest)
 
-- Pre-build `.next` once before the bench (L3 webServer) and reuse via custom command, eliminating turbopack first-route compile cost (~5-10s on cold runs).
-- Switch L3 from `next dev --turbopack` to `next start` after pre-building. Requires a docker-cached or persisted `.next/` between hook runs.
-- Move per-route `networkidle` waits in long L3 specs (backy/data-management/folders/webhook/xray) to a deterministic locator wait. Risk: introduces flake.
-- Move L3 `webServer` to `webServer.command: 'bun next dev --turbopack -p 27006'` (skip `bun run` script overhead).
-- Persist Playwright `.auth/user.json` between bench runs and skip the auth.setup project entirely (requires storageState validity check).
-- Consider switching to a single shared dev server for L2 + L3 (currently runs two server processes back-to-back).
-- Split webhook.test.ts (15 tests, 11s) into HEAD/GET vs POST groups for L2 file-level parallelism.
-- Investigate whether `it.concurrent` works under `vitest 4` for the read-only Authentication blocks (prior session noted catastrophic D1 contention; may have improved with isolate=false).
-- Investigate `vitest --reporter=basic` to skip default reporter overhead in L2.
+### Active backlog
+
+- **NOT waitFor polling.** Tested: monkey-patching `@testing-library/dom` waitFor to use a 5ms interval (down from 50ms) had no effect on `ideas-viewmodel.test.ts` wall (1.34s before & after). The per-test ~50ms cost is React render + state update + microtask drain in `asyncWrapper`, not the poll interval. Confirmed as a dead-end.
+- **Vitest `projects` with mixed `isolate` settings.** Move tests/unit/* (node) into a project with `isolate: false` to skip per-file thread reuse cost (saves ~50ms × ~50 files = ~2.5s aggregate). Currently fails on 6 `*-actions.test.ts` files due to shared `vi.mock('@/lib/db/scoped')` collisions — would need to rewrite those files to use `vi.doMock` inside `beforeEach` or scoped fake adapters before the switch.
+- **Split `inbox-triage.test.tsx` (43 tests, 1.4s wall).** Largest remaining jsdom file after the search-command-dialog split. Same approach as the dialog split: extract to two siblings with duplicated `vi.mock` boilerplate (mocks must be hoisted per-file; cannot live in a shared helper).
+- **Split `ideas-viewmodel.test.ts` (26 tests, 1.4s wall).** Each test costs ~50ms because of one `waitFor` per test. Splitting alone won't help unless `waitFor` is also fast-pathed.
+- **Replace `userEvent.type(input, "abc")` with `fireEvent.change`.** `userEvent.type` simulates each keystroke (~10ms each); for tests asserting only the final state, `fireEvent.change(input, { target: { value: "abc" } })` is ~1ms. Tradeoff: loses keyboard-event coverage. Apply only to tests that have explicit keyboard assertions elsewhere.
+- **Audit other tests for real `setTimeout` / network waits.** d1-client's retry tests were the biggest offender (saved ~1s). `scoped-db.test.ts:1561` has a 10ms sleep for `updatedAt` deduping — could be replaced by `vi.setSystemTime`.
+- **Investigate whether `@testing-library/jest-dom/vitest` matchers can be lazy-imported only by jsdom files.** Currently loaded for every test file via `tests/setup.ts`. Splitting setup into base (always) and dom (jsdom-only) would shave per-worker import cost — but vitest 4 lacks per-environment `setupFiles`; would require `projects`.
+- **Pre-bundle vite deps for vitest.** Long `import 9s` aggregate suggests transform/resolve overhead. `cacheDir` is on by default; explicit `deps.optimizer.web.include` for heavy deps (react, testing-library, cmdk, radix) might amortize.
+
+### Deferred (from earlier autoresearch session, L2/L3/Worker)
+
+- Pre-build `.next` once before the bench (L3 webServer) and reuse via custom command.
+- Switch L3 from `next dev --turbopack` to `next start` after pre-building.
+- Persist Playwright `.auth/user.json` between bench runs and skip the auth.setup project.
+- Single shared dev server for L2 + L3.
+- Move per-route `networkidle` waits in long L3 specs to deterministic locator waits.
