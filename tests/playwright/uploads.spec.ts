@@ -223,26 +223,20 @@ test.describe.serial('Upload UI', () => {
   });
 
   test('cleanup: delete remaining test uploads', async ({ page }) => {
+    // The other specs (notably overview.spec.ts) seed extra uploads in a
+    // parallel worker (workers > 1). To avoid a UI race where a freshly
+    // seeded upload-item briefly exposes a disabled delete button, do the
+    // bulk cleanup at the DB level, then assert the UI converges to the
+    // empty state.
+    await executeD1(
+      'DELETE FROM uploads WHERE user_id = ?',
+      [TEST_USER.id],
+      { softFail: true },
+    );
+
     await goToUploads(page);
 
-    // Delete all remaining uploads
-    const items = page.locator('[data-testid="upload-item"]');
-    const count = await items.count();
-
-    for (let i = 0; i < count; i++) {
-      // Always delete the first item (list shifts after each delete)
-      const item = page.locator('[data-testid="upload-item"]').first();
-      const deleteBtn = item.getByRole('button', { name: 'Delete file' });
-      // Wait for the button to be enabled (it can be disabled briefly while
-      // the previous mutation settles or while the new first item rehydrates).
-      await expect(deleteBtn).toBeEnabled({ timeout: 10_000 });
-      await deleteBtn.click();
-      await page.locator('[data-testid="upload-delete-confirm"]').click();
-      // Wait for the item count to decrease
-      await expect(page.locator('[data-testid="upload-item"]')).toHaveCount(count - i - 1, { timeout: 10_000 });
-    }
-
-    // Should show empty state
-    await expect(page.locator('[data-testid="upload-empty-state"]')).toBeVisible({ timeout: 5_000 });
+    // Page may take a moment to fetch fresh data after a server-side delete.
+    await expect(page.locator('[data-testid="upload-empty-state"]')).toBeVisible({ timeout: 15_000 });
   });
 });
