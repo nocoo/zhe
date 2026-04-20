@@ -48,14 +48,16 @@ test.describe.serial('Upload UI', () => {
     await expect(page.getByRole('heading', { name: '文件上传' })).toBeVisible();
     await expect(page.locator('[data-testid="upload-file-count"]').first()).toContainText('共');
 
-    // Upload zone
-    await expect(page.locator('[data-testid="upload-zone"]')).toBeVisible();
-    await expect(page.getByText('拖拽文件到此处，或点击选择')).toBeVisible();
-    await expect(page.getByText('支持所有文件类型，最大 10MB')).toBeVisible();
+    // Upload zone — use .first() to be resilient to brief double-mount during
+    // client-side navigation (React 18 dev StrictMode + Next router transition
+    // can momentarily render two instances of the page tree).
+    await expect(page.locator('[data-testid="upload-zone"]').first()).toBeVisible();
+    await expect(page.getByText('拖拽文件到此处，或点击选择').first()).toBeVisible();
+    await expect(page.getByText('支持所有文件类型，最大 10MB').first()).toBeVisible();
 
     // Empty state (no uploads yet for test user after global teardown)
-    await expect(page.locator('[data-testid="upload-empty-state"]')).toBeVisible();
-    await expect(page.getByText('暂无文件')).toBeVisible();
+    await expect(page.locator('[data-testid="upload-empty-state"]').first()).toBeVisible();
+    await expect(page.getByText('暂无文件').first()).toBeVisible();
   });
 
   test('upload a file via file input', async ({ page }) => {
@@ -230,7 +232,11 @@ test.describe.serial('Upload UI', () => {
     for (let i = 0; i < count; i++) {
       // Always delete the first item (list shifts after each delete)
       const item = page.locator('[data-testid="upload-item"]').first();
-      await item.getByRole('button', { name: 'Delete file' }).click();
+      const deleteBtn = item.getByRole('button', { name: 'Delete file' });
+      // Wait for the button to be enabled (it can be disabled briefly while
+      // the previous mutation settles or while the new first item rehydrates).
+      await expect(deleteBtn).toBeEnabled({ timeout: 10_000 });
+      await deleteBtn.click();
       await page.locator('[data-testid="upload-delete-confirm"]').click();
       // Wait for the item count to decrease
       await expect(page.locator('[data-testid="upload-item"]')).toHaveCount(count - i - 1, { timeout: 10_000 });
