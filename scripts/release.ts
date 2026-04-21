@@ -15,7 +15,6 @@
  *   bun run release -- major     # major bump
  *   bun run release -- 2.0.0     # explicit version
  *   bun run release -- --dry-run # preview without side effects
- *   bun run release -- --yes    # skip interactive confirmation
  *
  * Env:
  *   Requires `gh` CLI authenticated for GitHub release creation.
@@ -25,7 +24,6 @@
 import { spawn } from 'child_process';
 import { resolve as pathResolve } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
-import * as readline from 'readline';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -358,24 +356,6 @@ function updatePackageJson(newVersion: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Interactive prompt
-// ---------------------------------------------------------------------------
-
-function confirm(message: string): Promise<boolean> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  return new Promise((resolve) => {
-    rl.question(`${message} [Y/n] `, (answer) => {
-      rl.close();
-      const a = answer.trim().toLowerCase();
-      resolve(a === '' || a === 'y' || a === 'yes');
-    });
-  });
-}
-
-// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -383,9 +363,8 @@ async function main(): Promise<void> {
   // --- Parse args ---
   const rawArgs = process.argv.slice(2).filter((a) => a !== '--');
   const isDryRun = rawArgs.includes('--dry-run');
-  const isYes = rawArgs.includes('--yes') || rawArgs.includes('-y');
   const bumpArg =
-    rawArgs.find((a) => !a.startsWith('--') && a !== '-y') ?? 'patch';
+    rawArgs.find((a) => !a.startsWith('--')) ?? 'patch';
 
   if (isDryRun) {
     console.log('🏜️  Dry-run mode — no changes will be made\n');
@@ -617,18 +596,6 @@ async function main(): Promise<void> {
     console.log('   [dry-run] Would perform the above actions');
     console.log(`\n✅ Dry run complete for v${newVersion}`);
     process.exit(0);
-  }
-
-  if (isYes) {
-    console.log('   --yes flag: skipping confirmation');
-  } else {
-    const proceed = await confirm('   Proceed?');
-    if (!proceed) {
-      console.log(
-        '\n   Aborted. Commit is preserved locally — push manually when ready.',
-      );
-      process.exit(0);
-    }
   }
 
   // Push
