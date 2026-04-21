@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "1.16.5",
+  "version": "1.16.6",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 7006",
