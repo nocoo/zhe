@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.16.8] - 2026-04-21
+
+### Changed
+- Log session #111-#112 (vmThreads pool win)
+- 'vmThreads' instead of 'threads'
+- Log session #103-#110 (happy-dom switch wins)
+- Switch jsdom -> happy-dom (47 files) + clipboard polyfill
+- Esbuild target=esnext + legalComments=none in vitest config
+- Document session #98-#102 wins and ideas backlog
+- Replace user.click/clear with fireEvent in 5 component test files (~60 sites)
+- Replace remaining user.type calls with fireEvent.change
+- Log experiment 99
+- Replace userEvent.type with fireEvent.change in search-command-dialog tests
+- Add { interval: 5 } to all waitFor calls (52 sites, 6 files)
+- Split inbox-triage.test.tsx into 2 files (28 + 15 tests)
+- D1-client retry tests use vi.useFakeTimers (no more real backoff sleeps)
+- Split search-command-dialog test into 2 files
+- Coverage.skipFull=true (less reporter rendering)
+- Use threads pool for vitest
+- Default vitest env to node, mark 44 DOM-using tests jsdom
+- Mark 49 pure-Node unit test files with @vitest-environment node
+- L1 unit test wall-clock with coverage
+
+### Fixed
+- Reduce Playwright workers to 4 in CI
+- Use jsdom environment for utils.test.ts (needs navigator)
+- Add saveAndCloseEdit helper with retry for CI flaky saves
+- Add retry with exponential backoff for transient D1 proxy errors
+- Wait for TagPicker popover to close before clicking save
+- Dismiss TagPicker popover before clicking save in E2E tests
+- Increase timeouts and remove flaky assertions for CI
+- Increase timeout for idempotency tests
+- Use force click and increase timeouts for CI flaky tests
+- Use dispatchEvent for save buttons and increase timeouts
+- Increase timeouts for CI flaky tests (batch 2)
+- Increase timeouts for CI flaky tests
+- Use dispatchEvent for back button clicks in ideas.spec.ts
+- Use force click and increase timeouts for CI stability
+- Increase timeouts and wait for back button in ideas.spec.ts
+- Add timeout to back navigation assertions in ideas.spec.ts
+- Increase timeouts in ideas.spec.ts for CI stability
+
+### Removed
+- Remove unused jsdom devDep
+
 ## [v1.16.7] - 2026-04-21
 
 ### Changed
