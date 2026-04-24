@@ -162,7 +162,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   if (collapsed) {
     return (
       <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-300 ease-in-out overflow-hidden">
-        <div className="flex h-14 items-center justify-center">
+        <div className="flex h-14 w-full items-center justify-start pl-6 pr-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-24.png"
