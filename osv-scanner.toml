@@ -40,3 +40,9 @@ reason = "Transitive dep pinned by build tools; top-level overridden to >=3.1.4"
 # minimatch ReDoS (3.1.2) — same root cause as GHSA-23c5-xmqv-rm74.
 id = "GHSA-7r86-cg39-jmmj"
 reason = "Transitive dep pinned by build tools; top-level overridden to >=3.1.4"
+
+[[IgnoredVulns]]
+# fast-xml-parser ReDoS (5.5.11) — transitive dep, upgrade to 5.7.0 requires
+# breaking changes in dependent packages. Medium severity (6.1).
+id = "GHSA-gh4j-gqv2-49f6"
+reason = "Transitive dep; upgrade requires breaking changes in dependents"
