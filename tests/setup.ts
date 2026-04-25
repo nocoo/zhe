@@ -1,5 +1,10 @@
-import '@testing-library/jest-dom/vitest';
 import { vi, beforeEach } from 'vitest';
+
+// Only load jest-dom matchers in DOM environments (happy-dom). Skipping the
+// import in node-environment files (~50 of 98) shaves measurable setup time.
+if (typeof window !== 'undefined') {
+  await import('@testing-library/jest-dom/vitest');
+}
 
 // Stub `server-only` so server modules can be imported in Vitest (jsdom)
 vi.mock('server-only', () => ({}));
