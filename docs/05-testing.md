@@ -82,23 +82,29 @@
 |------|------|
 | [Vitest](https://vitest.dev) | 测试运行器 |
 | [React Testing Library](https://testing-library.com) | 组件测试 |
-| [jsdom](https://github.com/jsdom/jsdom) | 浏览器环境模拟 |
+| [happy-dom / jsdom](https://github.com/capricorn86/happy-dom) | 浏览器环境模拟（按文件级 `@vitest-environment` 指令启用） |
 | [@vitest/coverage-v8](https://vitest.dev/guide/coverage) | 代码覆盖率 |
 
 #### 关键配置
 
 **`vitest.config.ts`**：
-- 环境：`jsdom`
-- Setup：`tests/setup.ts`（D1 内存模拟器）
-- 排除：`tests/api/**`（L2）、`tests/integration/**`（独立运行）
+- 默认环境：`node`（DOM 用例通过文件首行 `// @vitest-environment happy-dom` 或 `jsdom` 指令切换）
+- Setup：`tests/setup.ts`（D1 内存模拟器，mock 的是 `@/lib/db/d1-client`）
+- 包含：`tests/**/*.{test,spec}.{ts,tsx}`
+- 排除：`tests/playwright/**`、`node_modules/**`
+- 覆盖率：v8 provider，`thresholds` 全局门槛 `lines/statements ≥ 95`、`functions ≥ 90`、`branches ≥ 85`（仅做全局校验，未按模块细分）
 
 **D1 内存模拟器**（`tests/setup.ts`）：
 ```typescript
-// 全局 mock executeD1Query，使用 Map/Array 模拟数据库
-vi.mock('@/lib/db', () => ({
-  executeD1Query: vi.fn().mockImplementation(/* 内存实现 */),
+// 全局 mock @/lib/db/d1-client，使用 Map/Array 模拟数据库
+vi.mock('@/lib/db/d1-client', async () => ({
+  isD1Configured: () => true,
+  executeD1Query: /* 内存 SQL 解释器 */,
+  executeD1Batch: /* 顺序执行多条语句 */,
 }));
 ```
+
+> 历史记录：早期默认环境为 `jsdom` 且 mock 的是 `@/lib/db`。当前默认环境是 `node`，DOM 用例靠文件级 `@vitest-environment` 指令启用，mock 目标是更细粒度的 `@/lib/db/d1-client`。补 UT 时按当前配置实现。
 
 #### 命令
 
