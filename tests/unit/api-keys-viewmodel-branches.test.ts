@@ -38,39 +38,91 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     expect(result.current.newlyCreatedKey).toBeNull();
   });
 
-  it("does not setKeys after unmount even if mount fetch resolves later (cancelled branch)", async () => {
+  it("does not read the resolved listApiKeys result after unmount (cancelled guard runs)", async () => {
+    // Strategy: have listApiKeys resolve to a Proxy. The hook's post-await code
+    // reads `result.success` (and on success, `result.data`). If the cancelled
+    // guard ran first, neither property is accessed and the trap counter stays
+    // at 0. If the guard regressed, accessing `.success` after unmount would
+    // increment the counter. This is deterministic and does not rely on
+    // result.current snapshots or React's (unreliable in v19) post-unmount
+    // setState warnings.
     let resolveList: (v: Awaited<ReturnType<typeof listApiKeys>>) => void = () => {};
     vi.mocked(listApiKeys).mockReturnValue(
       new Promise((resolve) => { resolveList = resolve; }),
     );
 
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { result, unmount } = renderHook(() => useApiKeysViewModel());
-
-    // Unmount while the fetch is still pending — cancelled flag should flip.
+    const { unmount } = renderHook(() => useApiKeysViewModel());
     unmount();
 
-    // Now resolve the fetch with data; the hook must not attempt to setKeys.
+    let propertyAccessCount = 0;
+    const accessedProps: PropertyKey[] = [];
+    const target = {
+      success: true as const,
+      data: [
+        { id: "k1", prefix: "zhe_p", name: "Late", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
+      ],
+    };
+    const sentinel = new Proxy(target, {
+      get(t, prop, receiver) {
+        // Filter out internal Promise/await machinery (e.g. `then`) so we only
+        // count reads performed by the hook body itself.
+        if (prop === "then" || typeof prop === "symbol") {
+          return Reflect.get(t, prop, receiver);
+        }
+        propertyAccessCount += 1;
+        accessedProps.push(prop);
+        return Reflect.get(t, prop, receiver);
+      },
+    });
+
     await act(async () => {
-      resolveList({
-        success: true,
-        data: [
-          { id: "k1", prefix: "zhe_p", name: "Late", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
-        ],
-      });
+      resolveList(sentinel as unknown as Awaited<ReturnType<typeof listApiKeys>>);
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // React would log "state update on unmounted component" if cancelled
-    // were not honoured. Confirm no such warning was emitted.
-    const updateAfterUnmount = errorSpy.mock.calls.some(call =>
-      String(call[0] ?? "").includes("unmounted") ||
-      String(call[0] ?? "").includes("Can't perform a React state update"),
+    expect(propertyAccessCount).toBe(0);
+    expect(accessedProps).toEqual([]);
+  });
+
+  it("DOES read the resolved listApiKeys result when not unmounted (control: guard does not block happy path)", async () => {
+    // Companion to the cancelled-branch test: same Proxy instrumentation, but
+    // without unmount(). Confirms the trap mechanism actually fires in the
+    // un-cancelled case — without this control, a bug that broke result reads
+    // entirely would make the cancelled-branch test pass for the wrong reason.
+    let resolveList: (v: Awaited<ReturnType<typeof listApiKeys>>) => void = () => {};
+    vi.mocked(listApiKeys).mockReturnValue(
+      new Promise((resolve) => { resolveList = resolve; }),
     );
-    expect(updateAfterUnmount).toBe(false);
-    expect(result.current.keys).toEqual([]);
-    errorSpy.mockRestore();
+
+    const { result } = renderHook(() => useApiKeysViewModel());
+
+    let propertyAccessCount = 0;
+    const target = {
+      success: true as const,
+      data: [
+        { id: "k1", prefix: "zhe_p", name: "Late", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
+      ],
+    };
+    const sentinel = new Proxy(target, {
+      get(t, prop, receiver) {
+        if (prop === "then" || typeof prop === "symbol") {
+          return Reflect.get(t, prop, receiver);
+        }
+        propertyAccessCount += 1;
+        return Reflect.get(t, prop, receiver);
+      },
+    });
+
+    await act(async () => {
+      resolveList(sentinel as unknown as Awaited<ReturnType<typeof listApiKeys>>);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // At minimum the hook reads `.success`; on success it also reads `.data`.
+    expect(propertyAccessCount).toBeGreaterThanOrEqual(1);
+    expect(result.current.keys).toHaveLength(1);
   });
 
   it("returns failure result and resets isCreating when handleCreate fails", async () => {
