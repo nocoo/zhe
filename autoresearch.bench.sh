@@ -32,10 +32,12 @@ C_END=$(now)
 C_S=$(elapsed "$C_START" "$C_END")
 
 # Counts + coverage
-TF_PASS=$(grep -oE 'Test Files +[0-9]+ passed' "$UNIT_LOG" | tail -1 | grep -oE '[0-9]+' || echo 0)
-TF_FAIL=$(grep -oE 'Test Files .*[0-9]+ failed' "$UNIT_LOG" | tail -1 | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo 0)
-T_PASS=$(grep -E '^ +Tests +[0-9]+ passed' "$UNIT_LOG" | tail -1 | grep -oE '[0-9]+' | head -1 || echo 0)
-T_FAIL=$(grep -E '^ +Tests +.*[0-9]+ failed' "$UNIT_LOG" | tail -1 | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo 0)
+# Strip ANSI escape codes before parsing (vitest 4 emits color codes even in non-tty pipes).
+STRIP_ANSI='s/\x1b\[[0-9;]*[mGKH]//g'
+TF_PASS=$(sed -E "$STRIP_ANSI" "$UNIT_LOG" | grep -oE 'Test Files +[0-9]+ passed' | tail -1 | grep -oE '[0-9]+' || echo 0)
+TF_FAIL=$(sed -E "$STRIP_ANSI" "$UNIT_LOG" | grep -oE 'Test Files .*[0-9]+ failed' | tail -1 | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo 0)
+T_PASS=$(sed -E "$STRIP_ANSI" "$UNIT_LOG" | grep -E '^ +Tests +[0-9]+ passed' | tail -1 | grep -oE '[0-9]+' | head -1 || echo 0)
+T_FAIL=$(sed -E "$STRIP_ANSI" "$UNIT_LOG" | grep -E '^ +Tests +.*[0-9]+ failed' | tail -1 | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo 0)
 
 # Parse from coverage-summary.json (json-summary reporter)
 COV_JSON=coverage/coverage-summary.json
@@ -75,6 +77,16 @@ EOF
 echo "---- unit tail ----"; tail -8 "$UNIT_LOG"
 echo "---- coverage tail ----"; tail -12 "$COV_LOG"
 
+# Anti-cheat: ensure full suite ran. Lock to current totals (98 files / 2411 tests).
+# If a config change silently drops files/tests (e.g. deps.optimizer breaks vi.mock),
+# this catches it instead of declaring a phantom speed win.
+MIN_FILES=98
+MIN_TESTS=2411
+SUITE_OK=1
+if [ "${TF_PASS:-0}" -lt "$MIN_FILES" ] || [ "${T_PASS:-0}" -lt "$MIN_TESTS" ]; then
+  SUITE_OK=0
+fi
+
 echo "---- METRICS ----"
 echo "METRIC unit_cov_s=$C_S"
 echo "METRIC unit_s=$U_S"
@@ -89,13 +101,14 @@ echo "METRIC unit_exit=$U_EXIT"
 echo "METRIC cov_exit=$C_EXIT"
 echo "METRIC quality_ok=$QUALITY_OK"
 echo "METRIC threshold_ok=$THRESH_OK"
+echo "METRIC suite_ok=$SUITE_OK"
 
 cp "$UNIT_LOG" /tmp/last-unit-run.log
 cp "$COV_LOG" /tmp/last-cov-run.log
 rm -f "$UNIT_LOG" "$COV_LOG"
 
 # Fail-out conditions: any test failed, any quality gate broken.
-if [ "$U_EXIT" -ne 0 ] || [ "$C_EXIT" -ne 0 ] || [ "$QUALITY_OK" -ne 1 ] || [ "$THRESH_OK" -ne 1 ]; then
+if [ "$U_EXIT" -ne 0 ] || [ "$C_EXIT" -ne 0 ] || [ "$QUALITY_OK" -ne 1 ] || [ "$THRESH_OK" -ne 1 ] || [ "$SUITE_OK" -ne 1 ]; then
   exit 1
 fi
 exit 0
