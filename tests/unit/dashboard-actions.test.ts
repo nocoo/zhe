@@ -54,15 +54,44 @@ describe('getDashboardData', () => {
   });
 
   it('calls all three DB methods in parallel', async () => {
-    mockGetLinks.mockResolvedValue([]);
-    mockGetTags.mockResolvedValue([]);
-    mockGetLinkTags.mockResolvedValue([]);
+    // Use deferred promises so we can observe whether all three calls are
+    // dispatched before any resolves. If the implementation switched to
+    // serial `await`, the second/third mocks would not be called until the
+    // first resolves — so the snapshot of call counts taken before
+    // resolving would catch the regression.
+    type Deferred = { promise: Promise<unknown[]>; resolve: (v: unknown[]) => void };
+    const defer = (): Deferred => {
+      let resolve!: (v: unknown[]) => void;
+      const promise = new Promise<unknown[]>((r) => { resolve = r; });
+      return { promise, resolve };
+    };
+    const linksDeferred = defer();
+    const tagsDeferred = defer();
+    const linkTagsDeferred = defer();
 
-    await getDashboardData();
+    mockGetLinks.mockReturnValue(linksDeferred.promise);
+    mockGetTags.mockReturnValue(tagsDeferred.promise);
+    mockGetLinkTags.mockReturnValue(linkTagsDeferred.promise);
+
+    const resultPromise = getDashboardData();
+
+    // Yield to the microtask queue so the action can dispatch all three
+    // calls via Promise.all before any resolves.
+    await Promise.resolve();
+    await Promise.resolve();
 
     expect(mockGetLinks).toHaveBeenCalledOnce();
     expect(mockGetTags).toHaveBeenCalledOnce();
     expect(mockGetLinkTags).toHaveBeenCalledOnce();
+
+    // Resolve out of order to confirm the action does not depend on
+    // sequential ordering.
+    linkTagsDeferred.resolve([]);
+    tagsDeferred.resolve([]);
+    linksDeferred.resolve([]);
+
+    const result = await resultPromise;
+    expect(result.success).toBe(true);
   });
 
   it('returns error when db.getLinks throws', async () => {
