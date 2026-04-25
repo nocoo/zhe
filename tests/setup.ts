@@ -375,11 +375,17 @@ vi.mock('@/lib/db/d1-client', async () => {
                 } else if (field === 'slug') {
                   const oldSlug = rawLink.slug as string;
                   const newSlug = params[paramIndex] as string;
-                  rawLink.slug = newSlug;
                   // Re-key the mockLinks map since it's keyed by slug
                   if (oldSlug !== newSlug) {
+                    // Enforce UNIQUE constraint on slug (matches real D1 behaviour)
+                    if (mockLinks.has(newSlug)) {
+                      throw new Error('UNIQUE constraint failed: links.slug');
+                    }
+                    rawLink.slug = newSlug;
                     mockLinks.delete(oldSlug);
                     mockLinks.set(newSlug, link);
+                  } else {
+                    rawLink.slug = newSlug;
                   }
                 } else if (field === 'is_custom') {
                   rawLink.is_custom = params[paramIndex];

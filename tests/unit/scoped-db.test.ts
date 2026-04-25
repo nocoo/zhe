@@ -213,6 +213,36 @@ describe('ScopedDB', () => {
       expect(cleared).not.toBeNull();
       expect(unwrap(cleared).screenshotUrl).toBeNull();
     });
+
+    it('updateLink rejects slug that collides with another existing link (UNIQUE constraint)', async () => {
+      const db = new ScopedDB(USER_A);
+      const first = await db.createLink({ originalUrl: 'https://a.example.com', slug: 'taken' });
+      const second = await db.createLink({ originalUrl: 'https://b.example.com', slug: 'free' });
+
+      await expect(db.updateLink(second.id, { slug: 'taken' })).rejects.toThrow(/UNIQUE constraint/);
+
+      // First link should still own the slug; second link slug unchanged
+      const links = await db.getLinks();
+      expect(links.find(l => l.id === first.id)?.slug).toBe('taken');
+      expect(links.find(l => l.id === second.id)?.slug).toBe('free');
+    });
+
+    it('updateLink rejects slug collision even when owned by another user', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      await dbA.createLink({ originalUrl: 'https://a.example.com', slug: 'shared' });
+      const bobLink = await dbB.createLink({ originalUrl: 'https://b.example.com', slug: 'bobs-own' });
+
+      await expect(dbB.updateLink(bobLink.id, { slug: 'shared' })).rejects.toThrow(/UNIQUE constraint/);
+    });
+
+    it('updateLink allows setting slug to its own current value (no-op rename)', async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: 'https://example.com', slug: 'same' });
+
+      const updated = await db.updateLink(link.id, { slug: 'same' });
+      expect(unwrap(updated).slug).toBe('same');
+    });
   });
 
   // ---- Link Metadata ----------------------------------------
