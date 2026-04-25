@@ -6,36 +6,42 @@
 
 - **Real baseline ~4.7s, not 4.21s.** Re-baselined with 5 trials at HEAD (#97): 4.62 / 4.68 / 4.71 / 4.97 / 6.62 — median 4.71. Earlier "best" 4.11–4.21 runs were lucky single trials. Noise envelope is ±0.5s with P99 occasionally jumping to 6.6s (probably GC + worker startup variance).
 
-### ✅ Confirmed wins this session (#98–#112): 4.71s → 2.92s (−38%)
-  - **#98**: `{ interval: 5 }` to all 52 waitFor calls in viewmodel + component tests.
-  - **#99**: Replace 47 `userEvent.type` with `fireEvent.change` in `search-command-dialog{,-search}.test.tsx`.
-  - **#100**: Replace remaining 8 `user.type` with `fireEvent.change` in 5 component files.
-  - **#101**: Replace ~60 `user.click` + 2 `user.clear` with `fireEvent.click/change` in 5 component files.
+### ✅ Confirmed wins this session (#98–#119): 4.71s → 2.88s (−39%)
+  - **#98–#101**: waitFor interval=5 (52 sites) + userEvent.type/click → fireEvent (~115 sites across 7 files).
   - **#107**: esbuild `target=esnext` + `legalComments=none` in vitest config.
-  - **#108**: jsdom → happy-dom (47 files + clipboard polyfill). Biggest jsdom→DOM-impl swap win.
-  - **#109**: Removed unused jsdom devDep.
-  - **#112**: `pool: 'vmThreads'` instead of `'threads'` — 0.76s median win, all 97 files / 2401 tests still green. VM contexts have lower per-file startup cost than full worker_threads. ⭐ biggest single config win.
-  - The earlier ideas.md note claiming `waitFor` interval doesn't matter was **WRONG**. Per-file timing improved dramatically (ideas-viewmodel 1.36→0.78s, search-command-dialog 1.6→0.5s).
-  - **#111 dead end**: `pool: 'forks'` — 4.04s median, fork startup heavier than threads.
+  - **#108–#109**: jsdom → happy-dom (47 files + clipboard polyfill); removed jsdom devDep.
+  - **#112**: `pool: 'vmThreads'` instead of `'threads'` — 0.76s median win. ⭐ biggest single config win.
+  - **#115**: Lazy-load `@testing-library/jest-dom/vitest` matchers only when DOM env present (skip ~50 node-env files). −0.65s median (3.67 → 3.02s).
+  - **#119**: `deps.optimizer.web` enabled with `include: ['react', 'react-dom', 'react-dom/client', '@testing-library/react']` — pre-bundles core React/RTL into a single optimized bundle so each vmThread context avoids re-resolving 100s of CJS deep-imports. −0.14s median (3.02 → 2.88s).
+
+### Dead ends in #113–#140 (don't retry)
+  - `vmThreads.useAtomics:true` (also tried with optimizer.web) — within noise / slightly worse.
+  - `vmThreads.memoryLimit=0.5` — worse + higher variance (recycle cost).
+  - `server.deps.inline=['cmdk']` and `optimizer.web.include` adding cmdk / @testing-library/dom / lucide-react / next-auth / sonner / cva / @radix-ui/react-dialog / react/jsx-runtime — each addition made it *slower* than the React/RTL core. The optimizer.web include set is a sweet spot.
+  - `optimizer.web.exclude:['lucide-react']` — tightens variance (P90 ~3.05 vs 3.5+) but worsens median by ~0.08s.
+  - `holdUntilCrawlEnd:false` and/or `noDiscovery:true` — worse, lets test start before bundle is ready and triggers re-bundle on miss.
+  - `pool='threads'` even with optimizer.web — still loses to vmThreads (~3.6s median).
+  - `pool='vmForks'` — worse (3.12s median); fork startup heavier than threads.
+  - `isolate:false` for vmThreads — tests pass but median worse (3.18s) and 3/8 outliers >4s.
+  - `vmThreads.minThreads=4` (with or without `maxThreads=8`) — pre-warm overhead exceeds savings.
+  - `server.deps.fallbackCJS:true` — significantly worse (3.76s).
+  - `react-dom` removed from `optimizer.web.include` (only `react-dom/client`) — catastrophic (4.9s).
+  - Adding remaining 13 `vi.waitFor` sites with `interval:5` — within noise.
+  - Extracting d1 mock factory body to `tests/mocks/d1-client-mock.ts` (reduces setup.ts 1695→82 lines) — worse + higher variance. Confirms idea #94: factory body transform is amortized; module-resolution overhead per file > savings.
+  - `coverage.cleanOnRerun:false` and `coverage.processingConcurrency=1` — within noise / slightly worse.
+  - `NODE_OPTIONS="--no-opt"` — Node rejects this flag in NODE_OPTIONS.
 
 ### Risks / gotchas hit
   - **shared-link-components.test.tsx**: `user.click` cannot be replaced by `fireEvent.click` because the CopyUrlButton checks state set by an awaited clipboard.writeText → setState. Without the await chain, the assertion fires before the success state lands.
   - Always remove unused `userEvent` imports after the conversion (eslint hard gate).
 
 ### Confirmed dead ends in this session (#89–#96)
-  - Conditional jest-dom import (skip in node env) — no improvement; setup transform is amortized.
-  - Extracting d1 mock factory body to sibling file (~1600 lines out of setup.ts) — transform is cached per worker.
-  - `deps.optimizer.web` pre-bundling React/RTL/cmdk — significantly worse (+1.5s).
-  - `@vitejs/plugin-react-swc` instead of `plugin-react` — slightly worse for this workload.
-  - `coverage.processingConcurrency=8` — within noise.
-  - Splitting `search-command-dialog.test.tsx` further — per-file overhead ≥ savings.
-  - `vi.mock('@testing-library/dom')` to lower waitFor interval globally — vi.mock factory has high per-file overhead.
-  - Dropping html+json coverage reporters — reporters write at end, not on hot path.
 
-### Remaining bottleneck (~2.9s wall floor with vmThreads + happy-dom)
-  - Top files (post-#112): inbox-triage 836ms, links-list 780ms, inbox-triage-interactions 705ms, sidebar 698ms, storage-page 653ms, link-card 625ms.
-  - Critical path: ceil(N_dom_files / workers) × max_file_time. With ~6 vm threads and 836ms longest, floor ≈ 0.85–1.0s + ~1.5s setup/transform.
-  - Coverage v8 overhead is now smaller relative to total (unit_s 2.17s vs unit_cov_s 2.92s = 0.75s).
+### Remaining bottleneck (~2.85s wall floor)
+  - Top files: inbox-triage 880ms, links-list 794ms, inbox-triage-interactions 775ms, sidebar 706ms, storage-page 650ms, link-card 635ms.
+  - Per-happy-dom-file fixed overhead is ~470ms (transform 100ms + setup 65ms + import 160ms + environment 90ms). With 24 happy-dom files / 6 vm threads, that's ~1.9s of unavoidable overhead per worker pipeline.
+  - Coverage v8 overhead: unit_s 2.15s vs unit_cov_s 2.88s = 0.73s.
+  - Main run-to-run variance source: vite optimizer cache cold-start (occasional 4–5s outliers). Cache is in `node_modules/.vite/vitest/<hash>/deps_*`.
 
 - **Try `poolOptions.vmThreads.useAtomics: true`** — untested, may further reduce sync overhead with vmThreads pool.
 - **Try `poolOptions.vmThreads.memoryLimit`** — vmThreads can leak memory across files; tuning the recycling threshold may improve hot-path stability.
