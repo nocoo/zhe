@@ -15,7 +15,7 @@ jobs:
     uses: nocoo/base-ci/.github/workflows/bun-quality.yml@v2026.1
     with:
       bun-version: "1.3.11"
-      pre-command: "bun run build --no-lint"
+      pre-command: "bun run build"
       typecheck-command: "bun x tsc --noEmit"
       test-command: "bun run test:unit:coverage && bun run test:integration"
       osv-config: "osv-scanner.toml"
@@ -70,7 +70,7 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Build (required for Next.js dev server)
-        run: bun run build --no-lint
+        run: bun run build
 
       - name: "L2: API E2E tests"
         run: bun run test:api
@@ -119,7 +119,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Build (required for Next.js dev server)
-        run: bun run build --no-lint
+        run: bun run build
 
       - name: "L3: Playwright E2E tests"
         run: bun run test:e2e:pw
