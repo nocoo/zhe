@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.17.0] - 2026-04-28
+
+### Changed
+- Scope aria-current assertion to Breadcrumb nav
+- Upgrade next 15.5.15 → 16.2.4
+- Rename middleware.ts to proxy.ts for next.js 16
+- Record session learnings (#113-#145)
+- Bench enforces full suite ran (98 files / 2411 tests)
+- Lazy-load jest-dom matchers only in DOM env
+- Strengthen cancelled-guard assertion via Proxy sentinel
+- Sync L1 setup description with current vitest config
+- Cover useApiKeysViewModel failure & cancel branches
+- Assert true parallel dispatch in getDashboardData
+- Enforce slug UNIQUE constraint in D1 mock UPDATE links
+- Ignore GHSA-gh4j-gqv2-49f6 (fast-xml-parser transitive dep)
+- Upgrade base-ci to v2026.1
+
+### Fixed
+- Cap Next.js worker count and node heap to prevent Railway OOM
+- Override postcss to >=8.5.10 (GHSA-qx2v-qp2m-jg93)
+- Anchor collapsed sidebar logo to prevent jitter
+
+### Removed
+- Remove interactive confirmation from release script
+
 ## [v1.16.8] - 2026-04-21
 
 ### Changed
