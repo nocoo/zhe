@@ -27,7 +27,7 @@ export default defineConfig({
         'models/links.ts',
         'models/backy.ts',
         'actions/**/*.ts',
-        'middleware.ts',
+        'proxy.ts',
         'viewmodels/**/*.ts',
         'hooks/**/*.tsx',
         'components/app-sidebar.tsx',

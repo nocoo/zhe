@@ -24,8 +24,8 @@ vi.mock('@/lib/db', () => ({
   recordClick: vi.fn(),
 }));
 
-import { middleware } from '@/middleware';
-import { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX } from '@/middleware';
+import { proxy } from '@/proxy';
+import { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX } from '@/proxy';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { extractClickMetadata } from '@/lib/analytics';
@@ -58,7 +58,7 @@ const defaultMetadata = {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('middleware', () => {
+describe('proxy', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(extractClickMetadata).mockReturnValue(defaultMetadata);
@@ -67,7 +67,7 @@ describe('middleware', () => {
 
   // 1. Root path ─────────────────────────────────────────────────────────────
   it('returns next() for root path', async () => {
-    const res = await middleware(makeRequest('/'), makeEvent());
+    const res = await proxy(makeRequest('/'), makeEvent());
 
     expect(res.headers.get('x-middleware-next')).toBe('1');
     expect(isReservedPath).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('middleware', () => {
   it('returns next() for reserved non-dashboard paths', async () => {
     vi.mocked(isReservedPath).mockReturnValue(true);
 
-    const res = await middleware(makeRequest('/api/something'), makeEvent());
+    const res = await proxy(makeRequest('/api/something'), makeEvent());
 
     expect(isReservedPath).toHaveBeenCalledWith('api');
     expect(res.headers.get('x-middleware-next')).toBe('1');
@@ -90,7 +90,7 @@ describe('middleware', () => {
     vi.mocked(isReservedPath).mockReturnValue(true);
     vi.mocked(auth).mockResolvedValue(null as never);
 
-    const res = await middleware(makeRequest('/dashboard/links'), makeEvent());
+    const res = await proxy(makeRequest('/dashboard/links'), makeEvent());
 
     expect(auth).toHaveBeenCalled();
     expect(res.status).toBe(307);
@@ -104,7 +104,7 @@ describe('middleware', () => {
     vi.mocked(isReservedPath).mockReturnValue(true);
     vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as never);
 
-    const res = await middleware(makeRequest('/dashboard'), makeEvent());
+    const res = await proxy(makeRequest('/dashboard'), makeEvent());
 
     expect(auth).toHaveBeenCalled();
     expect(res.headers.get('x-middleware-next')).toBe('1');
@@ -115,7 +115,7 @@ describe('middleware', () => {
     vi.mocked(isReservedPath).mockReturnValue(false);
     vi.mocked(getLinkBySlug).mockResolvedValue(null);
 
-    const res = await middleware(makeRequest('/nonexistent'), makeEvent());
+    const res = await proxy(makeRequest('/nonexistent'), makeEvent());
 
     expect(getLinkBySlug).toHaveBeenCalledWith('nonexistent');
     expect(res.headers.get('x-middleware-rewrite')).toContain('/not-found');
@@ -141,7 +141,7 @@ describe('middleware', () => {
       createdAt: new Date('2019-01-01'),
     });
 
-    const res = await middleware(makeRequest('/old'), makeEvent());
+    const res = await proxy(makeRequest('/old'), makeEvent());
 
     expect(res.headers.get('x-middleware-rewrite')).toContain('/not-found');
   });
@@ -166,7 +166,7 @@ describe('middleware', () => {
       createdAt: new Date(),
     });
 
-    const res = await middleware(makeRequest('/abc'), makeEvent());
+    const res = await proxy(makeRequest('/abc'), makeEvent());
 
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('https://example.com/target');
@@ -193,7 +193,7 @@ describe('middleware', () => {
     });
 
     const event = makeEvent();
-    await middleware(makeRequest('/abc'), event);
+    await proxy(makeRequest('/abc'), event);
 
     expect(extractClickMetadata).toHaveBeenCalled();
     expect(event.waitUntil).toHaveBeenCalledTimes(1);
@@ -221,7 +221,7 @@ describe('middleware', () => {
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const res = await middleware(makeRequest('/broken'), makeEvent());
+    const res = await proxy(makeRequest('/broken'), makeEvent());
 
     expect(res.headers.get('x-middleware-rewrite')).toContain('/not-found');
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -334,12 +334,12 @@ describe('middleware slug caching', () => {
     vi.mocked(getLinkBySlug).mockResolvedValue(validLink);
 
     // First request — cache miss, hits D1
-    const res1 = await middleware(makeRequest('/cached'), makeEvent());
+    const res1 = await proxy(makeRequest('/cached'), makeEvent());
     expect(res1.status).toBe(307);
     expect(getLinkBySlug).toHaveBeenCalledTimes(1);
 
     // Second request — cache hit, no D1 call
-    const res2 = await middleware(makeRequest('/cached'), makeEvent());
+    const res2 = await proxy(makeRequest('/cached'), makeEvent());
     expect(res2.status).toBe(307);
     expect(getLinkBySlug).toHaveBeenCalledTimes(1); // still 1, not 2
   });
@@ -347,8 +347,8 @@ describe('middleware slug caching', () => {
   it('caches null results (slug not found) to avoid repeated D1 lookups', async () => {
     vi.mocked(getLinkBySlug).mockResolvedValue(null);
 
-    await middleware(makeRequest('/nope'), makeEvent());
-    await middleware(makeRequest('/nope'), makeEvent());
+    await proxy(makeRequest('/nope'), makeEvent());
+    await proxy(makeRequest('/nope'), makeEvent());
 
     expect(getLinkBySlug).toHaveBeenCalledTimes(1);
   });
@@ -356,7 +356,7 @@ describe('middleware slug caching', () => {
   it('re-fetches from D1 after cache entry expires', async () => {
     vi.mocked(getLinkBySlug).mockResolvedValue(validLink);
 
-    await middleware(makeRequest('/cached'), makeEvent());
+    await proxy(makeRequest('/cached'), makeEvent());
     expect(getLinkBySlug).toHaveBeenCalledTimes(1);
 
     // Expire the cache entry
@@ -364,7 +364,7 @@ describe('middleware slug caching', () => {
     vi.advanceTimersByTime(SLUG_CACHE_TTL_MS + 1);
 
     vi.mocked(getLinkBySlug).mockResolvedValue(validLink);
-    await middleware(makeRequest('/cached'), makeEvent());
+    await proxy(makeRequest('/cached'), makeEvent());
     expect(getLinkBySlug).toHaveBeenCalledTimes(2);
 
     vi.useRealTimers();

@@ -47,7 +47,7 @@ function setCachedSlug(slug: string, link: Link | null): void {
 // Export for testing
 export { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX };
 
-export async function middleware(request: NextRequest, event: NextFetchEvent) {
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   // Skip root path
