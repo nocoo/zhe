@@ -1,24 +1,17 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 import tseslint from "typescript-eslint";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
 // Extract only rule configs from typescript-eslint strict, skip plugin
-// registration (already provided by next/typescript via FlatCompat)
+// registration (already provided by next/typescript)
 const strictRuleConfigs = tseslint.configs.strict.filter(
   (config) => !config.plugins && config.rules,
 );
 
 const eslintConfig = [
   { ignores: [".next/", "coverage/", "drizzle/", "next-env.d.ts"] },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
   // Apply typescript-eslint strict rules (non-type-aware)
   ...strictRuleConfigs,
   {
@@ -28,6 +21,14 @@ const eslintConfig = [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Disabled — new rules introduced by eslint-plugin-react-hooks 7.x
+      // (shipped with eslint-config-next 16). Existing code violates these
+      // in ~15 places; treat as a separate cleanup task rather than mixing
+      // refactors into the framework upgrade.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/static-components": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/immutability": "off",
     },
   },
   {

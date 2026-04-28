@@ -5,27 +5,26 @@ set -euo pipefail
 # tsc --noEmit does NOT generate .next/types — only next dev/build does.
 # tsconfig.json includes .next/types/**/*.ts for route type checking.
 # Without this directory, tsc silently skips route type validation.
+#
+# Next 16 collapsed per-route .next/types/app/**/route.ts files into a
+# single .next/types/routes.d.ts, so freshness is checked by comparing
+# its mtime against the newest source file under app/.
 
 needs_rebuild=false
+ROUTES_DTS=".next/types/routes.d.ts"
 
-if [ ! -d ".next/types" ]; then
-  echo "⚠️  .next/types not found — rebuild needed."
+if [ ! -f "$ROUTES_DTS" ]; then
+  echo "⚠️  .next/types/routes.d.ts not found — rebuild needed."
   needs_rebuild=true
 else
-  # Detect stale .next/types: compare route file structure.
-  # If a route was renamed/deleted but .next/types still has the old entry,
-  # tsc will report false-positive TS2307 errors.
   if command -v fd &>/dev/null; then
-    actual_routes=$(fd 'route\.ts$' app/ 2>/dev/null | sort)
-    cached_routes=$(fd 'route\.ts$' .next/types/app/ 2>/dev/null | sed 's|^\.next/types/||' | sort)
+    newest_app=$(fd -e ts -e tsx . app/ -x stat -f '%m %N' 2>/dev/null | sort -nr | head -1 | awk '{print $1}')
   else
-    actual_routes=$(find app/ -name 'route.ts' 2>/dev/null | sort)
-    cached_routes=$(find .next/types/app/ -name 'route.ts' 2>/dev/null | sed 's|^\.next/types/||' | sort)
+    newest_app=$(find app -type f \( -name '*.ts' -o -name '*.tsx' \) -exec stat -f '%m' {} \; 2>/dev/null | sort -nr | head -1)
   fi
-
-  if [ "$actual_routes" != "$cached_routes" ]; then
-    echo "⚠️  .next/types is stale — route files changed since last build."
-    echo "   Actual routes and cached types differ. Rebuilding..."
+  routes_mtime=$(stat -f '%m' "$ROUTES_DTS" 2>/dev/null || echo 0)
+  if [ -n "${newest_app:-}" ] && [ "$newest_app" -gt "$routes_mtime" ]; then
+    echo "⚠️  .next/types/routes.d.ts is older than newest app/ source — rebuilding..."
     needs_rebuild=true
   fi
 fi
@@ -33,7 +32,7 @@ fi
 if [ "$needs_rebuild" = true ]; then
   echo "   Running next build to regenerate route types..."
   rm -rf .next/types
-  bun run build --no-lint
+  bun run build
 fi
 
 exec bun x tsc --noEmit
