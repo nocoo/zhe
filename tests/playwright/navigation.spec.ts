@@ -52,8 +52,11 @@ test.describe('Dashboard navigation', () => {
     await page.locator('nav a:has-text("概览")').click();
     await page.waitForURL('**/dashboard/overview');
 
-    // Header should reflect the page
-    await expect(page.locator('[aria-current="page"]')).toContainText('概览');
+    // Scope to the Breadcrumb nav so we don't match a stale aria-current
+    // from a transitional render of another component.
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('概览');
   });
 
   test('navigate to Data Management page', async ({ page }) => {
@@ -62,7 +65,9 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("数据管理")').click();
     await page.waitForURL('**/dashboard/data-management');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('数据管理');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('数据管理');
   });
 
   test('navigate to Webhook page', async ({ page }) => {
@@ -71,7 +76,9 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("Webhook")').click();
     await page.waitForURL('**/dashboard/webhook');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('Webhook');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('Webhook');
   });
 
   test('navigate to Uploads page', async ({ page }) => {
@@ -80,7 +87,9 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("文件上传")').click();
     await page.waitForURL('**/dashboard/uploads');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('系统集成');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('系统集成');
   });
 
   test('navigate to Backy page', async ({ page }) => {
@@ -89,7 +98,9 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("Backy")').click();
     await page.waitForURL('**/dashboard/backy');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('Backy');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('Backy');
   });
 
   test('navigate to Xray page', async ({ page }) => {
@@ -98,7 +109,9 @@ test.describe('Dashboard navigation', () => {
     await page.locator('a:has-text("Xray")').click();
     await page.waitForURL('**/dashboard/xray');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('Xray');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('Xray');
   });
 
   test('navigate back to Links page', async ({ page }) => {
@@ -109,7 +122,9 @@ test.describe('Dashboard navigation', () => {
       url.pathname === '/dashboard' && !url.searchParams.has('folder'),
     );
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('链接管理');
   });
 
   test('navigate to Inbox', async ({ page }) => {
@@ -119,7 +134,9 @@ test.describe('Dashboard navigation', () => {
     await page.waitForURL('**/dashboard?folder=uncategorized');
 
     // Should show Inbox content
-    await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
+    await expect(
+      page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
+    ).toHaveText('链接管理');
   });
 
   test('collapse and expand sidebar', async ({ page }) => {
