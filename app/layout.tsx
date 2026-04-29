@@ -16,10 +16,10 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.AUTH_URL || "https://zhe.to"),
-  title: "Zhe - URL Shortener",
+  title: "zhe - 短链接服务",
   description: "A minimalist URL shortener service",
   openGraph: {
-    title: "Zhe - URL Shortener",
+    title: "zhe - 短链接服务",
     description: "A minimalist URL shortener service",
     type: "website",
   },
