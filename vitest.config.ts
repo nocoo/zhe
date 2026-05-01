@@ -20,6 +20,7 @@ export default defineConfig({
     testTimeout: 30_000,
     coverage: {
       provider: 'v8',
+      // AST-aware remapping is built into vitest v4+; no opt-in needed.
       reporter: ['text', 'json', 'html'],
       skipFull: true,
       include: [
@@ -36,10 +37,15 @@ export default defineConfig({
         'components/dashboard/**/*.tsx',
       ],
       exclude: [
+        // Third-party dependencies — never instrumented.
         'node_modules/',
+        // Test files themselves are not production code.
         'tests/',
+        // Build/tooling configuration files.
         '**/*.config.*',
+        // Ambient type declarations contain no executable code.
         '**/*.d.ts',
+        // Next.js build output directory.
         '.next/',
         // Config/schema/type-only files
         'lib/db/schema.ts',

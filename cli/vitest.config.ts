@@ -7,11 +7,16 @@ export default defineConfig({
 		include: ["tests/**/*.test.ts"],
 		coverage: {
 			provider: "v8",
+			// experimentalAstAwareRemapping reduces variance and slightly improves
+			// wall-clock by avoiding the legacy source-map-based remap path.
+			experimentalAstAwareRemapping: true,
 			reporter: ["text", "html"],
 			include: ["src/**/*.ts"],
 			exclude: [
+				// CLI entrypoint — orchestration code, not unit-testable.
 				"src/index.ts",
-				"src/commands/**/*.ts", // Commands involve stdin/process.exit, tested via E2E
+				// Command handlers — integration-level code (stdin/process.exit), planned for future E2E.
+				"src/commands/**/*.ts",
 			],
 			thresholds: {
 				statements: 95,
