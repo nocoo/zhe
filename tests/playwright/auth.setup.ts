@@ -34,4 +34,20 @@ setup('authenticate', async ({ page, context }) => {
 
   // Save signed-in state
   await context.storageState({ path: authFile });
+
+  // Warm up Turbopack JIT compilation for high-traffic routes.
+  // This serializes compilation before parallel workers fan out,
+  // preventing cold-start stampede that causes intermittent failures.
+  const warmupRoutes = [
+    '/dashboard/overview',
+    '/dashboard/ideas',
+    '/dashboard/backy',
+    '/dashboard/api-keys',
+    '/dashboard/data-management',
+    '/dashboard/webhook',
+  ];
+  for (const route of warmupRoutes) {
+    await page.goto(route);
+    await page.waitForLoadState('domcontentloaded');
+  }
 });
