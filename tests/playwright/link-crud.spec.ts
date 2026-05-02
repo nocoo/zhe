@@ -244,6 +244,62 @@ test.describe('Link CRUD', () => {
       await expect(page.getByText(testSlug)).toBeHidden();
     });
 
+    test('move link to folder via edit mode', async ({ page }) => {
+      const folderId = `e2e-mv-folder-${Date.now()}`;
+      const folderName = `e2e-mv-${Date.now()}`;
+
+      try {
+        // Seed a folder via D1
+        await executeD1(
+          'INSERT INTO folders (id, user_id, name, created_at) VALUES (?, ?, ?, ?)',
+          [folderId, TEST_USER.id, folderName, Date.now()],
+        );
+
+        // Reload to pick up the new folder
+        await page.goto('/dashboard');
+        await waitForLinksPage(page);
+        await expect(page.getByText(testSlug)).toBeVisible({ timeout: 10_000 });
+
+        const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
+
+        // Enter edit mode
+        await card.getByRole('button', { name: 'Edit link' }).first().click();
+
+        // Select folder
+        const folderTrigger = card.locator('[id^="edit-folder-"]');
+        await expect(folderTrigger).toBeVisible({ timeout: 5_000 });
+        await folderTrigger.click();
+        await page.getByRole('option', { name: folderName }).click();
+
+        // Save
+        await card.locator('button:has-text("保存")').click();
+        await expect(folderTrigger).toBeHidden({ timeout: 10_000 });
+
+        // Navigate to the folder via sidebar
+        const sidebar = page.locator('aside');
+        const sidebarTrigger = page.locator('button[data-sidebar="trigger"]').first();
+        if (await sidebarTrigger.isVisible()) {
+          const sidebarEl = sidebar.first();
+          const state = await sidebarEl.getAttribute('data-state');
+          if (state === 'collapsed') {
+            await sidebarTrigger.click();
+            await page.waitForTimeout(300);
+          }
+        }
+        await sidebar.getByText(folderName).click();
+        await expect(page).toHaveURL(/folder=/, { timeout: 15_000 });
+
+        // Verify the link appears in the folder view
+        await expect(page.getByText(testSlug)).toBeVisible({ timeout: 10_000 });
+      } finally {
+        await executeD1(
+          'DELETE FROM folders WHERE id = ? AND user_id = ?',
+          [folderId, TEST_USER.id],
+          { softFail: true },
+        );
+      }
+    });
+
     test('delete link', async ({ page }) => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
