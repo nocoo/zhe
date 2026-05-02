@@ -222,6 +222,28 @@ test.describe('Link CRUD', () => {
       await expect(noteInput).toBeHidden({ timeout: 10_000 });
     });
 
+    test('edit link slug', async ({ page }) => {
+      const newSlug = `e2e-edited-${Date.now()}`;
+      const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
+
+      // Enter edit mode
+      await card.getByRole('button', { name: 'Edit link' }).first().click();
+
+      // Clear and fill slug input
+      const slugInput = card.locator('input[id^="edit-slug-"]');
+      await expect(slugInput).toBeVisible({ timeout: 5_000 });
+      await slugInput.clear();
+      await slugInput.fill(newSlug);
+
+      // Save
+      await card.locator('button:has-text("保存")').click();
+      await expect(slugInput).toBeHidden({ timeout: 10_000 });
+
+      // Verify new slug visible, old slug gone
+      await expect(page.getByText(newSlug)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(testSlug)).toBeHidden();
+    });
+
     test('delete link', async ({ page }) => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
