@@ -6,6 +6,7 @@
  * the global-teardown cleans everything up.
  */
 import { test, expect } from './fixtures';
+import { executeD1, TEST_USER } from './helpers/d1';
 
 /** Helper: wait for link-crud page to finish loading inside <main>. */
 async function waitForLinksPage(page: import('@playwright/test').Page): Promise<void> {
@@ -84,6 +85,69 @@ test.describe('Link CRUD', () => {
 
       // Verify the link with custom slug appears
       await expect(page.getByText(customSlug)).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('create link with folder, note, and tags', async ({ page }) => {
+      const folderId = `e2e-folder-${Date.now()}`;
+      const folderName = `e2e-create-folder-${Date.now()}`;
+      const tagName = `e2e-tag-${Date.now()}`;
+
+      try {
+        // Seed a folder via D1 so the folder selector appears in the modal
+        await executeD1(
+          'INSERT INTO folders (id, user_id, name, created_at) VALUES (?, ?, ?, ?)',
+          [folderId, TEST_USER.id, folderName, Date.now()],
+        );
+
+        await page.goto('/dashboard');
+        await waitForLinksPage(page);
+
+        const main = page.locator('main');
+
+        // Open create dialog
+        await main.getByRole('button', { name: '新建链接' }).first().click();
+        await expect(page.getByText('创建短链接')).toBeVisible();
+
+        // Fill URL
+        await page.locator('#url').fill('https://example.com/folder-note-tag-test');
+
+        // Select folder
+        await page.locator('#folder').click();
+        await page.getByRole('option', { name: folderName }).click();
+
+        // Fill note
+        await page.locator('#note').fill('E2E test note with folder');
+
+        // Fill screenshot URL
+        await page.locator('#screenshotUrl').fill('https://example.com/screenshot.png');
+
+        // Create a tag via TagPicker
+        await page.locator('[data-testid="tag-picker-trigger"]').click();
+        await page.locator('[cmdk-input]').fill(tagName);
+        await page.locator('[data-testid="tag-create-option"]').click();
+
+        // Submit
+        await page.locator('button:has-text("创建链接")').click();
+        await expect(page.getByText('创建短链接')).toBeHidden({ timeout: 15_000 });
+
+        // Verify the link appears
+        await expect(
+          page.locator('[data-testid="link-card"] a[href="https://example.com/folder-note-tag-test"]').first(),
+        ).toBeVisible({ timeout: 10_000 });
+      } finally {
+        // Cleanup folder (cascade will handle links with that folder_id)
+        await executeD1(
+          'DELETE FROM folders WHERE id = ? AND user_id = ?',
+          [folderId, TEST_USER.id],
+          { softFail: true },
+        );
+        // Cleanup tag
+        await executeD1(
+          "DELETE FROM tags WHERE user_id = ? AND name = ?",
+          [TEST_USER.id, tagName],
+          { softFail: true },
+        );
+      }
     });
   });
 
