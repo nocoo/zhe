@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.17.1] - 2026-05-03
+
+### Changed
+- Add move link to folder via edit mode test
+- Add edit link slug test
+- Add create link test with folder, note, and tags
+- Warm up Turbopack routes in auth setup to fix intermittent failures
+- Align coverage config with pew best practices
+- Unify HTML title to "zhe - 短链接服务"
+
+### Fixed
+- Remove --no-lint flag removed in Next.js 16
+
 ## [v1.17.0] - 2026-04-28
 
 ### Changed
