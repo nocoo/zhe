@@ -6,6 +6,7 @@ node_modules
 
 # Testing
 coverage
+coverage-tmp/
 /test-results/
 /playwright-report/
 /blob-report/
