@@ -189,6 +189,33 @@ describe("Rate Limiting", () => {
     });
   });
 
+  describe("namespace isolation", () => {
+    it("webhook namespace does not collide with api namespace", () => {
+      const config: RateLimitConfig = { maxRequests: 1, windowMs: 60_000 };
+
+      // Fill webhook:same via slidingWindowCheck directly
+      slidingWindowCheck("webhook:same", 1, 60_000);
+      const webhookResult = slidingWindowCheck("webhook:same", 1, 60_000);
+      expect(webhookResult.allowed).toBe(false);
+
+      // api:same (via checkRateLimit) should still be allowed
+      const apiResult = checkRateLimit("same", config);
+      expect(apiResult.allowed).toBe(true);
+    });
+
+    it("api namespace does not collide with webhook namespace", () => {
+      const config: RateLimitConfig = { maxRequests: 1, windowMs: 60_000 };
+
+      // Fill api:same via checkRateLimit
+      checkRateLimit("same2", config);
+      expect(checkRateLimit("same2", config).allowed).toBe(false);
+
+      // webhook:same2 via slidingWindowCheck should still be allowed
+      const webhookResult = slidingWindowCheck("webhook:same2", 1, 60_000);
+      expect(webhookResult.allowed).toBe(true);
+    });
+  });
+
   describe("resetRateLimit", () => {
     it("clears limit for a specific key", () => {
       const config: RateLimitConfig = { maxRequests: 2, windowMs: 60_000 };

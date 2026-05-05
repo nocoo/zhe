@@ -129,7 +129,7 @@ export function slidingWindowCheck(
 /**
  * Check rate limit for a given key (API key layer).
  *
- * @param keyId - The API key ID to check (caller should namespace if needed)
+ * @param keyId - The API key ID to check
  * @param config - Rate limit configuration (optional, uses default if not provided)
  * @returns Rate limit result with allowed status and metadata
  */
@@ -137,7 +137,7 @@ export function checkRateLimit(
   keyId: string,
   config: RateLimitConfig = DEFAULT_RATE_LIMIT,
 ): RateLimitResult {
-  const result = slidingWindowCheck(keyId, config.maxRequests, config.windowMs);
+  const result = slidingWindowCheck(`api:${keyId}`, config.maxRequests, config.windowMs);
   return {
     allowed: result.allowed,
     remaining: result.remaining,
@@ -151,7 +151,7 @@ export function checkRateLimit(
  * Useful for testing or admin operations.
  */
 export function resetRateLimit(keyId: string): void {
-  windows.delete(keyId);
+  windows.delete(`api:${keyId}`);
 }
 
 /**
@@ -166,7 +166,7 @@ export function clearAllRateLimits(): void {
  * Get current request count for a key (for monitoring).
  */
 export function getRateLimitCount(keyId: string, config: RateLimitConfig = DEFAULT_RATE_LIMIT): number {
-  const entry = windows.get(keyId);
+  const entry = windows.get(`api:${keyId}`);
   if (!entry) return 0;
 
   cleanWindow(entry, config.windowMs, Date.now());
