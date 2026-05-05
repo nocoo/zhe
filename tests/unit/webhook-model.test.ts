@@ -13,6 +13,7 @@ import {
   clampRateLimit,
   isValidRateLimit,
 } from "@/models/webhook";
+import { clearAllRateLimits } from "@/lib/api/rate-limit";
 import { unwrap } from "../test-utils";
 
 describe("webhook model", () => {
@@ -430,6 +431,7 @@ describe("webhook model", () => {
   describe("checkRateLimit", () => {
     beforeEach(() => {
       vi.useFakeTimers();
+      clearAllRateLimits();
     });
 
     afterEach(() => {
@@ -517,6 +519,19 @@ describe("webhook model", () => {
         expect(checkRateLimit(token).allowed).toBe(true);
       }
       expect(checkRateLimit(token).allowed).toBe(false);
+    });
+
+    it("retryAfterMs reflects time until earliest slot opens (dynamic)", () => {
+      const token = "test-token-dynamic";
+      // t=0: fill single slot
+      vi.setSystemTime(0);
+      checkRateLimit(token, 1);
+
+      // t=45s: blocked — earliest at t=0, resets at t=60s → retryAfterMs=15000
+      vi.setSystemTime(45_000);
+      const result = checkRateLimit(token, 1);
+      expect(result.allowed).toBe(false);
+      expect(result.retryAfterMs).toBe(15_000);
     });
   });
 

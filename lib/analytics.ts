@@ -58,16 +58,19 @@ export function parseDevice(ua: string): 'mobile' | 'tablet' | 'desktop' | 'unkn
  */
 export function parseBrowser(ua: string): string {
   if (!ua) return 'Unknown';
-  
+
   // Order matters - check more specific patterns first
-  if (ua.includes('Edg/')) return 'Edge';
-  if (ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
+  // iOS variants use their own tokens (CriOS, FxiOS, EdgiOS, OPiOS)
+  if (ua.includes('Edg/') || ua.includes('EdgiOS/')) return 'Edge';
+  if (ua.includes('OPR/') || ua.includes('Opera/') || ua.includes('OPiOS/')) return 'Opera';
+  if (ua.includes('CriOS/')) return 'Chrome'; // Chrome on iOS
+  if (ua.includes('FxiOS/')) return 'Firefox'; // Firefox on iOS
   if (ua.includes('Chrome/') && !ua.includes('Chromium/')) return 'Chrome';
-  if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
+  if (ua.includes('Safari/') && !ua.includes('Chrome/') && !ua.includes('CriOS/') && !ua.includes('FxiOS/')) return 'Safari';
   if (ua.includes('Firefox/')) return 'Firefox';
   if (ua.includes('MSIE') || ua.includes('Trident/')) return 'IE';
   if (ua.includes('Chromium/')) return 'Chromium';
-  
+
   return 'Unknown';
 }
 

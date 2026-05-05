@@ -57,6 +57,22 @@ describe('parseBrowser', () => {
     expect(parseBrowser('Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1)')).toBe('IE');
   });
 
+  it('should detect Chrome on iOS (CriOS)', () => {
+    expect(parseBrowser('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1')).toBe('Chrome');
+  });
+
+  it('should detect Firefox on iOS (FxiOS)', () => {
+    expect(parseBrowser('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/120.0 Mobile/15E148 Safari/605.1.15')).toBe('Firefox');
+  });
+
+  it('should detect Edge on iOS (EdgiOS)', () => {
+    expect(parseBrowser('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) EdgiOS/120.0.2210.126 Mobile/15E148 Safari/605.1.15')).toBe('Edge');
+  });
+
+  it('should detect Opera on iOS (OPiOS)', () => {
+    expect(parseBrowser('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) OPiOS/16.0.14.122053 Mobile/15E148 Safari/9537.53')).toBe('Opera');
+  });
+
   it('should detect Chromium', () => {
     expect(parseBrowser('Mozilla/5.0 (X11; Linux x86_64) Chromium/120.0.0.0')).toBe('Chromium');
   });

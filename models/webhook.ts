@@ -1,3 +1,4 @@
+import { slidingWindowCheck } from "@/lib/api/rate-limit";
 import { isValidSlug } from "@/lib/constants";
 
 // ---------------------------------------------------------------------------
@@ -117,7 +118,7 @@ export function validateWebhookPayload(
 }
 
 // ---------------------------------------------------------------------------
-// Rate limiting — in-memory sliding window per token
+// Rate limiting — delegates to shared sliding window
 // ---------------------------------------------------------------------------
 
 export const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
@@ -134,13 +135,6 @@ export function isValidRateLimit(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= RATE_LIMIT_ABSOLUTE_MAX;
 }
 
-/** Map of token → array of request timestamps (ms). */
-const tokenBuckets = new Map<string, number[]>();
-
-/**
- * Check whether a request for the given token is allowed under the rate limit.
- * Each call records the current timestamp if allowed.
- */
 /**
  * Check whether a request for the given token is allowed under the rate limit.
  * Each call records the current timestamp if allowed.
@@ -152,30 +146,10 @@ export function checkRateLimit(
   token: string,
   maxRequests: number = RATE_LIMIT_DEFAULT_MAX,
 ): RateLimitResult {
-  const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW_MS;
-
-  let timestamps = tokenBuckets.get(token);
-  if (!timestamps) {
-    timestamps = [];
-    tokenBuckets.set(token, timestamps);
+  const result = slidingWindowCheck(`webhook:${token}`, maxRequests, RATE_LIMIT_WINDOW_MS);
+  if (!result.allowed) {
+    return { allowed: false, retryAfterMs: result.retryAfterMs };
   }
-
-  // Evict expired entries
-  const firstValid = timestamps.findIndex((t) => t > windowStart);
-  if (firstValid > 0) {
-    timestamps.splice(0, firstValid);
-  } else if (firstValid === -1) {
-    timestamps.length = 0;
-  }
-
-  if (timestamps.length >= maxRequests) {
-    // Earliest entry determines when a slot opens
-    const retryAfterMs = (timestamps[0] ?? now) + RATE_LIMIT_WINDOW_MS - now;
-    return { allowed: false, retryAfterMs: Math.max(1, retryAfterMs) };
-  }
-
-  timestamps.push(now);
   return { allowed: true };
 }
 

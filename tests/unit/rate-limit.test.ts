@@ -1,11 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkRateLimit,
-  resetRateLimit,
   clearAllRateLimits,
-  getRateLimitCount,
   DEFAULT_RATE_LIMIT,
+  getRateLimitCount,
+  resetRateLimit,
+  slidingWindowCheck,
   type RateLimitConfig,
 } from "@/lib/api/rate-limit";
 
@@ -63,14 +64,6 @@ describe("Rate Limiting", () => {
       expect(result.resetAt).toBeLessThanOrEqual(after);
     });
 
-    it("returns correct retryAfterSeconds", () => {
-      const config: RateLimitConfig = { maxRequests: 1, windowMs: 30_000 };
-      checkRateLimit("key-retry", config);
-      const result = checkRateLimit("key-retry", config);
-
-      expect(result.retryAfterSeconds).toBe(30);
-    });
-
     it("uses default config when not provided", () => {
       // Make 100 requests (default limit)
       for (let i = 0; i < 100; i++) {
@@ -81,6 +74,118 @@ describe("Rate Limiting", () => {
       // 101st should be blocked
       const result = checkRateLimit("key-default");
       expect(result.allowed).toBe(false);
+    });
+  });
+
+  describe("retryAfterSeconds — dynamic (fake timers)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("retryAfterSeconds reflects time until earliest slot opens", () => {
+      const config: RateLimitConfig = { maxRequests: 2, windowMs: 60_000 };
+
+      // t=0: first request
+      vi.setSystemTime(0);
+      checkRateLimit("key-dynamic", config);
+
+      // t=10s: second request — fills the window
+      vi.setSystemTime(10_000);
+      checkRateLimit("key-dynamic", config);
+
+      // t=45s: blocked — earliest slot opens at t=60s → retryAfter ≈ 15s
+      vi.setSystemTime(45_000);
+      const result = checkRateLimit("key-dynamic", config);
+
+      expect(result.allowed).toBe(false);
+      expect(result.retryAfterSeconds).toBe(15);
+      expect(result.resetAt).toBe(60); // 60000ms / 1000
+    });
+
+    it("retryAfterSeconds is 1 when limit expires imminently", () => {
+      const config: RateLimitConfig = { maxRequests: 1, windowMs: 60_000 };
+
+      vi.setSystemTime(0);
+      checkRateLimit("key-imminent", config);
+
+      // At t=59.5s — 500ms until slot opens → ceil → 1s
+      vi.setSystemTime(59_500);
+      const result = checkRateLimit("key-imminent", config);
+
+      expect(result.allowed).toBe(false);
+      expect(result.retryAfterSeconds).toBe(1);
+    });
+
+    it("allows requests again after window expires", () => {
+      const config: RateLimitConfig = { maxRequests: 1, windowMs: 60_000 };
+
+      vi.setSystemTime(0);
+      checkRateLimit("key-expire", config);
+
+      // t=30s: still blocked
+      vi.setSystemTime(30_000);
+      expect(checkRateLimit("key-expire", config).allowed).toBe(false);
+
+      // t=60.001s: window expired, slot freed
+      vi.setSystemTime(60_001);
+      const result = checkRateLimit("key-expire", config);
+      expect(result.allowed).toBe(true);
+    });
+
+    it("resetAt points to when earliest slot opens (not now + windowMs)", () => {
+      const config: RateLimitConfig = { maxRequests: 3, windowMs: 60_000 };
+
+      // Requests at t=5s, t=20s, t=35s
+      vi.setSystemTime(5_000);
+      checkRateLimit("key-reset", config);
+      vi.setSystemTime(20_000);
+      checkRateLimit("key-reset", config);
+      vi.setSystemTime(35_000);
+      checkRateLimit("key-reset", config);
+
+      // t=50s: blocked — earliest is t=5s, resets at t=65s
+      vi.setSystemTime(50_000);
+      const result = checkRateLimit("key-reset", config);
+
+      expect(result.allowed).toBe(false);
+      expect(result.resetAt).toBe(65); // (5000 + 60000) / 1000
+      expect(result.retryAfterSeconds).toBe(15); // ceil((65000 - 50000) / 1000)
+    });
+  });
+
+  describe("slidingWindowCheck — core", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("returns retryAfterMs with millisecond precision", () => {
+      vi.setSystemTime(0);
+      slidingWindowCheck("sw-test", 1, 60_000);
+
+      vi.setSystemTime(45_000);
+      const result = slidingWindowCheck("sw-test", 1, 60_000);
+
+      expect(result.allowed).toBe(false);
+      expect(result.retryAfterMs).toBe(15_000);
+    });
+
+    it("first request returns resetAt based on own timestamp", () => {
+      vi.setSystemTime(10_000);
+      const result = slidingWindowCheck("sw-first", 5, 60_000);
+
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(4);
+      // resetAt = ceil((10000 + 60000) / 1000) = 70
+      expect(result.resetAt).toBe(70);
+      expect(result.retryAfterMs).toBe(60_000);
     });
   });
 
