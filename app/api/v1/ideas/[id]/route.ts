@@ -223,4 +223,3 @@ export async function DELETE(
     return apiError("Internal server error", 500);
   }
 }
-
