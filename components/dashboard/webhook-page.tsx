@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Webhook, Copy, AlertTriangle, KeyRound, ArrowRight, Check } from "lucide-react";
+import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 
 export function WebhookPage({ initialData }: { initialData?: WebhookInitialData }) {
   const {
@@ -25,8 +27,10 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
     handleMigrate,
   } = useWebhookViewModel(initialData);
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+  async function handleCopy(text: string) {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success("已复制到剪贴板");
+    else toast.error("复制失败");
   }
 
   return (
@@ -72,7 +76,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                             variant="ghost"
                             size="sm"
                             className="h-7 w-7 p-0 shrink-0"
-                            onClick={() => copyToClipboard(migratedApiKey)}
+                            onClick={() => handleCopy(migratedApiKey)}
                             aria-label="复制 API Key"
                             data-testid="copy-migrated-key-btn"
                           >
@@ -115,7 +119,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 p-0"
-                    onClick={() => copyToClipboard(token)}
+                    onClick={() => handleCopy(token)}
                     aria-label="复制令牌"
                     data-testid="copy-token-btn"
                   >
@@ -135,7 +139,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                     variant="ghost"
                     size="sm"
                     className="h-7 w-7 shrink-0 p-0"
-                    onClick={() => copyToClipboard(webhookUrl)}
+                    onClick={() => handleCopy(webhookUrl)}
                     aria-label="复制 URL"
                     data-testid="copy-url-btn"
                   >
@@ -156,7 +160,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 shrink-0 p-0"
-                      onClick={() => copyToClipboard(tmpUploadUrl)}
+                      onClick={() => handleCopy(tmpUploadUrl)}
                       aria-label="复制 Tmp URL"
                       data-testid="copy-tmp-url-btn"
                     >
@@ -208,7 +212,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               </div>
 
               {/* Usage documentation */}
-              <WebhookUsageDocs webhookUrl={webhookUrl} tmpUploadUrl={tmpUploadUrl} rateLimit={rateLimit} copyToClipboard={copyToClipboard} />
+              <WebhookUsageDocs webhookUrl={webhookUrl} tmpUploadUrl={tmpUploadUrl} rateLimit={rateLimit} copyToClipboard={handleCopy} />
             </div>
           ) : (
             <Button
@@ -240,7 +244,7 @@ function WebhookUsageDocs({
   webhookUrl: string;
   tmpUploadUrl: string | null;
   rateLimit: number;
-  copyToClipboard: (text: string) => void;
+  copyToClipboard: (text: string) => void | Promise<void>;
 }) {
   const spec = buildOpenApiSpec(webhookUrl, rateLimit);
   const postOp = spec.paths["/"].post;

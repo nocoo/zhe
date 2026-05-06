@@ -21,6 +21,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Key, Copy, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 
 export function ApiKeysPage() {
   const vm = useApiKeysViewModel();
@@ -28,8 +30,10 @@ export function ApiKeysPage() {
   const [newKeyName, setNewKeyName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<ApiScope[]>([]);
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+  async function handleCopy(text: string) {
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success("已复制到剪贴板");
+    else toast.error("复制失败");
   }
 
   function toggleScope(scope: ApiScope) {
@@ -84,7 +88,7 @@ export function ApiKeysPage() {
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1"
-                  onClick={() => vm.newlyCreatedKey && copyToClipboard(vm.newlyCreatedKey)}
+                  onClick={() => vm.newlyCreatedKey && handleCopy(vm.newlyCreatedKey)}
                   data-testid="copy-new-key-btn"
                 >
                   <Copy className="h-3.5 w-3.5" />
