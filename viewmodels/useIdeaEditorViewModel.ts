@@ -50,7 +50,9 @@ export function useIdeaEditorViewModel(ideaId: number) {
   useEffect(() => {
     let cancelled = false;
     async function fetchIdea() {
-      // Reset state immediately on ideaId change
+      // Reset ALL state immediately on ideaId change to prevent stale snapshot
+      setIdea(null);
+      setLastSavedAt(null);
       setTitle(null);
       setContent("");
       setTagIds([]);
