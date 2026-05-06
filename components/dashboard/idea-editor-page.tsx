@@ -142,7 +142,7 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
             <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
               {vm.tags.map((tag) => {
                 const isSelected = vm.tagIds.includes(tag.id);
-                const styles = getTagStyles(tag.color);
+                const styles = getTagStyles(tag.name);
                 return (
                   <Badge
                     key={tag.id}

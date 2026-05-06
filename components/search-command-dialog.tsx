@@ -392,7 +392,7 @@ export function SearchCommandDialog({
                         {ideaTagList && ideaTagList.length > 0 && (
                           <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
                             {ideaTagList.slice(0, 3).map((tag) => {
-                              const styles = getTagStyles(tag.color);
+                              const styles = getTagStyles(tag.name);
                               return (
                                 <span
                                   key={tag.id}

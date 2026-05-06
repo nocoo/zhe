@@ -158,7 +158,7 @@ export function IdeasPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className="h-2 w-2 rounded-full"
-                        style={getTagStyles(tag.color).dot}
+                        style={getTagStyles(tag.name).dot}
                       />
                       {tag.name}
                     </div>
@@ -319,7 +319,7 @@ export function IdeasPage() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {vm.tags.map((tag) => {
                     const isSelected = newTagIds.includes(tag.id);
-                    const styles = getTagStyles(tag.color);
+                    const styles = getTagStyles(tag.name);
                     return (
                       <Badge
                         key={tag.id}
