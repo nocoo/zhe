@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.17.3] - 2026-05-06
+
+### Added
+- Push pagination to DB layer for links and ideas API (#9)
+
+### Changed
+- Add ideas tag name regression test in search-command-dialog
+- Add clipboard failure regression tests for WebhookPage and ApiKeysPage
+- Replace O(n) folder lookup with O(1) Map
+- Extract API serializers to shared lib/api/serializers.ts (#10.3)
+- Add coverage-tmp to gitignore
+
+### Fixed
+- Clear stale snapshot on ideaId switch + add regression tests
+- Reset state on ideaId change to prevent stale data
+- Prevent hydration mismatch for pullWebhookUrl
+- Handle clipboard failures with toast feedback (#10.2)
+- Pass tag.name to getTagStyles for consistent colors (#10.1)
+- Namespace API keys in shared sliding window map
+- Rate-limit retry-after calculation and iOS browser detection (#8)
+
+### Removed
+- Remove trailing blank lines at EOF in API routes
+- Remove unused CopyUrlButton component (#10.4)
+
 ## [v1.17.1] - 2026-05-03
 
 ### Changed
