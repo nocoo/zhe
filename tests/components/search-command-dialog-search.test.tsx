@@ -44,11 +44,13 @@ vi.mock("@/contexts/dashboard-service", () => ({
   useDashboardActions: () => mockActions,
 }));
 
+const mockGetTagStyles = vi.fn((name: string) => ({
+  badge: { backgroundColor: `mock-bg-${name}`, color: `mock-color-${name}` },
+  dot: { backgroundColor: `mock-dot-${name}` },
+}));
+
 vi.mock("@/models/tags", () => ({
-  getTagStyles: (name: string) => ({
-    badge: { backgroundColor: `mock-bg-${name}`, color: `mock-color-${name}` },
-    dot: { backgroundColor: `mock-dot-${name}` },
-  }),
+  getTagStyles: (...args: unknown[]) => mockGetTagStyles(...(args as [string])),
 }));
 
 import { SearchCommandDialog } from "@/components/search-command-dialog";
@@ -392,6 +394,23 @@ describe("SearchCommandDialog (search & ideas)", () => {
 
       // The tag should be visible in the idea item
       expect(screen.getByText("Frontend")).toBeInTheDocument();
+    });
+
+    it("passes tag.name (not tag.color) to getTagStyles for ideas (#10.1 regression)", async () => {
+      mockGetTagStyles.mockClear();
+      mockState.tags = [
+        { id: "t1", userId: "user-1", name: "MyTag", color: "#abcdef", createdAt: new Date() },
+      ];
+      mockState.ideas = [
+        makeIdea({ id: 1, title: "React App", tagIds: ["t1"] }),
+      ];
+      renderDialog();
+      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      fireEvent.change(input, { target: { value: "react" } });
+
+      // getTagStyles should be called with tag.name, not tag.color
+      expect(mockGetTagStyles).toHaveBeenCalledWith("MyTag");
+      expect(mockGetTagStyles).not.toHaveBeenCalledWith("#abcdef");
     });
   });
 });
