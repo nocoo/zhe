@@ -20,7 +20,7 @@ import { ScopedDB, type IdeaListItem, type IdeaDetail } from "@/lib/db/scoped";
  *   - limit (optional): Max results (default 100, max 500)
  *   - offset (optional): Pagination offset
  *
- * Response: { ideas: IdeaListItem[] }
+ * Response: { ideas: IdeaListItem[], total: number }
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "ideas:read");
@@ -43,16 +43,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (queryParam) options.query = queryParam;
     if (tagIdParam) options.tagId = tagIdParam;
 
-    let ideas = await db.getIdeas(options);
-
-    // Apply pagination with validation
+    // Validate pagination BEFORE hitting DB
     const paginationResult = parsePaginationParams(url);
     if (isErrorResponse(paginationResult)) {
       return paginationResult;
     }
     const { limit, offset } = paginationResult;
 
-    ideas = ideas.slice(offset, offset + limit);
+    const { items: ideas, total } = await db.getIdeasPage({ ...options, limit, offset });
 
     logApiRequest({
       keyId,
@@ -64,7 +62,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { ideas: ideas.map(ideaListItemToResponse) },
+      { ideas: ideas.map(ideaListItemToResponse), total },
       { headers: rateLimitHeaders },
     );
   } catch (error) {

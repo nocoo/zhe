@@ -79,17 +79,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       options.sortOrder = orderParam;
     }
 
-    const allLinks = await db.getLinks(options);
-    const total = allLinks.length;
-
-    // Apply pagination with validation
+    // Validate pagination BEFORE hitting DB
     const paginationResult = parsePaginationParams(url);
     if (isErrorResponse(paginationResult)) {
       return paginationResult;
     }
     const { limit, offset } = paginationResult;
 
-    const links = allLinks.slice(offset, offset + limit);
+    const { items: links, total } = await db.getLinksPage({ ...options, limit, offset });
 
     logApiRequest({
       keyId,

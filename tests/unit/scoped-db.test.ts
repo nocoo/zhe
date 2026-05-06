@@ -2021,4 +2021,149 @@ describe('ScopedDB', () => {
       expect(updated.tagIds).toContain(tag.id);
     });
   });
+
+  // ---- DB-level pagination -----------------------------------
+
+  describe('getLinksPage', () => {
+    it('returns correct total and limited items', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createLink({ originalUrl: 'https://1.com', slug: 'p1' });
+      await db.createLink({ originalUrl: 'https://2.com', slug: 'p2' });
+      await db.createLink({ originalUrl: 'https://3.com', slug: 'p3' });
+      await db.createLink({ originalUrl: 'https://4.com', slug: 'p4' });
+
+      const page = await db.getLinksPage({ limit: 2, offset: 0 });
+
+      expect(page.total).toBe(4);
+      expect(page.items).toHaveLength(2);
+    });
+
+    it('offset skips items correctly', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createLink({ originalUrl: 'https://a.com', slug: 'off-a' });
+      await db.createLink({ originalUrl: 'https://b.com', slug: 'off-b' });
+      await db.createLink({ originalUrl: 'https://c.com', slug: 'off-c' });
+
+      const page1 = await db.getLinksPage({ limit: 2, offset: 0 });
+      const page2 = await db.getLinksPage({ limit: 2, offset: 2 });
+
+      expect(page1.items).toHaveLength(2);
+      expect(page2.items).toHaveLength(1);
+      expect(page2.total).toBe(3);
+
+      // No overlap between pages
+      const page1Ids = page1.items.map(l => l.id);
+      const page2Ids = page2.items.map(l => l.id);
+      expect(page1Ids.filter(id => page2Ids.includes(id))).toHaveLength(0);
+    });
+
+    it('respects sorting order', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createLink({ originalUrl: 'https://low.com', slug: 'srt-low', clicks: 5 });
+      await db.createLink({ originalUrl: 'https://high.com', slug: 'srt-high', clicks: 100 });
+      await db.createLink({ originalUrl: 'https://mid.com', slug: 'srt-mid', clicks: 50 });
+
+      const page = await db.getLinksPage({ sortBy: 'clicks', sortOrder: 'desc', limit: 2, offset: 0 });
+
+      expect(page.total).toBe(3);
+      expect(page.items).toHaveLength(2);
+      expect(page.items[0]?.slug).toBe('srt-high');
+      expect(page.items[1]?.slug).toBe('srt-mid');
+    });
+
+    it('scopes total and items to current user only', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      await dbA.createLink({ originalUrl: 'https://a1.com', slug: 'usr-a1' });
+      await dbA.createLink({ originalUrl: 'https://a2.com', slug: 'usr-a2' });
+      await dbB.createLink({ originalUrl: 'https://b1.com', slug: 'usr-b1' });
+
+      const pageA = await dbA.getLinksPage({ limit: 10, offset: 0 });
+      const pageB = await dbB.getLinksPage({ limit: 10, offset: 0 });
+
+      expect(pageA.total).toBe(2);
+      expect(pageA.items).toHaveLength(2);
+      expect(pageB.total).toBe(1);
+      expect(pageB.items).toHaveLength(1);
+    });
+  });
+
+  describe('getIdeasPage', () => {
+    it('returns correct total and limited items', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createIdea({ content: 'Idea 1' });
+      await db.createIdea({ content: 'Idea 2' });
+      await db.createIdea({ content: 'Idea 3' });
+      await db.createIdea({ content: 'Idea 4' });
+
+      const page = await db.getIdeasPage({ limit: 2, offset: 0 });
+
+      expect(page.total).toBe(4);
+      expect(page.items).toHaveLength(2);
+    });
+
+    it('offset skips items correctly', async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createIdea({ content: 'First' });
+      await db.createIdea({ content: 'Second' });
+      await db.createIdea({ content: 'Third' });
+
+      const page1 = await db.getIdeasPage({ limit: 2, offset: 0 });
+      const page2 = await db.getIdeasPage({ limit: 2, offset: 2 });
+
+      expect(page1.items).toHaveLength(2);
+      expect(page2.items).toHaveLength(1);
+      expect(page2.total).toBe(3);
+
+      // No overlap between pages
+      const page1Ids = page1.items.map(i => i.id);
+      const page2Ids = page2.items.map(i => i.id);
+      expect(page1Ids.filter(id => page2Ids.includes(id))).toHaveLength(0);
+    });
+
+    it('returns items sorted by createdAt desc', async () => {
+      const db = new ScopedDB(USER_A);
+      // Create ideas with a time gap to ensure deterministic ordering
+      const idea1 = await db.createIdea({ content: 'Oldest', title: 'Oldest' });
+      // Force a slightly later timestamp
+      await new Promise(resolve => setTimeout(resolve, 5));
+      const idea2 = await db.createIdea({ content: 'Newest', title: 'Newest' });
+
+      const page = await db.getIdeasPage({ limit: 10, offset: 0 });
+
+      // Newest first (DESC) — idea2 has later createdAt
+      expect(page.items[0]?.id).toBe(idea2.id);
+      expect(page.items[1]?.id).toBe(idea1.id);
+    });
+
+    it('scopes total and items to current user only', async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      await dbA.createIdea({ content: 'A idea 1' });
+      await dbA.createIdea({ content: 'A idea 2' });
+      await dbA.createIdea({ content: 'A idea 3' });
+      await dbB.createIdea({ content: 'B idea 1' });
+
+      const pageA = await dbA.getIdeasPage({ limit: 10, offset: 0 });
+      const pageB = await dbB.getIdeasPage({ limit: 10, offset: 0 });
+
+      expect(pageA.total).toBe(3);
+      expect(pageA.items).toHaveLength(3);
+      expect(pageB.total).toBe(1);
+      expect(pageB.items).toHaveLength(1);
+    });
+
+    it('filters by tagId and returns correct total', async () => {
+      const db = new ScopedDB(USER_A);
+      const tag = await db.createTag({ name: 'page-tag', color: 'red' });
+      await db.createIdea({ content: 'Tagged 1', tagIds: [tag.id] });
+      await db.createIdea({ content: 'Tagged 2', tagIds: [tag.id] });
+      await db.createIdea({ content: 'Untagged' });
+
+      const page = await db.getIdeasPage({ tagId: tag.id, limit: 10, offset: 0 });
+
+      expect(page.total).toBe(2);
+      expect(page.items).toHaveLength(2);
+    });
+  });
 });

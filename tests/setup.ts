@@ -225,6 +225,55 @@ vi.mock('@/lib/db/d1-client', async () => {
         return results as T[];
       }
 
+      // SELECT COUNT(DISTINCT l.id) as cnt FROM links — pagination count
+      if (sqlLower.includes('count(distinct l.id)') && sqlLower.includes('as cnt') && sqlLower.includes('from links')) {
+        const userId = params[0];
+        const hasTagFilter = sqlLower.includes('join link_tags');
+        const linkTags = hasTagFilter ? getMockLinkTags() : null;
+
+        let queryPattern: string | null = null;
+        let folderId: string | null = null;
+        let tagId: string | null = null;
+        const folderIsNull = sqlLower.includes('folder_id is null');
+        let paramIndex = 1;
+
+        if (sqlLower.includes('like ?')) {
+          queryPattern = params[paramIndex] as string;
+          paramIndex += 5;
+        }
+        if (sqlLower.includes('folder_id = ?')) {
+          folderId = params[paramIndex] as string;
+          paramIndex++;
+        }
+        if (sqlLower.includes('tag_id = ?')) {
+          tagId = params[paramIndex] as string;
+        }
+
+        const matchIds = new Set<number>();
+        for (const link of mockLinks.values()) {
+          const rawLink = link as unknown as Record<string, unknown>;
+          if (rawLink.user_id !== userId) continue;
+          if (queryPattern) {
+            const search = queryPattern.replace(/%/g, '').toLowerCase();
+            const matchesSearch =
+              (rawLink.slug as string || '').toLowerCase().includes(search) ||
+              (rawLink.original_url as string || '').toLowerCase().includes(search) ||
+              (rawLink.note as string || '').toLowerCase().includes(search) ||
+              (rawLink.meta_title as string || '').toLowerCase().includes(search) ||
+              (rawLink.meta_description as string || '').toLowerCase().includes(search);
+            if (!matchesSearch) continue;
+          }
+          if (folderIsNull && rawLink.folder_id !== null) continue;
+          if (folderId && rawLink.folder_id !== folderId) continue;
+          if (tagId && linkTags) {
+            const hasTag = linkTags.some(lt => lt.link_id === rawLink.id && lt.tag_id === tagId);
+            if (!hasTag) continue;
+          }
+          matchIds.add(rawLink.id as number);
+        }
+        return [{ cnt: matchIds.size }] as T[];
+      }
+
       // SELECT FROM links WHERE user_id = ? (also handles l.user_id from aliased queries)
       if (sqlLower.startsWith('select') && sqlLower.includes('from links') && (sqlLower.includes('where user_id = ?') || sqlLower.includes('where l.user_id = ?'))) {
         // Find the userId parameter (first param after any search params)
@@ -308,9 +357,24 @@ vi.mock('@/lib/db/d1-client', async () => {
           }
           return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
         });
+
+        // Apply LIMIT/OFFSET if present
+        if (sqlLower.includes('limit ?')) {
+          // LIMIT and OFFSET are always the last two params
+          const limitIdx = params.length - 2;
+          const offsetIdx = params.length - 1;
+          if (sqlLower.includes('offset ?')) {
+            const off = params[offsetIdx] as number;
+            const lim = params[limitIdx] as number;
+            return results.slice(off, off + lim) as T[];
+          }
+          const lim = params[params.length - 1] as number;
+          return results.slice(0, lim) as T[];
+        }
+
         return results as T[];
       }
-      
+
       // DELETE FROM links WHERE id = ? AND user_id = ?
       if (sqlLower.startsWith('delete from links') && sqlLower.includes('where id = ?')) {
         const [id, userId] = params;
@@ -1500,15 +1564,60 @@ vi.mock('@/lib/db/d1-client', async () => {
         return [];
       }
 
+      // SELECT COUNT(DISTINCT i.id) as cnt FROM ideas — pagination count
+      if (sqlLower.includes('count(distinct i.id)') && sqlLower.includes('as cnt') && sqlLower.includes('from ideas')) {
+        const mockIdeas = getMockIdeas();
+        const mockIdeaTags = getMockIdeaTags();
+        const userId = params[0];
+        let paramIndex = 1;
+
+        let keyword: string | null = null;
+        if (sqlLower.includes('i.title like ?')) {
+          const searchPattern = params[paramIndex] as string;
+          keyword = searchPattern.slice(1, -1);
+          paramIndex += 2;
+        }
+
+        const tagId = sqlLower.includes('it.tag_id = ?') ? params[paramIndex] as string : undefined;
+
+        const matchIds = new Set<number>();
+        for (const idea of mockIdeas.values()) {
+          if (idea.user_id !== userId) continue;
+          if (tagId) {
+            const hasTag = mockIdeaTags.some(it => it.idea_id === idea.id && it.tag_id === tagId);
+            if (!hasTag) continue;
+          }
+          if (keyword) {
+            const matchesTitle = idea.title?.toLowerCase().includes(keyword.toLowerCase());
+            const matchesExcerpt = idea.excerpt?.toLowerCase().includes(keyword.toLowerCase());
+            if (!matchesTitle && !matchesExcerpt) continue;
+          }
+          matchIds.add(idea.id);
+        }
+        return [{ cnt: matchIds.size }] as T[];
+      }
+
       // SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at FROM ideas i ... (list query)
       if (sqlLower.includes('from ideas i') && !sqlLower.includes('where id = ?')) {
         const mockIdeas = getMockIdeas();
         const mockIdeaTags = getMockIdeaTags();
         const results: unknown[] = [];
 
-        // Parse user_id and optional tag filter from params
+        // Parse user_id and optional filters from params
         const userId = params[0];
-        const tagId = sqlLower.includes('it.tag_id = ?') ? params[params.length - 1] : undefined;
+        let paramIndex = 1;
+
+        // Check keyword search if present (title or excerpt LIKE %)
+        let keyword: string | null = null;
+        if (sqlLower.includes('i.title like ?')) {
+          const searchPattern = params[paramIndex] as string;
+          keyword = searchPattern.slice(1, -1); // Remove % wrappers
+          paramIndex += 2; // Two LIKE params (title, excerpt)
+        }
+
+        // Check tag filter
+        const tagId = sqlLower.includes('it.tag_id = ?') ? params[paramIndex] as string : undefined;
+        if (tagId) paramIndex++;
 
         for (const idea of mockIdeas.values()) {
           if (idea.user_id !== userId) continue;
@@ -1519,10 +1628,8 @@ vi.mock('@/lib/db/d1-client', async () => {
             if (!hasTag) continue;
           }
 
-          // Check keyword search if present (title or excerpt LIKE %)
-          if (sqlLower.includes('i.title like ?')) {
-            const searchPattern = params[1] as string;
-            const keyword = searchPattern.slice(1, -1); // Remove % wrappers
+          // Check keyword search
+          if (keyword) {
             const matchesTitle = idea.title?.toLowerCase().includes(keyword.toLowerCase());
             const matchesExcerpt = idea.excerpt?.toLowerCase().includes(keyword.toLowerCase());
             if (!matchesTitle && !matchesExcerpt) continue;
@@ -1543,6 +1650,20 @@ vi.mock('@/lib/db/d1-client', async () => {
           const bTime = (b as Record<string, unknown>).created_at as number;
           return bTime - aTime;
         });
+
+        // Apply LIMIT/OFFSET if present
+        if (sqlLower.includes('limit ?')) {
+          if (sqlLower.includes('offset ?')) {
+            const limitIdx = params.length - 2;
+            const offsetIdx = params.length - 1;
+            const off = params[offsetIdx] as number;
+            const lim = params[limitIdx] as number;
+            return results.slice(off, off + lim) as T[];
+          }
+          const lim = params[params.length - 1] as number;
+          return results.slice(0, lim) as T[];
+        }
+
         return results as T[];
       }
 

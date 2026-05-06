@@ -79,6 +79,7 @@ describe("/api/v1/ideas", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.ideas).toEqual([]);
+      expect(body.total).toBe(0);
     });
 
     it("returns ideas with correct list structure", async () => {
@@ -162,6 +163,7 @@ describe("/api/v1/ideas", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.ideas).toHaveLength(2);
+      expect(body.total).toBe(5);
     });
   });
 

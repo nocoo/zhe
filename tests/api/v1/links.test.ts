@@ -110,6 +110,8 @@ describe("/api/v1/links", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.links.length).toBeLessThanOrEqual(5);
+      expect(typeof body.total).toBe("number");
+      expect(body.total).toBeGreaterThanOrEqual(body.links.length);
     });
 
     it("supports sorting by clicks", async () => {
