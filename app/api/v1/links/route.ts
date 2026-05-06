@@ -9,11 +9,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
+import { linkToResponse } from "@/lib/api/serializers";
 import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/slug";
 import { kvPutLink } from "@/lib/kv/client";
-import type { Link } from "@/lib/db/schema";
 
 /**
  * GET /api/v1/links
@@ -238,26 +238,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error("[/api/v1/links POST]", error);
     return apiError("Internal server error", 500);
   }
-}
-
-/**
- * Transform a Link to API response format.
- * Converts Date objects to ISO strings.
- */
-function linkToResponse(link: Link): Record<string, unknown> {
-  return {
-    id: link.id,
-    slug: link.slug,
-    originalUrl: link.originalUrl,
-    shortUrl: `https://zhe.to/${link.slug}`,
-    folderId: link.folderId,
-    isCustom: link.isCustom,
-    clicks: link.clicks,
-    note: link.note,
-    metaTitle: link.metaTitle,
-    metaDescription: link.metaDescription,
-    screenshotUrl: link.screenshotUrl,
-    expiresAt: link.expiresAt?.toISOString() ?? null,
-    createdAt: link.createdAt.toISOString(),
-  };
 }

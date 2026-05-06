@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
-import { ScopedDB, type IdeaDetail } from "@/lib/db/scoped";
+import { ideaDetailToResponse } from "@/lib/api/serializers";
+import { ScopedDB } from "@/lib/db/scoped";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -223,18 +224,3 @@ export async function DELETE(
   }
 }
 
-/**
- * Transform an IdeaDetail to API response format.
- * Converts Date objects to ISO strings.
- */
-function ideaDetailToResponse(idea: IdeaDetail): Record<string, unknown> {
-  return {
-    id: idea.id,
-    title: idea.title,
-    content: idea.content,
-    excerpt: idea.excerpt,
-    tagIds: idea.tagIds,
-    createdAt: idea.createdAt.toISOString(),
-    updatedAt: idea.updatedAt.toISOString(),
-  };
-}

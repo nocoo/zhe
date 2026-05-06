@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { ScopedDB } from "@/lib/db/scoped";
+import { tagToResponse } from "@/lib/api/serializers";
 import type { Tag } from "@/lib/db/schema";
 
 type RouteContext = {
@@ -188,17 +189,4 @@ export async function DELETE(
     console.error(`[/api/v1/tags/${id} DELETE]`, error);
     return apiError("Internal server error", 500);
   }
-}
-
-/**
- * Transform a Tag to API response format.
- * Converts Date objects to ISO strings.
- */
-function tagToResponse(tag: Tag): Record<string, unknown> {
-  return {
-    id: tag.id,
-    name: tag.name,
-    color: tag.color,
-    createdAt: tag.createdAt.toISOString(),
-  };
 }

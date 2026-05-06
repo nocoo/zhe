@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
-import { ScopedDB, type IdeaListItem, type IdeaDetail } from "@/lib/db/scoped";
+import { ideaListItemToResponse, ideaDetailToResponse } from "@/lib/api/serializers";
+import { ScopedDB } from "@/lib/db/scoped";
 
 /**
  * GET /api/v1/ideas
@@ -152,35 +153,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     return apiError("Internal server error", 500);
   }
-}
-
-/**
- * Transform an IdeaListItem to API response format.
- * Converts Date objects to ISO strings.
- */
-function ideaListItemToResponse(idea: IdeaListItem): Record<string, unknown> {
-  return {
-    id: idea.id,
-    title: idea.title,
-    excerpt: idea.excerpt,
-    tagIds: idea.tagIds,
-    createdAt: idea.createdAt.toISOString(),
-    updatedAt: idea.updatedAt.toISOString(),
-  };
-}
-
-/**
- * Transform an IdeaDetail to API response format.
- * Converts Date objects to ISO strings.
- */
-function ideaDetailToResponse(idea: IdeaDetail): Record<string, unknown> {
-  return {
-    id: idea.id,
-    title: idea.title,
-    content: idea.content,
-    excerpt: idea.excerpt,
-    tagIds: idea.tagIds,
-    createdAt: idea.createdAt.toISOString(),
-    updatedAt: idea.updatedAt.toISOString(),
-  };
 }

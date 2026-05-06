@@ -8,8 +8,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { tagToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
-import type { Tag } from "@/lib/db/schema";
 
 /**
  * GET /api/v1/tags
@@ -113,17 +113,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error("[/api/v1/tags POST]", error);
     return apiError("Internal server error", 500);
   }
-}
-
-/**
- * Transform a Tag to API response format.
- * Converts Date objects to ISO strings.
- */
-function tagToResponse(tag: Tag): Record<string, unknown> {
-  return {
-    id: tag.id,
-    name: tag.name,
-    color: tag.color,
-    createdAt: tag.createdAt.toISOString(),
-  };
 }

@@ -8,9 +8,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
+import { uploadToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 import { deleteR2Object } from "@/lib/r2/client";
-import type { Upload } from "@/lib/db/schema";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -122,18 +122,3 @@ export async function DELETE(
   }
 }
 
-/**
- * Transform an Upload to API response format.
- * Converts Date objects to ISO strings.
- */
-function uploadToResponse(upload: Upload): Record<string, unknown> {
-  return {
-    id: upload.id,
-    key: upload.key,
-    fileName: upload.fileName,
-    fileType: upload.fileType,
-    fileSize: upload.fileSize,
-    publicUrl: upload.publicUrl,
-    createdAt: upload.createdAt.toISOString(),
-  };
-}

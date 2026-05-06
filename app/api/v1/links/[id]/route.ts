@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
 import { logApiRequest } from "@/lib/api/audit";
 import { parseJsonBody, isErrorResponse } from "@/lib/api/validation";
+import { linkToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 import { executeD1Batch, type D1Statement } from "@/lib/db/d1-client";
 import { slugExists } from "@/lib/db";
@@ -450,24 +451,3 @@ export async function DELETE(
   }
 }
 
-/**
- * Transform a Link to API response format.
- * Converts Date objects to ISO strings.
- */
-function linkToResponse(link: Link): Record<string, unknown> {
-  return {
-    id: link.id,
-    slug: link.slug,
-    originalUrl: link.originalUrl,
-    shortUrl: `https://zhe.to/${link.slug}`,
-    folderId: link.folderId,
-    isCustom: link.isCustom,
-    clicks: link.clicks,
-    note: link.note,
-    metaTitle: link.metaTitle,
-    metaDescription: link.metaDescription,
-    screenshotUrl: link.screenshotUrl,
-    expiresAt: link.expiresAt?.toISOString() ?? null,
-    createdAt: link.createdAt.toISOString(),
-  };
-}
