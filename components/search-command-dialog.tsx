@@ -114,13 +114,20 @@ export function SearchCommandDialog({
     return result;
   }, [tags, linkTags]);
 
+  /** Build a Map from folder id → name for O(1) lookup */
+  const folderNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of folders) map.set(f.id, f.name);
+    return map;
+  }, [folders]);
+
   /** Find the folder a link belongs to */
   const getFolderName = useCallback(
     (folderId: string | null) => {
       if (!folderId) return null;
-      return folders.find((f) => f.id === folderId)?.name ?? null;
+      return folderNameMap.get(folderId) ?? null;
     },
-    [folders],
+    [folderNameMap],
   );
 
   /** Navigate to the link's folder */
