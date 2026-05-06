@@ -50,9 +50,13 @@ export function useIdeaEditorViewModel(ideaId: number) {
   useEffect(() => {
     let cancelled = false;
     async function fetchIdea() {
-      setLoading(true);
+      // Reset state immediately on ideaId change
+      setTitle(null);
+      setContent("");
+      setTagIds([]);
       setError(null);
       setNotFound(false);
+      setLoading(true);
       try {
         const result = await getIdea(ideaId);
         if (cancelled) return;
