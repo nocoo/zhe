@@ -1,8 +1,18 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { WebhookPage } from '@/components/dashboard/webhook-page';
 import { unwrap } from '../test-utils';
+
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+    error: (...args: unknown[]) => mockToastError(...args),
+  },
+}));
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -53,6 +63,8 @@ describe('WebhookPage', () => {
     mockWebhookVm.migratedApiKey = null;
     mockWebhookVm.webhookUrl = null;
     mockWebhookVm.tmpUploadUrl = null;
+    mockToastSuccess.mockClear();
+    mockToastError.mockClear();
   });
 
   it('renders webhook section', () => {
@@ -450,6 +462,52 @@ describe('WebhookPage', () => {
 
       fireEvent.click(screen.getByTestId('copy-tmp-url-btn'));
       expect(writeTextMock).toHaveBeenCalledWith('https://zhe.example.com/api/tmp/upload/abc-123-def');
+    });
+  });
+
+  // ================================================================
+  // Clipboard failure handling (#10.2 regression)
+  // ================================================================
+
+  describe('clipboard failure', () => {
+    it('shows toast.error when clipboard write rejects', async () => {
+      mockWebhookVm.token = 'test-token-xyz';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/test-token-xyz';
+      mockWebhookVm.tmpUploadUrl = 'https://zhe.example.com/api/tmp/upload/test-token-xyz';
+
+      const writeTextMock = vi.fn().mockRejectedValue(new Error('Clipboard blocked'));
+      Object.assign(navigator, { clipboard: { writeText: writeTextMock } });
+
+      render(<WebhookPage />);
+
+      const copyButtons = screen.getAllByRole('button', { name: /复制/ });
+      fireEvent.click(unwrap(copyButtons[0]));
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith('复制失败');
+      }, { interval: 5 });
+
+      expect(mockToastSuccess).not.toHaveBeenCalled();
+    });
+
+    it('shows toast.success when clipboard write succeeds', async () => {
+      mockWebhookVm.token = 'test-token-xyz';
+      mockWebhookVm.webhookUrl = 'https://zhe.example.com/api/link/create/test-token-xyz';
+      mockWebhookVm.tmpUploadUrl = 'https://zhe.example.com/api/tmp/upload/test-token-xyz';
+
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText: writeTextMock } });
+
+      render(<WebhookPage />);
+
+      const copyButtons = screen.getAllByRole('button', { name: /复制/ });
+      fireEvent.click(unwrap(copyButtons[0]));
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith('已复制到剪贴板');
+      }, { interval: 5 });
+
+      expect(mockToastError).not.toHaveBeenCalled();
     });
   });
 });
