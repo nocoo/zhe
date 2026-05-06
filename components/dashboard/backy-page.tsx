@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useBackyViewModel, type BackyInitialData } from "@/viewmodels/useBackyViewModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,8 +67,10 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
   const vm = useBackyViewModel(initialData);
 
-  const pullWebhookUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/api/backy/pull` : "/api/backy/pull";
+  const [pullWebhookUrl, setPullWebhookUrl] = useState("/api/backy/pull");
+  useEffect(() => {
+    setPullWebhookUrl(`${window.location.origin}/api/backy/pull`);
+  }, []);
 
   return (
     <div className="space-y-6">
