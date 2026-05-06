@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Check, Copy, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,6 @@ import {
   CommandGroup,
 } from "@/components/ui/command";
 import { getTagStyles } from "@/models/tags";
-import { copyToClipboard } from "@/lib/utils";
 import type { Tag } from "@/models/types";
 
 // ── DeleteLinkDialog ──
@@ -221,41 +220,5 @@ export function TagPicker({
         </Command>
       </PopoverContent>
     </Popover>
-  );
-}
-
-// ── CopyUrlButton ──
-
-interface CopyUrlButtonProps {
-  url: string;
-  /** Additional CSS classes for the button */
-  className?: string;
-}
-
-/** Button that copies a URL to clipboard with a check icon feedback */
-export function CopyUrlButton({ url, className = "" }: CopyUrlButtonProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    const success = await copyToClipboard(url);
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 800);
-    }
-  }, [url]);
-
-  return (
-    <button
-      onClick={handleCopy}
-      aria-label="Copy original URL"
-      className={`shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors ${className}`}
-      title="Copy original URL"
-    >
-      {copied ? (
-        <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
-      ) : (
-        <Copy className="w-3 h-3" strokeWidth={1.5} />
-      )}
-    </button>
   );
 }

@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { TagPicker, CopyUrlButton } from "@/components/dashboard/shared-link-components";
+import { TagPicker } from "@/components/dashboard/shared-link-components";
 import type { Tag } from "@/models/types";
 
 vi.mock("@/models/tags", () => ({
@@ -11,15 +11,6 @@ vi.mock("@/models/tags", () => ({
     dot: { backgroundColor: `mock-dot-${name}` },
   }),
 }));
-
-const mockCopyToClipboard = vi.fn();
-vi.mock("@/lib/utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/utils")>();
-  return {
-    ...actual,
-    copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
-  };
-});
 
 const sampleTags: Tag[] = [
   { id: "t1", userId: "u1", name: "Work", color: "blue", createdAt: new Date() },
@@ -108,73 +99,4 @@ describe("shared-link-components", () => {
     });
   });
 
-  // ==================================================================
-  // CopyUrlButton
-  // ==================================================================
-
-  describe("CopyUrlButton", () => {
-    it("copies URL to clipboard on click", async () => {
-      mockCopyToClipboard.mockResolvedValue(true);
-      const user = userEvent.setup();
-
-      render(<CopyUrlButton url="https://example.com" />);
-
-      await user.click(screen.getByLabelText("Copy original URL"));
-
-      expect(mockCopyToClipboard).toHaveBeenCalledWith("https://example.com");
-    });
-
-    it("shows check icon after successful copy", async () => {
-      mockCopyToClipboard.mockResolvedValue(true);
-      const user = userEvent.setup();
-
-      render(<CopyUrlButton url="https://example.com" />);
-
-      await user.click(screen.getByLabelText("Copy original URL"));
-
-      // After copy, the Check icon should appear (success class)
-      const btn = screen.getByLabelText("Copy original URL");
-      const checkIcon = btn.querySelector(".text-success");
-      expect(checkIcon).toBeInTheDocument();
-    });
-
-    it("resets check icon after timeout", async () => {
-      vi.useFakeTimers();
-      mockCopyToClipboard.mockResolvedValue(true);
-
-      render(<CopyUrlButton url="https://example.com" />);
-
-      // Click using fireEvent since userEvent doesn't work well with fake timers
-      await act(async () => {
-        fireEvent.click(screen.getByLabelText("Copy original URL"));
-      });
-
-      // Check icon appears
-      let btn = screen.getByLabelText("Copy original URL");
-      expect(btn.querySelector(".text-success")).toBeInTheDocument();
-
-      // Advance past the 800ms timeout
-      act(() => {
-        vi.advanceTimersByTime(900);
-      });
-
-      btn = screen.getByLabelText("Copy original URL");
-      expect(btn.querySelector(".text-success")).not.toBeInTheDocument();
-
-      vi.useRealTimers();
-    });
-
-    it("does not show check icon when copy fails", async () => {
-      mockCopyToClipboard.mockResolvedValue(false);
-      const user = userEvent.setup();
-
-      render(<CopyUrlButton url="https://example.com" />);
-
-      await user.click(screen.getByLabelText("Copy original URL"));
-
-      const btn = screen.getByLabelText("Copy original URL");
-      const checkIcon = btn.querySelector(".text-success");
-      expect(checkIcon).not.toBeInTheDocument();
-    });
-  });
 });
