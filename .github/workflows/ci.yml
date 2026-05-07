@@ -18,6 +18,7 @@ jobs:
       pre-command: "bun run build"
       typecheck-command: "bun x tsc --noEmit"
       test-command: "bun run test:unit:coverage && bun run test:integration"
+      enable-security: "true"
       osv-config: "osv-scanner.toml"
       # L2/L3/Worker are defined locally for full secret control
       enable-l2: "false"
