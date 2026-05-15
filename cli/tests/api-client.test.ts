@@ -166,7 +166,11 @@ describe("ApiClient", () => {
 
 	describe("createLink", () => {
 		it("creates a link and returns response", async () => {
-			const link = { id: 1, slug: "new-link", shortUrl: "https://zhe.to/new-link" };
+			const link = {
+				id: 1,
+				slug: "new-link",
+				shortUrl: "https://zhe.to/new-link",
+			};
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				status: 201,
@@ -309,7 +313,12 @@ describe("ApiClient", () => {
 	describe("listFolders", () => {
 		it("returns folders from API", async () => {
 			const folders = [
-				{ id: "folder-1", name: "Work", icon: "briefcase", createdAt: "2026-01-01" },
+				{
+					id: "folder-1",
+					name: "Work",
+					icon: "briefcase",
+					createdAt: "2026-01-01",
+				},
 			];
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -330,7 +339,12 @@ describe("ApiClient", () => {
 	describe("listTags", () => {
 		it("returns tags from API", async () => {
 			const tags = [
-				{ id: "tag-1", name: "Important", color: "#ff0000", createdAt: "2026-01-01" },
+				{
+					id: "tag-1",
+					name: "Important",
+					color: "#ff0000",
+					createdAt: "2026-01-01",
+				},
 			];
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -345,6 +359,139 @@ describe("ApiClient", () => {
 			expect(result.tags).toEqual(tags);
 			const [url] = mockFetch.mock.calls[0] as [string];
 			expect(url).toBe("https://zhe.to/api/v1/tags");
+		});
+	});
+
+	describe("createTag", () => {
+		it("creates a tag and returns response", async () => {
+			const tag = {
+				id: "tag-1",
+				name: "Important",
+				color: "#ff0000",
+				createdAt: "2026-01-01",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({ tag }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.createTag({
+				name: "Important",
+				color: "#ff0000",
+			});
+
+			expect(result.tag).toEqual(tag);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags");
+			expect(options.method).toBe("POST");
+			expect(JSON.parse(options.body as string)).toEqual({
+				name: "Important",
+				color: "#ff0000",
+			});
+		});
+
+		it("throws ApiClientError on 409 conflict", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 409,
+				headers: new Headers(),
+				json: async () => ({ error: "Tag name already in use" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(
+				client.createTag({ name: "Dupe", color: "#000000" }),
+			).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("updateTag", () => {
+		it("updates a tag", async () => {
+			const tag = {
+				id: "tag-1",
+				name: "Renamed",
+				color: "#00ff00",
+				createdAt: "2026-01-01",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ tag }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.updateTag("tag-1", { name: "Renamed" });
+
+			expect(result.tag).toEqual(tag);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags/tag-1");
+			expect(options.method).toBe("PATCH");
+			expect(JSON.parse(options.body as string)).toEqual({ name: "Renamed" });
+		});
+
+		it("sends both name and color when provided", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ tag: {} }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateTag("tag-1", { name: "X", color: "#abcdef" });
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body.name).toBe("X");
+			expect(body.color).toBe("#abcdef");
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Tag not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.updateTag("missing", { name: "X" })).rejects.toThrow(
+				ApiClientError,
+			);
+		});
+	});
+
+	describe("deleteTag", () => {
+		it("deletes a tag", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ success: true }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.deleteTag("tag-1");
+
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags/tag-1");
+			expect(options.method).toBe("DELETE");
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Tag not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.deleteTag("missing")).rejects.toThrow(ApiClientError);
 		});
 	});
 
@@ -476,7 +623,9 @@ describe("ApiClient", () => {
 			mockFetch.mockRejectedValueOnce(dnsError);
 
 			const client = new ApiClient("zhe_testkey");
-			await expect(client.listLinks()).rejects.toThrow("Could not reach zhe.to");
+			await expect(client.listLinks()).rejects.toThrow(
+				"Could not reach zhe.to",
+			);
 		});
 
 		it("handles generic network error", async () => {
@@ -546,7 +695,14 @@ describe("ApiClient", () => {
 	describe("listIdeas", () => {
 		it("returns ideas from API", async () => {
 			const ideas = [
-				{ id: 1, title: "Test Idea", excerpt: "Some text", tags: [], createdAt: "2026-01-15", updatedAt: "2026-01-15" },
+				{
+					id: 1,
+					title: "Test Idea",
+					excerpt: "Some text",
+					tags: [],
+					createdAt: "2026-01-15",
+					updatedAt: "2026-01-15",
+				},
 			];
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -598,7 +754,12 @@ describe("ApiClient", () => {
 
 	describe("getIdea", () => {
 		it("returns idea details by ID", async () => {
-			const idea = { id: 42, title: "My Idea", content: "Full content", tags: [] };
+			const idea = {
+				id: 42,
+				title: "My Idea",
+				content: "Full content",
+				tags: [],
+			};
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				status: 200,
@@ -688,7 +849,12 @@ describe("ApiClient", () => {
 
 	describe("updateIdea", () => {
 		it("updates an idea", async () => {
-			const idea = { id: 42, title: "Updated", content: "New content", tags: [] };
+			const idea = {
+				id: 42,
+				title: "Updated",
+				content: "New content",
+				tags: [],
+			};
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				status: 200,

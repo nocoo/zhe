@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { Folder, Link, Tag } from "../src/api/types.js";
 import {
 	formatDate,
 	formatDateTime,
@@ -9,12 +10,12 @@ import {
 	formatTagsTable,
 	isValidApiKeyFormat,
 	maskApiKey,
+	normalizeHexColor,
 	parseLinkId,
 	resolveFolderName,
 	resolveTagName,
 	truncate,
 } from "../src/utils.js";
-import type { Folder, Link, Tag } from "../src/api/types.js";
 
 describe("maskApiKey", () => {
 	it("masks API key preserving prefix and suffix", () => {
@@ -112,7 +113,8 @@ describe("formatLinksTable", () => {
 			{
 				id: 1,
 				slug: "very-long-slug-name-here",
-				originalUrl: "https://example.com/very/long/path/that/should/be/truncated",
+				originalUrl:
+					"https://example.com/very/long/path/that/should/be/truncated",
 				shortUrl: "https://zhe.to/very-long-slug-name-here",
 				isCustom: true,
 				clicks: 0,
@@ -136,7 +138,8 @@ describe("formatLinksTable", () => {
 			{
 				id: 1,
 				slug: "very-long-slug-name-here",
-				originalUrl: "https://example.com/very/long/path/that/should/not/be/truncated",
+				originalUrl:
+					"https://example.com/very/long/path/that/should/not/be/truncated",
 				shortUrl: "https://zhe.to/very-long-slug-name-here",
 				isCustom: true,
 				clicks: 0,
@@ -153,7 +156,9 @@ describe("formatLinksTable", () => {
 
 		const result = formatLinksTable(links, { wide: true });
 		expect(result).toContain("very-long-slug-name-here");
-		expect(result).toContain("https://example.com/very/long/path/that/should/not/be/truncated");
+		expect(result).toContain(
+			"https://example.com/very/long/path/that/should/not/be/truncated",
+		);
 		expect(result).not.toContain("...");
 	});
 });
@@ -466,5 +471,64 @@ describe("resolveTagName", () => {
 		};
 		const result = await resolveTagName(duplicateClient as never, "same");
 		expect(result).toBeNull();
+	});
+
+	it("uses custom notFoundMessage when provided", async () => {
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const emptyClient = {
+				listTags: async () => ({ tags: [] }),
+			};
+			await resolveTagName(emptyClient as never, "Missing", {
+				notFoundMessage: "Custom not-found",
+			});
+			const printed = consoleSpy.mock.calls.map((c) => String(c[0])).join("\n");
+			expect(printed).toContain("Custom not-found");
+			expect(printed).not.toContain("Create it first");
+		} finally {
+			consoleSpy.mockRestore();
+		}
+	});
+});
+
+describe("normalizeHexColor", () => {
+	it("normalizes 6-digit hex without #", () => {
+		expect(normalizeHexColor("3b82f6")).toBe("#3b82f6");
+	});
+
+	it("normalizes 6-digit hex with #", () => {
+		expect(normalizeHexColor("#3b82f6")).toBe("#3b82f6");
+	});
+
+	it("lowercases uppercase hex", () => {
+		expect(normalizeHexColor("#3B82F6")).toBe("#3b82f6");
+	});
+
+	it("accepts mixed case", () => {
+		expect(normalizeHexColor("aB12cD")).toBe("#ab12cd");
+	});
+
+	it("returns null for 3-digit shorthand", () => {
+		expect(normalizeHexColor("#abc")).toBeNull();
+	});
+
+	it("returns null for 8-digit hex", () => {
+		expect(normalizeHexColor("#12345678")).toBeNull();
+	});
+
+	it("returns null for non-hex characters", () => {
+		expect(normalizeHexColor("#zzzzzz")).toBeNull();
+	});
+
+	it("returns null for empty string", () => {
+		expect(normalizeHexColor("")).toBeNull();
+	});
+
+	it("returns null for # alone", () => {
+		expect(normalizeHexColor("#")).toBeNull();
+	});
+
+	it("returns null for trailing whitespace", () => {
+		expect(normalizeHexColor("#3b82f6 ")).toBeNull();
 	});
 });
