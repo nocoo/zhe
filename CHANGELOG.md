@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.18.0] - 2026-05-15
+
+### Added
+- Expose tags on Link type and render in detail output
+- Add batched getTagsForLinks helper for link tag fetching
+- Add resolveTagRef helper with ambiguous/not_found discrimination
+- Add zhe tag create/update/delete commands
+- Add tag CRUD methods to API client
+- Show tags in get detail and list table (#39)
+- Include tagIds in link API responses (#39)
+- Add zhe folder create/update/delete commands
+- Add folder CRUD methods to API client
+
+### Changed
+- Align cli version with root 1.17.3 before release
+- Cover tags field in link GET and list responses
+- Apply Biome formatting to folder.ts
+- Add overrides for fast-xml-builder (GHSA-5wm8-gmm8-39j9)
+- Upgrade next to 16.2.6
+- Explicitly enable security scanning in base-ci
+
+### Fixed
+- Lowercase UUID in resolveTagRef fast path
+- Use embedded link.tags in list, skip listTags() when sufficient
+- Skip listTags() in resolveTagRef for UUID input
+- Dedupe Tags line in formatLinkDetail
+- Harden formatTags against missing tagIds and add regression tests
+- Include tags in link GET/list/PATCH JSON responses
+- Resolve UUID to canonical name and split ambiguous from not-found in tag delete/update
+
+### Removed
+- Remove unused getLinkTagMap
+- Add unit tests for tag create/update/delete API methods
+- Add unit tests for folder create/update/delete API methods
+
 ## [v1.17.3] - 2026-05-06
 
 ### Added
