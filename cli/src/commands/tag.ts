@@ -18,7 +18,7 @@ import {
 } from "../api/client.js";
 import type { CreateTagRequest, UpdateTagRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
-import { formatTagsTable, resolveTagName } from "../utils.js";
+import { formatTagsTable, resolveTagRef } from "../utils.js";
 
 // ── Helpers ──
 
@@ -233,12 +233,21 @@ const updateSubcommand = defineCommand({
 		}
 
 		try {
-			const tagId = await resolveTagName(client, ref);
-			if (tagId === null) {
+			const resolved = await resolveTagRef(client, ref);
+			if (resolved.kind === "not_found") {
+				console.log(pc.red(`Tag not found: ${ref}.`));
 				process.exit(EXIT_NOT_FOUND);
 			}
+			if (resolved.kind === "ambiguous") {
+				console.log(
+					pc.red(
+						`Multiple tags match "${ref}". Please use the tag ID or rename duplicates.`,
+					),
+				);
+				process.exit(EXIT_INVALID_ARGS);
+			}
 
-			const response = await client.updateTag(tagId, request);
+			const response = await client.updateTag(resolved.id, request);
 
 			if (args.json) {
 				console.log(JSON.stringify(response, null, 2));
@@ -285,10 +294,21 @@ const deleteSubcommand = defineCommand({
 		const ref = args.ref as string;
 
 		try {
-			const tagId = await resolveTagName(client, ref);
-			if (tagId === null) {
+			const resolved = await resolveTagRef(client, ref);
+			if (resolved.kind === "not_found") {
+				console.log(pc.red(`Tag not found: ${ref}.`));
 				process.exit(EXIT_NOT_FOUND);
 			}
+			if (resolved.kind === "ambiguous") {
+				console.log(
+					pc.red(
+						`Multiple tags match "${ref}". Please use the tag ID or rename duplicates.`,
+					),
+				);
+				process.exit(EXIT_INVALID_ARGS);
+			}
+
+			const { id: tagId, name: tagName } = resolved;
 
 			if (!args.yes) {
 				if (!process.stdin.isTTY) {
@@ -297,7 +317,7 @@ const deleteSubcommand = defineCommand({
 					);
 					process.exit(EXIT_INVALID_ARGS);
 				}
-				const confirmed = await confirm(`Delete tag "${ref}" (${tagId})?`);
+				const confirmed = await confirm(`Delete tag "${tagName}" (${tagId})?`);
 				if (!confirmed) {
 					console.log(pc.dim("Cancelled."));
 					return;
@@ -307,11 +327,15 @@ const deleteSubcommand = defineCommand({
 			await client.deleteTag(tagId);
 
 			if (args.json) {
-				console.log(JSON.stringify({ success: true, id: tagId }, null, 2));
+				console.log(
+					JSON.stringify({ success: true, id: tagId, name: tagName }, null, 2),
+				);
 				return;
 			}
 
-			console.log(pc.green(`✓ Deleted tag ${pc.dim(`(${tagId})`)}`));
+			console.log(
+				pc.green(`✓ Deleted tag ${pc.cyan(tagName)} ${pc.dim(`(${tagId})`)}`),
+			);
 		} catch (error) {
 			handleApiError(error);
 		}
