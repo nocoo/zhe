@@ -387,3 +387,47 @@ export async function resolveTagName(
 
 	return matches[0].id;
 }
+
+/**
+ * Resolve a tag reference (name or UUID) to its canonical id + name.
+ *
+ * Unlike `resolveTagName`, this:
+ *   - Looks up the canonical name even when input is a UUID, so destructive
+ *     commands can show a human-readable target in confirm/success prompts.
+ *   - Distinguishes `not_found` (zero matches) from `ambiguous` (multiple
+ *     name matches), letting callers map them to different exit codes.
+ *
+ * Does NOT print any error itself — callers decide messaging and exit codes.
+ */
+export type TagRef =
+	| { kind: "found"; id: string; name: string }
+	| { kind: "not_found" }
+	| { kind: "ambiguous" };
+
+export async function resolveTagRef(
+	client: ApiClient,
+	input: string,
+): Promise<TagRef> {
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	const { tags } = await client.listTags();
+
+	if (uuidPattern.test(input)) {
+		const match = tags.find((t: Tag) => t.id.toLowerCase() === input.toLowerCase());
+		if (!match) {
+			return { kind: "not_found" };
+		}
+		return { kind: "found", id: match.id, name: match.name };
+	}
+
+	const matches = tags.filter(
+		(t: Tag) => t.name.toLowerCase() === input.toLowerCase(),
+	);
+	if (matches.length === 0) {
+		return { kind: "not_found" };
+	}
+	if (matches.length > 1) {
+		return { kind: "ambiguous" };
+	}
+	return { kind: "found", id: matches[0].id, name: matches[0].name };
+}
