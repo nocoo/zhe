@@ -87,9 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { limit, offset } = paginationResult;
 
     const { items: links, total } = await db.getLinksPage({ ...options, limit, offset });
-
-    // Fetch tag associations for the page in a single batched query.
-    const tagMap = await db.getLinkTagMap(links.map((l) => l.id));
+    const tagsMap = await db.getTagsForLinks(links.map((l) => l.id));
 
     logApiRequest({
       keyId,
@@ -101,7 +99,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { links: links.map((l) => linkToResponse(l, tagMap.get(l.id) ?? [])), total },
+      { links: links.map((l) => linkToResponse(l, tagsMap.get(l.id) ?? [])), total },
       { headers: rateLimitHeaders },
     );
   } catch (error) {

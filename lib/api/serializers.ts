@@ -8,11 +8,8 @@
 import type { Link, Tag, Upload } from "@/lib/db/schema";
 import type { IdeaDetail, IdeaListItem } from "@/lib/db/scoped";
 
-/** Transform a Link to API response format. */
-export function linkToResponse(
-  link: Link,
-  tagIds: string[] = [],
-): Record<string, unknown> {
+/** Transform a Link to API response format. Pass `tags` to embed the link's tags. */
+export function linkToResponse(link: Link, tags: Tag[] = []): Record<string, unknown> {
   return {
     id: link.id,
     slug: link.slug,
@@ -25,9 +22,10 @@ export function linkToResponse(
     metaTitle: link.metaTitle,
     metaDescription: link.metaDescription,
     screenshotUrl: link.screenshotUrl,
-    tagIds,
+    tagIds: tags.map((t) => t.id),
     expiresAt: link.expiresAt?.toISOString() ?? null,
     createdAt: link.createdAt.toISOString(),
+    tags: tags.map(tagToResponse),
   };
 }
 
