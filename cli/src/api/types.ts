@@ -73,6 +73,20 @@ export interface TagsResponse {
 	tags: Tag[];
 }
 
+export interface TagResponse {
+	tag: Tag;
+}
+
+export interface CreateTagRequest {
+	name: string;
+	color: string;
+}
+
+export interface UpdateTagRequest {
+	name?: string;
+	color?: string;
+}
+
 export interface CreateLinkRequest {
 	url: string;
 	slug?: string;

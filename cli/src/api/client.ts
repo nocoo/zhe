@@ -8,6 +8,7 @@ import type {
 	CreateFolderRequest,
 	CreateIdeaRequest,
 	CreateLinkRequest,
+	CreateTagRequest,
 	FolderResponse,
 	FoldersResponse,
 	IdeaResponse,
@@ -16,10 +17,12 @@ import type {
 	LinksResponse,
 	ListIdeasParams,
 	ListLinksParams,
+	TagResponse,
 	TagsResponse,
 	UpdateFolderRequest,
 	UpdateIdeaRequest,
 	UpdateLinkRequest,
+	UpdateTagRequest,
 } from "./types.js";
 
 const API_BASE = "https://zhe.to/api/v1";
@@ -196,6 +199,27 @@ export class ApiClient {
 	 */
 	async listTags(): Promise<TagsResponse> {
 		return this.request<TagsResponse>("GET", "/tags");
+	}
+
+	/**
+	 * Create a new tag
+	 */
+	async createTag(data: CreateTagRequest): Promise<TagResponse> {
+		return this.request<TagResponse>("POST", "/tags", data);
+	}
+
+	/**
+	 * Update an existing tag
+	 */
+	async updateTag(id: string, data: UpdateTagRequest): Promise<TagResponse> {
+		return this.request<TagResponse>("PATCH", `/tags/${id}`, data);
+	}
+
+	/**
+	 * Delete a tag
+	 */
+	async deleteTag(id: string): Promise<void> {
+		await this.request<Record<string, never>>("DELETE", `/tags/${id}`);
 	}
 
 	/**
