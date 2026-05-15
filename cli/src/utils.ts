@@ -365,6 +365,37 @@ export async function resolveTagName(
 }
 
 /**
+ * Resolve a tag ref (name or UUID) to both its id and current name.
+ *
+ * Unlike resolveTagName, this always hits the API so the caller can show the
+ * real name in destructive-action prompts even when a UUID was passed in.
+ * Returns null if no tag matches (without printing — caller chooses the
+ * message and exit code). API errors propagate so the caller can route them
+ * through its shared error handler.
+ */
+export async function resolveTagRef(
+	client: ApiClient,
+	input: string,
+): Promise<{ id: string; name: string } | null> {
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	const { tags } = await client.listTags();
+
+	if (uuidPattern.test(input)) {
+		const byId = tags.find((t: Tag) => t.id === input);
+		return byId ? { id: byId.id, name: byId.name } : null;
+	}
+
+	const matches = tags.filter(
+		(t: Tag) => t.name.toLowerCase() === input.toLowerCase(),
+	);
+	if (matches.length === 1) {
+		return { id: matches[0].id, name: matches[0].name };
+	}
+	return null;
+}
+
+/**
  * Normalize a hex color: strip leading "#", validate 6 hex digits, return "#xxxxxx".
  * Returns null if input is not a valid 6-digit hex color.
  */

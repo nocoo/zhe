@@ -8,7 +8,7 @@
 import * as readline from "node:readline";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../src/api/client.js";
-import { normalizeHexColor, resolveTagName } from "../src/utils.js";
+import { normalizeHexColor, resolveTagName, resolveTagRef } from "../src/utils.js";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -115,6 +115,72 @@ describe("tag ref resolution (resolveTagName)", () => {
 		const printed = consoleSpy.mock.calls.map((c) => String(c[0])).join("\n");
 		expect(printed).toContain("Tag not found: missing");
 		expect(printed).not.toContain("Create it first");
+	});
+});
+
+describe("tag ref resolution with name lookup (resolveTagRef)", () => {
+	const tags = [
+		{
+			id: "11111111-2222-3333-4444-555555555555",
+			name: "Important",
+			color: "#ff0000",
+			createdAt: "2026-01-01T00:00:00Z",
+		},
+	];
+
+	it("returns id and current name when input is a UUID that matches a tag", async () => {
+		const client = {
+			listTags: vi.fn(async () => ({ tags })),
+		} as unknown as ApiClient;
+
+		const result = await resolveTagRef(
+			client,
+			"11111111-2222-3333-4444-555555555555",
+		);
+
+		expect(result).toEqual({
+			id: "11111111-2222-3333-4444-555555555555",
+			name: "Important",
+		});
+	});
+
+	it("returns null when a UUID does not match any tag", async () => {
+		const client = {
+			listTags: vi.fn(async () => ({ tags })),
+		} as unknown as ApiClient;
+
+		const result = await resolveTagRef(
+			client,
+			"deadbeef-2222-3333-4444-555555555555",
+		);
+
+		expect(result).toBeNull();
+	});
+
+	it("resolves a name to id and canonical name (case-insensitive)", async () => {
+		const client = {
+			listTags: vi.fn(async () => ({ tags })),
+		} as unknown as ApiClient;
+
+		const result = await resolveTagRef(client, "important");
+
+		expect(result).toEqual({
+			id: "11111111-2222-3333-4444-555555555555",
+			name: "Important",
+		});
+	});
+
+	it("propagates listTags errors to the caller", async () => {
+		const boom = new Error("boom");
+		const client = {
+			listTags: vi.fn(async () => {
+				throw boom;
+			}),
+		} as unknown as ApiClient;
+
+		await expect(
+			resolveTagRef(client, "11111111-2222-3333-4444-555555555555"),
+		).rejects.toBe(boom);
 	});
 });
 

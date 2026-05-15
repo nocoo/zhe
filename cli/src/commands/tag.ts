@@ -15,7 +15,7 @@ import {
 } from "../api/client.js";
 import type { UpdateTagRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
-import { normalizeHexColor, resolveTagName } from "../utils.js";
+import { normalizeHexColor, resolveTagName, resolveTagRef } from "../utils.js";
 import { runListTags } from "./tags.js";
 
 // ── Helpers ──
@@ -194,14 +194,14 @@ const updateSubcommand = defineCommand({
 			process.exit(EXIT_INVALID_ARGS);
 		}
 
-		const tagId = await resolveTagName(client, args.ref as string, {
-			notFoundMessage: `Tag not found: ${args.ref}`,
-		});
-		if (tagId === null) {
-			process.exit(EXIT_NOT_FOUND);
-		}
-
 		try {
+			const tagId = await resolveTagName(client, args.ref as string, {
+				notFoundMessage: `Tag not found: ${args.ref}`,
+			});
+			if (tagId === null) {
+				process.exit(EXIT_NOT_FOUND);
+			}
+
 			const response = await client.updateTag(tagId, data);
 
 			if (args.json) {
@@ -244,16 +244,21 @@ const deleteSubcommand = defineCommand({
 		const apiKey = requireAuth();
 		const client = new ApiClient(apiKey);
 
-		const tagId = await resolveTagName(client, args.ref as string, {
-			notFoundMessage: `Tag not found: ${args.ref}`,
-		});
-		if (tagId === null) {
-			process.exit(EXIT_NOT_FOUND);
-		}
+		const ref = args.ref as string;
 
-		// Prefer showing the original name in the prompt; fall back to the ref
-		// (which is already the name when input wasn't a UUID).
-		const displayName = args.ref as string;
+		let tagId: string;
+		let displayName: string;
+		try {
+			const resolved = await resolveTagRef(client, ref);
+			if (resolved === null) {
+				console.log(pc.red(`Tag not found: ${ref}`));
+				process.exit(EXIT_NOT_FOUND);
+			}
+			tagId = resolved.id;
+			displayName = resolved.name;
+		} catch (error) {
+			handleApiError(error);
+		}
 
 		if (!args.yes) {
 			if (!process.stdin.isTTY) {
