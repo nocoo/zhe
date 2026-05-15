@@ -853,6 +853,45 @@ export class ScopedDB {
     return rows.map(rowToTag);
   }
 
+  /**
+   * Get tags for many links in a single batched query (avoids N+1).
+   * Returns a Map keyed by link_id; links with no tags are absent from the map.
+   * Chunks IDs to stay within D1's parameter limit.
+   */
+  async getTagsForLinks(linkIds: number[]): Promise<Map<number, Tag[]>> {
+    const map = new Map<number, Tag[]>();
+    if (linkIds.length === 0) return map;
+
+    // D1 has a ~100 parameter limit per query; userId takes one slot.
+    const CHUNK_SIZE = 90;
+
+    for (let i = 0; i < linkIds.length; i += CHUNK_SIZE) {
+      const chunk = linkIds.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = await executeD1Query<Record<string, unknown>>(
+        `SELECT lt.link_id AS link_id, t.*
+         FROM tags t
+         JOIN link_tags lt ON t.id = lt.tag_id
+         JOIN links l ON lt.link_id = l.id
+         WHERE lt.link_id IN (${placeholders}) AND l.user_id = ?`,
+        [...chunk, this.userId],
+      );
+
+      for (const row of rows) {
+        const linkId = row.link_id as number;
+        const tag = rowToTag(row);
+        const existing = map.get(linkId);
+        if (existing) {
+          existing.push(tag);
+        } else {
+          map.set(linkId, [tag]);
+        }
+      }
+    }
+
+    return map;
+  }
+
   /** Add a tag to a link (only if both are owned by this user). */
   async addTagToLink(linkId: number, tagId: string): Promise<boolean> {
     // Verify ownership of both link and tag
