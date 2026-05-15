@@ -429,6 +429,35 @@ describe("formatLinkDetail", () => {
 		expect(result).toContain("work, urgent");
 	});
 
+	it("renders Tags line only once when both tagIds and tags are present", () => {
+		const link: Link = {
+			id: 9,
+			slug: "double",
+			originalUrl: "https://example.com/double",
+			shortUrl: "https://zhe.to/double",
+			isCustom: false,
+			clicks: 0,
+			folderId: null,
+			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
+			tagIds: ["t1", "t2"],
+			expiresAt: null,
+			createdAt: "2026-04-01T00:00:00.000Z",
+			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [
+				{ id: "t1", name: "work", color: "#ff0000", createdAt: "2026-04-01T00:00:00.000Z" },
+				{ id: "t2", name: "urgent", color: "#00ff00", createdAt: "2026-04-01T00:00:00.000Z" },
+			],
+		};
+
+		const result = formatLinkDetail(link);
+		const tagLines = result.split("\n").filter((l) => l.includes("Tags:"));
+		expect(tagLines).toHaveLength(1);
+		expect(tagLines[0]).toContain("work, urgent");
+	});
+
 	it("omits Tags line when link has no tags", () => {
 		const link: Link = {
 			id: 8,

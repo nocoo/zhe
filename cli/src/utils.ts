@@ -180,18 +180,18 @@ export function formatLinkDetail(
 		lines.push(`  Folder:       ${folderDisplay}`);
 	}
 
-	const tagIds = link.tagIds ?? [];
-	if (tagIds.length > 0) {
-		const tagDisplay = tagIds.map((id) => tagMap?.get(id) ?? id).join(", ");
-		lines.push(`  Tags:         ${tagDisplay}`);
+	if (link.tags && link.tags.length > 0) {
+		lines.push(`  Tags:         ${link.tags.map((t) => t.name).join(", ")}`);
+	} else {
+		const tagIds = link.tagIds ?? [];
+		if (tagIds.length > 0) {
+			const tagDisplay = tagIds.map((id) => tagMap?.get(id) ?? id).join(", ");
+			lines.push(`  Tags:         ${tagDisplay}`);
+		}
 	}
 
 	if (link.note) {
 		lines.push(`  Note:         ${link.note}`);
-	}
-
-	if (link.tags && link.tags.length > 0) {
-		lines.push(`  Tags:         ${link.tags.map((t) => t.name).join(", ")}`);
 	}
 
 	lines.push(
