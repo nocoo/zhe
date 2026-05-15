@@ -511,6 +511,149 @@ describe("ApiClient", () => {
 		});
 	});
 
+	describe("createTag", () => {
+		it("POSTs name + color and returns tag", async () => {
+			const tag = {
+				id: "tag-new",
+				name: "Reading",
+				color: "#3b82f6",
+				createdAt: "2026-01-02",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({ tag }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.createTag({
+				name: "Reading",
+				color: "#3b82f6",
+			});
+
+			expect(result.tag).toEqual(tag);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags");
+			expect(options.method).toBe("POST");
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Reading", color: "#3b82f6" });
+		});
+
+		it("throws on 400 error", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				headers: new Headers(),
+				json: async () => ({ error: "name cannot be empty" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(
+				client.createTag({ name: "", color: "#ffffff" }),
+			).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("updateTag", () => {
+		it("PATCHes tag by id with partial body", async () => {
+			const tag = {
+				id: "tag-1",
+				name: "Renamed",
+				color: "#00ff00",
+				createdAt: "2026-01-01",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ tag }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.updateTag("tag-1", {
+				name: "Renamed",
+				color: "#00ff00",
+			});
+
+			expect(result.tag).toEqual(tag);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags/tag-1");
+			expect(options.method).toBe("PATCH");
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Renamed", color: "#00ff00" });
+		});
+
+		it("supports color-only update", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({
+					tag: {
+						id: "tag-1",
+						name: "Important",
+						color: "#aa00aa",
+						createdAt: "2026-01-01",
+					},
+				}),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateTag("tag-1", { color: "#aa00aa" });
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ color: "#aa00aa" });
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Tag not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(
+				client.updateTag("missing", { name: "x" }),
+			).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("deleteTag", () => {
+		it("DELETEs tag by id", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ success: true }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.deleteTag("tag-1");
+
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/tags/tag-1");
+			expect(options.method).toBe("DELETE");
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Tag not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.deleteTag("missing")).rejects.toThrow(
+				ApiClientError,
+			);
+		});
+	});
+
 	describe("verifyKey", () => {
 		it("returns true for valid key", async () => {
 			mockFetch.mockResolvedValueOnce({
