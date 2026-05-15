@@ -250,7 +250,15 @@ const deleteSubcommand = defineCommand({
 		let displayName: string;
 		try {
 			const resolved = await resolveTagRef(client, ref);
-			if (resolved === null) {
+			if (resolved.kind === "ambiguous") {
+				console.log(
+					pc.red(
+						`Multiple tags match "${ref}". Please use the tag ID or rename duplicates.`,
+					),
+				);
+				process.exit(EXIT_INVALID_ARGS);
+			}
+			if (resolved.kind === "not_found") {
 				console.log(pc.red(`Tag not found: ${ref}`));
 				process.exit(EXIT_NOT_FOUND);
 			}

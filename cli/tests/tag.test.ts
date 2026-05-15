@@ -139,12 +139,13 @@ describe("tag ref resolution with name lookup (resolveTagRef)", () => {
 		);
 
 		expect(result).toEqual({
+			kind: "found",
 			id: "11111111-2222-3333-4444-555555555555",
 			name: "Important",
 		});
 	});
 
-	it("returns null when a UUID does not match any tag", async () => {
+	it("returns not_found when a UUID does not match any tag", async () => {
 		const client = {
 			listTags: vi.fn(async () => ({ tags })),
 		} as unknown as ApiClient;
@@ -154,7 +155,7 @@ describe("tag ref resolution with name lookup (resolveTagRef)", () => {
 			"deadbeef-2222-3333-4444-555555555555",
 		);
 
-		expect(result).toBeNull();
+		expect(result).toEqual({ kind: "not_found" });
 	});
 
 	it("resolves a name to id and canonical name (case-insensitive)", async () => {
@@ -165,9 +166,42 @@ describe("tag ref resolution with name lookup (resolveTagRef)", () => {
 		const result = await resolveTagRef(client, "important");
 
 		expect(result).toEqual({
+			kind: "found",
 			id: "11111111-2222-3333-4444-555555555555",
 			name: "Important",
 		});
+	});
+
+	it("returns not_found (not ambiguous) when name does not match any tag", async () => {
+		const client = {
+			listTags: vi.fn(async () => ({ tags })),
+		} as unknown as ApiClient;
+
+		const result = await resolveTagRef(client, "missing");
+
+		expect(result).toEqual({ kind: "not_found" });
+	});
+
+	it("returns ambiguous when multiple tags share the same name", async () => {
+		// The tags table has no (user_id, name) unique constraint, so duplicates
+		// can legitimately exist. Destructive callers must surface this rather
+		// than reporting "not found", which would mislead the user.
+		const duplicateTags = [
+			...tags,
+			{
+				id: "99999999-2222-3333-4444-555555555555",
+				name: "Important",
+				color: "#00ff00",
+				createdAt: "2026-01-02T00:00:00Z",
+			},
+		];
+		const client = {
+			listTags: vi.fn(async () => ({ tags: duplicateTags })),
+		} as unknown as ApiClient;
+
+		const result = await resolveTagRef(client, "important");
+
+		expect(result).toEqual({ kind: "ambiguous", count: 2 });
 	});
 
 	it("propagates listTags errors to the caller", async () => {

@@ -364,35 +364,46 @@ export async function resolveTagName(
 	return matches[0].id;
 }
 
+export type TagRefResolution =
+	| { kind: "found"; id: string; name: string }
+	| { kind: "not_found" }
+	| { kind: "ambiguous"; count: number };
+
 /**
  * Resolve a tag ref (name or UUID) to both its id and current name.
  *
  * Unlike resolveTagName, this always hits the API so the caller can show the
  * real name in destructive-action prompts even when a UUID was passed in.
- * Returns null if no tag matches (without printing — caller chooses the
- * message and exit code). API errors propagate so the caller can route them
- * through its shared error handler.
+ * Distinguishes "not found" from "ambiguous" so destructive-action callers can
+ * surface the right message — the `tags` table has no (user_id, name) unique
+ * constraint, so duplicates can legitimately exist. API errors propagate so
+ * the caller can route them through its shared error handler.
  */
 export async function resolveTagRef(
 	client: ApiClient,
 	input: string,
-): Promise<{ id: string; name: string } | null> {
+): Promise<TagRefResolution> {
 	const uuidPattern =
 		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 	const { tags } = await client.listTags();
 
 	if (uuidPattern.test(input)) {
 		const byId = tags.find((t: Tag) => t.id === input);
-		return byId ? { id: byId.id, name: byId.name } : null;
+		return byId
+			? { kind: "found", id: byId.id, name: byId.name }
+			: { kind: "not_found" };
 	}
 
 	const matches = tags.filter(
 		(t: Tag) => t.name.toLowerCase() === input.toLowerCase(),
 	);
 	if (matches.length === 1) {
-		return { id: matches[0].id, name: matches[0].name };
+		return { kind: "found", id: matches[0].id, name: matches[0].name };
 	}
-	return null;
+	if (matches.length === 0) {
+		return { kind: "not_found" };
+	}
+	return { kind: "ambiguous", count: matches.length };
 }
 
 /**
