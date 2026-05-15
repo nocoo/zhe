@@ -31,6 +31,12 @@ zhe update 123 --slug new-slug
 # Delete a link
 zhe delete 123
 
+# Manage tags
+zhe tag list
+zhe tag create urgent --color "#ef4444"
+zhe tag update urgent --name important --color 3b82f6
+zhe tag delete important --yes
+
 # Open a short link in browser
 zhe open my-slug
 ```
@@ -46,6 +52,11 @@ zhe open my-slug
 | `zhe get <id>` | Get link details |
 | `zhe update <id>` | Update a link |
 | `zhe delete <id>` | Delete a link |
+| `zhe tag list` | List all tags (recommended) |
+| `zhe tag create <name> [--color <hex>]` | Create a new tag |
+| `zhe tag update <name\|id> [--name <new>] [--color <hex>]` | Update a tag |
+| `zhe tag delete <name\|id> [--yes]` | Delete a tag (confirms unless `--yes`) |
+| `zhe tags` | Alias for `zhe tag list` |
 | `zhe open <slug>` | Open short URL in browser |
 
 ## Configuration
