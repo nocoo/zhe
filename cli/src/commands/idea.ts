@@ -67,9 +67,7 @@ function formatDate(isoDate: string): string {
 
 function formatTags(tagIds: string[], tagMap?: Map<string, string>): string {
 	if (!tagIds || tagIds.length === 0) return "";
-	return tagIds
-		.map((id) => `[${tagMap?.get(id) ?? id.slice(0, 8)}]`)
-		.join(" ");
+	return tagIds.map((id) => `[${tagMap?.get(id) ?? id.slice(0, 8)}]`).join(" ");
 }
 
 /**

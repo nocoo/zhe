@@ -88,6 +88,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const { items: links, total } = await db.getLinksPage({ ...options, limit, offset });
 
+    // Fetch tag associations for the page in a single batched query.
+    const tagMap = await db.getLinkTagMap(links.map((l) => l.id));
+
     logApiRequest({
       keyId,
       keyPrefix,
@@ -97,7 +100,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ links: links.map(linkToResponse), total }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { links: links.map((l) => linkToResponse(l, tagMap.get(l.id) ?? [])), total },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/links GET]", error);
     return apiError("Internal server error", 500);

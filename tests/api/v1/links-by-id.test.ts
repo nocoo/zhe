@@ -78,6 +78,8 @@ describe("/api/v1/links/[id]", () => {
       expect(body.link.slug).toBe(testSlug);
       expect(body.link).toHaveProperty("originalUrl");
       expect(body.link).toHaveProperty("shortUrl");
+      expect(body.link).toHaveProperty("tagIds");
+      expect(Array.isArray(body.link.tagIds)).toBe(true);
     });
   });
 

@@ -9,7 +9,10 @@ import type { Link, Tag, Upload } from "@/lib/db/schema";
 import type { IdeaDetail, IdeaListItem } from "@/lib/db/scoped";
 
 /** Transform a Link to API response format. */
-export function linkToResponse(link: Link): Record<string, unknown> {
+export function linkToResponse(
+  link: Link,
+  tagIds: string[] = [],
+): Record<string, unknown> {
   return {
     id: link.id,
     slug: link.slug,
@@ -22,6 +25,7 @@ export function linkToResponse(link: Link): Record<string, unknown> {
     metaTitle: link.metaTitle,
     metaDescription: link.metaDescription,
     screenshotUrl: link.screenshotUrl,
+    tagIds,
     expiresAt: link.expiresAt?.toISOString() ?? null,
     createdAt: link.createdAt.toISOString(),
   };

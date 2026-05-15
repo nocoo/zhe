@@ -52,6 +52,8 @@ export async function GET(
       return apiError("Link not found", 404);
     }
 
+    const tagMap = await db.getLinkTagMap([link.id]);
+
     logApiRequest({
       keyId,
       keyPrefix,
@@ -61,7 +63,10 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json({ link: linkToResponse(link) }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { link: linkToResponse(link, tagMap.get(link.id) ?? []) },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error(`[/api/v1/links/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -359,6 +364,8 @@ export async function PATCH(
       return apiError("Link not found", 404);
     }
 
+    const updatedTagMap = await db.getLinkTagMap([updatedLink.id]);
+
     // Update KV cache if slug or URL changed
     const oldSlug = existingLink.slug;
     const newSlug = updatedLink.slug;
@@ -388,7 +395,10 @@ export async function PATCH(
       statusCode: 200,
     });
 
-    return NextResponse.json({ link: linkToResponse(updatedLink) }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { link: linkToResponse(updatedLink, updatedTagMap.get(updatedLink.id) ?? []) },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error(`[/api/v1/links/${id} PATCH]`, error);
     return apiError("Internal server error", 500);

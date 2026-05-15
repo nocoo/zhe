@@ -101,6 +101,8 @@ describe("/api/v1/links", () => {
       expect(link).toHaveProperty("originalUrl");
       expect(link).toHaveProperty("shortUrl");
       expect(link).toHaveProperty("createdAt");
+      expect(link).toHaveProperty("tagIds");
+      expect(Array.isArray(link.tagIds)).toBe(true);
       expect(link.shortUrl).toMatch(/^https:\/\/zhe\.to\//);
     });
 

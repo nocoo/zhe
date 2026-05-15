@@ -14,6 +14,7 @@ export interface Link {
 	metaTitle: string | null;
 	metaDescription: string | null;
 	screenshotUrl: string | null;
+	tagIds?: string[];
 	expiresAt: string | null;
 	createdAt: string;
 	updatedAt: string;
