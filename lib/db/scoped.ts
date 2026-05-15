@@ -1393,4 +1393,40 @@ export class ScopedDB {
     return map;
   }
 
+  /**
+   * Get a map of link_id → tagIds[] for efficient list/detail population.
+   * Chunks IN-clause params to stay within D1's parameter limit.
+   * Ownership is enforced via JOIN to links table.
+   */
+  async getLinkTagMap(linkIds: number[]): Promise<Map<number, string[]>> {
+    const map = new Map<number, string[]>();
+    if (linkIds.length === 0) return map;
+
+    const CHUNK_SIZE = 90;
+    for (let i = 0; i < linkIds.length; i += CHUNK_SIZE) {
+      const chunk = linkIds.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = await executeD1Query<Record<string, unknown>>(
+        `SELECT lt.link_id, lt.tag_id
+         FROM link_tags lt
+         JOIN links l ON lt.link_id = l.id
+         WHERE lt.link_id IN (${placeholders}) AND l.user_id = ?`,
+        [...chunk, this.userId],
+      );
+
+      for (const row of rows) {
+        const linkId = row.link_id as number;
+        const tagId = row.tag_id as string;
+        const existing = map.get(linkId);
+        if (existing) {
+          existing.push(tagId);
+        } else {
+          map.set(linkId, [tagId]);
+        }
+      }
+    }
+
+    return map;
+  }
+
 }
