@@ -15,10 +15,7 @@ import {
 	EXIT_NOT_FOUND,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type {
-	CreateFolderRequest,
-	UpdateFolderRequest,
-} from "../api/types.js";
+import type { CreateFolderRequest, UpdateFolderRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
 import { resolveFolderName } from "../utils.js";
 
@@ -236,13 +233,13 @@ const deleteSubcommand = defineCommand({
 			if (!args.yes) {
 				if (!process.stdin.isTTY) {
 					console.log(
-						pc.red(
-							"Refusing to delete without --yes in non-interactive mode.",
-						),
+						pc.red("Refusing to delete without --yes in non-interactive mode."),
 					);
 					process.exit(EXIT_INVALID_ARGS);
 				}
-				const confirmed = await confirm(`Delete folder "${ref}" (${folderId})?`);
+				const confirmed = await confirm(
+					`Delete folder "${ref}" (${folderId})?`,
+				);
 				if (!confirmed) {
 					console.log(pc.dim("Cancelled."));
 					return;
