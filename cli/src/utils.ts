@@ -426,7 +426,11 @@ export async function resolveTagRef(
 	if (uuidPattern.test(input)) {
 		// Trust the UUID; let the destructive op's PATCH/DELETE be the
 		// authoritative existence check. Avoids requiring tags:read.
-		return { kind: "found", id: input, name: undefined };
+		// Normalize to lowercase: tag IDs are stored lowercase, but the
+		// regex accepts uppercase (RFC 4122 allows either case in
+		// notation). The DB is `WHERE id = ?` text-equal, so an
+		// uppercase UUID would 404 on a tag that actually exists.
+		return { kind: "found", id: input.toLowerCase(), name: undefined };
 	}
 
 	const { tags } = await client.listTags();

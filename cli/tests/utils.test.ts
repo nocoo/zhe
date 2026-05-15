@@ -823,6 +823,27 @@ describe("resolveTagRef", () => {
 		expect(listTagsCalled).toBe(false);
 	});
 
+	it("normalizes uppercase UUID to lowercase (DB is case-sensitive)", async () => {
+		let listTagsCalled = false;
+		const trackingClient = {
+			listTags: async () => {
+				listTagsCalled = true;
+				return { tags: [] };
+			},
+			listFolders: async () => ({ folders: [] }),
+		};
+		const result = await resolveTagRef(
+			trackingClient as never,
+			"AABBCCDD-1111-2222-3333-AABBCCDDEEFF",
+		);
+		expect(result).toEqual({
+			kind: "found",
+			id: "aabbccdd-1111-2222-3333-aabbccddeeff",
+			name: undefined,
+		});
+		expect(listTagsCalled).toBe(false);
+	});
+
 	it("resolves tag name to id + name (case-insensitive)", async () => {
 		const result = await resolveTagRef(mockClient as never, "important");
 		expect(result).toEqual({
