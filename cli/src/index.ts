@@ -14,6 +14,7 @@ import { listCommand } from "./commands/list.js";
 import { loginCommand } from "./commands/login.js";
 import { logoutCommand } from "./commands/logout.js";
 import { openCommand } from "./commands/open.js";
+import { tagCommand } from "./commands/tag.js";
 import { tagsCommand } from "./commands/tags.js";
 import { updateCommand } from "./commands/update.js";
 import { CLI_VERSION } from "./version.js";
@@ -30,6 +31,7 @@ const main = defineCommand({
 		list: listCommand,
 		inbox: inboxCommand,
 		folders: foldersCommand,
+		tag: tagCommand,
 		tags: tagsCommand,
 		idea: ideaCommand,
 		create: createCommand,
