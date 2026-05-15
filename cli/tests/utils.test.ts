@@ -248,6 +248,78 @@ describe("formatLinksTable", () => {
 		// Short id prefix (8 chars) used when no name is available.
 		expect(result).toContain("abcdef12");
 	});
+
+	it("uses embedded link.tags names without needing a tagMap", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "tagged",
+				originalUrl: "https://example.com",
+				shortUrl: "https://zhe.to/tagged",
+				isCustom: false,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				tagIds: ["tag-abc"],
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [
+					{
+						id: "tag-abc",
+						name: "work",
+						color: "#ff0000",
+						createdAt: "2026-04-01T00:00:00.000Z",
+					},
+				],
+			},
+		];
+
+		// Note: no tagMap passed.
+		const result = formatLinksTable(links, { showTags: true });
+		expect(result).toContain("TAGS");
+		expect(result).toContain("work");
+		// Should NOT fall back to the truncated tag id.
+		expect(result).not.toContain("tag-abc");
+	});
+
+	it("prefers embedded link.tags over tagMap when both are present", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "tagged",
+				originalUrl: "https://example.com",
+				shortUrl: "https://zhe.to/tagged",
+				isCustom: false,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				tagIds: ["tag-abc"],
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [
+					{
+						id: "tag-abc",
+						name: "embedded-name",
+						color: "#ff0000",
+						createdAt: "2026-04-01T00:00:00.000Z",
+					},
+				],
+			},
+		];
+
+		const tagMap = new Map([["tag-abc", "stale-cache-name"]]);
+		const result = formatLinksTable(links, { showTags: true, tagMap });
+		expect(result).toContain("embedded");
+		expect(result).not.toContain("stale-cache");
+	});
 });
 
 describe("formatLinksMinimal", () => {

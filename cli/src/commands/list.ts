@@ -184,9 +184,20 @@ export const listCommand = defineCommand({
 			// Auto-enable when filtering by tag, or when --show-tags is set.
 			const showTags = !!(args["show-tags"] || args.tag);
 
-			// Build tag name map only when we will actually render tags.
+			// Build tag name map only when we will actually render tags AND
+			// the response is missing embedded tag details. The /links
+			// endpoint already includes `tags: Tag[]` per link, so a
+			// successful response makes listTags() unnecessary; we only
+			// fall back when some tagged link is missing its tags array
+			// (older server, or partial response).
 			let tagMap: Map<string, string> | undefined;
-			if (showTags && response.links.some((l) => (l.tagIds ?? []).length > 0)) {
+			const needsTagFallback =
+				showTags &&
+				response.links.some(
+					(l) =>
+						(l.tagIds ?? []).length > 0 && (!l.tags || l.tags.length === 0),
+				);
+			if (needsTagFallback) {
 				try {
 					const tagsResponse = await client.listTags();
 					tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));

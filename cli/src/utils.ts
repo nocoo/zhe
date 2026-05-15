@@ -78,6 +78,11 @@ export function formatLinksTable(
 	const showFolders = links.some((l) => l.folderId);
 
 	const formatTags = (link: Link): string => {
+		// Prefer embedded tags (carries names) — avoids needing a tagMap
+		// fetch from the caller when /links already returned tag details.
+		if (link.tags && link.tags.length > 0) {
+			return link.tags.map((t) => t.name).join(",");
+		}
 		const ids = link.tagIds ?? [];
 		if (ids.length === 0) return "";
 		return ids.map((id) => tagMap?.get(id) ?? id.slice(0, 8)).join(",");
