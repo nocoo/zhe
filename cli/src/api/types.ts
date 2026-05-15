@@ -27,6 +27,27 @@ export interface Folder {
 	createdAt: string;
 }
 
+/**
+ * Folder shape returned by single-folder endpoints (POST/PATCH/GET /folders/:id).
+ * The API does not include `linkCount` on these endpoints — only the list endpoint
+ * (`GET /folders`) computes it.
+ */
+export type FolderDetail = Omit<Folder, "linkCount">;
+
+export interface FolderResponse {
+	folder: FolderDetail;
+}
+
+export interface CreateFolderRequest {
+	name: string;
+	icon?: string;
+}
+
+export interface UpdateFolderRequest {
+	name?: string;
+	icon?: string;
+}
+
 export interface Tag {
 	id: string;
 	name: string;

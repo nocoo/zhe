@@ -6,6 +6,7 @@
 import { defineCommand, runMain } from "@nocoo/cli-base";
 import { createCommand } from "./commands/create.js";
 import { deleteCommand } from "./commands/delete.js";
+import { folderCommand } from "./commands/folder.js";
 import { foldersCommand } from "./commands/folders.js";
 import { getCommand } from "./commands/get.js";
 import { ideaCommand } from "./commands/idea.js";
@@ -30,6 +31,7 @@ const main = defineCommand({
 		list: listCommand,
 		inbox: inboxCommand,
 		folders: foldersCommand,
+		folder: folderCommand,
 		tags: tagsCommand,
 		idea: ideaCommand,
 		create: createCommand,

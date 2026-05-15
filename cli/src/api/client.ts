@@ -5,8 +5,10 @@
 import { CLI_VERSION } from "../version.js";
 import type {
 	ApiError,
+	CreateFolderRequest,
 	CreateIdeaRequest,
 	CreateLinkRequest,
+	FolderResponse,
 	FoldersResponse,
 	IdeaResponse,
 	IdeasResponse,
@@ -15,6 +17,7 @@ import type {
 	ListIdeasParams,
 	ListLinksParams,
 	TagsResponse,
+	UpdateFolderRequest,
 	UpdateIdeaRequest,
 	UpdateLinkRequest,
 } from "./types.js";
@@ -162,6 +165,30 @@ export class ApiClient {
 	 */
 	async listFolders(): Promise<FoldersResponse> {
 		return this.request<FoldersResponse>("GET", "/folders");
+	}
+
+	/**
+	 * Create a new folder
+	 */
+	async createFolder(data: CreateFolderRequest): Promise<FolderResponse> {
+		return this.request<FolderResponse>("POST", "/folders", data);
+	}
+
+	/**
+	 * Update an existing folder
+	 */
+	async updateFolder(
+		id: string,
+		data: UpdateFolderRequest,
+	): Promise<FolderResponse> {
+		return this.request<FolderResponse>("PATCH", `/folders/${id}`, data);
+	}
+
+	/**
+	 * Delete a folder
+	 */
+	async deleteFolder(id: string): Promise<void> {
+		await this.request<Record<string, never>>("DELETE", `/folders/${id}`);
 	}
 
 	/**

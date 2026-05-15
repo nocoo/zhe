@@ -327,6 +327,169 @@ describe("ApiClient", () => {
 		});
 	});
 
+	describe("createFolder", () => {
+		it("POSTs name + icon and returns folder", async () => {
+			const folder = {
+				id: "folder-new",
+				name: "Reading",
+				icon: "📚",
+				createdAt: "2026-01-02",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({ folder }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.createFolder({ name: "Reading", icon: "📚" });
+
+			expect(result.folder).toEqual(folder);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/folders");
+			expect(options.method).toBe("POST");
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Reading", icon: "📚" });
+		});
+
+		it("POSTs without icon when omitted", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 201,
+				headers: new Headers(),
+				json: async () => ({
+					folder: {
+						id: "folder-2",
+						name: "Plain",
+						icon: "folder",
+						createdAt: "2026-01-02",
+					},
+				}),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.createFolder({ name: "Plain" });
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Plain" });
+		});
+
+		it("throws on 400 error", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				headers: new Headers(),
+				json: async () => ({ error: "name cannot be empty" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.createFolder({ name: "" })).rejects.toThrow(
+				ApiClientError,
+			);
+		});
+	});
+
+	describe("updateFolder", () => {
+		it("PATCHes folder by id with partial body", async () => {
+			const folder = {
+				id: "folder-1",
+				name: "Work Renamed",
+				icon: "💼",
+				createdAt: "2026-01-01",
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ folder }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.updateFolder("folder-1", {
+				name: "Work Renamed",
+				icon: "💼",
+			});
+
+			expect(result.folder).toEqual(folder);
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/folders/folder-1");
+			expect(options.method).toBe("PATCH");
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Work Renamed", icon: "💼" });
+		});
+
+		it("supports name-only update", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({
+					folder: {
+						id: "folder-1",
+						name: "Renamed",
+						icon: "folder",
+						createdAt: "2026-01-01",
+					},
+				}),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.updateFolder("folder-1", { name: "Renamed" });
+
+			const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			const body = JSON.parse(options.body as string);
+			expect(body).toEqual({ name: "Renamed" });
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Folder not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(
+				client.updateFolder("missing", { name: "x" }),
+			).rejects.toThrow(ApiClientError);
+		});
+	});
+
+	describe("deleteFolder", () => {
+		it("DELETEs folder by id", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ success: true }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await client.deleteFolder("folder-1");
+
+			const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+			expect(url).toBe("https://zhe.to/api/v1/folders/folder-1");
+			expect(options.method).toBe("DELETE");
+		});
+
+		it("throws ApiClientError on 404", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				headers: new Headers(),
+				json: async () => ({ error: "Folder not found" }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			await expect(client.deleteFolder("missing")).rejects.toThrow(
+				ApiClientError,
+			);
+		});
+	});
+
 	describe("listTags", () => {
 		it("returns tags from API", async () => {
 			const tags = [
