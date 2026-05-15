@@ -12,6 +12,7 @@ import {
 	parseLinkId,
 	resolveFolderName,
 	resolveTagName,
+	resolveTagRef,
 	truncate,
 } from "../src/utils.js";
 import type { Folder, Link, Tag } from "../src/api/types.js";
@@ -615,5 +616,84 @@ describe("resolveTagName", () => {
 		};
 		const result = await resolveTagName(duplicateClient as never, "same");
 		expect(result).toBeNull();
+	});
+});
+
+describe("resolveTagRef", () => {
+	const mockClient = {
+		listTags: async () => ({
+			tags: [
+				{
+					id: "11111111-1111-1111-1111-111111111111",
+					name: "Important",
+					color: "#ff0000",
+					createdAt: "2026-04-01T00:00:00.000Z",
+				},
+				{
+					id: "22222222-2222-2222-2222-222222222222",
+					name: "Urgent",
+					color: "#ff9900",
+					createdAt: "2026-04-02T00:00:00.000Z",
+				},
+			],
+		}),
+		listFolders: async () => ({ folders: [] }),
+	};
+
+	it("resolves UUID input to canonical id + name", async () => {
+		const result = await resolveTagRef(
+			mockClient as never,
+			"11111111-1111-1111-1111-111111111111",
+		);
+		expect(result).toEqual({
+			kind: "found",
+			id: "11111111-1111-1111-1111-111111111111",
+			name: "Important",
+		});
+	});
+
+	it("returns not_found when UUID does not match any tag", async () => {
+		const result = await resolveTagRef(
+			mockClient as never,
+			"99999999-9999-9999-9999-999999999999",
+		);
+		expect(result).toEqual({ kind: "not_found" });
+	});
+
+	it("resolves tag name to id + name (case-insensitive)", async () => {
+		const result = await resolveTagRef(mockClient as never, "important");
+		expect(result).toEqual({
+			kind: "found",
+			id: "11111111-1111-1111-1111-111111111111",
+			name: "Important",
+		});
+	});
+
+	it("returns not_found when name does not exist", async () => {
+		const result = await resolveTagRef(mockClient as never, "missing");
+		expect(result).toEqual({ kind: "not_found" });
+	});
+
+	it("returns ambiguous when multiple tags share the name", async () => {
+		const duplicateClient = {
+			listTags: async () => ({
+				tags: [
+					{
+						id: "11111111-1111-1111-1111-111111111111",
+						name: "Same",
+						color: "#ff0000",
+						createdAt: "2026-04-01T00:00:00.000Z",
+					},
+					{
+						id: "22222222-2222-2222-2222-222222222222",
+						name: "same",
+						color: "#ff9900",
+						createdAt: "2026-04-02T00:00:00.000Z",
+					},
+				],
+			}),
+		};
+		const result = await resolveTagRef(duplicateClient as never, "same");
+		expect(result).toEqual({ kind: "ambiguous" });
 	});
 });

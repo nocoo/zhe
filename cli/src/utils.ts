@@ -413,7 +413,9 @@ export async function resolveTagRef(
 	const { tags } = await client.listTags();
 
 	if (uuidPattern.test(input)) {
-		const match = tags.find((t: Tag) => t.id.toLowerCase() === input.toLowerCase());
+		const match = tags.find(
+			(t: Tag) => t.id.toLowerCase() === input.toLowerCase(),
+		);
 		if (!match) {
 			return { kind: "not_found" };
 		}
