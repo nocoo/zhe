@@ -131,6 +131,32 @@ describe("ApiClient", () => {
 			const [url] = mockFetch.mock.calls[0] as [string];
 			expect(url).toContain("tagId=tag-123");
 		});
+
+		it("preserves per-link tags arrays in the response", async () => {
+			const links = [
+				{
+					id: 1,
+					slug: "first",
+					tags: [
+						{ id: "t1", name: "work", color: "#ff0000", createdAt: "2026-04-01T00:00:00.000Z" },
+					],
+				},
+				{ id: 2, slug: "second", tags: [] },
+			];
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ links, total: 2 }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.listLinks();
+
+			expect(result.links).toHaveLength(2);
+			expect(result.links[0]?.tags?.[0]?.name).toBe("work");
+			expect(result.links[1]?.tags).toEqual([]);
+		});
 	});
 
 	describe("getLink", () => {
@@ -149,6 +175,30 @@ describe("ApiClient", () => {
 			expect(result.link).toEqual(link);
 			const [url] = mockFetch.mock.calls[0] as [string];
 			expect(url).toBe("https://zhe.to/api/v1/links/123");
+		});
+
+		it("preserves tags array on the returned link", async () => {
+			const link = {
+				id: 123,
+				slug: "my-link",
+				tags: [
+					{ id: "t1", name: "work", color: "#ff0000", createdAt: "2026-04-01T00:00:00.000Z" },
+					{ id: "t2", name: "urgent", color: "#00ff00", createdAt: "2026-04-01T00:00:00.000Z" },
+				],
+			};
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				headers: new Headers(),
+				json: async () => ({ link }),
+			});
+
+			const client = new ApiClient("zhe_testkey");
+			const result = await client.getLink(123);
+
+			expect(result.link.tags).toHaveLength(2);
+			expect(result.link.tags?.[0]?.name).toBe("work");
+			expect(result.link.tags?.[1]?.color).toBe("#00ff00");
 		});
 
 		it("throws ApiClientError on 404", async () => {

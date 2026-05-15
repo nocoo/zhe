@@ -94,9 +94,13 @@ describe("formatLinksTable", () => {
 				clicks: 42,
 				folderId: null,
 				note: null,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
 				expiresAt: null,
 				createdAt: "2026-04-01T00:00:00.000Z",
 				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [],
 			},
 		];
 
@@ -124,6 +128,7 @@ describe("formatLinksTable", () => {
 				expiresAt: null,
 				createdAt: "2026-04-01T00:00:00.000Z",
 				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [],
 			},
 		];
 
@@ -148,6 +153,7 @@ describe("formatLinksTable", () => {
 				expiresAt: null,
 				createdAt: "2026-04-01T00:00:00.000Z",
 				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [],
 			},
 		];
 
@@ -259,9 +265,13 @@ describe("formatLinksMinimal", () => {
 				clicks: 0,
 				folderId: null,
 				note: null,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
 				expiresAt: null,
 				createdAt: "2026-04-01T00:00:00.000Z",
 				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [],
 			},
 			{
 				id: 2,
@@ -272,9 +282,13 @@ describe("formatLinksMinimal", () => {
 				clicks: 0,
 				folderId: null,
 				note: null,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
 				expiresAt: null,
 				createdAt: "2026-04-01T00:00:00.000Z",
 				updatedAt: "2026-04-01T00:00:00.000Z",
+				tags: [],
 			},
 		];
 
@@ -293,9 +307,13 @@ describe("formatLinkDetail", () => {
 			clicks: 42,
 			folderId: "folder-1",
 			note: "Important link",
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
 			expiresAt: "2027-01-01T00:00:00.000Z",
 			createdAt: "2026-04-01T10:00:00.000Z",
 			updatedAt: "2026-04-01T10:00:00.000Z",
+			tags: [],
 		};
 
 		const result = formatLinkDetail(link);
@@ -318,16 +336,20 @@ describe("formatLinkDetail", () => {
 			clicks: 0,
 			folderId: null,
 			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
 			expiresAt: null,
 			createdAt: "2026-04-01T00:00:00.000Z",
 			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [],
 		};
 
 		const result = formatLinkDetail(link);
 		expect(result).toContain("Never");
 	});
 
-	it("renders Tags line with resolved names", () => {
+	it("renders Tags line with resolved names from tagMap", () => {
 		const link: Link = {
 			id: 1,
 			slug: "test",
@@ -337,10 +359,14 @@ describe("formatLinkDetail", () => {
 			clicks: 0,
 			folderId: null,
 			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
 			tagIds: ["tag-1", "tag-2"],
 			expiresAt: null,
 			createdAt: "2026-04-01T00:00:00.000Z",
 			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [],
 		};
 
 		const tagMap = new Map([
@@ -361,30 +387,65 @@ describe("formatLinkDetail", () => {
 			clicks: 0,
 			folderId: null,
 			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
 			tagIds: ["tag-abc"],
 			expiresAt: null,
 			createdAt: "2026-04-01T00:00:00.000Z",
 			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [],
 		};
 
 		const result = formatLinkDetail(link);
 		expect(result).toContain("Tags:         tag-abc");
 	});
 
-	it("omits Tags line when link has no tags", () => {
+	it("renders Tags line from embedded tags when tagIds is empty", () => {
 		const link: Link = {
-			id: 1,
-			slug: "test",
-			originalUrl: "https://example.com",
-			shortUrl: "https://zhe.to/test",
+			id: 7,
+			slug: "tagged",
+			originalUrl: "https://example.com/tagged",
+			shortUrl: "https://zhe.to/tagged",
 			isCustom: false,
 			clicks: 0,
 			folderId: null,
 			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
+			expiresAt: null,
+			createdAt: "2026-04-01T00:00:00.000Z",
+			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [
+				{ id: "t1", name: "work", color: "#ff0000", createdAt: "2026-04-01T00:00:00.000Z" },
+				{ id: "t2", name: "urgent", color: "#00ff00", createdAt: "2026-04-01T00:00:00.000Z" },
+			],
+		};
+
+		const result = formatLinkDetail(link);
+		expect(result).toContain("Tags:");
+		expect(result).toContain("work, urgent");
+	});
+
+	it("omits Tags line when link has no tags", () => {
+		const link: Link = {
+			id: 8,
+			slug: "untagged",
+			originalUrl: "https://example.com/untagged",
+			shortUrl: "https://zhe.to/untagged",
+			isCustom: false,
+			clicks: 0,
+			folderId: null,
+			note: null,
+			metaTitle: null,
+			metaDescription: null,
+			screenshotUrl: null,
 			tagIds: [],
 			expiresAt: null,
 			createdAt: "2026-04-01T00:00:00.000Z",
 			updatedAt: "2026-04-01T00:00:00.000Z",
+			tags: [],
 		};
 
 		const result = formatLinkDetail(link);

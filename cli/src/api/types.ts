@@ -18,6 +18,7 @@ export interface Link {
 	expiresAt: string | null;
 	createdAt: string;
 	updatedAt: string;
+	tags: Tag[];
 }
 
 export interface Folder {
