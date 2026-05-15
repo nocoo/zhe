@@ -52,7 +52,7 @@ export async function GET(
       return apiError("Link not found", 404);
     }
 
-    const tagMap = await db.getLinkTagMap([link.id]);
+    const tags = await db.getTagsForLink(link.id);
 
     logApiRequest({
       keyId,
@@ -64,7 +64,7 @@ export async function GET(
     });
 
     return NextResponse.json(
-      { link: linkToResponse(link, tagMap.get(link.id) ?? []) },
+      { link: linkToResponse(link, tags) },
       { headers: rateLimitHeaders },
     );
   } catch (error) {
@@ -364,7 +364,7 @@ export async function PATCH(
       return apiError("Link not found", 404);
     }
 
-    const updatedTagMap = await db.getLinkTagMap([updatedLink.id]);
+    const updatedTags = await db.getTagsForLink(updatedLink.id);
 
     // Update KV cache if slug or URL changed
     const oldSlug = existingLink.slug;
@@ -396,7 +396,7 @@ export async function PATCH(
     });
 
     return NextResponse.json(
-      { link: linkToResponse(updatedLink, updatedTagMap.get(updatedLink.id) ?? []) },
+      { link: linkToResponse(updatedLink, updatedTags) },
       { headers: rateLimitHeaders },
     );
   } catch (error) {

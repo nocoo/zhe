@@ -190,6 +190,10 @@ export function formatLinkDetail(
 		lines.push(`  Note:         ${link.note}`);
 	}
 
+	if (link.tags && link.tags.length > 0) {
+		lines.push(`  Tags:         ${link.tags.map((t) => t.name).join(", ")}`);
+	}
+
 	lines.push(
 		`  Expires:      ${link.expiresAt ? formatDateTime(link.expiresAt) : "Never"}`,
 	);

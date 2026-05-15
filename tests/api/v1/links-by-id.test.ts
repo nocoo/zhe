@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -80,6 +80,60 @@ describe("/api/v1/links/[id]", () => {
       expect(body.link).toHaveProperty("shortUrl");
       expect(body.link).toHaveProperty("tagIds");
       expect(Array.isArray(body.link.tagIds)).toBe(true);
+      expect(Array.isArray(body.link.tags)).toBe(true);
+      expect(body.link.tags).toEqual([]);
+    });
+
+    it("returns tags array with correct id/name/color after PATCH addTags", async () => {
+      // Create a fresh link so this test is independent from the shared one
+      const createResponse = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/test-get-tags" }),
+      });
+      const { link: created } = await createResponse.json();
+
+      // Seed two tags and attach them via PATCH addTags
+      const tagA = await seedTag(TEST_USER_ID, { name: `get-tag-a-${Date.now()}`, color: "#ff0000" });
+      const tagB = await seedTag(TEST_USER_ID, { name: `get-tag-b-${Date.now()}`, color: "#00ff00" });
+
+      const patchResponse = await authenticatedFetch(
+        `${API_URL}/${created.id}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addTags: [tagA.id, tagB.id] }),
+        },
+      );
+      expect(patchResponse.status).toBe(200);
+      const patchBody = await patchResponse.json();
+      expect(Array.isArray(patchBody.link.tags)).toBe(true);
+      expect(patchBody.link.tags).toHaveLength(2);
+
+      // Now GET the link and assert tags are present with id/name/color
+      const getResponse = await authenticatedFetch(
+        `${API_URL}/${created.id}`,
+        apiKeyReadOnly,
+      );
+      expect(getResponse.status).toBe(200);
+      const getBody = await getResponse.json();
+      expect(Array.isArray(getBody.link.tags)).toBe(true);
+      expect(getBody.link.tags).toHaveLength(2);
+
+      const tagIds = getBody.link.tags.map((t: { id: string }) => t.id).sort();
+      expect(tagIds).toEqual([tagA.id, tagB.id].sort());
+
+      const tagById = new Map<string, { id: string; name: string; color: string }>(
+        getBody.link.tags.map((t: { id: string; name: string; color: string }) => [t.id, t]),
+      );
+      expect(tagById.get(tagA.id)?.name).toBe(tagA.name);
+      expect(tagById.get(tagA.id)?.color).toBe("#ff0000");
+      expect(tagById.get(tagB.id)?.name).toBe(tagB.name);
+      expect(tagById.get(tagB.id)?.color).toBe("#00ff00");
+
+      // Cleanup
+      await executeD1("DELETE FROM tags WHERE id IN (?, ?)", [tagA.id, tagB.id]);
     });
   });
 

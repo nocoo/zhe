@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -103,7 +103,64 @@ describe("/api/v1/links", () => {
       expect(link).toHaveProperty("createdAt");
       expect(link).toHaveProperty("tagIds");
       expect(Array.isArray(link.tagIds)).toBe(true);
+      expect(link).toHaveProperty("tags");
+      expect(Array.isArray(link.tags)).toBe(true);
       expect(link.shortUrl).toMatch(/^https:\/\/zhe\.to\//);
+    });
+
+    it("returns per-link tags arrays for a mix of tagged and untagged links", async () => {
+      // Create two fresh links
+      const createA = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/list-tags-a" }),
+      });
+      const { link: linkA } = await createA.json();
+
+      const createB = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/list-tags-b" }),
+      });
+      const { link: linkB } = await createB.json();
+
+      // Tag only the first link
+      const tag = await seedTag(TEST_USER_ID, { name: `list-tag-${Date.now()}`, color: "#1234ab" });
+      const patchResponse = await authenticatedFetch(
+        `${API_URL}/${linkA.id}`,
+        apiKeyWithReadWrite,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ addTags: [tag.id] }),
+        },
+      );
+      expect(patchResponse.status).toBe(200);
+
+      // List a generous page so both links are present
+      const listResponse = await authenticatedFetch(`${API_URL}?limit=100`, apiKeyReadOnly);
+      expect(listResponse.status).toBe(200);
+      const listBody = await listResponse.json();
+
+      const byId = new Map<number, { id: number; tags: { id: string; name: string; color: string }[] }>(
+        listBody.links.map((l: { id: number; tags: { id: string; name: string; color: string }[] }) => [l.id, l]),
+      );
+      const fetchedA = byId.get(linkA.id);
+      const fetchedB = byId.get(linkB.id);
+      expect(fetchedA).toBeDefined();
+      expect(fetchedB).toBeDefined();
+
+      expect(Array.isArray(fetchedA?.tags)).toBe(true);
+      expect(fetchedA?.tags).toHaveLength(1);
+      expect(fetchedA?.tags[0]?.id).toBe(tag.id);
+      expect(fetchedA?.tags[0]?.name).toBe(tag.name);
+      expect(fetchedA?.tags[0]?.color).toBe("#1234ab");
+
+      expect(Array.isArray(fetchedB?.tags)).toBe(true);
+      expect(fetchedB?.tags).toEqual([]);
+
+      // Cleanup
+      await executeD1("DELETE FROM tags WHERE id = ?", [tag.id]);
     });
 
     it("supports pagination with limit and offset", async () => {
