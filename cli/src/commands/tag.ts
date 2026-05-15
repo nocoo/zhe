@@ -309,6 +309,7 @@ const deleteSubcommand = defineCommand({
 			}
 
 			const { id: tagId, name: tagName } = resolved;
+			const tagLabel = tagName ?? tagId;
 
 			if (!args.yes) {
 				if (!process.stdin.isTTY) {
@@ -317,7 +318,7 @@ const deleteSubcommand = defineCommand({
 					);
 					process.exit(EXIT_INVALID_ARGS);
 				}
-				const confirmed = await confirm(`Delete tag "${tagName}" (${tagId})?`);
+				const confirmed = await confirm(`Delete tag "${tagLabel}" (${tagId})?`);
 				if (!confirmed) {
 					console.log(pc.dim("Cancelled."));
 					return;
@@ -328,13 +329,17 @@ const deleteSubcommand = defineCommand({
 
 			if (args.json) {
 				console.log(
-					JSON.stringify({ success: true, id: tagId, name: tagName }, null, 2),
+					JSON.stringify(
+						{ success: true, id: tagId, name: tagName ?? null },
+						null,
+						2,
+					),
 				);
 				return;
 			}
 
 			console.log(
-				pc.green(`✓ Deleted tag ${pc.cyan(tagName)} ${pc.dim(`(${tagId})`)}`),
+				pc.green(`✓ Deleted tag ${pc.cyan(tagLabel)} ${pc.dim(`(${tagId})`)}`),
 			);
 		} catch (error) {
 			handleApiError(error);

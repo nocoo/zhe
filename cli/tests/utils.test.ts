@@ -730,24 +730,25 @@ describe("resolveTagRef", () => {
 		listFolders: async () => ({ folders: [] }),
 	};
 
-	it("resolves UUID input to canonical id + name", async () => {
+	it("resolves UUID input without calling listTags (write-only key safe)", async () => {
+		let listTagsCalled = false;
+		const trackingClient = {
+			listTags: async () => {
+				listTagsCalled = true;
+				return { tags: [] };
+			},
+			listFolders: async () => ({ folders: [] }),
+		};
 		const result = await resolveTagRef(
-			mockClient as never,
+			trackingClient as never,
 			"11111111-1111-1111-1111-111111111111",
 		);
 		expect(result).toEqual({
 			kind: "found",
 			id: "11111111-1111-1111-1111-111111111111",
-			name: "Important",
+			name: undefined,
 		});
-	});
-
-	it("returns not_found when UUID does not match any tag", async () => {
-		const result = await resolveTagRef(
-			mockClient as never,
-			"99999999-9999-9999-9999-999999999999",
-		);
-		expect(result).toEqual({ kind: "not_found" });
+		expect(listTagsCalled).toBe(false);
 	});
 
 	it("resolves tag name to id + name (case-insensitive)", async () => {

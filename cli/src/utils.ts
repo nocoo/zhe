@@ -396,15 +396,18 @@ export async function resolveTagName(
  * Resolve a tag reference (name or UUID) to its canonical id + name.
  *
  * Unlike `resolveTagName`, this:
- *   - Looks up the canonical name even when input is a UUID, so destructive
- *     commands can show a human-readable target in confirm/success prompts.
  *   - Distinguishes `not_found` (zero matches) from `ambiguous` (multiple
  *     name matches), letting callers map them to different exit codes.
+ *   - For UUID input, returns immediately without calling `listTags()` so
+ *     that API keys with only `tags:write` (no `tags:read`) can still
+ *     update/delete by ID. The server is the source of truth for whether
+ *     the tag exists. `name` is `undefined` in that case; callers should
+ *     fall back to the UUID in any prompt text.
  *
  * Does NOT print any error itself — callers decide messaging and exit codes.
  */
 export type TagRef =
-	| { kind: "found"; id: string; name: string }
+	| { kind: "found"; id: string; name: string | undefined }
 	| { kind: "not_found" }
 	| { kind: "ambiguous" };
 
@@ -414,18 +417,14 @@ export async function resolveTagRef(
 ): Promise<TagRef> {
 	const uuidPattern =
 		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-	const { tags } = await client.listTags();
 
 	if (uuidPattern.test(input)) {
-		const match = tags.find(
-			(t: Tag) => t.id.toLowerCase() === input.toLowerCase(),
-		);
-		if (!match) {
-			return { kind: "not_found" };
-		}
-		return { kind: "found", id: match.id, name: match.name };
+		// Trust the UUID; let the destructive op's PATCH/DELETE be the
+		// authoritative existence check. Avoids requiring tags:read.
+		return { kind: "found", id: input, name: undefined };
 	}
 
+	const { tags } = await client.listTags();
 	const matches = tags.filter(
 		(t: Tag) => t.name.toLowerCase() === input.toLowerCase(),
 	);
