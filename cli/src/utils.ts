@@ -306,7 +306,8 @@ export function openInBrowser(url: string): void {
 	}
 
 	const child = spawn(command, args, { stdio: "ignore" });
-	const fallback = () => console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+	const fallback = () =>
+		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
 	let failed = false;
 	child.on("error", () => {
 		failed = true;
@@ -323,10 +324,14 @@ export function openInBrowser(url: string): void {
  * Resolve a tag name to tag ID via API.
  * If input looks like a UUID, use it directly.
  * Returns null if tag is not found (with error message printed).
+ *
+ * Pass `notFoundMessage` to override the default "Create it first." hint
+ * — appropriate for tag attach/use callers but misleading for tag update/delete.
  */
 export async function resolveTagName(
 	client: ApiClient,
 	input: string,
+	options: { notFoundMessage?: string } = {},
 ): Promise<string | null> {
 	// Check if input looks like a UUID
 	const uuidPattern =
@@ -341,7 +346,9 @@ export async function resolveTagName(
 	);
 
 	if (matches.length === 0) {
-		console.log(pc.red(`Tag not found: ${input}. Create it first.`));
+		const message =
+			options.notFoundMessage ?? `Tag not found: ${input}. Create it first.`;
+		console.log(pc.red(message));
 		return null;
 	}
 
@@ -355,4 +362,16 @@ export async function resolveTagName(
 	}
 
 	return matches[0].id;
+}
+
+/**
+ * Normalize a hex color: strip leading "#", validate 6 hex digits, return "#xxxxxx".
+ * Returns null if input is not a valid 6-digit hex color.
+ */
+export function normalizeHexColor(input: string): string | null {
+	const stripped = input.startsWith("#") ? input.slice(1) : input;
+	if (!/^[0-9a-fA-F]{6}$/.test(stripped)) {
+		return null;
+	}
+	return `#${stripped.toLowerCase()}`;
 }
