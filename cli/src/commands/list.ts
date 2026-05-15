@@ -11,7 +11,7 @@ import {
 	EXIT_INVALID_ARGS,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { Folder, ListLinksParams } from "../api/types.js";
+import type { Folder, ListLinksParams, Tag } from "../api/types.js";
 import { getApiKey, getOutputFormat } from "../config.js";
 import {
 	formatLinksMinimal,
@@ -81,6 +81,10 @@ export const listCommand = defineCommand({
 			type: "boolean",
 			alias: "c",
 			description: "Show only the count of matching links",
+		},
+		"show-tags": {
+			type: "boolean",
+			description: "Show TAGS column in table output (auto-enabled with --tag)",
 		},
 	},
 	async run({ args }) {
@@ -176,6 +180,21 @@ export const listCommand = defineCommand({
 				}
 			}
 
+			// Determine whether to show TAGS column.
+			// Auto-enable when filtering by tag, or when --show-tags is set.
+			const showTags = !!(args["show-tags"] || args.tag);
+
+			// Build tag name map only when we will actually render tags.
+			let tagMap: Map<string, string> | undefined;
+			if (showTags && response.links.some((l) => (l.tagIds ?? []).length > 0)) {
+				try {
+					const tagsResponse = await client.listTags();
+					tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));
+				} catch {
+					// If tag fetch fails, continue without tag names
+				}
+			}
+
 			// Determine output format
 			let format = getOutputFormat();
 			if (args.json) format = "json";
@@ -190,7 +209,12 @@ export const listCommand = defineCommand({
 					break;
 				default:
 					console.log(
-						formatLinksTable(response.links, { wide: args.wide, folderMap }),
+						formatLinksTable(response.links, {
+							wide: args.wide,
+							folderMap,
+							tagMap,
+							showTags,
+						}),
 					);
 			}
 		} catch (error) {

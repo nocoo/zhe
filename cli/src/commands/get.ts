@@ -12,7 +12,7 @@ import {
 	EXIT_NOT_FOUND,
 	EXIT_RATE_LIMITED,
 } from "../api/client.js";
-import type { Folder } from "../api/types.js";
+import type { Folder, Tag } from "../api/types.js";
 import { getApiKey } from "../config.js";
 import { formatLinkDetail, parseLinkId } from "../utils.js";
 
@@ -67,6 +67,17 @@ export const getCommand = defineCommand({
 				}
 			}
 
+			// Resolve tag names if the link has tags (best-effort)
+			let tagMap: Map<string, string> | undefined;
+			if ((response.link.tagIds ?? []).length > 0) {
+				try {
+					const tagsResponse = await client.listTags();
+					tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));
+				} catch {
+					// If tag fetch fails, continue without tag names
+				}
+			}
+
 			if (args.json) {
 				// Enrich JSON output with folderName if available
 				if (folderName) {
@@ -82,7 +93,7 @@ export const getCommand = defineCommand({
 					console.log(JSON.stringify(response, null, 2));
 				}
 			} else {
-				console.log(formatLinkDetail(response.link, folderName));
+				console.log(formatLinkDetail(response.link, folderName, tagMap));
 			}
 		} catch (error) {
 			handleApiError(error);

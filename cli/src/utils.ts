@@ -59,6 +59,8 @@ export function truncate(str: string, maxLength: number): string {
 export interface FormatLinksTableOptions {
 	wide?: boolean;
 	folderMap?: Map<string, string>;
+	tagMap?: Map<string, string>;
+	showTags?: boolean;
 }
 
 /**
@@ -72,14 +74,22 @@ export function formatLinksTable(
 		return "No links found.";
 	}
 
-	const { wide = false, folderMap } = options;
+	const { wide = false, folderMap, tagMap, showTags = false } = options;
 	const showFolders = links.some((l) => l.folderId);
+
+	const formatTags = (link: Link): string => {
+		const ids = link.tagIds ?? [];
+		if (ids.length === 0) return "";
+		return ids.map((id) => tagMap?.get(id) ?? id.slice(0, 8)).join(",");
+	};
 
 	if (wide) {
 		// Wide mode: no truncation
-		const header = showFolders
-			? "ID     SLUG                 URL                                              FOLDER           CLICKS  CREATED"
-			: "ID     SLUG                 URL                                              CLICKS  CREATED";
+		let header =
+			"ID     SLUG                 URL                                              ";
+		if (showFolders) header += "FOLDER           ";
+		if (showTags) header += "TAGS                       ";
+		header += "CLICKS  CREATED";
 		const separator = "─".repeat(header.length);
 
 		const rows = links.map((link) => {
@@ -88,23 +98,28 @@ export function formatLinksTable(
 			const url = link.originalUrl.padEnd(48);
 			const clicks = String(link.clicks).padEnd(7);
 			const created = formatDate(link.createdAt);
+			let row = `${id} ${slug} ${url} `;
 			if (showFolders) {
 				const folderName = link.folderId
 					? (folderMap?.get(link.folderId) ?? link.folderId.slice(0, 8))
 					: "";
-				const folder = folderName.padEnd(16);
-				return `${id} ${slug} ${url} ${folder} ${clicks} ${created}`;
+				row += `${folderName.padEnd(16)} `;
 			}
-			return `${id} ${slug} ${url} ${clicks} ${created}`;
+			if (showTags) {
+				row += `${formatTags(link).padEnd(26)} `;
+			}
+			row += `${clicks} ${created}`;
+			return row;
 		});
 
 		return [header, separator, ...rows].join("\n");
 	}
 
 	// Default compact mode with truncation
-	const header = showFolders
-		? "ID     SLUG        URL                              FOLDER       CLICKS  CREATED"
-		: "ID     SLUG        URL                              CLICKS  CREATED";
+	let header = "ID     SLUG        URL                              ";
+	if (showFolders) header += "FOLDER       ";
+	if (showTags) header += "TAGS         ";
+	header += "CLICKS  CREATED";
 	const separator = "─".repeat(header.length);
 
 	const rows = links.map((link) => {
@@ -113,14 +128,18 @@ export function formatLinksTable(
 		const url = truncate(link.originalUrl, 32).padEnd(32);
 		const clicks = String(link.clicks).padEnd(7);
 		const created = formatDate(link.createdAt);
+		let row = `${id} ${slug} ${url} `;
 		if (showFolders) {
 			const folderName = link.folderId
 				? (folderMap?.get(link.folderId) ?? link.folderId.slice(0, 8))
 				: "";
-			const folder = truncate(folderName, 12).padEnd(12);
-			return `${id} ${slug} ${url} ${folder} ${clicks} ${created}`;
+			row += `${truncate(folderName, 12).padEnd(12)} `;
 		}
-		return `${id} ${slug} ${url} ${clicks} ${created}`;
+		if (showTags) {
+			row += `${truncate(formatTags(link), 12).padEnd(12)} `;
+		}
+		row += `${clicks} ${created}`;
+		return row;
 	});
 
 	return [header, separator, ...rows].join("\n");
@@ -140,8 +159,13 @@ export function formatLinksMinimal(links: Link[]): string {
  * Format a single link for detailed display
  * @param link - The link to format
  * @param folderName - Optional folder name (if not provided, shows folder ID)
+ * @param tagMap - Optional map of tagId → name (falls back to tagId if missing)
  */
-export function formatLinkDetail(link: Link, folderName?: string): string {
+export function formatLinkDetail(
+	link: Link,
+	folderName?: string,
+	tagMap?: Map<string, string>,
+): string {
 	const lines = [
 		`Link #${link.id}`,
 		"",
@@ -154,6 +178,12 @@ export function formatLinkDetail(link: Link, folderName?: string): string {
 	if (link.folderId) {
 		const folderDisplay = folderName ?? link.folderId;
 		lines.push(`  Folder:       ${folderDisplay}`);
+	}
+
+	const tagIds = link.tagIds ?? [];
+	if (tagIds.length > 0) {
+		const tagDisplay = tagIds.map((id) => tagMap?.get(id) ?? id).join(", ");
+		lines.push(`  Tags:         ${tagDisplay}`);
 	}
 
 	if (link.note) {
@@ -306,7 +336,8 @@ export function openInBrowser(url: string): void {
 	}
 
 	const child = spawn(command, args, { stdio: "ignore" });
-	const fallback = () => console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+	const fallback = () =>
+		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
 	let failed = false;
 	child.on("error", () => {
 		failed = true;

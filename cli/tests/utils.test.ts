@@ -156,6 +156,91 @@ describe("formatLinksTable", () => {
 		expect(result).toContain("https://example.com/very/long/path/that/should/not/be/truncated");
 		expect(result).not.toContain("...");
 	});
+
+	it("omits TAGS column by default", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "tagged",
+				originalUrl: "https://example.com",
+				shortUrl: "https://zhe.to/tagged",
+				isCustom: false,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				tagIds: ["tag-1"],
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatLinksTable(links);
+		expect(result).not.toContain("TAGS");
+	});
+
+	it("renders TAGS column with showTags option", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "tagged",
+				originalUrl: "https://example.com",
+				shortUrl: "https://zhe.to/tagged",
+				isCustom: false,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				tagIds: ["tag-abc", "tag-xyz"],
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const tagMap = new Map([
+			["tag-abc", "work"],
+			["tag-xyz", "urgent"],
+		]);
+		const result = formatLinksTable(links, { showTags: true, tagMap });
+		expect(result).toContain("TAGS");
+		expect(result).toContain("work");
+		// Compact mode truncates the tag column at 12 chars; both names
+		// together overflow (4 + 1 + 6 = 11 chars fits, but "work,urgent"
+		// is 11 chars which fits without truncation).
+		expect(result).toContain("urgent");
+	});
+
+	it("falls back to short tag id when tagMap is missing", () => {
+		const links: Link[] = [
+			{
+				id: 1,
+				slug: "tagged",
+				originalUrl: "https://example.com",
+				shortUrl: "https://zhe.to/tagged",
+				isCustom: false,
+				clicks: 0,
+				metaTitle: null,
+				metaDescription: null,
+				screenshotUrl: null,
+				folderId: null,
+				note: null,
+				tagIds: ["abcdef1234-5678"],
+				expiresAt: null,
+				createdAt: "2026-04-01T00:00:00.000Z",
+				updatedAt: "2026-04-01T00:00:00.000Z",
+			},
+		];
+
+		const result = formatLinksTable(links, { showTags: true });
+		// Short id prefix (8 chars) used when no name is available.
+		expect(result).toContain("abcdef12");
+	});
 });
 
 describe("formatLinksMinimal", () => {
@@ -240,6 +325,70 @@ describe("formatLinkDetail", () => {
 
 		const result = formatLinkDetail(link);
 		expect(result).toContain("Never");
+	});
+
+	it("renders Tags line with resolved names", () => {
+		const link: Link = {
+			id: 1,
+			slug: "test",
+			originalUrl: "https://example.com",
+			shortUrl: "https://zhe.to/test",
+			isCustom: false,
+			clicks: 0,
+			folderId: null,
+			note: null,
+			tagIds: ["tag-1", "tag-2"],
+			expiresAt: null,
+			createdAt: "2026-04-01T00:00:00.000Z",
+			updatedAt: "2026-04-01T00:00:00.000Z",
+		};
+
+		const tagMap = new Map([
+			["tag-1", "work"],
+			["tag-2", "urgent"],
+		]);
+		const result = formatLinkDetail(link, undefined, tagMap);
+		expect(result).toContain("Tags:         work, urgent");
+	});
+
+	it("falls back to tag id when tagMap is missing", () => {
+		const link: Link = {
+			id: 1,
+			slug: "test",
+			originalUrl: "https://example.com",
+			shortUrl: "https://zhe.to/test",
+			isCustom: false,
+			clicks: 0,
+			folderId: null,
+			note: null,
+			tagIds: ["tag-abc"],
+			expiresAt: null,
+			createdAt: "2026-04-01T00:00:00.000Z",
+			updatedAt: "2026-04-01T00:00:00.000Z",
+		};
+
+		const result = formatLinkDetail(link);
+		expect(result).toContain("Tags:         tag-abc");
+	});
+
+	it("omits Tags line when link has no tags", () => {
+		const link: Link = {
+			id: 1,
+			slug: "test",
+			originalUrl: "https://example.com",
+			shortUrl: "https://zhe.to/test",
+			isCustom: false,
+			clicks: 0,
+			folderId: null,
+			note: null,
+			tagIds: [],
+			expiresAt: null,
+			createdAt: "2026-04-01T00:00:00.000Z",
+			updatedAt: "2026-04-01T00:00:00.000Z",
+		};
+
+		const result = formatLinkDetail(link);
+		expect(result).not.toContain("Tags:");
 	});
 });
 
