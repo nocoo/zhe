@@ -2,17 +2,13 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
 } from "react";
 import type { Link, Folder, Tag, LinkTag } from "@/models/types";
 import type { IdeaListItem } from "@/lib/db/scoped";
-import { getDashboardData } from "@/actions/dashboard";
-import { getLinks } from "@/actions/links";
-import { getIdeas } from "@/actions/ideas";
+import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
+import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -90,218 +86,57 @@ export function DashboardServiceProvider({
   initialFolders,
   children,
 }: DashboardServiceProviderProps) {
-  const [links, setLinks] = useState<Link[]>([]);
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [linkTags, setLinkTags] = useState<LinkTag[]>([]);
-  const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [ideasLoading, setIdeasLoading] = useState(false);
-  const [ideasLoaded, setIdeasLoaded] = useState(false);
+  const core = useDashboardCore(initialFolders);
+  const ideasSlice = useIdeasSlice();
   const siteUrl =
     typeof window !== "undefined" ? window.location.origin : "";
 
-  // Fetch all links, tags, and link-tags in a single server action call
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchData() {
-      try {
-        const result = await getDashboardData();
-        if (cancelled) return;
-        if (result.success && result.data) {
-          setLinks(result.data.links);
-          setTags(result.data.tags);
-          setLinkTags(result.data.linkTags);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchData();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // ── Links CRUD (memory sync) ──
-
-  const handleLinkCreated = useCallback((link: Link) => {
-    setLinks((prev) => [link, ...prev]);
-  }, []);
-
-  const handleLinkDeleted = useCallback((id: number) => {
-    setLinks((prev) => prev.filter((l) => l.id !== id));
-  }, []);
-
-  const handleLinkUpdated = useCallback((updatedLink: Link) => {
-    setLinks((prev) =>
-      prev.map((l) => (l.id === updatedLink.id ? updatedLink : l)),
-    );
-  }, []);
-
-  const refreshLinks = useCallback(async () => {
-    const result = await getLinks();
-    if (result.success && result.data) {
-      setLinks(result.data);
-    }
-  }, []);
-
-  // ── Folders CRUD (memory sync) ──
-
-  const handleFolderCreated = useCallback((folder: Folder) => {
-    setFolders((prev) => [...prev, folder]);
-  }, []);
-
-  const handleFolderDeleted = useCallback((id: string) => {
-    setFolders((prev) => prev.filter((f) => f.id !== id));
-    // Cascade: clear folderId on associated links (mirrors DB SET NULL)
-    setLinks((prev) =>
-      prev.map((l) => (l.folderId === id ? { ...l, folderId: null } : l)),
-    );
-  }, []);
-
-  const handleFolderUpdated = useCallback((updatedFolder: Folder) => {
-    setFolders((prev) =>
-      prev.map((f) => (f.id === updatedFolder.id ? updatedFolder : f)),
-    );
-  }, []);
-
-  // ── Tags CRUD (memory sync) ──
-
-  const handleTagCreated = useCallback((tag: Tag) => {
-    setTags((prev) => [...prev, tag]);
-  }, []);
-
-  const handleTagDeleted = useCallback((id: string) => {
-    setTags((prev) => prev.filter((t) => t.id !== id));
-    // Cascade: remove link-tag associations for deleted tag
-    setLinkTags((prev) => prev.filter((lt) => lt.tagId !== id));
-  }, []);
-
-  const handleTagUpdated = useCallback((updatedTag: Tag) => {
-    setTags((prev) =>
-      prev.map((t) => (t.id === updatedTag.id ? updatedTag : t)),
-    );
-  }, []);
-
-  // ── Link-Tags association (memory sync) ──
-
-  const handleLinkTagAdded = useCallback((linkTag: LinkTag) => {
-    setLinkTags((prev) => [...prev, linkTag]);
-  }, []);
-
-  const handleLinkTagRemoved = useCallback((linkId: number, tagId: string) => {
-    setLinkTags((prev) =>
-      prev.filter((lt) => !(lt.linkId === linkId && lt.tagId === tagId)),
-    );
-  }, []);
-
-  // ── Ideas CRUD (lazy-loaded + memory sync) ──
-
-  const ensureIdeasLoaded = useCallback(async () => {
-    if (ideasLoaded || ideasLoading) return;
-    setIdeasLoading(true);
-    try {
-      const result = await getIdeas();
-      if (result.success && result.data) {
-        setIdeas(result.data);
-        setIdeasLoaded(true);
-      }
-    } catch (error) {
-      console.error("Failed to load ideas:", error);
-    } finally {
-      setIdeasLoading(false);
-    }
-  }, [ideasLoaded, ideasLoading]);
-
-  const refreshIdeas = useCallback(async () => {
-    setIdeasLoading(true);
-    try {
-      const result = await getIdeas();
-      if (result.success && result.data) {
-        setIdeas(result.data);
-      }
-      setIdeasLoaded(true);
-    } catch (error) {
-      console.error("Failed to refresh ideas:", error);
-    } finally {
-      setIdeasLoading(false);
-    }
-  }, []);
-
-  const handleIdeaCreated = useCallback((idea: IdeaListItem) => {
-    setIdeas((prev) => [idea, ...prev]);
-  }, []);
-
-  const handleIdeaDeleted = useCallback((id: number) => {
-    setIdeas((prev) => prev.filter((i) => i.id !== id));
-  }, []);
-
-  const handleIdeaUpdated = useCallback((updatedIdea: IdeaListItem) => {
-    setIdeas((prev) =>
-      prev.map((i) => (i.id === updatedIdea.id ? updatedIdea : i)),
-    );
-  }, []);
-
   // ── Stable state value (changes when data changes) ──
-
   const stateValue = useMemo<DashboardState>(
     () => ({
-      links,
-      folders,
-      tags,
-      linkTags,
-      ideas,
-      loading,
-      ideasLoading,
+      links: core.links,
+      folders: core.folders,
+      tags: core.tags,
+      linkTags: core.linkTags,
+      ideas: ideasSlice.ideas,
+      loading: core.loading,
+      ideasLoading: ideasSlice.ideasLoading,
       siteUrl,
     }),
-    [links, folders, tags, linkTags, ideas, loading, ideasLoading, siteUrl],
+    [
+      core.links,
+      core.folders,
+      core.tags,
+      core.linkTags,
+      core.loading,
+      ideasSlice.ideas,
+      ideasSlice.ideasLoading,
+      siteUrl,
+    ],
   );
 
   // ── Stable actions value (never changes — all callbacks have [] deps) ──
-
   const actionsValue = useMemo<DashboardActions>(
     () => ({
-      handleLinkCreated,
-      handleLinkDeleted,
-      handleLinkUpdated,
-      refreshLinks,
-      handleFolderCreated,
-      handleFolderDeleted,
-      handleFolderUpdated,
-      handleTagCreated,
-      handleTagDeleted,
-      handleTagUpdated,
-      handleLinkTagAdded,
-      handleLinkTagRemoved,
-      ensureIdeasLoaded,
-      refreshIdeas,
-      handleIdeaCreated,
-      handleIdeaDeleted,
-      handleIdeaUpdated,
+      handleLinkCreated: core.handleLinkCreated,
+      handleLinkDeleted: core.handleLinkDeleted,
+      handleLinkUpdated: core.handleLinkUpdated,
+      refreshLinks: core.refreshLinks,
+      handleFolderCreated: core.handleFolderCreated,
+      handleFolderDeleted: core.handleFolderDeleted,
+      handleFolderUpdated: core.handleFolderUpdated,
+      handleTagCreated: core.handleTagCreated,
+      handleTagDeleted: core.handleTagDeleted,
+      handleTagUpdated: core.handleTagUpdated,
+      handleLinkTagAdded: core.handleLinkTagAdded,
+      handleLinkTagRemoved: core.handleLinkTagRemoved,
+      ensureIdeasLoaded: ideasSlice.ensureIdeasLoaded,
+      refreshIdeas: ideasSlice.refreshIdeas,
+      handleIdeaCreated: ideasSlice.handleIdeaCreated,
+      handleIdeaDeleted: ideasSlice.handleIdeaDeleted,
+      handleIdeaUpdated: ideasSlice.handleIdeaUpdated,
     }),
-    [
-      handleLinkCreated,
-      handleLinkDeleted,
-      handleLinkUpdated,
-      refreshLinks,
-      handleFolderCreated,
-      handleFolderDeleted,
-      handleFolderUpdated,
-      handleTagCreated,
-      handleTagDeleted,
-      handleTagUpdated,
-      handleLinkTagAdded,
-      handleLinkTagRemoved,
-      ensureIdeasLoaded,
-      refreshIdeas,
-      handleIdeaCreated,
-      handleIdeaDeleted,
-      handleIdeaUpdated,
-    ],
+    [core, ideasSlice],
   );
 
   return (
