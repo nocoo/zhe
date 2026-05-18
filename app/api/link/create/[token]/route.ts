@@ -111,6 +111,59 @@ export async function GET(
  *
  * @deprecated Use POST /api/v1/links with API key authentication instead.
  */
+/**
+ * Parse the JSON body and validate against the webhook payload schema.
+ * Returns the validated payload, or a NextResponse error to short-circuit.
+ */
+async function parseAndValidateBody(
+  request: NextRequest,
+): Promise<NextResponse | { url: string; customSlug?: string; folder?: string; note?: string }> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: DEPRECATION_HEADERS },
+    );
+  }
+  const validation = validateWebhookPayload(body);
+  if (!validation.success || !validation.data) {
+    return NextResponse.json(
+      { error: validation.error ?? "Invalid payload" },
+      { status: 400, headers: DEPRECATION_HEADERS },
+    );
+  }
+  return validation.data;
+}
+
+/**
+ * Resolve the final slug: validate + check availability of a custom slug,
+ * or generate a unique random one. Returns NextResponse on validation
+ * error / slug clash.
+ */
+async function resolveWebhookSlug(
+  customSlug: string | undefined,
+): Promise<NextResponse | { slug: string; isCustom: boolean }> {
+  if (!customSlug) {
+    return { slug: await generateUniqueSlug(slugExists), isCustom: false };
+  }
+  const sanitized = sanitizeSlug(customSlug);
+  if (!sanitized) {
+    return NextResponse.json(
+      { error: "Invalid custom slug" },
+      { status: 400, headers: DEPRECATION_HEADERS },
+    );
+  }
+  if (await slugExists(sanitized)) {
+    return NextResponse.json(
+      { error: "Custom slug already taken" },
+      { status: 409, headers: DEPRECATION_HEADERS },
+    );
+  }
+  return { slug: sanitized, isCustom: true };
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ token: string }> },
@@ -140,25 +193,9 @@ export async function POST(
   }
 
   // 3. Parse and validate body
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400, headers: DEPRECATION_HEADERS },
-    );
-  }
-
-  const validation = validateWebhookPayload(body);
-  if (!validation.success || !validation.data) {
-    return NextResponse.json(
-      { error: validation.error ?? "Invalid payload" },
-      { status: 400, headers: DEPRECATION_HEADERS },
-    );
-  }
-
-  const { url, customSlug, folder, note } = validation.data;
+  const bodyResult = await parseAndValidateBody(request);
+  if (bodyResult instanceof NextResponse) return bodyResult;
+  const { url, customSlug, folder, note } = bodyResult;
 
   // 4. Idempotency check — if same URL already exists for this user, return it
   const existingLink = await getLinkByUserAndUrl(webhook.userId, url);
@@ -182,31 +219,9 @@ export async function POST(
   }
 
   // 6. Resolve slug
-  let slug: string;
-  let isCustom = false;
-
-  if (customSlug) {
-    const sanitized = sanitizeSlug(customSlug);
-    if (!sanitized) {
-      return NextResponse.json(
-        { error: "Invalid custom slug" },
-        { status: 400, headers: DEPRECATION_HEADERS },
-      );
-    }
-
-    const exists = await slugExists(sanitized);
-    if (exists) {
-      return NextResponse.json(
-        { error: "Custom slug already taken" },
-        { status: 409, headers: DEPRECATION_HEADERS },
-      );
-    }
-
-    slug = sanitized;
-    isCustom = true;
-  } else {
-    slug = await generateUniqueSlug(slugExists);
-  }
+  const slugResult = await resolveWebhookSlug(customSlug);
+  if (slugResult instanceof NextResponse) return slugResult;
+  const { slug, isCustom } = slugResult;
 
   // 7. Create the link under the webhook owner's account
   const link = await createLink({

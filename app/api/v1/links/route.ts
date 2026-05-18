@@ -13,6 +13,13 @@ import { linkToResponse } from "@/lib/api/serializers";
 import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
 import { slugExists } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/slug";
+import {
+  validateUrl,
+  resolveSlug,
+  validateFolderId,
+  parseExpiresAt,
+  validateNote,
+} from "./post-validators";
 import { kvPutLink } from "@/lib/kv/client";
 
 /**
@@ -122,99 +129,39 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "links:write");
-  if (authResult instanceof NextResponse) {
-    return authResult;
-  }
+  if (authResult instanceof NextResponse) return authResult;
 
   const { auth, headers: rateLimitHeaders } = authResult;
   const { userId, keyId, keyPrefix } = auth;
 
   const bodyResult = await parseJsonBody(request);
-  if (isErrorResponse(bodyResult)) {
-    return bodyResult;
-  }
+  if (isErrorResponse(bodyResult)) return bodyResult;
   const bodyObj = bodyResult;
 
   try {
-    // Validate required fields
-    if (!bodyObj.url || typeof bodyObj.url !== "string") {
-      return apiError("Missing or invalid 'url' field", 400);
-    }
-
-    // Validate URL format
-    try {
-      new URL(bodyObj.url);
-    } catch {
-      return apiError("Invalid URL format", 400);
-    }
+    const urlResult = validateUrl(bodyObj.url);
+    if (urlResult instanceof NextResponse) return urlResult;
 
     const db = new ScopedDB(userId);
 
-    // Generate or validate slug
-    let slug: string;
-    const isCustom = !!bodyObj.slug;
+    const slugResult = await resolveSlug(bodyObj.slug);
+    if (slugResult instanceof NextResponse) return slugResult;
 
-    if (bodyObj.slug !== undefined) {
-      if (typeof bodyObj.slug !== "string") {
-        return apiError("'slug' must be a string", 400);
-      }
-      // Validate custom slug format
-      if (!/^[a-zA-Z0-9_-]+$/.test(bodyObj.slug)) {
-        return apiError("Invalid slug format. Use only letters, numbers, hyphens, and underscores.", 400);
-      }
-      if (bodyObj.slug.length < 3 || bodyObj.slug.length > 50) {
-        return apiError("Slug must be between 3 and 50 characters", 400);
-      }
+    const folderError = await validateFolderId(db, bodyObj.folderId);
+    if (folderError) return folderError;
 
-      // Check availability
-      const exists = await slugExists(bodyObj.slug);
-      if (exists) {
-        return apiError("Slug already in use", 409);
-      }
-      slug = bodyObj.slug;
-    } else {
-      slug = await generateUniqueSlug(slugExists);
-    }
+    const expiresResult = parseExpiresAt(bodyObj.expiresAt);
+    if (expiresResult instanceof NextResponse) return expiresResult;
 
-    // Validate folder if specified
-    if (bodyObj.folderId !== undefined) {
-      if (typeof bodyObj.folderId !== "string") {
-        return apiError("'folderId' must be a string", 400);
-      }
-      const folder = await db.getFolderById(bodyObj.folderId);
-      if (!folder) {
-        return apiError("Folder not found", 404);
-      }
-    }
+    const noteError = validateNote(bodyObj.note);
+    if (noteError) return noteError;
 
-    // Parse expiration
-    let expiresAt: Date | undefined;
-    if (bodyObj.expiresAt !== undefined) {
-      if (typeof bodyObj.expiresAt !== "string") {
-        return apiError("'expiresAt' must be a string (ISO 8601 format)", 400);
-      }
-      const parsed = new Date(bodyObj.expiresAt);
-      if (isNaN(parsed.getTime())) {
-        return apiError("Invalid expiresAt format. Use ISO 8601.", 400);
-      }
-      if (parsed.getTime() <= Date.now()) {
-        return apiError("Expiration date must be in the future", 400);
-      }
-      expiresAt = parsed;
-    }
-
-    // Validate note if provided
-    if (bodyObj.note !== undefined && bodyObj.note !== null && typeof bodyObj.note !== "string") {
-      return apiError("'note' must be a string or null", 400);
-    }
-
-    // Create the link
     const link = await db.createLink({
-      originalUrl: bodyObj.url,
-      slug,
-      isCustom,
+      originalUrl: urlResult,
+      slug: slugResult.slug,
+      isCustom: slugResult.isCustom,
       folderId: typeof bodyObj.folderId === "string" ? bodyObj.folderId : null,
-      expiresAt,
+      ...(expiresResult ? { expiresAt: expiresResult } : {}),
       note: typeof bodyObj.note === "string" ? bodyObj.note : null,
       screenshotUrl: null,
     });
@@ -237,7 +184,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       statusCode: 201,
     });
 
-    return NextResponse.json({ link: linkToResponse(link) }, { status: 201, headers: rateLimitHeaders });
+    return NextResponse.json(
+      { link: linkToResponse(link) },
+      { status: 201, headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/links POST]", error);
     return apiError("Internal server error", 500);
