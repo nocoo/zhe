@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getWebhookByToken, getWebhookStats, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
 import {
   validateWebhookPayload,
@@ -116,7 +116,7 @@ export async function GET(
  * Returns the validated payload, or a NextResponse error to short-circuit.
  */
 async function parseAndValidateBody(
-  request: NextRequest,
+  request: Request,
 ): Promise<NextResponse | { url: string; customSlug?: string; folder?: string; note?: string }> {
   let body: unknown;
   try {
