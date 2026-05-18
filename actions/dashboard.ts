@@ -2,7 +2,7 @@
 
 import { getScopedDB } from '@/lib/auth-context';
 import type { Link, Tag, LinkTag } from '@/models/types';
-import type { ActionResult } from '@/actions/links';
+import type { ActionResult } from '@/actions/links/types';
 
 export interface DashboardData {
   links: Link[];

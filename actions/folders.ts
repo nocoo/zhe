@@ -3,7 +3,7 @@
 import { getScopedDB } from '@/lib/auth-context';
 import { validateFolderName, isValidFolderIcon } from '@/models/folders';
 import type { Folder } from '@/lib/db/schema';
-import type { ActionResult } from '@/actions/links';
+import type { ActionResult } from '@/actions/links/types';
 
 export interface CreateFolderInput {
   name: string;

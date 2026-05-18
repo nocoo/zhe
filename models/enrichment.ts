@@ -1,4 +1,4 @@
-import type { ActionResult } from '@/actions/links';
+import type { ActionResult } from '@/actions/links/types';
 
 // ---------------------------------------------------------------------------
 // Link Enrichment Strategy — decouples URL-specific metadata logic from

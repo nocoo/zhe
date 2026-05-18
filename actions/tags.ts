@@ -3,7 +3,7 @@
 import { getScopedDB } from '@/lib/auth-context';
 import { validateTagName, isValidTagColor, tagColorFromName } from '@/models/tags';
 import type { Tag, LinkTag } from '@/lib/db/schema';
-import type { ActionResult } from '@/actions/links';
+import type { ActionResult } from '@/actions/links/types';
 
 export interface CreateTagInput {
   name: string;

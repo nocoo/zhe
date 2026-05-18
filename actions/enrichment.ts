@@ -3,7 +3,7 @@
 import { ScopedDB } from '@/lib/db/scoped';
 import { fetchMetadata } from '@/lib/metadata';
 import type { LinkEnrichmentStrategy } from '@/models/enrichment';
-import type { ActionResult } from '@/actions/links';
+import type { ActionResult } from '@/actions/links/types';
 
 // ---------------------------------------------------------------------------
 // Default HTML Metadata Strategy

@@ -7,9 +7,9 @@ import { kvPutLink, kvDeleteLink } from '@/lib/kv/client';
 import { markKVDirty } from '@/lib/kv/dirty';
 import { validateUrl } from '@/lib/api/validation';
 import type { Link } from '@/lib/db/schema';
+import type { AnalyticsStats } from '@/models/types';
 
 import type { CreateLinkInput, ActionResult } from './links/types';
-export type { CreateLinkInput, ActionResult };
 
 /**
  * Create a new short link.
@@ -255,14 +255,6 @@ export async function updateLinkNote(
     console.error('Failed to update link note:', error);
     return { success: false, error: 'Failed to update link note' };
   }
-}
-
-export interface AnalyticsStats {
-  totalClicks: number;
-  uniqueCountries: string[];
-  deviceBreakdown: Record<string, number>;
-  browserBreakdown: Record<string, number>;
-  osBreakdown: Record<string, number>;
 }
 
 /**
