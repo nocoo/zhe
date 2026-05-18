@@ -5,7 +5,9 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useCallback, Fragment } from "react";
+import { useStoragePage } from "./storage-page-parts/useStoragePage";
+import { SummaryGrid } from "./storage-page-parts/summary-grid";
 import {
   RefreshCw,
   Trash2,
@@ -21,9 +23,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Clock,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,15 +38,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { scanStorage, cleanupOrphanFiles } from "@/actions/storage";
 import {
   formatBytes,
   getFileName,
   getFileCategory,
-  computeSummary,
 } from "@/models/storage";
 import type { StorageScanResult, StorageFile } from "@/models/storage";
-import { computeTmpStats } from "@/models/tmp-storage";
 
 // ── Summary card ──
 
@@ -468,94 +465,8 @@ function StorageSkeleton() {
 // ── Main component ──
 
 export function StoragePage({ initialData }: { initialData?: StorageScanResult }) {
-  const [data, setData] = useState<StorageScanResult | null>(initialData ?? null);
-  const [loading, setLoading] = useState(!initialData);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [cleaning, setCleaning] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const scan = useCallback(async () => {
-    setLoading(true);
-    setSelectedKeys(new Set());
-    try {
-      const result = await scanStorage();
-      if (result.success && result.data) {
-        setData(result.data);
-      } else {
-        toast.error(result.error ?? "扫描存储失败");
-      }
-    } catch {
-      toast.error("扫描存储失败");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (initialData) return;
-    scan();
-  }, [scan, initialData]);
-
-  const toggleKey = useCallback((key: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectAllOrphans = useCallback(() => {
-    if (!data) return;
-    const orphanKeys = data.r2.files
-      .filter((f) => !f.isReferenced)
-      .map((f) => f.key);
-    setSelectedKeys(new Set(orphanKeys));
-  }, [data]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedKeys(new Set());
-  }, []);
-
-  const handleCleanup = async () => {
-    setShowConfirm(false);
-    setCleaning(true);
-    try {
-      const keys = Array.from(selectedKeys);
-      const result = await cleanupOrphanFiles(keys);
-      if (result.success && result.data) {
-        toast.success(
-          `已删除 ${result.data.deleted} 个文件${result.data.skipped > 0 ? ` (${result.data.skipped} 个已跳过)` : ""}`,
-        );
-
-        // Update state locally instead of a full re-scan
-        if (data) {
-          const deletedKeys = new Set(result.data.deletedKeys);
-          const remainingFiles = data.r2.files.filter(
-            (f) => !deletedKeys.has(f.key),
-          );
-          setData({
-            ...data,
-            r2: {
-              ...data.r2,
-              files: remainingFiles,
-              summary: computeSummary(remainingFiles),
-            },
-          });
-        }
-        setSelectedKeys(new Set());
-      } else {
-        toast.error(result.error ?? "清理失败");
-      }
-    } catch {
-      toast.error("清理孤儿文件失败");
-    } finally {
-      setCleaning(false);
-    }
-  };
+  const sp = useStoragePage(initialData);
+  const { data, loading, selectedKeys, cleaning, showConfirm, setShowConfirm } = sp;
 
   if (loading && !data) {
     return <StorageSkeleton />;
@@ -563,58 +474,15 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
 
   if (!data) return null;
 
-  const hasOrphans = data.r2.summary.orphanFiles > 0;
-  const tmpStats = computeTmpStats(data.r2.files);
-
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryCard
-          label="R2 总存储"
-          value={formatBytes(data.r2.summary.totalSize)}
-          sub={`${data.r2.summary.totalFiles} 个文件`}
-          icon={HardDrive}
-          index={0}
-        />
-        <SummaryCard
-          label="D1 数据库"
-          value={data.d1.connected ? "已连接" : "未连接"}
-          sub={`${data.d1.totalLinks} 链接 · ${data.d1.totalUploads} 上传`}
-          icon={Database}
-          index={1}
-        />
-        <SummaryCard
-          label="孤儿文件"
-          value={data.r2.summary.orphanFiles.toString()}
-          sub={
-            hasOrphans
-              ? `${formatBytes(data.r2.summary.orphanSize)} 可回收`
-              : "全部干净"
-          }
-          icon={AlertTriangle}
-          variant={hasOrphans ? "warning" : "success"}
-          index={2}
-        />
-        <SummaryCard
-          label="临时文件"
-          value={tmpStats.totalFiles.toString()}
-          sub={
-            tmpStats.totalFiles > 0
-              ? `${formatBytes(tmpStats.totalSize)} · 1h 后自动清理`
-              : "无临时文件"
-          }
-          icon={Clock}
-          index={3}
-        />
-      </div>
+      <SummaryGrid data={data} SummaryCard={SummaryCard} />
 
-      {/* Rescan button */}
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
-          onClick={scan}
+          onClick={sp.scan}
           disabled={loading}
           className="gap-1.5"
         >
@@ -626,21 +494,18 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
         </Button>
       </div>
 
-      {/* D1 section */}
       <D1Section data={data.d1} />
 
-      {/* R2 section */}
       <R2Section
         data={data.r2}
         selectedKeys={selectedKeys}
-        onToggleKey={toggleKey}
-        onSelectAllOrphans={selectAllOrphans}
-        onClearSelection={clearSelection}
+        onToggleKey={sp.toggleKey}
+        onSelectAllOrphans={sp.selectAllOrphans}
+        onClearSelection={sp.clearSelection}
         onDeleteSelected={() => setShowConfirm(true)}
         cleaning={cleaning}
       />
 
-      {/* Confirmation dialog */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -665,7 +530,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleCleanup}
+              onClick={sp.handleCleanup}
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               删除 {selectedKeys.size} 个文件
