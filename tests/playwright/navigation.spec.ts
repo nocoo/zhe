@@ -82,10 +82,15 @@ test.describe('Dashboard navigation', () => {
   });
 
   test('navigate to Uploads page', async ({ page }) => {
+    // Turbopack first-compile of /dashboard/uploads can exceed Playwright's
+    // default 30s test timeout. Mark slow to triple it (90s) and also raise
+    // the waitForURL timeout explicitly for clarity.
+    test.slow();
+
     await page.goto('/dashboard');
 
     await page.locator('a:has-text("文件上传")').click();
-    await page.waitForURL('**/dashboard/uploads');
+    await page.waitForURL('**/dashboard/uploads', { timeout: 60_000 });
 
     await expect(
       page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
