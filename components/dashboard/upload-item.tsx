@@ -35,6 +35,47 @@ interface UploadItemProps {
   onDelete: (id: number) => Promise<boolean>;
 }
 
+function DeleteUploadDialog({
+  isDeleting,
+  onDelete,
+}: {
+  isDeleting: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button
+          aria-label="Delete file"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          disabled={isDeleting}
+        >
+          <Trash2 className="w-4 h-4" strokeWidth={1.5} />
+        </button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>确认删除</AlertDialogTitle>
+          <AlertDialogDescription>
+            此操作不可撤销，确定要删除这个文件吗？
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogAction
+            data-testid="upload-delete-confirm"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? "删除中..." : "删除"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function UploadItem({ upload, onDelete }: UploadItemProps) {
   const { copied, isDeleting, handleCopy, handleDelete } =
     useUploadItemViewModel(upload, onDelete);
@@ -102,36 +143,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
           >
             <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
           </a>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                aria-label="Delete file"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                disabled={isDeleting}
-              >
-                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>确认删除</AlertDialogTitle>
-                <AlertDialogDescription>
-                  此操作不可撤销，确定要删除这个文件吗？
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>取消</AlertDialogCancel>
-                <AlertDialogAction
-                  data-testid="upload-delete-confirm"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isDeleting ? "删除中..." : "删除"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <DeleteUploadDialog isDeleting={isDeleting} onDelete={handleDelete} />
         </div>
       </div>
     </div>
