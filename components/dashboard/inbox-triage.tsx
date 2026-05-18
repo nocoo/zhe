@@ -12,6 +12,45 @@ import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import type { LinkTag } from "@/models/types";
 
+function InboxSkeleton() {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="animate-pulse">
+          <div className="h-6 w-24 rounded bg-muted" />
+          <div className="h-4 w-16 rounded bg-muted mt-1.5" />
+        </div>
+      </div>
+      <div className="animate-pulse space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-card bg-secondary p-4 space-y-3">
+            <div className="h-4 w-3/4 rounded bg-muted" />
+            <div className="h-3 w-1/2 rounded bg-muted" />
+            <div className="flex gap-3">
+              <div className="h-8 w-40 rounded bg-muted" />
+              <div className="h-8 flex-1 rounded bg-muted" />
+              <div className="h-8 w-16 rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InboxEmpty() {
+  return (
+    <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
+      <InboxIcon
+        className="w-10 h-10 mx-auto text-muted-foreground mb-4"
+        strokeWidth={1.5}
+      />
+      <p className="text-sm text-muted-foreground mb-2">Inbox 已清空</p>
+      <p className="text-xs text-muted-foreground">所有链接都已整理到文件夹中</p>
+    </div>
+  );
+}
+
 /** Inbox triage view — shows uncategorized links with inline editing controls */
 export function InboxTriage() {
   const {
@@ -65,31 +104,7 @@ export function InboxTriage() {
 
   const emptyLinkTags: LinkTag[] = useMemo(() => [], []);
 
-  if (loading) {
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <div className="animate-pulse">
-            <div className="h-6 w-24 rounded bg-muted" />
-            <div className="h-4 w-16 rounded bg-muted mt-1.5" />
-          </div>
-        </div>
-        <div className="animate-pulse space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-card bg-secondary p-4 space-y-3">
-              <div className="h-4 w-3/4 rounded bg-muted" />
-              <div className="h-3 w-1/2 rounded bg-muted" />
-              <div className="flex gap-3">
-                <div className="h-8 w-40 rounded bg-muted" />
-                <div className="h-8 flex-1 rounded bg-muted" />
-                <div className="h-8 w-16 rounded bg-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <InboxSkeleton />;
 
   return (
     <div>
@@ -116,16 +131,7 @@ export function InboxTriage() {
 
       {/* Content */}
       {vm.inboxLinks.length === 0 ? (
-        <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
-          <InboxIcon
-            className="w-10 h-10 mx-auto text-muted-foreground mb-4"
-            strokeWidth={1.5}
-          />
-          <p className="text-sm text-muted-foreground mb-2">Inbox 已清空</p>
-          <p className="text-xs text-muted-foreground">
-            所有链接都已整理到文件夹中
-          </p>
-        </div>
+        <InboxEmpty />
       ) : (
         <div className="space-y-2">
           {vm.inboxLinks.map((link) => (

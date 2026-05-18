@@ -25,6 +25,88 @@ export interface SidebarFolderItemProps {
   onCancelEditing: () => void;
 }
 
+interface FolderItemEditorProps {
+  initialName: string;
+  initialIcon: string;
+  onSave: (next: { name: string; icon: string }) => void;
+  onCancel: () => void;
+}
+
+function FolderItemEditor({
+  initialName,
+  initialIcon,
+  onSave,
+  onCancel,
+}: FolderItemEditorProps) {
+  const [editName, setEditName] = useState(initialName);
+  const [editIcon, setEditIcon] = useState(initialIcon);
+
+  function handleConfirm() {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    onSave({ name: trimmed, icon: editIcon });
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") handleConfirm();
+    else if (e.key === "Escape") onCancel();
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-background p-2">
+      <div className="flex items-center gap-1.5">
+        <FolderIcon
+          name={editIcon}
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          strokeWidth={1.5}
+        />
+        <input
+          type="text"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          placeholder="文件夹名称"
+          autoFocus
+        />
+        <button
+          onClick={handleConfirm}
+          aria-label="确认"
+          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={onCancel}
+          aria-label="取消"
+          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-8 gap-0.5">
+        {FOLDER_ICONS.map((iconName) => (
+          <button
+            key={iconName}
+            data-icon-name={iconName}
+            data-testid={`icon-${iconName}`}
+            onClick={() => setEditIcon(iconName)}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded transition-colors",
+              editIcon === iconName
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+            )}
+          >
+            <FolderIcon name={iconName} className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SidebarFolderItem({
   folder,
   linkCount,
@@ -35,78 +117,14 @@ export function SidebarFolderItem({
   onDelete,
   onCancelEditing,
 }: SidebarFolderItemProps) {
-  const [editName, setEditName] = useState(folder.name);
-  const [editIcon, setEditIcon] = useState(folder.icon);
-
-  function handleConfirm() {
-    const trimmed = editName.trim();
-    if (!trimmed) return;
-    onUpdate(folder.id, { name: trimmed, icon: editIcon });
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") {
-      handleConfirm();
-    } else if (e.key === "Escape") {
-      onCancelEditing();
-    }
-  }
-
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-background p-2">
-        {/* Name input row */}
-        <div className="flex items-center gap-1.5">
-          <FolderIcon
-            name={editIcon}
-            className="h-4 w-4 shrink-0 text-muted-foreground"
-            strokeWidth={1.5}
-          />
-          <input
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="文件夹名称"
-            autoFocus
-          />
-          <button
-            onClick={handleConfirm}
-            aria-label="确认"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={onCancelEditing}
-            aria-label="取消"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        {/* Icon picker grid */}
-        <div className="grid grid-cols-8 gap-0.5">
-          {FOLDER_ICONS.map((iconName) => (
-            <button
-              key={iconName}
-              data-icon-name={iconName}
-              data-testid={`icon-${iconName}`}
-              onClick={() => setEditIcon(iconName)}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded transition-colors",
-                editIcon === iconName
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              <FolderIcon name={iconName} className="h-3.5 w-3.5" strokeWidth={1.5} />
-            </button>
-          ))}
-        </div>
-      </div>
+      <FolderItemEditor
+        initialName={folder.name}
+        initialIcon={folder.icon}
+        onSave={(next) => onUpdate(folder.id, next)}
+        onCancel={onCancelEditing}
+      />
     );
   }
 
