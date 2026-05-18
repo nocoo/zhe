@@ -54,13 +54,6 @@ export interface Env {
   D1_PROXY_SECRET: string;
 }
 
-/** Minimal data stored per slug in KV — mirrors lib/kv/client.ts KVLinkData. */
-interface KVLinkData {
-  id: number;
-  originalUrl: string;
-  expiresAt: number | null; // epoch ms, null = never expires
-}
-
 // ─── Reserved Paths ─────────────────────────────────────────────────────────
 // Must stay in sync with lib/constants.ts RESERVED_PATHS.
 
@@ -98,10 +91,7 @@ function isStaticAsset(pathname: string): boolean {
   return STATIC_EXTENSIONS.has(pathname.slice(dot).toLowerCase());
 }
 
-// ─── UA Parsing (mirrors lib/analytics.ts) ──────────────────────────────────
-
 // Sub-modules — keeps this file focused on the fetch handler.
-import { parseDevice, parseBrowser, parseOS, recordClickAsync } from './analytics';
 import { forwardToOrigin } from './forward';
 import { tryKvLookup, tryOriginLookup } from './redirect';
 
