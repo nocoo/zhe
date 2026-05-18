@@ -19,6 +19,128 @@ import {
 	resolveTagName,
 } from "../utils.js";
 
+const UUID_PATTERN =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface ListArgs {
+	folder?: string;
+	inbox?: boolean;
+	sort?: string;
+	order?: string;
+	limit?: string;
+	offset?: string;
+	query?: string;
+	tag?: string;
+}
+
+/** Reject mutually-exclusive flags + invalid sort/order. Exits on error. */
+function validateListArgs(args: ListArgs): void {
+	if (args.inbox && args.folder) {
+		console.log(pc.red("Cannot use --inbox and --folder together."));
+		process.exit(EXIT_INVALID_ARGS);
+	}
+	if (args.sort && args.sort !== "created" && args.sort !== "clicks") {
+		console.log(pc.red("Invalid --sort value. Use 'created' or 'clicks'."));
+		process.exit(EXIT_INVALID_ARGS);
+	}
+	if (args.order && args.order !== "asc" && args.order !== "desc") {
+		console.log(pc.red("Invalid --order value. Use 'asc' or 'desc'."));
+		process.exit(EXIT_INVALID_ARGS);
+	}
+}
+
+/**
+ * Build ListLinksParams from CLI args, resolving folder/tag names where
+ * needed. Returns the params plus any folder list already fetched for reuse.
+ * Exits on invalid folder/tag.
+ */
+async function buildListParams(
+	client: ApiClient,
+	args: ListArgs,
+): Promise<{ params: ListLinksParams; cachedFolders?: Folder[] }> {
+	// Pre-fetch folders only when --folder is a non-UUID name that must be
+	// resolved (a UUID can be used directly without folders:read scope).
+	const folderArg = args.folder;
+	const needsFolderResolution = !!folderArg && !UUID_PATTERN.test(folderArg);
+	let cachedFolders: Folder[] | undefined;
+	if (needsFolderResolution) {
+		const foldersResponse = await client.listFolders();
+		cachedFolders = foldersResponse.folders;
+	}
+
+	const params: ListLinksParams = {};
+	if (args.limit) params.limit = Number.parseInt(args.limit, 10);
+	if (args.offset) params.offset = Number.parseInt(args.offset, 10);
+	if (args.query) params.query = args.query;
+	if (args.inbox) params.inbox = true;
+	if (args.sort) params.sort = args.sort as "created" | "clicks";
+	if (args.order) params.order = args.order as "asc" | "desc";
+
+	if (folderArg) {
+		if (UUID_PATTERN.test(folderArg)) {
+			params.folderId = folderArg;
+		} else if (cachedFolders) {
+			const folderId = resolveFolderNameFromCache(folderArg, cachedFolders);
+			if (folderId === null) process.exit(EXIT_INVALID_ARGS);
+			params.folderId = folderId;
+		}
+	}
+
+	if (args.tag) {
+		const tagId = await resolveTagName(client, args.tag);
+		if (tagId === null) process.exit(EXIT_INVALID_ARGS);
+		params.tagId = tagId;
+	}
+
+	return cachedFolders ? { params, cachedFolders } : { params };
+}
+
+interface ListResponse {
+	links: Array<{ folderId?: string | null; tagIds?: string[]; tags?: Tag[] }>;
+	total: number;
+}
+
+/** Build folder + tag name maps for table output, with graceful fallback. */
+async function loadDisplayMaps(
+	client: ApiClient,
+	links: ListResponse["links"],
+	cachedFolders: Folder[] | undefined,
+	showTags: boolean,
+): Promise<{ folderMap?: Map<string, string>; tagMap?: Map<string, string> }> {
+	const result: { folderMap?: Map<string, string>; tagMap?: Map<string, string> } = {};
+
+	const hasFolders = links.some((l) => l.folderId);
+	if (hasFolders) {
+		try {
+			const folders = cachedFolders ?? (await client.listFolders()).folders;
+			result.folderMap = new Map(folders.map((f: Folder) => [f.id, f.name]));
+		} catch {
+			// continue without folder names
+		}
+	}
+
+	// Build tag name map only when we will render tags AND the response is
+	// missing embedded tag details. The /links endpoint already includes
+	// `tags: Tag[]` per link, so a successful response makes listTags()
+	// unnecessary; we only fall back when some tagged link is missing its
+	// tags array (older server, or partial response).
+	const needsTagFallback =
+		showTags &&
+		links.some(
+			(l) => (l.tagIds ?? []).length > 0 && (!l.tags || l.tags.length === 0),
+		);
+	if (needsTagFallback) {
+		try {
+			const tagsResponse = await client.listTags();
+			result.tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));
+		} catch {
+			// continue without tag names
+		}
+	}
+
+	return result;
+}
+
 export const listCommand = defineCommand({
 	meta: {
 		name: "list",
@@ -94,119 +216,28 @@ export const listCommand = defineCommand({
 			process.exit(EXIT_AUTH_REQUIRED);
 		}
 
-		// Validate mutually exclusive options
-		if (args.inbox && args.folder) {
-			console.log(pc.red("Cannot use --inbox and --folder together."));
-			process.exit(EXIT_INVALID_ARGS);
-		}
-
-		// Validate sort option
-		if (args.sort && args.sort !== "created" && args.sort !== "clicks") {
-			console.log(pc.red("Invalid --sort value. Use 'created' or 'clicks'."));
-			process.exit(EXIT_INVALID_ARGS);
-		}
-
-		// Validate order option
-		if (args.order && args.order !== "asc" && args.order !== "desc") {
-			console.log(pc.red("Invalid --order value. Use 'asc' or 'desc'."));
-			process.exit(EXIT_INVALID_ARGS);
-		}
+		validateListArgs(args as ListArgs);
 
 		const client = new ApiClient(apiKey);
 
 		try {
-			// Pre-fetch folders only when needed:
-			// - --folder is a non-UUID name that must be resolved
-			// (a UUID can be used directly without folders:read scope)
-			let cachedFolders: Folder[] | undefined;
-			const uuidPattern =
-				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-			const folderArg = args.folder as string | undefined;
-			const needsFolderResolution = !!folderArg && !uuidPattern.test(folderArg);
-			if (needsFolderResolution) {
-				const foldersResponse = await client.listFolders();
-				cachedFolders = foldersResponse.folders;
-			}
-
-			// Build params object, only including defined fields
-			const params: ListLinksParams = {};
-			if (args.limit) params.limit = Number.parseInt(args.limit, 10);
-			if (args.offset) params.offset = Number.parseInt(args.offset, 10);
-			if (args.query) params.query = args.query;
-			if (args.inbox) params.inbox = true;
-			if (args.sort) params.sort = args.sort as "created" | "clicks";
-			if (args.order) params.order = args.order as "asc" | "desc";
-
-			// Resolve folder argument: UUIDs pass through; names use cache
-			if (folderArg) {
-				if (uuidPattern.test(folderArg)) {
-					params.folderId = folderArg;
-				} else if (cachedFolders) {
-					const folderId = resolveFolderNameFromCache(folderArg, cachedFolders);
-					if (folderId === null) {
-						process.exit(EXIT_INVALID_ARGS);
-					}
-					params.folderId = folderId;
-				}
-			}
-
-			// Resolve tag name to ID
-			if (args.tag) {
-				const tagId = await resolveTagName(client, args.tag);
-				if (tagId === null) {
-					process.exit(EXIT_INVALID_ARGS);
-				}
-				params.tagId = tagId;
-			}
+			const { params, cachedFolders } = await buildListParams(client, args as ListArgs);
 
 			const response = await client.listLinks(params);
 
-			// Count-only mode: use total from API response
 			if (args.count) {
 				console.log(response.total);
 				return;
 			}
 
-			// Build folder name map for table output
-			let folderMap: Map<string, string> | undefined;
-			const hasFolders = response.links.some((l) => l.folderId);
-			if (hasFolders) {
-				try {
-					// Reuse cached folders if available, otherwise fetch
-					const folders = cachedFolders ?? (await client.listFolders()).folders;
-					folderMap = new Map(folders.map((f: Folder) => [f.id, f.name]));
-				} catch {
-					// If folder fetch fails, continue without folder names
-				}
-			}
-
-			// Determine whether to show TAGS column.
-			// Auto-enable when filtering by tag, or when --show-tags is set.
 			const showTags = !!(args["show-tags"] || args.tag);
+			const { folderMap, tagMap } = await loadDisplayMaps(
+				client,
+				response.links,
+				cachedFolders,
+				showTags,
+			);
 
-			// Build tag name map only when we will actually render tags AND
-			// the response is missing embedded tag details. The /links
-			// endpoint already includes `tags: Tag[]` per link, so a
-			// successful response makes listTags() unnecessary; we only
-			// fall back when some tagged link is missing its tags array
-			// (older server, or partial response).
-			let tagMap: Map<string, string> | undefined;
-			const needsTagFallback =
-				showTags &&
-				response.links.some(
-					(l) =>
-						(l.tagIds ?? []).length > 0 && (!l.tags || l.tags.length === 0),
-				);
-			if (needsTagFallback) {
-				try {
-					const tagsResponse = await client.listTags();
-					tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));
-				} catch {
-					// If tag fetch fails, continue without tag names
-				}
-			}
-
-			// Determine output format
 			let format = getOutputFormat();
 			if (args.json) format = "json";
 			if (args.minimal) format = "minimal";
