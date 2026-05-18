@@ -1,15 +1,7 @@
 "use client";
 
-import { useState, useCallback, type Dispatch, type SetStateAction } from "react";
+import { useState, useCallback } from "react";
 import { saveBackyConfig } from "@/actions/backy";
-
-interface ConfigSetters {
-  setWebhookUrl: Dispatch<SetStateAction<string>>;
-  setApiKey: Dispatch<SetStateAction<string>>;
-  setMaskedApiKey: Dispatch<SetStateAction<string | null>>;
-  setIsConfigured: Dispatch<SetStateAction<boolean>>;
-  setIsEditing: Dispatch<SetStateAction<boolean>>;
-}
 
 /**
  * Config-only state slice for Backy: webhook URL + API key + masked-key +
@@ -30,10 +22,6 @@ export function useBackyConfigState(initialData?: {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setters: ConfigSetters = {
-    setWebhookUrl, setApiKey, setMaskedApiKey, setIsConfigured, setIsEditing,
-  };
-
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     setError(null);
@@ -44,11 +32,11 @@ export function useBackyConfigState(initialData?: {
         return;
       }
       if (result.data) {
-        setters.setWebhookUrl(result.data.webhookUrl);
-        setters.setMaskedApiKey(result.data.maskedApiKey);
-        setters.setIsConfigured(true);
-        setters.setIsEditing(false);
-        setters.setApiKey("");
+        setWebhookUrl(result.data.webhookUrl);
+        setMaskedApiKey(result.data.maskedApiKey);
+        setIsConfigured(true);
+        setIsEditing(false);
+        setApiKey("");
       }
     } finally {
       setIsSaving(false);

@@ -157,10 +157,8 @@ export function checkRateLimit(
 // OpenAPI 3.1 specification builder
 // ---------------------------------------------------------------------------
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export type { OpenApiSpec } from "./webhook-openapi";
 export { buildOpenApiSpec } from "./webhook-openapi";
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // AI agent prompt builder

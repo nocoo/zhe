@@ -156,12 +156,12 @@ export function useIdeaEditorViewModel(ideaId: number) {
     setTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
-  }, []);
+  }, [setTagIds]);
 
   // ── Clear error ──
   const clearError = useCallback(() => {
     setError(null);
-  }, []);
+  }, [setError]);
 
   return {
     // Fetched state
