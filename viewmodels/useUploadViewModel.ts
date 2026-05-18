@@ -3,15 +3,14 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Upload } from "@/lib/db/schema";
 import type { UploadingFile } from "@/models/upload";
-import { validateUploadRequest } from "@/models/upload";
-import { formatFileSize, isImageType, isPngFile, convertPngToJpeg, normalizeJpegQuality, DEFAULT_JPEG_QUALITY } from "@/models/upload";
+import { formatFileSize, isImageType, DEFAULT_JPEG_QUALITY } from "@/models/upload";
 import {
-  getPresignedUploadUrl,
-  recordUpload,
   getUploads as fetchUploads,
   deleteUpload as deleteUploadAction,
 } from "@/actions/upload";
 import { copyToClipboard } from "@/lib/utils";
+import { runUploadFlow } from "./uploads/runUploadFlow";
+import { usePersistedFlag, usePersistedNumber } from "./uploads/usePersistedSetting";
 
 // Re-export for component convenience
 export { formatFileSize, isImageType };
@@ -25,44 +24,8 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
   const [loading, setLoading] = useState(!initialUploads);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [autoConvertPng, setAutoConvertPngState] = useState(() => {
-    try {
-      return localStorage.getItem(AUTO_CONVERT_PNG_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
-
-  const [jpegQuality, setJpegQualityState] = useState(() => {
-    try {
-      const stored = localStorage.getItem(JPEG_QUALITY_KEY);
-      if (stored !== null) {
-        const parsed = Number(stored);
-        if (!Number.isNaN(parsed)) return parsed;
-      }
-    } catch {
-      // localStorage unavailable — ignore
-    }
-    return DEFAULT_JPEG_QUALITY;
-  });
-
-  const setAutoConvertPng = useCallback((value: boolean) => {
-    setAutoConvertPngState(value);
-    try {
-      localStorage.setItem(AUTO_CONVERT_PNG_KEY, String(value));
-    } catch {
-      // localStorage unavailable — ignore
-    }
-  }, []);
-
-  const setJpegQuality = useCallback((value: number) => {
-    setJpegQualityState(value);
-    try {
-      localStorage.setItem(JPEG_QUALITY_KEY, String(value));
-    } catch {
-      // localStorage unavailable — ignore
-    }
-  }, []);
+  const [autoConvertPng, setAutoConvertPng] = usePersistedFlag(AUTO_CONVERT_PNG_KEY, false);
+  const [jpegQuality, setJpegQuality] = usePersistedNumber(JPEG_QUALITY_KEY, DEFAULT_JPEG_QUALITY);
 
   useEffect(() => {
     if (initialUploads) return;
@@ -80,157 +43,17 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
     return () => { cancelled = true; };
   }, [initialUploads]);
 
-  /**
-   * Upload a single file via presigned URL flow:
-   * 1. Validate → 2. Get presigned URL → 3. PUT to R2 → 4. Record in DB
-   */
-  const uploadFile = useCallback(async (file: File) => {
-    const tempId = crypto.randomUUID();
-    const uploadingFile: UploadingFile = {
-      id: tempId,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      status: "pending",
-      progress: 0,
-    };
-
-    // Add to uploading list
-    setUploadingFiles((prev) => [uploadingFile, ...prev]);
-
-    // Step 0: Convert PNG to JPEG if enabled
-    let fileToUpload = file;
-    if (autoConvertPng && isPngFile(file)) {
-      try {
-        fileToUpload = await convertPngToJpeg(file, normalizeJpegQuality(jpegQuality));
-      } catch {
-        // Fall back to original file on conversion failure
-        fileToUpload = file;
-      }
-    }
-
-    // Step 1: Validate
-    const validation = validateUploadRequest({
-      fileName: fileToUpload.name,
-      fileType: fileToUpload.type,
-      fileSize: fileToUpload.size,
-    });
-
-    if (!validation.valid) {
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId
-            ? { ...f, status: "error" as const, error: validation.error }
-            : f,
-        ),
+  /** Upload a single file (see runUploadFlow for the multi-step flow). */
+  const uploadFile = useCallback(
+    async (file: File) => {
+      await runUploadFlow(
+        file,
+        { autoConvertPng, jpegQuality },
+        { setUploadingFiles, setUploads },
       );
-      return;
-    }
-
-    // Step 2: Get presigned URL
-    setUploadingFiles((prev) =>
-      prev.map((f) =>
-        f.id === tempId ? { ...f, status: "uploading" as const, progress: 10 } : f,
-      ),
-    );
-
-    const presignResult = await getPresignedUploadUrl({
-      fileName: fileToUpload.name,
-      fileType: fileToUpload.type,
-      fileSize: fileToUpload.size,
-    });
-
-    if (!presignResult.success || !presignResult.data) {
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId
-            ? { ...f, status: "error" as const, error: presignResult.error || "Failed to get upload URL" }
-            : f,
-        ),
-      );
-      return;
-    }
-
-    const { uploadUrl, publicUrl, key } = presignResult.data;
-
-    // Step 3: PUT file to R2 via presigned URL
-    setUploadingFiles((prev) =>
-      prev.map((f) =>
-        f.id === tempId ? { ...f, progress: 30, key, publicUrl } : f,
-      ),
-    );
-
-    try {
-      const putResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        body: fileToUpload,
-        headers: { "Content-Type": fileToUpload.type },
-      });
-
-      if (!putResponse.ok) {
-        throw new Error(`Upload failed with status ${putResponse.status}`);
-      }
-    } catch (error) {
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId
-            ? {
-                ...f,
-                status: "error" as const,
-                error: error instanceof Error ? error.message : "Upload failed",
-              }
-            : f,
-        ),
-      );
-      return;
-    }
-
-    // Step 4: Record in DB
-    setUploadingFiles((prev) =>
-      prev.map((f) =>
-        f.id === tempId ? { ...f, progress: 80 } : f,
-      ),
-    );
-
-    const recordResult = await recordUpload({
-      key,
-      fileName: fileToUpload.name,
-      fileType: fileToUpload.type,
-      fileSize: fileToUpload.size,
-      publicUrl,
-    });
-
-    if (!recordResult.success || !recordResult.data) {
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === tempId
-            ? {
-                ...f,
-                status: "error" as const,
-                error: recordResult.error || "Failed to record upload",
-              }
-            : f,
-        ),
-      );
-      return;
-    }
-
-    // Success: add to uploads list and mark as complete
-    const uploadData = recordResult.data;
-    setUploads((prev) => [uploadData, ...prev]);
-    setUploadingFiles((prev) =>
-      prev.map((f) =>
-        f.id === tempId
-          ? { ...f, status: "success" as const, progress: 100, publicUrl }
-          : f,
-      ),
-    );
-
-    // Remove from uploading list after a short delay
-    setTimeout(() => {
-      setUploadingFiles((prev) => prev.filter((f) => f.id !== tempId));
-    }, 2000);
-  }, [autoConvertPng, jpegQuality]);
+    },
+    [autoConvertPng, jpegQuality],
+  );
 
   /** Handle multiple files from input or drop */
   const handleFiles = useCallback(
