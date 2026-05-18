@@ -283,7 +283,3 @@ export async function getAnalyticsStats(linkId: number): Promise<ActionResult<An
     return { success: false, error: 'Failed to get analytics' };
   }
 }
-
-// Re-exports — implementations live in ./links/*.ts to keep this file small.
-export { refreshLinkMetadata, batchRefreshLinkMetadata } from './links/metadata';
-export { fetchAndSaveScreenshot, saveScreenshot } from './links/screenshot';

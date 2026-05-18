@@ -108,12 +108,10 @@ import {
   deleteLink,
   updateLink,
   getAnalyticsStats,
-  refreshLinkMetadata,
-  batchRefreshLinkMetadata,
   updateLinkNote,
-  saveScreenshot,
-  fetchAndSaveScreenshot,
 } from '@/actions/links';
+import { refreshLinkMetadata, batchRefreshLinkMetadata } from '@/actions/links/metadata';
+import { saveScreenshot, fetchAndSaveScreenshot } from '@/actions/links/screenshot';
 
 // ---------------------------------------------------------------------------
 // Helpers

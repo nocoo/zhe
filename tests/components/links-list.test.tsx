@@ -24,6 +24,15 @@ vi.mock('@/actions/links', () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
+}));
+
+vi.mock('@/actions/links/metadata', () => ({
+  refreshLinkMetadata: vi.fn(),
+  batchRefreshLinkMetadata: vi.fn(),
+}));
+
+vi.mock('@/actions/links/screenshot', () => ({
+  fetchAndSaveScreenshot: vi.fn(),
   saveScreenshot: vi.fn(),
 }));
 

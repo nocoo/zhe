@@ -52,7 +52,7 @@ async function updateLinkFromTweet(
   });
   const imageUrl = extractTweetImageUrl(tweet);
   if (imageUrl) {
-    const { saveScreenshot } = await import('@/actions/links');
+    const { saveScreenshot } = await import('@/actions/links/screenshot');
     saveScreenshot(linkId, imageUrl).catch(() => {});
   }
 }

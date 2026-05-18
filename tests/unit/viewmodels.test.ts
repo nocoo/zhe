@@ -21,8 +21,14 @@ vi.mock('@/actions/links', () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
+}));
+
+vi.mock('@/actions/links/metadata', () => ({
   refreshLinkMetadata: vi.fn(),
   batchRefreshLinkMetadata: vi.fn(),
+}));
+
+vi.mock('@/actions/links/screenshot', () => ({
   fetchAndSaveScreenshot: vi.fn(),
 }));
 
@@ -60,7 +66,9 @@ import {
   useInlineLinkEditViewModel,
 } from '@/viewmodels/useLinksViewModel';
 import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats, refreshLinkMetadata, batchRefreshLinkMetadata, fetchAndSaveScreenshot } from '@/actions/links';
+import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats } from '@/actions/links';
+import { refreshLinkMetadata, batchRefreshLinkMetadata } from '@/actions/links/metadata';
+import { fetchAndSaveScreenshot } from '@/actions/links/screenshot';
 import { copyToClipboard } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------

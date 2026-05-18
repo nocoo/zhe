@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Link } from "@/models/types";
-import { batchRefreshLinkMetadata } from "@/actions/links";
+import { batchRefreshLinkMetadata } from "@/actions/links/metadata";
 
 export { useLinkCardViewModel } from "./useLinkCardViewModel";
 export { useCreateLinkViewModel } from "./useCreateLinkViewModel";

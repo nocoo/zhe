@@ -31,10 +31,9 @@ vi.mock('@/auth', () => ({
 }));
 
 // saveScreenshot mock (dynamically imported by actions/xray)
-// We must preserve the rest of @/actions/links (createLink, getLinks, etc.)
 const mockSaveScreenshot = vi.fn();
-vi.mock('@/actions/links', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/actions/links')>();
+vi.mock('@/actions/links/screenshot', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/actions/links/screenshot')>();
   return {
     ...actual,
     saveScreenshot: (...args: unknown[]) => mockSaveScreenshot(...args),

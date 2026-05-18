@@ -10,7 +10,16 @@ import { makeLink, makeTag } from '../fixtures';
 vi.mock('@/actions/links', () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
+}));
+
+vi.mock('@/actions/links/metadata', () => ({
+  batchRefreshLinkMetadata: vi.fn(),
+  refreshLinkMetadata: vi.fn(),
+}));
+
+vi.mock('@/actions/links/screenshot', () => ({
   fetchAndSaveScreenshot: vi.fn(),
+  saveScreenshot: vi.fn(),
 }));
 
 vi.mock('@/actions/tags', () => ({

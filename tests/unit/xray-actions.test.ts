@@ -38,7 +38,7 @@ vi.mock('@/lib/db', () => ({
 
 // saveScreenshot mock (dynamically imported by actions/xray)
 const mockSaveScreenshot = vi.fn();
-vi.mock('@/actions/links', () => ({
+vi.mock('@/actions/links/screenshot', () => ({
   saveScreenshot: (...args: unknown[]) => mockSaveScreenshot(...args),
 }));
 

@@ -6,9 +6,9 @@ import type { Link, AnalyticsStats } from "@/models/types";
 import {
   deleteLink,
   getAnalyticsStats,
-  refreshLinkMetadata,
-  fetchAndSaveScreenshot,
 } from "@/actions/links";
+import { refreshLinkMetadata } from "@/actions/links/metadata";
+import { fetchAndSaveScreenshot } from "@/actions/links/screenshot";
 import { copyToClipboard } from "@/lib/utils";
 import {
   buildShortUrl,
