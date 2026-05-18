@@ -112,13 +112,15 @@ test.describe.serial('Folder CRUD', () => {
 
     const sidebar = page.locator('aside');
 
-    // Find the folder item and hover to show the menu button
-    const folderLink = sidebar.locator(`a[href*="folder="]:has-text("${folderName}")`);
-    await folderLink.hover();
+    // Scope to the row container so the menu button selector doesn't match
+    // a sibling row (cross-spec parallel runs may leave other e2e-* folders).
+    const folderRow = sidebar
+      .locator('div.group')
+      .filter({ has: page.locator(`a[href*="folder="]:has-text("${folderName}")`) });
+    await folderRow.hover();
 
-    // Click the menu button (MoreHorizontal icon)
-    const menuButton = sidebar.locator('button[aria-label="文件夹操作"]');
-    await menuButton.click();
+    // Click the menu button scoped to this row
+    await folderRow.locator('button[aria-label="文件夹操作"]').click();
 
     // Click "编辑" in the dropdown
     await page.getByRole('menuitem', { name: '编辑' }).click();
@@ -145,21 +147,23 @@ test.describe.serial('Folder CRUD', () => {
 
     const sidebar = page.locator('aside');
 
-    // Find the renamed folder and hover
-    const folderLink = sidebar.locator(`a[href*="folder="]:has-text("${renamedName}")`);
-    await folderLink.hover();
+    // Scope to the row container so the menu button selector doesn't match
+    // a sibling row (cross-spec parallel runs may leave other e2e-* folders).
+    const folderRow = sidebar
+      .locator('div.group')
+      .filter({ has: page.locator(`a[href*="folder="]:has-text("${renamedName}")`) });
+    await folderRow.hover();
 
-    // Click the menu button
-    const menuButton = sidebar.locator('button[aria-label="文件夹操作"]');
-    await menuButton.click();
+    // Click the menu button scoped to this row
+    await folderRow.locator('button[aria-label="文件夹操作"]').click();
 
     // Click "删除" in the dropdown and wait for the API response
     // The delete action shows a confirm() dialog — auto-accept it
     page.on('dialog', (dialog) => dialog.accept());
     await page.getByRole('menuitem', { name: '删除' }).click();
 
-    // The folder should disappear — use polling with increased timeout
-    // (CI headless environments may need extra time for DOM reconciliation)
-    await expect(sidebar.getByText(renamedName)).toBeHidden({ timeout: 15_000 });
+    // The folder row should disappear — scope to the row so a sibling row
+    // with the same prefix (from a parallel spec) can't keep the assertion alive.
+    await expect(folderRow).toBeHidden({ timeout: 15_000 });
   });
 });
