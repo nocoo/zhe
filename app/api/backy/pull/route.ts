@@ -2,16 +2,12 @@ import { NextResponse } from "next/server";
 import { verifyBackyPullWebhook } from "@/lib/db";
 import { ScopedDB } from "@/lib/db/scoped";
 import { APP_VERSION } from "@/lib/version";
+import { getBackyEnvironment, buildBackyTag } from "@/models/backy";
 import {
-  getBackyEnvironment,
-  buildBackyTag,
-  type BackyHistoryResponse,
-} from "@/models/backy";
-import {
-  serializeLinksForExport,
-  BACKUP_SCHEMA_VERSION,
-  type BackupEnvelope,
-} from "@/models/settings";
+  buildBackupBundle,
+  pushToBacky,
+  fetchBackyHistory,
+} from "./helpers";
 
 /**
  * POST /api/backy/pull
@@ -23,7 +19,6 @@ import {
  */
 export async function POST(request: Request) {
   const key = request.headers.get("x-webhook-key");
-
   if (!key) {
     return NextResponse.json(
       { error: "Missing X-Webhook-Key header" },
@@ -31,7 +26,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Verify credentials
   const result = await verifyBackyPullWebhook(key);
   if (!result) {
     return NextResponse.json(
@@ -40,7 +34,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Get user's Backy push config (remote webhook URL + API key)
   const db = new ScopedDB(result.userId);
   const config = await db.getBackySettings();
   if (!config) {
@@ -52,101 +45,39 @@ export async function POST(request: Request) {
 
   const start = Date.now();
 
-  // Gather data for export
-  const [links, folders, tags, linkTags] = await Promise.all([
-    db.getLinks(),
-    db.getFolders(),
-    db.getTags(),
-    db.getLinkTags(),
-  ]);
-
-  const exported = serializeLinksForExport(links);
-  const backupData: BackupEnvelope = {
-    schemaVersion: BACKUP_SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
-    links: exported,
-    folders: folders.map((f) => ({
-      id: f.id,
-      name: f.name,
-      icon: f.icon,
-      createdAt: new Date(f.createdAt).toISOString(),
-    })),
-    tags: tags.map((t) => ({
-      id: t.id,
-      name: t.name,
-      color: t.color,
-      createdAt: new Date(t.createdAt).toISOString(),
-    })),
-    linkTags: linkTags.map((lt) => ({
-      linkId: lt.linkId,
-      tagId: lt.tagId,
-    })),
-  };
-  const json = JSON.stringify(backupData);
-
-  // Build tag
+  // Gather data + assemble backup envelope
+  const bundle = await buildBackupBundle(db);
   const tag = buildBackyTag(APP_VERSION, {
-    links: links.length,
-    folders: folders.length,
-    tags: tags.length,
+    links: bundle.stats.links,
+    folders: bundle.stats.folders,
+    tags: bundle.stats.tags,
   });
-
   const fileName = `zhe-backup-${new Date().toISOString().slice(0, 10)}.json`;
 
-  // Push to Backy as multipart/form-data
-  const form = new FormData();
-  const blob = new Blob([json], { type: "application/json" });
-  form.append("file", blob, fileName);
-  form.append("environment", getBackyEnvironment());
-  form.append("tag", tag);
-
-  const res = await fetch(config.webhookUrl, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.apiKey}` },
-    body: form,
-  });
-
+  // Push to Backy
+  const pushResult = await pushToBacky(
+    config,
+    bundle.json,
+    fileName,
+    getBackyEnvironment(),
+    tag,
+  );
   const durationMs = Date.now() - start;
 
-  if (!res.ok) {
-    let body: unknown;
-    const text = await res.text().catch(() => "");
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = text || null;
-    }
+  if (!pushResult.ok) {
     return NextResponse.json(
       {
         error: "Backup push failed",
         durationMs,
-        status: res.status,
-        body,
+        status: pushResult.status,
+        body: pushResult.body,
       },
       { status: 502 },
     );
   }
 
-  // Consume response body
-  await res.json().catch(() => null);
-
-  // Fetch history inline
-  let history: BackyHistoryResponse | undefined;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const historyRes = await fetch(config.webhookUrl, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${config.apiKey}` },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    if (historyRes.ok) {
-      history = await historyRes.json();
-    }
-  } catch {
-    // Non-critical
-  }
+  // Best-effort: inline history fetch (non-critical)
+  const history = await fetchBackyHistory(config);
 
   return NextResponse.json({
     ok: true,
@@ -154,12 +85,7 @@ export async function POST(request: Request) {
     durationMs,
     tag,
     fileName,
-    stats: {
-      links: links.length,
-      folders: folders.length,
-      tags: tags.length,
-      linkTags: linkTags.length,
-    },
+    stats: bundle.stats,
     history,
   });
 }
@@ -172,15 +98,8 @@ export async function POST(request: Request) {
  */
 export async function HEAD(request: Request) {
   const key = request.headers.get("x-webhook-key");
-
-  if (!key) {
-    return new Response(null, { status: 401 });
-  }
-
+  if (!key) return new Response(null, { status: 401 });
   const result = await verifyBackyPullWebhook(key);
-  if (!result) {
-    return new Response(null, { status: 401 });
-  }
-
+  if (!result) return new Response(null, { status: 401 });
   return new Response(null, { status: 200 });
 }
