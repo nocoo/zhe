@@ -1,10 +1,37 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { Zap, Github } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { GoogleIcon } from "@/components/google-icon";
-import { Barcode } from "@/components/barcode";
+import {
+  BadgeFooter,
+  BadgeHeader,
+  RadialGlow,
+} from "./page-parts/badge-chrome";
+import { BadgeContent, TopRightControls } from "./page-parts/badge-content";
+
+const BADGE_SHADOW = [
+  "0 1px 2px rgba(0,0,0,0.06)",
+  "0 4px 8px rgba(0,0,0,0.04)",
+  "0 12px 24px rgba(0,0,0,0.06)",
+  "0 24px 48px rgba(0,0,0,0.04)",
+  "0 0 0 0.5px rgba(0,0,0,0.02)",
+  "0 0 60px rgba(0,0,0,0.03)",
+].join(", ");
+
+function todayDateStr(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(
+    now.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+async function signInWithGoogle(): Promise<void> {
+  "use server";
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") || "http";
+  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:7006";
+  const redirectTo = `${proto}://${host}/dashboard`;
+  await signIn("google", { redirectTo });
+}
 
 export default async function Home() {
   const session = await auth();
@@ -12,156 +39,21 @@ export default async function Home() {
     redirect("/dashboard");
   }
 
-  const year = new Date().getFullYear();
-  const dateStr = `${year}-${String(new Date().getMonth() + 1).padStart(2, "0")}${String(new Date().getDate()).padStart(2, "0")}`;
+  const dateStr = todayDateStr();
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
-      {/* Top-right controls */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
-        <a
-          href="https://github.com/nocoo/zhe"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          title="GitHub"
-        >
-          <Github className="h-[18px] w-[18px]" strokeWidth={1.5} />
-        </a>
-        <ThemeToggle />
-      </div>
-
-      {/* Radial glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: [
-            "radial-gradient(ellipse 70% 55% at 50% 50%,",
-            "hsl(var(--foreground) / 0.045) 0%,",
-            "hsl(var(--foreground) / 0.042) 10%,",
-            "hsl(var(--foreground) / 0.036) 20%,",
-            "hsl(var(--foreground) / 0.028) 32%,",
-            "hsl(var(--foreground) / 0.020) 45%,",
-            "hsl(var(--foreground) / 0.012) 58%,",
-            "hsl(var(--foreground) / 0.006) 72%,",
-            "hsl(var(--foreground) / 0.002) 86%,",
-            "transparent 100%)",
-          ].join(" "),
-        }}
-      />
+      <TopRightControls />
+      <RadialGlow />
 
       <div className="flex flex-col items-center">
-        {/* Badge card — bank card flipped vertical: 54/86 */}
         <div
           className="relative aspect-[54/86] w-72 overflow-hidden rounded-2xl bg-card flex flex-col ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
-          style={{
-            boxShadow: [
-              "0 1px 2px rgba(0,0,0,0.06)",
-              "0 4px 8px rgba(0,0,0,0.04)",
-              "0 12px 24px rgba(0,0,0,0.06)",
-              "0 24px 48px rgba(0,0,0,0.04)",
-              "0 0 0 0.5px rgba(0,0,0,0.02)",
-              "0 0 60px rgba(0,0,0,0.03)",
-            ].join(", "),
-          }}
+          style={{ boxShadow: BADGE_SHADOW }}
         >
-          {/* Header strip with barcode */}
-          <div className="bg-primary px-5 py-4">
-            <div className="flex items-center justify-between">
-              {/* Punch hole */}
-              <div
-                className="h-4 w-8 rounded-full bg-background/80"
-                style={{
-                  boxShadow:
-                    "inset 0 1.5px 3px rgba(0,0,0,0.35), inset 0 -0.5px 1px rgba(255,255,255,0.1)",
-                }}
-              />
-              <div className="flex items-center gap-2">
-                <Zap
-                  className="h-4 w-4 text-primary-foreground"
-                  strokeWidth={1.5}
-                />
-                <span className="text-sm font-semibold text-primary-foreground">
-                  zhe.
-                </span>
-              </div>
-              <span className="text-[10px] font-medium uppercase tracking-widest text-primary-foreground/60">
-                Visitor
-              </span>
-            </div>
-            {/* Barcode row */}
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[9px] font-mono text-primary-foreground/40 tracking-wider">
-                ID {dateStr}
-              </span>
-              <div className="h-6">
-                <Barcode />
-              </div>
-            </div>
-          </div>
-
-          {/* Badge content */}
-          <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
-            {/* Logo avatar */}
-            <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-background ring-1 ring-border p-2.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-80.png"
-                alt="Zhe"
-                width={80}
-                height={80}
-                className="h-full w-full object-contain"
-              />
-            </div>
-
-            <p className="mt-5 text-lg font-semibold text-foreground">
-              就是这
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              登录以管理您的短链接
-            </p>
-
-            {/* Divider */}
-            <div className="mt-5 h-px w-full bg-border" />
-
-            {/* Push button toward bottom */}
-            <div className="flex-1" />
-
-            {/* Google Sign-in button */}
-            <form
-              action={async () => {
-                "use server";
-                const h = await headers();
-                const proto = h.get("x-forwarded-proto") || "http";
-                const host = h.get("x-forwarded-host") || h.get("host") || "localhost:7006";
-                const redirectTo = `${proto}://${host}/dashboard`;
-                await signIn("google", { redirectTo });
-              }}
-            >
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-secondary px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
-              >
-                <GoogleIcon className="h-4 w-4" />
-                Continue with Google
-              </button>
-            </form>
-
-            {/* Terms */}
-            <p className="mt-3 text-center text-[10px] leading-relaxed text-muted-foreground/60">
-              点击登录即表示您同意服务条款
-            </p>
-          </div>
-
-          {/* Footer strip */}
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center border-t border-border bg-secondary/50 py-2.5">
-            <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-              <span className="text-[10px] text-muted-foreground">
-                Secure authentication
-              </span>
-            </div>
-          </div>
+          <BadgeHeader dateStr={dateStr} />
+          <BadgeContent signInAction={signInWithGoogle} />
+          <BadgeFooter />
         </div>
       </div>
     </div>
