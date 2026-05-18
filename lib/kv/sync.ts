@@ -31,6 +31,53 @@ export interface SyncResult {
  * Execute a full D1 → KV sync and record the result in cron history.
  * Returns the sync result (or an error result if something went wrong).
  */
+/** Step 1: fetch all links from D1, recording any failure as a cron result. */
+async function fetchLinksOrFail(startTime: number): Promise<
+  | { ok: true; links: Awaited<ReturnType<typeof getAllLinksForKV>> }
+  | { ok: false; result: SyncResult }
+> {
+  try {
+    return { ok: true, links: await getAllLinksForKV() };
+  } catch (err) {
+    const durationMs = Date.now() - startTime;
+    const errorMsg = 'Failed to fetch links from D1';
+    console.error('sync-kv:', errorMsg, err);
+    recordCronResult({
+      timestamp: new Date().toISOString(),
+      status: 'error',
+      synced: 0,
+      failed: 0,
+      total: 0,
+      durationMs,
+      error: errorMsg,
+    });
+    return {
+      ok: false,
+      result: { synced: 0, failed: 0, deleted: 0, total: 0, durationMs, error: errorMsg },
+    };
+  }
+}
+
+/** Step 3: delete slugs present in KV but not D1. Returns {deleted, deleteFailed, listFailed}. */
+async function deleteOrphanedSlugs(
+  d1Slugs: Set<string>,
+): Promise<{ deleted: number; deleteFailed: number; listFailed: boolean }> {
+  const listResult = await kvListKeys();
+  if (listResult.error) {
+    console.log('sync-kv: skipped orphan deletion due to list failure');
+    return { deleted: 0, deleteFailed: 0, listFailed: true };
+  }
+  const orphanedSlugs = listResult.keys.filter((key) => !d1Slugs.has(key));
+  if (orphanedSlugs.length === 0) {
+    return { deleted: 0, deleteFailed: 0, listFailed: false };
+  }
+  const deleteResult = await kvBulkDeleteLinks(orphanedSlugs);
+  console.log(
+    `sync-kv: deleted ${deleteResult.success} orphaned slugs, ${deleteResult.failed} failed`,
+  );
+  return { deleted: deleteResult.success, deleteFailed: deleteResult.failed, listFailed: false };
+}
+
 export async function performKVSync(): Promise<SyncResult> {
   if (!isKVConfigured()) {
     return { synced: 0, failed: 0, deleted: 0, total: 0, durationMs: 0, error: 'KV not configured' };
@@ -50,64 +97,24 @@ export async function performKVSync(): Promise<SyncResult> {
 
   const startTime = Date.now();
 
-  // 1. Fetch all links from D1
-  let links: Awaited<ReturnType<typeof getAllLinksForKV>>;
-  try {
-    links = await getAllLinksForKV();
-  } catch (err) {
-    const durationMs = Date.now() - startTime;
-    const errorMsg = 'Failed to fetch links from D1';
-    console.error('sync-kv:', errorMsg, err);
-    recordCronResult({
-      timestamp: new Date().toISOString(),
-      status: 'error',
-      synced: 0,
-      failed: 0,
-      total: 0,
-      durationMs,
-      error: errorMsg,
-    });
-    return { synced: 0, failed: 0, deleted: 0, total: 0, durationMs, error: errorMsg };
-  }
+  const fetchOutcome = await fetchLinksOrFail(startTime);
+  if (!fetchOutcome.ok) return fetchOutcome.result;
+  const { links } = fetchOutcome;
 
-  // 2. Bulk-write to KV
+  // Bulk-write to KV
   const entries = links.map((link) => ({
     slug: link.slug,
-    data: {
-      id: link.id,
-      originalUrl: link.originalUrl,
-      expiresAt: link.expiresAt,
-    },
+    data: { id: link.id, originalUrl: link.originalUrl, expiresAt: link.expiresAt },
   }));
-
   const result = await kvBulkPutLinks(entries);
 
-  // 3. Delete orphaned slugs (KV keys not in D1)
-  // Only proceed if the write phase was fully successful — otherwise we risk
-  // deleting the old slug for a rename while the new slug failed to write.
+  // Delete orphaned slugs only if the write phase fully succeeded.
   let deleted = 0;
   let deleteFailed = 0;
   let listFailed = false;
-
   if (result.failed === 0) {
     const d1Slugs = new Set(links.map((link) => link.slug));
-    const listResult = await kvListKeys();
-    listFailed = listResult.error;
-
-    if (!listResult.error) {
-      const orphanedSlugs = listResult.keys.filter((key) => !d1Slugs.has(key));
-
-      if (orphanedSlugs.length > 0) {
-        const deleteResult = await kvBulkDeleteLinks(orphanedSlugs);
-        deleted = deleteResult.success;
-        deleteFailed = deleteResult.failed;
-        console.log(
-          `sync-kv: deleted ${deleted} orphaned slugs, ${deleteFailed} failed`,
-        );
-      }
-    } else {
-      console.log('sync-kv: skipped orphan deletion due to list failure');
-    }
+    ({ deleted, deleteFailed, listFailed } = await deleteOrphanedSlugs(d1Slugs));
   } else {
     console.log('sync-kv: skipped orphan deletion due to write failures');
   }
@@ -129,10 +136,7 @@ export async function performKVSync(): Promise<SyncResult> {
     durationMs,
   });
 
-  // Only clear dirty flag if both put and delete succeeded
-  if (!hasFailures) {
-    clearKVDirty();
-  }
+  if (!hasFailures) clearKVDirty();
 
   return {
     synced: result.success,
