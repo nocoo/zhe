@@ -18,39 +18,47 @@ export type IdeaEditorViewModel = ReturnType<typeof useIdeaEditorViewModel>;
  * - Save via updateIdea() server action
  * - Sync back to DashboardService via handleIdeaUpdated()
  */
-export function useIdeaEditorViewModel(ideaId: number) {
-  // ── Fetched snapshot (source of truth for dirty comparison) ──
+/** Compare draft state against the persisted snapshot. */
+function computeIsDirty(
+  idea: IdeaDetail | null,
+  title: string | null,
+  content: string,
+  tagIds: string[],
+): boolean {
+  if (!idea) return false;
+  if (title !== idea.title) return true;
+  if (content !== idea.content) return true;
+  const sortedCurrent = [...tagIds].sort();
+  const sortedOriginal = [...idea.tagIds].sort();
+  if (sortedCurrent.length !== sortedOriginal.length) return true;
+  return sortedCurrent.some((id, i) => id !== sortedOriginal[i]);
+}
+
+function toListItem(d: IdeaDetail): IdeaListItem {
+  return {
+    id: d.id,
+    title: d.title,
+    excerpt: d.excerpt,
+    tagIds: d.tagIds,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+  };
+}
+
+/** Load an idea on mount / when ideaId changes; clears stale state on switch. */
+function useIdeaFetch(ideaId: number) {
   const [idea, setIdea] = useState<IdeaDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-
-  // ── Draft state ──
   const [title, setTitle] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [tagIds, setTagIds] = useState<string[]>([]);
-
-  // ── Mutation state ──
-  const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
-  // ── Tags from DashboardService ──
-  const { tags } = useDashboardState();
-  const { handleIdeaUpdated } = useDashboardActions();
-
-  // Track if component is mounted to avoid state updates after unmount
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // ── Fetch idea on mount ──
   useEffect(() => {
     let cancelled = false;
     async function fetchIdea() {
-      // Reset ALL state immediately on ideaId change to prevent stale snapshot
       setIdea(null);
       setLastSavedAt(null);
       setTitle(null);
@@ -81,22 +89,40 @@ export function useIdeaEditorViewModel(ideaId: number) {
       }
     }
     fetchIdea();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [ideaId]);
 
+  return {
+    idea, setIdea,
+    loading,
+    error, setError,
+    notFound,
+    title, setTitle,
+    content, setContent,
+    tagIds, setTagIds,
+    lastSavedAt, setLastSavedAt,
+  };
+}
+
+export function useIdeaEditorViewModel(ideaId: number) {
+  const fetched = useIdeaFetch(ideaId);
+  const { idea, setIdea, loading, error, setError, notFound, title, setTitle, content, setContent, tagIds, setTagIds, lastSavedAt, setLastSavedAt } = fetched;
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { tags } = useDashboardState();
+  const { handleIdeaUpdated } = useDashboardActions();
+
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
   // ── Dirty tracking ──
-  const isDirty = useCallback((): boolean => {
-    if (!idea) return false;
-    if (title !== idea.title) return true;
-    if (content !== idea.content) return true;
-    // Compare tagIds as sorted arrays
-    const sortedCurrent = [...tagIds].sort();
-    const sortedOriginal = [...idea.tagIds].sort();
-    if (sortedCurrent.length !== sortedOriginal.length) return true;
-    return sortedCurrent.some((id, i) => id !== sortedOriginal[i]);
-  }, [idea, title, content, tagIds]);
+  const isDirty = useCallback(
+    (): boolean => computeIsDirty(idea, title, content, tagIds),
+    [idea, title, content, tagIds],
+  );
 
   // ── Save ──
   const save = useCallback(async (): Promise<boolean> => {
@@ -104,27 +130,13 @@ export function useIdeaEditorViewModel(ideaId: number) {
     setIsSaving(true);
     setError(null);
     try {
-      const result = await updateIdea(ideaId, {
-        title,
-        content,
-        tagIds,
-      });
+      const result = await updateIdea(ideaId, { title, content, tagIds });
       if (!mountedRef.current) return false;
       if (result.success && result.data) {
         const updated = result.data;
-        // Update snapshot so dirty resets
         setIdea(updated);
         setLastSavedAt(new Date());
-        // Sync to DashboardService
-        const listItem: IdeaListItem = {
-          id: updated.id,
-          title: updated.title,
-          excerpt: updated.excerpt,
-          tagIds: updated.tagIds,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-        };
-        handleIdeaUpdated(listItem);
+        handleIdeaUpdated(toListItem(updated));
         return true;
       }
       setError(result.error ?? "Failed to save");
@@ -137,7 +149,7 @@ export function useIdeaEditorViewModel(ideaId: number) {
     } finally {
       if (mountedRef.current) setIsSaving(false);
     }
-  }, [idea, ideaId, title, content, tagIds, handleIdeaUpdated]);
+  }, [idea, ideaId, title, content, tagIds, handleIdeaUpdated, setError, setIdea, setLastSavedAt]);
 
   // ── Tag toggle helper ──
   const toggleTag = useCallback((tagId: string) => {
