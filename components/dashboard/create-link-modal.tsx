@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -20,10 +13,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
-import { stripProtocol } from "@/models/links";
-import { TagBadge, TagPicker } from "./shared-link-components";
 import { createTag } from "@/actions/tags";
 import type { Link, Folder, Tag } from "@/models/types";
+import {
+  ModeTabs,
+  SlugInput,
+  FolderSelect,
+  TagsField,
+} from "./create-link-modal-parts/fields";
 
 interface CreateLinkModalProps {
   siteUrl: string;
@@ -31,6 +28,63 @@ interface CreateLinkModalProps {
   folders?: Folder[];
   tags?: Tag[];
   onTagCreated?: (tag: Tag) => void;
+}
+
+const INPUT_CLS =
+  "rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
+
+function LabelledInput({
+  id,
+  label,
+  type,
+  placeholder,
+  value,
+  onChange,
+  required,
+}: {
+  id: string;
+  label: string;
+  type: "url" | "text";
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-sm text-foreground">
+        {label}
+      </Label>
+      <Input
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className={INPUT_CLS}
+      />
+    </div>
+  );
+}
+
+function SubmitButton({ isLoading }: { isLoading: boolean }) {
+  return (
+    <button
+      type="submit"
+      className="flex w-full items-center justify-center gap-2 rounded-widget bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      disabled={isLoading}
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+          创建中...
+        </>
+      ) : (
+        "创建链接"
+      )}
+    </button>
+  );
 }
 
 export function CreateLinkModal({
@@ -58,178 +112,77 @@ export function CreateLinkModal({
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="rounded-widget h-7 w-7 p-0" aria-label="新建链接">
+        <Button
+          size="sm"
+          className="rounded-widget h-7 w-7 p-0"
+          aria-label="新建链接"
+        >
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] rounded-card border-0 bg-card">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            创建短链接
-          </DialogTitle>
+          <DialogTitle className="text-lg font-semibold">创建短链接</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={vm.handleSubmit} className="space-y-4">
-          {/* Mode tabs */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => vm.setMode("simple")}
-              className={`flex-1 py-2 text-sm rounded-widget transition-colors ${
-                vm.mode === "simple"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
-            >
-              简单模式
-            </button>
-            <button
-              type="button"
-              onClick={() => vm.setMode("custom")}
-              className={`flex-1 py-2 text-sm rounded-widget transition-colors ${
-                vm.mode === "custom"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
-            >
-              自定义 slug
-            </button>
-          </div>
+          <ModeTabs mode={vm.mode} setMode={vm.setMode} />
 
-          {/* URL input */}
-          <div className="space-y-2">
-            <Label htmlFor="url" className="text-sm text-foreground">
-              原始链接
-            </Label>
-            <Input
-              id="url"
-              type="url"
-              placeholder="https://example.com/very-long-url"
-              value={vm.url}
-              onChange={(e) => vm.setUrl(e.target.value)}
-              required
-              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
-            />
-          </div>
+          <LabelledInput
+            id="url"
+            label="原始链接"
+            type="url"
+            placeholder="https://example.com/very-long-url"
+            value={vm.url}
+            onChange={vm.setUrl}
+            required
+          />
 
-          {/* Custom slug input */}
           {vm.mode === "custom" && (
-            <div className="space-y-2">
-              <Label htmlFor="slug" className="text-sm text-foreground">
-                自定义 slug
-              </Label>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-sm whitespace-nowrap">
-                  {stripProtocol(siteUrl)}/
-                </span>
-                <Input
-                  id="slug"
-                  type="text"
-                  placeholder="my-custom-link"
-                  value={vm.customSlug}
-                  onChange={(e) => vm.setCustomSlug(e.target.value)}
-                  pattern="^[a-zA-Z0-9_-]+$"
-                  title="Only letters, numbers, hyphens, and underscores"
-                  required={vm.mode === "custom"}
-                  className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Folder selector */}
-          {folders.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="folder" className="text-sm text-foreground">
-                文件夹
-              </Label>
-              <Select
-                value={vm.folderId ?? "__inbox__"}
-                onValueChange={(v) =>
-                  vm.setFolderId(v === "__inbox__" ? undefined : v)
-                }
-              >
-                <SelectTrigger id="folder" className="h-9 w-full rounded-widget border-border bg-secondary text-sm focus:ring-1 focus:ring-primary">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__inbox__">Inbox</SelectItem>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Note input */}
-          <div className="space-y-2">
-            <Label htmlFor="note" className="text-sm text-foreground">
-              备注
-            </Label>
-            <Input
-              id="note"
-              type="text"
-              placeholder="添加备注..."
-              value={vm.note}
-              onChange={(e) => vm.setNote(e.target.value)}
-              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
+            <SlugInput
+              siteUrl={siteUrl}
+              customSlug={vm.customSlug}
+              setCustomSlug={vm.setCustomSlug}
+              required={vm.mode === "custom"}
             />
-          </div>
-
-          {/* Screenshot URL input */}
-          <div className="space-y-2">
-            <Label htmlFor="screenshotUrl" className="text-sm text-foreground">
-              截图链接
-            </Label>
-            <Input
-              id="screenshotUrl"
-              type="url"
-              placeholder="https://example.com/screenshot.png"
-              value={vm.screenshotUrl}
-              onChange={(e) => vm.setScreenshotUrl(e.target.value)}
-              className="rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary"
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label className="text-sm text-foreground">标签</Label>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {assignedTags.map((tag) => (
-                <TagBadge key={tag.id} tag={tag} onRemove={vm.removeTag} />
-              ))}
-              <TagPicker
-                allTags={tags}
-                assignedTagIds={vm.selectedTagIds}
-                onSelectTag={vm.addTag}
-                onCreateTag={handleCreateTag}
-              />
-            </div>
-          </div>
-
-          {/* Error message */}
-          {vm.error && (
-            <p className="text-sm text-destructive">{vm.error}</p>
           )}
 
-          {/* Submit button */}
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-widget bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            disabled={vm.isLoading}
-          >
-            {vm.isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-                创建中...
-              </>
-            ) : (
-              "创建链接"
-            )}
-          </button>
+          <FolderSelect
+            folders={folders}
+            folderId={vm.folderId}
+            setFolderId={vm.setFolderId}
+          />
+
+          <LabelledInput
+            id="note"
+            label="备注"
+            type="text"
+            placeholder="添加备注..."
+            value={vm.note}
+            onChange={vm.setNote}
+          />
+
+          <LabelledInput
+            id="screenshotUrl"
+            label="截图链接"
+            type="url"
+            placeholder="https://example.com/screenshot.png"
+            value={vm.screenshotUrl}
+            onChange={vm.setScreenshotUrl}
+          />
+
+          <TagsField
+            tags={tags}
+            assignedTags={assignedTags}
+            selectedTagIds={vm.selectedTagIds}
+            onAddTag={vm.addTag}
+            onRemoveTag={vm.removeTag}
+            onCreateTag={handleCreateTag}
+          />
+
+          {vm.error && <p className="text-sm text-destructive">{vm.error}</p>}
+
+          <SubmitButton isLoading={vm.isLoading} />
         </form>
       </DialogContent>
     </Dialog>

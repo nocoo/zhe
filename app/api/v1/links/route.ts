@@ -11,8 +11,6 @@ import { logApiRequest } from "@/lib/api/audit";
 import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
 import { linkToResponse } from "@/lib/api/serializers";
 import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
-import { slugExists } from "@/lib/db";
-import { generateUniqueSlug } from "@/lib/slug";
 import {
   validateUrl,
   resolveSlug,

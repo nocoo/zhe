@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getWebhookByToken, getWebhookStats, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
 import {
   validateWebhookPayload,
