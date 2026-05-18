@@ -103,6 +103,7 @@ function isStaticAsset(pathname: string): boolean {
 // Sub-modules — keeps this file focused on the fetch handler.
 import { parseDevice, parseBrowser, parseOS, recordClickAsync } from './analytics';
 import { forwardToOrigin } from './forward';
+import { tryKvLookup, tryOriginLookup } from './redirect';
 
 async function handleFetch(
   request: Request,
@@ -121,130 +122,34 @@ async function handleFetch(
     return handleD1Batch(request, env);
   }
 
-  // 1. Root path → forward to origin
-  if (pathname === '/' || pathname === '') {
+  // 1. Root path, static assets → forward to origin
+  if (pathname === '/' || pathname === '' || isStaticAsset(pathname)) {
     return forwardToOrigin(request, env);
   }
 
-  // 2. Static assets → forward to origin
-  if (isStaticAsset(pathname)) {
-    return forwardToOrigin(request, env);
-  }
-
-  // 3. Extract first path segment
-  // split('/') always returns at least [''], so [0] is safe
+  // 2. Extract first path segment; reserved + multi-segment → forward to origin
   const slug = pathname.slice(1).split('/')[0] ?? '';
-
-  // 4. Reserved paths → forward to origin
-  if (isReservedPath(slug)) {
+  if (isReservedPath(slug) || pathname.slice(1).includes('/')) {
     return forwardToOrigin(request, env);
   }
 
-  // 5. Multi-segment paths (e.g. /slug/something) → forward to origin
-  //    Short links are single-segment only.
-  if (pathname.slice(1).includes('/')) {
-    return forwardToOrigin(request, env);
-  }
+  // 3. KV lookup for potential slug
+  const kvResult = await tryKvLookup(slug, ctx, env, request);
+  if (kvResult) return kvResult;
 
+  // 4. Negative cache: a recent confirmed 404 for this slug.
+  //    Placed AFTER KV lookup so a freshly-created slug is never masked by a
+  //    stale tombstone from the same colo.
   const cache = caches.default;
   const negCacheKey = new Request(`https://neg-cache.internal/${slug}`);
-
-  // 6. KV lookup for potential slug
-  try {
-    const kvData = await env.LINKS_KV.get<KVLinkData>(slug, 'json');
-
-    if (kvData) {
-      // Check expiry — forward to origin so user sees the real 404 page
-      if (kvData.expiresAt && Date.now() > kvData.expiresAt) {
-        return forwardToOrigin(request, env);
-      }
-
-      // Fire-and-forget click analytics
-      recordClickAsync(ctx, env, kvData.id, request);
-
-      // 307 Temporary Redirect
-      return Response.redirect(kvData.originalUrl, 307);
-    }
-  } catch (err) {
-    console.error(`KV lookup error for slug "${slug}":`, err);
-    // Fall through to negative cache / lookup API on KV error
-  }
-
-  // 6.5 Negative cache: check if this slug was recently confirmed as non-existent.
-  // Placed AFTER KV lookup so a freshly-created slug in KV is never masked by a
-  // stale tombstone from the same colo.
   const cached = await cache.match(negCacheKey);
-  if (cached) {
-    return cached;
-  }
+  if (cached) return cached;
 
-  // 7. Lightweight lookup via API (instead of full forwardToOrigin)
-  try {
-    const originBase = env.ORIGIN_URL.replace(/\/$/, '');
-    const lookupRes = await fetch(
-      `${originBase}/api/lookup?slug=${encodeURIComponent(slug)}`,
-      { headers: { 'X-Forwarded-Host': url.hostname } },
-    );
+  // 5. Lightweight lookup via origin API (cheaper than full forward).
+  const apiResult = await tryOriginLookup(slug, url, ctx, env, request, cache, negCacheKey);
+  if (apiResult) return apiResult;
 
-    // Only trust the response semantics for 200 and 404 (explicit hit/miss).
-    // 500/other errors are transient — fall through to forwardToOrigin.
-    if (lookupRes.ok || lookupRes.status === 404) {
-      const lookupData = await lookupRes.json() as {
-        found: boolean;
-        id?: number;
-        originalUrl?: string;
-        expiresAt?: number | null;
-        expired?: boolean;
-      };
-
-      if (lookupData.found && lookupData.originalUrl) {
-        // D1 hit — redirect + analytics
-        if (lookupData.id != null) {
-          recordClickAsync(ctx, env, lookupData.id, request);
-        }
-
-        // Fire-and-forget: backfill KV for future edge hits (with native expiration)
-        const kvValue = JSON.stringify({
-          id: lookupData.id,
-          originalUrl: lookupData.originalUrl,
-          expiresAt: lookupData.expiresAt ?? null,
-        });
-        const expirationSec = lookupData.expiresAt != null
-          ? Math.floor(lookupData.expiresAt / 1000)
-          : null;
-        const nowSec = Math.floor(Date.now() / 1000);
-        const kvOptions = expirationSec != null && expirationSec > nowSec + 60
-          ? { expiration: expirationSec }
-          : undefined;
-        ctx.waitUntil(env.LINKS_KV.put(slug, kvValue, kvOptions));
-
-        return Response.redirect(lookupData.originalUrl, 307);
-      }
-
-      // Confirmed miss or expired — forward to origin for the real 404 page,
-      // then cache the response as a negative cache tombstone
-      if (!lookupData.found) {
-        const originResponse = await forwardToOrigin(request, env);
-        if (originResponse.status === 404) {
-          const tombstone = new Response(originResponse.body, {
-            status: 404,
-            headers: {
-              ...Object.fromEntries(originResponse.headers.entries()),
-              'Cache-Control': 'max-age=60',
-            },
-          });
-          ctx.waitUntil(cache.put(negCacheKey, tombstone.clone()));
-          return tombstone;
-        }
-        return originResponse;
-      }
-    }
-  } catch (err) {
-    console.error(`Lookup API error for slug "${slug}":`, err);
-    // Lookup API failed — fall through to forwardToOrigin as last resort
-  }
-
-  // 8. Fallback — full origin forward (only when lookup API itself fails)
+  // 6. Fallback — full origin forward (only when lookup API itself fails)
   return forwardToOrigin(request, env);
 }
 

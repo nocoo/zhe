@@ -16,6 +16,81 @@ import type { UpdateLinkRequest } from "../api/types.js";
 import { getApiKey } from "../config.js";
 import { parseLinkId, resolveFolderName, resolveTagName } from "../utils.js";
 
+/** Resolve a single tag name into the addTags/removeTags array, or exit on error. */
+async function resolveSingleTag(
+	client: ApiClient,
+	tag: string,
+): Promise<string[]> {
+	const tagId = await resolveTagName(client, tag);
+	if (tagId === null) process.exit(EXIT_INVALID_ARGS);
+	return [tagId];
+}
+
+interface UpdateArgs {
+	url?: string;
+	slug?: string;
+	folder?: string;
+	note?: string;
+	expires?: string;
+	title?: string;
+	desc?: string;
+	screenshot?: string;
+	"add-tag"?: string;
+	"remove-tag"?: string;
+}
+
+/**
+ * Build the UpdateLinkRequest from CLI args, calling the API to resolve
+ * folder/tag names where needed. Exits on invalid inputs.
+ */
+async function buildUpdatePayload(
+	client: ApiClient,
+	args: UpdateArgs,
+): Promise<UpdateLinkRequest> {
+	const data: UpdateLinkRequest = {};
+
+	if (args.url !== undefined) {
+		if (!isValidUrl(args.url)) {
+			console.log(pc.red("Invalid URL format. Include protocol (https://)."));
+			process.exit(EXIT_INVALID_ARGS);
+		}
+		data.originalUrl = args.url;
+	}
+
+	if (args.slug !== undefined) data.slug = args.slug;
+
+	if (args.folder !== undefined) {
+		if (args.folder === "none") {
+			data.folderId = null;
+		} else {
+			const folderId = await resolveFolderName(client, args.folder);
+			if (folderId === null) process.exit(EXIT_INVALID_ARGS);
+			data.folderId = folderId;
+		}
+	}
+
+	if (args.note !== undefined) data.note = args.note === "" ? null : args.note;
+	if (args.expires !== undefined) {
+		data.expiresAt = args.expires === "never" ? null : args.expires;
+	}
+	if (args.title !== undefined) {
+		data.metaTitle = args.title === "" ? null : args.title;
+	}
+	if (args.desc !== undefined) {
+		data.metaDescription = args.desc === "" ? null : args.desc;
+	}
+	if (args.screenshot !== undefined) {
+		data.screenshotUrl = args.screenshot === "" ? null : args.screenshot;
+	}
+
+	const addTag = args["add-tag"];
+	const removeTag = args["remove-tag"];
+	if (addTag) data.addTags = await resolveSingleTag(client, addTag);
+	if (removeTag) data.removeTags = await resolveSingleTag(client, removeTag);
+
+	return data;
+}
+
 export const updateCommand = defineCommand({
 	meta: {
 		name: "update",
@@ -94,77 +169,8 @@ export const updateCommand = defineCommand({
 		}
 
 		const client = new ApiClient(apiKey);
+		const data = await buildUpdatePayload(client, args as UpdateArgs);
 
-		// Build update payload
-		const data: UpdateLinkRequest = {};
-
-		if (args.url !== undefined) {
-			// Validate URL
-			if (!isValidUrl(args.url)) {
-				console.log(pc.red("Invalid URL format. Include protocol (https://)."));
-				process.exit(EXIT_INVALID_ARGS);
-			}
-			data.originalUrl = args.url;
-		}
-
-		if (args.slug !== undefined) {
-			data.slug = args.slug;
-		}
-
-		// Resolve folder name to ID
-		if (args.folder !== undefined) {
-			if (args.folder === "none") {
-				data.folderId = null;
-			} else {
-				const folderId = await resolveFolderName(client, args.folder);
-				if (folderId === null) {
-					process.exit(EXIT_INVALID_ARGS);
-				}
-				data.folderId = folderId;
-			}
-		}
-
-		if (args.note !== undefined) {
-			data.note = args.note === "" ? null : args.note;
-		}
-
-		if (args.expires !== undefined) {
-			data.expiresAt = args.expires === "never" ? null : args.expires;
-		}
-
-		if (args.title !== undefined) {
-			data.metaTitle = args.title === "" ? null : args.title;
-		}
-
-		if (args.desc !== undefined) {
-			data.metaDescription = args.desc === "" ? null : args.desc;
-		}
-
-		if (args.screenshot !== undefined) {
-			data.screenshotUrl = args.screenshot === "" ? null : args.screenshot;
-		}
-
-		// Resolve tag names to IDs
-		const addTag = args["add-tag"] as string | undefined;
-		const removeTag = args["remove-tag"] as string | undefined;
-
-		if (addTag) {
-			const tagId = await resolveTagName(client, addTag);
-			if (tagId === null) {
-				process.exit(EXIT_INVALID_ARGS);
-			}
-			data.addTags = [tagId];
-		}
-
-		if (removeTag) {
-			const tagId = await resolveTagName(client, removeTag);
-			if (tagId === null) {
-				process.exit(EXIT_INVALID_ARGS);
-			}
-			data.removeTags = [tagId];
-		}
-
-		// Check if there's anything to update
 		if (Object.keys(data).length === 0) {
 			console.log(pc.yellow("No changes specified."));
 			console.log(

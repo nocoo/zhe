@@ -44,6 +44,56 @@ function UploadListSkeleton() {
   );
 }
 
+function UploadOptions({
+  autoConvertPng,
+  setAutoConvertPng,
+  jpegQuality,
+  setJpegQuality,
+}: {
+  autoConvertPng: boolean;
+  setAutoConvertPng: (v: boolean) => void;
+  jpegQuality: number;
+  setJpegQuality: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-2">
+        <Switch
+          id="auto-convert-png"
+          data-testid="png-convert-switch"
+          checked={autoConvertPng}
+          onCheckedChange={setAutoConvertPng}
+        />
+        <Label
+          htmlFor="auto-convert-png"
+          className="text-sm text-muted-foreground cursor-pointer"
+        >
+          PNG 自动转 JPG
+        </Label>
+      </div>
+      {autoConvertPng && (
+        <div className="flex items-center gap-3">
+          <Label className="text-sm text-muted-foreground whitespace-nowrap">
+            质量
+          </Label>
+          <Slider
+            value={[jpegQuality]}
+            onValueChange={([v]) => setJpegQuality(v ?? jpegQuality)}
+            min={1}
+            max={100}
+            step={1}
+            className="w-28"
+            aria-label="JPG 质量"
+          />
+          <span className="text-sm text-muted-foreground tabular-nums w-8 text-right">
+            {jpegQuality}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/db/schema').Upload[] }) {
   const {
     uploads,
@@ -77,41 +127,12 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
       </div>
 
       {/* Options */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="auto-convert-png"
-            data-testid="png-convert-switch"
-            checked={autoConvertPng}
-            onCheckedChange={setAutoConvertPng}
-          />
-          <Label
-            htmlFor="auto-convert-png"
-            className="text-sm text-muted-foreground cursor-pointer"
-          >
-            PNG 自动转 JPG
-          </Label>
-        </div>
-        {autoConvertPng && (
-          <div className="flex items-center gap-3">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">
-              质量
-            </Label>
-            <Slider
-              value={[jpegQuality]}
-              onValueChange={([v]) => setJpegQuality(v ?? jpegQuality)}
-              min={1}
-              max={100}
-              step={1}
-              className="w-28"
-              aria-label="JPG 质量"
-            />
-            <span className="text-sm text-muted-foreground tabular-nums w-8 text-right">
-              {jpegQuality}
-            </span>
-          </div>
-        )}
-      </div>
+      <UploadOptions
+        autoConvertPng={autoConvertPng}
+        setAutoConvertPng={setAutoConvertPng}
+        jpegQuality={jpegQuality}
+        setJpegQuality={setJpegQuality}
+      />
 
       {/* Upload zone */}
       <div className="mb-6">
