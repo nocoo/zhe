@@ -24,38 +24,47 @@ export type WebhookViewModel = ReturnType<typeof useWebhookViewModel>;
  * Webhook viewmodel — manages webhook token state and lifecycle actions.
  * When `initialData` is provided (SSR prefetch), skips the client-side fetch.
  */
+/** Load the webhook config from the server on mount (unless SSR data was provided). */
+function useWebhookMountLoad(
+  initialData: WebhookInitialData | undefined,
+  setters: {
+    setToken: (v: string | null) => void;
+    setCreatedAt: (v: string | null) => void;
+    setRateLimit: (v: number) => void;
+  },
+) {
+  const [isLoading, setIsLoading] = useState(!initialData);
+  useEffect(() => {
+    if (initialData) return;
+    let cancelled = false;
+    (async () => {
+      const result = await getWebhookToken();
+      if (cancelled) return;
+      if (result.success && result.data) {
+        setters.setToken(result.data.token);
+        setters.setCreatedAt(String(result.data.createdAt));
+        setters.setRateLimit(result.data.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
+      }
+      setIsLoading(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData]);
+  return isLoading;
+}
+
 export function useWebhookViewModel(initialData?: WebhookInitialData) {
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   const [token, setToken] = useState<string | null>(initialData?.token ?? null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialData ? String(initialData.createdAt) : null);
   const [rateLimit, setRateLimit] = useState<number>(initialData?.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
-  const [isLoading, setIsLoading] = useState(!initialData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [migratedApiKey, setMigratedApiKey] = useState<string | null>(null);
 
-  // Load token on mount
-  useEffect(() => {
-    if (initialData) return;
-
-    let cancelled = false;
-    (async () => {
-      const result = await getWebhookToken();
-      if (cancelled) return;
-      if (result.success && result.data) {
-        setToken(result.data.token);
-        // Server actions serialize Date → string over the wire
-        setCreatedAt(String(result.data.createdAt));
-        setRateLimit(result.data.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
-      }
-      setIsLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [initialData]);
+  const isLoading = useWebhookMountLoad(initialData, { setToken, setCreatedAt, setRateLimit });
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);

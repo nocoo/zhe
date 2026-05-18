@@ -43,6 +43,31 @@ export interface OverviewViewModelState {
  *   refresh runs. Fresh data replaces stale data seamlessly — no loading
  *   skeleton shown.
  */
+/** Independently fetch worker-health status (non-blocking; failures are silent). */
+function useWorkerHealth() {
+  const [workerHealth, setWorkerHealth] = useState<WorkerHealthStatus | null>(null);
+  const [workerHealthLoading, setWorkerHealthLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkerHealth() {
+      try {
+        const result = await getWorkerHealth();
+        if (cancelled) return;
+        if (result.success && result.data) setWorkerHealth(result.data);
+      } catch {
+        // Worker health is non-critical — silently ignore errors
+      } finally {
+        if (!cancelled) setWorkerHealthLoading(false);
+      }
+    }
+    void loadWorkerHealth();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { workerHealth, workerHealthLoading };
+}
+
 export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewModelState {
   // Determine initial state from cache or initialData
   const hasInitial = initialData !== undefined;
@@ -61,8 +86,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(seedStats);
   const [revalidating, setRevalidating] = useState(false);
-  const [workerHealth, setWorkerHealth] = useState<WorkerHealthStatus | null>(null);
-  const [workerHealthLoading, setWorkerHealthLoading] = useState(true);
+  const { workerHealth, workerHealthLoading } = useWorkerHealth();
 
   // Track whether a fetch is in flight to avoid double-fetching
   const fetchingRef = useRef(false);
@@ -125,34 +149,6 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
       fetchingRef.current = false;
     };
   }, [hasInitial, hasCached, needsFetch]);
-
-  // Fetch worker health independently (non-blocking for main stats)
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadWorkerHealth() {
-      try {
-        const result = await getWorkerHealth();
-        if (cancelled) return;
-
-        if (result.success && result.data) {
-          setWorkerHealth(result.data);
-        }
-      } catch {
-        // Worker health is non-critical — silently ignore errors
-      } finally {
-        if (!cancelled) {
-          setWorkerHealthLoading(false);
-        }
-      }
-    }
-
-    void loadWorkerHealth();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   return { loading, error, stats, workerHealth, workerHealthLoading, revalidating };
 }
