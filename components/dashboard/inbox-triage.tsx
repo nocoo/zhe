@@ -52,6 +52,53 @@ function InboxEmpty() {
 }
 
 /** Inbox triage view — shows uncategorized links with inline editing controls */
+function useLinkTagsByLinkId(linkTags: LinkTag[]) {
+  return useMemo(() => {
+    const map = new Map<number, LinkTag[]>();
+    for (const lt of linkTags) {
+      const arr = map.get(lt.linkId);
+      if (arr) arr.push(lt);
+      else map.set(lt.linkId, [lt]);
+    }
+    return map;
+  }, [linkTags]);
+}
+
+function InboxHeader({
+  count,
+  isRefreshing,
+  onRefresh,
+}: {
+  count: number;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Inbox</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          共 {count} 条待整理链接
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="rounded-widget"
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        aria-label="刷新链接"
+      >
+        <RefreshCw
+          className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+          strokeWidth={1.5}
+        />
+        刷新
+      </Button>
+    </div>
+  );
+}
+
 export function InboxTriage() {
   const {
     links,
@@ -87,49 +134,19 @@ export function InboxTriage() {
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
 
-  // Pre-group linkTags by linkId so each LinkCard receives only its own tags — O(M) once
-  // instead of O(N×M) when every card filters the entire array on each render.
-  const linkTagsByLinkId = useMemo(() => {
-    const map = new Map<number, LinkTag[]>();
-    for (const lt of linkTags) {
-      const arr = map.get(lt.linkId);
-      if (arr) {
-        arr.push(lt);
-      } else {
-        map.set(lt.linkId, [lt]);
-      }
-    }
-    return map;
-  }, [linkTags]);
-
+  const linkTagsByLinkId = useLinkTagsByLinkId(linkTags);
   const emptyLinkTags: LinkTag[] = useMemo(() => [], []);
 
   if (loading) return <InboxSkeleton />;
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Inbox</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            共 {vm.inboxLinks.length} 条待整理链接
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-widget"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          aria-label="刷新链接"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-          刷新
-        </Button>
-      </div>
+      <InboxHeader
+        count={vm.inboxLinks.length}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+      />
 
-      {/* Content */}
       {vm.inboxLinks.length === 0 ? (
         <InboxEmpty />
       ) : (
