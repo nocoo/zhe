@@ -100,7 +100,10 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : 8,
+  // Local workers capped at 4: turbopack dev-server collapses under more
+  // concurrency (hydration mismatches, 30s timeouts) when many specs
+  // first-compile pages in parallel. CI matches the same cap.
+  workers: 4,
   reporter: 'html',
   timeout: 30_000,
 
