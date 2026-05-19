@@ -167,9 +167,9 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               fontSize: "12px",
             }}
             labelFormatter={(label) => String(label)}
-            formatter={(value?: number, name?: string) => {
+            formatter={(value, name) => {
               const labels: Record<string, string> = { clicks: "总计", worker: "Worker", origin: "Origin" };
-              return [String(value ?? 0), labels[name ?? ""] ?? name ?? ""];
+              return [String(value ?? 0), labels[String(name ?? "")] ?? String(name ?? "")];
             }}
           />
           <Area
