@@ -103,7 +103,6 @@
     "edge >= 96"
   ],
   "overrides": {
-    "brace-expansion": ">=5.0.6",
     "esbuild": ">=0.25.0",
     "fast-xml-builder": ">=1.1.7",
     "fast-xml-parser": ">=5.5.7",
