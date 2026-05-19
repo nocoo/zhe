@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.18.1] - 2026-05-19
+
+### Changed
+- Clear 3 lint warnings from recent refactors
+- Split LinkCard 499-line render + final trims → 0 violations
+- Split into toolbar + content + dialogs sub-modules
+- Extract subcomponents from xray test-section and cli list command
+- Extract subcomponents from inbox-triage / sidebar-folder-item / xray config-section
+- Split webhook-usage-docs sections + app/page.tsx into badge parts
+- Split webhook OpenAPI builder + backy pull route into helpers
+- Split into shortcuts hook + toolbar + split + states
+- Split into fields module + LabelledInput helper
+- Split into DeprecationWarning + controls + ConfiguredView
+- Extract validators from /v1/links + /link/create/[token] POST handlers
+- Batch-trim 3 fn violations (cli update, upload-list, worker handleFetch)
+- Split 296-line LinksList into filters + toolbar + content
+- Split into banner/form/row sub-components
+- Split provider into core + ideas sub-hooks
+- Split D1Adapter into per-table sub-modules
+- Split into 5 part files; decompose R2Section
+- Split idea.ts into per-subcommand modules
+- Split utils.ts into format + resolve sub-modules
+- Split links.ts into metadata + screenshot sub-modules
+- Split into charts/sections sub-modules
+- Decompose useIdeaEditorViewModel with useIdeaFetch sub-hook
+- Extract DeleteUploadDialog subcomponent
+- Extract mount-load sub-hooks from webhook + overview viewmodels
+- Document remaining complexity violations
+- Extract WebhookUsageDocs to a separate file
+- Extract useStoragePage hook + SummaryGrid
+- Split 610-line index.ts into 4 focused modules
+- Split search-command-dialog into result items + handlers
+- Split 447 LOC / 381-line fn into Push/Pull sections
+- Split into parts, decompose TweetCard into sub-rows
+- Decompose useXrayViewModel + useBackyViewModel into sub-hooks
+- Extract runUploadFlow + persisted-setting hooks from useUploadsViewModel
+- Decompose 274-line useIdeasViewModel into 4 sub-hooks
+- Split 568-line file into collapsed/expanded sub-views
+- Split useLinksViewModel.ts into 4 files; decompose 2 large hooks
+- Split 311-line PATCH /v1/links/[id] into validators + builder
+- Split scoped.ts (1435 LOC) into per-domain modules
+- Setup complexity refactor bench
+- Cap local Playwright workers at 4
+- Scope folder menu button to its row
+- Allow turbopack first-compile for /dashboard/uploads
+- Pass --ignore-scripts to bun install (Shai-Hulud defense)
+
+### Fixed
+- Defer window.location.origin to effect to fix hydration mismatch
+- Drop type re-exports from links.ts 'use server' file
+- Drop non-function re-exports from links.ts 'use server' file
+
+### Removed
+- Drop unused imports leftover from index.ts split
+- Split performKVSync into fetch + delete-orphans helpers
+
 ## [v1.18.0] - 2026-05-15
 
 ### Added
