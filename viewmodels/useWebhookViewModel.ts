@@ -54,7 +54,10 @@ function useWebhookMountLoad(
 }
 
 export function useWebhookViewModel(initialData?: WebhookInitialData) {
-  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const [siteUrl, setSiteUrl] = useState("");
+  useEffect(() => {
+    setSiteUrl(window.location.origin);
+  }, []);
 
   const [token, setToken] = useState<string | null>(initialData?.token ?? null);
   const [createdAt, setCreatedAt] = useState<string | null>(initialData ? String(initialData.createdAt) : null);
