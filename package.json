@@ -42,7 +42,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/typography": "^0.5.19",
-    "brace-expansion": "^5.0.5",
+    "brace-expansion": "^5.0.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -103,6 +103,7 @@
     "edge >= 96"
   ],
   "overrides": {
+    "brace-expansion": ">=5.0.6",
     "esbuild": ">=0.25.0",
     "fast-xml-builder": ">=1.1.7",
     "fast-xml-parser": ">=5.5.7",
@@ -110,6 +111,7 @@
     "next": "16.2.6",
     "postcss": ">=8.5.10",
     "rollup": ">=4.59.0",
-    "undici": ">=7.24.0"
+    "undici": ">=7.24.0",
+    "ws": ">=8.20.1"
   }
 }
