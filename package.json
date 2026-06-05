@@ -84,7 +84,7 @@
     "eslint-config-next": "16.2.7",
     "happy-dom": "^20.10.1",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
