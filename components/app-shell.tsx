@@ -5,7 +5,8 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
-import { Menu, Github } from "lucide-react";
+import { Menu } from "lucide-react";
+import { GithubIcon } from "@/components/github-icon";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -108,7 +109,7 @@ function AppShellInner({
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               title="GitHub"
             >
-              <Github className="h-[18px] w-[18px]" strokeWidth={1.5} />
+              <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
             </a>
             <ThemeToggle />
           </div>

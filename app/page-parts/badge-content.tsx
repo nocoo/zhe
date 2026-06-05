@@ -1,5 +1,5 @@
-import { Github } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
 
 export function TopRightControls() {
@@ -12,7 +12,7 @@ export function TopRightControls() {
         className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         title="GitHub"
       >
-        <Github className="h-[18px] w-[18px]" strokeWidth={1.5} />
+        <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
       </a>
       <ThemeToggle />
     </div>
