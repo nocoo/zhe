@@ -23,7 +23,7 @@
 
 import { spawn } from 'child_process';
 import { resolve as pathResolve } from 'path';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -31,6 +31,7 @@ import { readFileSync, writeFileSync } from 'fs';
 
 const PROJECT_ROOT = pathResolve(import.meta.dirname ?? '.', '..');
 const PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'package.json');
+const CLI_PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'cli', 'package.json');
 const CHANGELOG_MD = pathResolve(PROJECT_ROOT, 'CHANGELOG.md');
 
 // Auto-detect project name from package.json
@@ -345,14 +346,23 @@ function readCurrentVersion(): string {
   return verMatch[0];
 }
 
-function updatePackageJson(newVersion: string): void {
-  const raw = readFileSync(PACKAGE_JSON, 'utf-8');
+function bumpVersionField(filePath: string, newVersion: string): void {
+  const raw = readFileSync(filePath, 'utf-8');
   const updated = raw.replace(VERSION_FIELD_RE, `$1${newVersion}$2`);
   if (updated === raw) {
-    console.error('❌ Failed to update version in package.json');
+    console.error(`❌ Failed to update version in ${filePath}`);
     process.exit(1);
   }
-  writeFileSync(PACKAGE_JSON, updated);
+  writeFileSync(filePath, updated);
+}
+
+function updatePackageJson(newVersion: string): void {
+  bumpVersionField(PACKAGE_JSON, newVersion);
+  // Keep the monorepo CLI version in lockstep with root (CLAUDE.md versioning
+  // rule). The CLI is published to npm as @nocoo/zhe and must match root.
+  if (existsSync(CLI_PACKAGE_JSON)) {
+    bumpVersionField(CLI_PACKAGE_JSON, newVersion);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -556,9 +566,13 @@ async function main(): Promise<void> {
       `   [dry-run] Would commit: chore: bump version to ${newVersion}`,
     );
   } else {
+    const filesToStage = ['package.json', 'bun.lock', 'CHANGELOG.md'];
+    if (existsSync(CLI_PACKAGE_JSON)) {
+      filesToStage.push('cli/package.json');
+    }
     await runOrDie(
       'git',
-      ['add', 'package.json', 'bun.lock', 'CHANGELOG.md'],
+      ['add', ...filesToStage],
       'Failed to stage files',
     );
     const commitResult = await run('git', [
