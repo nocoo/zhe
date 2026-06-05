@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.18.2] - 2026-06-05
+
+### Changed
+- Upgrade @types/node to 25.x
+- Upgrade typescript to 6.0
+- Upgrade lint-staged to 17.x
+- Upgrade lucide-react to 1.x, inline GitHub brand icon
+- Upgrade safe minor/patch dependencies
+- Sync cli version to 1.18.1 to match root package.json
+- Upgrade next to 16.2.7
+
+### Fixed
+- Update dependencies to resolve 6 CVEs
+- Drop brace-expansion override to unbreak ESLint in CI
+
 ## [v1.18.1] - 2026-05-19
 
 ### Changed
