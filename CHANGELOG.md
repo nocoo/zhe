@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Upgrade next to 16.2.7
 
 ### Fixed
+- Sync cli/package.json version on release
 - Update dependencies to resolve 6 CVEs
 - Drop brace-expansion override to unbreak ESLint in CI
 
