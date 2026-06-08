@@ -97,9 +97,11 @@ test.describe.serial('Data Management', () => {
       buffer: Buffer.from(JSON.stringify(importData)),
     });
 
-    // Wait for import result to appear
-    await expect(page.getByText('导入完成')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('成功')).toBeVisible();
+    // Wait for import result to appear. Both the inline result block
+    // and the success toast contain "导入完成" — use .first() to relax
+    // strict mode; either surfacing is enough proof the import landed.
+    await expect(page.getByText('导入完成').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('成功').first()).toBeVisible();
 
     // OK button dismisses the result
     await page.getByRole('button', { name: '确定' }).click();
@@ -134,11 +136,11 @@ test.describe.serial('Data Management', () => {
       buffer: Buffer.from(JSON.stringify(importData)),
     });
 
-    // Wait for result — should show skipped count in result text
-    // "导入完成：成功 X 条，跳过 Y 条" — match the result pattern to avoid
-    // collision with description text "已存在的短链接将被自动跳过"
-    await expect(page.getByText('导入完成')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/跳过\s+\d+\s+条/)).toBeVisible();
+    // Wait for result — both the inline block and the toast contain
+    // "导入完成" and the "跳过 N 条" pattern; use .first() to relax
+    // strict mode in both checks.
+    await expect(page.getByText('导入完成').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/跳过\s+\d+\s+条/).first()).toBeVisible();
 
     // Dismiss
     await page.getByRole('button', { name: '确定' }).click();

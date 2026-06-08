@@ -48,10 +48,10 @@ test.describe('Auth guard (authenticated)', () => {
     await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
   });
 
-  test('authenticated user visiting / is redirected to dashboard', async ({ page }) => {
+  test('authenticated user visiting / is redirected to dashboard overview', async ({ page }) => {
     await page.goto('/');
-    await page.waitForURL('**/dashboard');
+    await page.waitForURL('**/dashboard/overview');
 
-    await expect(page.locator('[aria-current="page"]')).toContainText('链接管理');
+    await expect(page.locator('[aria-current="page"]')).toContainText('概览');
   });
 });
