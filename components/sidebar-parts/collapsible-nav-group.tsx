@@ -23,7 +23,7 @@ export function CollapsibleNavGroup({
     <Collapsible open={open} onOpenChange={onOpenChange} className="px-3 mb-1">
       <div className="flex w-full items-center justify-between px-3 py-2.5">
         <CollapsibleTrigger className="flex flex-1 items-center gap-1">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {label}
           </span>
         </CollapsibleTrigger>
