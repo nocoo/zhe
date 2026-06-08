@@ -68,7 +68,7 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
   return (
     <div
       className="animate-fade-up rounded-xl bg-secondary p-4 md:p-5"
-      style={{ animationDelay: `${index * 80}ms` }}
+      style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
       data-testid="stat-card"
       data-stat-label={label}
     >

@@ -32,7 +32,7 @@ export function CollapsibleNavGroup({
           <CollapsibleTrigger className="flex items-center">
             <ChevronUp
               className={cn(
-                "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[var(--motion-fast)]",
                 !open && "rotate-180",
               )}
               strokeWidth={1.5}
@@ -44,7 +44,7 @@ export function CollapsibleNavGroup({
         className="grid overflow-hidden"
         style={{
           gridTemplateRows: open ? "1fr" : "0fr",
-          transition: "grid-template-rows 200ms ease-out",
+          transition: "grid-template-rows var(--motion-base) ease-out",
         }}
       >
         <div className="min-h-0 overflow-hidden">{children}</div>

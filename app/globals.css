@@ -62,6 +62,24 @@
      * design intent is searchable. */
     --radius-widget: 10px;
 
+    /* Motion duration tokens — three tiers + a stagger constant.
+     * Values include the `ms` suffix so they compose into shorthand
+     * `transition`/`animation` declarations and into inline calc():
+     *   style={{ animationDelay: `calc(var(--motion-stagger) * ${i})` }}
+     * Tailwind's `duration-150 / duration-200 / duration-300` utilities
+     * map to the same values for component-level use, and Tailwind JIT
+     * accepts `duration-[var(--motion-base)]` for explicit token use.
+     *
+     *   fast (150ms): chevrons, hover bg, focus rings, small toggles
+     *   base (250ms): expand/collapse, popovers, dropdowns, sidebar
+     *   slow (400ms): cross-page transitions, deliberate fade-ups
+     *   stagger (80ms): per-item delay inside lists (e.g. KPI tiles)
+     */
+    --motion-fast: 150ms;
+    --motion-base: 250ms;
+    --motion-slow: 400ms;
+    --motion-stagger: 80ms;
+
     --sidebar-background: 220 14% 92%;
     --sidebar-foreground: 0 0% 12%;
     --sidebar-primary: 262 83% 58%;

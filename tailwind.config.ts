@@ -124,9 +124,9 @@ export default {
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.15s ease-out",
-        "accordion-up": "accordion-up 0.15s ease-out",
-        "fade-up": "fade-up 0.45s ease-out both",
+        "accordion-down": "accordion-down var(--motion-fast) ease-out",
+        "accordion-up": "accordion-up var(--motion-fast) ease-out",
+        "fade-up": "fade-up var(--motion-slow) ease-out both",
       },
     },
   },

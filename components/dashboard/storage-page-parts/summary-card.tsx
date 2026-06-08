@@ -27,7 +27,7 @@ export function SummaryCard({
         variant === "success" && "bg-success/5",
         variant === "default" && "bg-secondary",
       )}
-      style={{ animationDelay: `${index * 80}ms` }}
+      style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{label}</span>

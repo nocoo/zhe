@@ -185,7 +185,7 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
             {(file.status === "uploading" || file.status === "pending") && (
               <div className="mt-2 h-1 w-full rounded-full bg-accent overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  className="h-full rounded-full bg-primary transition-all duration-[var(--motion-base)]"
                   style={{ width: `${file.progress}%` }}
                 />
               </div>
