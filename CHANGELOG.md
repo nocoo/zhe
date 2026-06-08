@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.18.3] - 2026-06-08
+
+### Added
+- Turn Cmd+K into a page + action launcher
+- Toast on API Key create/revoke success and failure
+- Add toast for link refresh success/failure
+- Unify mutation feedback through sonner toast
+- Add subtle hover/focus feedback to the card container
+- Use primary tint for active route highlight
+- Regroup nav as 工具/集成/设置 and tag Webhook as Legacy
+
+### Changed
+- Shrink chart scale to 12 hues and widen ClickTrend trio
+- Introduce --motion-fast/base/slow/stagger tokens
+- Collapse hardcoded radii onto named tokens
+- Pull L0/L1/L2 surfaces apart with real tonal contrast
+- Extract EmptyState, PageHeader, CardListSkeleton/CardGridSkeleton
+- Add frontend design review with prioritized findings
+- Add retrospective notes for v1.18.2 release blockers
+
+### Fixed
+- Raise dark-mode muted-foreground contrast above WCAG AA
+- Declare lang=zh-CN, add CJK font fallback, loosen line-height
+- Make hover-only card actions reachable without hover
+- Default authenticated users to /dashboard/overview
+
 ## [v1.18.2] - 2026-06-05
 
 ### Changed
