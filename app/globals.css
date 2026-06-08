@@ -4,17 +4,33 @@
 
 @layer base {
   :root {
-    /* Light mode — subtle 3-tier hierarchy */
+    /* Light mode — three-tier surface hierarchy.
+     *
+     *   L0 body      → --background  (~92% tinted grey, body chrome)
+     *   L1 panel     → --card        (pure white, the content panel)
+     *   L2 card      → --secondary   (~97% tinted grey, embedded cards)
+     *
+     * Each tier moves perceptibly against the next so the eye can read
+     * panel-vs-card hierarchy without needing borders or shadows.
+     *
+     * Note: --card is the shadcn token name (consumed via bg-card /
+     * text-card-foreground); we use it semantically as the L1 PANEL
+     * surface — not as the default <Card> background. The shadcn <Card>
+     * component intentionally renders with bg-secondary (L2) so cards
+     * stand out inside the L1 panel.
+     */
+
     /* L0 body */
-    --background: 220 14% 94%;
+    --background: 220 14% 92%;
     --foreground: 0 0% 12%;
 
-    /* L1 content panel */
-    --card: 220 14% 97%;
+    /* L1 panel — pure white, the content surface */
+    --card: 0 0% 100%;
     --card-foreground: 0 0% 12%;
 
-    /* L2 inner cards */
-    --secondary: 0 0% 100%;
+    /* L2 inner cards — light tinted grey that recedes against the
+       white panel so cards read as embedded surfaces. */
+    --secondary: 220 14% 97%;
     --secondary-foreground: 0 0% 12%;
 
     --popover: 0 0% 100%;
@@ -41,7 +57,7 @@
     --radius-card: 14px;
     --radius-widget: 10px;
 
-    --sidebar-background: 220 14% 94%;
+    --sidebar-background: 220 14% 92%;
     --sidebar-foreground: 0 0% 12%;
     --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
