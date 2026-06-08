@@ -132,7 +132,7 @@ export const IdeaCard = memo(function IdeaCard({
         <span className="text-xs text-muted-foreground">
           {formatRelativeDate(idea.updatedAt)}
         </span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <Button
             variant="ghost"
             size="icon"
@@ -250,7 +250,7 @@ export const IdeaRow = memo(function IdeaRow({
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
         <Button
           variant="ghost"
           size="icon"

@@ -87,8 +87,11 @@ function GridScreenshot({
         </div>
       )}
 
-      {/* Hover action overlay */}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+      {/* Action overlay.
+          Desktop (hover): full dim overlay revealed on hover/focus-within.
+          Touch (hover:none): a small top-right floating cluster that is
+          always visible so actions remain reachable without hover. */}
+      <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:top-1 [@media(hover:none)]:gap-0.5 [@media(hover:none)]:bg-transparent [@media(hover:none)]:opacity-100">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -96,7 +99,7 @@ function GridScreenshot({
           }}
           disabled={isFetchingPreview}
           aria-label="Refresh preview"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-sm"
           title="刷新预览图"
         >
           {isFetchingPreview ? (
@@ -111,7 +114,7 @@ function GridScreenshot({
             onToggleEdit();
           }}
           aria-label="Edit link"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-sm"
           title="Edit link"
         >
           <Pencil className="w-4 h-4" strokeWidth={1.5} />
