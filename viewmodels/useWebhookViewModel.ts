@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import {
   getWebhookToken,
   createWebhookToken,
@@ -77,6 +78,9 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
         setToken(result.data.token);
         setCreatedAt(String(result.data.createdAt));
         setRateLimit(result.data.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
+        toast.success("已生成 Webhook 令牌");
+      } else {
+        toast.error(result.error || "生成失败");
       }
     } finally {
       setIsGenerating(false);
@@ -91,6 +95,9 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
         setToken(null);
         setCreatedAt(null);
         setRateLimit(RATE_LIMIT_DEFAULT_MAX);
+        toast.success("已撤销 Webhook 令牌");
+      } else {
+        toast.error(result.error || "撤销失败");
       }
     } finally {
       setIsRevoking(false);
@@ -103,6 +110,8 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     const result = await updateRateLimitAction(value);
     if (result.success && result.data) {
       setRateLimit(result.data.rateLimit);
+    } else if (!result.success) {
+      toast.error(result.error || "更新速率限制失败");
     }
   }, []);
 
@@ -112,6 +121,9 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
       const result = await migrateFromWebhookAction();
       if (result.success && result.data) {
         setMigratedApiKey(result.data.fullKey);
+        toast.success("已迁移到 API Key");
+      } else if (!result.success) {
+        toast.error(result.error || "迁移失败");
       }
     } finally {
       setIsMigrating(false);

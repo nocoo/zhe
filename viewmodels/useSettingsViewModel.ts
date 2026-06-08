@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { importLinks, exportLinks } from "@/actions/settings";
 import type { ImportResult } from "@/actions/settings";
 
@@ -20,7 +21,7 @@ export function useSettingsViewModel() {
     try {
       const result = await exportLinks();
       if (!result.success || !result.data) {
-        alert(result.error || "导出失败");
+        toast.error(result.error || "导出失败");
         return;
       }
 
@@ -33,6 +34,7 @@ export function useSettingsViewModel() {
       a.download = `zhe-links-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success("导出成功");
     } finally {
       setIsExporting(false);
     }
@@ -47,17 +49,22 @@ export function useSettingsViewModel() {
       try {
         parsed = JSON.parse(text);
       } catch {
-        alert("文件不是有效的 JSON 格式");
+        toast.error("文件不是有效的 JSON 格式");
         return;
       }
 
       const result = await importLinks(parsed as Parameters<typeof importLinks>[0]);
       if (!result.success) {
-        alert(result.error || "导入失败");
+        toast.error(result.error || "导入失败");
         return;
       }
 
       setImportResult(result.data ?? null);
+      if (result.data) {
+        toast.success(
+          `导入完成:成功 ${result.data.created} 条,跳过 ${result.data.skipped} 条`,
+        );
+      }
     } finally {
       setIsImporting(false);
     }

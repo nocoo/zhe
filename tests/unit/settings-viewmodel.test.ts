@@ -13,6 +13,15 @@ vi.mock('@/actions/settings', () => ({
   exportLinks: (...args: unknown[]) => mockExportLinks(...args),
 }));
 
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
+vi.mock('sonner', () => ({
+  toast: {
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+    error: (...args: unknown[]) => mockToastError(...args),
+  },
+}));
+
 // Import after mocks
 import { useSettingsViewModel } from '@/viewmodels/useSettingsViewModel';
 
@@ -34,7 +43,6 @@ function makeFile(content: string, name = 'links.json'): File {
 describe('useSettingsViewModel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('alert', vi.fn());
   });
 
   afterEach(() => {
@@ -101,7 +109,7 @@ describe('useSettingsViewModel', () => {
       await result.current.handleExport();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('Unauthorized');
+    expect(mockToastError).toHaveBeenCalledWith('Unauthorized');
     expect(result.current.isExporting).toBe(false);
   });
 
@@ -114,7 +122,7 @@ describe('useSettingsViewModel', () => {
       await result.current.handleExport();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('导出失败');
+    expect(mockToastError).toHaveBeenCalledWith('导出失败');
   });
 
   // ====================================================================
@@ -148,7 +156,7 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining('JSON'));
+    expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining('JSON'));
     expect(mockImportLinks).not.toHaveBeenCalled();
   });
 
@@ -166,7 +174,7 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('DB error');
+    expect(mockToastError).toHaveBeenCalledWith('DB error');
     expect(result.current.importResult).toBeNull();
   });
 
@@ -184,7 +192,7 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('导入失败');
+    expect(mockToastError).toHaveBeenCalledWith('导入失败');
   });
 
   it('clearImportResult resets importResult', async () => {
