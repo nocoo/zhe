@@ -217,7 +217,7 @@ describe('Sidebar', () => {
       fireEvent.click(unwrap(searchButton));
 
       // SearchCommandDialog should render with a search input
-      expect(screen.getByPlaceholderText('搜索链接、想法、标题、备注、标签...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Cmd+K', () => {
@@ -225,7 +225,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、标题、备注、标签...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Ctrl+K', () => {
@@ -233,7 +233,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、标题、备注、标签...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('toggles search dialog closed on second Cmd+K', () => {
@@ -241,11 +241,11 @@ describe('Sidebar', () => {
 
       // Open
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.getByPlaceholderText('搜索链接、想法、标题、备注、标签...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
 
       // Close — the CommandInput placeholder should disappear
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.queryByPlaceholderText('搜索链接、想法、标题、备注、标签...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).not.toBeInTheDocument();
     });
 
     it('does not open search dialog on plain K key', () => {
@@ -254,7 +254,7 @@ describe('Sidebar', () => {
       fireEvent.keyDown(document, { key: 'k' });
 
       // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
-      const allMatches = screen.queryAllByPlaceholderText('搜索链接、想法、标题、备注、标签...');
+      const allMatches = screen.queryAllByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...');
       expect(allMatches).toHaveLength(0);
     });
 
@@ -269,7 +269,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、标题、备注、标签...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('prevents default browser behavior on Cmd+K', () => {

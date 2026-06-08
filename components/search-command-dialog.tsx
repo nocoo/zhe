@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Moon, Sun, Monitor, Search } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   CommandDialog,
   CommandEmpty,
@@ -17,6 +18,13 @@ import { filterIdeas } from "@/models/ideas";
 import type { Tag } from "@/models/types";
 import { LinkResultItem } from "./search-command-dialog-parts/link-result-item";
 import { IdeaResultItem } from "./search-command-dialog-parts/idea-result-item";
+import {
+  PageJumpGroup,
+  ActionGroup,
+  countPageMatches,
+  countActionMatches,
+  type LauncherAction,
+} from "./search-command-dialog-parts/launcher-groups";
 
 export interface SearchCommandDialogProps {
   open: boolean;
@@ -95,16 +103,70 @@ function useSearchHandlers(onOpenChange: (open: boolean) => void, siteUrl: strin
     [onOpenChange, router],
   );
 
-  return { handleNavigateToFolder, handleOpenOriginalUrl, handleCopyShortUrl, handleNavigateToIdea };
+  const handleNavigate = useCallback(
+    (href: string) => {
+      onOpenChange(false);
+      router.push(href);
+    },
+    [onOpenChange, router],
+  );
+
+  return {
+    handleNavigateToFolder,
+    handleOpenOriginalUrl,
+    handleCopyShortUrl,
+    handleNavigateToIdea,
+    handleNavigate,
+  };
+}
+
+/** Default action set wired to next-themes + the dialog open state. */
+function useDefaultActions(onOpenChange: (open: boolean) => void): LauncherAction[] {
+  const { setTheme } = useTheme();
+  return useMemo(
+    () => [
+      {
+        id: "theme-light",
+        title: "切换到浅色主题",
+        icon: Sun,
+        search: "切换到浅色主题 theme light",
+        run: () => {
+          setTheme("light");
+          onOpenChange(false);
+        },
+      },
+      {
+        id: "theme-dark",
+        title: "切换到深色主题",
+        icon: Moon,
+        search: "切换到深色主题 theme dark",
+        run: () => {
+          setTheme("dark");
+          onOpenChange(false);
+        },
+      },
+      {
+        id: "theme-system",
+        title: "跟随系统主题",
+        icon: Monitor,
+        search: "跟随系统主题 theme system auto",
+        run: () => {
+          setTheme("system");
+          onOpenChange(false);
+        },
+      },
+    ],
+    [setTheme, onOpenChange],
+  );
 }
 
 function SearchEmptyHint() {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
       <Search className="h-6 w-6 mb-3 text-muted-foreground/40" />
       <p className="text-sm">输入关键词搜索</p>
       <p className="text-xs text-muted-foreground/60 mt-1">
-        支持搜索短链、URL、标题、描述、备注、想法、标签
+        搜索短链、想法、标签 · 跳转页面 · 触发动作
       </p>
     </div>
   );
@@ -149,20 +211,38 @@ export function SearchCommandDialog({
   );
 
   const handlers = useSearchHandlers(onOpenChange, siteUrl);
+  const actions = useDefaultActions(onOpenChange);
 
+  // ── How the launcher composes its result list ─────────────────────────
+  // Empty query → empty hint + a "home" view with the first few page
+  //   jumps and theme actions so the launcher is useful even before the
+  //   user types anything.
+  // With a query → the empty hint is hidden; pages/actions/links/ideas
+  //   each filter against the query and only render if they have hits.
+  //   If everything is empty we still render CommandEmpty so the user
+  //   sees explicit "no match" feedback.
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="搜索链接、想法、标题、备注、标签..."
+        placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
       <CommandList>
-        {!hasQuery ? (
-          <SearchEmptyHint />
-        ) : (
+        {!hasQuery && <SearchEmptyHint />}
+
+        <PageJumpGroup query={trimmedQuery} onNavigate={handlers.handleNavigate} />
+        <ActionGroup query={trimmedQuery} actions={actions} />
+
+        {hasQuery && (
           <>
-            <CommandEmpty>没有找到匹配的结果</CommandEmpty>
+            {filteredLinks.length === 0 &&
+              filteredIdeas.length === 0 &&
+              countPageMatches(trimmedQuery) === 0 &&
+              countActionMatches(actions, trimmedQuery) === 0 && (
+                <CommandEmpty>没有找到匹配的结果</CommandEmpty>
+              )}
+
             {filteredLinks.length > 0 && (
               <CommandGroup heading={`链接 (${filteredLinks.length})`}>
                 {filteredLinks.map((link) => (

@@ -110,18 +110,18 @@ describe("SearchCommandDialog", () => {
   describe("rendering", () => {
     it("renders the search input when open", () => {
       renderDialog();
-      expect(screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...")).toBeInTheDocument();
     });
 
     it("does not render content when closed", () => {
       renderDialog({ open: false });
-      expect(screen.queryByPlaceholderText("搜索链接、想法、标题、备注、标签...")).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...")).not.toBeInTheDocument();
     });
 
     it("shows hint text when search input is empty", () => {
       renderDialog();
       expect(screen.getByText("输入关键词搜索")).toBeInTheDocument();
-      expect(screen.getByText("支持搜索短链、URL、标题、描述、备注、想法、标签")).toBeInTheDocument();
+      expect(screen.getByText("搜索短链、想法、标签 · 跳转页面 · 触发动作")).toBeInTheDocument();
     });
 
     it("shows empty state when query has no matches", async () => {
@@ -129,7 +129,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "nonexistent" } });
       expect(screen.getByText("没有找到匹配的结果")).toBeInTheDocument();
     });
@@ -139,7 +139,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com/page", metaTitle: "Example Page" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc", "abc");
@@ -153,7 +153,7 @@ describe("SearchCommandDialog", () => {
       mockState.folders = [makeFolder({ id: "f1", name: "Work" })];
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "f1" })];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("Work")).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe("SearchCommandDialog", () => {
     it("does not show folder name for uncategorized links", async () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: null })];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.queryByText("Work")).not.toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("SearchCommandDialog", () => {
     it("handles missing folder gracefully", async () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "nonexistent" })];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc123", "abc123");
@@ -182,7 +182,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com", metaDescription: "A great page" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("A great page")).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com", note: "My personal note" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expect(screen.getByText("My personal note")).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe("SearchCommandDialog", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       const item = getCmdkItem("abc123");
@@ -226,7 +226,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: "f1" })];
       renderDialog();
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       const item = getCmdkItem("abc123");
@@ -247,7 +247,7 @@ describe("SearchCommandDialog", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       const folderButton = screen.getByText("Work");
@@ -264,7 +264,7 @@ describe("SearchCommandDialog", () => {
       mockState.links = [makeLink({ id: 1, slug: "abc123", folderId: null })];
       renderDialog();
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       // No folder button should exist
@@ -283,7 +283,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 2, slug: "xyz" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "example" } });
 
       const copyButtons = screen.getAllByLabelText(/^Copy /);
@@ -300,7 +300,7 @@ describe("SearchCommandDialog", () => {
       });
 
       renderDialog({ onOpenChange });
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
@@ -312,7 +312,7 @@ describe("SearchCommandDialog", () => {
     it("has correct aria-label on copy button", async () => {
       mockState.links = [makeLink({ id: 1, slug: "my-link" })];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "my-link" } });
 
       expect(
@@ -326,7 +326,7 @@ describe("SearchCommandDialog", () => {
   describe("dialog state", () => {
     it("passes open prop to CommandDialog", () => {
       renderDialog({ open: true });
-      expect(screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...")).toBeInTheDocument();
     });
 
     it("calls onOpenChange when dialog is dismissed", () => {
@@ -360,7 +360,7 @@ describe("SearchCommandDialog", () => {
 
     it("filters links by slug substring", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abc" } });
 
       expectItemWithText("abc", "abc");
@@ -370,7 +370,7 @@ describe("SearchCommandDialog", () => {
 
     it("filters links by URL substring", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "google" } });
 
       expectItemWithText("xyz", "xyz");
@@ -380,7 +380,7 @@ describe("SearchCommandDialog", () => {
 
     it("does not produce false positives from cross-field matching", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "abcgoo" } });
 
       expectNoItem("abc");
@@ -390,7 +390,7 @@ describe("SearchCommandDialog", () => {
 
     it("shows empty state when no links match search", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "nonexistent" } });
 
       expect(screen.getByText("没有找到匹配的结果")).toBeInTheDocument();
@@ -398,7 +398,7 @@ describe("SearchCommandDialog", () => {
 
     it("filtering is case-insensitive", async () => {
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "HELLO" } });
 
       expectItemWithText("hello", "hello");
@@ -411,7 +411,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 2, slug: "vue-guide", originalUrl: "https://vuejs.org", metaTitle: "Vue.js Guide" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "documentation" } });
 
       expectItemWithText("react-docs", "react-docs");
@@ -424,7 +424,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 2, slug: "temp", originalUrl: "https://b.com", note: "Temporary" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "important" } });
 
       expectItemWithText("ref", "ref");
@@ -445,7 +445,7 @@ describe("SearchCommandDialog", () => {
         { linkId: 2, tagId: "t2" },
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "UI" } });
 
       expectItemWithText("design", "design");
@@ -463,7 +463,7 @@ describe("SearchCommandDialog", () => {
       ];
       mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "tagged" } });
 
       expect(screen.getByText("Frontend")).toBeInTheDocument();
@@ -484,7 +484,7 @@ describe("SearchCommandDialog", () => {
         { linkId: 1, tagId: "t4" },
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "multi" } });
 
       expect(screen.getByText("Tag1")).toBeInTheDocument();
@@ -500,7 +500,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: "API Reference" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "docs" } });
 
       expectItemWithText("docs", "API Reference");
@@ -511,7 +511,7 @@ describe("SearchCommandDialog", () => {
         makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: null }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "docs" } });
 
       expectItemWithText("docs", "example.com");
@@ -533,7 +533,7 @@ describe("SearchCommandDialog", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
@@ -548,7 +548,7 @@ describe("SearchCommandDialog", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
@@ -562,7 +562,7 @@ describe("SearchCommandDialog", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法、标题、备注、标签...");
+      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "test-slug" } });
 
       const copyBtn = screen.getByLabelText("Copy https://zhe.to/test-slug");
