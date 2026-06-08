@@ -127,7 +127,7 @@ export const LinkCard = memo(function LinkCard({
 
   if (viewMode === "grid") {
     return (
-      <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors">
+      <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70">
         <GridView {...sharedViewProps} />
         {editArea}
         {sourceDialog}
@@ -136,7 +136,7 @@ export const LinkCard = memo(function LinkCard({
   }
 
   return (
-    <div data-testid="link-card" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70">
       <ListView
         {...sharedViewProps}
         isEditing={isEditing}
