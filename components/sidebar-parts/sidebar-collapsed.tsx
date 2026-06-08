@@ -32,7 +32,7 @@ const iconLinkCls = (active: boolean) =>
   cn(
     "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
     active
-      ? "bg-accent text-foreground"
+      ? "bg-primary/10 text-primary"
       : "text-muted-foreground hover:bg-accent hover:text-foreground",
   );
 

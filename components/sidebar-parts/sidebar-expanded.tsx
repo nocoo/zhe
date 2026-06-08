@@ -44,7 +44,7 @@ const rowLinkCls = (active: boolean) =>
   cn(
     "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
     active
-      ? "bg-accent text-foreground"
+      ? "bg-primary/10 text-primary"
       : "text-muted-foreground hover:bg-accent hover:text-foreground",
   );
 

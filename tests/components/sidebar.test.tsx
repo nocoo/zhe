@@ -303,8 +303,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const overviewLink = screen.getByRole('link', { name: '概览' });
-      expect(overviewLink.className).toContain('bg-accent');
-      expect(overviewLink.className).toContain('text-foreground');
+      expect(overviewLink.className).toContain('bg-primary/10');
+      expect(overviewLink.className).toContain('text-primary');
     });
 
     it('renders overview section label above 链接管理', () => {
@@ -339,8 +339,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText('全部链接').closest('a');
-      expect(allLinksAnchor?.className).toContain('bg-accent');
-      expect(allLinksAnchor?.className).toContain('text-foreground');
+      expect(allLinksAnchor?.className).toContain('bg-primary/10');
+      expect(allLinksAnchor?.className).toContain('text-primary');
     });
 
     it('highlights "Inbox" when folder=uncategorized in URL', () => {
@@ -348,8 +348,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const uncategorizedAnchor = screen.getByText('Inbox').closest('a');
-      expect(uncategorizedAnchor?.className).toContain('bg-accent');
-      expect(uncategorizedAnchor?.className).toContain('text-foreground');
+      expect(uncategorizedAnchor?.className).toContain('bg-primary/10');
+      expect(uncategorizedAnchor?.className).toContain('text-primary');
 
       const allLinksAnchor = screen.getByText('全部链接').closest('a');
       expect(allLinksAnchor?.className).toContain('text-muted-foreground');
@@ -440,8 +440,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const personalLink = screen.getByText('个人').closest('a');
-      expect(personalLink?.className).toContain('bg-accent');
-      expect(personalLink?.className).toContain('text-foreground');
+      expect(personalLink?.className).toContain('bg-primary/10');
+      expect(personalLink?.className).toContain('text-primary');
 
       const workLink = screen.getByText('工作').closest('a');
       expect(workLink?.className).toContain('text-muted-foreground');
@@ -572,8 +572,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const backyLink = screen.getByRole('link', { name: 'Backy' });
-      expect(backyLink.className).toContain('bg-accent');
-      expect(backyLink.className).toContain('text-foreground');
+      expect(backyLink.className).toContain('bg-primary/10');
+      expect(backyLink.className).toContain('text-primary');
     });
 
     it('renders "Xray" link in expanded mode', () => {
@@ -589,8 +589,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const xrayLink = screen.getByRole('link', { name: 'Xray' });
-      expect(xrayLink.className).toContain('bg-accent');
-      expect(xrayLink.className).toContain('text-foreground');
+      expect(xrayLink.className).toContain('bg-primary/10');
+      expect(xrayLink.className).toContain('text-primary');
     });
   });
 
@@ -620,8 +620,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const dataLink = screen.getByRole('link', { name: '数据管理' });
-      expect(dataLink.className).toContain('bg-accent');
-      expect(dataLink.className).toContain('text-foreground');
+      expect(dataLink.className).toContain('bg-primary/10');
+      expect(dataLink.className).toContain('text-primary');
     });
 
     it('renders "Webhook" link in expanded mode with Legacy badge', () => {
@@ -638,8 +638,8 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       const webhookLink = screen.getByRole('link', { name: /Webhook/ });
-      expect(webhookLink.className).toContain('bg-accent');
-      expect(webhookLink.className).toContain('text-foreground');
+      expect(webhookLink.className).toContain('bg-primary/10');
+      expect(webhookLink.className).toContain('text-primary');
     });
 
     it('renders 集成 and 设置 sections below 工具 section', () => {

@@ -135,7 +135,7 @@ export function SidebarFolderItem({
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
           isSelected
-            ? "bg-accent text-foreground"
+            ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         )}
       >

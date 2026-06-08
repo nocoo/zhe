@@ -66,8 +66,8 @@ describe('SidebarFolderItem', () => {
       renderItem({ isSelected: true });
 
       const link = screen.getByText('工作').closest('a');
-      expect(link?.className).toContain('bg-accent');
-      expect(link?.className).toContain('text-foreground');
+      expect(link?.className).toContain('bg-primary/10');
+      expect(link?.className).toContain('text-primary');
     });
 
     it('applies muted style when not selected', () => {
