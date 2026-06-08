@@ -35,8 +35,9 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({
     概览: true,
     链接管理: true,
-    系统集成: true,
-    系统: true,
+    工具: true,
+    集成: true,
+    设置: true,
   });
   const toggleGroup = useCallback(
     (label: string) =>

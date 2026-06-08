@@ -28,6 +28,8 @@ export interface StaticNavItem {
   title: string;
   icon: React.ElementType;
   href: string;
+  /** Optional small label shown after the title (e.g. "Legacy"). */
+  badge?: string;
 }
 
 export interface NavGroup {
@@ -59,7 +61,7 @@ export const PRE_LINK_NAV_GROUPS: NavGroup[] = [
 /** Nav groups rendered BELOW the 链接管理 section. */
 export const OTHER_NAV_GROUPS: NavGroup[] = [
   {
-    label: "系统集成",
+    label: "工具",
     items: [
       { title: "文件上传", icon: FileUp, href: "/dashboard/uploads" },
       { title: "Backy", icon: CloudUpload, href: "/dashboard/backy" },
@@ -67,12 +69,17 @@ export const OTHER_NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "系统",
+    label: "集成",
+    items: [
+      { title: "API Keys", icon: Key, href: "/dashboard/api-keys" },
+      { title: "Webhook", icon: Webhook, href: "/dashboard/webhook", badge: "Legacy" },
+    ],
+  },
+  {
+    label: "设置",
     items: [
       { title: "存储管理", icon: HardDrive, href: "/dashboard/storage" },
       { title: "数据管理", icon: Database, href: "/dashboard/data-management" },
-      { title: "Webhook", icon: Webhook, href: "/dashboard/webhook" },
-      { title: "API Keys", icon: Key, href: "/dashboard/api-keys" },
     ],
   },
 ];

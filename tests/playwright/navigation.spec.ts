@@ -18,8 +18,9 @@ test.describe('Dashboard navigation', () => {
     // "概览" appears as both a section label and a nav link — check at least 2
     await expect(sidebar.getByText('概览').first()).toBeVisible();
     await expect(sidebar.getByText('链接管理').first()).toBeVisible();
-    await expect(sidebar.getByText('系统集成').first()).toBeVisible();
-    await expect(sidebar.getByText('系统', { exact: true })).toBeVisible();
+    await expect(sidebar.getByText('工具').first()).toBeVisible();
+    await expect(sidebar.getByText('集成', { exact: true })).toBeVisible();
+    await expect(sidebar.getByText('设置', { exact: true })).toBeVisible();
 
     // Nav items (links)
     await expect(sidebar.locator('a:has-text("全部链接")')).toBeVisible();
@@ -94,7 +95,7 @@ test.describe('Dashboard navigation', () => {
 
     await expect(
       page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
-    ).toHaveText('系统集成');
+    ).toHaveText('文件上传');
   });
 
   test('navigate to Backy page', async ({ page }) => {

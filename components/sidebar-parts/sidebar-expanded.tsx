@@ -74,6 +74,14 @@ function StaticNavGroupBlock({
           <Link key={item.href} href={item.href} className={rowLinkCls(pathname === item.href)}>
             <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="flex-1 text-left">{item.title}</span>
+            {item.badge && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground"
+              >
+                {item.badge}
+              </Badge>
+            )}
           </Link>
         ))}
       </div>

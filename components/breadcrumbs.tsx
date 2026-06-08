@@ -8,7 +8,7 @@ import Link from "next/link";
 const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/overview": "概览",
   "/dashboard/ideas": "想法",
-  "/dashboard/uploads": "系统集成",
+  "/dashboard/uploads": "文件上传",
   "/dashboard/backy": "Backy",
   "/dashboard/xray": "Xray",
   "/dashboard/storage": "存储管理",

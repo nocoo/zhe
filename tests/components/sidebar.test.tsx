@@ -552,11 +552,11 @@ describe('Sidebar', () => {
     });
   });
 
-  describe('系统集成 nav group', () => {
-    it('renders "系统集成" section label in expanded mode', () => {
+  describe('工具 nav group', () => {
+    it('renders "工具" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('系统集成')).toBeInTheDocument();
+      expect(screen.getByText('工具')).toBeInTheDocument();
     });
 
     it('renders "Backy" link in expanded mode', () => {
@@ -594,11 +594,17 @@ describe('Sidebar', () => {
     });
   });
 
-  describe('system nav group', () => {
-    it('renders "系统" section label in expanded mode', () => {
+  describe('集成 / 设置 nav groups', () => {
+    it('renders "集成" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('系统')).toBeInTheDocument();
+      expect(screen.getByText('集成')).toBeInTheDocument();
+    });
+
+    it('renders "设置" section label in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      expect(screen.getByText('设置')).toBeInTheDocument();
     });
 
     it('renders "数据管理" link in expanded mode', () => {
@@ -618,39 +624,42 @@ describe('Sidebar', () => {
       expect(dataLink.className).toContain('text-foreground');
     });
 
-    it('renders "Webhook" link in expanded mode', () => {
+    it('renders "Webhook" link in expanded mode with Legacy badge', () => {
       renderSidebar({ collapsed: false });
 
-      const webhookLink = screen.getByRole('link', { name: 'Webhook' });
+      const webhookLink = screen.getByRole('link', { name: /Webhook/ });
       expect(webhookLink).toBeInTheDocument();
       expect(webhookLink.getAttribute('href')).toBe('/dashboard/webhook');
+      expect(webhookLink.textContent).toContain('Legacy');
     });
 
     it('highlights "Webhook" when on webhook page', () => {
       mockPathname = '/dashboard/webhook';
       renderSidebar({ collapsed: false });
 
-      const webhookLink = screen.getByRole('link', { name: 'Webhook' });
+      const webhookLink = screen.getByRole('link', { name: /Webhook/ });
       expect(webhookLink.className).toContain('bg-accent');
       expect(webhookLink.className).toContain('text-foreground');
     });
 
-    it('renders "系统" section below 系统集成 section', () => {
+    it('renders 集成 and 设置 sections below 工具 section', () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const sectionLabels = container.querySelectorAll('.text-xs.font-medium.uppercase');
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
-      const integrationIndex = labels.indexOf('系统集成');
-      const systemIndex = labels.indexOf('系统');
-      expect(integrationIndex).toBeGreaterThanOrEqual(0);
-      expect(systemIndex).toBeGreaterThan(integrationIndex);
+      const toolsIndex = labels.indexOf('工具');
+      const integrationsIndex = labels.indexOf('集成');
+      const settingsIndex = labels.indexOf('设置');
+      expect(toolsIndex).toBeGreaterThanOrEqual(0);
+      expect(integrationsIndex).toBeGreaterThan(toolsIndex);
+      expect(settingsIndex).toBeGreaterThan(integrationsIndex);
     });
 
     it('renders all nav links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // Should include: 2 概览 section (overview+ideas) + 2 folder nav + 3 系统集成 (uploads+backy+xray) + 4 系统 (storage+data-management+webhook+api-keys) = 11
+      // 2 概览 (overview+ideas) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 11
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(11);
     });
@@ -660,16 +669,17 @@ describe('Sidebar', () => {
     it('renders ChevronUp icon for each nav group', () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      // 4 groups: 概览, 链接管理, 系统集成, 系统
+      // 5 groups: 概览, 链接管理, 工具, 集成, 设置
       const triggers = container.querySelectorAll('[data-state]');
-      expect(triggers.length).toBeGreaterThanOrEqual(4);
+      expect(triggers.length).toBeGreaterThanOrEqual(5);
     });
 
     it('uses B-2 spec group label styling', () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const labels = container.querySelectorAll('.text-xs.font-medium.uppercase.tracking-wider');
-      expect(labels.length).toBe(4);
+      // 5 groups: 概览, 链接管理, 工具, 集成, 设置
+      expect(labels.length).toBe(5);
     });
   });
 

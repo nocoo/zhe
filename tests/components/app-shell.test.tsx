@@ -191,7 +191,7 @@ describe('AppShell', () => {
     const breadcrumbNav = screen.getByLabelText('Breadcrumb');
     expect(breadcrumbNav).toBeInTheDocument();
     // Breadcrumb should contain the page label and parent link
-    expect(breadcrumbNav.textContent).toContain('系统集成');
+    expect(breadcrumbNav.textContent).toContain('文件上传');
     expect(breadcrumbNav.textContent).toContain('仪表盘');
   });
 
