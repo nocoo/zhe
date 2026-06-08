@@ -7,6 +7,8 @@ import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 function UploadListSkeleton() {
   return (
@@ -117,14 +119,12 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">文件上传</h2>
-          <p className="text-sm text-muted-foreground mt-0.5" data-testid="upload-file-count">
-            共 {uploads.length} 个文件
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="文件上传"
+        description={
+          <span data-testid="upload-file-count">共 {uploads.length} 个文件</span>
+        }
+      />
 
       {/* Options */}
       <UploadOptions
@@ -158,16 +158,12 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
 
       {/* Completed uploads */}
       {uploads.length === 0 && uploadingFiles.length === 0 ? (
-        <div data-testid="upload-empty-state" className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
-          <UploadIcon
-            className="w-10 h-10 mx-auto text-muted-foreground mb-4"
-            strokeWidth={1.5}
-          />
-          <p className="text-sm text-muted-foreground mb-2">暂无文件</p>
-          <p className="text-xs text-muted-foreground">
-            拖拽文件到上方区域或点击选择文件上传
-          </p>
-        </div>
+        <EmptyState
+          icon={UploadIcon}
+          title="暂无文件"
+          description="拖拽文件到上方区域或点击选择文件上传"
+          data-testid="upload-empty-state"
+        />
       ) : (
         <div className="space-y-2">
           {uploads.map((upload) => (

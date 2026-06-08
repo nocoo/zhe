@@ -6,6 +6,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { LinkCard } from "@/components/dashboard/link-card";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
@@ -40,14 +42,11 @@ function InboxSkeleton() {
 
 function InboxEmpty() {
   return (
-    <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
-      <InboxIcon
-        className="w-10 h-10 mx-auto text-muted-foreground mb-4"
-        strokeWidth={1.5}
-      />
-      <p className="text-sm text-muted-foreground mb-2">Inbox 已清空</p>
-      <p className="text-xs text-muted-foreground">所有链接都已整理到文件夹中</p>
-    </div>
+    <EmptyState
+      icon={InboxIcon}
+      title="Inbox 已清空"
+      description="所有链接都已整理到文件夹中"
+    />
   );
 }
 
@@ -74,28 +73,26 @@ function InboxHeader({
   onRefresh: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Inbox</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          共 {count} 条待整理链接
-        </p>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="rounded-widget"
-        onClick={onRefresh}
-        disabled={isRefreshing}
-        aria-label="刷新链接"
-      >
-        <RefreshCw
-          className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-          strokeWidth={1.5}
-        />
-        刷新
-      </Button>
-    </div>
+    <PageHeader
+      title="Inbox"
+      description={`共 ${count} 条待整理链接`}
+      actions={
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-widget"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          aria-label="刷新链接"
+        >
+          <RefreshCw
+            className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+            strokeWidth={1.5}
+          />
+          刷新
+        </Button>
+      }
+    />
   );
 }
 

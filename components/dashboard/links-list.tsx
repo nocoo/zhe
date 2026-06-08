@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Link2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { LinkCard } from "./link-card";
 import { InboxTriage } from "./inbox-triage";
 import { CreateLinkModal } from "./create-link-modal";
@@ -16,27 +18,9 @@ import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 
 function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   if (viewMode === "grid") {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-card bg-secondary aspect-[5/4] animate-pulse"
-          />
-        ))}
-      </div>
-    );
+    return <CardGridSkeleton />;
   }
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-card bg-secondary h-[88px] animate-pulse"
-        />
-      ))}
-    </div>
-  );
+  return <CardListSkeleton />;
 }
 
 function LoadingState({ viewMode }: { viewMode: ViewMode }) {
@@ -85,17 +69,12 @@ function LinksContent(props: LinksContentProps) {
 
   if (filteredLinks.length === 0) {
     return (
-      <div className="rounded-card border-0 bg-secondary shadow-none p-12 text-center">
-        <Link2
-          className="w-10 h-10 mx-auto text-muted-foreground mb-4"
-          strokeWidth={1.5}
-        />
-        <p className="text-sm text-muted-foreground mb-2">暂无链接</p>
-        <p className="text-xs text-muted-foreground mb-6">
-          点击上方按钮创建您的第一个短链接
-        </p>
-        {createButton}
-      </div>
+      <EmptyState
+        icon={Link2}
+        title="暂无链接"
+        description="点击上方按钮创建您的第一个短链接"
+        action={createButton}
+      />
     );
   }
 
