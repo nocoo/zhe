@@ -34,7 +34,7 @@ describe('Home Page', () => {
     cleanup();
   });
 
-  it('redirects to /dashboard when user is authenticated', async () => {
+  it('redirects to /dashboard/overview when user is authenticated', async () => {
     mockAuth.mockResolvedValue({
       user: { id: 'u1', name: 'Test', email: 'test@test.com' },
       expires: '',
@@ -43,7 +43,7 @@ describe('Home Page', () => {
     const { default: Home } = await import('@/app/page');
     await Home();
 
-    expect(redirect).toHaveBeenCalledWith('/dashboard');
+    expect(redirect).toHaveBeenCalledWith('/dashboard/overview');
   });
 
   it('renders login card when not authenticated', async () => {

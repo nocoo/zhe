@@ -29,14 +29,14 @@ async function signInWithGoogle(): Promise<void> {
   const h = await headers();
   const proto = h.get("x-forwarded-proto") || "http";
   const host = h.get("x-forwarded-host") || h.get("host") || "localhost:7006";
-  const redirectTo = `${proto}://${host}/dashboard`;
+  const redirectTo = `${proto}://${host}/dashboard/overview`;
   await signIn("google", { redirectTo });
 }
 
 export default async function Home() {
   const session = await auth();
   if (session?.user) {
-    redirect("/dashboard");
+    redirect("/dashboard/overview");
   }
 
   const dateStr = todayDateStr();
