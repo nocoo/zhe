@@ -188,7 +188,14 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    /* Latin first, then a CJK fallback chain so 中文 falls back to the
+       platform's preferred Han font instead of the browser default. */
+    font-family:
+      "Inter", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    /* CJK reading benefits from a slightly looser leading than Latin. */
+    line-height: 1.625;
+    text-wrap: pretty;
   }
 }
 
