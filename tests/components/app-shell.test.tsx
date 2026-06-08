@@ -336,12 +336,11 @@ describe('AppShell', () => {
   });
 
   describe('B-2 spec: rounded content area', () => {
-    it('uses rounded-[16px] md:rounded-[20px] for content panel', async () => {
+    it('uses the radius-island token for the content panel', async () => {
       const { container } = await renderShell();
 
-      const contentPanel = container.querySelector('.rounded-\\[16px\\]');
+      const contentPanel = container.querySelector('.rounded-island');
       expect(contentPanel).toBeInTheDocument();
-      expect(contentPanel?.className).toContain('md:rounded-[20px]');
     });
   });
 });

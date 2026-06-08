@@ -55,6 +55,11 @@
     --radius: 0.75rem;
     --radius-island: 20px;
     --radius-card: 14px;
+    /* --radius-widget (10px) is the project's small-control radius.
+     * Tailwind's default `rounded-md` resolves to the same 10px via
+     * calc(--radius - 2px). The two are interchangeable on purpose;
+     * prefer `rounded-widget` for intentional small controls so the
+     * design intent is searchable. */
     --radius-widget: 10px;
 
     --sidebar-background: 220 14% 92%;

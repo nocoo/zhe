@@ -233,7 +233,7 @@ export function TweetCard({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[var(--radius-card)] bg-secondary p-4 space-y-3">
+    <div className="rounded-card bg-secondary p-4 space-y-3">
       <AuthorRow tweet={tweet} />
 
       <p className="text-sm whitespace-pre-wrap leading-relaxed">{tweet.text}</p>
