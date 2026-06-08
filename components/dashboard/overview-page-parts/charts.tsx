@@ -137,12 +137,12 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               <stop offset="100%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="clickGradientWorker" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS[2]} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={CHART_COLORS[2]} stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="clickGradientOrigin" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={CHART_COLORS[4]} stopOpacity={0.2} />
               <stop offset="100%" stopColor={CHART_COLORS[4]} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="clickGradientOrigin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={CHART_COLORS[8]} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={CHART_COLORS[8]} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={withAlpha("chart-axis", 0.15)} />
@@ -183,7 +183,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="worker"
-            stroke={CHART_COLORS[2] ?? ''}
+            stroke={CHART_COLORS[4] ?? ''}
             fill="url(#clickGradientWorker)"
             strokeWidth={1.5}
             name="worker"
@@ -191,7 +191,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="origin"
-            stroke={CHART_COLORS[4] ?? ''}
+            stroke={CHART_COLORS[8] ?? ''}
             fill="url(#clickGradientOrigin)"
             strokeWidth={1.5}
             name="origin"

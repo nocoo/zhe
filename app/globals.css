@@ -104,31 +104,25 @@
 
     --highlight: 50 100% 72%;
 
-    /* Visualization palette */
-    --chart-1: 262 83% 58%;
-    --chart-2: 200 90% 55%;
-    --chart-3: 186 80% 45%;
-    --chart-4: 166 72% 44%;
-    --chart-5: 142 71% 45%;
-    --chart-6: 84 65% 46%;
-    --chart-7: 45 93% 47%;
-    --chart-8: 30 90% 55%;
-    --chart-9: 15 85% 52%;
-    --chart-10: 0 72% 51%;
-    --chart-11: 340 82% 55%;
-    --chart-12: 320 70% 55%;
-    --chart-13: 290 65% 55%;
-    --chart-14: 270 70% 60%;
-    --chart-15: 250 65% 58%;
-    --chart-16: 230 70% 56%;
-    --chart-17: 210 55% 50%;
-    --chart-18: 195 45% 55%;
-    --chart-19: 160 50% 50%;
-    --chart-20: 100 50% 48%;
-    --chart-21: 60 65% 45%;
-    --chart-22: 22 80% 50%;
-    --chart-23: 350 65% 50%;
-    --chart-24: 0 0% 25%;
+    /* Visualization palette — 12 categorical colors covering the hue
+     * wheel with enough hue distance between adjacent indices for
+     * stacked area/line charts to read clearly. The "trio" used by
+     * the click-trend chart is index 0 (purple — brand), 4 (green),
+     * 8 (orange), chosen to be roughly equidistant on the wheel.
+     * Neutral grays are NOT in this scale — use --chart-axis /
+     * --chart-muted for axes, gridlines, and tertiary tracks. */
+    --chart-1: 262 83% 58%;   /* purple — brand */
+    --chart-2: 200 90% 55%;   /* blue */
+    --chart-3: 186 80% 45%;   /* teal */
+    --chart-4: 166 72% 44%;   /* green-teal */
+    --chart-5: 142 71% 45%;   /* green */
+    --chart-6: 84 65% 46%;    /* lime */
+    --chart-7: 45 93% 47%;    /* yellow */
+    --chart-8: 30 90% 55%;    /* orange */
+    --chart-9: 15 85% 52%;    /* red-orange */
+    --chart-10: 0 72% 51%;    /* red */
+    --chart-11: 340 82% 55%;  /* pink */
+    --chart-12: 290 65% 55%;  /* magenta */
 
     --chart-axis: 0 0% 40%;
     --chart-muted: 0 0% 70%;
@@ -190,7 +184,8 @@
 
     --highlight: 50 90% 35%;
 
-    /* Visualization palette — boosted for dark bg */
+    /* Visualization palette — same 12-color scale as light, but each
+     * hue boosted ~5–8% lightness so it lifts above the L0 dark body. */
     --chart-1: 262 83% 63%;
     --chart-2: 200 90% 60%;
     --chart-3: 186 80% 50%;
@@ -202,19 +197,7 @@
     --chart-9: 15 85% 57%;
     --chart-10: 0 72% 56%;
     --chart-11: 340 82% 60%;
-    --chart-12: 320 70% 60%;
-    --chart-13: 290 65% 60%;
-    --chart-14: 270 70% 65%;
-    --chart-15: 250 65% 63%;
-    --chart-16: 230 70% 61%;
-    --chart-17: 210 55% 56%;
-    --chart-18: 195 45% 60%;
-    --chart-19: 160 50% 55%;
-    --chart-20: 100 50% 53%;
-    --chart-21: 60 65% 50%;
-    --chart-22: 22 80% 55%;
-    --chart-23: 350 65% 55%;
-    --chart-24: 0 0% 65%;
+    --chart-12: 290 65% 60%;
 
     --chart-axis: 0 0% 50%;
     --chart-muted: 0 0% 35%;
