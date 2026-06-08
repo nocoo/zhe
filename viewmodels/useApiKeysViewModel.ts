@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
   listApiKeys,
   createApiKeyAction,
@@ -46,9 +47,12 @@ export function useApiKeysViewModel() {
       const result = await createApiKeyAction({ name, scopes });
       if (result.success) {
         setNewlyCreatedKey(result.data.fullKey);
+        toast.success("已创建 API Key");
         // Refresh list
         const listResult = await listApiKeys();
         if (listResult.success) setKeys(listResult.data);
+      } else {
+        toast.error(result.error || "创建 API Key 失败");
       }
       return result;
     } finally {
@@ -60,6 +64,9 @@ export function useApiKeysViewModel() {
     const result = await revokeApiKeyAction(id);
     if (result.success) {
       setKeys((prev) => prev.filter((k) => k.id !== id));
+      toast.success("已撤销 API Key");
+    } else {
+      toast.error(result.error || "撤销 API Key 失败");
     }
     return result;
   }, []);
