@@ -38,8 +38,9 @@ export interface DashboardActions {
   handleLinkCreated: (link: Link) => void;
   handleLinkDeleted: (id: number) => void;
   handleLinkUpdated: (link: Link) => void;
-  /** Re-fetch all links from the server */
-  refreshLinks: () => Promise<void>;
+  /** Re-fetch all links from the server. Resolves to a result so callers
+   *  can show success/failure feedback (e.g. a toast). */
+  refreshLinks: () => Promise<{ success: boolean; error?: string }>;
 
   // Folders — call after server action succeeds to sync memory
   handleFolderCreated: (folder: Folder) => void;

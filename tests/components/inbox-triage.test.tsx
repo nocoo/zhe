@@ -90,7 +90,7 @@ const mockService: DashboardService = {
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
-  refreshLinks: vi.fn().mockResolvedValue(undefined),
+  refreshLinks: vi.fn().mockResolvedValue({ success: true }),
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),
@@ -401,9 +401,9 @@ describe('InboxTriage', () => {
 
     it('disables button while refreshing', async () => {
       // Make refreshLinks block so we can inspect the disabled state
-      let resolveRefresh!: () => void;
+      let resolveRefresh!: (value: { success: boolean }) => void;
       (mockService.refreshLinks as ReturnType<typeof vi.fn>).mockReturnValue(
-        new Promise<void>((r) => { resolveRefresh = r; }),
+        new Promise<{ success: boolean }>((r) => { resolveRefresh = r; }),
       );
       render(<InboxTriage />);
 
@@ -414,7 +414,7 @@ describe('InboxTriage', () => {
       expect(btn).toBeDisabled();
 
       // Resolve the promise and wait for state update
-      resolveRefresh();
+      resolveRefresh({ success: true });
       await vi.waitFor(() => {
         expect(btn).not.toBeDisabled();
       });

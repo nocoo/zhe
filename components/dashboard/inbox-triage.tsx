@@ -5,6 +5,7 @@ import {
   Inbox as InboxIcon,
   RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -116,7 +117,12 @@ export function InboxTriage() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await refreshLinks();
+      const result = await refreshLinks();
+      if (result.success) {
+        toast.success("已刷新");
+      } else {
+        toast.error(result.error || "刷新失败");
+      }
     } finally {
       setIsRefreshing(false);
     }

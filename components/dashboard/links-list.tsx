@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Link2 } from "lucide-react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { LinkCard } from "./link-card";
@@ -136,7 +137,12 @@ export function LinksList() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await refreshLinks();
+      const result = await refreshLinks();
+      if (result.success) {
+        toast.success("已刷新");
+      } else {
+        toast.error(result.error || "刷新失败");
+      }
     } finally {
       setIsRefreshing(false);
     }

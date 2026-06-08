@@ -27,7 +27,7 @@ const mockActions = {
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
-  refreshLinks: vi.fn().mockResolvedValue(undefined),
+  refreshLinks: vi.fn().mockResolvedValue({ success: true }),
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),

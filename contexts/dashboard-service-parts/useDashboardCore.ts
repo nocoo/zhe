@@ -59,9 +59,23 @@ export function useDashboardCore(initialFolders: Folder[]) {
   const handleLinkUpdated = useCallback((updatedLink: Link) => {
     setLinks((prev) => prev.map((l) => (l.id === updatedLink.id ? updatedLink : l)));
   }, []);
-  const refreshLinks = useCallback(async () => {
-    const result = await getLinks();
-    if (result.success && result.data) setLinks(result.data);
+  const refreshLinks = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await getLinks();
+      if (result.success && result.data) {
+        setLinks(result.data);
+        return { success: true };
+      }
+      return {
+        success: false,
+        ...(result.error !== undefined && { error: result.error }),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }, []);
 
   // ── Folders handlers (with cascade onto links) ──
