@@ -46,6 +46,9 @@ bun run release -- minor     # minor bump
 bun run release -- major     # major bump
 bun run release -- 2.0.0     # explicit version
 bun run release -- --dry-run # preview without side effects
+bun run release -- --skip-l3 # skip the L3 Playwright preflight
+bun run release -- --skip-redeploy
+                             # skip the post-push Railway redeploy + health probe
 ```
 
 **⚠️ Pre-release Migration Check**: The release script automatically verifies D1 migration parity between `zhe-db` (prod) and `zhe-db-test` (test) during preflight. If tables differ, it prints which tables are missing and exits with an error. To fix:
@@ -57,15 +60,16 @@ wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql
 
 The script performs these steps automatically:
 1. Preflight: verify clean working tree, branch, `gh` auth, **D1 migration parity (hard gate)**
-2. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
-3. Run `bun install` to sync `bun.lock` (prevents `--frozen-lockfile` failures in CI)
-4. Generate CHANGELOG.md section from `git log` (conventional commit classification)
-5. Verify no stale old version strings remain in `*.ts`/`*.tsx` via `rg`
-6. Commit: `chore: bump version to x.y.z` (triggers pre-commit hooks: L1 + G1 + G2)
-7. Interactive confirmation gate
+2. **L3 Playwright preflight (hard gate)** — runs `bun run test:e2e:pw` before bumping; aborts if any spec fails. Skip with `--skip-l3` only when the L3 suite is known to be green
+3. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
+4. Run `bun install` to sync `bun.lock` (prevents `--frozen-lockfile` failures in CI)
+5. Generate CHANGELOG.md section from `git log` (conventional commit classification)
+6. Verify no stale old version strings remain in `*.ts`/`*.tsx` via `rg`
+7. Commit: `chore: bump version to x.y.z` (triggers pre-commit hooks: L1 + G1 + G2)
 8. Push → Tag (`v`-prefixed, annotated) → Push tags → GitHub Release
+9. **Force `railway redeploy --from-source --yes` and poll `/api/live`** until version matches (5min cap; warns rather than fails on timeout because the tag is already public). Skip with `--skip-redeploy`
 
-Pre-commit hooks (L1 tests, G1 lint/typecheck, G2 gitleaks) run automatically during step 6. Pre-push hooks (L2 API E2E, G2 osv-scanner) run during step 8.
+Pre-commit hooks (L1 tests, G1 lint/typecheck, G2 gitleaks) run automatically during step 7. Pre-push hooks (L2 API E2E, G2 osv-scanner) run during step 8.
 
 > **Versioning spec**: `search-memory "开发规范：版本号的维护"` — defines X (major/breaking), Y (minor/feature), Z (patch/fix) and default bump rules.
 
@@ -173,7 +177,9 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 - **Mock INSERT must read params, never hardcode return values**: When a mock DB intercepts an INSERT statement, it must destructure **all** columns from the params array and use them in the returned row. Hardcoding fields to `null` (e.g. `screenshot_url: null, note: null`) masks bugs where the real SQL omits a column — the test passes because the mock always returns null regardless of input. When adding a new column to an INSERT: (1) update the SQL, (2) update the mock's param destructuring, (3) add a test that round-trips the new field through create → read. A broader check: whenever a schema migration adds a column, grep for all INSERT statements touching that table and verify each one includes the new column.
 - **D1 migration must be applied to both test and prod**: After adding a new migration file in `drizzle/migrations/`, it must be executed on **both** `zhe-db-test` and `zhe-db` (production) before release. Test environment often gets the migration first during development, but production can be forgotten. Always verify both environments have the same table structure before release. (2026-04-13: ideas API returned 500 because `0020_add_ideas.sql` was only applied to test, not prod.)
 - **Never use `last_insert_rowid()` across multiple INSERTs in a D1 batch**: In D1's `batch()` API, `last_insert_rowid()` returns the row ID of the most recent INSERT across **all** statements in the batch — not just a specific table. When a batch contains `INSERT INTO ideas ... RETURNING *` followed by multiple `INSERT INTO idea_tags (idea_id, tag_id) VALUES (last_insert_rowid(), ?)`, the second idea_tags INSERT gets the row ID from the **first** idea_tags INSERT (not the ideas INSERT), causing a FOREIGN KEY constraint failure. Fix: insert the parent row first via a single query with `RETURNING *` to get its concrete ID, then batch-insert child rows with the explicit ID. This applies to any parent-child INSERT pattern in D1 batches.
-- **Railway Watch Paths skip version-bump deploys**: The Railway service has Watch Paths configured (dashboard-only setting), so a `chore: bump version` commit that touches only `package.json` / `CHANGELOG.md` / `cli/` is judged SKIPPED and never deploys. After `bun run release` pushes, production `/api/live` version stays stale (long `uptime` = origin never restarted). Always verify the deploy actually happened (`railway deployment list` shows SUCCESS, not SKIPPED) and manually trigger when needed: `railway redeploy --from-source --yes` (pulls the latest GitHub commit). The ideal fix is to have `scripts/release.ts` trigger the redeploy after push, or add `package.json` to Railway's watch paths. (2026-06-06: v1.18.2 push was SKIPPED twice; manual `redeploy --from-source` brought prod to 1.18.2.)
+- **Railway Watch Paths skip version-bump deploys**: The Railway service has Watch Paths configured (dashboard-only setting), so a `chore: bump version` commit that touches only `package.json` / `CHANGELOG.md` / `cli/` is judged SKIPPED and never deploys. After `bun run release` pushes, production `/api/live` version stays stale (long `uptime` = origin never restarted). The release script (`scripts/release.ts` Phase 6) now runs `railway redeploy --from-source --yes` after the push and polls `/api/live` for up to 5 minutes until the version matches — so the SKIP is recovered automatically. Skip with `--skip-redeploy` if you must bypass. (2026-06-06: v1.18.2 push SKIPPED twice; manual `redeploy --from-source` brought prod to 1.18.2. 2026-06-09: v1.18.3 SKIPPED again, automated Phase 6 added in the same session.)
+- **L3 spec drift only surfaces in CI** — automate L3 as a release preflight: pre-commit covers L1+G1+G2, pre-push covers L2, but Playwright (L3) only fires on GitHub Actions. That means a P0/P1 change touching user-visible labels, redirects, or toast copy can pass every local gate, get tagged, and only then fail CI. Always grep `tests/playwright/` (in addition to `tests/components/` and `tests/api/`) when changing routes, breadcrumbs, page titles, or globally-visible toast text. The release script (`scripts/release.ts` Phase 0.5) now runs `bun run test:e2e:pw` as a hard gate **before** the version bump so spec drift aborts the release instead of becoming a follow-up patch commit. (2026-06-09: v1.18.3 CI failed on `auth-guard.spec.ts` waiting `**/dashboard` after the redirect moved to `/dashboard/overview`, and `data-management.spec.ts` `getByText('导入完成')` exploded on strict mode after a sonner toast was added next to the existing inline result block.)
+- **Sonner toast text duplicates inline copy → Playwright strict mode breaks**: When introducing a toast on a page that already has an inline result/status message containing similar phrasing, `page.getByText('共同子串')` resolves to **two** elements (toast DOM + inline DOM both render concurrently for ~4s) and Playwright's strict mode fails. Either (a) make the toast and inline copy textually distinct, or (b) pin the assertion with `.first()` — either surfacing is enough proof the action landed. Audit existing specs whenever a viewmodel gains its first toast on a page that already shows an inline `importResult` / `lastSyncResult` / similar state block. (2026-06-09: `getByText('导入完成')` and `getByText(/跳过\s+\d+\s+条/)` in `data-management.spec.ts` both needed `.first()` after `useSettingsViewModel` started toasting on import.)
 - **github.com:443 may be blocked — use the Clash proxy**: In this network environment GitHub HTTPS (port 443) often fails to connect while SSH and ICMP work. Prefix git/gh/wrangler/curl with the Clash proxy `127.0.0.1:7890` (e.g. `git -c http.proxy=http://127.0.0.1:7890 push https://github.com/nocoo/zhe.git HEAD:main`, `HTTPS_PROXY=http://127.0.0.1:7890 gh release create ...`). Alternatively the `gh-personal` SSH host (ssh.github.com:443) bypasses the block.
 
 ## Testing

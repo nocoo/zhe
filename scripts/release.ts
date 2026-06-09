@@ -15,10 +15,15 @@
  *   bun run release -- major     # major bump
  *   bun run release -- 2.0.0     # explicit version
  *   bun run release -- --dry-run # preview without side effects
+ *   bun run release -- --skip-l3 # skip the L3 Playwright preflight (faster)
+ *   bun run release -- --skip-redeploy
+ *                                # skip the post-push Railway redeploy + health probe
  *
  * Env:
  *   Requires `gh` CLI authenticated for GitHub release creation.
  *   Requires `rg` (ripgrep) for stale version verification.
+ *   Optional: `railway` CLI authenticated; without it the post-push redeploy
+ *   is skipped with a warning.
  */
 
 import { spawn } from 'child_process';
@@ -373,6 +378,8 @@ async function main(): Promise<void> {
   // --- Parse args ---
   const rawArgs = process.argv.slice(2).filter((a) => a !== '--');
   const isDryRun = rawArgs.includes('--dry-run');
+  const skipL3 = rawArgs.includes('--skip-l3');
+  const skipRedeploy = rawArgs.includes('--skip-redeploy');
   const bumpArg =
     rawArgs.find((a) => !a.startsWith('--')) ?? 'patch';
 
@@ -478,6 +485,26 @@ async function main(): Promise<void> {
   console.log(`   Branch:          ${branch}`);
   console.log(`   Last tag:        ${lastTag ?? '(none)'}`);
   console.log('');
+
+  // --- Phase 0.5: L3 Playwright preflight ---
+  // pre-commit covers L1+G1+G2, pre-push covers L2 — but L3 only fires in
+  // CI, so spec drift surfaces *after* the tag is already public. Run the
+  // browser suite here (before the version bump) so a missed assertion
+  // aborts the release rather than turning into a follow-up patch commit.
+  if (skipL3) {
+    console.log('🎭 Phase 0.5: L3 Playwright preflight... [skipped via --skip-l3]\n');
+  } else if (isDryRun) {
+    console.log('🎭 Phase 0.5: L3 Playwright preflight... [dry-run, would run bun run test:e2e:pw]\n');
+  } else {
+    console.log('🎭 Phase 0.5: L3 Playwright preflight (bun run test:e2e:pw)...\n');
+    const l3Result = await run('bun', ['run', 'test:e2e:pw'], { inherit: true });
+    if (l3Result.code !== 0) {
+      console.error('\n❌ L3 Playwright suite failed.');
+      console.error('   Fix the failing specs (or pass --skip-l3 to bypass at your own risk) and retry.');
+      process.exit(1);
+    }
+    console.log('   ✅ L3 Playwright suite passed\n');
+  }
 
   // --- Phase 1: Version bump + lockfile sync ---
   console.log('📝 Phase 1: Updating version...\n');
@@ -684,6 +711,71 @@ async function main(): Promise<void> {
       console.log(`   ✅ GitHub release created`);
       if (releaseUrl) {
         console.log(`   🔗 ${releaseUrl}`);
+      }
+    }
+  }
+
+  // --- Phase 6: Force Railway redeploy + health check ---
+  // Background: Railway's Watch Paths can mark a pure version-bump commit
+  // (changes only package.json / cli/package.json / CHANGELOG.md) as
+  // SKIPPED, leaving prod stuck on the previous tag. Force a fresh deploy
+  // from main HEAD and then poll /api/live until version matches.
+  if (!skipRedeploy) {
+    console.log('\n🚂 Phase 6: Railway redeploy + health check\n');
+
+    const railwayCheck = await run('railway', ['status']);
+    if (railwayCheck.code !== 0) {
+      console.log('   ⚠️  railway CLI unavailable or not linked — skipping');
+      console.log('       Check prod manually: curl https://zhe.to/api/live');
+    } else {
+      console.log('   🔄 Triggering railway redeploy --from-source --yes...');
+      const redeployResult = await run(
+        'railway',
+        ['redeploy', '--from-source', '--yes'],
+      );
+      if (redeployResult.code !== 0) {
+        console.error('   ⚠️  railway redeploy failed (tag is still pushed)');
+        if (redeployResult.stderr.trim()) {
+          console.error('      ' + redeployResult.stderr.trim().slice(0, 200));
+        }
+        console.error('   Trigger manually: railway redeploy --from-source --yes');
+      } else {
+        console.log('   ✅ Redeploy triggered');
+
+        // Poll /api/live for up to 5 minutes; report (don't fail) on
+        // timeout — the tag is already public and the script's job here
+        // is to surface a stuck deploy quickly, not block on it.
+        console.log(`   ⏳ Polling https://zhe.to/api/live for version ${newVersion}...`);
+        const start = Date.now();
+        const timeoutMs = 5 * 60_000;
+        const intervalMs = 15_000;
+        let live = false;
+        let lastSeen = '';
+        while (Date.now() - start < timeoutMs) {
+          const probe = await run('curl', ['-sS', '--max-time', '5', 'https://zhe.to/api/live']);
+          if (probe.code === 0) {
+            try {
+              const data = JSON.parse(probe.stdout);
+              const version = String(data?.version ?? '');
+              if (version) lastSeen = version;
+              if (version === newVersion) {
+                live = true;
+                break;
+              }
+            } catch {
+              // ignore parse error and keep polling
+            }
+          }
+          await new Promise((r) => setTimeout(r, intervalMs));
+        }
+        if (live) {
+          const elapsed = Math.round((Date.now() - start) / 1000);
+          console.log(`   ✅ /api/live now reports v${newVersion} (after ${elapsed}s)`);
+        } else {
+          console.error(`   ⚠️  /api/live did not report v${newVersion} within 5min`);
+          console.error(`      Last observed version: ${lastSeen || '(no response)'}`);
+          console.error('      Check Railway dashboard or rerun: railway redeploy --from-source --yes');
+        }
       }
     }
   }
