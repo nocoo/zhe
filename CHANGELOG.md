@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.0] - 2026-06-10
+
+### Changed
+- Default to direct GitHub HTTPS, fall back to Clash proxy only on failure
+- Bump vite + @vitejs/plugin-react majors
+- Bump worker + cli vitest to 4.1.8
+- Bump typescript 5.9.3 → 6.0.3 (root + worker)
+- Restore caret range for @nocoo/cli-base
+- Bump cli @nocoo/cli-base 0.2.3 → 0.2.4
+- Bump worker @cloudflare/workers-types + wrangler
+- Bump 3 @radix-ui/* packages to latest minor
+- Bump next + eslint-config-next 16.2.7 → 16.2.9
+- Bump misc dev/runtime patches
+- Bump @aws-sdk/client-s3 + s3-request-presigner to 3.1065.0
+- Bump 12 @radix-ui/* packages to latest patch
+- Add L3 preflight + post-push redeploy + retro
+- Align Playwright specs with the v1.18.3 redirect + toast changes
+
 ## [v1.18.3] - 2026-06-08
 
 ### Added
