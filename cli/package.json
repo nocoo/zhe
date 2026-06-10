@@ -22,7 +22,7 @@
     "release": "bun scripts/release.ts"
   },
   "dependencies": {
-    "@nocoo/cli-base": "^0.2.3"
+    "@nocoo/cli-base": "0.2.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
