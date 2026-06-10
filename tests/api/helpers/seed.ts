@@ -52,6 +52,48 @@ function ensureEnv(): void {
 // D1 HTTP API
 // ---------------------------------------------------------------------------
 
+/**
+ * Retry transient network errors (ECONNRESET, fetch aborted, etc.) when
+ * talking to the Cloudflare D1 HTTP API. Mirrors the application-side retry
+ * policy in lib/db/d1-client.ts so CI test runs are not aborted by a single
+ * dropped TCP connection (observed in run 27265783211).
+ */
+const D1_MAX_RETRIES = 2;
+const D1_RETRY_BASE_DELAY_MS = 200;
+
+function isTransientD1Error(err: unknown): boolean {
+  if (err instanceof TypeError && err.message === 'fetch failed') return true;
+  const msg = err instanceof Error ? err.message : '';
+  return (
+    msg.includes('ECONNRESET') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('UND_ERR_SOCKET')
+  );
+}
+
+async function d1FetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= D1_MAX_RETRIES; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      lastError = err;
+      if (attempt < D1_MAX_RETRIES && isTransientD1Error(err)) {
+        const delay = D1_RETRY_BASE_DELAY_MS * 2 ** attempt;
+        console.warn(
+          `[${label}] Transient D1 error (attempt ${attempt + 1}/${D1_MAX_RETRIES + 1}), retrying in ${delay}ms:`,
+          err instanceof Error ? `${err.message} (cause: ${(err as { cause?: { code?: string } }).cause?.code ?? 'n/a'})` : err,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 function d1Credentials(): { accountId: string; databaseId: string; token: string } {
   ensureEnv();
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -83,13 +125,14 @@ function d1Credentials(): { accountId: string; databaseId: string; token: string
 
 export async function executeD1(sql: string, params: unknown[] = []): Promise<void> {
   const { accountId, databaseId, token } = d1Credentials();
-  const res = await fetch(
+  const res = await d1FetchWithRetry(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ sql, params }),
     },
+    'D1 execute',
   );
   if (!res.ok) {
     const body = await res.text();
@@ -107,13 +150,14 @@ export async function queryD1<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const { accountId, databaseId, token } = d1Credentials();
-  const res = await fetch(
+  const res = await d1FetchWithRetry(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ sql, params }),
     },
+    'D1 query',
   );
   if (!res.ok) {
     const body = await res.text();
