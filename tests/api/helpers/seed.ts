@@ -1,147 +1,65 @@
 /**
  * D1 seed/teardown utilities for API E2E tests.
  *
- * Uses the Cloudflare D1 HTTP API to directly manage test data
- * in the remote D1 database — no in-process mocks involved.
- *
- * Reuses the same D1 HTTP helpers pattern from Playwright helpers.
+ * Talks to the local wrangler dev D1 proxy on 127.0.0.1:8788 (see
+ * scripts/test-stack.ts). No remote Cloudflare HTTP API calls — every query
+ * goes through the same proxy endpoint the application uses, so tests
+ * exercise the production code path end-to-end.
  */
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import { nanoid } from 'nanoid';
 import { unwrap } from '../../test-utils';
 
 // ---------------------------------------------------------------------------
-// Env loading (same pattern as Playwright)
+// Worker proxy access (must point at the local stack — no remote URLs allowed)
 // ---------------------------------------------------------------------------
 
-let envLoaded = false;
-
-function ensureEnv(): void {
-  if (envLoaded) return;
-  envLoaded = true;
-
-  const envPath = resolve(process.cwd(), '.env.local');
-  let content: string;
-  try {
-    content = readFileSync(envPath, 'utf-8');
-  } catch {
-    return;
-  }
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx < 0) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    let value = trimmed.slice(eqIdx + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    } else {
-      // Strip inline comments for unquoted values (e.g. KEY=value # comment)
-      const commentIdx = value.indexOf(' #');
-      if (commentIdx >= 0) value = value.slice(0, commentIdx).trim();
-    }
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// D1 HTTP API
-// ---------------------------------------------------------------------------
-
-/**
- * Retry transient network errors (ECONNRESET, fetch aborted, etc.) when
- * talking to the Cloudflare D1 HTTP API. Mirrors the application-side retry
- * policy in lib/db/d1-client.ts so CI test runs are not aborted by a single
- * dropped TCP connection (observed in run 27265783211).
- */
-const D1_MAX_RETRIES = 2;
-const D1_RETRY_BASE_DELAY_MS = 200;
-
-function isTransientD1Error(err: unknown): boolean {
-  if (err instanceof TypeError && err.message === 'fetch failed') return true;
-  const msg = err instanceof Error ? err.message : '';
-  return (
-    msg.includes('ECONNRESET') ||
-    msg.includes('ECONNREFUSED') ||
-    msg.includes('ETIMEDOUT') ||
-    msg.includes('UND_ERR_SOCKET')
-  );
-}
-
-async function d1FetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= D1_MAX_RETRIES; attempt++) {
-    try {
-      return await fetch(url, init);
-    } catch (err) {
-      lastError = err;
-      if (attempt < D1_MAX_RETRIES && isTransientD1Error(err)) {
-        const delay = D1_RETRY_BASE_DELAY_MS * 2 ** attempt;
-        console.warn(
-          `[${label}] Transient D1 error (attempt ${attempt + 1}/${D1_MAX_RETRIES + 1}), retrying in ${delay}ms:`,
-          err instanceof Error ? `${err.message} (cause: ${(err as { cause?: { code?: string } }).cause?.code ?? 'n/a'})` : err,
-        );
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastError;
-}
-
-function d1Credentials(): { accountId: string; databaseId: string; token: string } {
-  ensureEnv();
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-  if (!accountId || !databaseId || !token) {
-    throw new Error('D1 credentials not configured. Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN in .env.local');
-  }
-
-  // Safety: require D1_TEST_DATABASE_ID to exist.
-  // main() in run-api-e2e.ts has already verified testDbId !== prodDbId
-  // and overridden CLOUDFLARE_D1_DATABASE_ID to point to the test database.
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) {
+function proxyCredentials(): { url: string; secret: string } {
+  const url = process.env.D1_PROXY_URL;
+  const secret = process.env.D1_PROXY_SECRET;
+  if (!url || !secret) {
     throw new Error(
-      'D1_TEST_DATABASE_ID not set. This guard prevents running destructive seed/teardown against production. ' +
-      'Set D1_TEST_DATABASE_ID in .env.local to the dedicated test D1 database UUID.',
+      'D1_PROXY_URL / D1_PROXY_SECRET not set. The L2 runner (scripts/run-api-e2e.ts) must call applyLocalStackEnv() first.',
     );
   }
-  if (testDbId !== databaseId) {
+  if (!url.includes('127.0.0.1') && !url.includes('localhost')) {
     throw new Error(
-      `D1 safety check: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
-      'run-api-e2e.ts should have overridden this. Refusing to write to a non-test database.',
+      `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
+      'Refusing to run destructive seed/teardown against a remote target.',
     );
   }
+  return { url, secret };
+}
 
-  return { accountId, databaseId, token };
+function endpoint(base: string, path: string): string {
+  return base.endsWith('/') ? `${base}${path.replace(/^\//, '')}` : `${base}${path}`;
+}
+
+interface D1QueryResponse {
+  success: boolean;
+  results?: unknown[];
+  error?: string;
+}
+
+interface D1BatchResponse {
+  success: boolean;
+  results?: Array<{ results: unknown[] }>;
+  error?: string;
 }
 
 export async function executeD1(sql: string, params: unknown[] = []): Promise<void> {
-  const { accountId, databaseId, token } = d1Credentials();
-  const res = await d1FetchWithRetry(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sql, params }),
-    },
-    'D1 execute',
-  );
+  const { url, secret } = proxyCredentials();
+  const res = await fetch(endpoint(url, '/api/d1-query'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`D1 HTTP error ${res.status}: ${body}`);
+    throw new Error(`D1 proxy HTTP error ${res.status}: ${body}`);
   }
-  const data = await res.json();
+  const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    const detail = (data.errors ?? []).map((e: { message: string }) => e.message).join(', ');
-    throw new Error(`D1 query error: ${detail}`);
+    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'} (sql: ${sql.slice(0, 80)})`);
   }
 }
 
@@ -149,26 +67,38 @@ export async function queryD1<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  const { accountId, databaseId, token } = d1Credentials();
-  const res = await d1FetchWithRetry(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sql, params }),
-    },
-    'D1 query',
-  );
+  const { url, secret } = proxyCredentials();
+  const res = await fetch(endpoint(url, '/api/d1-query'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`D1 HTTP error ${res.status}: ${body}`);
+    throw new Error(`D1 proxy HTTP error ${res.status}: ${body}`);
   }
-  const data = await res.json();
+  const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    const detail = (data.errors ?? []).map((e: { message: string }) => e.message).join(', ');
-    throw new Error(`D1 query error: ${detail}`);
+    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'} (sql: ${sql.slice(0, 80)})`);
   }
-  return (data.result?.[0]?.results ?? []) as T[];
+  return (data.results ?? []) as T[];
+}
+
+async function batchD1(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+  const { url, secret } = proxyCredentials();
+  const res = await fetch(endpoint(url, '/api/d1-batch'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statements }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`D1 proxy batch HTTP error ${res.status}: ${body}`);
+  }
+  const data = (await res.json()) as D1BatchResponse;
+  if (!data.success) {
+    throw new Error(`D1 proxy batch error: ${data.error ?? 'unknown'}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -420,24 +350,20 @@ export async function seedIdea(
 /** Delete all test data owned by the test user. Analytics cascade automatically. */
 export async function cleanupTestData(userId?: string): Promise<void> {
   const uid = userId ?? TEST_USER.id;
-  // Cloudflare D1 /query supports multi-statement SQL only when no params are
-  // provided, so we inline the user id (controlled test fixture, no injection
-  // surface). All 9 DELETEs run in a single round trip.
-  const escaped = uid.replace(/'/g, "''");
-  const q = `'${escaped}'`;
-  const sql = [
-    `DELETE FROM api_audit_logs WHERE user_id = ${q}`,
-    `DELETE FROM api_keys WHERE user_id = ${q}`,
+  // Single round trip via the worker proxy /api/d1-batch endpoint. The proxy
+  // is the only D1 path in production, so this also exercises that surface.
+  await batchD1([
+    { sql: 'DELETE FROM api_audit_logs WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM api_keys WHERE user_id = ?', params: [uid] },
     // idea_tags is cleaned up by CASCADE on ideas delete
-    `DELETE FROM ideas WHERE user_id = ${q}`,
-    `DELETE FROM tags WHERE user_id = ${q}`,
-    `DELETE FROM links WHERE user_id = ${q}`,
-    `DELETE FROM folders WHERE user_id = ${q}`,
-    `DELETE FROM webhooks WHERE user_id = ${q}`,
-    `DELETE FROM uploads WHERE user_id = ${q}`,
-    `DELETE FROM user_settings WHERE user_id = ${q}`,
-  ].join(';\n');
-  await executeD1(sql);
+    { sql: 'DELETE FROM ideas WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM tags WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM links WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM folders WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM webhooks WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM uploads WHERE user_id = ?', params: [uid] },
+    { sql: 'DELETE FROM user_settings WHERE user_id = ?', params: [uid] },
+  ]);
   // If a custom user was created, clean it up too
   if (userId && userId !== TEST_USER.id) {
     await executeD1('DELETE FROM users WHERE id = ?', [uid]);
@@ -449,23 +375,23 @@ export async function cleanupTestData(userId?: string): Promise<void> {
  * Saves ~200ms per test file by avoiding the second HTTP call.
  */
 export async function resetAndSeedUser(userId: string): Promise<void> {
-  const escaped = userId.replace(/'/g, "''");
-  const q = `'${escaped}'`;
-  const name = `Test User ${userId}`.replace(/'/g, "''");
-  const email = `${userId}@test.local`.replace(/'/g, "''");
-  const sql = [
-    `DELETE FROM api_audit_logs WHERE user_id = ${q}`,
-    `DELETE FROM api_keys WHERE user_id = ${q}`,
-    `DELETE FROM ideas WHERE user_id = ${q}`,
-    `DELETE FROM tags WHERE user_id = ${q}`,
-    `DELETE FROM links WHERE user_id = ${q}`,
-    `DELETE FROM folders WHERE user_id = ${q}`,
-    `DELETE FROM webhooks WHERE user_id = ${q}`,
-    `DELETE FROM uploads WHERE user_id = ${q}`,
-    `DELETE FROM user_settings WHERE user_id = ${q}`,
-    `INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (${q}, '${name}', '${email}', NULL, NULL)`,
-  ].join(';\n');
-  await executeD1(sql);
+  const name = `Test User ${userId}`;
+  const email = `${userId}@test.local`;
+  await batchD1([
+    { sql: 'DELETE FROM api_audit_logs WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM api_keys WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM ideas WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM tags WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM links WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM folders WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM webhooks WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM uploads WHERE user_id = ?', params: [userId] },
+    { sql: 'DELETE FROM user_settings WHERE user_id = ?', params: [userId] },
+    {
+      sql: 'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+      params: [userId, name, email],
+    },
+  ]);
 }
 
 // ---------------------------------------------------------------------------

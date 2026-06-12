@@ -1,53 +1,28 @@
 #!/usr/bin/env bun
 /**
- * API E2E test runner — runs all L2 tests via real HTTP.
+ * API E2E test runner — runs all L2 tests via real HTTP against a fully
+ * local stack (wrangler dev + Miniflare D1/KV + filesystem R2 shim).
  *
- * All tests/api/*.test.ts files run against a real Next.js dev server
- * on port 17006 with PLAYWRIGHT=1 (enables e2e-credentials auth).
- *
- * Hard gate: all required environment variables must be set for the tests
- * to run. Missing configuration will fail the pre-push hook.
+ * No remote Cloudflare resources are required — `wrangler whoami` may report
+ * "not logged in" and the tests still pass. See scripts/test-stack.ts.
  */
 import { spawn, type ChildProcess } from 'child_process';
 import { resolve as pathResolve } from 'path';
-import { readFileSync } from 'fs';
+import {
+  startLocalStack,
+  stopLocalStack,
+  applyLocalStackEnv,
+  loadEnvFile,
+  WORKER_URL,
+  D1_PROXY_SECRET,
+  type LocalStack,
+} from './test-stack';
 
 const PROJECT_ROOT = pathResolve(import.meta.dirname ?? process.cwd(), '..');
 const API_E2E_PORT = 17006;
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;
 const HEALTH_POLL_MS = 100;
-
-// ---------------------------------------------------------------------------
-// Env loading
-// ---------------------------------------------------------------------------
-
-function loadEnvFile(filePath: string): void {
-  let content: string;
-  try {
-    content = readFileSync(filePath, 'utf-8');
-  } catch {
-    return;
-  }
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx < 0) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    let value = trimmed.slice(eqIdx + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    } else {
-      // Strip inline comments for unquoted values (e.g. KEY=value # comment)
-      const commentIdx = value.indexOf(' #');
-      if (commentIdx >= 0) value = value.slice(0, commentIdx).trim();
-    }
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Generic child process runner
@@ -67,69 +42,21 @@ function runCommand(args: string[], env?: Record<string, string>): Promise<numbe
 }
 
 // ---------------------------------------------------------------------------
-// D1 test marker verification
+// _test_marker verification (against local stack)
 // ---------------------------------------------------------------------------
 
-async function queryD1TestMarker(): Promise<string | null> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-  if (!accountId || !databaseId || !token) return null;
-
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sql: "SELECT value FROM _test_marker WHERE key = 'env'", params: [] }),
+async function verifyTestMarker(): Promise<boolean> {
+  const res = await fetch(`${WORKER_URL}/api/d1-query`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${D1_PROXY_SECRET}`,
+      'Content-Type': 'application/json',
     },
-  );
-  if (!res.ok) throw new Error(`D1 HTTP error ${res.status}`);
-  const data = await res.json();
-  if (!data.success) throw new Error('D1 query failed');
-  const rows = data.result?.[0]?.results ?? [];
-  return rows.length > 0 ? (rows[0] as { value: string }).value : null;
-}
-
-// ---------------------------------------------------------------------------
-// Prerequisites check
-// ---------------------------------------------------------------------------
-
-async function checkPrerequisites(): Promise<boolean> {
-  const required = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID', 'CLOUDFLARE_API_TOKEN'];
-  const missing = required.filter((k) => !process.env[k]);
-  if (missing.length > 0) {
-    console.error(`\n❌ [api-e2e] Missing env vars: ${missing.join(', ')}`);
-    console.error('   Set these in .env.local to run L2 tests.\n');
-    return false;
-  }
-
-  // Safety: require D1_TEST_DATABASE_ID to exist.
-  // main() has already verified testDbId !== prodDbId and overridden CLOUDFLARE_D1_DATABASE_ID.
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) {
-    console.error('❌ [api-e2e] D1_TEST_DATABASE_ID not set.');
-    console.error('   Set D1_TEST_DATABASE_ID in .env.local to the dedicated test D1 database ID.');
-    console.error('   This guard prevents running destructive tests against production.\n');
-    return false;
-  }
-
-  // _test_marker: last line of defense — verify the database is actually a test DB
-  try {
-    const marker = await queryD1TestMarker();
-    if (marker !== 'test') {
-      console.error('❌ [api-e2e] _test_marker check failed. Is this really a test database?');
-      console.error('   Expected _test_marker(key="env", value="test") in the D1 database.');
-      console.error('   Run Step 2 from docs/14-cloudflare-resource-inventory.md to initialize.\n');
-      return false;
-    }
-  } catch (err) {
-    console.error(`❌ [api-e2e] Failed to verify _test_marker: ${err}`);
-    console.error('   Database may not be initialized or network is unreachable.\n');
-    return false;
-  }
-
-  return true;
+    body: JSON.stringify({ sql: "SELECT value FROM _test_marker WHERE key = 'env'", params: [] }),
+  });
+  if (!res.ok) return false;
+  const data = (await res.json()) as { success: boolean; results?: Array<{ value: string }> };
+  return data.success && data.results?.[0]?.value === 'test';
 }
 
 // ---------------------------------------------------------------------------
@@ -201,37 +128,6 @@ async function runHttpTests(): Promise<number> {
   );
 }
 
-async function runTests(): Promise<number> {
-  console.log('\n━━━ L2: Real HTTP API E2E tests ━━━\n');
-
-  if (!(await checkPrerequisites())) {
-    return 1; // hard gate — fail the test run
-  }
-
-  // Check if port is already in use
-  try {
-    const res = await fetch(`${BASE_URL}/api/health`);
-    if (res.ok) {
-      console.warn(`⚠️  [api-e2e] Port ${API_E2E_PORT} already in use. Kill the existing server first.`);
-      return 1;
-    }
-  } catch {
-    // Expected — port is free
-  }
-
-  const server = startServer();
-  try {
-    const ready = await waitForHealth();
-    if (!ready) {
-      console.error(`❌ [api-e2e] Server failed to start within ${HEALTH_TIMEOUT_MS / 1000}s`);
-      return 1;
-    }
-    return await runHttpTests();
-  } finally {
-    killServer(server);
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -239,97 +135,48 @@ async function runTests(): Promise<number> {
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
 
-  // ---- D1: override to test database ----
-  const prodDbId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) {
-    console.error('❌ [api-e2e] D1_TEST_DATABASE_ID not set.');
-    console.error('   Set D1_TEST_DATABASE_ID in .env.local to run L2 tests.\n');
-    process.exit(1);
-  }
-  if (testDbId === prodDbId) {
-    console.error(
-      '❌ D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID. ' +
-      'Test DB must differ from production DB.'
-    );
-    process.exit(1);
-  }
-  process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId;
+  console.log('\n━━━ L2: Real HTTP API E2E tests (local stack) ━━━\n');
 
-  // ---- KV: override or clear ----
-  if (process.env.CLOUDFLARE_KV_NAMESPACE_ID) {
-    const testKvId = process.env.KV_TEST_NAMESPACE_ID;
-    if (testKvId) {
-      process.env.CLOUDFLARE_KV_NAMESPACE_ID = testKvId;
-    } else {
-      console.warn(
-        '⚠️  [api-e2e] CLOUDFLARE_KV_NAMESPACE_ID is set but KV_TEST_NAMESPACE_ID is missing. ' +
-        'Clearing KV config to prevent production writes (KV features disabled for this run).'
-      );
-      delete process.env.CLOUDFLARE_KV_NAMESPACE_ID;
+  // Port-busy check before spawning anything heavy
+  try {
+    const res = await fetch(`${BASE_URL}/api/health`);
+    if (res.ok) {
+      console.warn(`⚠️  [api-e2e] Port ${API_E2E_PORT} already in use. Kill the existing server first.`);
+      process.exit(1);
     }
+  } catch {
+    // expected — port is free
   }
 
-  // ---- R2: override to test bucket ----
-  const testBucket = process.env.R2_TEST_BUCKET_NAME;
-  const testPublicDomain = process.env.R2_TEST_PUBLIC_DOMAIN;
-  if (testBucket && testPublicDomain) {
-    process.env.R2_BUCKET_NAME = testBucket;
-    process.env.R2_PUBLIC_DOMAIN = testPublicDomain;
-  } else {
-    console.warn(
-      '⚠️  [api-e2e] R2_TEST_BUCKET_NAME or R2_TEST_PUBLIC_DOMAIN not set. ' +
-      'Dev server retains production R2 config — tmp/upload tests may write to production R2.'
-    );
+  let stack: LocalStack | null = null;
+  let server: ChildProcess | null = null;
+  let exitCode = 1;
+  try {
+    stack = await startLocalStack();
+    applyLocalStackEnv();
+
+    if (!(await verifyTestMarker())) {
+      throw new Error('_test_marker check failed against the local stack — migrations may not have applied.');
+    }
+
+    // Auth needs SOMETHING — keep a stable test secret so /api/cron/* signed
+    // routes can be exercised by the test suite.
+    if (!process.env.AUTH_SECRET) process.env.AUTH_SECRET = 'api-e2e-test-auth-secret';
+
+    server = startServer();
+    const ready = await waitForHealth();
+    if (!ready) {
+      throw new Error(`Server failed to start within ${HEALTH_TIMEOUT_MS / 1000}s`);
+    }
+    exitCode = await runHttpTests();
+  } catch (err) {
+    console.error(`❌ [api-e2e] ${err instanceof Error ? err.message : String(err)}`);
+    exitCode = 1;
+  } finally {
+    if (server) killServer(server);
+    if (stack) await stopLocalStack(stack);
   }
 
-  // ---- WORKER_SECRET: ensure it exists for cron endpoint tests ----
-  if (!process.env.WORKER_SECRET) {
-    process.env.WORKER_SECRET = 'api-e2e-test-worker-secret';
-    console.log('[api-e2e] WORKER_SECRET not set — using test default.');
-  }
-
-  // ---- D1 Proxy: HARD GATE for proxy path coverage ----
-  // All D1 queries now route through Worker proxy in production. Tests MUST
-  // exercise the proxy path to catch regressions before they reach production.
-  //
-  // Priority: D1_TEST_PROXY_URL > D1_PROXY_URL (must contain "-test")
-  // This allows .env.local to keep D1_PROXY_URL for dev while using
-  // D1_TEST_PROXY_URL for L2 tests.
-  const testProxyUrl = process.env.D1_TEST_PROXY_URL;
-  const prodProxyUrl = process.env.D1_PROXY_URL;
-  const proxyUrl = testProxyUrl || prodProxyUrl;
-
-  // Similarly for secrets
-  const testProxySecret = process.env.D1_TEST_PROXY_SECRET;
-  const prodProxySecret = process.env.D1_PROXY_SECRET;
-  const proxySecret = testProxySecret || prodProxySecret;
-
-  if (!proxyUrl) {
-    console.error('❌ [api-e2e] D1_TEST_PROXY_URL (or D1_PROXY_URL) must be set — proxy path coverage is mandatory.');
-    console.error('   Set D1_TEST_PROXY_URL=https://zhe-edge-test.xxx.workers.dev in .env.local');
-    console.error('   This is a HARD GATE because the proxy is the only D1 path in production.\n');
-    process.exit(1);
-  }
-  if (!proxyUrl.includes('-test')) {
-    console.error('❌ [api-e2e] D1_TEST_PROXY_URL (or D1_PROXY_URL) must point to test Worker (contain "-test").');
-    console.error(`   Got: "${proxyUrl}"`);
-    console.error('   This guard prevents accidentally running tests against production Worker.');
-    console.error('   Tip: Set D1_TEST_PROXY_URL=https://zhe-edge-test.xxx.workers.dev for tests.\n');
-    process.exit(1);
-  }
-  if (!proxySecret) {
-    console.error('❌ [api-e2e] D1_TEST_PROXY_SECRET (or D1_PROXY_SECRET) must be set.');
-    console.error('   Must match the test Worker D1_PROXY_SECRET.\n');
-    process.exit(1);
-  }
-
-  // Override env vars so the test server uses test proxy
-  process.env.D1_PROXY_URL = proxyUrl;
-  process.env.D1_PROXY_SECRET = proxySecret;
-  console.log(`[api-e2e] Using test proxy: ${proxyUrl}`);
-
-  const exitCode = await runTests();
   process.exit(exitCode);
 }
 

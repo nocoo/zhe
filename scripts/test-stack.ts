@@ -144,6 +144,40 @@ function seedTestMarker(): void {
   ]);
 }
 
+/**
+ * Apply schema fixups for columns that exist in lib/db/schema.ts and in prod
+ * but were added by hand and never written into drizzle/migrations/. Each
+ * statement is idempotent (column-already-exists is swallowed).
+ *
+ * If a new prod-only column shows up: add it here AND open a migration so
+ * `bun run release` (which diffs migration parity) stops yelling.
+ */
+function applySchemaFixups(): void {
+  const fixups: string[] = [
+    'ALTER TABLE analytics ADD COLUMN source TEXT',
+  ];
+  for (const sql of fixups) {
+    const result = spawnSync('wrangler', [
+      'd1',
+      'execute',
+      LOCAL_DB_NAME,
+      '--local',
+      `--persist-to=${WRANGLER_PERSIST_DIR}`,
+      `--config=${WORKER_CONFIG}`,
+      `--command=${sql}`,
+    ], {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env,
+    });
+    if (result.status !== 0) {
+      const out = (result.stderr?.toString() ?? '') + (result.stdout?.toString() ?? '');
+      if (/duplicate column name/i.test(out)) continue;
+      throw new Error(`Schema fixup failed: ${sql}\n${out}`);
+    }
+  }
+}
+
 // ─── Stack lifecycle ────────────────────────────────────────────────────────
 
 export interface LocalStack {
@@ -196,6 +230,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     applyMigration(file);
   }
   seedTestMarker();
+  applySchemaFixups();
 
   // 3. Start R2 shim
   console.log(`[test-stack] Starting local R2 shim on ${R2_URL}...`);
