@@ -1,10 +1,9 @@
 /**
  * Shared D1 helpers for Playwright global setup/teardown.
  *
- * Provides env loading, D1 HTTP API access, and test constants
- * used by both global-setup.ts and global-teardown.ts.
+ * Talks to the local wrangler dev proxy on 127.0.0.1:8788 (see
+ * scripts/test-stack.ts). No remote Cloudflare HTTP API calls.
  */
-import { readFileSync } from 'fs';
 
 /** E2E test user — must match the CredentialsProvider in auth.ts. */
 export const TEST_USER = {
@@ -13,92 +12,64 @@ export const TEST_USER = {
   email: 'e2e@test.local',
 } as const;
 
-/** Minimal .env parser — handles KEY=VALUE, ignoring comments and blank lines. */
-export function loadEnvFile(filePath: string): void {
-  let content: string;
-  try {
-    content = readFileSync(filePath, 'utf-8');
-  } catch {
-    return; // file not found — rely on existing env vars
-  }
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx < 0) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    let value = trimmed.slice(eqIdx + 1).trim();
-    // Strip surrounding quotes
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    } else {
-      // Strip inline comments for unquoted values (e.g. KEY=value # comment)
-      const commentIdx = value.indexOf(' #');
-      if (commentIdx >= 0) value = value.slice(0, commentIdx).trim();
-    }
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
-
 export interface ExecuteD1Options {
-  /** When true, log warnings instead of throwing on missing creds or errors. */
+  /** When true, log warnings instead of throwing on missing config / errors. */
   softFail?: boolean;
 }
 
+function proxyCredentials(softFail = false): { url: string; secret: string } | null {
+  const url = process.env.D1_PROXY_URL;
+  const secret = process.env.D1_PROXY_SECRET;
+  if (!url || !secret) {
+    const msg = 'D1_PROXY_URL / D1_PROXY_SECRET not set. Playwright globalSetup must call applyLocalStackEnv() first.';
+    if (softFail) {
+      console.warn(`[pw:d1] ${msg}`);
+      return null;
+    }
+    throw new Error(msg);
+  }
+  if (!url.includes('127.0.0.1') && !url.includes('localhost')) {
+    throw new Error(
+      `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
+      'Refusing to run destructive operations against a remote target.',
+    );
+  }
+  return { url, secret };
+}
+
+function endpoint(base: string, path: string): string {
+  return base.endsWith('/') ? `${base}${path.replace(/^\//, '')}` : `${base}${path}`;
+}
+
+interface D1QueryResponse {
+  success: boolean;
+  results?: unknown[];
+  error?: string;
+}
+
 /**
- * Execute a SQL query against Cloudflare D1 via the HTTP API.
+ * Execute a SQL query against D1 via the local worker proxy.
  *
- * Requires CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, and
- * CLOUDFLARE_API_TOKEN to be set in the environment.
- *
- * Safety: verifies CLOUDFLARE_D1_DATABASE_ID has been overridden to
- * D1_TEST_DATABASE_ID by globalSetup before executing any query.
+ * Uses the same /api/d1-query endpoint the application calls in production,
+ * so test setup/teardown exercises the proxy path end-to-end.
  */
 export async function executeD1(
   sql: string,
   params: unknown[] = [],
   options: ExecuteD1Options = {},
 ): Promise<void> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const creds = proxyCredentials(options.softFail);
+  if (!creds) return;
 
-  if (!accountId || !databaseId || !token) {
-    const msg = 'D1 credentials not configured. Set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN.';
-    if (options.softFail) {
-      console.warn(`[pw:d1] ${msg} — skipping.`);
-      return;
-    }
-    throw new Error(msg);
-  }
-
-  // Safety: CLOUDFLARE_D1_DATABASE_ID must equal D1_TEST_DATABASE_ID (globalSetup override)
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
-  if (databaseId !== testDbId) {
-    throw new Error(
-      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
-      'globalSetup should have overridden this. Refusing to operate on non-test database.'
-    );
-  }
-
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sql, params }),
-    },
-  );
+  const res = await fetch(endpoint(creds.url, '/api/d1-query'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${creds.secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
 
   if (!res.ok) {
     const body = await res.text();
-    const msg = `D1 HTTP error ${res.status}: ${body}`;
+    const msg = `D1 proxy HTTP error ${res.status}: ${body}`;
     if (options.softFail) {
       console.error(`[pw:d1] ${msg}`);
       return;
@@ -106,10 +77,9 @@ export async function executeD1(
     throw new Error(msg);
   }
 
-  const data = await res.json();
+  const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    const detail = (data.errors ?? []).map((e: { message: string }) => e.message).join(', ');
-    const msg = `D1 query error: ${detail}`;
+    const msg = `D1 proxy error: ${data.error ?? 'unknown'}`;
     if (options.softFail) {
       console.error(`[pw:d1] ${msg}`);
       return;
@@ -118,60 +88,29 @@ export async function executeD1(
   }
 }
 
-/**
- * Execute a SQL SELECT query against D1 and return result rows.
- *
- * Unlike `executeD1` (which returns void), this parses and returns
- * the `result[0].results` array from the D1 HTTP API response.
- *
- * Safety: verifies CLOUDFLARE_D1_DATABASE_ID has been overridden to
- * D1_TEST_DATABASE_ID by globalSetup before executing any query.
- */
+/** Execute a SELECT via the local worker proxy and return rows. */
 export async function queryD1<T = Record<string, unknown>>(
   sql: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
-  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const creds = proxyCredentials();
+  if (!creds) throw new Error('proxyCredentials() returned null with softFail off');
 
-  if (!accountId || !databaseId || !token) {
-    throw new Error('D1 credentials not configured.');
-  }
-
-  // Safety: CLOUDFLARE_D1_DATABASE_ID must equal D1_TEST_DATABASE_ID (globalSetup override)
-  const testDbId = process.env.D1_TEST_DATABASE_ID;
-  if (!testDbId) throw new Error('D1_TEST_DATABASE_ID not set.');
-  if (databaseId !== testDbId) {
-    throw new Error(
-      `D1 safety: CLOUDFLARE_D1_DATABASE_ID (${databaseId}) !== D1_TEST_DATABASE_ID (${testDbId}). ` +
-      'globalSetup should have overridden this. Refusing to operate on non-test database.'
-    );
-  }
-
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sql, params }),
-    },
-  );
+  const res = await fetch(endpoint(creds.url, '/api/d1-query'), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${creds.secret}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, params }),
+  });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`D1 HTTP error ${res.status}: ${body}`);
+    throw new Error(`D1 proxy HTTP error ${res.status}: ${body}`);
   }
 
-  const data = await res.json();
+  const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    const detail = (data.errors ?? []).map((e: { message: string }) => e.message).join(', ');
-    throw new Error(`D1 query error: ${detail}`);
+    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'}`);
   }
 
-  // D1 HTTP API returns { result: [{ results: [...rows], ... }] }
-  return (data.result?.[0]?.results ?? []) as T[];
+  return (data.results ?? []) as T[];
 }

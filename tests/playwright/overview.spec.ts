@@ -7,9 +7,8 @@
  *
  * Global teardown cleans up all test user data (links cascade to analytics).
  */
-import { resolve } from 'path';
 import { test, expect } from './fixtures';
-import { loadEnvFile, executeD1, queryD1, TEST_USER } from './helpers/d1';
+import { executeD1, queryD1, TEST_USER } from './helpers/d1';
 
 // Seed data constants
 const SLUG_A = `e2e-ov-a-${Date.now()}`;
@@ -20,8 +19,6 @@ const NOW = Date.now();
 test.describe('Overview page', () => {
   // Seed links, analytics, and uploads directly into D1 before all tests
   test.beforeAll(async () => {
-    loadEnvFile(resolve(process.cwd(), '.env.local'));
-
     // Clean up leftover data from previous CI runs to prevent data pollution
     await executeD1(
       "DELETE FROM analytics WHERE link_id IN (SELECT id FROM links WHERE user_id = ? AND slug LIKE 'e2e-ov-%')",

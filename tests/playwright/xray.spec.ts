@@ -135,8 +135,9 @@ test.describe.serial('Xray Page', () => {
     await page.getByRole('button', { name: '获取' }).click();
 
     // Wait for tweet card to appear (mock data)
-    // Mock indicator badge should appear
-    await expect(page.getByText('Mock 数据')).toBeVisible({ timeout: 15_000 });
+    // Mock indicator badge should appear — pin to the badge, not the
+    // "未配置 API，将使用 Mock 数据" hint that also matches the substring.
+    await expect(page.getByText('Mock 数据', { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // Tweet card should show content (author, metrics section)
     // Mock data may include quoted tweets, so "原帖" can appear multiple times
@@ -153,7 +154,7 @@ test.describe.serial('Xray Page', () => {
     // Fetch a tweet first
     await page.locator('[data-testid="xray-tweet-input"]').fill('https://x.com/user/status/1234567890');
     await page.getByRole('button', { name: '获取' }).click();
-    await expect(page.getByText('Mock 数据')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Mock 数据', { exact: true })).toBeVisible({ timeout: 10_000 });
 
     // Raw JSON toggle button
     const toggleBtn = page.getByRole('button', { name: /原始 JSON/ });

@@ -48,7 +48,14 @@ function guessMime(key: string): string {
 }
 
 function send(res: ServerResponse, status: number, body?: string | Buffer, headers?: Record<string, string>): void {
-  res.writeHead(status, { 'Content-Type': 'text/plain', ...(headers ?? {}) });
+  res.writeHead(status, {
+    'Content-Type': 'text/plain',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, HEAD, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Max-Age': '86400',
+    ...(headers ?? {}),
+  });
   if (body !== undefined) res.end(body);
   else res.end();
 }
@@ -83,6 +90,12 @@ function parseKey(url: string): { pathname: string; key: string | null; contentT
 async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = req.url ?? '/';
   const method = req.method ?? 'GET';
+
+  // CORS preflight — accept anything from anywhere.
+  if (method === 'OPTIONS') {
+    send(res, 204);
+    return;
+  }
 
   if (url === '/__health' && method === 'GET') {
     send(res, 200, 'ok');
@@ -180,8 +193,11 @@ export function stopLocalR2Server(handle: LocalR2Server): Promise<void> {
 }
 
 // ─── CLI entry ──────────────────────────────────────────────────────────────
-const isMain = import.meta.url === `file://${process.argv[1]}`;
-if (isMain) {
+function runningAsScript(): boolean {
+  return !!process.argv[1] && process.argv[1].endsWith('local-r2-server.ts');
+}
+
+if (runningAsScript()) {
   const port = Number.parseInt(process.env.LOCAL_R2_PORT ?? '', 10) || DEFAULT_PORT;
   startLocalR2Server(port).then(({ port: bound }) => {
     console.log(`[local-r2] listening on http://127.0.0.1:${bound} (dir=${process.env.LOCAL_R2_DIR ?? '.test-storage/r2'})`);

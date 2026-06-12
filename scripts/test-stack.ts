@@ -24,7 +24,11 @@ import {
   type LocalR2Server,
 } from './local-r2-server';
 
-export const PROJECT_ROOT = pathResolve(import.meta.dirname ?? process.cwd(), '..');
+// Always resolved from cwd. The test harness (run-api-e2e.ts, Playwright
+// globalSetup, manual `bun run scripts/test-stack.ts`) all launch from the
+// project root, so this is stable. Avoids `import.meta.url`, which forces
+// Node to treat this file as ESM and breaks Playwright's CJS TS loader.
+export const PROJECT_ROOT = process.cwd();
 export const STACK_DIR = pathResolve(PROJECT_ROOT, '.test-storage');
 export const WRANGLER_PERSIST_DIR = pathResolve(STACK_DIR, 'wrangler');
 export const R2_DIR = pathResolve(STACK_DIR, 'r2');
@@ -340,8 +344,11 @@ export function applyLocalStackEnv(): void {
 }
 
 // ─── CLI entry ──────────────────────────────────────────────────────────────
-const isMain = import.meta.url === `file://${process.argv[1]}`;
-if (isMain) {
+function runningAsScript(): boolean {
+  return !!process.argv[1] && process.argv[1].endsWith('test-stack.ts');
+}
+
+if (runningAsScript()) {
   loadEnvFile(pathResolve(PROJECT_ROOT, '.env.local'));
   startLocalStack({ verbose: true })
     .then(() => {
