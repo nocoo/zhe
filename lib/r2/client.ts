@@ -4,6 +4,10 @@
  *
  * Environment variables required:
  *   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME
+ *
+ * When LOCAL_R2=1 is set, every operation is routed through
+ * `local-fs-backend.ts` instead — used by L2/L3 tests to avoid the network.
+ * The remote S3Client is never constructed in that mode.
  */
 
 import {
@@ -15,8 +19,14 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+import * as localBackend from './local-fs-backend';
+
 /** Presigned URL expiration in seconds (5 minutes). */
 const PRESIGN_EXPIRES_IN = 300;
+
+function isLocalMode(): boolean {
+  return process.env.LOCAL_R2 === '1';
+}
 
 function getR2Config() {
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -63,6 +73,10 @@ export async function createPresignedUploadUrl(
   key: string,
   contentType: string,
 ): Promise<string> {
+  if (isLocalMode()) {
+    return localBackend.createPresignedUploadUrl(key, contentType);
+  }
+
   const client = getR2Client();
   const { bucket } = getR2Config();
 
@@ -88,6 +102,10 @@ export async function uploadBufferToR2(
   body: Uint8Array,
   contentType: string,
 ): Promise<void> {
+  if (isLocalMode()) {
+    return localBackend.uploadBufferToR2(key, body, contentType);
+  }
+
   const client = getR2Client();
   const { bucket } = getR2Config();
 
@@ -107,6 +125,10 @@ export async function uploadBufferToR2(
  * @param key - R2 object key to delete
  */
 export async function deleteR2Object(key: string): Promise<void> {
+  if (isLocalMode()) {
+    return localBackend.deleteR2Object(key);
+  }
+
   const client = getR2Client();
   const { bucket } = getR2Config();
 
@@ -130,6 +152,10 @@ export interface R2Object {
  * Handles pagination automatically (1000 objects per page).
  */
 export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
+  if (isLocalMode()) {
+    return localBackend.listR2Objects(prefix);
+  }
+
   const client = getR2Client();
   const { bucket } = getR2Config();
 
@@ -175,6 +201,10 @@ export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
  */
 export async function deleteR2Objects(keys: string[]): Promise<number> {
   if (keys.length === 0) return 0;
+
+  if (isLocalMode()) {
+    return localBackend.deleteR2Objects(keys);
+  }
 
   const client = getR2Client();
   const { bucket } = getR2Config();
