@@ -1,0 +1,29 @@
+# Local test stack — used by L2 (run-api-e2e.ts) and L3 (Playwright globalSetup)
+# to run Worker code against a local Miniflare D1 + KV instead of remote
+# zhe-edge-test / zhe-db-test. Run via:
+#
+#   wrangler dev --config worker/wrangler.local.toml --persist-to .test-storage/wrangler --port 8788
+#
+# Migrations are applied externally by scripts/test-stack.ts before this is
+# started. The database_id is a stable placeholder — Miniflare ignores it in
+# --local mode and uses the binding name to derive an on-disk sqlite path.
+
+name = "zhe-edge-local"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "zhe-db-local"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[kv_namespaces]]
+binding = "LINKS_KV"
+id = "0000000000000000000000000000000a"
+
+# Worker-side secrets. The matching Bearer tokens are baked into the test
+# harness; these values are not used outside `wrangler dev --local`.
+[vars]
+ORIGIN_URL = "http://127.0.0.1:17006"
+WORKER_SECRET = "local-worker-secret"
+D1_PROXY_SECRET = "local-d1-proxy-secret"

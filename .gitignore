@@ -11,6 +11,7 @@ coverage-tmp/
 /playwright-report/
 /blob-report/
 tests/playwright/.auth/
+.test-storage/
 
 # Next.js
 .next/
