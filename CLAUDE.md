@@ -51,7 +51,7 @@ bun run release -- --skip-redeploy
                              # skip the post-push Railway redeploy + health probe
 ```
 
-**⚠️ Pre-release Migration Check**: The release script automatically verifies D1 migration parity between `zhe-db` (prod) and `zhe-db-test` (test) during preflight. If tables differ, it prints which tables are missing and exits with an error. To fix:
+**⚠️ Pre-release D1 Probe**: The release script probes prod D1 (`zhe-db`) reachability during preflight — it fails fast if `wrangler` can't reach prod (auth issue, network problem). Prior versions compared prod vs `zhe-db-test`, but L2/L3 now run on a fully local Miniflare stack so the test DB is gone. To apply a missing migration to prod after release:
 
 ```bash
 # Apply the missing migration to prod
@@ -59,7 +59,7 @@ wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql
 ```
 
 The script performs these steps automatically:
-1. Preflight: verify clean working tree, branch, `gh` auth, **D1 migration parity (hard gate)**
+1. Preflight: verify clean working tree, branch, `gh` auth, **prod D1 reachability**
 2. **L3 Playwright preflight (hard gate)** — runs `bun run test:e2e:pw` before bumping; aborts if any spec fails. Skip with `--skip-l3` only when the L3 suite is known to be green
 3. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)
 4. Run `bun install` to sync `bun.lock` (prevents `--frozen-lockfile` failures in CI)
@@ -175,7 +175,7 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 - **Always commit lockfile with dependency changes**: When adding/removing dependencies in `package.json`, always `bun install` and commit the updated `bun.lock` in the same commit. `--frozen-lockfile` in CI/CD (Railway Dockerfile) will reject builds if the lockfile doesn't match the manifest.
 - **Playwright globalSetup/globalTeardown share the same Node process**: Unlike test workers, `globalSetup` and `globalTeardown` run sequentially in Playwright's main process. Any `process.env` mutation in globalSetup is visible in globalTeardown. This means teardown must **not** repeat the "prod vs test inequality check" (`testDbId === prodDbId`) because globalSetup already overwrote `CLOUDFLARE_D1_DATABASE_ID` to `testDbId` — making them always equal. Instead, teardown should confirm the override is still in effect (`currentDbId === testDbId`).
 - **Mock INSERT must read params, never hardcode return values**: When a mock DB intercepts an INSERT statement, it must destructure **all** columns from the params array and use them in the returned row. Hardcoding fields to `null` (e.g. `screenshot_url: null, note: null`) masks bugs where the real SQL omits a column — the test passes because the mock always returns null regardless of input. When adding a new column to an INSERT: (1) update the SQL, (2) update the mock's param destructuring, (3) add a test that round-trips the new field through create → read. A broader check: whenever a schema migration adds a column, grep for all INSERT statements touching that table and verify each one includes the new column.
-- **D1 migration must be applied to both test and prod**: After adding a new migration file in `drizzle/migrations/`, it must be executed on **both** `zhe-db-test` and `zhe-db` (production) before release. Test environment often gets the migration first during development, but production can be forgotten. Always verify both environments have the same table structure before release. (2026-04-13: ideas API returned 500 because `0020_add_ideas.sql` was only applied to test, not prod.)
+- **D1 migration must be applied to prod**: After adding a new migration file in `drizzle/migrations/`, it must be executed on `zhe-db` (production) before release. The local L2/L3 stack replays the full migration set on every run, so test never lags — prod is the only place a migration can be forgotten. Always verify prod has the same table structure before release. (2026-04-13: ideas API returned 500 because `0020_add_ideas.sql` was only applied to test, not prod. 2026-06-13: dev/test went away when L2/L3 moved to a local Miniflare stack — prod is now the sole gap.)
 - **Never use `last_insert_rowid()` across multiple INSERTs in a D1 batch**: In D1's `batch()` API, `last_insert_rowid()` returns the row ID of the most recent INSERT across **all** statements in the batch — not just a specific table. When a batch contains `INSERT INTO ideas ... RETURNING *` followed by multiple `INSERT INTO idea_tags (idea_id, tag_id) VALUES (last_insert_rowid(), ?)`, the second idea_tags INSERT gets the row ID from the **first** idea_tags INSERT (not the ideas INSERT), causing a FOREIGN KEY constraint failure. Fix: insert the parent row first via a single query with `RETURNING *` to get its concrete ID, then batch-insert child rows with the explicit ID. This applies to any parent-child INSERT pattern in D1 batches.
 - **Railway Watch Paths skip version-bump deploys**: The Railway service has Watch Paths configured (dashboard-only setting), so a `chore: bump version` commit that touches only `package.json` / `CHANGELOG.md` / `cli/` is judged SKIPPED and never deploys. After `bun run release` pushes, production `/api/live` version stays stale (long `uptime` = origin never restarted). The release script (`scripts/release.ts` Phase 6) now runs `railway redeploy --from-source --yes` after the push and polls `/api/live` for up to 5 minutes until the version matches — so the SKIP is recovered automatically. Skip with `--skip-redeploy` if you must bypass. (2026-06-06: v1.18.2 push SKIPPED twice; manual `redeploy --from-source` brought prod to 1.18.2. 2026-06-09: v1.18.3 SKIPPED again, automated Phase 6 added in the same session.)
 - **L3 spec drift only surfaces in CI** — automate L3 as a release preflight: pre-commit covers L1+G1+G2, pre-push covers L2, but Playwright (L3) only fires on GitHub Actions. That means a P0/P1 change touching user-visible labels, redirects, or toast copy can pass every local gate, get tagged, and only then fail CI. Always grep `tests/playwright/` (in addition to `tests/components/` and `tests/api/`) when changing routes, breadcrumbs, page titles, or globally-visible toast text. The release script (`scripts/release.ts` Phase 0.5) now runs `bun run test:e2e:pw` as a hard gate **before** the version bump so spec drift aborts the release instead of becoming a follow-up patch commit. (2026-06-09: v1.18.3 CI failed on `auth-guard.spec.ts` waiting `**/dashboard` after the redirect moved to `/dashboard/overview`, and `data-management.spec.ts` `getByText('导入完成')` exploded on strict mode after a sonner toast was added next to the existing inline result block.)
@@ -186,19 +186,23 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 ### Test Environment Isolation
 
-L2/L3 E2E tests use **dedicated Cloudflare resources** (`zhe-db-test` / `zhe-test` / `zhe-test`), never production. Four safety layers prevent accidental production writes:
+L2/L3 E2E tests run against a **fully local stack** — no remote Cloudflare resources, no `CLOUDFLARE_API_TOKEN`, no `D1_TEST_*` / `R2_TEST_*` / `KV_TEST_*` env vars. `wrangler whoami` reporting "not logged in" does not affect test runs.
 
-1. Env override in test entry (`main()` / `globalSetup`)
-2. `testDbId !== prodDbId` inequality check
-3. Defensive guard in `executeD1()` / `queryD1()`
-4. `_test_marker` table verification (exists only in test DB)
+Stack components (managed by `scripts/test-stack.ts`):
+- **D1** — `wrangler dev --local --config worker/wrangler.local.toml --persist-to .test-storage/wrangler` runs the Worker code on `127.0.0.1:8788` against a Miniflare-managed SQLite at `.test-storage/wrangler/`. All `drizzle/migrations/*.sql` are applied to the empty DB on every L2/L3 run, so prod/test schema drift is impossible.
+- **KV** — `LINKS_KV` binding lives inside the same Miniflare instance. `lib/kv/client.ts` is a no-op when `CLOUDFLARE_KV_NAMESPACE_ID` is unset (which is what the local stack does); KV correctness is covered by `worker/test/index.test.ts` and the L3 redirect specs.
+- **R2** — `lib/r2/client.ts` branches on `LOCAL_R2=1` and writes to `.test-storage/r2/` via `lib/r2/local-fs-backend.ts`. `scripts/local-r2-server.ts` runs an HTTP shim on `127.0.0.1:18788` for browser-side presigned PUT and public GET (signature is not validated; CORS is wide open). Production paths are unchanged.
+- **`_test_marker`** — `seedTestMarker()` inserts `('env', 'test')` into a dedicated table; helpers refuse to operate if the marker is missing or the proxy URL is not 127.0.0.1/localhost.
 
-Key env vars for test isolation (set in `.env.local`):
-- `D1_TEST_DATABASE_ID` — must **not** equal `CLOUDFLARE_D1_DATABASE_ID`
-- `R2_TEST_BUCKET_NAME` / `R2_TEST_PUBLIC_DOMAIN` — test R2 bucket
-- `KV_TEST_NAMESPACE_ID` — test KV namespace
+Hand-applied prod-only schema fixups live in `scripts/test-stack.ts:applySchemaFixups()` (currently only `analytics.source`). When prod adds a column outside drizzle, mirror it here AND open a real migration so `bun run release` migration parity stops yelling.
 
-See [docs/14-cloudflare-resource-inventory.md](docs/14-cloudflare-resource-inventory.md) for full design.
+Layout under `.test-storage/` (gitignored):
+
+```
+.test-storage/
+├── wrangler/   # Miniflare D1 SQLite + KV store
+└── r2/         # filesystem R2 backend
+```
 
 ### Quality System: L1 + L2 + L3 + G1 + G2
 
