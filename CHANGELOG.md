@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.1] - 2026-06-13
+
+### Added
+- Point L3 Playwright at the local stack
+- Point L2 API E2E at the local stack
+- Add local stack launcher (wrangler dev + migrations + R2 shim)
+- Add local R2 HTTP shim for presigned uploads
+- Add LOCAL_R2 filesystem backend for hermetic tests
+
+### Changed
+- Bump worker wrangler 4.99.0 → 4.100.0
+- Bump worker @cloudflare/workers-types 4.20260610.1 → 4.20260611.1
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1067.0
+- Bump @types/node 25.9.2 → 25.9.3 (root + cli)
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1066.0
+- Bump worker transitive vite to ^7.3.2 (security)
+- Retry transient D1 HTTP errors in seed helper
+
+### Fixed
+- Give navigation.spec.ts 60s + 1 retry for turbopack warmup
+
+### Removed
+- Drop legacy remote test config + update docs
+
 ## [v1.19.0] - 2026-06-10
 
 ### Changed

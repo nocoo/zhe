@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "1.19.0",
+  "version": "1.19.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 7006",
@@ -103,7 +103,7 @@
     "edge >= 96"
   ],
   "overrides": {
-    "esbuild": ">=0.25.0",
+    "esbuild": ">=0.28.1",
     "fast-xml-builder": ">=1.1.7",
     "fast-xml-parser": ">=5.5.7",
     "flatted": ">=3.4.2",
