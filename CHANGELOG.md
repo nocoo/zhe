@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Bump @types/node 25.9.2 → 25.9.3 (root + cli)
 - Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1066.0
 - Bump worker transitive vite to ^7.3.2 (security)
+- Bump esbuild override to >=0.28.1 (GHSA-gv7w-rqvm-qjhr, CVSS 8.1)
 - Retry transient D1 HTTP errors in seed helper
 
 ### Fixed
