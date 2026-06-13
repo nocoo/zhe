@@ -323,6 +323,10 @@ export function applyLocalStackEnv(): void {
   process.env.R2_ACCESS_KEY_ID = 'local-access-key';
   process.env.R2_SECRET_ACCESS_KEY = 'local-secret-key';
   process.env.R2_ENDPOINT = R2_URL;
+  // actions/upload.ts + actions/links/screenshot.ts refuse to mint a
+  // presigned URL without a salt. Mirror the value in playwright.config.ts
+  // webServer.env so the Next dev subprocess sees it too.
+  process.env.R2_USER_HASH_SALT = 'local-test-salt';
 
   // D1 proxy: point at local wrangler dev
   process.env.D1_PROXY_URL = WORKER_URL;

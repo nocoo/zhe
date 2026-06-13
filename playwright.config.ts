@@ -83,6 +83,10 @@ export default defineConfig({
       R2_ACCESS_KEY_ID: 'local-access-key',
       R2_SECRET_ACCESS_KEY: 'local-secret-key',
       R2_ENDPOINT: `http://127.0.0.1:${R2_PORT}`,
+      // actions/upload.ts + actions/links/screenshot.ts refuse to mint a
+      // presigned URL without this; without it Upload UI silently never
+      // starts a PUT and uploads.spec.ts hangs 30s waiting for upload-item.
+      R2_USER_HASH_SALT: 'local-test-salt',
       WORKER_SECRET,
     },
   },
