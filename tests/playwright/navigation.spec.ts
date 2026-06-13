@@ -7,6 +7,12 @@
 import { test, expect } from './fixtures';
 
 test.describe('Dashboard navigation', () => {
+  // Turbopack first-compile of each dashboard route can briefly exceed the
+  // default 30s test timeout when several specs warm up the dev server in
+  // parallel. The pages always render eventually — give every nav test 60s
+  // and a single retry to absorb that warm-up tax instead of silently
+  // failing the release preflight.
+  test.describe.configure({ timeout: 60_000, retries: 1 });
   test('sidebar shows branding and nav sections', async ({ page }) => {
     await page.goto('/dashboard');
 
