@@ -36,6 +36,12 @@ async function goToUploads(page: Page): Promise<void> {
 }
 
 test.describe.serial('Upload UI', () => {
+  // CI runners cold-compile /dashboard/uploads while turbopack is also
+  // compiling other dashboard routes and the local R2 shim is warming up;
+  // the upload flow occasionally exceeds the default 30s budget. Same
+  // remedy as navigation.spec.ts — give every test 60s and one retry.
+  test.describe.configure({ timeout: 60_000, retries: 1 });
+
   // Ensure clean state: no leftover uploads from other specs (e.g. overview seeds uploads)
   test.beforeAll(async () => {
     await executeD1('DELETE FROM uploads WHERE user_id = ?', [TEST_USER.id], { softFail: true });
