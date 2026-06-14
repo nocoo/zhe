@@ -1,6 +1,7 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { resolvePublicOriginFromHeaders } from "@/lib/url";
 import {
   BadgeFooter,
   BadgeHeader,
@@ -27,9 +28,9 @@ function todayDateStr(): string {
 async function signInWithGoogle(): Promise<void> {
   "use server";
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") || "http";
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:7006";
-  const redirectTo = `${proto}://${host}/dashboard/overview`;
+  const origin =
+    resolvePublicOriginFromHeaders(h) || "http://localhost:7006";
+  const redirectTo = `${origin}/dashboard/overview`;
   await signIn("google", { redirectTo });
 }
 
