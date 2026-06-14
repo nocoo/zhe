@@ -4,6 +4,7 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { D1Adapter } from '@/lib/auth-adapter';
 import { isD1Configured } from '@/lib/db/d1-client';
+import { signInCallback } from '@/lib/auth-allowlist';
 
 // Build the providers list. In Playwright E2E mode, add a Credentials
 // provider so tests can authenticate without Google OAuth.
@@ -53,6 +54,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/',
   },
   callbacks: {
+    signIn({ user, account }) {
+      return signInCallback({ user, account });
+    },
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
