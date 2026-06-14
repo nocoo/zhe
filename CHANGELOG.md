@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.2] - 2026-06-14
+
+### Changed
+- Upgrade base-ci to v2026.4
+- Switch L2/L3 to the local Miniflare stack
+- Note esbuild security bump in v1.19.1
+
+### Fixed
+- Seed R2_USER_HASH_SALT for the local stack
+- Give uploads.spec.ts 60s + 1 retry on CI
+
 ## [v1.19.1] - 2026-06-13
 
 ### Added
