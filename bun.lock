@@ -81,6 +81,7 @@
     "fast-xml-builder": ">=1.1.7",
     "fast-xml-parser": ">=5.5.7",
     "flatted": ">=3.4.2",
+    "js-yaml": ">=4.2.0",
     "next": "16.2.9",
     "postcss": ">=8.5.10",
     "rollup": ">=4.59.0",
@@ -1167,7 +1168,7 @@
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, ""],
 
-    "js-yaml": ["js-yaml@4.1.1", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": "bin/js-yaml.js" }, ""],
+    "js-yaml": ["js-yaml@4.2.0", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw=="],
 
     "jsesc": ["jsesc@3.1.0", "", { "bin": "bin/jsesc" }, ""],
 
