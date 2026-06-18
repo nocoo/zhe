@@ -10,12 +10,15 @@
     "tail": "wrangler tail"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "4.20260611.1",
+    "@cloudflare/workers-types": "4.20260617.1",
     "typescript": "6.0.3",
     "vitest": "^4.1.8",
-    "wrangler": "4.100.0"
+    "wrangler": "4.101.0"
   },
   "overrides": {
-    "vite": "^7.3.2"
+    "esbuild": ">=0.28.1",
+    "picomatch": ">=4.0.4",
+    "vite": "^7.3.5",
+    "ws": ">=8.21.0"
   }
 }
