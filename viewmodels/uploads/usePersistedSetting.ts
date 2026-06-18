@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
-/** Boolean flag persisted in localStorage. */
+/**
+ * Boolean flag persisted in localStorage. The initial render always returns
+ * `fallback` so SSR HTML and the client's first paint match; the persisted
+ * value is hydrated in a mount effect on the next tick. Without this split
+ * SSR emits aria-checked="false" while the client immediately renders the
+ * stored `true`, which Radix Switch flags as a hydration mismatch.
+ */
 export function usePersistedFlag(key: string, fallback: boolean): [boolean, (value: boolean) => void] {
-  const [value, setValueState] = useState(() => {
+  const [value, setValueState] = useState(fallback);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(key);
-      if (stored === null) return fallback;
-      return stored === "true";
+      if (stored === null) return;
+      setValueState(stored === "true");
     } catch {
-      return fallback;
+      // localStorage unavailable — keep fallback
     }
-  });
+  }, [key]);
 
   const setValue = useCallback(
     (next: boolean) => {
@@ -29,20 +37,20 @@ export function usePersistedFlag(key: string, fallback: boolean): [boolean, (val
   return [value, setValue];
 }
 
-/** Numeric value persisted in localStorage. */
+/** Numeric value persisted in localStorage. Same SSR-safe hydration as usePersistedFlag. */
 export function usePersistedNumber(key: string, fallback: number): [number, (value: number) => void] {
-  const [value, setValueState] = useState(() => {
+  const [value, setValueState] = useState(fallback);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(key);
-      if (stored !== null) {
-        const parsed = Number(stored);
-        if (!Number.isNaN(parsed)) return parsed;
-      }
+      if (stored === null) return;
+      const parsed = Number(stored);
+      if (!Number.isNaN(parsed)) setValueState(parsed);
     } catch {
-      // localStorage unavailable — ignore
+      // localStorage unavailable — keep fallback
     }
-    return fallback;
-  });
+  }, [key]);
 
   const setValue = useCallback(
     (next: number) => {
