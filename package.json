@@ -48,7 +48,7 @@
     "cmdk": "^1.1.1",
     "drizzle-orm": "0.45.2",
     "lucide-react": "1.21.0",
-    "nanoid": "^5.1.11",
+    "nanoid": "5.1.14",
     "next": "16.2.9",
     "next-auth": "^5.0.0-beta.31",
     "next-themes": "^0.4.6",
