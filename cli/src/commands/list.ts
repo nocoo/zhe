@@ -107,7 +107,10 @@ async function loadDisplayMaps(
 	cachedFolders: Folder[] | undefined,
 	showTags: boolean,
 ): Promise<{ folderMap?: Map<string, string>; tagMap?: Map<string, string> }> {
-	const result: { folderMap?: Map<string, string>; tagMap?: Map<string, string> } = {};
+	const result: {
+		folderMap?: Map<string, string>;
+		tagMap?: Map<string, string>;
+	} = {};
 
 	const hasFolders = links.some((l) => l.folderId);
 	if (hasFolders) {
@@ -132,7 +135,9 @@ async function loadDisplayMaps(
 	if (needsTagFallback) {
 		try {
 			const tagsResponse = await client.listTags();
-			result.tagMap = new Map(tagsResponse.tags.map((t: Tag) => [t.id, t.name]));
+			result.tagMap = new Map(
+				tagsResponse.tags.map((t: Tag) => [t.id, t.name]),
+			);
 		} catch {
 			// continue without tag names
 		}
@@ -221,7 +226,10 @@ export const listCommand = defineCommand({
 		const client = new ApiClient(apiKey);
 
 		try {
-			const { params, cachedFolders } = await buildListParams(client, args as ListArgs);
+			const { params, cachedFolders } = await buildListParams(
+				client,
+				args as ListArgs,
+			);
 
 			const response = await client.listLinks(params);
 

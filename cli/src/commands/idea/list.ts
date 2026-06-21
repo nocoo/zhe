@@ -15,9 +15,17 @@ export const listSubcommand = defineCommand({
 		description: "List all ideas",
 	},
 	args: {
-		limit: { type: "string", alias: "l", description: "Max results (default: 20)" },
+		limit: {
+			type: "string",
+			alias: "l",
+			description: "Max results (default: 20)",
+		},
 		tag: { type: "string", alias: "t", description: "Filter by tag name" },
-		query: { type: "string", alias: "q", description: "Search title and excerpt" },
+		query: {
+			type: "string",
+			alias: "q",
+			description: "Search title and excerpt",
+		},
 		json: { type: "boolean", description: "Output as JSON" },
 	},
 	async run({ args }) {
@@ -58,7 +66,10 @@ export const listSubcommand = defineCommand({
 
 			for (const idea of response.ideas) {
 				const time = formatDate(idea.createdAt);
-				const title = (idea.title || idea.excerpt || "(no content)").slice(0, 24);
+				const title = (idea.title || idea.excerpt || "(no content)").slice(
+					0,
+					24,
+				);
 				const tags = formatTags(idea.tagIds, tagMap);
 				console.log(
 					`${pc.cyan(String(idea.id).padEnd(6))}${time.padEnd(17)}${title.padEnd(25)}${pc.yellow(tags)}`,

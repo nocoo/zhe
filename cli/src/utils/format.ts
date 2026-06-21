@@ -14,7 +14,10 @@ export interface FormatLinksTableOptions {
 }
 
 /** Render the tag column for a single link row. */
-function renderLinkTags(link: Link, tagMap: Map<string, string> | undefined): string {
+function renderLinkTags(
+	link: Link,
+	tagMap: Map<string, string> | undefined,
+): string {
 	// Prefer embedded tags (carries names) — avoids needing a tagMap fetch
 	// from the caller when /links already returned tag details.
 	if (link.tags && link.tags.length > 0) {
@@ -27,7 +30,12 @@ function renderLinkTags(link: Link, tagMap: Map<string, string> | undefined): st
 
 function renderLinkRowWide(
 	link: Link,
-	opts: { showFolders: boolean; showTags: boolean; folderMap?: Map<string, string>; tagMap?: Map<string, string> },
+	opts: {
+		showFolders: boolean;
+		showTags: boolean;
+		folderMap?: Map<string, string>;
+		tagMap?: Map<string, string>;
+	},
 ): string {
 	const id = String(link.id).padEnd(6);
 	const slug = link.slug.padEnd(20);
@@ -50,7 +58,12 @@ function renderLinkRowWide(
 
 function renderLinkRowCompact(
 	link: Link,
-	opts: { showFolders: boolean; showTags: boolean; folderMap?: Map<string, string>; tagMap?: Map<string, string> },
+	opts: {
+		showFolders: boolean;
+		showTags: boolean;
+		folderMap?: Map<string, string>;
+		tagMap?: Map<string, string>;
+	},
 ): string {
 	const id = String(link.id).padEnd(6);
 	const slug = truncate(link.slug, 10).padEnd(11);
