@@ -117,10 +117,10 @@ export function openInBrowser(url: string): void {
 
 export {
 	type FormatLinksTableOptions,
-	formatLinksTable,
-	formatLinksMinimal,
-	formatLinkDetail,
 	formatFoldersTable,
+	formatLinkDetail,
+	formatLinksMinimal,
+	formatLinksTable,
 	formatTagsTable,
 } from "./utils/format.js";
 

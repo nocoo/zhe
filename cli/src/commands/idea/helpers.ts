@@ -3,7 +3,7 @@
 import * as readline from "node:readline";
 import { pc } from "@nocoo/cli-base";
 import {
-	ApiClient,
+	type ApiClient,
 	ApiClientError,
 	EXIT_AUTH_REQUIRED,
 	EXIT_ERROR,
