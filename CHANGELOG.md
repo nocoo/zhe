@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.3] - 2026-06-22
+
+### Changed
+- Prefer turning duplicate rules off over dual-disable
+- Cover worker/ and stop double-reporting exhaustive-deps
+- Rewrite eslint retro for the @eslint-react adoption
+- Suppress false-positives and merge duplicate imports
+- Adopt @eslint-react + jsx-a11y + import-x for ESLint 10
+- Correct eslint retrospective scope
+- Refresh eslint retrospective for the 10 upgrade
+- Bump @biomejs/biome to 2.5.0 in cli
+- Bump nanoid to 5.1.15
+- Bump lint-staged to 17.0.8
+- Bump @cloudflare/workers-types to 4.20260620.1
+- Bump @types/node to 26.0.0 in root and cli
+- Bump worker wrangler to 4.103.0 and @cloudflare/workers-types
+- Bump nanoid to 5.1.14
+- Bump lucide-react to 1.21.0
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1073.0
+- Pin base-ci to v2026.5 SHA (aec4adc)
+- Bump @babel/core, js-yaml, ws to OSV-fixed versions (#161)
+- Bump worker @cloudflare/workers-types and wrangler
+- Bump test tooling
+- Bump @aws-sdk/{client-s3,s3-request-presigner} and lucide-react
+- Bump @radix-ui/* (15 packages, patch/minor)
+
+### Fixed
+- Block child keyboard events from triggering card onClick
+- Add aria-label to keyboard-activatable cards
+- Add keyboard handlers to clickable cards
+- Bump undici override floor to >=8.5.0 (GHSA-38rv-x7px-6hhq)
+- Hydrate persisted setting after mount to avoid SSR mismatch
+- Override picomatch to >=4.0.4 in root and worker
+- Tighten worker vite override floor to ^7.3.5
+- Override vite to ^7.3.5 in cli
+- Override esbuild to >=0.28.1 in cli and worker
+- Override ws to >=8.21.0 in root and worker
+- Override js-yaml to >=4.2.0
+- Override @babel/core to >=7.29.6
+- Normalize x-forwarded-proto and restore http default for Server Actions
+- Enforce AUTH_ALLOWED_EMAILS allowlist in NextAuth signIn
+- Validate forwarded host against TRUSTED_ORIGINS allowlist
+
+### Removed
+- Drop jsx-a11y/alt-text disable in next/image mocks
+- Upgrade to eslint 10, drop eslint-config-next
+
 ## [v1.19.2] - 2026-06-14
 
 ### Changed
