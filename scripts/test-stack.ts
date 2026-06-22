@@ -14,8 +14,7 @@
  */
 
 import { spawn, spawnSync, type ChildProcess } from 'child_process';
-import { promises as fs } from 'fs';
-import { readdirSync, readFileSync } from 'fs';
+import { promises as fs, readdirSync, readFileSync  } from 'fs';
 import { resolve as pathResolve } from 'path';
 
 import {

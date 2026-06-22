@@ -20,6 +20,8 @@ export async function createVerificationToken(
 }
 
 /** Consume the token; returns null if no matching row existed. */
+// `use` prefix is the NextAuth adapter API contract, not a React hook.
+// eslint-disable-next-line @eslint-react/no-unnecessary-use-prefix
 export async function useVerificationToken(
   identifier: string,
   token: string,

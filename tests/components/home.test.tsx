@@ -16,7 +16,7 @@ vi.mock('@/auth', () => ({
 // Mock next/image to a plain img
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
-    // eslint-disable-next-line @next/next/no-img-element
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />;
   },
 }));

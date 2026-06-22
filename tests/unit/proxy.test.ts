@@ -24,8 +24,7 @@ vi.mock('@/lib/db', () => ({
   recordClick: vi.fn(),
 }));
 
-import { proxy } from '@/proxy';
-import { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX } from '@/proxy';
+import { proxy, slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX  } from '@/proxy';
 import { auth } from '@/auth';
 import { isReservedPath } from '@/lib/constants';
 import { extractClickMetadata } from '@/lib/analytics';

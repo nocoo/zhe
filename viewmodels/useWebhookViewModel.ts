@@ -49,7 +49,7 @@ function useWebhookMountLoad(
       setIsLoading(false);
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, @eslint-react/exhaustive-deps
   }, [initialData]);
   return isLoading;
 }

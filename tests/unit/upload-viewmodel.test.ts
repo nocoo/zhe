@@ -47,8 +47,7 @@ import {
   useUploadsViewModel,
   useUploadItemViewModel,
 } from '@/viewmodels/useUploadViewModel';
-import { convertPngToJpeg } from '@/models/upload';
-import { DEFAULT_JPEG_QUALITY } from '@/models/upload';
+import { convertPngToJpeg, DEFAULT_JPEG_QUALITY  } from '@/models/upload';
 
 // ---------------------------------------------------------------------------
 // Helpers

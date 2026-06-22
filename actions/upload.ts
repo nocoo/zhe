@@ -1,8 +1,7 @@
 'use server';
 
 import { getAuthContext } from '@/lib/auth-context';
-import { createPresignedUploadUrl } from '@/lib/r2/client';
-import { deleteR2Object } from '@/lib/r2/client';
+import { createPresignedUploadUrl, deleteR2Object  } from '@/lib/r2/client';
 import {
   validateUploadRequest,
   generateObjectKey,

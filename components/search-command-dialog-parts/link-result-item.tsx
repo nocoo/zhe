@@ -9,8 +9,7 @@ import {
   highlightMatches,
 } from "@/models/links";
 import type { HighlightSegment } from "@/models/links";
-import type { Tag } from "@/models/types";
-import type { Link } from "@/models/types";
+import type { Tag, Link  } from "@/models/types";
 import { HighlightText } from "./highlight-text";
 import { TagBadges } from "./tag-badges";
 

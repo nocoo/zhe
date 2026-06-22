@@ -2,8 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { LinkCard } from "@/components/dashboard/link-card";
-import type { Link, Tag, LinkTag, Folder } from "@/models/types";
-import type { AnalyticsStats } from "@/models/types";
+import type { Link, Tag, LinkTag, Folder, AnalyticsStats  } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { unwrap } from "../test-utils";
 
