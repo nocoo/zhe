@@ -58,6 +58,14 @@ function GridScreenshot({
       onClick={() =>
         window.open(link.originalUrl, "_blank", "noopener,noreferrer")
       }
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          window.open(link.originalUrl, "_blank", "noopener,noreferrer");
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       {screenshotUrl ? (
         <Image

@@ -73,6 +73,13 @@ export const IdeaCard = memo(function IdeaCard({
     onClick?.(idea);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(idea);
@@ -90,6 +97,9 @@ export const IdeaCard = memo(function IdeaCard({
         className,
       )}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       {/* Title */}
       <h3 className="font-medium text-foreground line-clamp-1 mb-2">
@@ -186,6 +196,13 @@ export const IdeaRow = memo(function IdeaRow({
     onClick?.(idea);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(idea);
@@ -203,6 +220,9 @@ export const IdeaRow = memo(function IdeaRow({
         className,
       )}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       {/* Icon */}
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
