@@ -100,6 +100,7 @@ export const IdeaCard = memo(function IdeaCard({
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
+      aria-label={`打开想法 ${displayTitle}`}
     >
       {/* Title */}
       <h3 className="font-medium text-foreground line-clamp-1 mb-2">
@@ -223,6 +224,7 @@ export const IdeaRow = memo(function IdeaRow({
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
+      aria-label={`打开想法 ${displayTitle}`}
     >
       {/* Icon */}
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">

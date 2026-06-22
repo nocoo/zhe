@@ -66,6 +66,7 @@ function GridScreenshot({
       }}
       role="button"
       tabIndex={0}
+      aria-label={`打开链接 ${link.originalUrl}`}
     >
       {screenshotUrl ? (
         <Image
