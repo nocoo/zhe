@@ -74,6 +74,10 @@ export const IdeaCard = memo(function IdeaCard({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only respond to keys fired directly on the wrapper, not bubbled from
+    // child action buttons (edit/delete) — otherwise Enter/Space on a child
+    // button would also open the idea.
+    if (e.currentTarget !== e.target) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleClick();
@@ -198,6 +202,10 @@ export const IdeaRow = memo(function IdeaRow({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only respond to keys fired directly on the wrapper, not bubbled from
+    // child action buttons (edit/delete) — otherwise Enter/Space on a child
+    // button would also open the idea.
+    if (e.currentTarget !== e.target) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleClick();

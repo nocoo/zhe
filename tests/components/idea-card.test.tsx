@@ -190,6 +190,22 @@ describe("IdeaCard", () => {
       fireEvent.click(screen.getByLabelText("删除想法"));
       expect(onClick).not.toHaveBeenCalled();
     });
+
+    it("does not trigger onClick when Enter is pressed on a child action button", () => {
+      const onClick = vi.fn();
+      render(<IdeaCard {...defaultProps} onClick={onClick} />);
+      // Enter on the delete button must not bubble up and open the idea.
+      fireEvent.keyDown(screen.getByLabelText("删除想法"), { key: "Enter" });
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("triggers onClick when Enter is pressed directly on the card wrapper", () => {
+      const onClick = vi.fn();
+      render(<IdeaCard {...defaultProps} onClick={onClick} />);
+      const card = screen.getByRole("button", { name: /打开想法/ });
+      fireEvent.keyDown(card, { key: "Enter" });
+      expect(onClick).toHaveBeenCalledWith(defaultProps.idea);
+    });
   });
 });
 
@@ -313,6 +329,21 @@ describe("IdeaRow", () => {
       fireEvent.click(screen.getByLabelText("删除想法"));
 
       expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("does not trigger onClick when Enter is pressed on a child action button", () => {
+      const onClick = vi.fn();
+      render(<IdeaRow {...defaultProps} onClick={onClick} />);
+      fireEvent.keyDown(screen.getByLabelText("删除想法"), { key: "Enter" });
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("triggers onClick when Enter is pressed directly on the row wrapper", () => {
+      const onClick = vi.fn();
+      render(<IdeaRow {...defaultProps} onClick={onClick} />);
+      const row = screen.getByRole("button", { name: /打开想法/ });
+      fireEvent.keyDown(row, { key: "Enter" });
+      expect(onClick).toHaveBeenCalledWith(defaultProps.idea);
     });
   });
 });

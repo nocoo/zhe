@@ -59,6 +59,9 @@ function GridScreenshot({
         window.open(link.originalUrl, "_blank", "noopener,noreferrer")
       }
       onKeyDown={(e) => {
+        // Only respond to keys fired directly on the wrapper, not bubbled from
+        // any child controls that may be added later.
+        if (e.currentTarget !== e.target) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           window.open(link.originalUrl, "_blank", "noopener,noreferrer");
