@@ -23,10 +23,10 @@ const eslintConfig = [
       "playwright-report/",
       "test-results/",
       ".test-storage/",
-      // cli/ and worker/ are independent sub-projects with their own
-      // package.json + linter (Biome for cli, separate eslint for worker).
+      // cli/ ships with Biome as its sole linter (see cli/biome.json) so
+      // ESLint must not double-lint it. worker/ has no separate linter and
+      // is covered by the root ESLint config (it is *not* listed here).
       "cli/",
-      "worker/",
     ],
   },
   {
@@ -76,9 +76,11 @@ const eslintConfig = [
 
       // Duplicates of eslint-plugin-react-hooks rules we already run.
       // eslint-plugin-react-hooks is the authoritative source — silence the
-      // duplicate to avoid double-reporting.
+      // duplicate to avoid double-reporting (and forcing every disable
+      // comment to carry both namespaces).
       "@eslint-react/hooks-extra/no-direct-set-state-in-use-effect": "off",
       "@eslint-react/set-state-in-effect": "off",
+      "@eslint-react/exhaustive-deps": "off",
       "@eslint-react/web-api/no-leaked-event-listener": "off",
       "@eslint-react/web-api/no-leaked-interval": "off",
       "@eslint-react/web-api/no-leaked-timeout": "off",

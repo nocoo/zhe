@@ -69,7 +69,7 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
       setIsLoading(false);
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps, @eslint-react/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   const startEditing = () => {
