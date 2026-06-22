@@ -24,7 +24,7 @@ export function EditorSplit({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="在这里写下您的想法... (支持 Markdown)"
-            className="w-full h-full resize-none border-0 bg-transparent px-4 py-3 text-sm font-mono leading-relaxed focus:outline-none placeholder:text-muted-foreground/50"
+            className="w-full h-full resize-none border-0 bg-transparent px-4 py-3 text-sm font-mono leading-relaxed focus:outline-hidden placeholder:text-muted-foreground/50"
             spellCheck
           />
         </div>

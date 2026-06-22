@@ -111,7 +111,7 @@ function GridScreenshot({
           }}
           disabled={isFetchingPreview}
           aria-label="Refresh preview"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-sm"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
           title="刷新预览图"
         >
           {isFetchingPreview ? (
@@ -126,7 +126,7 @@ function GridScreenshot({
             onToggleEdit();
           }}
           aria-label="Edit link"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-sm"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
           title="Edit link"
         >
           <Pencil className="w-4 h-4" strokeWidth={1.5} />

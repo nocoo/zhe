@@ -65,7 +65,7 @@ function FolderItemEditor({
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="flex-1 min-w-0 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
           placeholder="文件夹名称"
           // Inline rename input just appeared on user-initiated click; auto-focus is the expected UX.
           // eslint-disable-next-line jsx-a11y/no-autofocus
