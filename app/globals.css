@@ -331,10 +331,11 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     /* Latin first, then a CJK fallback chain so 中文 falls back to the
        platform's preferred Han font instead of the browser default. */
     font-family:
