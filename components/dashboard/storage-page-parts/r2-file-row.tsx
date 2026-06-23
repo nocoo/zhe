@@ -32,7 +32,7 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-2 border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors",
+        "flex items-center gap-3 px-4 py-2 border-b border-border last:border-b-0 hover:bg-background/50 transition-colors",
         isOrphan && "bg-warning/5",
       )}
     >

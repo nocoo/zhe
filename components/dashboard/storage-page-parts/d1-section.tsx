@@ -34,7 +34,7 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
               {data.tables.map((table) => (
                 <tr
                   key={table.name}
-                  className="border-t border-border hover:bg-accent/30 transition-colors"
+                  className="border-t border-border hover:bg-background/50 transition-colors"
                 >
                   <td className="px-4 py-2 font-mono text-foreground">{table.name}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
