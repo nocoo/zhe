@@ -24,7 +24,7 @@ export function NewKeyBanner({
       className="mb-4 rounded-card bg-warning/10 p-4"
       data-testid="new-key-banner"
     >
-      <p className="mb-2 text-sm font-medium text-warning">
+      <p className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-300">
         请立即复制此密钥。关闭后将无法再次查看。
       </p>
       <div className="flex items-center gap-2">
