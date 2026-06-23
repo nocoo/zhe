@@ -90,7 +90,7 @@ function CredentialsView({
           撤销
         </Button>
       </div>
-      <div className="rounded-md border bg-muted/50 p-3">
+      <div className="rounded-widget bg-background p-3">
         <p className="mb-2 text-xs font-medium text-muted-foreground">调用示例</p>
         <code className="block whitespace-pre-wrap text-[11px] text-muted-foreground">
           {`curl -X POST ${pullWebhookUrl} \\\n  -H "X-Webhook-Key: ${pullKey}"`}

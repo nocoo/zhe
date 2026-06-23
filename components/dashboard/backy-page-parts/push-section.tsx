@@ -172,7 +172,7 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
         vm.history.recent_backups.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2" data-testid="backy-history">
             {vm.history.recent_backups.map((entry) => (
-              <div key={entry.id} className="space-y-1 rounded-md border bg-muted/50 p-3 text-xs">
+              <div key={entry.id} className="space-y-1 rounded-widget bg-background p-3 text-xs">
                 <div className="flex items-center justify-between">
                   <Badge variant={entry.environment === "prod" ? "success" : "warning"}>
                     {entry.environment}

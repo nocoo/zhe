@@ -90,7 +90,7 @@ function TweetResultBlock({ vm }: { vm: XrayViewModel }) {
         {vm.showRawJson ? "收起" : "展开"} 原始 JSON
       </Button>
       {vm.showRawJson && (
-        <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed">
+        <pre className="max-h-96 overflow-auto rounded-widget bg-background p-3 text-xs leading-relaxed">
           {JSON.stringify(vm.tweetResult, null, 2)}
         </pre>
       )}
