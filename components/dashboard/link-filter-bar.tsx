@@ -132,7 +132,7 @@ function FolderFilter({ folders, selectedFolderId, selectedFolderName, onSelect 
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+            "inline-flex items-center gap-1.5 rounded-widget border px-2.5 py-1 text-xs transition-colors",
             selectedFolderId
               ? "border-primary/30 bg-primary/5 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
@@ -201,7 +201,7 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors",
+            "inline-flex items-center gap-1.5 rounded-widget border px-2.5 py-1 text-xs transition-colors",
             selectedTagIds.size > 0
               ? "border-primary/30 bg-primary/5 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
