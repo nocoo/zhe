@@ -39,7 +39,7 @@ export function BadgeHeader({ dateStr }: { dateStr: string }) {
 
 export function BadgeFooter() {
   return (
-    <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center border-t border-border bg-secondary/50 py-2.5">
+    <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-background py-2.5">
       <div className="flex items-center gap-1.5">
         <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
         <span className="text-[10px] text-muted-foreground">
