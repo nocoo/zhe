@@ -29,10 +29,10 @@ function LoadingState({ viewMode }: { viewMode: ViewMode }) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="animate-pulse">
-          <div className="h-6 w-24 rounded bg-muted" />
-          <div className="h-4 w-16 rounded bg-muted mt-1.5" />
+          <div className="h-6 w-24 rounded bg-background" />
+          <div className="h-4 w-16 rounded bg-background mt-1.5" />
         </div>
-        <div className="h-9 w-24 rounded-lg bg-muted animate-pulse" />
+        <div className="h-9 w-24 rounded-lg bg-background animate-pulse" />
       </div>
       <LinksListSkeleton viewMode={viewMode} />
     </div>

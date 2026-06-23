@@ -16,8 +16,8 @@ function UploadListSkeleton() {
       {/* Header skeleton */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="h-6 w-16 rounded bg-muted" />
-          <div className="h-4 w-20 rounded bg-muted mt-1.5" />
+          <div className="h-6 w-16 rounded bg-background" />
+          <div className="h-4 w-20 rounded bg-background mt-1.5" />
         </div>
       </div>
 
@@ -33,12 +33,12 @@ function UploadListSkeleton() {
             key={i}
             className="rounded-card bg-secondary p-4 flex items-center gap-4"
           >
-            <div className="h-12 w-12 rounded-lg bg-muted shrink-0" />
+            <div className="h-12 w-12 rounded-lg bg-background shrink-0" />
             <div className="flex-1 min-w-0 space-y-2">
-              <div className="h-4 w-40 rounded bg-muted" />
-              <div className="h-3 w-24 rounded bg-muted" />
+              <div className="h-4 w-40 rounded bg-background" />
+              <div className="h-3 w-24 rounded bg-background" />
             </div>
-            <div className="h-8 w-16 rounded bg-muted shrink-0" />
+            <div className="h-8 w-16 rounded bg-background shrink-0" />
           </div>
         ))}
       </div>

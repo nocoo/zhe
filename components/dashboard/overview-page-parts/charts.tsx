@@ -95,10 +95,10 @@ export function StatSkeleton() {
       data-testid="stat-skeleton"
     >
       <div className="flex items-center justify-between">
-        <div className="h-3 w-16 rounded bg-muted" />
-        <div className="h-4 w-4 rounded bg-muted" />
+        <div className="h-3 w-16 rounded bg-background" />
+        <div className="h-4 w-4 rounded bg-background" />
       </div>
-      <div className="mt-3 h-7 w-20 rounded bg-muted" />
+      <div className="mt-3 h-7 w-20 rounded bg-background" />
     </div>
   );
 }
@@ -107,10 +107,10 @@ export function ChartSkeleton() {
   return (
     <Card data-testid="stat-skeleton">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-        <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+        <div className="h-4 w-24 rounded bg-background animate-pulse" />
       </CardHeader>
       <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-        <div className="h-[200px] w-full rounded bg-muted animate-pulse" />
+        <div className="h-[200px] w-full rounded bg-background animate-pulse" />
       </CardContent>
     </Card>
   );

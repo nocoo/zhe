@@ -2,7 +2,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Skeleton loading placeholder.
- * Per Basalt B-4 spec: animate-pulse rounded-md bg-muted.
+ * B05 spec: bg-background so the skeleton sits one tier darker than the
+ * L2 cards (bg-secondary) it typically appears inside.
  */
 function Skeleton({
   className,
@@ -10,7 +11,7 @@ function Skeleton({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn("animate-pulse rounded-md bg-background", className)}
       {...props}
     />
   );

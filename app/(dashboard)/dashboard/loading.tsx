@@ -14,10 +14,10 @@ export default function DashboardLoading() {
       {/* Header row: title + action button */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="h-6 w-32 rounded bg-muted" />
-          <div className="h-4 w-48 rounded bg-muted mt-1.5" />
+          <div className="h-6 w-32 rounded bg-background" />
+          <div className="h-4 w-48 rounded bg-background mt-1.5" />
         </div>
-        <div className="h-9 w-24 rounded-lg bg-muted" />
+        <div className="h-9 w-24 rounded-lg bg-background" />
       </div>
 
       {/* Content blocks */}
@@ -28,11 +28,11 @@ export default function DashboardLoading() {
             className="rounded-xl bg-secondary p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
-              <div className="h-3 w-20 rounded bg-muted" />
-              <div className="h-4 w-4 rounded bg-muted" />
+              <div className="h-3 w-20 rounded bg-background" />
+              <div className="h-4 w-4 rounded bg-background" />
             </div>
-            <div className="h-5 w-28 rounded bg-muted" />
-            <div className="h-3 w-36 rounded bg-muted" />
+            <div className="h-5 w-28 rounded bg-background" />
+            <div className="h-3 w-36 rounded bg-background" />
           </div>
         ))}
       </div>

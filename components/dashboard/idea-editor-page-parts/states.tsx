@@ -8,13 +8,13 @@ export function EditorSkeleton() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 animate-pulse">
-          <div className="h-7 w-7 rounded-md bg-muted" />
-          <div className="h-8 w-48 rounded-lg bg-muted" />
+          <div className="h-7 w-7 rounded-md bg-background" />
+          <div className="h-8 w-48 rounded-lg bg-background" />
         </div>
         <div className="flex items-center gap-2 animate-pulse">
-          <div className="h-5 w-12 rounded bg-muted hidden sm:block" />
-          <div className="h-5 w-12 rounded bg-muted hidden sm:block" />
-          <div className="h-7 w-7 rounded-md bg-muted" />
+          <div className="h-5 w-12 rounded bg-background hidden sm:block" />
+          <div className="h-5 w-12 rounded bg-background hidden sm:block" />
+          <div className="h-7 w-7 rounded-md bg-background" />
         </div>
       </div>
       <div
@@ -22,17 +22,17 @@ export function EditorSkeleton() {
         style={{ height: "calc(100vh - 12rem)" }}
       >
         <div className="p-6 animate-pulse space-y-3">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-4 w-full rounded bg-muted" />
-          <div className="h-4 w-5/6 rounded bg-muted" />
-          <div className="h-4 w-2/3 rounded bg-muted" />
-          <div className="h-4 w-1/2 rounded bg-muted" />
+          <div className="h-4 w-3/4 rounded bg-background" />
+          <div className="h-4 w-full rounded bg-background" />
+          <div className="h-4 w-5/6 rounded bg-background" />
+          <div className="h-4 w-2/3 rounded bg-background" />
+          <div className="h-4 w-1/2 rounded bg-background" />
         </div>
         <div className="p-6 border-t md:border-t-0 md:border-l animate-pulse space-y-3">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-4 w-1/2 rounded bg-muted" />
-          <div className="h-4 w-2/3 rounded bg-muted" />
-          <div className="h-4 w-1/3 rounded bg-muted" />
+          <div className="h-4 w-3/4 rounded bg-background" />
+          <div className="h-4 w-1/2 rounded bg-background" />
+          <div className="h-4 w-2/3 rounded bg-background" />
+          <div className="h-4 w-1/3 rounded bg-background" />
         </div>
       </div>
     </div>
