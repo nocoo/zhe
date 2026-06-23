@@ -16,7 +16,7 @@ export function EditorSplit({
       style={{ height: "calc(100vh - 12rem)" }}
     >
       <div className="flex flex-col min-h-0">
-        <div className="px-4 py-2 border-b bg-muted/30">
+        <div className="px-4 py-2 border-b bg-background">
           <span className="text-xs text-muted-foreground font-medium">编辑</span>
         </div>
         <div className="flex-1 min-h-0 overflow-auto">
@@ -31,7 +31,7 @@ export function EditorSplit({
       </div>
 
       <div className="flex flex-col min-h-0 border-t md:border-t-0 md:border-l">
-        <div className="px-4 py-2 border-b bg-muted/30">
+        <div className="px-4 py-2 border-b bg-background">
           <span className="text-xs text-muted-foreground font-medium">预览</span>
         </div>
         <div className="flex-1 min-h-0 overflow-auto px-4 py-3">
