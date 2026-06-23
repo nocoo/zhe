@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.4] - 2026-06-23
+
+### Changed
+- Apply tailwind v4 utility renames
+- Migrate config to v4 CSS-first form
+- Bump tailwindcss 3.4.19 → 4.3.1, swap postcss/animate stack
+- Bump globals to 17.6.0
+- Bump @cloudflare/workers-types to 4.20260621.1
+- Clear osv-scanner ignores — all 8 entries unused
+
+### Fixed
+- Drop @apply in base layer to satisfy v4 + turbopack
+
 ## [v1.19.3] - 2026-06-22
 
 ### Changed
