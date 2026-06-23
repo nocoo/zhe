@@ -53,7 +53,7 @@ jobs:
 
       # test-stack.ts shells out to `wrangler` for migrations + dev server
       - name: Install wrangler globally
-        run: bun install -g wrangler@4
+        run: bun install -g wrangler@4 --ignore-scripts
 
       - name: "L2: API E2E tests"
         run: bun run test:api
@@ -81,7 +81,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Install wrangler globally
-        run: bun install -g wrangler@4
+        run: bun install -g wrangler@4 --ignore-scripts
 
       - name: "L3: Playwright E2E tests"
         run: bun run test:e2e:pw
