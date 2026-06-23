@@ -21,10 +21,10 @@ export function NewKeyBanner({
 }) {
   return (
     <div
-      className="mb-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4"
+      className="mb-4 rounded-card bg-warning/10 p-4"
       data-testid="new-key-banner"
     >
-      <p className="mb-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+      <p className="mb-2 text-sm font-medium text-warning">
         请立即复制此密钥。关闭后将无法再次查看。
       </p>
       <div className="flex items-center gap-2">

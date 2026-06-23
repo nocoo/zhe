@@ -28,7 +28,7 @@ export function CreateKeyForm({
   onCreate,
 }: CreateKeyFormProps) {
   return (
-    <div className="rounded-lg border p-4 space-y-4" data-testid="create-form">
+    <div className="rounded-card bg-secondary p-4 space-y-4" data-testid="create-form">
       <div className="space-y-2">
         <Label htmlFor="key-name">名称</Label>
         <Input
