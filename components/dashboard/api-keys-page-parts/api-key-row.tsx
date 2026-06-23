@@ -77,7 +77,7 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
   return (
     <div
       key={apiKey.id}
-      className="flex items-center justify-between rounded-card bg-secondary p-3"
+      className="flex items-center justify-between rounded-card bg-background p-3"
       data-testid={`key-item-${apiKey.id}`}
     >
       <div className="flex-1 min-w-0">
