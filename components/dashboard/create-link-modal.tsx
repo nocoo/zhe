@@ -120,7 +120,7 @@ export function CreateLinkModal({
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] rounded-card border-0 bg-card">
+      <DialogContent className="sm:max-w-[425px] rounded-card border-0 bg-background">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">创建短链接</DialogTitle>
         </DialogHeader>
