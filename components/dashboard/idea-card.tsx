@@ -235,7 +235,7 @@ export const IdeaRow = memo(function IdeaRow({
       aria-label={`打开想法 ${displayTitle}`}
     >
       {/* Icon */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-background">
         <TagIcon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
 
