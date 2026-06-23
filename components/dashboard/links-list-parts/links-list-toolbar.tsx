@@ -56,7 +56,7 @@ function FilterControls(props: FilterControlsProps) {
         onClear={onClearFilters}
         showFolderFilter={showFolderFilter}
       />
-      <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+      <div className="flex items-center rounded-widget bg-background p-0.5">
         <button
           onClick={() => onViewModeChange("list")}
           aria-label="List view"

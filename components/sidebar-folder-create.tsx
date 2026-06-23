@@ -33,7 +33,7 @@ export function SidebarFolderCreate({
   }
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-background p-2">
+    <div className="flex flex-col gap-1.5 rounded-widget bg-card p-2">
       {/* Name input row */}
       <div className="flex items-center gap-1.5">
         <FolderIcon

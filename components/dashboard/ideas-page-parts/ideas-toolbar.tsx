@@ -89,7 +89,7 @@ function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
         : "text-muted-foreground hover:text-foreground"
     }`;
   return (
-    <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+    <div className="flex items-center rounded-widget bg-background p-0.5">
       <button
         onClick={() => vm.setViewMode("grid")}
         aria-label="Grid view"
