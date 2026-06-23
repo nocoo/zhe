@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.19.5] - 2026-06-23
+
+### Changed
+- Pass --ignore-scripts to global wrangler install
+- Bump url-metadata to 5.5.0
+- Bump typescript-eslint to 8.62.0
+- Bump globals to 17.7.0
+- Bump eslint-plugin-import-x to 4.17.0
+- Bump @eslint-react/eslint-plugin to 5.9.2
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1074.0
+
+### Fixed
+- Api-keys row+form nested in L2 Card use bg-background for layer separation
+- Banner warning text use amber-700/300 to meet AA on bg-warning/10
+- Badge footer drop translucent+border, use bg-background
+- Link-filter-bar chips rounded-lg -> rounded-widget
+- Skeleton placeholders bg-muted -> bg-background
+- Idea-card icon container bg-muted -> bg-background
+- Markdown prose code blocks bg-background no border
+- Storage rows hover:bg-accent/30 -> hover:bg-background/50
+- Api-keys rows/form use rounded-card bg-secondary, banner uses warning token
+- Editor-split header bg-muted/30 -> bg-background
+- Backy/xray inline panels use bg-background no border (was bg-muted/50)
+- Sidebar inner groups use bg-card, toolbars use bg-background (drop border)
+- Dialog content use bg-background (was bg-card)
+- Summary-grid L2 use bg-secondary no border (was bg-card+border)
+- Flip light mode L1/L2 to B05 order (L0 94 < L1 97 < L2 100)
+
 ## [v1.19.4] - 2026-06-23
 
 ### Changed
