@@ -40,8 +40,8 @@ export function MarkdownPreview({
         // Links
         "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
         // Code blocks
-        "prose-pre:bg-muted prose-pre:border prose-pre:border-border prose-pre:rounded-md",
-        "prose-code:text-foreground prose-code:bg-muted prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
+        "prose-pre:bg-background prose-pre:rounded-widget",
+        "prose-code:text-foreground prose-code:bg-background prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
         // Images
         "prose-img:rounded-md",
         // Tables
