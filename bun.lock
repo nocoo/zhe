@@ -43,7 +43,7 @@
         "server-only": "^0.0.1",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.6.0",
-        "url-metadata": "5.5.2",
+        "url-metadata": "5.5.3",
         "vite": "8.1.0",
         "yaml": "^2.9.0",
       },
@@ -1642,7 +1642,7 @@
 
     "uri-js": ["uri-js@4.4.1", "", { "dependencies": { "punycode": "^2.1.0" } }, ""],
 
-    "url-metadata": ["url-metadata@5.5.2", "", { "dependencies": { "cheerio": "^1.0.0", "node-fetch": "^2.7.0", "request-filtering-agent": "2.0.1" } }, "sha512-NaFgP4h80uX8iIneiM+Ic7J4gJ94lriaSLKHyxhx6Q3nz2wj+0qGbwuKMcWdhj5c2M5PtNt1piNkNwG9cDNM6Q=="],
+    "url-metadata": ["url-metadata@5.5.3", "", { "dependencies": { "cheerio": "^1.0.0", "node-fetch": "^2.7.0", "request-filtering-agent": "2.0.1" } }, "sha512-JHRWXzWr4IV52rBrsprWHz59pez9JBLT1Z05yKBCB0UaMGjjqEKoIjfHu/jYOtltbOyCeoO+g+Sq5eNp+sKylw=="],
 
     "use-callback-ref": ["use-callback-ref@1.3.3", "", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "@types/react": "*", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc" } }, ""],
 
