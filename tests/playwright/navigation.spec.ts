@@ -5,6 +5,7 @@
  * clicking nav items switches the main content area.
  */
 import { test, expect } from './fixtures';
+import { request as playwrightRequest } from '@playwright/test';
 
 test.describe('Dashboard navigation', () => {
   // Turbopack first-compile of each dashboard route can briefly exceed the
@@ -13,6 +14,45 @@ test.describe('Dashboard navigation', () => {
   // and a single retry to absorb that warm-up tax instead of silently
   // failing the release preflight.
   test.describe.configure({ timeout: 60_000, retries: 1 });
+
+  // Prewarm each destination route once before any nav test runs. In
+  // Next.js App Router, client-side navigation blocks on the destination
+  // RSC payload, which blocks on Turbopack's first-compile of that route.
+  // Under `workers: 4` the compile races other specs first-compiling
+  // /dashboard/{backy,xray,uploads,...} against the same shared dev
+  // server, and the individual per-test 60s ceiling isn't enough to
+  // absorb the pile-up. `test.beforeAll` runs once per worker on a
+  // dedicated request context (no browser boot), so it stays cheap while
+  // making every subsequent click-and-waitForURL hit a warm route.
+  // STU-1588 tracks the specific failure mode this prevents.
+  test.beforeAll(async () => {
+    // Prewarm may compile several dashboard routes on a busy CI runner;
+    // give it 3 minutes instead of the case-scoped 60s ceiling.
+    test.setTimeout(180_000);
+    // Base URL must match `playwright.config.ts` (E2E_PORT = 27006).
+    const req = await playwrightRequest.newContext({
+      baseURL: 'http://localhost:27006',
+      storageState: 'tests/playwright/.auth/user.json',
+    });
+    try {
+      const routes = [
+        '/dashboard/overview',
+        '/dashboard/data-management',
+        '/dashboard/webhook',
+        '/dashboard/uploads',
+        '/dashboard/backy',
+        '/dashboard/xray',
+      ];
+      await Promise.all(
+        routes.map((r) =>
+          req.get(r, { timeout: 120_000, failOnStatusCode: false }).catch(() => undefined),
+        ),
+      );
+    } finally {
+      await req.dispose();
+    }
+  });
+
   test('sidebar shows branding and nav sections', async ({ page }) => {
     await page.goto('/dashboard');
 
