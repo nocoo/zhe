@@ -96,10 +96,14 @@ test.describe('Dashboard navigation', () => {
     // action. With workers: 4, Turbopack's cold first-compile of that route
     // can push the default `load` wait past 60s even though the URL commit
     // and client hydration happen much sooner. Gate on `commit` — the
-    // Breadcrumb assertion below (client-side, after hydration) is the real
-    // proof the destination page rendered.
+    // page-owned assertion below (upload-zone testid + heading) is the real
+    // proof the /dashboard/uploads page children rendered, not just the
+    // layout-owned Breadcrumb that would light up from `usePathname()`
+    // alone even if the child RSC errored.
     await page.waitForURL('**/dashboard/uploads', { waitUntil: 'commit' });
 
+    await expect(page.locator('[data-testid="upload-zone"]').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: '文件上传' })).toBeVisible();
     await expect(
       page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
     ).toHaveText('文件上传');
