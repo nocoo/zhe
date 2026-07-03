@@ -57,9 +57,9 @@ vi.spyOn(console, 'error').mockImplementation(() => {});
 import {
   getPresignedUploadUrl,
   recordUpload,
-  getUploads,
   deleteUpload,
 } from '@/actions/upload';
+import { getUploads } from '@/actions/upload-read';
 
 // ---------------------------------------------------------------------------
 // Helpers

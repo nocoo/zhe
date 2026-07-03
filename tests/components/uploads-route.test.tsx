@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-vi.mock('@/actions/upload', () => ({
+vi.mock('@/actions/upload-read', () => ({
   getUploads: vi.fn().mockResolvedValue({ success: false }),
 }));
 
@@ -13,7 +13,7 @@ vi.mock('@/components/dashboard/upload-list', () => ({
 }));
 
 import UploadsPage from '@/app/(dashboard)/dashboard/uploads/page';
-import { getUploads } from '@/actions/upload';
+import { getUploads } from '@/actions/upload-read';
 
 describe('UploadsPage', () => {
   beforeEach(() => {

@@ -83,7 +83,7 @@ describe('Upload E2E — full lifecycle', () => {
 
     it('cannot list uploads', async () => {
       unauthenticated();
-      const { getUploads } = await import('@/actions/upload');
+      const { getUploads } = await import('@/actions/upload-read');
 
       const result = await getUploads();
 
@@ -116,9 +116,9 @@ describe('Upload E2E — full lifecycle', () => {
       const {
         getPresignedUploadUrl,
         recordUpload,
-        getUploads,
         deleteUpload,
       } = await import('@/actions/upload');
+      const { getUploads } = await import('@/actions/upload-read');
 
       // Step 1: Get presigned URL
       const presignResult = await getPresignedUploadUrl({
@@ -182,9 +182,9 @@ describe('Upload E2E — full lifecycle', () => {
     it('user A cannot see or delete user B uploads', async () => {
       const {
         recordUpload,
-        getUploads,
         deleteUpload,
       } = await import('@/actions/upload');
+      const { getUploads } = await import('@/actions/upload-read');
 
       const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const hashA = await hashUserId(USER_ID, salt);
@@ -289,7 +289,8 @@ describe('Upload E2E — full lifecycle', () => {
   describe('upload ordering', () => {
     it('returns uploads in reverse chronological order', async () => {
       authenticatedAs(USER_ID);
-      const { recordUpload, getUploads } = await import('@/actions/upload');
+      const { recordUpload } = await import('@/actions/upload');
+      const { getUploads } = await import('@/actions/upload-read');
 
       const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const userHash = await hashUserId(USER_ID, salt);
