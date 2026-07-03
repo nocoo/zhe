@@ -89,15 +89,16 @@ test.describe('Dashboard navigation', () => {
   });
 
   test('navigate to Uploads page', async ({ page }) => {
-    // Turbopack first-compile of /dashboard/uploads can exceed Playwright's
-    // default 30s test timeout. Mark slow to triple it (90s) and also raise
-    // the waitForURL timeout explicitly for clarity.
-    test.slow();
-
     await page.goto('/dashboard');
 
     await page.locator('a:has-text("文件上传")').click();
-    await page.waitForURL('**/dashboard/uploads', { timeout: 60_000 });
+    // /dashboard/uploads pulls the AWS S3 SDK through the SSR getUploads()
+    // action. With workers: 4, Turbopack's cold first-compile of that route
+    // can push the default `load` wait past 60s even though the URL commit
+    // and client hydration happen much sooner. Gate on `commit` — the
+    // Breadcrumb assertion below (client-side, after hydration) is the real
+    // proof the destination page rendered.
+    await page.waitForURL('**/dashboard/uploads', { waitUntil: 'commit' });
 
     await expect(
       page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]'),
