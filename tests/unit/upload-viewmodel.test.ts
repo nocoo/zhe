@@ -16,8 +16,11 @@ const mockDeleteUploadAction = vi.fn();
 vi.mock('@/actions/upload', () => ({
   getPresignedUploadUrl: (...args: unknown[]) => mockGetPresignedUploadUrl(...args),
   recordUpload: (...args: unknown[]) => mockRecordUpload(...args),
-  getUploads: (...args: unknown[]) => mockFetchUploads(...args),
   deleteUpload: (...args: unknown[]) => mockDeleteUploadAction(...args),
+}));
+
+vi.mock('@/actions/upload-read', () => ({
+  getUploads: (...args: unknown[]) => mockFetchUploads(...args),
 }));
 
 vi.mock('@/models/upload', async (importOriginal) => {
