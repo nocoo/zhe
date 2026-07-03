@@ -114,22 +114,11 @@ export async function recordUpload(data: {
 }
 
 /**
- * Get all uploads for the current user.
+ * NOTE: `getUploads` (the read path) lives in `actions/upload-read.ts` so
+ * consumers that only need the read path can import it without pulling
+ * `@aws-sdk/client-s3` into their SSR compile graph. See `upload-read.ts`
+ * for the rationale (STU-1588).
  */
-export async function getUploads(): Promise<ActionResult<Upload[]>> {
-  try {
-    const ctx = await getAuthContext();
-    if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const uploads = await ctx.db.getUploads();
-    return { success: true, data: uploads };
-  } catch (error) {
-    console.error('Failed to get uploads:', error);
-    return { success: false, error: 'Failed to get uploads' };
-  }
-}
 
 /**
  * Delete an upload — removes from both R2 and D1.

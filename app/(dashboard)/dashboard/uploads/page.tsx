@@ -1,5 +1,5 @@
 import { UploadList } from '@/components/dashboard/upload-list';
-import { getUploads } from '@/actions/upload';
+import { getUploads } from '@/actions/upload-read';
 
 export default async function UploadsPage() {
   const result = await getUploads();

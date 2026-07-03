@@ -6,6 +6,8 @@ import type { UploadingFile } from "@/models/upload";
 import { formatFileSize, isImageType, DEFAULT_JPEG_QUALITY } from "@/models/upload";
 import {
   getUploads as fetchUploads,
+} from "@/actions/upload-read";
+import {
   deleteUpload as deleteUploadAction,
 } from "@/actions/upload";
 import { copyToClipboard } from "@/lib/utils";
