@@ -25,11 +25,11 @@
     "@nocoo/cli-base": "^0.2.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.2",
-    "@types/node": "26.1.0",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@biomejs/biome": "2.5.3",
+    "@types/node": "26.1.1",
+    "@vitest/coverage-v8": "4.1.10",
     "typescript": "^5.7.0",
-    "vitest": "^4.1.8"
+    "vitest": "4.1.10"
   },
   "keywords": [
     "zhe",
