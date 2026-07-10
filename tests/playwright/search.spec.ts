@@ -6,6 +6,16 @@
  */
 import { test, expect } from './fixtures';
 
+/**
+ * Placeholder text of the search input — mirrors what SearchCommandDialog
+ * renders. Kept as a single constant so future placeholder changes only
+ * need one edit here (C14 added "、待办" and this file missed it, which
+ * broke every search spec — this const prevents a repeat).
+ */
+const SEARCH_INPUT_PLACEHOLDER =
+  '搜索链接、想法、待办 · 跳转页面 · 触发动作...';
+const searchInputLocator = `[placeholder="${SEARCH_INPUT_PLACEHOLDER}"]`;
+
 /** Helper: wait for link-crud page to finish loading inside <main>. */
 async function waitForLinksPage(page: import('@playwright/test').Page): Promise<void> {
   await page.locator('main').getByRole('button', { name: '刷新链接' }).waitFor({ timeout: 15_000 });
@@ -61,7 +71,7 @@ test.describe('Cmd+K search', () => {
     await openSearchDialog(page);
 
     // Should show the search input placeholder
-    await expect(page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]')).toBeVisible();
+    await expect(page.locator(searchInputLocator)).toBeVisible();
 
     // Should show hint text when input is empty
     await expect(page.getByText('输入关键词搜索')).toBeVisible();
@@ -73,7 +83,7 @@ test.describe('Cmd+K search', () => {
 
     await openSearchDialog(page);
 
-    const input = page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]');
+    const input = page.locator(searchInputLocator);
     await input.fill('alpha');
 
     // Should find the first link (slug contains "alpha")
@@ -90,7 +100,7 @@ test.describe('Cmd+K search', () => {
 
     await openSearchDialog(page);
 
-    const input = page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]');
+    const input = page.locator(searchInputLocator);
     await input.fill('playwright');
 
     // Should find the first link (URL contains "playwright")
@@ -104,7 +114,7 @@ test.describe('Cmd+K search', () => {
 
     await openSearchDialog(page);
 
-    const input = page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]');
+    const input = page.locator(searchInputLocator);
     await input.fill('zzz-nonexistent-query');
 
     // Should show the empty state message
@@ -117,7 +127,7 @@ test.describe('Cmd+K search', () => {
 
     await openSearchDialog(page);
 
-    const input = page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]');
+    const input = page.locator(searchInputLocator);
     // Search for "e2e-search" which should match both links
     await input.fill(`e2e-search`);
 
@@ -135,7 +145,7 @@ test.describe('Cmd+K search', () => {
 
     await openSearchDialog(page);
 
-    const input = page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]');
+    const input = page.locator(searchInputLocator);
     await input.fill('alpha');
 
     const resultItem = page.locator(`[cmdk-item][data-value="${slug1}"]`);
@@ -172,6 +182,6 @@ test.describe('Cmd+K search', () => {
     await page.locator('text=搜索链接...').click();
 
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."]')).toBeVisible();
+    await expect(page.locator(searchInputLocator)).toBeVisible();
   });
 });
