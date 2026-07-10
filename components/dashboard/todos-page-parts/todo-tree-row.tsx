@@ -245,7 +245,7 @@ function TitleEditor({
         }
       }}
       onClick={(e) => e.stopPropagation()}
-      className="min-w-0 flex-1 rounded-sm border border-input bg-background px-1 py-0.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"
+      className="min-w-0 flex-1 rounded-sm border border-border bg-background px-1 py-0.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"
       data-todo-row-guard
     />
   );
