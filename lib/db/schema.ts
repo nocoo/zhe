@@ -1,3 +1,4 @@
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ============================================
@@ -183,6 +184,40 @@ export const ideaTags = sqliteTable("idea_tags", {
 }));
 
 // ============================================
+// Todos (docs/21-todos-feature.md)
+// ============================================
+
+export const todos = sqliteTable("todos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // Self-referential parent; null = root. Cast keeps Drizzle happy about the
+  // forward-reference to `todos` inside its own initializer.
+  parentId: integer("parent_id").references((): AnySQLiteColumn => todos.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  excerpt: text("excerpt"),
+  done: integer("done", { mode: "boolean" }).notNull().default(false),
+  doneAt: integer("done_at", { mode: "timestamp" }),
+  // v1 date-only: client resolves to local end-of-day UTC before write.
+  dueAt: integer("due_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// Free-form tag namespace scoped to a single todo; not joined to `tags`.
+// The name string is the natural PK (canonicalised to lowercase in the
+// application layer). Colour is derived client-side from the name; nothing
+// to persist here.
+export const todoTags = sqliteTable("todo_tags", {
+  todoId: integer("todo_id").notNull().references(() => todos.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+}, (table) => ({
+  compositePk: primaryKey({ columns: [table.todoId, table.name] }),
+}));
+
+// ============================================
 // Type exports
 // ============================================
 
@@ -219,3 +254,8 @@ export type Idea = typeof ideas.$inferSelect;
 export type NewIdea = typeof ideas.$inferInsert;
 
 export type IdeaTag = typeof ideaTags.$inferSelect;
+
+export type Todo = typeof todos.$inferSelect;
+export type NewTodo = typeof todos.$inferInsert;
+
+export type TodoTag = typeof todoTags.$inferSelect;
