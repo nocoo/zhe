@@ -16,6 +16,16 @@
 import { useCallback, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  useCoarsePointer,
+  useNarrowViewport,
+} from "@/hooks/use-media-query";
 import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
 import { TodoTreeShell } from "./todos-page-parts/todo-tree-shell";
 import { TodoDetailPane } from "./todos-page-parts/todo-detail-pane";
@@ -49,6 +59,8 @@ function countDescendants(
 export function TodosPage() {
   const vm = useTodosViewModel();
   const [createError, setCreateError] = useState<string | null>(null);
+  const narrow = useNarrowViewport();
+  const coarsePointer = useCoarsePointer();
 
   const onCreateRoot = useCallback(async () => {
     setCreateError(null);
@@ -131,7 +143,11 @@ export function TodosPage() {
 
       <div className="flex flex-1 min-h-0 gap-2 px-3 pb-3">
         <section
-          className="flex min-w-0 flex-1 flex-col rounded-md border border-border/60 bg-card"
+          className={
+            narrow
+              ? "flex min-w-0 flex-1 flex-col rounded-md border border-border/60 bg-card"
+              : "flex min-w-0 flex-1 flex-col rounded-md border border-border/60 bg-card"
+          }
           aria-label="Todos tree"
         >
           {vm.loading ? (
@@ -151,6 +167,7 @@ export function TodosPage() {
               onAddChild={onAddChild}
               onAddSibling={onAddSibling}
               onConfirmDelete={vm.confirmDelete}
+              disableDrag={coarsePointer}
             />
           )}
           <TodosFilterBar
@@ -167,18 +184,49 @@ export function TodosPage() {
           />
         </section>
 
-        <section
-          className="flex min-w-0 basis-2/5 flex-col rounded-md border border-border/60 bg-card"
-          aria-label="Selected todo detail"
-        >
-          <TodoDetailPane
-            key={vm.detail?.id ?? "empty"}
-            detail={vm.detail}
-            detailLoading={vm.detailLoading}
-            onUpdate={vm.handleUpdateTodo}
-          />
-        </section>
+        {narrow ? null : (
+          <section
+            className="flex min-w-0 basis-2/5 flex-col rounded-md border border-border/60 bg-card"
+            aria-label="Selected todo detail"
+          >
+            <TodoDetailPane
+              key={vm.detail?.id ?? "empty"}
+              detail={vm.detail}
+              detailLoading={vm.detailLoading}
+              onUpdate={vm.handleUpdateTodo}
+            />
+          </section>
+        )}
       </div>
+
+      {narrow ? (
+        <Sheet
+          open={vm.selectedId !== null}
+          onOpenChange={(open) => {
+            if (!open) vm.setSelectedId(null);
+          }}
+        >
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-xl p-0 flex flex-col"
+            data-todos-detail-sheet
+          >
+            <SheetHeader className="px-4 pt-4 pb-2">
+              <SheetTitle className="text-sm">
+                {vm.detail?.title ?? "Todo detail"}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <TodoDetailPane
+                key={vm.detail?.id ?? "empty"}
+                detail={vm.detail}
+                detailLoading={vm.detailLoading}
+                onUpdate={vm.handleUpdateTodo}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : null}
 
       <TodoDeleteConfirm
         open={vm.isDeleteConfirmOpen}

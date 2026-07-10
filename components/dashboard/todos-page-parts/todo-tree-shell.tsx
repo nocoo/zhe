@@ -30,6 +30,15 @@ export interface TodoTreeShellProps {
   onAddChild: (parentId: number) => void;
   onAddSibling: (siblingId: number, parentId: number | null) => void;
   onConfirmDelete: (node: TodoForestNode) => void;
+  /**
+   * When true, arborist's drag-and-drop is disabled entirely — used on
+   * touch pointers per docs/21-todos-feature.md so nesting/reorder gestures
+   * on unreliable inputs never fire an accidental server move; everything
+   * else (add, edit, check, delete, tag, due) still works.
+   */
+  disableDrag?: boolean;
+  /** Height of the tree viewport in px. Defaults to 640. */
+  height?: number;
 }
 
 export function TodoTreeShell({
@@ -42,6 +51,8 @@ export function TodoTreeShell({
   onAddChild,
   onAddSibling,
   onConfirmDelete,
+  disableDrag = false,
+  height = 640,
 }: TodoTreeShellProps) {
   const treeRef = useRef<TreeApi<TodoForestNode> | undefined>(undefined);
 
@@ -84,7 +95,7 @@ export function TodoTreeShell({
         rowHeight={30}
         indent={18}
         width="100%"
-        height={640}
+        height={height}
         openByDefault
         // arborist declares `selection?: string` without `undefined`;
         // spreading the prop conditionally satisfies exactOptionalPropertyTypes.
@@ -92,6 +103,11 @@ export function TodoTreeShell({
         // Multi-select interferes with tree-scoped selection semantics
         // (right-pane detail is single-todo); disable it for now.
         disableMultiSelection
+        // On touch pointers the docs disable arborist DnD entirely — the
+        // 3-dot menu (Add child / Add sibling) still lets users nest by
+        // choice, so no reparent affordance is lost.
+        disableDrag={disableDrag}
+        disableDrop={disableDrag}
         className="text-sm"
       >
         {RowRenderer}
