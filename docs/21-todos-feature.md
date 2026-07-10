@@ -1,6 +1,6 @@
 # TODO Feature
 
-> **Status**: Design (v1.3). Change Log at the bottom.
+> **Status**: Design (v1.4). Change Log at the bottom.
 
 ---
 
@@ -211,7 +211,9 @@ SELECT COALESCE(MAX(depth_below_moving), 0) AS moving_subtree_height FROM descen
 ### Data shapes
 
 ```ts
-/** Lightweight shape for tree rendering. No content, no excerpt. */
+/** Lightweight shape for tree rendering. No full content, but excerpt IS
+ *  included so global search can substring-match on notes without a
+ *  second round-trip (excerpt is capped at 200 chars at write time). */
 export interface TodoTreeNode {
   id: number;
   parentId: number | null;
@@ -219,6 +221,7 @@ export interface TodoTreeNode {
   title: string;
   done: boolean;
   hasContent: boolean;                                     // true when content !== null
+  excerpt: string | null;                                  // short (≤200 char) plaintext; drives Cmd+K
   tagNames: string[];                                      // canonicalised
   dueAt: Date | null;                                      // v1: due-date decoration on tree rows
   createdAt: Date;
@@ -228,12 +231,11 @@ export interface TodoTreeNode {
 /** Detail shape for the right-pane content view. */
 export interface TodoDetail extends TodoTreeNode {
   content: string | null;                                  // full Markdown
-  excerpt: string | null;
   doneAt: Date | null;
 }
 ```
 
-`hasContent` on the tree node lets the tree row render a "has notes" glyph without pulling the full Markdown for every visible row. `dueAt` lives on both shapes because the tree row displays the due chip inline.
+`hasContent` on the tree node lets the tree row render a "has notes" glyph without pulling the full Markdown for every visible row. `excerpt` is included on the lightweight shape (not the full content) so the Global Search dialog can match on `title + excerpt` without a second fetch; the excerpt is generated at write time by `generateExcerpt(content, 200)` and stored in `todos.excerpt`. `dueAt` lives on both shapes because the tree row displays the due chip inline.
 
 ---
 
@@ -649,6 +651,13 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 ---
 
 ## Change Log
+
+### v1.3 → v1.4 (2026-07-10 C14/C16 doc sync)
+
+Post-implementation drift cleanup, no contract change:
+
+- **`TodoTreeNode.excerpt`**: the lightweight tree shape now carries the short excerpt (≤200 chars) so the Global Search dialog can substring-match on notes without pulling full markdown. The doc's Data shapes snippet is updated to list `excerpt: string | null` on `TodoTreeNode` and drop it from `TodoDetail`'s inherit-plus block; `TodoDetail` now only adds `content` and `doneAt`. Rationale in the following paragraph.
+- **No other contract change** — Global Search already required `title + excerpt` under the "Global Search (Cmd+K)" section; this revision only aligns the shared shape snippet with what the codebase always needed.
 
 ### v1.2 → v1.3 (2026-07-10 round-4)
 

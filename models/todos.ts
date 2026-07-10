@@ -55,7 +55,7 @@ export function todoForestFromFlat(
 
 /** Options for `filterTodos`. All optional; missing = no filter for that axis. */
 export interface TodoFilterOptions {
-  /** Case-insensitive substring against title. */
+  /** Case-insensitive substring against title OR excerpt. */
   query?: string | undefined;
   /** Show completed todos. Default `true` — set `false` to hide `done`. */
   showDone?: boolean | undefined;
