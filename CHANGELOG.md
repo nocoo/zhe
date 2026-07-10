@@ -5,6 +5,117 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.20.0] - 2026-07-10
+
+### Added
+- Add todos to global search
+- Add 待办 to sidebar
+- Add narrow-viewport responsive fallback for todos
+- Add /dashboard/todos two-pane tree page
+- Add TodoTagChip and TodoDueChip primitives
+- Add todos slice to DashboardServiceProvider
+- Add useTodosViewModel and todos viewmodel parts
+- Add todo CRUD + move server actions
+- Add scoped todos with write-time cycle/depth guard on move
+- Add todo-tag-color and todo-due helpers
+- Add todos and todo_tags tables (migration 0021)
+
+### Changed
+- Sync search dialog placeholder after C14 rename
+- Add L2 tests for guarded todo move + cross-move race
+- Add L1 component tests for todos page
+- Add react-arborist
+- Eliminate Phase 2/3 crash gap via safe-tail position (v1.3)
+- Two-phase move + subtree-height guard + doc sweep (v1.2)
+- Fix move contract race + simplify due date to date-only (v1.1)
+- Revise design after v0 review
+- Draft todo feature design
+- Bump wrangler 4.107.1 → 4.110.0 in worker
+- Bump @eslint-react/eslint-plugin 5.12.1 → 5.13.2
+- Bump vite 8.1.3 → 8.1.4
+- Bump url-metadata 5.7.2 → 5.7.3
+- Bump lucide-react 1.23.0 → 1.24.0
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1083.0 → 3.1084.0
+- Bump @biomejs/biome 2.5.2 → 2.5.3 in cli
+- Bump vitest + @vitest/coverage-v8 4.1.8 → 4.1.10 in cli+worker
+- Bump @cloudflare/workers-types 5.20260706.1 → 5.20260708.1 in worker
+- Bump wrangler 4.107.0 → 4.107.1 in worker
+- Bump @eslint-react/eslint-plugin 5.11.2 → 5.12.1
+- Bump @types/node 26.1.0 → 26.1.1 (root + cli)
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1080.0 → 3.1083.0
+- Bump @cloudflare/workers-types 5.20260705.1 → 5.20260706.1 in worker
+- Bump typescript-eslint 8.62.1 → 8.63.0
+- Bump vitest + @vitest/coverage-v8 4.1.9 → 4.1.10
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1079.0 → 3.1080.0
+- Bump 13 @radix-ui/* packages (patch)
+- Add root .npmrc for supply chain security baseline
+- Bump url-metadata 5.7.0 → 5.7.2
+- Bump @eslint-react/eslint-plugin 5.10.4 → 5.11.2
+- Bump @cloudflare/workers-types 5.20260704.1 → 5.20260705.1 in worker
+- Bump @cloudflare/workers-types 5.20260703.1 -> 5.20260704.1 in worker
+- Bump @eslint-react/eslint-plugin 5.10.3 -> 5.10.4
+- Bump recharts 3.9.1 -> 3.9.2
+- Bump @cloudflare/workers-types 4 → 5 (worker/)
+- Bump @eslint-react/eslint-plugin 5.10.1 → 5.10.3
+- Prewarm dashboard routes in beforeAll to survive L3 contention
+- Split read path into actions/upload-read.ts
+- Assert page-owned upload-zone + heading after Uploads nav
+- Bump vite 8.1.2 -> 8.1.3
+- Bump picomatch 4.0.4 -> 4.0.5
+- Bump @eslint-react/eslint-plugin 5.10.0 -> 5.10.1
+- Bump wrangler 4.106.0 -> 4.107.0 in worker
+- Bump @cloudflare/workers-types 4.20260701.1 -> 4.20260702.1 in worker
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1078.0 -> 3.1079.0
+- Bump lucide-react 1.22.0 -> 1.23.0
+- Bump @types/node 26.0.1 -> 26.1.0
+- Bump next + @next/eslint-plugin-next 16.2.9 -> 16.2.10
+- Bump @cloudflare/workers-types 4.20260630.1 -> 4.20260701.1 in worker
+- Bump @biomejs/biome 2.5.1 -> 2.5.2 in cli
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1077.0 -> 3.1078.0
+- Upgrade dependencies (batch 2026-07-01)
+- Bump wrangler 4.105.0 -> 4.106.0 in worker
+- Bump vite 8.1.0 -> 8.1.2
+- Bump recharts ^3.9.0 -> ^3.9.1
+- Bump 14 @radix-ui/* packages to latest patch/minor
+- Bump @cloudflare/workers-types 4.20260629.1 -> 4.20260630.1 in worker
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1076.0 -> 3.1077.0
+- Bump @cloudflare/workers-types 4.20260628.1 -> 4.20260629.1 in worker
+- Bump url-metadata 5.6.1 -> 5.7.0
+- Bump typescript-eslint 8.62.0 -> 8.62.1
+- Bump brace-expansion 5.0.6 -> 5.0.7
+- Bump tailwindcss + @tailwindcss/postcss 4.3.1 -> 4.3.2
+- Bump @aws-sdk/{client-s3,s3-request-presigner} 3.1075.0 -> 3.1076.0
+- Bump @cloudflare/workers-types 4.20260626.1 -> 4.20260628.1 in worker
+- Bump @eslint-react/eslint-plugin 5.9.5 -> 5.10.0
+- Bump eslint-plugin-import-x 4.17.0 -> 4.17.1
+- Bump lucide-react 1.21.0 -> 1.22.0
+- Bump postcss 8.5.15 -> 8.5.16
+- Bump url-metadata 5.6.0 -> 5.6.1
+- Bump url-metadata 5.5.3 -> 5.6.0
+- Bump @cloudflare/workers-types 4.20260625.1 -> 4.20260626.1 in worker
+- Bump @eslint-react/eslint-plugin 5.9.3 -> 5.9.5
+- Bump eslint 10.5.0 -> 10.6.0
+- Bump wrangler 4.104.0 -> 4.105.0 in worker
+- Bump @cloudflare/workers-types 4.20260624.1 -> 4.20260625.1 in worker
+- Bump @eslint-react/eslint-plugin 5.9.2 -> 5.9.3
+- Bump url-metadata 5.5.2 -> 5.5.3
+- Bump @cloudflare/workers-types 4.20260623.1 -> 4.20260624.1 in worker
+- Bump @types/node 26.0.0 -> 26.0.1
+- Bump nanoid 5.1.15 -> 5.1.16
+- Bump wrangler 4.103.0 -> 4.104.0 in worker
+- Bump vite 8.0.16 -> 8.1.0
+- Bump url-metadata 5.5.0 -> 5.5.2
+- Bump recharts ^3.8.1 -> ^3.9.0
+- Bump @vitejs/plugin-react 6.0.2 -> 6.0.3
+- Bump @playwright/test 1.61.0 -> 1.61.1
+- Bump @cloudflare/workers-types 4.20260621.1 -> 4.20260623.1 in worker
+- Bump @biomejs/biome 2.5.0 -> 2.5.1 in cli
+- Bump @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner 3.1074.0 -> 3.1075.0
+
+### Fixed
+- Mock getUploads via @/actions/upload-read in viewmodel test
+- Commit-only waitForURL for /dashboard/uploads
+
 ## [v1.19.5] - 2026-06-23
 
 ### Changed
