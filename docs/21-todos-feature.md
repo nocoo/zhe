@@ -1,6 +1,6 @@
 # TODO Feature
 
-> **Status**: Design (v1.1). Change Log at the bottom.
+> **Status**: Design (v1.2). Change Log at the bottom.
 
 ---
 
@@ -55,7 +55,7 @@ Each todo has:
 3. **Minimum friction to edit**: The tree is the working surface. Rename in-place (Enter to confirm, Esc to cancel), edit content in the right pane, no modal round-trip for the common path.
 4. **Predictable movement**: Drag-and-drop between siblings, into a parent, out to root. Keyboard equivalents cover the same operations for accessibility.
 5. **Free-form tags, hash colour**: A tag is just a string; colour is computed deterministically from the tag string, not stored. Reflects 哥's "书签 tag 之外" ask — no cross-contamination with the curated `tags` table.
-6. **Atomic tree mutations**: Parent change, reorder, and rename land as a single database transaction so the client never observes torn state.
+6. **Guarded server mutations**: parent change, reorder, and rename go through write-time-guarded UPDATEs so the client never observes torn state; see [Move (contract)](#move-contract). Not a SQL transaction — D1 does not expose one.
 7. **Reversible done**: A checked todo remains visible (dimmed) under its parent; there is no auto-archive. Deletion is a separate destructive action.
 8. **Parallel to Ideas, not a subtype**: Todos and Ideas are independent tables, endpoints, ViewModels. No shared server logic beyond the standard scoping/auth pattern.
 
@@ -96,7 +96,7 @@ Key choices:
 - **Self-referential `parentId`** (adjacency list). Chosen over closure table / nested-set for CRUD simplicity; D1 workloads here are ≪ 10k rows per user, so the recursive-query cost is negligible.
 - **`position: integer`** — dense integer ordering within `(userId, parentId)`. Reorders rewrite affected siblings' positions in a single batch; this is simpler than the fractional-index approach and D1's `executeD1Batch` handles the batch atomically. Client-side "optimistic" reordering can use fractional index locally for the drag preview then reconcile after the server response.
 - **`done` + `doneAt`** — `doneAt` records when the flag flipped to `true`, cleared when it flips back. Enables "recently completed" and "completed this week" queries later without a separate history table.
-- **`dueAt`** — optional. Stored as **absolute UTC timestamp** (same encoding as every other timestamp column in the schema). Time is optional at the input layer: when the user picks a date-only value, we store the value at the user's local end-of-day converted to UTC so `dueAt < now()` never turns "due today" into "overdue" purely from a clock tick. Details in [Due Date](#due-date). Clearing = set `NULL`; index `idx_todos_user_due` supports the "upcoming" list.
+- **`dueAt`** — optional, **date-only in v1**. Stored as **absolute UTC timestamp** (same encoding as every other timestamp column in the schema); the client resolves a picked date to local end-of-day, converts to UTC, and sends that value. Overdue detection compares against `startOfToday(local)`, not `now()`, so the whole calendar day counts. Details in [Due Date](#due-date). Clearing = set `NULL`; index `idx_todos_user_due` supports the "upcoming" list. date-time precision deferred to v2 (see the v2 upgrade path at the bottom of the Due Date section).
 - **Cascade delete on parent**: deleting a parent hides the subtree in one operation. Confirmation must state the subtree count (see [UI Design](#ui-design)).
 - **No text FK to `users`** on `parentId` — one column, one column type, matches Ideas' relationship shape.
 
@@ -126,16 +126,18 @@ Adjacency list allows cycles if the API takes an unchecked `parentId`. Any mutat
 2. Reject if the moving row's id would appear in the target parent's ancestry chain (would create a cycle).
 3. Reject if the resulting depth would exceed `MAX_TODO_DEPTH = 12`.
 
-**Execution model** (v1.1 修订, Reviewer round-2 #1). D1 does not expose a JS-visible transaction, only fixed-SQL batches. A "preflight read + guarded batch write" is **not** sufficient for `moveTodo`: two concurrent moves can each preflight-validate against the old tree and both succeed, jointly producing a cycle (`A → 1 under 2`, `B → 2 under 1`; each `UPDATE ... WHERE user_id = ?` matches, and the tree ends up with 1↔2).
+**Execution model** (v1.2 修订, Reviewer round-2 #1 + round-3 #1). D1 does not expose a JS-visible transaction, only fixed-SQL batches. Two problems must be handled:
 
-The v1 fix moves the ancestry & depth check into the `UPDATE` itself, so it evaluates against the **committed database state at write time**, not the preflight snapshot:
+1. **Preflight-only is racy**: two concurrent moves can each preflight-validate against the old tree and both succeed, jointly producing a cycle (`A → 1 under 2`, `B → 2 under 1`; each `UPDATE ... WHERE user_id = ?` matches, and the tree ends up with 1↔2).
+2. **Depth cap must consider moving-subtree height**: even when the target parent's own depth is legal, moving a tall subtree under a moderately-deep parent can push descendants past `MAX_TODO_DEPTH`.
+
+Both are solved by moving the check into the `UPDATE` itself, evaluating against **committed database state at write time**. The v1.2 statement takes the moving-subtree height (`:movingSubtreeHeight`, computed by the server preflight in the same round-trip) as a parameter and rejects if `newParent depth + movingSubtreeHeight + 1 > MAX_TODO_DEPTH`:
 
 ```sql
--- moveTodo — parent update guarded by ancestry + depth at write time.
--- Preflight already resolved oldParent, newPosition, and the batch of
--- compact/insert UPDATEs for both sibling groups. This is the single
--- statement that carries the cycle guard; if it matches 0 rows the
--- server returns a conflict and the client refetches + retries.
+-- moveTodo — parent-update guarded by ancestry + depth (incl. moving subtree height) at write time.
+-- If RETURNING id is empty, the server surfaces a conflict and NO other write happens.
+-- Runs on its own via executeD1Query; the sibling-compact reconcile writes are a
+-- SEPARATE batch that only runs on success (see Move (contract)).
 WITH RECURSIVE ancestors(id, parent_id, depth) AS (
   SELECT id, parent_id, 1 FROM todos
    WHERE id = :newParentId AND user_id = :userId          -- 0 rows if newParent gone / wrong user
@@ -151,33 +153,51 @@ UPDATE todos
  WHERE id = :movingId
    AND user_id = :userId
    AND (
-     :newParentId IS NULL                                 -- moving to root: no ancestry needed
+     :newParentId IS NULL                                       -- moving to root
+     AND :movingSubtreeHeight + 1 <= :maxDepth                  -- subtree still fits below root
      OR (
-       EXISTS (SELECT 1 FROM ancestors WHERE id = :newParentId)  -- newParent exists (owned by user)
+       EXISTS (SELECT 1 FROM ancestors WHERE id = :newParentId) -- newParent exists (owned by user)
        AND NOT EXISTS (SELECT 1 FROM ancestors WHERE id = :movingId) -- would-be cycle blocked
-       AND (SELECT MAX(depth) FROM ancestors) < :maxDepth        -- depth cap on new subtree root
+       AND (
+         SELECT MAX(depth) FROM ancestors                       -- deepest ancestor row = newParent depth
+       ) + :movingSubtreeHeight + 1 <= :maxDepth                -- subtree still fits after move
      )
    )
  RETURNING id;
 ```
 
-If `RETURNING id` yields 0 rows, either the parent was deleted concurrently, the ownership check failed, a cycle would form, or the depth cap would be exceeded. In every case, the server surfaces `ActionResult.error = "Move conflicted or invalid"` and the client refetches the tree. The sibling-position compact UPDATEs run in the same `executeD1Batch` and each carry `WHERE user_id = ? AND parent_id = ?` so a stale sibling reference is a no-op rather than a corruption.
+If `RETURNING id` yields 0 rows, one of: (a) `movingId` gone or wrong user, (b) `newParentId` gone or wrong user, (c) placing the moving subtree here would form a cycle, or (d) resulting depth would exceed the cap. The server returns `ActionResult.error = "Move conflicted or invalid"` and the client refetches. **Nothing else has been written** at this point — sibling compact and `updatedAt` touches live in a separate batch that only runs after this UPDATE succeeds (see [Move (contract)](#move-contract)).
 
 **Preflight remains** (fast-fail, no round-trip on the hot path when the client already knows the answer): the client computes ancestry from its own tree copy and refuses to submit obviously-invalid moves. But preflight is **advisory only** — the write-time guard is authoritative.
 
-**What "atomic" means here**. The whole set of UPDATEs runs as one D1 batch; D1 guarantees batches are atomic (all-or-nothing) *for the writes it emits*, but D1 provides no read-check-write transaction. So the vocabulary throughout this document is:
+**`:movingSubtreeHeight` derivation** (server preflight, same round-trip as sibling-position lookup):
 
-- "batch" = the `executeD1Batch` set of statements, all-or-nothing.
+```sql
+WITH RECURSIVE descendants(id, depth_below_moving) AS (
+  SELECT id, 0 FROM todos WHERE id = :movingId AND user_id = :userId
+  UNION ALL
+  SELECT t.id, d.depth_below_moving + 1
+    FROM todos t JOIN descendants d ON t.parent_id = d.id
+   WHERE t.user_id = :userId AND d.depth_below_moving < :maxDepth
+)
+SELECT COALESCE(MAX(depth_below_moving), 0) AS moving_subtree_height FROM descendants;
+```
+
+**What "atomic" means here**. Individual `executeD1Batch` calls are atomic *for their own writes*, but D1 provides no read-check-write transaction, so the whole move is **not** one atomic unit. Vocabulary throughout this document:
+
+- "batch" = one `executeD1Batch` set of statements, all-or-nothing.
 - "write-time guard" = an SQL predicate on committed state evaluated at UPDATE time.
 - **Not** "transaction" — we do not have one in the SQL-transactional sense.
+- The move contract enforces safety by making the *guarded parent UPDATE* the only statement that can violate an invariant; every other write is a guarded no-op-on-conflict reconcile step.
 
 **Test coverage** (L1 unit + L2 integration):
 
 - Cross-move race: interleave two `moveTodo` calls that would each individually be legal on the preflight snapshot but jointly create a cycle. Assert exactly one succeeds; the other returns the conflict error; DB post-condition has no cycle.
 - Parent deleted mid-move: `newParent` disappears between preflight and the guarded UPDATE — `RETURNING id` is empty, error returned.
 - Depth-cap race: move a subtree such that the depth becomes 12 legally, then a second concurrent move would push depth to 13 — second UPDATE returns 0 rows.
+- **Moving-subtree height overflow**: move a 5-level-tall subtree under a parent at depth 8 (would total depth 13) — `RETURNING id` empty, error returned. Regression for the round-3 gap.
 - Cross-user ownership: `newParent` belongs to a different user — 0 rows, error.
-- Happy path: legal move → RETURNING yields id, sibling compact UPDATEs succeed, tree consistent.
+- Happy path: legal move → `RETURNING` yields id, sibling compact UPDATEs succeed, tree consistent.
 
 ### Data shapes
 
@@ -218,22 +238,41 @@ Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 | `getTodoById(id)` | Fetch a single todo detail with `content` + tags. |
 | `createTodo({title, parentId?, content?, tagNames?})` | Insert todo at end of siblings, atomic tag insert. Cycle & depth pre-check. |
 | `updateTodo(id, {title?, content?, done?, tagNames?})` | Content / metadata edits. Tags replace-all when provided. Touch `updatedAt`. Toggle `doneAt` on `done` change. |
-| `moveTodo(id, {parentId, position})` | Reparent + reorder. Runs cycle+depth guard, rewrites affected siblings' positions inside a transaction. |
+| `moveTodo(id, {parentId, position})` | Reparent + reorder. Two-phase write: guarded parent UPDATE (cycle + depth + ownership evaluated on committed state at write time) followed by a reconcile batch of guarded sibling-position and `updatedAt` UPDATEs. See [Move (contract)](#move-contract). |
 | `reorderSiblings(parentId, orderedIds[])` | Batch reorder within a single parent (used by DnD when only reordering, not reparenting). |
 | `deleteTodo(id)` | Cascade delete via FK. Returns the count of removed rows. |
 
 ### Move (contract)
 
-`moveTodo` is the highest-risk operation. v1 contract (per the [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce) execution model — **write-time guard**, not read-check-write transaction):
+`moveTodo` is the highest-risk operation. v1 contract — **two-phase write with write-time ancestry+depth guard** (v1.2 修订, Reviewer round-3 #1). Explicitly **not** one atomic transaction across the whole move: D1 has no such thing, and the previous "single batch, harmless drift on failure" was wrong.
 
-1. **Client-side preflight** (advisory, non-authoritative): the client walks its local tree copy and refuses to submit trivially-invalid moves (`parentId == id`, obvious cycle, depth would clearly exceed cap). Purpose: instant UI feedback, saves round-trips on obviously bad drags. **Cannot** be relied on for correctness.
-2. **Server-side preflight** (`SELECT` in one round-trip): resolve `oldParent`, load both sibling groups' current positions (needed to construct the compact/insert UPDATE list).
-3. **Guarded parent-update UPDATE**: use the `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS ... RETURNING id` statement shown in [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce). If `RETURNING id` is empty, return `ActionResult.error = "Move conflicted or invalid"` and the client refetches. Do **not** run the sibling-compact UPDATEs when the parent update fails.
-4. **Sibling-compact batch** (only when step 3 succeeded): open a slot in `newParent`'s siblings at `newPosition`, fill the hole in `oldParent`'s siblings, all `WHERE user_id = ? AND parent_id = ?`-guarded so a stale sibling is a no-op. Same `executeD1Batch` as step 3? See note below.
-5. **`updatedAt` touches**: moving row (already updated in step 3), old parent (skip if `null`), new parent (skip if `null`); dedupe so the same row is not touched twice when both parents are identical.
-6. **Return the affected slice**: moving node in its new position + both parents' post-move sibling orders, so the client can rebuild without a full refetch.
+**Phase 0 — client-side preflight** (advisory only, non-authoritative)
+- Client walks its local tree copy and refuses to submit trivially-invalid moves (`parentId == id`, obvious cycle, obvious depth violation).
+- Purpose: instant UI feedback + saves round-trips on obvious drags. **Cannot** be relied on for correctness.
 
-**Batch composition note**: steps 3 + 4 + 5 SHOULD go into a single `executeD1Batch` so D1 executes them atomically (all-or-nothing at the batch level). The parent-update's `RETURNING id` result is inspected in application code after the batch resolves; if empty, the server returns the conflict error and D1's batch has already applied whatever sibling compact / updatedAt statements ran (which is harmless because they were guarded and consistent with the pre-move state — the client refetch resolves any minor drift). This is acceptable because the alternative (two round-trips) opens a wider race window.
+**Phase 1 — server-side preflight** (single `SELECT`, no writes)
+- One recursive-CTE round-trip returns: `movingRow` (assert exists + user_id), `oldParent`, `oldSiblingPositions`, `newSiblingPositions`, and the **height of the moving subtree** `movingSubtreeHeight = MAX(depth-below-moving)`. Height is required because a tall subtree can push descendants past `MAX_TODO_DEPTH` even when the target parent's own depth is legal.
+- Application-code fast-fail on: self-parent, obviously wrong ownership, `newParentDepth + 1 + movingSubtreeHeight > MAX_TODO_DEPTH`. This is defence-in-depth; Phase 2 re-checks against committed state.
+
+**Phase 2 — guarded parent UPDATE** (single statement, its own `executeD1Query`)
+- Runs the `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(movingId in newAncestors) AND MAX(depth) < :maxDepth RETURNING id` from [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce). The guard is authoritative on committed state, so it wins the race that broke v1.
+- If `RETURNING id` is **empty**: server returns `ActionResult.error = "Move conflicted or invalid"` and the client refetches. **No sibling compact, no `updatedAt` touches, no returned slice.** Nothing else has been written; there is no drift to reconcile.
+
+**Phase 3 — reconcile writes** (only reached when Phase 2 succeeded, single `executeD1Batch`)
+- Sibling compact: fill the hole in `oldParent`'s siblings, open the slot in `newParent`'s siblings. All `WHERE user_id = ? AND parent_id = ?`-guarded so a stale sibling reference is a no-op.
+- `updatedAt` touches: `oldParent` (skip if `null`), `newParent` (skip if `null`); dedupe when old == new. The moving row's `updatedAt` was already set in Phase 2.
+- All statements batch together; D1 gives us atomic-per-batch semantics for the reconcile phase.
+
+**Phase 4 — return the affected slice** (single `SELECT`)
+- Returns moving node + both parents' post-move sibling orders, so the client rebuilds without a full refetch.
+
+**What this is and is not**:
+
+- ✅ Phase 2 is authoritative on cycles / depth / ownership at commit time.
+- ✅ On Phase 2 failure, no writes happen and there is nothing to undo.
+- ✅ Phase 3's batch is atomic for the reconcile writes.
+- ❌ Phases 2 + 3 are **not** one SQL transaction. A crash between phases leaves the tree in a self-consistent state that a refetch will resolve; there is no state a crash can produce that Phase 2's guard would not have allowed.
+- ❌ We deliberately do not use the single-batch "run everything, inspect RETURNING later" pattern from earlier drafts because it would allow sibling positions or parent `updatedAt` to drift on a conflicted move.
 
 Reviewer-locked semantics (see [Design Decisions](#design-decisions-summary)): `updatedAt` touches only the moving row + old parent + new parent — **not the whole subtree**. Skip when parent is `null`; dedupe when old == new.
 
@@ -435,7 +474,7 @@ Interactions:
 - Selection follows tree; empty state when no selection.
 - Two states: **View** (react-markdown, same renderer as Ideas) and **Edit** (textarea; save on blur; Cmd+S to force-save). Toggle via button; auto-switches to Edit on double-click of the render area.
 - Tag row above the content: chips using `todoTagColor()`; the last chip is a `+ Add tag` input that autocompletes against the user's existing todo tags. Enter creates the tag if absent.
-- **Due row** above the tag row: shows the due chip in large form + an inline date/time picker; a "Clear" button removes the due date (see [Due Date](#due-date) for input/output semantics).
+- **Due row** above the tag row: shows the due chip in large form + a calendar date picker; a "Clear" button removes the due date (see [Due Date](#due-date) for input/output semantics). v1 does not expose a time-of-day input.
 - Metadata footer: created / updated timestamps, "Move to…" button (opens a searchable target-parent picker for keyboard flows).
 
 ### Global Search (Cmd+K)
@@ -595,6 +634,14 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 
 ## Change Log
 
+### v1.1 → v1.2 (2026-07-10 round-3)
+
+Reviewer round-3 blockers merged:
+
+- **Move contract split into explicit two-phase write**: v1.1 said "step 3/4/5 SHOULD go into a single `executeD1Batch` … application code inspects RETURNING after batch resolves … harmless drift". That was wrong — on a conflicted move it would leave sibling positions and parent `updatedAt` drifted with no user action. v1.2 splits [Move (contract)](#move-contract) into four phases: Phase 0 client preflight (advisory), Phase 1 server preflight `SELECT` (also computes moving-subtree height), Phase 2 guarded parent UPDATE via `executeD1Query` — **on empty RETURNING, no reconcile writes happen**, Phase 3 reconcile batch (sibling compact + parent `updatedAt`), Phase 4 affected-slice select. Document explicitly notes phases 2+3 are not one SQL transaction; a crash between them leaves a self-consistent state.
+- **Depth cap considers moving-subtree height**: v1.1 guard checked only `newParent`'s own depth. A tall moving subtree could push descendants past `MAX_TODO_DEPTH`. v1.2 adds a `:movingSubtreeHeight` parameter (computed by Phase 1's descendant recursive CTE) and updates the write-time guard to reject when `newParentDepth + 1 + movingSubtreeHeight > MAX_TODO_DEPTH`. Test set gains "moving-subtree height overflow" regression.
+- **Vocabulary sweep across the doc**: cleaned the last residual "single database transaction" (Design Principles), "inside a transaction" (ScopedDB table), "moveTodo transaction" (Quality Gates was already fixed), "inline date/time picker" (Right pane detail), and the `dueAt < now()` / "time is optional at input layer" wording under Data Model. Change Log v0→v1 entry now flags the incorrect race-tolerance argument as superseded so no reader treats it as authoritative.
+
 ### v1 → v1.1 (2026-07-10 round-2)
 
 Reviewer round-2 blockers merged:
@@ -610,7 +657,7 @@ Merged 哥 追加需求 + Reviewer round-1 blockers:
 - **New requirement — Due date**: added `dueAt: timestamp | null`, entire [Due Date](#due-date) section, tree-row chip + right-pane picker, chip formatter contract + tests.
 - **Reviewer #1 due-date coverage**: locked input semantics (date-only → local end-of-day UTC), display rules for `overdue/today/tomorrow/soon/later/done-with-due/no-due`, filter facet, sort deferral to v2.
 - **Reviewer #2 server-action pattern**: rewrote the [Server Actions](#server-actions) section to match `actions/ideas.ts` reality (`getAuthContext()` + `ActionResult<T>` + hand-written validation); removed the `withScopedDb` / colocated Zod claims.
-- **Reviewer #3 move contract**: replaced "cycle checks inside transaction" with the honest "preflight recursive-CTE read → application-code check → guarded batch write" model. Added the concrete recursive CTE, race-tolerance argument, and the invariant test coverage requirement.
+- **Reviewer #3 move contract**: replaced "cycle checks inside transaction" with a preflight-CTE-read + application-check + guarded batch model, plus a race-tolerance argument, plus the invariant test coverage requirement. **⚠️ Superseded by v1.1 → the race-tolerance argument was wrong; see the v1 → v1.1 change log entry above and [Move (contract)](#move-contract) for the authoritative model.**
 - **Reviewer #4 delete + undo conflict**: removed the "Backspace → delete with 3s undo toast" affordance. v1 delete is menu → confirm dialog (with subtree count) only; no undo. Rewrote the Backspace row to describe the "cancel unnamed row" case it actually handles.
 - **Reviewer #5 test paths**: v1 L2 test target is `tests/integration/todos.test.ts` via server-action harness. `tests/api/todos.*.test.ts` (REST-level) deferred to v2 alongside the REST endpoints themselves. C14 renamed accordingly.
 - **Open questions closed** (each moved into [Design Decisions](#design-decisions-summary)):
