@@ -84,8 +84,10 @@ const mockService: DashboardService = {
   tags: [],
   linkTags: [],
   ideas: [],
+  todos: [],
   loading: false,
   ideasLoading: false,
+  todosLoading: false,
   siteUrl: 'https://zhe.sh',
   handleLinkCreated: vi.fn(),
   handleLinkDeleted: vi.fn(),
@@ -104,6 +106,11 @@ const mockService: DashboardService = {
   handleIdeaCreated: vi.fn(),
   handleIdeaDeleted: vi.fn(),
   handleIdeaUpdated: vi.fn(),
+  ensureTodosLoaded: vi.fn().mockResolvedValue(undefined),
+  refreshTodos: vi.fn().mockResolvedValue(undefined),
+  handleTodoCreated: vi.fn(),
+  handleTodoDeleted: vi.fn(),
+  handleTodoUpdated: vi.fn(),
 };
 
 vi.mock('@/contexts/dashboard-service', () => ({

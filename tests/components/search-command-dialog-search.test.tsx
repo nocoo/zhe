@@ -30,13 +30,16 @@ const mockState: DashboardState = {
   tags: [],
   linkTags: [],
   ideas: [],
+  todos: [],
   loading: false,
   ideasLoading: false,
+  todosLoading: false,
   siteUrl: "https://zhe.to",
 };
 
 const mockActions = {
   ensureIdeasLoaded: vi.fn(),
+  ensureTodosLoaded: vi.fn(),
 };
 
 vi.mock("@/contexts/dashboard-service", () => ({

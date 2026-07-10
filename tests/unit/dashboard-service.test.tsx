@@ -19,10 +19,15 @@ vi.mock("@/actions/ideas", () => ({
   getIdeas: vi.fn(),
 }));
 
+vi.mock("@/actions/todos", () => ({
+  getTodos: vi.fn().mockResolvedValue({ success: true, data: [] }),
+}));
+
 import { getDashboardData } from "@/actions/dashboard";
 import { getLinks } from "@/actions/links";
-// getIdeas is mocked above and used by DashboardServiceProvider internally
+// getIdeas / getTodos are mocked above and used by DashboardServiceProvider
 import "@/actions/ideas";
+import "@/actions/todos";
 import {
   DashboardServiceProvider,
   useDashboardService,

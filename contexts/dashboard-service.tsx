@@ -6,9 +6,10 @@ import {
   useMemo,
 } from "react";
 import type { Link, Folder, Tag, LinkTag } from "@/models/types";
-import type { IdeaListItem } from "@/lib/db/scoped";
+import type { IdeaListItem, TodoTreeNode } from "@/lib/db/scoped";
 import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
 import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
+import { useTodosSlice } from "./dashboard-service-parts/useTodosSlice";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -23,10 +24,14 @@ export interface DashboardState {
   linkTags: LinkTag[];
   /** All ideas for the current user (list shape, no full content) */
   ideas: IdeaListItem[];
+  /** All todos for the current user (flat tree shape, lazy-loaded) */
+  todos: TodoTreeNode[];
   /** True while the initial links fetch is in progress */
   loading: boolean;
   /** True while ideas are being fetched (lazy-loaded) */
   ideasLoading: boolean;
+  /** True while todos are being fetched (lazy-loaded) */
+  todosLoading: boolean;
   /** Site origin for building short URLs */
   siteUrl: string;
 }
@@ -64,6 +69,15 @@ export interface DashboardActions {
   handleIdeaCreated: (idea: IdeaListItem) => void;
   handleIdeaDeleted: (id: number) => void;
   handleIdeaUpdated: (idea: IdeaListItem) => void;
+
+  // Todos — lazy-loaded and memory sync
+  /** Lazy-load todos on first access (for global search, etc.) */
+  ensureTodosLoaded: () => Promise<void>;
+  /** Re-fetch all todos from the server */
+  refreshTodos: () => Promise<void>;
+  handleTodoCreated: (todo: TodoTreeNode) => void;
+  handleTodoDeleted: (id: number) => void;
+  handleTodoUpdated: (todo: TodoTreeNode) => void;
 }
 
 // ── Combined interface (backward-compatible) ──
@@ -89,6 +103,7 @@ export function DashboardServiceProvider({
 }: DashboardServiceProviderProps) {
   const core = useDashboardCore(initialFolders);
   const ideasSlice = useIdeasSlice();
+  const todosSlice = useTodosSlice();
   const siteUrl =
     typeof window !== "undefined" ? window.location.origin : "";
 
@@ -100,8 +115,10 @@ export function DashboardServiceProvider({
       tags: core.tags,
       linkTags: core.linkTags,
       ideas: ideasSlice.ideas,
+      todos: todosSlice.todos,
       loading: core.loading,
       ideasLoading: ideasSlice.ideasLoading,
+      todosLoading: todosSlice.todosLoading,
       siteUrl,
     }),
     [
@@ -112,6 +129,8 @@ export function DashboardServiceProvider({
       core.loading,
       ideasSlice.ideas,
       ideasSlice.ideasLoading,
+      todosSlice.todos,
+      todosSlice.todosLoading,
       siteUrl,
     ],
   );
@@ -136,8 +155,13 @@ export function DashboardServiceProvider({
       handleIdeaCreated: ideasSlice.handleIdeaCreated,
       handleIdeaDeleted: ideasSlice.handleIdeaDeleted,
       handleIdeaUpdated: ideasSlice.handleIdeaUpdated,
+      ensureTodosLoaded: todosSlice.ensureTodosLoaded,
+      refreshTodos: todosSlice.refreshTodos,
+      handleTodoCreated: todosSlice.handleTodoCreated,
+      handleTodoDeleted: todosSlice.handleTodoDeleted,
+      handleTodoUpdated: todosSlice.handleTodoUpdated,
     }),
-    [core, ideasSlice],
+    [core, ideasSlice, todosSlice],
   );
 
   return (
