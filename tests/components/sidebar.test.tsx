@@ -164,7 +164,7 @@ describe('Sidebar', () => {
 
       // All items (2 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(11);
+      expect(navLinks.length).toBe(12);
     });
 
     it('does not show version badge in collapsed mode', () => {
@@ -462,7 +462,7 @@ describe('Sidebar', () => {
 
       // All items are links: 2 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 13
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(13);
+      expect(navLinks.length).toBe(14);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -661,7 +661,7 @@ describe('Sidebar', () => {
 
       // 2 概览 (overview+ideas) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 11
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(11);
+      expect(navLinks.length).toBe(12);
     });
   });
 

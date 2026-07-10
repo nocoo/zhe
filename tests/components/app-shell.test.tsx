@@ -322,7 +322,7 @@ describe('AppShell', () => {
 
       // In collapsed mode, all items are links: 2 概览 section + 2 folder nav + 1 dynamic + 7 static = 12
       const navLinks = container.querySelectorAll('nav a');
-      expect(navLinks.length).toBe(12);
+      expect(navLinks.length).toBe(13);
     });
 
     it('passes folders to mobile sidebar when open', async () => {

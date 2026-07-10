@@ -7,6 +7,7 @@ import {
   Inbox,
   FileUp,
   CloudUpload,
+  ListTodo,
   Radar,
   HardDrive,
   Database,
@@ -54,6 +55,7 @@ export const PRE_LINK_NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
       { title: "想法", icon: Lightbulb, href: "/dashboard/ideas" },
+      { title: "待办", icon: ListTodo, href: "/dashboard/todos" },
     ],
   },
 ];
