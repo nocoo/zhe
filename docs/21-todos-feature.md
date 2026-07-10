@@ -1,6 +1,6 @@
 # TODO Feature
 
-> **Status**: Design (v1.2). Change Log at the bottom.
+> **Status**: Design (v1.3). Change Log at the bottom.
 
 ---
 
@@ -148,7 +148,16 @@ WITH RECURSIVE ancestors(id, parent_id, depth) AS (
 )
 UPDATE todos
    SET parent_id = :newParentId,
-       position  = :newPosition,
+       -- Park at the *tail* of the target parent's siblings so we never
+       -- collide with an existing position. Phase 3 relocates to :newPosition
+       -- inside the same reconcile batch. A crash between phases leaves the
+       -- moving row at the tail, valid dense order preserved for the target
+       -- parent; only the old parent has a one-slot gap.
+       position   = COALESCE(
+         (SELECT MAX(position) FROM todos
+           WHERE user_id = :userId AND parent_id IS :newParentId),
+         -1
+       ) + 1,
        updated_at = :now
  WHERE id = :movingId
    AND user_id = :userId
@@ -254,12 +263,15 @@ Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 - One recursive-CTE round-trip returns: `movingRow` (assert exists + user_id), `oldParent`, `oldSiblingPositions`, `newSiblingPositions`, and the **height of the moving subtree** `movingSubtreeHeight = MAX(depth-below-moving)`. Height is required because a tall subtree can push descendants past `MAX_TODO_DEPTH` even when the target parent's own depth is legal.
 - Application-code fast-fail on: self-parent, obviously wrong ownership, `newParentDepth + 1 + movingSubtreeHeight > MAX_TODO_DEPTH`. This is defence-in-depth; Phase 2 re-checks against committed state.
 
-**Phase 2 — guarded parent UPDATE** (single statement, its own `executeD1Query`)
-- Runs the `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(movingId in newAncestors) AND MAX(depth) < :maxDepth RETURNING id` from [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce). The guard is authoritative on committed state, so it wins the race that broke v1.
+**Phase 2 — guarded parent UPDATE + safe-tail position** (single statement, its own `executeD1Query`)
+- Runs the `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(movingId in newAncestors) AND MAX(depth) + :movingSubtreeHeight + 1 <= :maxDepth RETURNING id` from [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce). The guard is authoritative on committed state, so it wins the race that broke v1.
+- **The `position` value written in Phase 2 is NOT `:newPosition`**. It is `:tailPosition`, a value known to not collide with any existing sibling of the target parent — specifically `(SELECT COALESCE(MAX(position), -1) + 1 FROM todos WHERE user_id = :userId AND parent_id IS :newParentId)`, computed inline in the same UPDATE. This guarantees the moving row lands at the end of the target parent's sibling list without duplicating any existing `position`. Phase 3 will slot it into `:newPosition` when it also compacts the surrounding siblings.
 - If `RETURNING id` is **empty**: server returns `ActionResult.error = "Move conflicted or invalid"` and the client refetches. **No sibling compact, no `updatedAt` touches, no returned slice.** Nothing else has been written; there is no drift to reconcile.
 
 **Phase 3 — reconcile writes** (only reached when Phase 2 succeeded, single `executeD1Batch`)
-- Sibling compact: fill the hole in `oldParent`'s siblings, open the slot in `newParent`'s siblings. All `WHERE user_id = ? AND parent_id = ?`-guarded so a stale sibling reference is a no-op.
+- Old-parent siblings: fill the hole left by the moving row (`WHERE user_id = ? AND parent_id = :oldParent AND position > :oldPosition → position - 1`).
+- New-parent siblings: open the slot at `:newPosition` (`WHERE user_id = ? AND parent_id = :newParentId AND id != :movingId AND position >= :newPosition → position + 1`). Guarding on `id != :movingId` protects against the safe-tail row being shifted by its own open-slot update.
+- Moving row: `UPDATE todos SET position = :newPosition WHERE id = :movingId AND user_id = ? AND parent_id = :newParentId AND position = :tailPositionFromPhase2`. The final `position = :tailPositionFromPhase2` predicate ensures the row we relocate is the one Phase 2 just parked — if a concurrent operation has touched it, this UPDATE is a no-op and the client refetches.
 - `updatedAt` touches: `oldParent` (skip if `null`), `newParent` (skip if `null`); dedupe when old == new. The moving row's `updatedAt` was already set in Phase 2.
 - All statements batch together; D1 gives us atomic-per-batch semantics for the reconcile phase.
 
@@ -271,7 +283,11 @@ Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 - ✅ Phase 2 is authoritative on cycles / depth / ownership at commit time.
 - ✅ On Phase 2 failure, no writes happen and there is nothing to undo.
 - ✅ Phase 3's batch is atomic for the reconcile writes.
-- ❌ Phases 2 + 3 are **not** one SQL transaction. A crash between phases leaves the tree in a self-consistent state that a refetch will resolve; there is no state a crash can produce that Phase 2's guard would not have allowed.
+- ❌ Phases 2 + 3 are **not** one SQL transaction. But because Phase 2 parks the moving row at a **safe tail position** in the target parent, a crash between phases leaves:
+  - the target parent with the moving row appended at its tail (valid dense ordering — no duplicated `position`),
+  - the old parent with a one-slot hole in its dense ordering (invariant *briefly* violated by exactly one gap on one parent),
+  - no cycles and no depth-cap violations.
+  The next `moveTodo` targeting either affected parent will re-establish density through its own Phase 3 open-slot / hole-fill UPDATEs. Even if no such move occurs, the tree is fully functional — sorting is unaffected because SQL uses `ORDER BY position` and gaps do not disrupt order, only compactness. If we later want an eager reconcile, add a "compact-siblings" opportunistic pass to `getTodos()` — noted as v2 optional; **not** shipped in v1.
 - ❌ We deliberately do not use the single-batch "run everything, inspect RETURNING later" pattern from earlier drafts because it would allow sibling positions or parent `updatedAt` to drift on a conflicted move.
 
 Reviewer-locked semantics (see [Design Decisions](#design-decisions-summary)): `updatedAt` touches only the moving row + old parent + new parent — **not the whole subtree**. Skip when parent is `null`; dedupe when old == new.
@@ -515,7 +531,7 @@ Not in v1 scope. When added, mirror `/api/v1/ideas` endpoints:
 - `POST /api/v1/todos` — create.
 - `GET /api/v1/todos/[id]` — detail.
 - `PATCH /api/v1/todos/[id]` — update.
-- `POST /api/v1/todos/[id]/move` — reparent + reorder (dedicated endpoint so the action stays atomic even when only one field changes).
+- `POST /api/v1/todos/[id]/move` — reparent + reorder (dedicated endpoint so move validation and reorder stay one guarded operation even when only one field changes).
 - `DELETE /api/v1/todos/[id]` — cascade delete.
 
 New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygiene story as ideas (tag resolution requires no cross-scope, unlike ideas' `tags:read` because todo tags are text-only).
@@ -534,7 +550,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 2. Drizzle schema entries + typescript types.
 3. `lib/todo-tag-color.ts` (FNV-1a + `todoTagColor()` helper).
 4. `lib/todo-due.ts` (`dueStatus()` chip formatter + tests — see [Due Date](#due-date)).
-5. `lib/db/scoped/todos.ts` with cycle/depth guards and atomic `moveTodo`.
+5. `lib/db/scoped/todos.ts` with write-time cycle/depth guard and two-phase `moveTodo` reconcile.
 6. `actions/todos.ts` (server actions).
 
 ### Phase 2: Dashboard UI
@@ -551,7 +567,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 
 14. L1 unit tests: cycle guard, depth guard, cross-move race + parent-deleted-mid-move (write-time guard invariants), tag colour determinism, `dueStatus` formatter (all 7 states + DST + year-drop), excerpt generator wiring.
 15. L1 component tests: tree keyboard flows, tag chip behaviour, done-state visuals, due chip end-to-end, delete-confirm dialog subtree count.
-16. L2 integration for the `moveTodo` transaction (server-action level via `tests/integration/todos.test.ts`). REST endpoint tests belong to the v2 API commit set; v1 does not expose `/api/v1/todos` so `tests/api/todos.*.test.ts` is out of scope here.
+16. L2 integration for the guarded `moveTodo` two-phase write + cross-move race (server-action level via `tests/integration/todos.test.ts`). REST endpoint tests belong to the v2 API commit set; v1 does not expose `/api/v1/todos` so `tests/api/todos.*.test.ts` is out of scope here.
 
 ## Atomic Commits
 
@@ -584,7 +600,7 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 |-------|-------|------|
 | L1 | Unit tests: cycle guard (incl. cross-move race), tag colour, excerpt, tree ViewModel | pre-commit |
 | L1 | Component tests: tree keyboard, drag callback, right-pane switch, tag input | pre-commit |
-| L2 | Server-action E2E: create/move/delete atomicity | pre-push |
+| L2 | Server-action invariants: create, guarded two-phase move + cross-move race, cascade delete | pre-push |
 | L3 | Playwright: create root → add child → drag reorder → check → delete | on-demand |
 | G1 | TypeScript + ESLint strict, react-arborist typing surface exercised | pre-commit |
 | G2 | gitleaks + osv-scanner (react-arborist advisory scan) | pre-commit + pre-push |
@@ -633,6 +649,13 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 ---
 
 ## Change Log
+
+### v1.2 → v1.3 (2026-07-10 round-4)
+
+Reviewer round-4 blocker + cosmetic residue merged:
+
+- **Phase 2/3 crash gap eliminated with safe-tail position**: v1.2 wrote the moving row's `position = :newPosition` in Phase 2 and then compacted siblings in Phase 3. A crash between the two phases could leave the target parent with two rows at the same `position` (duplicate) and the old parent with a hole (violates dense ordering). v1.3 changes Phase 2 to write `position = COALESCE(MAX(position) FROM target siblings, -1) + 1` — the "safe tail" position that is guaranteed to be unique among the target parent's current children. Phase 3 then moves the row from its tail slot to `:newPosition` via a `UPDATE ... WHERE position = :tailPositionFromPhase2` (self-guarded), while opening the target slot and closing the old-parent hole. Crash-between-phases outcome is now documented honestly: target parent stays dense (moving row at tail), old parent has a one-slot gap, no duplicate positions anywhere, no cycles, no depth violations; next move on either parent re-establishes density. `getTodos()` sorts by `ORDER BY position` so gaps are visually irrelevant.
+- **Vocabulary residue cleanup**: fixed the last stragglers — the API v2 move endpoint description said "action stays atomic", the Phase 1 ScopedDB table said "atomic `moveTodo`", the L2 QG row said "create/move/delete atomicity", the Phase 3 tests list said "`moveTodo` transaction". All rewritten as "guarded two-phase move" / "server-action invariants" / "guarded operation".
 
 ### v1.1 → v1.2 (2026-07-10 round-3)
 
