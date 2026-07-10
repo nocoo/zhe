@@ -1,6 +1,6 @@
 # TODO Feature
 
-> **Status**: Design (v1). v0 review notes and v1 amendments captured in the Change Log at the bottom.
+> **Status**: Design (v1.1). Change Log at the bottom.
 
 ---
 
@@ -123,31 +123,61 @@ export const todoTags = sqliteTable("todo_tags", {
 Adjacency list allows cycles if the API takes an unchecked `parentId`. Any mutation that sets `parentId` must:
 
 1. Reject if `parentId == id`.
-2. Walk `parentId → parent.parentId → …` and reject if `id` appears in the ancestry chain.
-3. Reject depth > `MAX_TODO_DEPTH = 12` (12 levels is more than enough for a task tree; a hard cap prevents accidental unbounded UI).
+2. Reject if the moving row's id would appear in the target parent's ancestry chain (would create a cycle).
+3. Reject if the resulting depth would exceed `MAX_TODO_DEPTH = 12`.
 
-**Execution model** (v1 修订，Reviewer 反馈 #3): D1 does not expose a JS-visible transaction handle that can read a row and then decide what to write. The batch API is fixed-SQL only. So the guards are implemented as **preflight read + guarded batch write**:
+**Execution model** (v1.1 修订, Reviewer round-2 #1). D1 does not expose a JS-visible transaction, only fixed-SQL batches. A "preflight read + guarded batch write" is **not** sufficient for `moveTodo`: two concurrent moves can each preflight-validate against the old tree and both succeed, jointly producing a cycle (`A → 1 under 2`, `B → 2 under 1`; each `UPDATE ... WHERE user_id = ?` matches, and the tree ends up with 1↔2).
 
-1. **Preflight** (in one `SELECT`): fetch the moving row (assert ownership + presence), the target parent's ancestry (assert ownership + build the ancestor set), and the moving row's current parent + sibling positions (needed for the compact step). Depth is computed from the ancestor chain length + 1.
-2. **Reject in application code** if any invariant fails (self-parent, cycle, depth > cap, cross-user).
-3. **Batch write**: all `UPDATE` statements go into a single `executeD1Batch`. Every `UPDATE` includes redundant guards inline (`WHERE id = ? AND user_id = ?` + `parent_id = ?` on the compact step) so a concurrent move that races between preflight and batch cannot corrupt state — the guarded update simply matches zero rows and the client refetches on next tick.
-
-The v1 preflight query uses a **recursive CTE** to walk ancestry in one round-trip:
+The v1 fix moves the ancestry & depth check into the `UPDATE` itself, so it evaluates against the **committed database state at write time**, not the preflight snapshot:
 
 ```sql
+-- moveTodo — parent update guarded by ancestry + depth at write time.
+-- Preflight already resolved oldParent, newPosition, and the batch of
+-- compact/insert UPDATEs for both sibling groups. This is the single
+-- statement that carries the cycle guard; if it matches 0 rows the
+-- server returns a conflict and the client refetches + retries.
 WITH RECURSIVE ancestors(id, parent_id, depth) AS (
-  SELECT id, parent_id, 0 FROM todos WHERE id = ? AND user_id = ?
+  SELECT id, parent_id, 1 FROM todos
+   WHERE id = :newParentId AND user_id = :userId          -- 0 rows if newParent gone / wrong user
   UNION ALL
   SELECT t.id, t.parent_id, a.depth + 1
     FROM todos t JOIN ancestors a ON t.id = a.parent_id
-   WHERE t.user_id = ? AND a.depth < ?  -- MAX_TODO_DEPTH
+   WHERE t.user_id = :userId AND a.depth < :maxDepth
 )
-SELECT id, depth FROM ancestors;
+UPDATE todos
+   SET parent_id = :newParentId,
+       position  = :newPosition,
+       updated_at = :now
+ WHERE id = :movingId
+   AND user_id = :userId
+   AND (
+     :newParentId IS NULL                                 -- moving to root: no ancestry needed
+     OR (
+       EXISTS (SELECT 1 FROM ancestors WHERE id = :newParentId)  -- newParent exists (owned by user)
+       AND NOT EXISTS (SELECT 1 FROM ancestors WHERE id = :movingId) -- would-be cycle blocked
+       AND (SELECT MAX(depth) FROM ancestors) < :maxDepth        -- depth cap on new subtree root
+     )
+   )
+ RETURNING id;
 ```
 
-The client reads that result, plus the moving row's own position + sibling positions, then constructs the exact `UPDATE` list for `executeD1Batch`. No CTE inside the batch itself.
+If `RETURNING id` yields 0 rows, either the parent was deleted concurrently, the ownership check failed, a cycle would form, or the depth cap would be exceeded. In every case, the server surfaces `ActionResult.error = "Move conflicted or invalid"` and the client refetches the tree. The sibling-position compact UPDATEs run in the same `executeD1Batch` and each carry `WHERE user_id = ? AND parent_id = ?` so a stale sibling reference is a no-op rather than a corruption.
 
-**Race tolerance**: because the write path is guarded, a concurrent move that invalidates the preflight either produces zero-row updates (the client refetches and retries — a soft failure) or produces a legal but stale result (still consistent — no cycle can be created because both moves went through preflight against `todos.user_id`). Test coverage for this lives in L1 unit tests using a fake d1 that lets the test drive interleavings.
+**Preflight remains** (fast-fail, no round-trip on the hot path when the client already knows the answer): the client computes ancestry from its own tree copy and refuses to submit obviously-invalid moves. But preflight is **advisory only** — the write-time guard is authoritative.
+
+**What "atomic" means here**. The whole set of UPDATEs runs as one D1 batch; D1 guarantees batches are atomic (all-or-nothing) *for the writes it emits*, but D1 provides no read-check-write transaction. So the vocabulary throughout this document is:
+
+- "batch" = the `executeD1Batch` set of statements, all-or-nothing.
+- "write-time guard" = an SQL predicate on committed state evaluated at UPDATE time.
+- **Not** "transaction" — we do not have one in the SQL-transactional sense.
+
+**Test coverage** (L1 unit + L2 integration):
+
+- Cross-move race: interleave two `moveTodo` calls that would each individually be legal on the preflight snapshot but jointly create a cycle. Assert exactly one succeeds; the other returns the conflict error; DB post-condition has no cycle.
+- Parent deleted mid-move: `newParent` disappears between preflight and the guarded UPDATE — `RETURNING id` is empty, error returned.
+- Depth-cap race: move a subtree such that the depth becomes 12 legally, then a second concurrent move would push depth to 13 — second UPDATE returns 0 rows.
+- Cross-user ownership: `newParent` belongs to a different user — 0 rows, error.
+- Happy path: legal move → RETURNING yields id, sibling compact UPDATEs succeed, tree consistent.
 
 ### Data shapes
 
@@ -192,14 +222,18 @@ Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 | `reorderSiblings(parentId, orderedIds[])` | Batch reorder within a single parent (used by DnD when only reordering, not reparenting). |
 | `deleteTodo(id)` | Cascade delete via FK. Returns the count of removed rows. |
 
-### Atomic move (contract)
+### Move (contract)
 
-`moveTodo` is the highest-risk operation. v1 contract (per the [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce) execution model):
+`moveTodo` is the highest-risk operation. v1 contract (per the [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce) execution model — **write-time guard**, not read-check-write transaction):
 
-1. **Preflight `SELECT`** (single query, recursive CTE for ancestry): assert `id` belongs to user, resolve `oldParent`, walk `newParent` ancestry, load both sibling groups' current positions. Reject on `parentId == id`, ancestry contains `id`, depth > cap, or cross-user ownership.
-2. **Build the write batch**: compact old-parent siblings (fill hole left by moving row), open a slot in new-parent siblings at `newPosition`, set `todos.parentId = newParent` and `todos.position = newPosition` for the moving row. Every `UPDATE` includes `WHERE id = ? AND user_id = ?` plus (for compact updates) the `parent_id = ?` clause; a concurrent move races only into zero-row updates.
-3. **Touch `updatedAt`** on moving row, old parent (skip if `null`), new parent (skip if `null`); dedupe so the same row is not touched twice when both parents are identical.
-4. **Return the affected slice**: moving node in its new position + both parents' post-move sibling orders, so the client can rebuild without a full refetch.
+1. **Client-side preflight** (advisory, non-authoritative): the client walks its local tree copy and refuses to submit trivially-invalid moves (`parentId == id`, obvious cycle, depth would clearly exceed cap). Purpose: instant UI feedback, saves round-trips on obviously bad drags. **Cannot** be relied on for correctness.
+2. **Server-side preflight** (`SELECT` in one round-trip): resolve `oldParent`, load both sibling groups' current positions (needed to construct the compact/insert UPDATE list).
+3. **Guarded parent-update UPDATE**: use the `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS ... RETURNING id` statement shown in [Cycle & depth guards](#cycle--depth-guards-server-side-must-enforce). If `RETURNING id` is empty, return `ActionResult.error = "Move conflicted or invalid"` and the client refetches. Do **not** run the sibling-compact UPDATEs when the parent update fails.
+4. **Sibling-compact batch** (only when step 3 succeeded): open a slot in `newParent`'s siblings at `newPosition`, fill the hole in `oldParent`'s siblings, all `WHERE user_id = ? AND parent_id = ?`-guarded so a stale sibling is a no-op. Same `executeD1Batch` as step 3? See note below.
+5. **`updatedAt` touches**: moving row (already updated in step 3), old parent (skip if `null`), new parent (skip if `null`); dedupe so the same row is not touched twice when both parents are identical.
+6. **Return the affected slice**: moving node in its new position + both parents' post-move sibling orders, so the client can rebuild without a full refetch.
+
+**Batch composition note**: steps 3 + 4 + 5 SHOULD go into a single `executeD1Batch` so D1 executes them atomically (all-or-nothing at the batch level). The parent-update's `RETURNING id` result is inspected in application code after the batch resolves; if empty, the server returns the conflict error and D1's batch has already applied whatever sibling compact / updatedAt statements ran (which is harmless because they were guarded and consistent with the pre-move state — the client refetch resolves any minor drift). This is acceptable because the alternative (two round-trips) opens a wider race window.
 
 Reviewer-locked semantics (see [Design Decisions](#design-decisions-summary)): `updatedAt` touches only the moving row + old parent + new parent — **not the whole subtree**. Skip when parent is `null`; dedupe when old == new.
 
@@ -211,27 +245,25 @@ Reuse existing `stripMarkdown()` from `lib/markdown.ts` (added for Ideas). Same 
 
 ## Due Date
 
-`dueAt` is optional per todo. Ships in v1 (追加于哥 2026-07-10 需求). Rules:
+`dueAt` is optional per todo. Ships in v1 (追加于哥 2026-07-10 需求). **v1 is date-only**; a full date-time deadline picker is deferred to v2 (see below). Rules:
 
 ### Storage
 
 - Column: `todos.due_at INTEGER NULL` (Drizzle: `integer("due_at", { mode: "timestamp" })`), same encoding as every other timestamp in the schema (Unix ms, absolute UTC).
-- Time-of-day is stored, not just the date; a `NULL` value means "no due date".
+- The stored value is always **end-of-day in the user's local timezone, converted to UTC**. This means the column semantic is "the day this todo is due" — not "the specific instant it is due".
+- `NULL` = no due date.
+
+Rationale for date-only (v1.1 修订, Reviewer round-2 #2): mixing date-only and date-time in one column with heuristics for overdue detection is fragile — DST boundaries and user edits break it. "Due Date" as a product noun matches the calendar-day story; if a user needs "reminded at 3pm Friday" that is a reminder feature and belongs to v2.
 
 ### Input semantics
 
-The UI presents two entry paths, both writing the same `dueAt` column:
-
-1. **Date-only picker** (default): user picks `2026-07-12`; the client resolves to that date's **end-of-day in the user's local timezone** (`23:59:59.999` local), converts to UTC, and sends the resulting timestamp. Rationale: a todo "due Friday" should not flip to Overdue as soon as the user's midnight passes UTC — the whole calendar day counts.
-2. **Date-and-time picker** (optional, revealed on click): user explicitly sets a specific instant (`2026-07-12 15:30`). Client sends that local time converted to UTC verbatim.
-
-Server accepts either as an ISO timestamp string; no server-side timezone inference — the client is authoritative for "what does this local date mean".
+Single input: **date-only picker** (calendar). The client resolves the selected date to `23:59:59.999` in the user's local timezone, converts to UTC, and sends the resulting timestamp. The picker does not expose a time-of-day input in v1.
 
 **Clearing**: an explicit "Clear" button on the picker sends `null`; no keyboard shortcut deletes the due date to avoid accidental clears.
 
 ### Display semantics
 
-Render the due status client-side. The status is derived at read time from `dueAt`, `done`, and `now()`:
+Render the due status client-side. The status is derived at read time from `dueAt`, `done`, and `now()`. Because `dueAt` is always stored as local-EOD-UTC, the check compares against **start-of-today in the user's local timezone**:
 
 | Status | Rule (assume `dueAt !== null`) | Chip |
 |---|---|---|
@@ -243,15 +275,14 @@ Render the due status client-side. The status is derived at read time from `dueA
 | `done-with-due` | `done` regardless of `dueAt` | grey pill, low emphasis: `Was due Jul 8` |
 | `no-due` | `dueAt === null` | no chip |
 
-Overdue rule uses **start-of-today local** not `dueAt < now()` — same reason as input: cross-timezone / date-only edge cases would otherwise cause "due today at 9am, now 10am" to flag Overdue when the todo is still valid for the whole day.
+Because there is no time-of-day, the chip never renders a `HH:mm` suffix in v1.
 
-- Time-of-day is shown only when the user set a non-end-of-day time (e.g., `Today · 15:30`).
 - `done-with-due` intentionally drops the red emphasis — completed todos should not visually shout regardless of when they were done.
 
 ### Placement
 
 - **Tree row**: chip appears after the tag chips, right-aligned before the row menu. Truncates via the same overflow logic as tag chips.
-- **Right-pane detail**: a distinct "Due" row above the tag row shows a full date-picker with a "Clear" button. Same chip status renders here in large form.
+- **Right-pane detail**: a distinct "Due" row above the tag row shows the calendar picker with a "Clear" button. Same chip status renders here in large form.
 
 ### Sorting & filtering
 
@@ -264,6 +295,10 @@ Overdue rule uses **start-of-today local** not `dueAt < now()` — same reason a
 - Chip formatter lives in `lib/todo-due.ts`: `dueStatus(now: Date, dueAt: Date, done: boolean): DueStatus` — pure function, unit-tested.
 - Unit tests must cover: `overdue`, `today`, `tomorrow`, `soon`, `later`, `done-with-due`, `no-due`; local end-of-day input round-trip; DST boundary (spring-forward day input yields the correct UTC instant); year-drop formatting rule.
 - Playwright E2E: create → set due tomorrow → assert `Tomorrow` chip; toggle done → assert chip becomes low-emphasis.
+
+### v2 upgrade path
+
+When the product needs time-of-day precision (e.g., "meeting at 3pm"), add a `due_precision TEXT NOT NULL DEFAULT 'date'` column (`'date' | 'datetime'`), a follow-up picker mode that exposes hours/minutes, and a branch in `dueStatus` so date-time rows use `dueAt < now()` for overdue. All v1 rows migrate as `precision='date'` with the existing UTC values unchanged.
 
 ---
 
@@ -475,7 +510,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 
 ### Phase 3: Tests
 
-14. L1 unit tests: cycle guard, depth guard, move transaction, tag colour determinism, `dueStatus` formatter (all 7 states + DST + year-drop), excerpt generator wiring.
+14. L1 unit tests: cycle guard, depth guard, cross-move race + parent-deleted-mid-move (write-time guard invariants), tag colour determinism, `dueStatus` formatter (all 7 states + DST + year-drop), excerpt generator wiring.
 15. L1 component tests: tree keyboard flows, tag chip behaviour, done-state visuals, due chip end-to-end, delete-confirm dialog subtree count.
 16. L2 integration for the `moveTodo` transaction (server-action level via `tests/integration/todos.test.ts`). REST endpoint tests belong to the v2 API commit set; v1 does not expose `/api/v1/todos` so `tests/api/todos.*.test.ts` is out of scope here.
 
@@ -487,7 +522,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 | C2 | `docs(todos): revise design after v0 review` (v1, current) | this document (`docs/21-todos-feature.md`) |
 | C3 | `feat(db): add todos and todo_tags tables with dueAt (migration 0021)` | `drizzle/migrations/0021_*.sql`, `lib/db/schema.ts` |
 | C4 | `feat(lib): add todo-tag-color and todo-due helpers` | `lib/todo-tag-color.ts`, `lib/todo-due.ts` + tests |
-| C5 | `feat(db): add ScopedDB todos with cycle/depth guards and preflighted move` | `lib/db/scoped/todos.ts` + tests |
+| C5 | `feat(db): add ScopedDB todos with write-time cycle/depth guard on move` | `lib/db/scoped/todos.ts` + tests |
 | C6 | `feat(actions): add todo CRUD + move server actions` | `actions/todos.ts` + tests |
 | C7 | `chore(deps): add react-arborist` | `package.json`, `bun.lock` |
 | C8 | `feat(viewmodel): add useTodosViewModel` | `viewmodels/todos/*`, `viewmodels/useTodosViewModel.ts` |
@@ -498,7 +533,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 | C13 | `feat(ui): add "待办" to sidebar` | `components/sidebar-parts/nav-config.ts` |
 | C14 | `feat(ui): add todos to global search` | `components/search-command-dialog.tsx`, `components/search-command-dialog-parts/todo-result-item.tsx` |
 | C15 | `test(ui): add L1 component tests for todos page` | `tests/components/todos/*` |
-| C16 | `test(integration): add L2 tests for todo move transaction` | `tests/integration/todos.test.ts` (server-action harness) |
+| C16 | `test(integration): add L2 tests for todo move guarded batch + cross-move race` | `tests/integration/todos.test.ts` (server-action harness) |
 
 Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is reviewable in isolation.
 
@@ -508,7 +543,7 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 
 | Layer | Scope | Gate |
 |-------|-------|------|
-| L1 | Unit tests: cycle guard, atomic move, tag colour, excerpt, tree ViewModel | pre-commit |
+| L1 | Unit tests: cycle guard (incl. cross-move race), tag colour, excerpt, tree ViewModel | pre-commit |
 | L1 | Component tests: tree keyboard, drag callback, right-pane switch, tag input | pre-commit |
 | L2 | Server-action E2E: create/move/delete atomicity | pre-push |
 | L3 | Playwright: create root → add child → drag reorder → check → delete | on-demand |
@@ -523,15 +558,15 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 |---|---|---|
 | Tree storage | Adjacency list (self-ref `parentId`) | Simpler CRUD; D1 workload is small; recursive queries acceptable at this scale |
 | Ordering | Dense `position: integer` per sibling group | Simple, deterministic, batches well; fractional-index only if reorder cost becomes an issue |
-| Cycle & depth prevention | Preflight recursive-CTE read → application-code check → guarded batch write | D1 has no user-visible transaction handle for read-then-write; guarded UPDATEs make concurrent races no-op instead of corrupting state |
-| Depth cap | `MAX_TODO_DEPTH = 12` (backend enforced; UI shows early inline warning at 10+) | Backend authoritative — UI hint is a nicety only |
+| Cycle & depth prevention | Write-time ancestry+depth check via `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(...) RETURNING id`; client-side preflight is advisory only | Preflight-only race was reachable (see v1.1 change log); write-time SQL guard evaluates against committed state so a jointly-cyclic pair of moves cannot both succeed |
+| Depth cap | `MAX_TODO_DEPTH = 12` (backend enforced by the write-time guard; UI shows early inline warning at 10+) | Backend authoritative — UI hint is a nicety only |
 | Tag storage | Per-todo free-form strings, no shared `tags` table | 哥 explicit ask; keeps namespaces clean |
 | Tag colour | Client-side hash → HSL | Deterministic, no persistence, no schema churn on new tags |
-| Due date | `dueAt: timestamp \| null`; date-only inputs → local end-of-day UTC; done state dims to neutral chip | See [Due Date](#due-date) |
+| Due date | v1 date-only (`dueAt: timestamp \| null`; input → local EOD UTC); date-time picker + `duePrecision` column deferred to v2 | Mixing date-only and date-time in a single column with overdue heuristics is fragile across DST/user edits; "Due Date" as a product noun matches the calendar-day story |
+| Move payload | Dedicated `moveTodo` action returning affected slice; write-time cycle guard via UPDATE + RECURSIVE CTE; batch of guarded UPDATEs (D1 batch, not SQL transaction) | Move is the only path that could race into corruption; write-time guard is the only correct answer given D1 has no JS-visible transaction |
 | Delete semantics | Cascade + confirm dialog stating subtree count; **no undo in v1** | Undo requires either soft-delete or subtree snapshot; both add scope; confirm-with-count is the guardrail |
 | Done semantics | `done` boolean + `doneAt` timestamp; stays visible | Users often reference recently-done tasks; auto-archive is destructive |
 | Move `updatedAt` scope | Touch moving row + old parent + new parent only (skip `null` parents; dedupe when old == new); **not the whole subtree** | Reviewer-locked; keeps the "recently modified" list from being contaminated by structural moves of ancestors |
-| Move payload | Dedicated `moveTodo` action returning affected slice | Move is unique in that it touches ordering — no other CRUD needs the same shape |
 | Tree control | `react-arborist` (v1); `@headless-tree/react` (fallback) | Every requested feature is first-class API; controlled mode is a clean fit |
 | Row rendering ownership | We fully own the row template (`todos-page-parts/todo-row.tsx`) and the tree shell wrapper (`todos-page-parts/todo-tree.tsx`); arborist just orchestrates | Splits keep interactions localised and reviewable per commit |
 | Content edit | Right-pane textarea in v1; live Markdown preview in v2 | Match Ideas' modal parity for launch; upgrade path clear |
@@ -559,6 +594,14 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 ---
 
 ## Change Log
+
+### v1 → v1.1 (2026-07-10 round-2)
+
+Reviewer round-2 blockers merged:
+
+- **Move contract — write-time guard, not preflight-only**: v1's "preflight recursive CTE → application check → guarded batch" was reachably racy (two moves preflight against the old tree, both write, both succeed, ancestry ends up cyclic). v1.1 rewrites the moving row's parent-update as `WITH RECURSIVE ancestors AS (...) UPDATE ... WHERE NOT EXISTS(... movingId ...) AND (SELECT MAX(depth) FROM ancestors) < :maxDepth RETURNING id`, so the cycle/depth/ownership predicate evaluates against **committed database state at write time**. Empty `RETURNING` → application returns `Move conflicted or invalid` and the client refetches. Preflight is kept as an **advisory** client-side quick-reject. Test set explicitly covers cross-move race, parent-deleted-mid-move, depth-cap race, cross-user, happy path. Vocabulary swept: no more "atomic move" / "move transaction" / "inside a transaction" — replaced with "guarded batch + write-time ancestry guard".
+- **Due date — v1 date-only only**: v1's mixed date-only + date-time in one column produced inconsistent overdue behaviour (a specific 09:00 time still showed `Today` at 10:00). v1.1 simplifies v1 to **date-only** (input → local EOD UTC, one clean overdue rule). date-time + `duePrecision` column moves to v2 with a documented migration path (all v1 rows migrate as `precision='date'`).
+- **Doc hygiene**: Quality Gates, atomic commit C5/C16 titles, and the L1/L2 test lists all now read "write-time guard" / "guarded batch" instead of "atomic move".
 
 ### v0 → v1 (2026-07-10)
 
