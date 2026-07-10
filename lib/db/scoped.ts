@@ -41,6 +41,7 @@ import * as tagsOps from './scoped/tags';
 import * as settingsOps from './scoped/settings';
 import * as apiKeysOps from './scoped/api-keys';
 import * as ideasOps from './scoped/ideas';
+import * as todosOps from './scoped/todos';
 
 // Re-export shared types so existing import paths keep working.
 export type {
@@ -50,6 +51,18 @@ export type {
   GetIdeasOptions,
   IdeaListItem,
   IdeaDetail,
+  TodoTreeNode,
+  TodoDetail,
+  CreateTodoInput,
+  UpdateTodoPatch,
+  MoveTodoInput,
+  MoveTodoResult,
+} from './scoped/types';
+export {
+  MAX_TODO_DEPTH,
+  TodoMoveConflictError,
+  TodoNotFoundError,
+  TodoDepthExceededError,
 } from './scoped/types';
 
 import type {
@@ -57,6 +70,12 @@ import type {
   GetIdeasOptions,
   IdeaListItem,
   IdeaDetail,
+  TodoTreeNode,
+  TodoDetail,
+  CreateTodoInput,
+  UpdateTodoPatch,
+  MoveTodoInput,
+  MoveTodoResult,
 } from './scoped/types';
 
 export class ScopedDB {
@@ -297,5 +316,32 @@ export class ScopedDB {
   }
   getIdeaTags(): Promise<IdeaTag[]> {
     return ideasOps.getIdeaTags(this.userId);
+  }
+
+  // ---- Todos ------------------------------------------------
+
+  getTodos(): Promise<TodoTreeNode[]> {
+    return todosOps.getTodos(this.userId);
+  }
+  getTodoById(id: number): Promise<TodoDetail | null> {
+    return todosOps.getTodoById(this.userId, id);
+  }
+  getTodoTags(): Promise<string[]> {
+    return todosOps.getTodoTags(this.userId);
+  }
+  createTodo(input: CreateTodoInput): Promise<TodoDetail> {
+    return todosOps.createTodo(this.userId, input);
+  }
+  updateTodo(id: number, patch: UpdateTodoPatch): Promise<TodoDetail | null> {
+    return todosOps.updateTodo(this.userId, id, patch);
+  }
+  moveTodo(id: number, input: MoveTodoInput): Promise<MoveTodoResult> {
+    return todosOps.moveTodo(this.userId, id, input);
+  }
+  reorderSiblings(parentId: number | null, orderedIds: readonly number[]): Promise<number[]> {
+    return todosOps.reorderSiblings(this.userId, parentId, orderedIds);
+  }
+  deleteTodo(id: number): Promise<boolean> {
+    return todosOps.deleteTodo(this.userId, id);
   }
 }
