@@ -90,7 +90,13 @@ export function filterTodos(
   const matchedIds = new Set<number>();
   for (const node of nodes) {
     if (!showDone && node.done) continue;
-    if (trimmedQuery && !node.title.toLowerCase().includes(trimmedQuery)) continue;
+    if (trimmedQuery) {
+      const titleHit = node.title.toLowerCase().includes(trimmedQuery);
+      const excerptHit =
+        node.excerpt !== null &&
+        node.excerpt.toLowerCase().includes(trimmedQuery);
+      if (!titleHit && !excerptHit) continue;
+    }
     if (tagName && !node.tagNames.includes(tagName)) continue;
     if (wantsDueMatch) {
       const status = dueStatus(now, node.dueAt, node.done);

@@ -214,6 +214,22 @@ describe('getTodos', () => {
     expect(Object.hasOwn(byId(rootWith.id), 'content')).toBe(false);
   });
 
+  it('carries excerpt on the tree shape so global search can hit note content', async () => {
+    // Regression for C14: search dialog needs to match on title + excerpt,
+    // so getTodos MUST project excerpt onto the lightweight TodoTreeNode.
+    const created = await createTodo('u1', {
+      title: 'read',
+      content: '# Buy groceries\n\nmilk, eggs, bread',
+    });
+    const { byId } = await snapshot('u1');
+    const node = byId(created.id);
+    expect(node.excerpt).not.toBeNull();
+    expect(node.excerpt?.toLowerCase()).toContain('groceries');
+    // Empty-content todos still return null excerpt.
+    const noContent = await createTodo('u1', { title: 'bare' });
+    expect((await snapshot('u1')).byId(noContent.id).excerpt).toBeNull();
+  });
+
   it('scopes strictly by userId — never returns another user\'s rows', async () => {
     await makeRoot('u1', 'mine');
     await makeRoot('u2', 'theirs');

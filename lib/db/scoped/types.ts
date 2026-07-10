@@ -67,6 +67,13 @@ export interface TodoTreeNode {
   title: string;
   done: boolean;
   hasContent: boolean;
+  /**
+   * First-200-chars plain-text excerpt of `content`. Included on the
+   * lightweight tree shape (not the full markdown) so global search can
+   * substring-match against notes without pulling the full body for
+   * every visible row. `null` when the todo has no content.
+   */
+  excerpt: string | null;
   tagNames: string[];
   dueAt: Date | null;
   createdAt: Date;
@@ -76,7 +83,6 @@ export interface TodoTreeNode {
 /** Detail shape for the right-pane content view. */
 export interface TodoDetail extends TodoTreeNode {
   content: string | null;
-  excerpt: string | null;
   doneAt: Date | null;
 }
 

@@ -43,6 +43,7 @@ function rowToTreeNode(
     title: row.title as string,
     done: Boolean(row.done),
     hasContent: row.content !== null && row.content !== undefined,
+    excerpt: (row.excerpt as string | null) ?? null,
     tagNames,
     dueAt: row.due_at != null ? new Date(row.due_at as number) : null,
     createdAt: new Date(row.created_at as number),
@@ -58,7 +59,6 @@ function rowToDetail(
   return {
     ...base,
     content: (row.content as string | null) ?? null,
-    excerpt: (row.excerpt as string | null) ?? null,
     doneAt: row.done_at != null ? new Date(row.done_at as number) : null,
   };
 }
@@ -111,12 +111,16 @@ async function getTagNamesForTodos(
 
 /**
  * Fetch every todo the user owns, sorted `(parent_id, position)` so the
- * client can assemble the forest in one pass. Content is intentionally not
- * selected — the tree row does not render it and the payload can grow large.
+ * client can assemble the forest in one pass. Full markdown content is
+ * intentionally not selected — the tree row does not render it and the
+ * payload can grow large. The short `excerpt` column IS selected so
+ * global search can substring-match against notes without a second
+ * round-trip; excerpt is capped at 200 chars at write time (see
+ * `createTodo` / `updateTodo`).
  */
 export async function getTodos(userId: string): Promise<TodoTreeNode[]> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT id, parent_id, position, title, done, due_at,
+    `SELECT id, parent_id, position, title, done, due_at, excerpt,
             content IS NOT NULL AS content_present,
             created_at, updated_at
        FROM todos
@@ -128,7 +132,8 @@ export async function getTodos(userId: string): Promise<TodoTreeNode[]> {
   const tagMap = await getTagNamesForTodos(todoIds);
   return rows.map((row) => {
     // `hasContent` derives from the projected boolean column so we never
-    // shuttle the full markdown into the list payload.
+    // shuttle the full markdown into the list payload; excerpt is short
+    // enough to keep on the wire.
     const projected: Record<string, unknown> = {
       ...row,
       content: row.content_present ? 'x' : null,

@@ -39,6 +39,7 @@ export function useTodosMutations(
     title: detail.title,
     done: detail.done,
     hasContent: detail.hasContent,
+    excerpt: detail.excerpt,
     tagNames: detail.tagNames,
     dueAt: detail.dueAt,
     createdAt: detail.createdAt,

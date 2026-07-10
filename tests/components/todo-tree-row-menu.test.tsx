@@ -21,6 +21,7 @@ function makeNode(overrides: Partial<TodoForestNode> = {}) {
     title: "root",
     done: false,
     hasContent: false,
+    excerpt: null,
     tagNames: [],
     dueAt: null,
     createdAt: new Date(0),

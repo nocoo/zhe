@@ -8,6 +8,11 @@ vi.mock("@/viewmodels/useTodosViewModel", () => ({
   useTodosViewModel: (...args: unknown[]) => mockUseTodosViewModel(...args),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => ({ get: () => null }),
+}));
+
 /**
  * We swap in a `matchMedia` mock so the narrow / coarse-pointer hooks
  * return deterministic values per test. happy-dom's default matchMedia
@@ -93,6 +98,7 @@ const TREE = [
     title: "root",
     done: false,
     hasContent: false,
+    excerpt: null,
     tagNames: [],
     dueAt: null,
     createdAt: new Date(0),

@@ -120,7 +120,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 2, slug: "server", originalUrl: "https://b.com", metaDescription: "Server-side rendering" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "building" } });
 
       expectItemWithText("lib", "lib");
@@ -132,7 +132,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 1, slug: "site", originalUrl: "https://example.com" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "https" } });
 
       expectNoItem("site");
@@ -145,7 +145,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 2, slug: "api", originalUrl: "https://b.com", metaTitle: "API Reference" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "前端" } });
 
       expectItemWithText("docs", "docs");
@@ -158,7 +158,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 2, slug: "xyz", originalUrl: "https://other.com" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "  abc  " } });
 
       expectItemWithText("abc", "abc");
@@ -176,7 +176,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       ];
       mockState.linkTags = [];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "no-tags" } });
 
       expect(screen.queryByText("SomeTag")).not.toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       ];
       mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "one-tag" } });
 
       expect(screen.getByText("Solo")).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       ];
       mockState.linkTags = [{ linkId: 1, tagId: "t1" }];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "styled" } });
 
       // The tag badge is a <span> containing a dot <span> + "Styled" text.
@@ -224,7 +224,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 1, slug: "react", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       // The <mark> element should contain the matched text
@@ -238,7 +238,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 1, slug: "lib", originalUrl: "https://a.com", metaDescription: "A library for building UIs" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "building" } });
 
       const marks = document.querySelectorAll("mark");
@@ -251,7 +251,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeLink({ id: 1, slug: "my-link", originalUrl: "https://example.com" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "my-link" } });
 
       const marks = document.querySelectorAll("mark");
@@ -279,7 +279,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 2, title: "TypeScript Guide", excerpt: "Type safety" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       // Should find idea-1 item
@@ -296,7 +296,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 2, title: "Idea 2", excerpt: "About databases" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       const item = getCmdkItem("idea-1");
@@ -313,7 +313,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 2, title: "Backend API", tagIds: [] }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "frontend" } });
 
       const item = getCmdkItem("idea-1");
@@ -327,7 +327,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 2, title: "React Hooks" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       expect(screen.getByText("想法 (2)")).toBeInTheDocument();
@@ -338,7 +338,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       const item = getCmdkItem("idea-1");
@@ -353,7 +353,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 1, title: null, createdAt: new Date("2026-01-15T10:30:00Z") }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       // The idea has no title but its excerpt should still match
       const idea = mockState.ideas[0];
       if (idea) idea.excerpt = "Search term here";
@@ -373,7 +373,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 1, title: "React Patterns" }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       // Both groups should be visible
@@ -392,7 +392,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 1, title: "React App", tagIds: ["t1"] }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       // The tag should be visible in the idea item
@@ -408,7 +408,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
         makeIdea({ id: 1, title: "React App", tagIds: ["t1"] }),
       ];
       renderDialog();
-      const input = screen.getByPlaceholderText("搜索链接、想法 · 跳转页面 · 触发动作...");
+      const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
       // getTagStyles should be called with tag.name, not tag.color

@@ -16,6 +16,11 @@ vi.mock("@/viewmodels/useTodosViewModel", () => ({
   useTodosViewModel: (...args: unknown[]) => mockUseTodosViewModel(...args),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => ({ get: () => null }),
+}));
+
 vi.mock("react-arborist", () => ({
   // Minimal <Tree> stub: renders each root node with its title so the
   // smoke test can assert the flat list rendered without arborist's DnD
@@ -122,6 +127,7 @@ describe("TodosPage", () => {
           title: "root",
           done: false,
           hasContent: false,
+          excerpt: null,
           tagNames: [],
           dueAt: null,
           createdAt: new Date(0),
@@ -136,6 +142,7 @@ describe("TodosPage", () => {
           title: "root",
           done: false,
           hasContent: false,
+          excerpt: null,
           tagNames: [],
           dueAt: null,
           createdAt: new Date(0),
@@ -169,6 +176,7 @@ describe("TodosPage", () => {
         title: "Grocery list",
         done: false,
         hasContent: false,
+        excerpt: null,
         tagNames: [],
         dueAt: null,
         createdAt: new Date(0),
@@ -182,6 +190,7 @@ describe("TodosPage", () => {
           title: "Grocery list",
           done: false,
           hasContent: false,
+          excerpt: null,
           tagNames: [],
           dueAt: null,
           createdAt: new Date(0),
@@ -194,6 +203,7 @@ describe("TodosPage", () => {
           title: "Milk",
           done: false,
           hasContent: false,
+          excerpt: null,
           tagNames: [],
           dueAt: null,
           createdAt: new Date(0),

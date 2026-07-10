@@ -15,9 +15,11 @@ import {
 import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
 import { buildShortUrl, filterLinks } from "@/models/links";
 import { filterIdeas } from "@/models/ideas";
+import { filterTodos } from "@/models/todos";
 import type { Tag } from "@/models/types";
 import { LinkResultItem } from "./search-command-dialog-parts/link-result-item";
 import { IdeaResultItem } from "./search-command-dialog-parts/idea-result-item";
+import { TodoResultItem } from "./search-command-dialog-parts/todo-result-item";
 import {
   PageJumpGroup,
   ActionGroup,
@@ -103,6 +105,17 @@ function useSearchHandlers(onOpenChange: (open: boolean) => void, siteUrl: strin
     [onOpenChange, router],
   );
 
+  const handleNavigateToTodo = useCallback(
+    (todoId: number) => {
+      onOpenChange(false);
+      // The todos page reads ?id=N on mount to seed the selection so the
+      // user lands directly on the searched-for todo with the detail
+      // pane populated.
+      router.push(`/dashboard/todos?id=${todoId}`);
+    },
+    [onOpenChange, router],
+  );
+
   const handleNavigate = useCallback(
     (href: string) => {
       onOpenChange(false);
@@ -116,6 +129,7 @@ function useSearchHandlers(onOpenChange: (open: boolean) => void, siteUrl: strin
     handleOpenOriginalUrl,
     handleCopyShortUrl,
     handleNavigateToIdea,
+    handleNavigateToTodo,
     handleNavigate,
   };
 }
@@ -166,7 +180,7 @@ function SearchEmptyHint() {
       <Search className="h-6 w-6 mb-3 text-muted-foreground/40" />
       <p className="text-sm">输入关键词搜索</p>
       <p className="text-xs text-muted-foreground/60 mt-1">
-        搜索短链、想法、标签 · 跳转页面 · 触发动作
+        搜索短链、想法、待办、标签 · 跳转页面 · 触发动作
       </p>
     </div>
   );
@@ -176,13 +190,16 @@ export function SearchCommandDialog({
   open,
   onOpenChange,
 }: SearchCommandDialogProps) {
-  const { links, folders, tags, linkTags, siteUrl, ideas } = useDashboardState();
-  const { ensureIdeasLoaded } = useDashboardActions();
+  const { links, folders, tags, linkTags, siteUrl, ideas, todos } = useDashboardState();
+  const { ensureIdeasLoaded, ensureTodosLoaded } = useDashboardActions();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (open) ensureIdeasLoaded();
-  }, [open, ensureIdeasLoaded]);
+    if (open) {
+      ensureIdeasLoaded();
+      ensureTodosLoaded();
+    }
+  }, [open, ensureIdeasLoaded, ensureTodosLoaded]);
 
   const trimmedQuery = searchQuery.trim();
   const hasQuery = trimmedQuery.length > 0;
@@ -195,6 +212,20 @@ export function SearchCommandDialog({
     () => filterIdeas(ideas, searchQuery, { tags }),
     [ideas, searchQuery, tags],
   );
+  const filteredTodos = useMemo(() => {
+    if (!hasQuery) return [];
+    const needle = trimmedQuery.toLowerCase();
+    // filterTodos preserves the ancestor chain so a deep hit stays
+    // navigable in tree renderings. For the flat search list we only
+    // want rows that themselves matched the query — either on title or
+    // on the short excerpt (see docs/21-todos-feature.md — Global
+    // Search: match on title + excerpt).
+    return filterTodos(todos, { query: trimmedQuery }).filter((t) => {
+      if (t.title.toLowerCase().includes(needle)) return true;
+      if (t.excerpt && t.excerpt.toLowerCase().includes(needle)) return true;
+      return false;
+    });
+  }, [todos, trimmedQuery, hasQuery]);
 
   const tagsByLinkId = useTagsByLinkId(tags, linkTags);
   const tagsByIdeaId = useTagsByIdeaId(tags, ideas);
@@ -224,7 +255,7 @@ export function SearchCommandDialog({
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
-        placeholder="搜索链接、想法 · 跳转页面 · 触发动作..."
+        placeholder="搜索链接、想法、待办 · 跳转页面 · 触发动作..."
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
@@ -238,6 +269,7 @@ export function SearchCommandDialog({
           <>
             {filteredLinks.length === 0 &&
               filteredIdeas.length === 0 &&
+              filteredTodos.length === 0 &&
               countPageMatches(trimmedQuery) === 0 &&
               countActionMatches(actions, trimmedQuery) === 0 && (
                 <CommandEmpty>没有找到匹配的结果</CommandEmpty>
@@ -270,6 +302,19 @@ export function SearchCommandDialog({
                     trimmedQuery={trimmedQuery}
                     tags={tagsByIdeaId.get(idea.id)}
                     onNavigate={handlers.handleNavigateToIdea}
+                  />
+                ))}
+              </CommandGroup>
+            )}
+
+            {filteredTodos.length > 0 && (
+              <CommandGroup heading={`待办 (${filteredTodos.length})`}>
+                {filteredTodos.map((todo) => (
+                  <TodoResultItem
+                    key={`todo-${todo.id}`}
+                    todo={todo}
+                    trimmedQuery={trimmedQuery}
+                    onNavigate={handlers.handleNavigateToTodo}
                   />
                 ))}
               </CommandGroup>

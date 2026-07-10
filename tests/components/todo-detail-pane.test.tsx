@@ -14,12 +14,12 @@ function makeDetail(overrides: Partial<TodoDetail> = {}): TodoDetail {
     title: "Grocery list",
     done: false,
     hasContent: false,
+    excerpt: null,
     tagNames: [],
     dueAt: null,
     createdAt: new Date(0),
     updatedAt: new Date(0),
     content: null,
-    excerpt: null,
     doneAt: null,
     ...overrides,
   };

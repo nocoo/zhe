@@ -12,6 +12,7 @@ function node(overrides: Partial<TodoTreeNode> & { id: number }): TodoTreeNode {
     title: overrides.title ?? `todo-${overrides.id}`,
     done: overrides.done ?? false,
     hasContent: overrides.hasContent ?? false,
+    excerpt: null,
     tagNames: overrides.tagNames ?? [],
     dueAt: overrides.dueAt ?? null,
     createdAt: overrides.createdAt ?? new Date(0),

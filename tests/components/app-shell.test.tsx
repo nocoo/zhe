@@ -320,7 +320,7 @@ describe('AppShell', () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // In collapsed mode, all items are links: 2 概览 section + 2 folder nav + 1 dynamic + 7 static = 12
+      // In collapsed mode, all items are links: 3 概览 section + 2 folder nav + 1 dynamic + 7 static = 13
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(13);
     });

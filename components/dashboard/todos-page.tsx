@@ -13,7 +13,8 @@
  *   - narrow-viewport `Sheet` fallback (C12)
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,35 @@ export function TodosPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const narrow = useNarrowViewport();
   const coarsePointer = useCoarsePointer();
+  const searchParams = useSearchParams();
+
+  // Seed selection from `?id=N` (used by Global Search deep-links).
+  //
+  // We remember which raw `id=…` value we already applied in `lastAppliedId`
+  // so this effect stays a pure function of the query-string. That means:
+  //   - If the user manually selects a different row, we don't reset it on
+  //     the next render (the raw query string is unchanged).
+  //   - If the query string changes to a new id, we apply it exactly once.
+  //   - If the user navigates back to the same id later, we honour it.
+  // This avoids the eslint-disable / useSearchParams identity hack.
+  const idParam = searchParams.get("id");
+  const setSelectedId = vm.setSelectedId;
+  const lastAppliedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (idParam === null) {
+      lastAppliedIdRef.current = null;
+      return;
+    }
+    if (lastAppliedIdRef.current === idParam) return;
+    const parsed = Number(idParam);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      // Record the (invalid) value so we don't retry every render.
+      lastAppliedIdRef.current = idParam;
+      return;
+    }
+    lastAppliedIdRef.current = idParam;
+    setSelectedId(parsed);
+  }, [idParam, setSelectedId]);
 
   const onCreateRoot = useCallback(async () => {
     setCreateError(null);

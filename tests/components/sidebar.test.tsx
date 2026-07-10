@@ -48,12 +48,15 @@ vi.mock('@/contexts/dashboard-service', () => ({
     tags: [],
     linkTags: [],
     ideas: [],
+    todos: [],
     loading: false,
     ideasLoading: false,
+    todosLoading: false,
     siteUrl: 'https://zhe.to',
   }),
   useDashboardActions: () => ({
     ensureIdeasLoaded: vi.fn(),
+    ensureTodosLoaded: vi.fn(),
   }),
 }));
 
@@ -162,7 +165,7 @@ describe('Sidebar', () => {
     it('renders all nav items as links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (2 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
+      // All items (3 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(12);
     });
@@ -217,7 +220,7 @@ describe('Sidebar', () => {
       fireEvent.click(unwrap(searchButton));
 
       // SearchCommandDialog should render with a search input
-      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Cmd+K', () => {
@@ -225,7 +228,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('opens search dialog on Ctrl+K', () => {
@@ -233,7 +236,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('toggles search dialog closed on second Cmd+K', () => {
@@ -241,11 +244,11 @@ describe('Sidebar', () => {
 
       // Open
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
 
       // Close — the CommandInput placeholder should disappear
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.queryByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).not.toBeInTheDocument();
     });
 
     it('does not open search dialog on plain K key', () => {
@@ -254,7 +257,7 @@ describe('Sidebar', () => {
       fireEvent.keyDown(document, { key: 'k' });
 
       // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
-      const allMatches = screen.queryAllByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...');
+      const allMatches = screen.queryAllByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...');
       expect(allMatches).toHaveLength(0);
     });
 
@@ -269,7 +272,7 @@ describe('Sidebar', () => {
 
       fireEvent.keyDown(document, { key: 'k', metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
     });
 
     it('prevents default browser behavior on Cmd+K', () => {
@@ -460,7 +463,7 @@ describe('Sidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 2 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 13
+      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 14
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(14);
     });
@@ -659,7 +662,7 @@ describe('Sidebar', () => {
     it('renders all nav links in collapsed mode', () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // 2 概览 (overview+ideas) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 11
+      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 12
       const navLinks = container.querySelectorAll('nav a');
       expect(navLinks.length).toBe(12);
     });
