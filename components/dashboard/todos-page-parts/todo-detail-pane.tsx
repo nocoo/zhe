@@ -178,7 +178,7 @@ function TodoDetailPaneBody({
           }
         }}
         aria-label="Todo title"
-        className="w-full rounded-sm border border-transparent bg-transparent px-1 py-1 text-lg font-medium focus:border-input focus:outline-hidden focus:ring-2 focus:ring-ring"
+        className="w-full rounded-sm border border-transparent bg-transparent px-1 py-1 text-lg font-medium focus:border-border focus:outline-hidden focus:ring-2 focus:ring-ring"
       />
 
       <div className="flex flex-wrap items-center gap-2 text-xs" data-detail-due-row>
@@ -219,7 +219,7 @@ function TodoDetailPaneBody({
           }}
           placeholder="Add tag…"
           aria-label="Add tag"
-          className="h-6 min-w-[6rem] rounded-full border border-input bg-background px-2 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-ring"
+          className="h-6 min-w-[6rem] rounded-full border border-border bg-background px-2 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-ring"
         />
       </div>
 
