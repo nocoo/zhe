@@ -2,21 +2,32 @@
 
 /**
  * Two-pane todos workspace:
- *   left = tree (with filters at the bottom)
+ *   left = tree
  *   right = detail pane for the selected todo
+ *
+ * The header follows the shared PageHeader convention (title + count on
+ * the left, action cluster on the right) so the page reads consistently
+ * with links / ideas / uploads. Filters live in the top toolbar and
+ * collapse into a Popover on narrow viewports — never at the bottom of
+ * the tree pane. Panel colouring uses the app-wide `bg-secondary` step
+ * over the app-shell's `bg-card`, keeping the same layering as every
+ * other list surface.
  *
  * The composition mounts `useTodosViewModel` once and passes callbacks
  * down; every mutation flows through the VM's optimistic / rollback
- * layer. This file intentionally does not touch:
- *   - the sidebar nav (that's C13)
- *   - global search (C14)
- *   - narrow-viewport `Sheet` fallback (C12)
+ * layer.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Sheet,
   SheetContent,
@@ -60,6 +71,7 @@ function countDescendants(
 export function TodosPage() {
   const vm = useTodosViewModel();
   const [createError, setCreateError] = useState<string | null>(null);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const narrow = useNarrowViewport();
   const coarsePointer = useCoarsePointer();
   const searchParams = useSearchParams();
@@ -94,14 +106,14 @@ export function TodosPage() {
 
   const onCreateRoot = useCallback(async () => {
     setCreateError(null);
-    const detail = await vm.handleCreateTodo({ title: "New todo" });
+    const detail = await vm.handleCreateTodo({ title: "新建待办" });
     if (detail) vm.setSelectedId(detail.id);
     else if (vm.error) setCreateError(vm.error);
   }, [vm]);
 
   const onAddChild = useCallback(
     async (parentId: number) => {
-      const detail = await vm.handleCreateTodo({ title: "New todo", parentId });
+      const detail = await vm.handleCreateTodo({ title: "新建待办", parentId });
       if (detail) vm.setSelectedId(detail.id);
     },
     [vm],
@@ -109,7 +121,7 @@ export function TodosPage() {
 
   const onAddSibling = useCallback(
     async (_siblingId: number, parentId: number | null) => {
-      const detail = await vm.handleCreateTodo({ title: "New todo", parentId });
+      const detail = await vm.handleCreateTodo({ title: "新建待办", parentId });
       if (detail) vm.setSelectedId(detail.id);
     },
     [vm],
@@ -137,24 +149,101 @@ export function TodosPage() {
     [vm.todoToDelete, vm.todos],
   );
 
+  const totalCount = vm.todos.length;
+  const visibleCount = vm.forest.reduce(function count(
+    acc: number,
+    node: TodoForestNode,
+  ): number {
+    return node.children.reduce(count, acc + 1);
+  }, 0);
+  const hasActiveFilters =
+    vm.searchQuery.length > 0 ||
+    !vm.showDone ||
+    vm.selectedTagName !== null ||
+    vm.dueFilter !== "all";
+  const activeFilterCount =
+    (vm.searchQuery.length > 0 ? 1 : 0) +
+    (vm.showDone ? 0 : 1) +
+    (vm.selectedTagName !== null ? 1 : 0) +
+    (vm.dueFilter !== "all" ? 1 : 0);
+  const countLabel = hasActiveFilters
+    ? `${visibleCount} / ${totalCount} 条待办`
+    : `共 ${totalCount} 条待办`;
+
+  const filterProps = {
+    searchQuery: vm.searchQuery,
+    onSearchQueryChange: vm.setSearchQuery,
+    showDone: vm.showDone,
+    onShowDoneChange: vm.setShowDone,
+    selectedTagName: vm.selectedTagName,
+    onSelectedTagNameChange: vm.setSelectedTagName,
+    tagFilterOptions: vm.tagFilterOptions,
+    dueFilter: vm.dueFilter,
+    onDueFilterChange: vm.setDueFilter,
+    onClearFilters: vm.clearFilters,
+  };
+
   return (
-    <div className="flex h-full min-h-[40rem] w-full flex-col" data-todos-page>
-      <div className="flex items-center justify-between px-3 py-2">
-        <div>
-          <h1 className="text-base font-medium">Todos</h1>
-          <p className="text-xs text-muted-foreground">
-            Hierarchical task lists — drag to reorder or nest.
-          </p>
-        </div>
-        <Button size="sm" onClick={onCreateRoot} disabled={vm.isSaving}>
-          <Plus className="mr-1 h-3.5 w-3.5" /> New todo
-        </Button>
-      </div>
+    <div className="flex h-full min-h-0 flex-col" data-todos-page>
+      <PageHeader
+        title="待办"
+        description={vm.loading ? "加载中…" : countLabel}
+        actions={
+          <>
+            {!narrow && <TodosFilterBar {...filterProps} />}
+
+            {narrow && (
+              <Popover
+                open={mobileFilterOpen}
+                onOpenChange={setMobileFilterOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
+                    aria-label="筛选与搜索"
+                  >
+                    <SlidersHorizontal
+                      className="h-3.5 w-3.5"
+                      strokeWidth={1.5}
+                    />
+                    <span>筛选</span>
+                    {activeFilterCount > 0 && (
+                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="w-[calc(100vw-2rem)] max-w-xs p-3"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <TodosFilterBar {...filterProps} />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            <Button
+              size="sm"
+              className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
+              onClick={onCreateRoot}
+              disabled={vm.isSaving}
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <span>新建待办</span>
+            </Button>
+          </>
+        }
+      />
 
       {vm.error || createError ? (
         <div
           role="alert"
-          className="mx-3 mb-2 rounded-sm border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className="mb-3 rounded-card border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
           {vm.error ?? createError}
           <Button
@@ -166,23 +255,19 @@ export function TodosPage() {
               setCreateError(null);
             }}
           >
-            Dismiss
+            关闭
           </Button>
         </div>
       ) : null}
 
-      <div className="flex flex-1 min-h-0 gap-2 px-3 pb-3">
+      <div className="flex flex-1 min-h-0 gap-3">
         <section
-          className={
-            narrow
-              ? "flex min-w-0 flex-1 flex-col rounded-md border border-border/60 bg-card"
-              : "flex min-w-0 flex-1 flex-col rounded-md border border-border/60 bg-card"
-          }
+          className="flex min-w-0 flex-1 flex-col rounded-card bg-secondary"
           aria-label="Todos tree"
         >
           {vm.loading ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              Loading todos…
+              加载中…
             </div>
           ) : vm.todos.length === 0 ? (
             <EmptyState onCreateRoot={onCreateRoot} />
@@ -200,23 +285,11 @@ export function TodosPage() {
               disableDrag={coarsePointer}
             />
           )}
-          <TodosFilterBar
-            searchQuery={vm.searchQuery}
-            onSearchQueryChange={vm.setSearchQuery}
-            showDone={vm.showDone}
-            onShowDoneChange={vm.setShowDone}
-            selectedTagName={vm.selectedTagName}
-            onSelectedTagNameChange={vm.setSelectedTagName}
-            tagFilterOptions={vm.tagFilterOptions}
-            dueFilter={vm.dueFilter}
-            onDueFilterChange={vm.setDueFilter}
-            onClearFilters={vm.clearFilters}
-          />
         </section>
 
         {narrow ? null : (
           <section
-            className="flex min-w-0 basis-2/5 flex-col rounded-md border border-border/60 bg-card"
+            className="flex min-w-0 basis-2/5 flex-col rounded-card bg-secondary"
             aria-label="Selected todo detail"
           >
             <TodoDetailPane
@@ -243,7 +316,7 @@ export function TodosPage() {
           >
             <SheetHeader className="px-4 pt-4 pb-2">
               <SheetTitle className="text-sm">
-                {vm.detail?.title ?? "Todo detail"}
+                {vm.detail?.title ?? "待办详情"}
               </SheetTitle>
             </SheetHeader>
             <div className="flex-1 min-h-0 overflow-hidden">
@@ -275,9 +348,9 @@ export function TodosPage() {
 function EmptyState({ onCreateRoot }: { onCreateRoot: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
-      <p>No todos yet. Start with a root task.</p>
+      <p>暂无待办，从一个根任务开始吧。</p>
       <Button size="sm" variant="secondary" onClick={onCreateRoot}>
-        <Plus className="mr-1 h-3.5 w-3.5" /> Create root
+        <Plus className="mr-1 h-3.5 w-3.5" /> 新建根任务
       </Button>
     </div>
   );

@@ -21,12 +21,12 @@ const baseProps = {
 describe("TodosFilterBar", () => {
   it("hides the Clear button at rest and shows it once a facet becomes dirty", () => {
     const { rerender } = render(<TodosFilterBar {...baseProps} />);
-    expect(screen.queryByRole("button", { name: /clear/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /清除/ })).toBeNull();
 
     rerender(
       <TodosFilterBar {...baseProps} searchQuery="milk" />,
     );
-    expect(screen.getByRole("button", { name: /clear/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /清除/ })).toBeTruthy();
   });
 
   it("forwards search input to onSearchQueryChange", () => {
@@ -58,7 +58,7 @@ describe("TodosFilterBar", () => {
         onClearFilters={onClearFilters}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /clear/i }));
+    fireEvent.click(screen.getByRole("button", { name: /清除/ }));
     expect(onClearFilters).toHaveBeenCalledTimes(1);
   });
 });

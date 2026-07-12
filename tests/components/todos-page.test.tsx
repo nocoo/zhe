@@ -104,15 +104,18 @@ describe("TodosPage", () => {
   it("renders the loading state when the VM is fetching todos", () => {
     mockUseTodosViewModel.mockReturnValue({ ...baseVm, loading: true });
     render(<TodosPage />);
-    expect(screen.getByText(/Loading todos…/)).toBeTruthy();
+    // "加载中…" appears in both the PageHeader description and the tree
+    // pane while data is loading — asserting on both is what tells us the
+    // header is wired to the VM's loading state.
+    expect(screen.getAllByText(/加载中…/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders the empty state when there are no todos", () => {
     mockUseTodosViewModel.mockReturnValue(baseVm);
     render(<TodosPage />);
-    expect(screen.getByText(/No todos yet/)).toBeTruthy();
+    expect(screen.getByText(/暂无待办/)).toBeTruthy();
     // Empty-state CTA fires the composition's createTodo.
-    fireEvent.click(screen.getByRole("button", { name: /create root/i }));
+    fireEvent.click(screen.getByRole("button", { name: /新建根任务/ }));
     expect(baseVm.handleCreateTodo).toHaveBeenCalled();
   });
 
@@ -161,7 +164,7 @@ describe("TodosPage", () => {
     mockUseTodosViewModel.mockReturnValue(vm);
     render(<TodosPage />);
     expect(screen.getByRole("alert").textContent).toContain("boom");
-    fireEvent.click(screen.getByRole("button", { name: /dismiss/i }));
+    fireEvent.click(screen.getByRole("button", { name: /关闭/ }));
     expect(vm.clearError).toHaveBeenCalled();
   });
 

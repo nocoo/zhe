@@ -1,11 +1,15 @@
 "use client";
 
 /**
- * Filter/search bar for the todos page. Small, controlled — every field
- * writes back into the composition viewmodel's filter slice.
+ * Filter/search bar for the todos page.
  *
- * The "Clear filters" button is only shown when at least one facet is
- * non-default, so the toolbar stays quiet at rest.
+ * Rendered inline in the page header on desktop and inside a Popover on
+ * mobile — the callers control layout; this file only owns the fields and
+ * writes them back through the composition viewmodel's filter slice. The
+ * "Clear filters" affordance is only shown when at least one facet is
+ * non-default so the toolbar stays quiet at rest.
+ *
+ * aria-labels remain in English to keep the existing test contracts.
  */
 
 import { useMemo } from "react";
@@ -35,14 +39,14 @@ export interface TodosFilterBarProps {
 }
 
 const DUE_LABELS: Record<TodoDueFilterKind, string> = {
-  all: "Any",
-  overdue: "Overdue",
-  today: "Today",
-  tomorrow: "Tomorrow",
-  soon: "Soon (7d)",
-  later: "Later",
-  "no-due": "No due date",
-  "any-due": "Has due date",
+  all: "全部截止",
+  overdue: "逾期",
+  today: "今日",
+  tomorrow: "明日",
+  soon: "近 7 天",
+  later: "更晚",
+  "no-due": "无截止",
+  "any-due": "有截止",
 };
 
 export function TodosFilterBar({
@@ -67,40 +71,27 @@ export function TodosFilterBar({
   );
 
   return (
-    <div
-      className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2"
-      data-todos-filter-bar
-    >
-      <div className="relative min-w-[10rem] flex-1">
-        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+    <>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
-          placeholder="Search todos"
-          className="h-8 pl-7 text-xs"
+          placeholder="搜索待办..."
+          className="pl-8 h-8 w-[160px] text-xs rounded-lg"
           aria-label="Search todos"
         />
       </div>
-
-      <label className="flex items-center gap-1 text-xs">
-        <input
-          type="checkbox"
-          checked={showDone}
-          onChange={(e) => onShowDoneChange(e.target.checked)}
-          className="h-3.5 w-3.5"
-        />
-        Show done
-      </label>
 
       <Select
         value={dueFilter}
         onValueChange={(v) => onDueFilterChange(v as TodoDueFilterKind)}
       >
         <SelectTrigger
-          className="h-8 min-w-[8rem] text-xs"
+          className="w-[110px] h-8 text-xs rounded-lg"
           aria-label="Due date filter"
         >
-          <SelectValue placeholder="Any" />
+          <SelectValue placeholder="全部截止" />
         </SelectTrigger>
         <SelectContent>
           {Object.entries(DUE_LABELS).map(([value, label]) => (
@@ -116,13 +107,13 @@ export function TodosFilterBar({
         onValueChange={(v) => onSelectedTagNameChange(v === "__any" ? null : v)}
       >
         <SelectTrigger
-          className="h-8 min-w-[8rem] text-xs"
+          className="w-[110px] h-8 text-xs rounded-lg"
           aria-label="Tag filter"
         >
-          <SelectValue placeholder="All tags" />
+          <SelectValue placeholder="全部标签" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__any">All tags</SelectItem>
+          <SelectItem value="__any">全部标签</SelectItem>
           {tagFilterOptions.map((name) => (
             <SelectItem key={name} value={name}>
               {name}
@@ -130,6 +121,16 @@ export function TodosFilterBar({
           ))}
         </SelectContent>
       </Select>
+
+      <label className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+        <input
+          type="checkbox"
+          checked={showDone}
+          onChange={(e) => onShowDoneChange(e.target.checked)}
+          className="h-3.5 w-3.5"
+        />
+        显示已完成
+      </label>
 
       {isDirty ? (
         <Button
@@ -139,9 +140,9 @@ export function TodosFilterBar({
           onClick={onClearFilters}
           className="h-8 gap-1 text-xs"
         >
-          <X className="h-3.5 w-3.5" /> Clear
+          <X className="h-3.5 w-3.5" /> 清除
         </Button>
       ) : null}
-    </div>
+    </>
   );
 }
