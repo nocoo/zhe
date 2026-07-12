@@ -212,7 +212,7 @@ describe("TodosPage", () => {
       ],
     });
     render(<TodosPage />);
-    // "Grocery list … 1 descendant" — subtree count of 1 with the singular.
-    expect(screen.getByText(/Grocery list.*1 descendant\b/i)).toBeTruthy();
+    // "Grocery list … 1 项子任务" — Chinese wording, no singular/plural switch.
+    expect(screen.getByText(/Grocery list.*1 项子任务/)).toBeTruthy();
   });
 });

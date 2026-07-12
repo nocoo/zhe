@@ -18,7 +18,7 @@ describe("TodoDeleteConfirm", () => {
       />,
     );
     // Docs rule: body must include "N descendants" when N > 0.
-    const body = screen.getByText(/Grocery list.*3 descendants/i);
+    const body = screen.getByText(/Grocery list.*3 项子任务/);
     expect(body).toBeTruthy();
   });
 
@@ -33,7 +33,9 @@ describe("TodoDeleteConfirm", () => {
         isDeleting={false}
       />,
     );
-    expect(screen.getByText(/1 descendant\b/)).toBeTruthy();
+    // Chinese has no plural form; the singular / plural formatting collapses
+    // to the same "N 项子任务" wording.
+    expect(screen.getByText(/1 项子任务/)).toBeTruthy();
   });
 
   it("omits the descendant clause when count is zero", () => {
@@ -47,10 +49,10 @@ describe("TodoDeleteConfirm", () => {
         isDeleting={false}
       />,
     );
-    expect(screen.getByText(/^Delete “Leaf”\?/)).toBeTruthy();
+    expect(screen.getByText(/^确认删除“Leaf”？/)).toBeTruthy();
   });
 
-  it("falls back to `Untitled` when the row has no title", () => {
+  it("falls back to `未命名` when the row has no title", () => {
     render(
       <TodoDeleteConfirm
         open
@@ -61,6 +63,6 @@ describe("TodoDeleteConfirm", () => {
         isDeleting={false}
       />,
     );
-    expect(screen.getByText(/^Delete “Untitled”\?/)).toBeTruthy();
+    expect(screen.getByText(/^确认删除“未命名”？/)).toBeTruthy();
   });
 });

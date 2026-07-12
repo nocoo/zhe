@@ -35,23 +35,21 @@ export function TodoDeleteConfirm({
   onConfirm,
   isDeleting,
 }: TodoDeleteConfirmProps) {
-  const label = todoTitle ?? "Untitled";
+  const label = todoTitle ?? "未命名";
   const message =
     descendantCount > 0
-      ? `Delete “${label}” and its ${descendantCount} descendant${
-          descendantCount === 1 ? "" : "s"
-        }? This cannot be undone.`
-      : `Delete “${label}”? This cannot be undone.`;
+      ? `确认删除“${label}”及其 ${descendantCount} 项子任务？此操作无法撤销。`
+      : `确认删除“${label}”？此操作无法撤销。`;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete todo</AlertDialogTitle>
+          <AlertDialogTitle>删除待办</AlertDialogTitle>
           <AlertDialogDescription>{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               // Prevent AlertDialog's default close-then-run so the caller
@@ -62,7 +60,7 @@ export function TodoDeleteConfirm({
             disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting ? "Deleting…" : "Delete"}
+            {isDeleting ? "删除中…" : "删除"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
