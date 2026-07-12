@@ -46,22 +46,22 @@ export function dueStatus(
   // A done todo never shouts. Show the historical date with low emphasis,
   // regardless of whether it was met or missed — the user has moved on.
   if (done) {
-    return { kind: "done-with-due", label: `Was due ${formatDate(dueAt, now)}` };
+    return { kind: "done-with-due", label: `原定 ${formatDate(dueAt, now)}` };
   }
 
   // Overdue: strictly before the *start* of today in local time. Using
   // start-of-day (not `now`) is what keeps a todo "due today" from flipping
   // to Overdue as soon as the local clock ticks past its stored UTC instant.
   if (dueAt.getTime() < startToday.getTime()) {
-    return { kind: "overdue", label: `Overdue · ${formatDate(dueAt, now)}` };
+    return { kind: "overdue", label: `逾期 · ${formatDate(dueAt, now)}` };
   }
 
   if (dueAt.getTime() < startTomorrow.getTime()) {
-    return { kind: "today", label: "Today" };
+    return { kind: "today", label: "今日" };
   }
 
   if (dueAt.getTime() < startDayAfter.getTime()) {
-    return { kind: "tomorrow", label: "Tomorrow" };
+    return { kind: "tomorrow", label: "明日" };
   }
 
   if (dueAt.getTime() < soonBoundary.getTime()) {
@@ -99,14 +99,14 @@ function addCalendarDays(start: Date, days: number): Date {
 }
 
 /**
- * Short human date. Drops the year unless it differs from `reference`
- * (typically "now") — so day-to-day chips read as `Jul 15`, while a stale
- * or forward-planned chip shows the year.
+ * Short human date in zh-CN — "7月15日" for same-year; falls back to
+ * "2027年1月5日" when the target year differs from `reference` so a
+ * forward-planned or stale chip remains unambiguous.
  */
 function formatDate(target: Date, reference: Date): string {
   const options: Intl.DateTimeFormatOptions =
     target.getFullYear() === reference.getFullYear()
-      ? { month: "short", day: "numeric" }
-      : { month: "short", day: "numeric", year: "numeric" };
-  return new Intl.DateTimeFormat("en-US", options).format(target);
+      ? { month: "long", day: "numeric" }
+      : { month: "long", day: "numeric", year: "numeric" };
+  return new Intl.DateTimeFormat("zh-CN", options).format(target);
 }

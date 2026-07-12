@@ -29,7 +29,7 @@ describe("dueStatus", () => {
     const status = dueStatus(now, yesterdayEOD, false);
     expect(status.kind).toBe("overdue");
     if (status.kind === "overdue") {
-      expect(status.label).toMatch(/^Overdue · Jul 9$/);
+      expect(status.label).toMatch(/^逾期 · 7月9日$/);
     }
   });
 
@@ -37,7 +37,7 @@ describe("dueStatus", () => {
     // Anchored at end-of-day (client's date-only encoding). We are past
     // "now" but before start-of-tomorrow, so status must be `today`.
     const status = dueStatus(now, localEndOfDay(2026, 7, 10), false);
-    expect(status).toEqual({ kind: "today", label: "Today" });
+    expect(status).toEqual({ kind: "today", label: "今日" });
   });
 
   it("today even when dueAt hour is earlier than `now` (date-only invariant)", () => {
@@ -50,14 +50,14 @@ describe("dueStatus", () => {
 
   it("tomorrow when dueAt falls in the next local calendar day", () => {
     const status = dueStatus(now, localEndOfDay(2026, 7, 11), false);
-    expect(status).toEqual({ kind: "tomorrow", label: "Tomorrow" });
+    expect(status).toEqual({ kind: "tomorrow", label: "明日" });
   });
 
   it("soon within the 7-day window (exclusive of tomorrow)", () => {
     const status = dueStatus(now, localEndOfDay(2026, 7, 15), false);
     expect(status.kind).toBe("soon");
     if (status.kind === "soon") {
-      expect(status.label).toBe("Jul 15");
+      expect(status.label).toBe("7月15日");
     }
   });
 
@@ -65,7 +65,7 @@ describe("dueStatus", () => {
     const status = dueStatus(now, localEndOfDay(2026, 8, 3), false);
     expect(status.kind).toBe("later");
     if (status.kind === "later") {
-      expect(status.label).toBe("Aug 3");
+      expect(status.label).toBe("8月3日");
     }
   });
 
@@ -73,7 +73,7 @@ describe("dueStatus", () => {
     const status = dueStatus(now, localEndOfDay(2026, 7, 8), true);
     expect(status.kind).toBe("done-with-due");
     if (status.kind === "done-with-due") {
-      expect(status.label).toBe("Was due Jul 8");
+      expect(status.label).toBe("原定 7月8日");
     }
   });
 
@@ -85,7 +85,7 @@ describe("dueStatus", () => {
   it("formatDate drops the year for same-year targets", () => {
     const sameYear = dueStatus(now, localEndOfDay(2026, 12, 24), false);
     if (sameYear.kind === "later") {
-      expect(sameYear.label).toBe("Dec 24");
+      expect(sameYear.label).toBe("12月24日");
     } else {
       throw new Error("expected later");
     }
@@ -94,7 +94,7 @@ describe("dueStatus", () => {
   it("formatDate keeps the year when target crosses the year boundary", () => {
     const nextYear = dueStatus(now, localEndOfDay(2027, 1, 5), false);
     if (nextYear.kind === "later") {
-      expect(nextYear.label).toBe("Jan 5, 2027");
+      expect(nextYear.label).toBe("2027年1月5日");
     } else {
       throw new Error("expected later");
     }

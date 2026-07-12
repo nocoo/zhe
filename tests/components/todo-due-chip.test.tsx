@@ -24,8 +24,8 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 9)} done={false} now={now} />,
     );
     const chip = container.querySelector('[data-due-kind="overdue"]');
-    expect(chip?.textContent).toContain("Overdue");
-    expect(chip?.textContent).toContain("Jul 9");
+    expect(chip?.textContent).toContain("逾期");
+    expect(chip?.textContent).toContain("7月9日");
   });
 
   it("renders `today` for dueAt anywhere in today's local window", () => {
@@ -33,7 +33,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 10)} done={false} now={now} />,
     );
     expect(container.querySelector('[data-due-kind="today"]')?.textContent).toContain(
-      "Today",
+      "今日",
     );
   });
 
@@ -42,7 +42,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 11)} done={false} now={now} />,
     );
     expect(container.querySelector('[data-due-kind="tomorrow"]')?.textContent).toContain(
-      "Tomorrow",
+      "明日",
     );
   });
 
@@ -51,7 +51,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 15)} done={false} now={now} />,
     );
     expect(container.querySelector('[data-due-kind="soon"]')?.textContent).toContain(
-      "Jul 15",
+      "7月15日",
     );
   });
 
@@ -60,7 +60,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 8, 3)} done={false} now={now} />,
     );
     expect(container.querySelector('[data-due-kind="later"]')?.textContent).toContain(
-      "Aug 3",
+      "8月3日",
     );
   });
 
@@ -69,7 +69,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 8)} done={true} now={now} />,
     );
     expect(past.container.querySelector('[data-due-kind="done-with-due"]')?.textContent).toContain(
-      "Was due Jul 8",
+      "原定 7月8日",
     );
 
     cleanup();
@@ -86,7 +86,7 @@ describe("TodoDueChip", () => {
       <TodoDueChip dueAt={localEndOfDay(2027, 1, 5)} done={false} now={now} />,
     );
     expect(container.querySelector('[data-due-kind="later"]')?.textContent).toContain(
-      "Jan 5, 2027",
+      "2027年1月5日",
     );
   });
 });
