@@ -71,7 +71,7 @@ export function TodoDetailPane({
   if (!detail) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        {detailLoading ? "Loading…" : "Select a todo to view details."}
+        {detailLoading ? "加载中…" : "选择一条待办查看详情"}
       </div>
     );
   }
@@ -161,7 +161,7 @@ function TodoDetailPaneBody({
 
   const meta = useMemo(
     () =>
-      `Created ${detail.createdAt.toLocaleString()} · Updated ${detail.updatedAt.toLocaleString()}`,
+      `创建于 ${detail.createdAt.toLocaleString("zh-CN")} · 更新于 ${detail.updatedAt.toLocaleString("zh-CN")}`,
     [detail.createdAt, detail.updatedAt],
   );
 
@@ -182,7 +182,7 @@ function TodoDetailPaneBody({
       />
 
       <div className="flex flex-wrap items-center gap-2 text-xs" data-detail-due-row>
-        <span className="text-muted-foreground">Due</span>
+        <span className="text-muted-foreground">截止</span>
         <Input
           type="date"
           value={dueInputValue}
@@ -199,7 +199,7 @@ function TodoDetailPaneBody({
           onClick={clearDue}
           disabled={detail.dueAt === null && dueInputValue === ""}
         >
-          Clear
+          清除
         </Button>
         <TodoDueChip dueAt={detail.dueAt} done={detail.done} />
       </div>
@@ -217,7 +217,7 @@ function TodoDetailPaneBody({
               addTag();
             }
           }}
-          placeholder="Add tag…"
+          placeholder="添加标签…"
           aria-label="Add tag"
           className="h-6 min-w-[6rem] rounded-full border border-border bg-background px-2 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-ring"
         />
@@ -225,7 +225,7 @@ function TodoDetailPaneBody({
 
       <div className="flex-1 min-h-[10rem]" data-detail-content-region>
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Notes</span>
+          <span>备注</span>
           <Button
             type="button"
             variant="ghost"
@@ -235,7 +235,7 @@ function TodoDetailPaneBody({
               setContentMode((m) => (m === "view" ? "edit" : "view"))
             }
           >
-            {contentMode === "view" ? "Edit" : "Preview"}
+            {contentMode === "view" ? "编辑" : "预览"}
           </Button>
         </div>
         {contentMode === "edit" ? (
@@ -243,7 +243,7 @@ function TodoDetailPaneBody({
             value={contentDraft}
             onChange={(e) => setContentDraft(e.target.value)}
             onBlur={commitContent}
-            placeholder="Markdown notes…"
+            placeholder="支持 Markdown 备注…"
             className="min-h-[10rem] text-sm"
             aria-label="Todo notes"
           />
@@ -254,7 +254,7 @@ function TodoDetailPaneBody({
           >
             <MarkdownPreview
               content={contentDraft}
-              placeholder="No notes. Double-click to edit."
+              placeholder="暂无备注，双击进入编辑。"
             />
           </div>
         )}

@@ -90,7 +90,7 @@ describe("TodoDetailPane — empty state", () => {
         onUpdate={vi.fn()}
       />,
     );
-    expect(screen.getByText(/Select a todo/i)).toBeTruthy();
+    expect(screen.getByText(/选择一条待办/)).toBeTruthy();
   });
 
   it("renders a loading indicator when detail is null and detailLoading is true", () => {
@@ -101,7 +101,7 @@ describe("TodoDetailPane — empty state", () => {
         onUpdate={vi.fn()}
       />,
     );
-    expect(screen.getByText(/Loading…/i)).toBeTruthy();
+    expect(screen.getByText(/加载中…/)).toBeTruthy();
   });
 });
 
@@ -136,7 +136,7 @@ describe("TodoDetailPane — due date", () => {
         onUpdate={onUpdate}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Clear/i }));
+    fireEvent.click(screen.getByRole("button", { name: /清除/ }));
     expect(onUpdate).toHaveBeenCalledWith(1, { dueAtMs: null });
   });
 });
@@ -199,7 +199,7 @@ describe("TodoDetailPane — notes editor", () => {
       />,
     );
     // Default mode when content is present is "view"; toggle to Edit.
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /编辑/ }));
     const textarea = screen.getByLabelText("Todo notes") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "brand new notes" } });
     fireEvent.blur(textarea);
@@ -215,7 +215,7 @@ describe("TodoDetailPane — notes editor", () => {
         onUpdate={onUpdate}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /编辑/ }));
     const textarea = screen.getByLabelText("Todo notes") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "" } });
     fireEvent.blur(textarea);
