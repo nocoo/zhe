@@ -177,7 +177,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
           )}
           title={todo.title}
         >
-          {todo.title || <span className="italic opacity-60">Untitled</span>}
+          {todo.title || <span className="italic opacity-60">未命名</span>}
         </button>
       )}
 
@@ -279,17 +279,17 @@ function RowMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => onAddChild(todo.id)}>
-          <Plus className="mr-2 h-3.5 w-3.5" /> Add child
+          <Plus className="mr-2 h-3.5 w-3.5" /> 添加子项
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onAddSibling(todo.id, todo.parentId)}>
-          <Plus className="mr-2 h-3.5 w-3.5" /> Add sibling
+          <Plus className="mr-2 h-3.5 w-3.5" /> 添加同级
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => onConfirmDelete(todo)}
           className="text-destructive focus:text-destructive"
         >
-          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete…
+          <Trash2 className="mr-2 h-3.5 w-3.5" /> 删除…
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

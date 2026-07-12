@@ -67,7 +67,7 @@ describe("TodoTreeRow — row menu", () => {
     await user.click(
       screen.getByRole("button", { name: `Row menu for ${data.title}` }),
     );
-    const menuItem = await screen.findByText(/Add child/);
+    const menuItem = await screen.findByText(/添加子项/);
     await user.click(menuItem);
     expect(onAddChild).toHaveBeenCalledWith(data.id);
 
@@ -76,7 +76,7 @@ describe("TodoTreeRow — row menu", () => {
     // told Radix to keep the menu open — that left the trigger + menu +
     // any downstream dialog focused in a broken state.
     await waitFor(() =>
-      expect(screen.queryByText(/Add child/)).toBeNull(),
+      expect(screen.queryByText(/添加子项/)).toBeNull(),
     );
   });
 
@@ -103,11 +103,11 @@ describe("TodoTreeRow — row menu", () => {
     await user.click(
       screen.getByRole("button", { name: `Row menu for ${data.title}` }),
     );
-    const deleteItem = await screen.findByText(/Delete/);
+    const deleteItem = await screen.findByText(/删除…/);
     await user.click(deleteItem);
     expect(onConfirmDelete).toHaveBeenCalledWith(data);
     await waitFor(() =>
-      expect(screen.queryByRole("menuitem", { name: /Delete/ })).toBeNull(),
+      expect(screen.queryByRole("menuitem", { name: /删除…/ })).toBeNull(),
     );
   });
 });
