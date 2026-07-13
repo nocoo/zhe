@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import { TodoEmojiPicker } from "./todo-emoji-picker";
 
 /** Loose input shape matching the server action's UpdateTodoActionInput. */
 interface UpdateInput {
@@ -27,6 +28,7 @@ interface UpdateInput {
   done?: boolean;
   dueAtMs?: number | null;
   tagNames?: string[];
+  emoji?: string | null;
 }
 
 export interface TodoDetailPaneProps {
@@ -167,20 +169,27 @@ function TodoDetailPaneBody({
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={commitTitle}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commitTitle();
-          }
-        }}
-        aria-label="Todo title"
-        className="w-full rounded-sm border border-transparent bg-transparent px-1 py-1 text-lg font-medium focus:border-border focus:outline-hidden focus:ring-2 focus:ring-ring"
-      />
-
+      <div className="flex items-start gap-2">
+        <TodoEmojiPicker
+          value={detail.emoji}
+          onChange={(next) => {
+            void onUpdate(detail.id, { emoji: next });
+          }}
+        />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={commitTitle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitTitle();
+            }
+          }}
+          aria-label="Todo title"
+          className="w-full rounded-sm border border-transparent bg-transparent px-1 py-1 text-lg font-medium focus:border-border focus:outline-hidden focus:ring-2 focus:ring-ring"
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-2 text-xs" data-detail-due-row>
         <span className="text-muted-foreground">截止</span>
         <Input

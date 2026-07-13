@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TodoForestNode } from "@/models/todos";
 import { TodoTreeRow } from "@/components/dashboard/todos-page-parts/todo-tree-row";
@@ -61,6 +61,7 @@ describe("TodoTreeRow — row menu", () => {
         onAddChild={onAddChild}
         onAddSibling={vi.fn()}
         onConfirmDelete={vi.fn()}
+        onEditEmoji={vi.fn()}
       />,
     );
 
@@ -98,6 +99,7 @@ describe("TodoTreeRow — row menu", () => {
         onAddChild={vi.fn()}
         onAddSibling={vi.fn()}
         onConfirmDelete={onConfirmDelete}
+        onEditEmoji={vi.fn()}
       />,
     );
 
@@ -110,5 +112,38 @@ describe("TodoTreeRow — row menu", () => {
     await waitFor(() =>
       expect(screen.queryByRole("menuitem", { name: /删除…/ })).toBeNull(),
     );
+  });
+
+  it("right-click on the row opens the context menu with the same items", async () => {
+    const { node, data } = makeNode();
+    const onConfirmDelete = vi.fn();
+    render(
+      <TodoTreeRow
+        node={node as never}
+        style={{}}
+        dragHandle={() => {}}
+        tree={undefined as never}
+        selectedId={null}
+        onSelect={vi.fn()}
+        onToggleDone={vi.fn()}
+        onRename={vi.fn()}
+        onAddChild={vi.fn()}
+        onAddSibling={vi.fn()}
+        onConfirmDelete={onConfirmDelete}
+        onEditEmoji={vi.fn()}
+      />,
+    );
+
+    const row = document.querySelector(`[data-todo-row="${data.id}"]`);
+    if (!row) throw new Error("expected treeitem row");
+
+    // Radix ContextMenu opens on a native "contextmenu" event with button=2.
+    fireEvent.contextMenu(row, { button: 2 });
+
+    // The four menu items from RowMenuItems must all render under the
+    // context menu just like the dropdown menu.
+    for (const label of [/添加子项/, /添加同级/, /修改 emoji/, /删除…/]) {
+      expect(await screen.findByText(label)).toBeTruthy();
+    }
   });
 });

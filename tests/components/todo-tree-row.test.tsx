@@ -54,6 +54,7 @@ function renderRow(
     onAddChild: vi.fn(),
     onAddSibling: vi.fn(),
     onConfirmDelete: vi.fn(),
+    onEditEmoji: vi.fn(),
   };
   const rendered = render(
     <TodoTreeRow
@@ -76,20 +77,45 @@ describe("TodoTreeRow — interactions", () => {
     expect(handlers.onSelect).toHaveBeenCalledWith(1);
   });
 
-  it("Enter on the treeitem row selects the row (keyboard flow)", () => {
-    const { handlers } = renderRow();
+  it("Enter on the treeitem row enters inline title edit mode", () => {
+    const { node } = renderRow();
     const row = document.querySelector('[data-todo-row="1"]');
     if (!row) throw new Error("expected treeitem row");
     fireEvent.keyDown(row, { key: "Enter" });
-    expect(handlers.onSelect).toHaveBeenCalledWith(1);
+    expect(node.edit).toHaveBeenCalled();
   });
 
-  it("Space on the treeitem row selects the row (keyboard flow)", () => {
-    const { handlers } = renderRow();
+  it("Space on the treeitem row toggles done (not selection)", () => {
+    const { handlers } = renderRow({ done: false });
     const row = document.querySelector('[data-todo-row="1"]');
     if (!row) throw new Error("expected treeitem row");
     fireEvent.keyDown(row, { key: " " });
-    expect(handlers.onSelect).toHaveBeenCalledWith(1);
+    expect(handlers.onToggleDone).toHaveBeenCalledWith(1, true);
+    expect(handlers.onSelect).not.toHaveBeenCalled();
+  });
+
+  it("Delete on the treeitem row opens the delete-confirm flow", () => {
+    const { handlers, data } = renderRow();
+    const row = document.querySelector('[data-todo-row="1"]');
+    if (!row) throw new Error("expected treeitem row");
+    fireEvent.keyDown(row, { key: "Delete" });
+    expect(handlers.onConfirmDelete).toHaveBeenCalledWith(data);
+  });
+
+  it("Backspace on the treeitem row also opens the delete-confirm flow", () => {
+    const { handlers, data } = renderRow();
+    const row = document.querySelector('[data-todo-row="1"]');
+    if (!row) throw new Error("expected treeitem row");
+    fireEvent.keyDown(row, { key: "Backspace" });
+    expect(handlers.onConfirmDelete).toHaveBeenCalledWith(data);
+  });
+
+  it("Cmd/Ctrl+N on the treeitem row adds a sibling under the same parent", () => {
+    const { handlers } = renderRow({ id: 1, parentId: 5 });
+    const row = document.querySelector('[data-todo-row="1"]');
+    if (!row) throw new Error("expected treeitem row");
+    fireEvent.keyDown(row, { key: "n", ctrlKey: true });
+    expect(handlers.onAddSibling).toHaveBeenCalledWith(1, 5);
   });
 
   it("toggling the checkbox fires onToggleDone with the new value (without selecting the row)", () => {
@@ -172,6 +198,7 @@ describe("TodoTreeRow — interactions", () => {
         onAddChild={vi.fn()}
         onAddSibling={vi.fn()}
         onConfirmDelete={vi.fn()}
+        onEditEmoji={vi.fn()}
       />,
     );
     // The <input> gets focus on mount via the imperative ref. Change +
