@@ -97,9 +97,14 @@ export function TodoTreeShell({
         width="100%"
         height={height}
         openByDefault
-        // arborist declares `selection?: string` without `undefined`;
-        // spreading the prop conditionally satisfies exactOptionalPropertyTypes.
-        {...(selectedId !== null ? { selection: String(selectedId) } : {})}
+        // Always pass a string so the props key set stays stable across
+        // renders. arborist's <Provider> uses `Object.values(treeProps)`
+        // as a useMemo dep array — a conditional spread makes the array
+        // length flip between renders and React aborts with "The final
+        // argument passed to useMemo changed size between renders." An
+        // empty string is arborist's own "no selection" signal (the
+        // provider only calls select() when the value is truthy).
+        selection={selectedId !== null ? String(selectedId) : ""}
         // Multi-select interferes with tree-scoped selection semantics
         // (right-pane detail is single-todo); disable it for now.
         disableMultiSelection
