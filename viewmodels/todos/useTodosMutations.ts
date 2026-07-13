@@ -42,6 +42,7 @@ export function useTodosMutations(
     excerpt: detail.excerpt,
     tagNames: detail.tagNames,
     dueAt: detail.dueAt,
+    emoji: detail.emoji,
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
   }), []);
@@ -83,6 +84,9 @@ export function useTodosMutations(
           if (input.tagNames !== undefined) patched.tagNames = input.tagNames;
           if (input.dueAtMs !== undefined) {
             patched.dueAt = input.dueAtMs === null ? null : new Date(input.dueAtMs);
+          }
+          if (input.emoji !== undefined) {
+            patched.emoji = input.emoji;
           }
           if (input.content !== undefined) {
             patched.hasContent = input.content !== null && input.content !== "";

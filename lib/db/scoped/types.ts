@@ -76,6 +76,11 @@ export interface TodoTreeNode {
   excerpt: string | null;
   tagNames: string[];
   dueAt: Date | null;
+  /**
+   * Optional emoji icon picked by the user. `null` when unset. Purely
+   * decorative — not indexed, not filtered against.
+   */
+  emoji: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -93,6 +98,7 @@ export interface CreateTodoInput {
   content?: string | null;
   dueAt?: Date | null;
   tagNames?: string[];
+  emoji?: string | null;
 }
 
 /** Payload for updateTodo. All fields optional; only present keys are written. */
@@ -102,6 +108,7 @@ export interface UpdateTodoPatch {
   done?: boolean;
   dueAt?: Date | null;
   tagNames?: string[];
+  emoji?: string | null;
 }
 
 /** Move target — parent + position among that parent's siblings. */

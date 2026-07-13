@@ -46,6 +46,7 @@ function rowToTreeNode(
     excerpt: (row.excerpt as string | null) ?? null,
     tagNames,
     dueAt: row.due_at != null ? new Date(row.due_at as number) : null,
+    emoji: (row.emoji as string | null) ?? null,
     createdAt: new Date(row.created_at as number),
     updatedAt: new Date(row.updated_at as number),
   };
@@ -120,7 +121,7 @@ async function getTagNamesForTodos(
  */
 export async function getTodos(userId: string): Promise<TodoTreeNode[]> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT id, parent_id, position, title, done, due_at, excerpt,
+    `SELECT id, parent_id, position, title, done, due_at, excerpt, emoji,
             content IS NOT NULL AS content_present,
             created_at, updated_at
        FROM todos
@@ -254,6 +255,7 @@ export async function createTodo(
   const content = input.content ?? null;
   const excerpt = content !== null ? generateExcerpt(content, 200) : null;
   const dueAt = input.dueAt ? input.dueAt.getTime() : null;
+  const emoji = input.emoji ?? null;
   const tagNames = canonicaliseTagNames(input.tagNames);
 
   // Position = MAX(position) + 1 for the target parent; computed inline so
@@ -263,7 +265,7 @@ export async function createTodo(
   const [inserted] = await executeD1Query<Record<string, unknown>>(
     `INSERT INTO todos (
         user_id, parent_id, position, title, content, excerpt,
-        done, done_at, due_at, created_at, updated_at
+        done, done_at, due_at, emoji, created_at, updated_at
      ) VALUES (
         ?, ?,
         COALESCE(
@@ -271,7 +273,7 @@ export async function createTodo(
             WHERE user_id = ? AND parent_id IS ?),
           0
         ),
-        ?, ?, ?, 0, NULL, ?, ?, ?
+        ?, ?, ?, 0, NULL, ?, ?, ?, ?
      )
      RETURNING *`,
     [
@@ -283,6 +285,7 @@ export async function createTodo(
       content,
       excerpt,
       dueAt,
+      emoji,
       now,
       now,
     ],
@@ -362,6 +365,12 @@ export async function updateTodo(
   if (patch.dueAt !== undefined) {
     setClauses.push('due_at = ?');
     setParams.push(patch.dueAt ? patch.dueAt.getTime() : null);
+  }
+  if (patch.emoji !== undefined) {
+    // `null` clears; short strings are stored as-is. Length validation
+    // happens in the action layer before we get here.
+    setClauses.push('emoji = ?');
+    setParams.push(patch.emoji);
   }
 
   const statements: D1Statement[] = [

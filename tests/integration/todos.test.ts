@@ -90,6 +90,7 @@ const SCHEMA_SQL = `
     done          INTEGER NOT NULL DEFAULT 0,
     done_at       INTEGER,
     due_at        INTEGER,
+    emoji         TEXT,
     created_at    INTEGER NOT NULL,
     updated_at    INTEGER NOT NULL
   );

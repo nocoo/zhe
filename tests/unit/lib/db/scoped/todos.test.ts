@@ -101,6 +101,7 @@ const SCHEMA_SQL = `
     done          INTEGER NOT NULL DEFAULT 0,
     done_at       INTEGER,
     due_at        INTEGER,
+    emoji         TEXT,
     created_at    INTEGER NOT NULL,
     updated_at    INTEGER NOT NULL
   );
@@ -336,6 +337,17 @@ describe('createTodo', () => {
     // The compensating DELETE must have removed the freshly-inserted row.
     expect(await getTodos('u1')).toHaveLength(0);
   });
+
+  it('round-trips an emoji on insert (null by default)', async () => {
+    const withoutEmoji = await createTodo('u1', { title: 'a' });
+    expect(withoutEmoji.emoji).toBeNull();
+
+    const withEmoji = await createTodo('u1', { title: 'b', emoji: '🎯' });
+    expect(withEmoji.emoji).toBe('🎯');
+
+    const detail = await getTodoById('u1', withEmoji.id);
+    expect(detail?.emoji).toBe('🎯');
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -376,6 +388,14 @@ describe('updateTodo', () => {
     expect(patched?.dueAt?.getTime()).toBe(due.getTime());
     const cleared = await updateTodo('u1', t, { dueAt: null });
     expect(cleared?.dueAt).toBeNull();
+  });
+
+  it('sets / clears emoji via patch', async () => {
+    const t = await makeRoot('u1', 't');
+    const patched = await updateTodo('u1', t, { emoji: '📌' });
+    expect(patched?.emoji).toBe('📌');
+    const cleared = await updateTodo('u1', t, { emoji: null });
+    expect(cleared?.emoji).toBeNull();
   });
 
   it('rewrites content + excerpt in lockstep, and clears excerpt when content set to null', async () => {

@@ -15,6 +15,7 @@ function node(overrides: Partial<TodoTreeNode> & { id: number }): TodoTreeNode {
     excerpt: null,
     tagNames: overrides.tagNames ?? [],
     dueAt: overrides.dueAt ?? null,
+    emoji: overrides.emoji ?? null,
     createdAt: overrides.createdAt ?? new Date(0),
     updatedAt: overrides.updatedAt ?? new Date(0),
   };

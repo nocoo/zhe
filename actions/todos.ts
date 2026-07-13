@@ -44,6 +44,7 @@ export interface CreateTodoActionInput {
   content?: string | null | undefined;
   dueAtMs?: number | null | undefined;
   tagNames?: string[] | undefined;
+  emoji?: string | null | undefined;
 }
 
 export interface UpdateTodoActionInput {
@@ -52,6 +53,7 @@ export interface UpdateTodoActionInput {
   done?: boolean | undefined;
   dueAtMs?: number | null | undefined;
   tagNames?: string[] | undefined;
+  emoji?: string | null | undefined;
 }
 
 export interface MoveTodoActionInput {
@@ -89,6 +91,37 @@ function resolveDueAt(
     throw new InvalidDueAtError();
   }
   return { present: true, value: new Date(raw) };
+}
+
+/**
+ * Validate a wire `emoji` value.
+ *
+ *   - `undefined` → not present in the patch (caller unchanged)
+ *   - `null`      → clear the column
+ *   - string of ≤ 8 UTF-16 units (≈ 1–4 emoji codepoints, covering ZWJ
+ *     sequences like family emoji) → passed through
+ *   - anything else → typed error the caller maps to `ActionResult.error`
+ *
+ * The cap is a defensive check: the picker limits to a single glyph on
+ * the client, but the action boundary is where advisory TS types stop
+ * being enforced.
+ */
+class InvalidEmojiError extends Error {
+  constructor() {
+    super('Emoji must be a short string or null');
+    this.name = 'InvalidEmojiError';
+  }
+}
+
+function resolveEmoji(
+  raw: string | null | undefined,
+): { present: false } | { present: true; value: string | null } {
+  if (raw === undefined) return { present: false };
+  if (raw === null) return { present: true, value: null };
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 8) {
+    throw new InvalidEmojiError();
+  }
+  return { present: true, value: raw };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -164,12 +197,17 @@ export async function createTodo(
     if (input.content !== undefined) scopedInput.content = input.content;
     const dueAt = resolveDueAt(input.dueAtMs);
     if (dueAt.present) scopedInput.dueAt = dueAt.value;
+    const emoji = resolveEmoji(input.emoji);
+    if (emoji.present) scopedInput.emoji = emoji.value;
     if (input.tagNames !== undefined) scopedInput.tagNames = input.tagNames;
 
     const todo = await ctx.db.createTodo(scopedInput);
     return { success: true, data: todo };
   } catch (error) {
     if (error instanceof InvalidDueAtError) {
+      return { success: false, error: error.message };
+    }
+    if (error instanceof InvalidEmojiError) {
       return { success: false, error: error.message };
     }
     if (error instanceof TodoNotFoundError) {
@@ -203,6 +241,8 @@ export async function updateTodo(
     if (input.done !== undefined) patch.done = input.done;
     const dueAt = resolveDueAt(input.dueAtMs);
     if (dueAt.present) patch.dueAt = dueAt.value;
+    const emoji = resolveEmoji(input.emoji);
+    if (emoji.present) patch.emoji = emoji.value;
     if (input.tagNames !== undefined) patch.tagNames = input.tagNames;
 
     const todo = await ctx.db.updateTodo(id, patch);
@@ -210,6 +250,9 @@ export async function updateTodo(
     return { success: true, data: todo };
   } catch (error) {
     if (error instanceof InvalidDueAtError) {
+      return { success: false, error: error.message };
+    }
+    if (error instanceof InvalidEmojiError) {
       return { success: false, error: error.message };
     }
     console.error('Failed to update todo:', error);

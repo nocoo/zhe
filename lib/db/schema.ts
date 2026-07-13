@@ -201,6 +201,9 @@ export const todos = sqliteTable("todos", {
   doneAt: integer("done_at", { mode: "timestamp" }),
   // v1 date-only: client resolves to local end-of-day UTC before write.
   dueAt: integer("due_at", { mode: "timestamp" }),
+  // Optional emoji icon (1–4 codepoints; validated in the action layer).
+  // Purely decorative — no index, no filter.
+  emoji: text("emoji"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });

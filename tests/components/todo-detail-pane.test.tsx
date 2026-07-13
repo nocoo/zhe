@@ -17,6 +17,7 @@ function makeDetail(overrides: Partial<TodoDetail> = {}): TodoDetail {
     excerpt: null,
     tagNames: [],
     dueAt: null,
+    emoji: null,
     createdAt: new Date(0),
     updatedAt: new Date(0),
     content: null,

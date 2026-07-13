@@ -69,6 +69,7 @@ const TODO_ONE = {
   excerpt: null,
   tagNames: ["shopping"],
   dueAt: null,
+  emoji: null,
   createdAt: new Date(0),
   updatedAt: new Date(0),
 };
