@@ -58,21 +58,22 @@
 | 函数 | ≥ 85% |
 | 分支 | ≥ 80% |
 
-### ESLint
+### Biome
 
-- 零警告策略（`--max-warnings=0`）
-- Pre-commit 通过 `lint-staged` 检查暂存文件
-- Flat Config 格式（`eslint.config.mjs`）
-- 测试文件中禁用 `*.skip` 和 `*.only`（`describe.skip`, `it.only` 等）
-- 允许 `_` 前缀的未使用变量/参数（`@typescript-eslint/no-unused-vars` 自定义配置）
+- 全仓统一使用 **Biome**（主应用、`worker/`、`cli/`），配置入口 `biome.json`
+- 零警告策略：`bun run lint` → `biome check --error-on-warnings .`
+- Pre-commit 通过 `lint-staged` 只检查暂存文件
+- 测试文件禁用 `*.skip` / `*.only`（`noSkippedTests` / `noFocusedTests`）
+- `noUnusedVariables` 为 error；业务代码 `noExplicitAny` 为 error，测试目录放宽
+- Formatter：2 spaces、double quotes、semicolons（与历史主应用风格一致）
 
 ### Git Hooks（Husky）
 
 | Hook | 层级 | 运行内容 |
 |------|------|----------|
-| `pre-commit` | L1 + L2 | `bun run test:unit:coverage`（单元测试 + 覆盖率门槛）+ `bunx lint-staged`（零警告 ESLint） |
-| `pre-push` | L3 | `bun run test:api`（API E2E 测试） |
-| 按需手动 | L4 | `bun run test:e2e:pw`（Playwright BDD E2E） |
+| `pre-commit` | L1 + G1 + G2 | `test:unit:coverage` + `test:integration` + `typecheck` + `lint-staged`（Biome）+ gitleaks |
+| `pre-push` | L2 + G2 | `bun run test:api`（API E2E）+ osv-scanner |
+| 按需手动 | L3 | `bun run test:e2e:pw`（Playwright BDD E2E） |
 
 > **注意**：L4（Playwright BDD E2E）不在 Git Hook 中自动运行，需手动执行 `bun run test:e2e:pw`。
 

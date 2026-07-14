@@ -229,7 +229,9 @@ Layout under `.test-storage/` (gitignored):
 | `bun run test:api` | L2 | API E2E tests (starts dev server on port 17006, real HTTP) |
 | `bun run test:coverage` | — | Coverage report |
 | `bun run typecheck` | G1 | TypeScript type check (`tsc --noEmit`) |
-| `bun run lint` | G1 | ESLint strict (zero warnings) |
+| `bun run lint` | G1 | Biome check (zero warnings) |
+| `bun run lint:fix` | G1 | Biome check --write |
+| `bun run format` | G1 | Biome format --write |
 | `bun run release` | — | Automated release: bump, changelog, commit, push, tag, GH release |
 
 ### E2E (Playwright)

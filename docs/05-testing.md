@@ -294,45 +294,45 @@ fi
 exec bun x tsc --noEmit
 ```
 
-#### ESLint 配置
+#### Biome 配置
 
-启用 `@typescript-eslint/strict` 规则：
+全仓统一 **Biome**（主应用 / `worker/` / `cli/`），根配置 `biome.json`（worker/cli 以 `extends` 继承）。
 
-| 规则 | 值 |
-|------|-----|
-| `@typescript-eslint/no-unused-vars` | error |
-| `@typescript-eslint/no-explicit-any` | error |
-| `@typescript-eslint/no-non-null-assertion` | error |
-| `@typescript-eslint/no-unnecessary-condition` | error |
-| `@typescript-eslint/prefer-nullish-coalescing` | error |
+| 规则族 | 策略 |
+|------|------|
+| `correctness/noUnusedVariables` | error |
+| `correctness/noUnusedImports` | error |
+| `style/noNonNullAssertion` | error |
+| `suspicious/noExplicitAny` | error（测试目录 off） |
+| `suspicious/noFocusedTests` / `noSkippedTests` | error（测试） |
+| `complexity/noExcessiveCognitiveComplexity` | warn，max 35（scripts/tests off） |
 
 #### lint-staged 增量 Lint
 
-pre-commit 使用 **lint-staged** 实现增量 lint——只检查暂存区的变更文件，而非整个代码库：
+pre-commit 使用 **lint-staged** 只检查暂存区文件：
 
 ```bash
 # .husky/pre-commit 中
-bunx lint-staged  # 只 lint git add 的文件
+bunx lint-staged
 ```
 
-**`lint-staged.config.mjs`**：
-```javascript
-export default {
-  '*.{js,jsx,ts,tsx}': ['eslint --fix'],
-  '*.{json,md}': ['prettier --write'],
-};
-```
+`package.json` → `lint-staged`：
 
-**优势**：
-- **快速反馈**：只 lint 变更文件，pre-commit 保持 <10 秒
-- **渐进式修复**：不强制一次性修复全量历史问题
-- **自动修复**：`--fix` 自动修正可修复的 lint 错误
+```json
+{
+  "*.{ts,tsx,js,jsx,json,css,md}": [
+    "biome check --error-on-warnings --no-errors-on-unmatched"
+  ]
+}
+```
 
 #### 命令
 
 ```bash
 bun run typecheck  # TypeScript 类型检查
-bun run lint       # ESLint strict（零警告）
+bun run lint       # Biome check（零警告）
+bun run lint:fix   # Biome 自动修复
+bun run format     # Biome format
 ```
 
 ---
