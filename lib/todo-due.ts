@@ -26,11 +26,7 @@ const SOON_WINDOW_DAYS = 7;
  * @param dueAt    The stored `dueAt` timestamp; `null` means no due date set.
  * @param done     Whether the todo has been marked complete.
  */
-export function dueStatus(
-  now: Date,
-  dueAt: Date | null,
-  done: boolean,
-): DueStatus {
+export function dueStatus(now: Date, dueAt: Date | null, done: boolean): DueStatus {
   if (dueAt === null) return { kind: "no-due" };
 
   // All day-window boundaries are computed as **local calendar days**, not
@@ -87,15 +83,7 @@ function startOfDay(d: Date): Date {
  * next month/year as needed).
  */
 function addCalendarDays(start: Date, days: number): Date {
-  return new Date(
-    start.getFullYear(),
-    start.getMonth(),
-    start.getDate() + days,
-    0,
-    0,
-    0,
-    0,
-  );
+  return new Date(start.getFullYear(), start.getMonth(), start.getDate() + days, 0, 0, 0, 0);
 }
 
 /**

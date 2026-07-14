@@ -24,15 +24,6 @@
  */
 
 import {
-  memo,
-  useCallback,
-  useState,
-  type ComponentType,
-  type MouseEvent,
-  type KeyboardEvent,
-} from "react";
-import type { NodeApi, NodeRendererProps } from "react-arborist";
-import {
   ChevronDown,
   ChevronRight,
   FileText,
@@ -41,15 +32,18 @@ import {
   Smile,
   Trash2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  type ComponentType,
+  type KeyboardEvent,
+  type MouseEvent,
+  memo,
+  useCallback,
+  useState,
+} from "react";
+import type { NodeApi, NodeRendererProps } from "react-arborist";
+import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
+import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -57,8 +51,14 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
-import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import type { TodoForestNode } from "@/models/todos";
 
 export interface TodoTreeRowProps extends NodeRendererProps<TodoForestNode> {
@@ -150,9 +150,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
       aria-expanded={node.isInternal ? node.isOpen : undefined}
       className={cn(
         "group flex h-full items-center gap-1.5 mx-1 pr-2 text-sm select-none cursor-pointer rounded-widget transition-colors",
-        isSelected
-          ? "bg-accent/80 text-foreground"
-          : "hover:bg-accent/40",
+        isSelected ? "bg-accent/80 text-foreground" : "hover:bg-accent/40",
         todo.done && "opacity-60",
       )}
       data-todo-row={todo.id}
@@ -190,6 +188,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
 
       {todo.emoji ? (
         <span
+          role="img"
           className="text-base leading-none select-none"
           aria-label={`Emoji ${todo.emoji}`}
         >
@@ -236,10 +235,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
 
       <span className="ml-auto flex items-center gap-1" data-todo-row-guard>
         {todo.hasContent ? (
-          <FileText
-            className="h-3 w-3 text-muted-foreground"
-            aria-label="Has notes"
-          />
+          <FileText className="h-3 w-3 text-muted-foreground" role="img" aria-label="Has notes" />
         ) : null}
         {todo.tagNames.slice(0, 3).map((name) => (
           <TodoTagChip key={name} name={name} />

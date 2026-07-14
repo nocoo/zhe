@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Backy pull webhook credential generation (server-only — uses Node.js crypto)

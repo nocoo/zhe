@@ -49,12 +49,7 @@ function parseTrustedHosts(raw: string | undefined): Set<string> | null {
 }
 
 function deriveHost(headers: HeaderLike): string {
-  return (
-    headers.get("x-real-host") ||
-    headers.get("x-forwarded-host") ||
-    headers.get("host") ||
-    ""
-  );
+  return headers.get("x-real-host") || headers.get("x-forwarded-host") || headers.get("host") || "";
 }
 
 /**
@@ -109,8 +104,7 @@ function resolveFromHeaders(
   const normalizedProto = normalizeProto(rawProto);
   // Apply the default only when the header was absent. A present-but-invalid
   // value (e.g. `javascript`) MUST NOT be silently coerced to `http`.
-  const proto =
-    normalizedProto ?? (rawProto === null ? opts.defaultProto ?? null : null);
+  const proto = normalizedProto ?? (rawProto === null ? (opts.defaultProto ?? null) : null);
 
   const host = deriveHost(headers);
   const allow = parseTrustedHosts(process.env.TRUSTED_ORIGINS);

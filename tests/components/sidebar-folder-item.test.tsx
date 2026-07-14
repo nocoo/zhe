@@ -1,27 +1,38 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import type { Folder } from '@/models/types';
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard',
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { Folder } from "@/models/types";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
 }));
 
-vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
-    <a href={href} {...props}>{children}</a>
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
-import { SidebarFolderItem } from '@/components/sidebar-folder-item';
+import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 
 const mockFolder: Folder = {
-  id: 'f1',
-  userId: 'u1',
-  name: '工作',
-  icon: 'briefcase',
-  createdAt: new Date('2026-01-01'),
+  id: "f1",
+  userId: "u1",
+  name: "工作",
+  icon: "briefcase",
+  createdAt: new Date("2026-01-01"),
 };
 
 function renderItem(props: Partial<Parameters<typeof SidebarFolderItem>[0]> = {}) {
@@ -39,77 +50,77 @@ function renderItem(props: Partial<Parameters<typeof SidebarFolderItem>[0]> = {}
   return render(
     <TooltipProvider>
       <SidebarFolderItem {...defaultProps} />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
 }
 
-describe('SidebarFolderItem', () => {
+describe("SidebarFolderItem", () => {
   afterEach(() => {
     cleanup();
   });
 
-  describe('normal mode', () => {
-    it('renders folder name', () => {
+  describe("normal mode", () => {
+    it("renders folder name", () => {
       renderItem();
-      expect(screen.getByText('工作')).toBeInTheDocument();
+      expect(screen.getByText("工作")).toBeInTheDocument();
     });
 
-    it('renders as a link with correct href', () => {
+    it("renders as a link with correct href", () => {
       renderItem();
 
-      const link = screen.getByText('工作').closest('a');
+      const link = screen.getByText("工作").closest("a");
       expect(link).toBeInTheDocument();
-      expect(link?.getAttribute('href')).toBe('/dashboard?folder=f1');
+      expect(link?.getAttribute("href")).toBe("/dashboard?folder=f1");
     });
 
-    it('applies active style when selected', () => {
+    it("applies active style when selected", () => {
       renderItem({ isSelected: true });
 
-      const link = screen.getByText('工作').closest('a');
-      expect(link?.className).toContain('bg-primary/10');
-      expect(link?.className).toContain('text-primary');
+      const link = screen.getByText("工作").closest("a");
+      expect(link?.className).toContain("bg-primary/10");
+      expect(link?.className).toContain("text-primary");
     });
 
-    it('applies muted style when not selected', () => {
+    it("applies muted style when not selected", () => {
       renderItem({ isSelected: false });
 
-      const link = screen.getByText('工作').closest('a');
-      expect(link?.className).toContain('text-muted-foreground');
+      const link = screen.getByText("工作").closest("a");
+      expect(link?.className).toContain("text-muted-foreground");
     });
 
-    it('shows link count by default', () => {
+    it("shows link count by default", () => {
       renderItem({ linkCount: 5 });
 
-      const countEl = screen.getByText('5');
+      const countEl = screen.getByText("5");
       expect(countEl).toBeInTheDocument();
       // link count visible by default (group-hover fades it out)
-      expect(countEl.className).toContain('group-hover:opacity-0');
+      expect(countEl.className).toContain("group-hover:opacity-0");
     });
 
-    it('shows more button hidden by default, visible on group hover', () => {
+    it("shows more button hidden by default, visible on group hover", () => {
       renderItem();
 
-      const menuTrigger = screen.getByLabelText('文件夹操作');
+      const menuTrigger = screen.getByLabelText("文件夹操作");
       expect(menuTrigger).toBeInTheDocument();
       // invisible by default, shown on group-hover
-      expect(menuTrigger.className).toContain('opacity-0');
-      expect(menuTrigger.className).toContain('group-hover:opacity-100');
+      expect(menuTrigger.className).toContain("opacity-0");
+      expect(menuTrigger.className).toContain("group-hover:opacity-100");
     });
 
-    it('places link count inside link and menu trigger outside link', () => {
+    it("places link count inside link and menu trigger outside link", () => {
       renderItem({ linkCount: 3 });
 
-      const countEl = screen.getByText('3');
-      const menuTrigger = screen.getByLabelText('文件夹操作');
+      const countEl = screen.getByText("3");
+      const menuTrigger = screen.getByLabelText("文件夹操作");
       // Link count is inside the <a> link
-      expect(countEl.closest('a')).toBeInTheDocument();
+      expect(countEl.closest("a")).toBeInTheDocument();
       // Menu trigger is outside the <a> link to prevent event bubbling
-      expect(menuTrigger.closest('a')).toBeNull();
+      expect(menuTrigger.closest("a")).toBeNull();
       // Link count container has fixed width
-      expect(countEl.className).toContain('w-5');
+      expect(countEl.className).toContain("w-5");
     });
 
-    it('shows edit and delete options in context menu', () => {
+    it("shows edit and delete options in context menu", () => {
       // Radix DropdownMenu uses portals that don't render in jsdom.
       // We verify the menu trigger exists and callbacks are wired correctly instead.
       const onStartEditing = vi.fn();
@@ -117,12 +128,12 @@ describe('SidebarFolderItem', () => {
       renderItem({ onStartEditing, onDelete });
 
       // Menu trigger exists
-      const menuTrigger = screen.getByLabelText('文件夹操作');
+      const menuTrigger = screen.getByLabelText("文件夹操作");
       expect(menuTrigger).toBeInTheDocument();
-      expect(menuTrigger.getAttribute('aria-haspopup')).toBe('menu');
+      expect(menuTrigger.getAttribute("aria-haspopup")).toBe("menu");
     });
 
-    it('passes onStartEditing callback for edit action', () => {
+    it("passes onStartEditing callback for edit action", () => {
       const onStartEditing = vi.fn();
       renderItem({ onStartEditing });
 
@@ -130,7 +141,7 @@ describe('SidebarFolderItem', () => {
       expect(onStartEditing).not.toHaveBeenCalled();
     });
 
-    it('passes onDelete callback for delete action', () => {
+    it("passes onDelete callback for delete action", () => {
       const onDelete = vi.fn();
       renderItem({ onDelete });
 
@@ -139,90 +150,90 @@ describe('SidebarFolderItem', () => {
     });
   });
 
-  describe('edit mode', () => {
-    it('shows input with current folder name', () => {
+  describe("edit mode", () => {
+    it("shows input with current folder name", () => {
       renderItem({ isEditing: true });
 
-      const input = screen.getByDisplayValue('工作');
+      const input = screen.getByDisplayValue("工作");
       expect(input).toBeInTheDocument();
-      expect(input.tagName).toBe('INPUT');
+      expect(input.tagName).toBe("INPUT");
     });
 
-    it('shows confirm and cancel buttons', () => {
+    it("shows confirm and cancel buttons", () => {
       renderItem({ isEditing: true });
 
-      expect(screen.getByLabelText('确认')).toBeInTheDocument();
-      expect(screen.getByLabelText('取消')).toBeInTheDocument();
+      expect(screen.getByLabelText("确认")).toBeInTheDocument();
+      expect(screen.getByLabelText("取消")).toBeInTheDocument();
     });
 
-    it('calls onCancelEditing when cancel button is clicked', () => {
+    it("calls onCancelEditing when cancel button is clicked", () => {
       const onCancelEditing = vi.fn();
       renderItem({ isEditing: true, onCancelEditing });
 
-      fireEvent.click(screen.getByLabelText('取消'));
+      fireEvent.click(screen.getByLabelText("取消"));
       expect(onCancelEditing).toHaveBeenCalledOnce();
     });
 
-    it('calls onUpdate with new name when confirm button is clicked', () => {
+    it("calls onUpdate with new name when confirm button is clicked", () => {
       const onUpdate = vi.fn();
       renderItem({ isEditing: true, onUpdate });
 
-      const input = screen.getByDisplayValue('工作');
-      fireEvent.change(input, { target: { value: '新名字' } });
-      fireEvent.click(screen.getByLabelText('确认'));
-      expect(onUpdate).toHaveBeenCalledWith('f1', { name: '新名字', icon: 'briefcase' });
+      const input = screen.getByDisplayValue("工作");
+      fireEvent.change(input, { target: { value: "新名字" } });
+      fireEvent.click(screen.getByLabelText("确认"));
+      expect(onUpdate).toHaveBeenCalledWith("f1", { name: "新名字", icon: "briefcase" });
     });
 
-    it('calls onUpdate when Enter is pressed', () => {
+    it("calls onUpdate when Enter is pressed", () => {
       const onUpdate = vi.fn();
       renderItem({ isEditing: true, onUpdate });
 
-      const input = screen.getByDisplayValue('工作');
-      fireEvent.change(input, { target: { value: '测试' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
-      expect(onUpdate).toHaveBeenCalledWith('f1', { name: '测试', icon: 'briefcase' });
+      const input = screen.getByDisplayValue("工作");
+      fireEvent.change(input, { target: { value: "测试" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(onUpdate).toHaveBeenCalledWith("f1", { name: "测试", icon: "briefcase" });
     });
 
-    it('calls onCancelEditing when Escape is pressed', () => {
+    it("calls onCancelEditing when Escape is pressed", () => {
       const onCancelEditing = vi.fn();
       renderItem({ isEditing: true, onCancelEditing });
 
-      const input = screen.getByDisplayValue('工作');
-      fireEvent.keyDown(input, { key: 'Escape' });
+      const input = screen.getByDisplayValue("工作");
+      fireEvent.keyDown(input, { key: "Escape" });
       expect(onCancelEditing).toHaveBeenCalledOnce();
     });
 
-    it('shows icon picker with selectable icons', () => {
+    it("shows icon picker with selectable icons", () => {
       renderItem({ isEditing: true });
 
       // Should show the icon picker grid
-      const iconButtons = screen.getAllByRole('button').filter(
-        (btn) => btn.getAttribute('data-icon-name')
-      );
+      const iconButtons = screen
+        .getAllByRole("button")
+        .filter((btn) => btn.getAttribute("data-icon-name"));
       // Should have at least a few icons
       expect(iconButtons.length).toBeGreaterThanOrEqual(10);
     });
 
-    it('updates selected icon when an icon is clicked', () => {
+    it("updates selected icon when an icon is clicked", () => {
       const onUpdate = vi.fn();
       renderItem({ isEditing: true, onUpdate });
 
       // Click a different icon
-      const heartIcon = screen.getByTestId('icon-heart');
+      const heartIcon = screen.getByTestId("icon-heart");
       fireEvent.click(heartIcon);
 
       // Now confirm — should send the new icon
-      fireEvent.click(screen.getByLabelText('确认'));
-      expect(onUpdate).toHaveBeenCalledWith('f1', { name: '工作', icon: 'heart' });
+      fireEvent.click(screen.getByLabelText("确认"));
+      expect(onUpdate).toHaveBeenCalledWith("f1", { name: "工作", icon: "heart" });
     });
 
-    it('does not call onUpdate when name is empty', () => {
+    it("does not call onUpdate when name is empty", () => {
       const onUpdate = vi.fn();
       renderItem({ isEditing: true, onUpdate });
 
-      const input = screen.getByDisplayValue('工作');
-      fireEvent.change(input, { target: { value: '' } });
-      fireEvent.click(screen.getByLabelText('确认'));
+      const input = screen.getByDisplayValue("工作");
+      fireEvent.change(input, { target: { value: "" } });
+      fireEvent.click(screen.getByLabelText("确认"));
       expect(onUpdate).not.toHaveBeenCalled();
     });
   });

@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { TodoDetail } from "@/lib/db/scoped";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodoDetailPane } from "@/components/dashboard/todos-page-parts/todo-detail-pane";
+import type { TodoDetail } from "@/lib/db/scoped";
 
 afterEach(() => cleanup());
 
@@ -33,13 +34,7 @@ describe("TodoDetailPane — title editing", () => {
     // rejects empty titles, so a stale empty draft would misrepresent
     // the actual todo).
     const onUpdate = vi.fn().mockResolvedValue(undefined);
-    render(
-      <TodoDetailPane
-        detail={makeDetail()}
-        detailLoading={false}
-        onUpdate={onUpdate}
-      />,
-    );
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={onUpdate} />);
     const input = screen.getByLabelText("Todo title") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "   " } });
     expect(input.value).toBe("   ");
@@ -52,13 +47,7 @@ describe("TodoDetailPane — title editing", () => {
 
   it("commits a real change on blur (existing behaviour)", () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
-    render(
-      <TodoDetailPane
-        detail={makeDetail()}
-        detailLoading={false}
-        onUpdate={onUpdate}
-      />,
-    );
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={onUpdate} />);
     const input = screen.getByLabelText("Todo title") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "Weekend shopping" } });
     fireEvent.blur(input);
@@ -67,13 +56,7 @@ describe("TodoDetailPane — title editing", () => {
 
   it("normalises stray leading/trailing whitespace to the trimmed form without firing an update", () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
-    render(
-      <TodoDetailPane
-        detail={makeDetail()}
-        detailLoading={false}
-        onUpdate={onUpdate}
-      />,
-    );
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={onUpdate} />);
     const input = screen.getByLabelText("Todo title") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "  Grocery list  " } });
     fireEvent.blur(input);
@@ -84,24 +67,12 @@ describe("TodoDetailPane — title editing", () => {
 
 describe("TodoDetailPane — empty state", () => {
   it("renders a placeholder when detail is null", () => {
-    render(
-      <TodoDetailPane
-        detail={null}
-        detailLoading={false}
-        onUpdate={vi.fn()}
-      />,
-    );
+    render(<TodoDetailPane detail={null} detailLoading={false} onUpdate={vi.fn()} />);
     expect(screen.getByText(/选择一条待办/)).toBeTruthy();
   });
 
   it("renders a loading indicator when detail is null and detailLoading is true", () => {
-    render(
-      <TodoDetailPane
-        detail={null}
-        detailLoading={true}
-        onUpdate={vi.fn()}
-      />,
-    );
+    render(<TodoDetailPane detail={null} detailLoading={true} onUpdate={vi.fn()} />);
     expect(screen.getByText(/加载中…/)).toBeTruthy();
   });
 });
@@ -109,13 +80,7 @@ describe("TodoDetailPane — empty state", () => {
 describe("TodoDetailPane — due date", () => {
   it("editing the date input commits the local end-of-day epoch ms", () => {
     const onUpdate = vi.fn().mockResolvedValue(undefined);
-    render(
-      <TodoDetailPane
-        detail={makeDetail()}
-        detailLoading={false}
-        onUpdate={onUpdate}
-      />,
-    );
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={onUpdate} />);
     const dateInput = screen.getByLabelText("Due date") as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: "2026-07-15" } });
     fireEvent.blur(dateInput);

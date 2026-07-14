@@ -5,12 +5,12 @@
  * NOT for upload validation. All file types are accepted.
  */
 export const IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'image/avif',
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "image/avif",
 ] as const;
 
 /** Maximum file size in bytes (10 MB). */
@@ -44,7 +44,7 @@ export interface UploadingFile {
   fileName: string;
   fileType: string;
   fileSize: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: "pending" | "uploading" | "success" | "error";
   /** Upload progress 0–100. */
   progress: number;
   publicUrl?: string;
@@ -61,14 +61,11 @@ export interface UploadingFile {
  * Uses SHA-256, returns first 12 hex characters.
  * This prevents exposing real userIds in public R2 URLs.
  */
-export async function hashUserId(
-  userId: string,
-  salt: string,
-): Promise<string> {
+export async function hashUserId(userId: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(`${salt}:${userId}`);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   return hashHex.slice(0, 12);
 }
 
@@ -77,11 +74,11 @@ export function validateUploadRequest(
   req: UploadRequest,
 ): { valid: true } | { valid: false; error: string } {
   if (!req.fileName || !req.fileType || !req.fileSize) {
-    return { valid: false, error: 'Missing required fields' };
+    return { valid: false, error: "Missing required fields" };
   }
 
   if (req.fileSize <= 0) {
-    return { valid: false, error: 'File size must be greater than 0' };
+    return { valid: false, error: "File size must be greater than 0" };
   }
 
   if (req.fileSize > MAX_FILE_SIZE) {
@@ -99,8 +96,8 @@ export function validateUploadRequest(
  * Returns lowercase extension without the dot, or empty string if none.
  */
 export function extractExtension(fileName: string): string {
-  const lastDot = fileName.lastIndexOf('.');
-  if (lastDot === -1 || lastDot === fileName.length - 1) return '';
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot === -1 || lastDot === fileName.length - 1) return "";
   return fileName.slice(lastDot + 1).toLowerCase();
 }
 
@@ -115,26 +112,24 @@ export function extractExtension(fileName: string): string {
 export function generateObjectKey(fileName: string, userHash: string): string {
   const now = new Date();
   const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(now.getUTCDate()).padStart(2, '0');
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
   const dateFolder = `${y}${m}${d}`;
 
   const uuid = crypto.randomUUID();
   const ext = extractExtension(fileName);
 
-  return ext
-    ? `${userHash}/${dateFolder}/${uuid}.${ext}`
-    : `${userHash}/${dateFolder}/${uuid}`;
+  return ext ? `${userHash}/${dateFolder}/${uuid}.${ext}` : `${userHash}/${dateFolder}/${uuid}`;
 }
 
 /** Build the full public URL from the R2 public domain and object key. */
 export function buildPublicUrl(publicDomain: string, key: string): string {
-  return `${publicDomain.replace(/\/$/, '')}/${key}`;
+  return `${publicDomain.replace(/\/$/, "")}/${key}`;
 }
 
 /** Check whether a file is a PNG based on its MIME type. */
 export function isPngFile(file: { type: string }): boolean {
-  return file.type === 'image/png';
+  return file.type === "image/png";
 }
 
 /**
@@ -142,7 +137,7 @@ export function isPngFile(file: { type: string }): boolean {
  * If the filename has no extension or ends with a dot, the new extension is appended.
  */
 export function replaceExtension(fileName: string, newExt: string): string {
-  const lastDot = fileName.lastIndexOf('.');
+  const lastDot = fileName.lastIndexOf(".");
   if (lastDot === -1) return `${fileName}.${newExt}`;
   return `${fileName.slice(0, lastDot)}.${newExt}`;
 }
@@ -152,28 +147,25 @@ export function replaceExtension(fileName: string, newExt: string): string {
  * Returns a new File with JPEG data, updated name (.jpg), and image/jpeg type.
  * Quality is 0.92 (Canvas default for JPEG).
  */
-export function convertPngToJpeg(
-  file: File,
-  quality = 0.92,
-): Promise<File> {
+export function convertPngToJpeg(file: File, quality = 0.92): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(url);
-        reject(new Error('Failed to get canvas 2d context'));
+        reject(new Error("Failed to get canvas 2d context"));
         return;
       }
 
       // JPEG has no alpha — fill white background, then draw image
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
 
@@ -181,20 +173,20 @@ export function convertPngToJpeg(
         (blob) => {
           URL.revokeObjectURL(url);
           if (!blob) {
-            reject(new Error('Canvas toBlob returned null'));
+            reject(new Error("Canvas toBlob returned null"));
             return;
           }
-          const jpegName = replaceExtension(file.name, 'jpg');
-          resolve(new File([blob], jpegName, { type: 'image/jpeg' }));
+          const jpegName = replaceExtension(file.name, "jpg");
+          resolve(new File([blob], jpegName, { type: "image/jpeg" }));
         },
-        'image/jpeg',
+        "image/jpeg",
         quality,
       );
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image for PNG to JPEG conversion'));
+      reject(new Error("Failed to load image for PNG to JPEG conversion"));
     };
 
     img.src = url;
@@ -217,12 +209,9 @@ export function isImageType(fileType: string): boolean {
 
 /** Format bytes into a human-readable string (e.g. "1.5 MB"). */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
-  );
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / 1024 ** i;
   return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }

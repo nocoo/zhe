@@ -2,13 +2,13 @@
  * Webhook operations for ScopedDB (one per user).
  */
 
-import { executeD1Query } from '../d1-client';
-import { rowToWebhook } from '../mappers';
-import type { Webhook } from '../schema';
+import { executeD1Query } from "../d1-client";
+import { rowToWebhook } from "../mappers";
+import type { Webhook } from "../schema";
 
 export async function getWebhook(userId: string): Promise<Webhook | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM webhooks WHERE user_id = ? LIMIT 1',
+    "SELECT * FROM webhooks WHERE user_id = ? LIMIT 1",
     [userId],
   );
   return rows[0] ? rowToWebhook(rows[0]) : null;
@@ -23,7 +23,7 @@ export async function upsertWebhook(userId: string, token: string): Promise<Webh
     [userId, token, now],
   );
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToWebhook(row);
 }
 
@@ -32,7 +32,7 @@ export async function updateWebhookRateLimit(
   rateLimit: number,
 ): Promise<Webhook | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'UPDATE webhooks SET rate_limit = ? WHERE user_id = ? RETURNING *',
+    "UPDATE webhooks SET rate_limit = ? WHERE user_id = ? RETURNING *",
     [rateLimit, userId],
   );
   return rows[0] ? rowToWebhook(rows[0]) : null;
@@ -40,7 +40,7 @@ export async function updateWebhookRateLimit(
 
 export async function deleteWebhook(userId: string): Promise<boolean> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'DELETE FROM webhooks WHERE user_id = ? RETURNING id',
+    "DELETE FROM webhooks WHERE user_id = ? RETURNING id",
     [userId],
   );
   return rows.length > 0;

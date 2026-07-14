@@ -1,8 +1,8 @@
 "use client";
 
-import type { OpenApiSpec } from "@/models/webhook";
-import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { OpenApiSpec } from "@/models/webhook";
 
 // ---- Method / param / response tables --------------------------------------
 
@@ -166,9 +166,8 @@ export function RateLimitNote({ rateLimit }: { rateLimit: number }) {
     <div className="space-y-1.5">
       <p className="text-xs text-muted-foreground">速率限制</p>
       <p className="text-xs text-muted-foreground">
-        每个令牌最多{" "}
-        <strong className="text-foreground">{rateLimit}</strong> 次请求 /
-        分钟（仅限 POST）
+        每个令牌最多 <strong className="text-foreground">{rateLimit}</strong> 次请求 / 分钟（仅限
+        POST）
       </p>
     </div>
   );
@@ -196,10 +195,7 @@ export function AgentPromptSection({
   copyToClipboard: (text: string) => void | Promise<void>;
 }) {
   return (
-    <div
-      className="space-y-1.5 border-t border-border/50 pt-4"
-      data-testid="webhook-agent-prompt"
-    >
+    <div className="space-y-1.5 border-t border-border/50 pt-4" data-testid="webhook-agent-prompt">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-foreground">AI Agent Prompt</p>
         <Button
@@ -215,8 +211,8 @@ export function AgentPromptSection({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        将以下 Prompt 复制给 AI Agent，它将自动了解如何调用此 Webhook，并可通过 GET
-        请求发现完整的 OpenAPI 3.1 Schema。
+        将以下 Prompt 复制给 AI Agent，它将自动了解如何调用此 Webhook，并可通过 GET 请求发现完整的
+        OpenAPI 3.1 Schema。
       </p>
       <pre
         className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-accent px-3 py-2 text-xs leading-relaxed"

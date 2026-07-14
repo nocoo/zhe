@@ -44,9 +44,7 @@ export interface WebhookRecentLink {
 // ---------------------------------------------------------------------------
 
 /** Validate an incoming webhook JSON body. */
-export function validateWebhookPayload(
-  payload: unknown,
-): WebhookValidationResult {
+export function validateWebhookPayload(payload: unknown): WebhookValidationResult {
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
     return { success: false, error: "payload must be a JSON object" };
   }
@@ -60,7 +58,7 @@ export function validateWebhookPayload(
 
   try {
     const parsed = new URL(obj.url);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
+    if (!["http:", "https:"].includes(parsed.protocol)) {
       return { success: false, error: "url must use http or https protocol" };
     }
   } catch {
@@ -102,7 +100,10 @@ export function validateWebhookPayload(
       return { success: false, error: "note must be a non-empty string" };
     }
     if (obj.note.length > WEBHOOK_NOTE_MAX_LENGTH) {
-      return { success: false, error: `note must be at most ${WEBHOOK_NOTE_MAX_LENGTH} characters` };
+      return {
+        success: false,
+        error: `note must be at most ${WEBHOOK_NOTE_MAX_LENGTH} characters`,
+      };
     }
   }
 
@@ -132,7 +133,12 @@ export function clampRateLimit(value: number): number {
 
 /** Validate that a rate limit value is within the allowed range. */
 export function isValidRateLimit(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= RATE_LIMIT_ABSOLUTE_MAX;
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 1 &&
+    value <= RATE_LIMIT_ABSOLUTE_MAX
+  );
 }
 
 /**

@@ -7,31 +7,31 @@
  * Note: If KV is not configured on the test environment, the endpoint
  * returns 503, which is a valid response that we test for.
  */
-import { describe, it, expect } from 'vitest';
-import { apiPost, jsonResponse } from './helpers/http';
+import { describe, expect, it } from "vitest";
+import { apiPost, jsonResponse } from "./helpers/http";
 
 function getWorkerSecret(): string {
   const secret = process.env.WORKER_SECRET;
-  if (!secret) throw new Error('WORKER_SECRET not set in environment');
+  if (!secret) throw new Error("WORKER_SECRET not set in environment");
   return secret;
 }
 
-describe('POST /api/cron/sync-kv', () => {
-  it('rejects request with no secret (401)', async () => {
-    const res = await apiPost('/api/cron/sync-kv', null);
+describe("POST /api/cron/sync-kv", () => {
+  it("rejects request with no secret (401)", async () => {
+    const res = await apiPost("/api/cron/sync-kv", null);
     expect(res.status).toBe(401);
   });
 
-  it('rejects request with wrong secret (401)', async () => {
-    const res = await apiPost('/api/cron/sync-kv', null, {
-      Authorization: 'Bearer wrong-secret',
+  it("rejects request with wrong secret (401)", async () => {
+    const res = await apiPost("/api/cron/sync-kv", null, {
+      Authorization: "Bearer wrong-secret",
     });
     expect(res.status).toBe(401);
   });
 
-  it('accepts secret via Bearer header and returns sync result or 503', async () => {
+  it("accepts secret via Bearer header and returns sync result or 503", async () => {
     const secret = getWorkerSecret();
-    const res = await apiPost('/api/cron/sync-kv', null, {
+    const res = await apiPost("/api/cron/sync-kv", null, {
       Authorization: `Bearer ${secret}`,
     });
 
@@ -49,16 +49,15 @@ describe('POST /api/cron/sync-kv', () => {
       }>(res);
 
       if (body.skipped) {
-        expect(body.message).toBe('No mutations since last sync');
+        expect(body.message).toBe("No mutations since last sync");
       } else {
-        expect(body).toHaveProperty('synced');
-        expect(body).toHaveProperty('total');
-        expect(typeof body.synced).toBe('number');
+        expect(body).toHaveProperty("synced");
+        expect(body).toHaveProperty("total");
+        expect(typeof body.synced).toBe("number");
       }
     } else {
       const { body } = await jsonResponse<{ error: string }>(res);
-      expect(body.error).toContain('KV not configured');
+      expect(body.error).toContain("KV not configured");
     }
   });
-
 });

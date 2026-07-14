@@ -3,14 +3,71 @@
  * so the model file stays small.
  */
 
-import { WEBHOOK_NOTE_MAX_LENGTH, RATE_LIMIT_DEFAULT_MAX } from "./webhook";
+import { RATE_LIMIT_DEFAULT_MAX, WEBHOOK_NOTE_MAX_LENGTH } from "./webhook";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export type OpenApiSpec = Record<string, any>;
-/* eslint-enable @typescript-eslint/no-explicit-any */
+/** JSON Schema fragment used inside OpenAPI request/response content. */
+export type OpenApiJsonSchema = {
+  type?: string;
+  required?: string[];
+  properties?: Record<string, OpenApiJsonSchema & { maxLength?: number }>;
+  format?: string;
+  description?: string;
+  maxLength?: number;
+  minLength?: number;
+  pattern?: string;
+  items?: OpenApiJsonSchema;
+  [key: string]: unknown;
+};
+
+export type OpenApiMediaContent = {
+  "application/json": {
+    schema: OpenApiJsonSchema;
+  };
+};
+
+export type OpenApiResponse = {
+  description: string;
+  content?: OpenApiMediaContent;
+};
+
+export type OpenApiRequestBody = {
+  required?: boolean;
+  content: OpenApiMediaContent;
+};
+
+/** OpenAPI 3 operation shape used by the webhook docs UI + tests. */
+export type OpenApiOperation = {
+  summary: string;
+  description: string;
+  requestBody?: OpenApiRequestBody;
+  responses: Record<string, OpenApiResponse>;
+};
+
+/** POST always carries a request body schema for the create-link contract. */
+export type OpenApiPostOperation = OpenApiOperation & {
+  requestBody: OpenApiRequestBody;
+};
+
+/** OpenAPI 3.1 document produced by `buildOpenApiSpec`. */
+export type OpenApiSpec = {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    description: string;
+  };
+  servers: Array<{ url: string }>;
+  paths: {
+    "/": {
+      head: OpenApiOperation;
+      get: OpenApiOperation;
+      post: OpenApiPostOperation;
+    };
+  };
+};
 
 /** HEAD / — token validation probe. */
-function buildHeadOp(): Record<string, unknown> {
+function buildHeadOp(): OpenApiOperation {
   return {
     summary: "Test connection",
     description: "Returns 200 if the token is valid, 404 otherwise. No response body.",
@@ -22,7 +79,7 @@ function buildHeadOp(): Record<string, unknown> {
 }
 
 /** GET / — webhook status + usage stats + OpenAPI docs. */
-function buildGetOp(): Record<string, unknown> {
+function buildGetOp(): OpenApiOperation {
   return {
     summary: "Get status, stats & API schema",
     description: "Retrieve webhook status, usage stats, and this OpenAPI specification.",
@@ -34,8 +91,12 @@ function buildGetOp(): Record<string, unknown> {
             schema: {
               type: "object",
               properties: {
-                status: { type: "string", description: "Webhook status (\"active\")" },
-                createdAt: { type: "string", format: "date-time", description: "When the webhook was created" },
+                status: { type: "string", description: 'Webhook status ("active")' },
+                createdAt: {
+                  type: "string",
+                  format: "date-time",
+                  description: "When the webhook was created",
+                },
                 rateLimit: { type: "integer", description: "Requests per minute" },
                 stats: {
                   type: "object",
@@ -68,7 +129,7 @@ function buildGetOp(): Record<string, unknown> {
 }
 
 /** POST request body schema — url / customSlug / folder / note. */
-function buildPostRequestBody(): Record<string, unknown> {
+function buildPostRequestBody(): OpenApiRequestBody {
   return {
     required: true,
     content: {
@@ -110,8 +171,8 @@ function buildPostRequestBody(): Record<string, unknown> {
   };
 }
 
-function buildPostResponses(maxRequests: number): Record<string, unknown> {
-  const linkPayload = {
+function buildPostResponses(maxRequests: number): Record<string, OpenApiResponse> {
+  const linkPayload: OpenApiJsonSchema = {
     type: "object",
     properties: {
       slug: { type: "string", description: "The generated or custom slug" },
@@ -135,7 +196,7 @@ function buildPostResponses(maxRequests: number): Record<string, unknown> {
   };
 }
 
-function buildPostOp(maxRequests: number): Record<string, unknown> {
+function buildPostOp(maxRequests: number): OpenApiPostOperation {
   return {
     summary: "Create a short link",
     description: `Create a short link. Rate-limited to ${maxRequests} requests per minute.`,

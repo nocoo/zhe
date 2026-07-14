@@ -6,23 +6,23 @@
  * Validates the complete lifecycle: presign → record → list → delete
  * from the perspective of an authenticated user (BDD style).
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { clearMockStorage } from '../setup';
-import { unwrap } from '../test-utils';
-import { hashUserId } from '@/models/upload';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { hashUserId } from "@/models/upload";
+import { clearMockStorage } from "../setup";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks — auth and R2 (D1 uses the global mock from setup.ts)
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
 const mockCreatePresignedUploadUrl = vi.fn();
 const mockDeleteR2Object = vi.fn();
-vi.mock('@/lib/r2/client', () => ({
+vi.mock("@/lib/r2/client", () => ({
   createPresignedUploadUrl: (...args: unknown[]) => mockCreatePresignedUploadUrl(...args),
   deleteR2Object: (...args: unknown[]) => mockDeleteR2Object(...args),
 }));
@@ -31,12 +31,12 @@ vi.mock('@/lib/r2/client', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-const USER_ID = 'user-upload-e2e';
-const OTHER_USER_ID = 'user-other-e2e';
+const USER_ID = "user-upload-e2e";
+const OTHER_USER_ID = "user-other-e2e";
 
 function authenticatedAs(userId: string) {
   mockAuth.mockResolvedValue({
-    user: { id: userId, name: 'E2E User', email: 'e2e@test.com' },
+    user: { id: userId, name: "E2E User", email: "e2e@test.com" },
   });
 }
 
@@ -48,13 +48,13 @@ function unauthenticated() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Upload E2E — full lifecycle', () => {
+describe("Upload E2E — full lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearMockStorage();
-    process.env.R2_PUBLIC_DOMAIN = 'https://s.zhe.to';
-    process.env.R2_USER_HASH_SALT = 'e2e-test-salt';
-    mockCreatePresignedUploadUrl.mockResolvedValue('https://r2.example.com/presigned-put');
+    process.env.R2_PUBLIC_DOMAIN = "https://s.zhe.to";
+    process.env.R2_USER_HASH_SALT = "e2e-test-salt";
+    mockCreatePresignedUploadUrl.mockResolvedValue("https://r2.example.com/presigned-put");
     mockDeleteR2Object.mockResolvedValue(undefined);
   });
 
@@ -66,39 +66,39 @@ describe('Upload E2E — full lifecycle', () => {
   // ============================================================
   // Scenario 1: Unauthenticated access denied
   // ============================================================
-  describe('unauthenticated user', () => {
-    it('cannot get presigned URL', async () => {
+  describe("unauthenticated user", () => {
+    it("cannot get presigned URL", async () => {
       unauthenticated();
-      const { getPresignedUploadUrl } = await import('@/actions/upload');
+      const { getPresignedUploadUrl } = await import("@/actions/upload");
 
       const result = await getPresignedUploadUrl({
-        fileName: 'photo.png',
-        fileType: 'image/png',
+        fileName: "photo.png",
+        fileType: "image/png",
         fileSize: 1024,
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot list uploads', async () => {
+    it("cannot list uploads", async () => {
       unauthenticated();
-      const { getUploads } = await import('@/actions/upload-read');
+      const { getUploads } = await import("@/actions/upload-read");
 
       const result = await getUploads();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot delete uploads', async () => {
+    it("cannot delete uploads", async () => {
       unauthenticated();
-      const { deleteUpload } = await import('@/actions/upload');
+      const { deleteUpload } = await import("@/actions/upload");
 
       const result = await deleteUpload(1);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
   });
 
@@ -110,28 +110,26 @@ describe('Upload E2E — full lifecycle', () => {
   // 3. See the upload in my list
   // 4. Delete the upload (removes from R2 and D1)
   // ============================================================
-  describe('authenticated user — complete lifecycle', () => {
-    it('presign → record → list → delete', async () => {
+  describe("authenticated user — complete lifecycle", () => {
+    it("presign → record → list → delete", async () => {
       authenticatedAs(USER_ID);
-      const {
-        getPresignedUploadUrl,
-        recordUpload,
-        deleteUpload,
-      } = await import('@/actions/upload');
-      const { getUploads } = await import('@/actions/upload-read');
+      const { getPresignedUploadUrl, recordUpload, deleteUpload } = await import(
+        "@/actions/upload"
+      );
+      const { getUploads } = await import("@/actions/upload-read");
 
       // Step 1: Get presigned URL
       const presignResult = await getPresignedUploadUrl({
-        fileName: 'landscape.png',
-        fileType: 'image/png',
+        fileName: "landscape.png",
+        fileType: "image/png",
         fileSize: 2048,
       });
 
       expect(presignResult.success).toBe(true);
       expect(presignResult.data).toBeDefined();
       const presignData = unwrap(presignResult.data);
-      expect(presignData.uploadUrl).toBe('https://r2.example.com/presigned-put');
-      expect(presignData.publicUrl).toContain('https://s.zhe.to/');
+      expect(presignData.uploadUrl).toBe("https://r2.example.com/presigned-put");
+      expect(presignData.publicUrl).toContain("https://s.zhe.to/");
       expect(presignData.key).toMatch(/^[0-9a-f]{12}\/\d{8}\//);
 
       const { publicUrl, key } = presignData;
@@ -139,8 +137,8 @@ describe('Upload E2E — full lifecycle', () => {
       // Step 2: Record the upload in D1 (after successful R2 PUT)
       const recordResult = await recordUpload({
         key,
-        fileName: 'landscape.png',
-        fileType: 'image/png',
+        fileName: "landscape.png",
+        fileType: "image/png",
         fileSize: 2048,
         publicUrl,
       });
@@ -148,7 +146,7 @@ describe('Upload E2E — full lifecycle', () => {
       expect(recordResult.success).toBe(true);
       expect(recordResult.data).toBeDefined();
       const recordData = unwrap(recordResult.data);
-      expect(recordData.fileName).toBe('landscape.png');
+      expect(recordData.fileName).toBe("landscape.png");
       expect(recordData.publicUrl).toBe(publicUrl);
       const uploadId = recordData.id;
 
@@ -158,7 +156,7 @@ describe('Upload E2E — full lifecycle', () => {
       expect(listResult.success).toBe(true);
       expect(listResult.data).toHaveLength(1);
       expect(unwrap(unwrap(listResult.data)[0]).id).toBe(uploadId);
-      expect(unwrap(unwrap(listResult.data)[0]).fileName).toBe('landscape.png');
+      expect(unwrap(unwrap(listResult.data)[0]).fileName).toBe("landscape.png");
 
       // Step 4: Delete the upload
       const deleteResult = await deleteUpload(uploadId);
@@ -178,13 +176,10 @@ describe('Upload E2E — full lifecycle', () => {
   // Scenario 3: Multi-user isolation
   // Uploads from user A should not be visible to user B.
   // ============================================================
-  describe('multi-user isolation', () => {
-    it('user A cannot see or delete user B uploads', async () => {
-      const {
-        recordUpload,
-        deleteUpload,
-      } = await import('@/actions/upload');
-      const { getUploads } = await import('@/actions/upload-read');
+  describe("multi-user isolation", () => {
+    it("user A cannot see or delete user B uploads", async () => {
+      const { recordUpload, deleteUpload } = await import("@/actions/upload");
+      const { getUploads } = await import("@/actions/upload-read");
 
       const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const hashA = await hashUserId(USER_ID, salt);
@@ -194,8 +189,8 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(USER_ID);
       const recordA = await recordUpload({
         key: `${hashA}/20260212/user-a-file.png`,
-        fileName: 'user-a.png',
-        fileType: 'image/png',
+        fileName: "user-a.png",
+        fileType: "image/png",
         fileSize: 512,
         publicUrl: `https://s.zhe.to/${hashA}/20260212/user-a-file.png`,
       });
@@ -206,8 +201,8 @@ describe('Upload E2E — full lifecycle', () => {
       authenticatedAs(OTHER_USER_ID);
       const recordB = await recordUpload({
         key: `${hashB}/20260212/user-b-file.pdf`,
-        fileName: 'user-b.pdf',
-        fileType: 'application/pdf',
+        fileName: "user-b.pdf",
+        fileType: "application/pdf",
         fileSize: 4096,
         publicUrl: `https://s.zhe.to/${hashB}/20260212/user-b-file.pdf`,
       });
@@ -216,19 +211,19 @@ describe('Upload E2E — full lifecycle', () => {
       // User B lists — should only see their own
       const listB = await getUploads();
       expect(listB.data).toHaveLength(1);
-      expect(unwrap(unwrap(listB.data)[0]).fileName).toBe('user-b.pdf');
+      expect(unwrap(unwrap(listB.data)[0]).fileName).toBe("user-b.pdf");
 
       // User B tries to delete User A's upload — should fail
       const deleteAttempt = await deleteUpload(uploadAId);
       expect(deleteAttempt.success).toBe(false);
-      expect(deleteAttempt.error).toBe('Upload not found or access denied');
+      expect(deleteAttempt.error).toBe("Upload not found or access denied");
       expect(mockDeleteR2Object).not.toHaveBeenCalled();
 
       // Switch to User A — their upload should still exist
       authenticatedAs(USER_ID);
       const listA = await getUploads();
       expect(listA.data).toHaveLength(1);
-      expect(unwrap(unwrap(listA.data)[0]).fileName).toBe('user-a.png');
+      expect(unwrap(unwrap(listA.data)[0]).fileName).toBe("user-a.png");
     });
   });
 
@@ -236,14 +231,14 @@ describe('Upload E2E — full lifecycle', () => {
   // Scenario 4: Validation enforcement
   // Server actions should reject invalid file types/sizes.
   // ============================================================
-  describe('validation enforcement', () => {
-    it('accepts any file type (no whitelist)', async () => {
+  describe("validation enforcement", () => {
+    it("accepts any file type (no whitelist)", async () => {
       authenticatedAs(USER_ID);
-      const { getPresignedUploadUrl } = await import('@/actions/upload');
+      const { getPresignedUploadUrl } = await import("@/actions/upload");
 
       const result = await getPresignedUploadUrl({
-        fileName: 'virus.exe',
-        fileType: 'application/x-msdownload',
+        fileName: "virus.exe",
+        fileType: "application/x-msdownload",
         fileSize: 1024,
       });
 
@@ -252,33 +247,33 @@ describe('Upload E2E — full lifecycle', () => {
       expect(mockCreatePresignedUploadUrl).toHaveBeenCalled();
     });
 
-    it('rejects files exceeding size limit', async () => {
+    it("rejects files exceeding size limit", async () => {
       authenticatedAs(USER_ID);
-      const { getPresignedUploadUrl } = await import('@/actions/upload');
+      const { getPresignedUploadUrl } = await import("@/actions/upload");
 
       const result = await getPresignedUploadUrl({
-        fileName: 'huge.png',
-        fileType: 'image/png',
+        fileName: "huge.png",
+        fileType: "image/png",
         fileSize: 11 * 1024 * 1024, // 11MB
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('exceeds');
+      expect(result.error).toContain("exceeds");
       expect(mockCreatePresignedUploadUrl).not.toHaveBeenCalled();
     });
 
-    it('rejects zero-size files', async () => {
+    it("rejects zero-size files", async () => {
       authenticatedAs(USER_ID);
-      const { getPresignedUploadUrl } = await import('@/actions/upload');
+      const { getPresignedUploadUrl } = await import("@/actions/upload");
 
       const result = await getPresignedUploadUrl({
-        fileName: 'empty.png',
-        fileType: 'image/png',
+        fileName: "empty.png",
+        fileType: "image/png",
         fileSize: 0,
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields');
+      expect(result.error).toContain("Missing required fields");
     });
   });
 
@@ -286,22 +281,22 @@ describe('Upload E2E — full lifecycle', () => {
   // Scenario 5: Multiple uploads ordering
   // Uploads should be returned newest-first.
   // ============================================================
-  describe('upload ordering', () => {
-    it('returns uploads in reverse chronological order', async () => {
+  describe("upload ordering", () => {
+    it("returns uploads in reverse chronological order", async () => {
       authenticatedAs(USER_ID);
-      const { recordUpload } = await import('@/actions/upload');
-      const { getUploads } = await import('@/actions/upload-read');
+      const { recordUpload } = await import("@/actions/upload");
+      const { getUploads } = await import("@/actions/upload-read");
 
       const salt = unwrap(process.env.R2_USER_HASH_SALT);
       const userHash = await hashUserId(USER_ID, salt);
 
       // Create 3 uploads
-      const files = ['first.png', 'second.png', 'third.png'];
+      const files = ["first.png", "second.png", "third.png"];
       for (const fileName of files) {
         await recordUpload({
           key: `${userHash}/20260212/${fileName}`,
           fileName,
-          fileType: 'image/png',
+          fileType: "image/png",
           fileSize: 1024,
           publicUrl: `https://s.zhe.to/${userHash}/20260212/${fileName}`,
         });
@@ -312,7 +307,7 @@ describe('Upload E2E — full lifecycle', () => {
 
       // Should be in reverse order (newest first)
       const fileNames = unwrap(listResult.data).map((u) => u.fileName);
-      expect(fileNames).toEqual(['third.png', 'second.png', 'first.png']);
+      expect(fileNames).toEqual(["third.png", "second.png", "first.png"]);
     });
   });
 });

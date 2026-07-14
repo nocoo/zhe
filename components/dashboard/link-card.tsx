@@ -1,16 +1,15 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
-import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
-
-import { InlineEditArea } from "./link-card-parts/inline-edit-area";
-import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
+import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { GridView } from "./link-card-parts/grid-view";
+import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
+import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
 
 type ViewMode = "list" | "grid";
 
@@ -39,10 +38,7 @@ function useCardDisplay(
   linkTags: NonNullable<LinkCardProps["linkTags"]>,
   faviconError: boolean,
 ) {
-  const assignedTagIds = useMemo(
-    () => new Set(linkTags.map((lt) => lt.tagId)),
-    [linkTags],
-  );
+  const assignedTagIds = useMemo(() => new Set(linkTags.map((lt) => lt.tagId)), [linkTags]);
   const cardTags = tags.filter((t) => assignedTagIds.has(t.id));
   const hostname = extractHostname(link.originalUrl);
   return {
@@ -102,32 +98,39 @@ export const LinkCard = memo(function LinkCard({
     onRefreshMetadata: vm.handleRefreshMetadata,
   };
 
-  const editArea = isEditing && editCallbacks ? (
-    <InlineEditArea
-      link={link}
-      tags={tags}
-      linkTags={linkTags}
-      folders={folders}
-      editCallbacks={editCallbacks}
-      isDeleting={vm.isDeleting}
-      handleDelete={vm.handleDelete}
-      defaultEditing={defaultEditing}
-      onCloseEdit={() => setIsEditing(false)}
-    />
-  ) : null;
+  const editArea =
+    isEditing && editCallbacks ? (
+      <InlineEditArea
+        link={link}
+        tags={tags}
+        linkTags={linkTags}
+        folders={folders}
+        editCallbacks={editCallbacks}
+        isDeleting={vm.isDeleting}
+        handleDelete={vm.handleDelete}
+        defaultEditing={defaultEditing}
+        onCloseEdit={() => setIsEditing(false)}
+      />
+    ) : null;
 
   const sourceDialog = (
     <ScreenshotSourceDialog
       open={previewDialogOpen}
       onOpenChange={setPreviewDialogOpen}
-      onSelect={(source) => { setPreviewDialogOpen(false); vm.handleFetchPreview(source); }}
+      onSelect={(source) => {
+        setPreviewDialogOpen(false);
+        vm.handleFetchPreview(source);
+      }}
       isFetching={vm.isFetchingPreview}
     />
   );
 
   if (viewMode === "grid") {
     return (
-      <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70">
+      <div
+        data-testid="link-card"
+        className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
+      >
         <GridView {...sharedViewProps} />
         {editArea}
         {sourceDialog}
@@ -136,7 +139,10 @@ export const LinkCard = memo(function LinkCard({
   }
 
   return (
-    <div data-testid="link-card" className="group rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70">
+    <div
+      data-testid="link-card"
+      className="group rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
+    >
       <ListView
         {...sharedViewProps}
         isEditing={isEditing}

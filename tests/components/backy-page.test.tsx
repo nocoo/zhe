@@ -1,17 +1,18 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { BackyPage } from '@/components/dashboard/backy-page';
-import type { BackyPushDetail } from '@/models/backy';
+
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BackyPage } from "@/components/dashboard/backy-page";
+import type { BackyPushDetail } from "@/models/backy";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
 const mockCopyToClipboard = vi.fn();
-vi.mock('@/lib/utils', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/utils')>();
+vi.mock("@/lib/utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/utils")>();
   return {
     ...actual,
     copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
@@ -30,9 +31,9 @@ const mockBackyHandleGeneratePull = vi.fn();
 const mockBackyHandleRevokePull = vi.fn();
 
 const mockBackyViewModel = {
-  webhookUrl: '',
+  webhookUrl: "",
   setWebhookUrl: vi.fn(),
-  apiKey: '',
+  apiKey: "",
   setApiKey: vi.fn(),
   maskedApiKey: null as string | null,
   isConfigured: false,
@@ -42,10 +43,22 @@ const mockBackyViewModel = {
   isTesting: false,
   isPushing: false,
   isLoadingHistory: false,
-  environment: 'dev' as 'prod' | 'dev',
+  environment: "dev" as "prod" | "dev",
   testResult: null as { ok: boolean; message: string } | null,
   pushResult: null as BackyPushDetail | null,
-  history: null as { project_name: string; environment: string | null; total_backups: number; recent_backups: { id: string; tag: string; environment: string; file_size: number; is_single_json: number; created_at: string }[] } | null,
+  history: null as {
+    project_name: string;
+    environment: string | null;
+    total_backups: number;
+    recent_backups: {
+      id: string;
+      tag: string;
+      environment: string;
+      file_size: number;
+      is_single_json: number;
+      created_at: string;
+    }[];
+  } | null,
   error: null as string | null,
   pullKey: null as string | null,
   isGeneratingPull: false,
@@ -62,7 +75,7 @@ const mockBackyViewModel = {
   handleRevokePull: mockBackyHandleRevokePull,
 };
 
-vi.mock('@/viewmodels/useBackyViewModel', () => ({
+vi.mock("@/viewmodels/useBackyViewModel", () => ({
   useBackyViewModel: () => mockBackyViewModel,
 }));
 
@@ -70,11 +83,11 @@ vi.mock('@/viewmodels/useBackyViewModel', () => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('BackyPage', () => {
+describe("BackyPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockBackyViewModel.webhookUrl = '';
-    mockBackyViewModel.apiKey = '';
+    mockBackyViewModel.webhookUrl = "";
+    mockBackyViewModel.apiKey = "";
     mockBackyViewModel.maskedApiKey = null;
     mockBackyViewModel.isConfigured = false;
     mockBackyViewModel.isEditing = false;
@@ -83,7 +96,7 @@ describe('BackyPage', () => {
     mockBackyViewModel.isTesting = false;
     mockBackyViewModel.isPushing = false;
     mockBackyViewModel.isLoadingHistory = false;
-    mockBackyViewModel.environment = 'dev';
+    mockBackyViewModel.environment = "dev";
     mockBackyViewModel.testResult = null;
     mockBackyViewModel.pushResult = null;
     mockBackyViewModel.history = null;
@@ -93,364 +106,364 @@ describe('BackyPage', () => {
     mockBackyViewModel.isRevokingPull = false;
   });
 
-  it('renders page heading', () => {
+  it("renders page heading", () => {
     render(<BackyPage />);
 
-    expect(screen.getByText('远程备份')).toBeInTheDocument();
+    expect(screen.getByText("远程备份")).toBeInTheDocument();
   });
 
-  it('shows loading state', () => {
+  it("shows loading state", () => {
     mockBackyViewModel.isLoading = true;
     render(<BackyPage />);
 
     // Both cards show loading state
-    const loadingTexts = screen.getAllByText('加载中...');
+    const loadingTexts = screen.getAllByText("加载中...");
     expect(loadingTexts).toHaveLength(2);
   });
 
-  it('shows config form when not configured', () => {
+  it("shows config form when not configured", () => {
     mockBackyViewModel.isConfigured = false;
     render(<BackyPage />);
 
-    expect(screen.getByTestId('backy-webhook-url')).toBeInTheDocument();
-    expect(screen.getByTestId('backy-api-key')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /保存/ })).toBeInTheDocument();
+    expect(screen.getByTestId("backy-webhook-url")).toBeInTheDocument();
+    expect(screen.getByTestId("backy-api-key")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /保存/ })).toBeInTheDocument();
   });
 
-  it('shows save button disabled when saving', () => {
+  it("shows save button disabled when saving", () => {
     mockBackyViewModel.isConfigured = false;
     mockBackyViewModel.isSaving = true;
     render(<BackyPage />);
 
-    const saveBtn = screen.getByRole('button', { name: /保存/ });
+    const saveBtn = screen.getByRole("button", { name: /保存/ });
     expect(saveBtn).toBeDisabled();
   });
 
-  it('shows error message', () => {
+  it("shows error message", () => {
     mockBackyViewModel.isConfigured = false;
-    mockBackyViewModel.error = 'Webhook URL 格式无效';
+    mockBackyViewModel.error = "Webhook URL 格式无效";
     render(<BackyPage />);
 
-    expect(screen.getByTestId('backy-error')).toHaveTextContent('Webhook URL 格式无效');
+    expect(screen.getByTestId("backy-error")).toHaveTextContent("Webhook URL 格式无效");
   });
 
-  it('calls handleSave when save button clicked', () => {
+  it("calls handleSave when save button clicked", () => {
     mockBackyViewModel.isConfigured = false;
     render(<BackyPage />);
 
-    const saveBtn = screen.getByRole('button', { name: /保存/ });
+    const saveBtn = screen.getByRole("button", { name: /保存/ });
     fireEvent.click(saveBtn);
 
     expect(mockBackyHandleSave).toHaveBeenCalled();
   });
 
-  it('shows cancel button in edit mode', () => {
+  it("shows cancel button in edit mode", () => {
     mockBackyViewModel.isConfigured = true;
     mockBackyViewModel.isEditing = true;
     render(<BackyPage />);
 
-    const cancelBtn = screen.getByRole('button', { name: /取消/ });
+    const cancelBtn = screen.getByRole("button", { name: /取消/ });
     fireEvent.click(cancelBtn);
 
     expect(mockBackyCancelEditing).toHaveBeenCalled();
   });
 
-  it('shows environment badge when configured', () => {
+  it("shows environment badge when configured", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.environment = 'dev';
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.environment = "dev";
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    expect(screen.getByText('dev')).toBeInTheDocument();
+    expect(screen.getByText("dev")).toBeInTheDocument();
   });
 
-  it('shows prod badge for production environment', () => {
+  it("shows prod badge for production environment", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.environment = 'prod';
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.environment = "prod";
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    expect(screen.getByText('prod')).toBeInTheDocument();
+    expect(screen.getByText("prod")).toBeInTheDocument();
   });
 
-  it('shows configured state with action buttons', () => {
+  it("shows configured state with action buttons", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    expect(screen.getByText('https://backy.example.com/webhook')).toBeInTheDocument();
-    expect(screen.getByText('sk-1••••cdef')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /测试连接/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /推送备份/ })).toBeInTheDocument();
+    expect(screen.getByText("https://backy.example.com/webhook")).toBeInTheDocument();
+    expect(screen.getByText("sk-1••••cdef")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /测试连接/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /推送备份/ })).toBeInTheDocument();
     // History section is always visible with refresh button
-    expect(screen.getByRole('button', { name: /刷新历史/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /刷新历史/ })).toBeInTheDocument();
   });
 
-  it('calls handleTest when test button clicked', () => {
+  it("calls handleTest when test button clicked", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /测试连接/ }));
+    fireEvent.click(screen.getByRole("button", { name: /测试连接/ }));
     expect(mockBackyHandleTest).toHaveBeenCalled();
   });
 
-  it('calls handlePush when push button clicked', () => {
+  it("calls handlePush when push button clicked", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /推送备份/ }));
+    fireEvent.click(screen.getByRole("button", { name: /推送备份/ }));
     expect(mockBackyHandlePush).toHaveBeenCalled();
   });
 
-  it('calls handleLoadHistory when refresh button clicked', () => {
+  it("calls handleLoadHistory when refresh button clicked", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /刷新历史/ }));
+    fireEvent.click(screen.getByRole("button", { name: /刷新历史/ }));
     expect(mockBackyHandleLoadHistory).toHaveBeenCalled();
   });
 
-  it('calls startEditing when edit button clicked', () => {
+  it("calls startEditing when edit button clicked", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     render(<BackyPage />);
 
-    const editBtn = screen.getByRole('button', { name: /编辑配置/ });
+    const editBtn = screen.getByRole("button", { name: /编辑配置/ });
     fireEvent.click(editBtn);
 
     expect(mockBackyStartEditing).toHaveBeenCalled();
   });
 
-  it('shows test result (success) in green box', () => {
+  it("shows test result (success) in green box", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
-    mockBackyViewModel.testResult = { ok: true, message: '连接成功' };
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
+    mockBackyViewModel.testResult = { ok: true, message: "连接成功" };
     render(<BackyPage />);
 
-    const testResult = screen.getByTestId('backy-test-result');
-    expect(testResult).toHaveTextContent('连接成功');
-    expect(testResult.className).toContain('border-success/20');
+    const testResult = screen.getByTestId("backy-test-result");
+    expect(testResult).toHaveTextContent("连接成功");
+    expect(testResult.className).toContain("border-success/20");
   });
 
-  it('shows test result (failure) in red box with alert icon', () => {
+  it("shows test result (failure) in red box with alert icon", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
-    mockBackyViewModel.testResult = { ok: false, message: '连接失败 (401)' };
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
+    mockBackyViewModel.testResult = { ok: false, message: "连接失败 (401)" };
     render(<BackyPage />);
 
-    const testResult = screen.getByTestId('backy-test-result');
-    expect(testResult).toHaveTextContent('连接失败 (401)');
-    expect(testResult.className).toContain('border-destructive/20');
+    const testResult = screen.getByTestId("backy-test-result");
+    expect(testResult).toHaveTextContent("连接失败 (401)");
+    expect(testResult.className).toContain("border-destructive/20");
   });
 
-  it('shows push result with detailed info', () => {
+  it("shows push result with detailed info", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.pushResult = {
       ok: true,
-      message: '推送成功 (150ms)',
+      message: "推送成功 (150ms)",
       durationMs: 150,
       request: {
-        tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
-        fileName: 'zhe-backup-2026-02-24.json',
+        tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
+        fileName: "zhe-backup-2026-02-24.json",
         fileSizeBytes: 1024,
         backupStats: { links: 10, folders: 2, tags: 3 },
       },
     };
     render(<BackyPage />);
 
-    const pushResult = screen.getByTestId('backy-push-result');
-    expect(pushResult).toHaveTextContent('推送成功 (150ms)');
-    expect(pushResult).toHaveTextContent('v1.2.3-2026-02-24-10lnk-2fld-3tag');
-    expect(pushResult).toHaveTextContent('1.0 KB');
-    expect(pushResult).toHaveTextContent('链接: 10');
-    expect(pushResult).toHaveTextContent('文件夹: 2');
-    expect(pushResult).toHaveTextContent('标签: 3');
+    const pushResult = screen.getByTestId("backy-push-result");
+    expect(pushResult).toHaveTextContent("推送成功 (150ms)");
+    expect(pushResult).toHaveTextContent("v1.2.3-2026-02-24-10lnk-2fld-3tag");
+    expect(pushResult).toHaveTextContent("1.0 KB");
+    expect(pushResult).toHaveTextContent("链接: 10");
+    expect(pushResult).toHaveTextContent("文件夹: 2");
+    expect(pushResult).toHaveTextContent("标签: 3");
   });
 
-  it('shows push failure with response details', () => {
+  it("shows push failure with response details", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.pushResult = {
       ok: false,
-      message: '推送失败 (413)',
+      message: "推送失败 (413)",
       durationMs: 50,
-      request: { tag: 'v1.2.3', fileName: 'zhe-backup.json', fileSizeBytes: 999, backupStats: {} },
-      response: { status: 413, body: { error: 'too large' } },
+      request: { tag: "v1.2.3", fileName: "zhe-backup.json", fileSizeBytes: 999, backupStats: {} },
+      response: { status: 413, body: { error: "too large" } },
     };
     render(<BackyPage />);
 
-    const pushResult = screen.getByTestId('backy-push-result');
-    expect(pushResult).toHaveTextContent('推送失败 (413)');
-    expect(pushResult).toHaveTextContent('HTTP 413');
-    expect(pushResult.className).toContain('border-destructive/20');
+    const pushResult = screen.getByTestId("backy-push-result");
+    expect(pushResult).toHaveTextContent("推送失败 (413)");
+    expect(pushResult).toHaveTextContent("HTTP 413");
+    expect(pushResult.className).toContain("border-destructive/20");
   });
 
-  it('shows backup history in grid layout', () => {
+  it("shows backup history in grid layout", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.history = {
-      project_name: 'zhe',
+      project_name: "zhe",
       environment: null,
       total_backups: 2,
       recent_backups: [
         {
-          id: '1',
-          tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
-          environment: 'prod',
+          id: "1",
+          tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
+          environment: "prod",
           file_size: 1024,
           is_single_json: 1,
-          created_at: '2026-02-24T00:00:00Z',
+          created_at: "2026-02-24T00:00:00Z",
         },
       ],
     };
     render(<BackyPage />);
 
-    const historySection = screen.getByTestId('backy-history');
+    const historySection = screen.getByTestId("backy-history");
     expect(historySection).toBeInTheDocument();
     // Badge count
-    expect(screen.getByText('2 份')).toBeInTheDocument();
+    expect(screen.getByText("2 份")).toBeInTheDocument();
     // Entry data
-    expect(screen.getByText('v1.2.3-2026-02-24-10lnk-2fld-3tag')).toBeInTheDocument();
-    expect(screen.getByText('1.0 KB')).toBeInTheDocument();
+    expect(screen.getByText("v1.2.3-2026-02-24-10lnk-2fld-3tag")).toBeInTheDocument();
+    expect(screen.getByText("1.0 KB")).toBeInTheDocument();
     // Environment badge on entry
-    expect(screen.getByText('prod')).toBeInTheDocument();
+    expect(screen.getByText("prod")).toBeInTheDocument();
   });
 
-  it('shows empty history message', () => {
+  it("shows empty history message", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.history = {
-      project_name: 'zhe',
+      project_name: "zhe",
       environment: null,
       total_backups: 0,
       recent_backups: [],
     };
     render(<BackyPage />);
 
-    expect(screen.getByText('暂无备份记录')).toBeInTheDocument();
+    expect(screen.getByText("暂无备份记录")).toBeInTheDocument();
   });
 
-  it('disables test button when testing', () => {
+  it("disables test button when testing", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.isTesting = true;
     render(<BackyPage />);
 
-    const testBtn = screen.getByRole('button', { name: /测试连接/ });
+    const testBtn = screen.getByRole("button", { name: /测试连接/ });
     expect(testBtn).toBeDisabled();
   });
 
-  it('disables push button when pushing', () => {
+  it("disables push button when pushing", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.isPushing = true;
     render(<BackyPage />);
 
-    const pushBtn = screen.getByRole('button', { name: /推送备份/ });
+    const pushBtn = screen.getByRole("button", { name: /推送备份/ });
     expect(pushBtn).toBeDisabled();
   });
 
-  it('disables refresh button when loading history', () => {
+  it("disables refresh button when loading history", () => {
     mockBackyViewModel.isConfigured = true;
-    mockBackyViewModel.webhookUrl = 'https://backy.example.com/webhook';
-    mockBackyViewModel.maskedApiKey = 'sk-1••••cdef';
+    mockBackyViewModel.webhookUrl = "https://backy.example.com/webhook";
+    mockBackyViewModel.maskedApiKey = "sk-1••••cdef";
     mockBackyViewModel.isLoadingHistory = true;
     render(<BackyPage />);
 
-    const refreshBtn = screen.getByRole('button', { name: /刷新历史/ });
+    const refreshBtn = screen.getByRole("button", { name: /刷新历史/ });
     expect(refreshBtn).toBeDisabled();
   });
 
   // ==================================================================
   // Pull webhook card
   // ==================================================================
-  it('shows pull webhook generate button when no credentials', () => {
+  it("shows pull webhook generate button when no credentials", () => {
     render(<BackyPage />);
 
-    expect(screen.getByText('拉取 Webhook')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /生成凭证/ })).toBeInTheDocument();
+    expect(screen.getByText("拉取 Webhook")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /生成凭证/ })).toBeInTheDocument();
   });
 
-  it('calls handleGeneratePull when generate button clicked', () => {
+  it("calls handleGeneratePull when generate button clicked", () => {
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /生成凭证/ }));
+    fireEvent.click(screen.getByRole("button", { name: /生成凭证/ }));
     expect(mockBackyHandleGeneratePull).toHaveBeenCalled();
   });
 
-  it('shows pull webhook key when configured', () => {
-    mockBackyViewModel.pullKey = 'test-key-123';
+  it("shows pull webhook key when configured", () => {
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    expect(screen.getByText('test-key-123')).toBeInTheDocument();
-    expect(screen.getByText('X-Webhook-Key')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /重新生成/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /撤销/ })).toBeInTheDocument();
+    expect(screen.getByText("test-key-123")).toBeInTheDocument();
+    expect(screen.getByText("X-Webhook-Key")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新生成/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /撤销/ })).toBeInTheDocument();
   });
 
-  it('shows curl usage example when pull webhook configured', () => {
-    mockBackyViewModel.pullKey = 'test-key-123';
+  it("shows curl usage example when pull webhook configured", () => {
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    expect(screen.getByText('调用示例')).toBeInTheDocument();
+    expect(screen.getByText("调用示例")).toBeInTheDocument();
     // curl example contains the header names (also appear as labels)
     expect(screen.getByText(/curl -X POST/)).toBeInTheDocument();
   });
 
-  it('calls handleRevokePull when revoke button clicked', () => {
-    mockBackyViewModel.pullKey = 'test-key-123';
+  it("calls handleRevokePull when revoke button clicked", () => {
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /撤销/ }));
+    fireEvent.click(screen.getByRole("button", { name: /撤销/ }));
     expect(mockBackyHandleRevokePull).toHaveBeenCalled();
   });
 
-  it('calls handleGeneratePull when regenerate button clicked', () => {
-    mockBackyViewModel.pullKey = 'test-key-123';
+  it("calls handleGeneratePull when regenerate button clicked", () => {
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /重新生成/ }));
+    fireEvent.click(screen.getByRole("button", { name: /重新生成/ }));
     expect(mockBackyHandleGeneratePull).toHaveBeenCalled();
   });
 
-  it('disables generate button when generating', () => {
+  it("disables generate button when generating", () => {
     mockBackyViewModel.isGeneratingPull = true;
     render(<BackyPage />);
 
-    const generateBtn = screen.getByRole('button', { name: /生成凭证/ });
+    const generateBtn = screen.getByRole("button", { name: /生成凭证/ });
     expect(generateBtn).toBeDisabled();
   });
 
-  it('disables revoke button when revoking', () => {
-    mockBackyViewModel.pullKey = 'test-key-123';
+  it("disables revoke button when revoking", () => {
+    mockBackyViewModel.pullKey = "test-key-123";
 
     mockBackyViewModel.isRevokingPull = true;
     render(<BackyPage />);
 
-    const revokeBtn = screen.getByRole('button', { name: /撤销/ });
+    const revokeBtn = screen.getByRole("button", { name: /撤销/ });
     expect(revokeBtn).toBeDisabled();
   });
 
@@ -458,77 +471,77 @@ describe('BackyPage', () => {
   // Input onChange handlers
   // ==================================================================
 
-  it('calls setWebhookUrl when webhook URL input changes', () => {
+  it("calls setWebhookUrl when webhook URL input changes", () => {
     mockBackyViewModel.isConfigured = false;
     render(<BackyPage />);
 
-    const input = screen.getByTestId('backy-webhook-url');
-    fireEvent.change(input, { target: { value: 'https://new-url.com' } });
+    const input = screen.getByTestId("backy-webhook-url");
+    fireEvent.change(input, { target: { value: "https://new-url.com" } });
 
-    expect(mockBackyViewModel.setWebhookUrl).toHaveBeenCalledWith('https://new-url.com');
+    expect(mockBackyViewModel.setWebhookUrl).toHaveBeenCalledWith("https://new-url.com");
   });
 
-  it('calls setApiKey when API key input changes', () => {
+  it("calls setApiKey when API key input changes", () => {
     mockBackyViewModel.isConfigured = false;
     render(<BackyPage />);
 
-    const input = screen.getByTestId('backy-api-key');
-    fireEvent.change(input, { target: { value: 'new-key-123' } });
+    const input = screen.getByTestId("backy-api-key");
+    fireEvent.change(input, { target: { value: "new-key-123" } });
 
-    expect(mockBackyViewModel.setApiKey).toHaveBeenCalledWith('new-key-123');
+    expect(mockBackyViewModel.setApiKey).toHaveBeenCalledWith("new-key-123");
   });
 
   // ==================================================================
   // CopyButton
   // ==================================================================
 
-  it('copies webhook URL when copy button clicked', async () => {
+  it("copies webhook URL when copy button clicked", async () => {
     mockCopyToClipboard.mockResolvedValue(true);
     const user = userEvent.setup();
-    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    const copyBtn = screen.getByRole('button', { name: '复制 Webhook URL' });
+    const copyBtn = screen.getByRole("button", { name: "复制 Webhook URL" });
     await user.click(copyBtn);
 
     expect(mockCopyToClipboard).toHaveBeenCalled();
   });
 
-  it('copies key when copy key button clicked', async () => {
+  it("copies key when copy key button clicked", async () => {
     mockCopyToClipboard.mockResolvedValue(true);
     const user = userEvent.setup();
-    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    const copyBtn = screen.getByRole('button', { name: '复制 Key' });
+    const copyBtn = screen.getByRole("button", { name: "复制 Key" });
     await user.click(copyBtn);
 
-    expect(mockCopyToClipboard).toHaveBeenCalledWith('test-key-123');
+    expect(mockCopyToClipboard).toHaveBeenCalledWith("test-key-123");
   });
 
-  it('shows check icon on copy button after successful copy, then resets', async () => {
+  it("shows check icon on copy button after successful copy, then resets", async () => {
     vi.useFakeTimers();
     mockCopyToClipboard.mockResolvedValue(true);
-    mockBackyViewModel.pullKey = 'test-key-123';
+    mockBackyViewModel.pullKey = "test-key-123";
 
     render(<BackyPage />);
 
-    const copyBtn = screen.getByRole('button', { name: '复制 Key' });
+    const copyBtn = screen.getByRole("button", { name: "复制 Key" });
     await act(async () => {
       fireEvent.click(copyBtn);
     });
 
     // Check icon should appear
-    expect(copyBtn.querySelector('.text-success')).toBeInTheDocument();
+    expect(copyBtn.querySelector(".text-success")).toBeInTheDocument();
 
     // Advance past timeout
     act(() => {
       vi.advanceTimersByTime(900);
     });
 
-    expect(copyBtn.querySelector('.text-success')).not.toBeInTheDocument();
+    expect(copyBtn.querySelector(".text-success")).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 });

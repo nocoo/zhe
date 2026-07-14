@@ -6,8 +6,8 @@
  * goes through the same proxy endpoint the application uses, so tests
  * exercise the production code path end-to-end.
  */
-import { nanoid } from 'nanoid';
-import { unwrap } from '../../test-utils';
+import { nanoid } from "nanoid";
+import { unwrap } from "../../test-utils";
 
 // ---------------------------------------------------------------------------
 // Worker proxy access (must point at the local stack — no remote URLs allowed)
@@ -18,20 +18,20 @@ function proxyCredentials(): { url: string; secret: string } {
   const secret = process.env.D1_PROXY_SECRET;
   if (!url || !secret) {
     throw new Error(
-      'D1_PROXY_URL / D1_PROXY_SECRET not set. The L2 runner (scripts/run-api-e2e.ts) must call applyLocalStackEnv() first.',
+      "D1_PROXY_URL / D1_PROXY_SECRET not set. The L2 runner (scripts/run-api-e2e.ts) must call applyLocalStackEnv() first.",
     );
   }
-  if (!url.includes('127.0.0.1') && !url.includes('localhost')) {
+  if (!url.includes("127.0.0.1") && !url.includes("localhost")) {
     throw new Error(
       `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
-      'Refusing to run destructive seed/teardown against a remote target.',
+        "Refusing to run destructive seed/teardown against a remote target.",
     );
   }
   return { url, secret };
 }
 
 function endpoint(base: string, path: string): string {
-  return base.endsWith('/') ? `${base}${path.replace(/^\//, '')}` : `${base}${path}`;
+  return base.endsWith("/") ? `${base}${path.replace(/^\//, "")}` : `${base}${path}`;
 }
 
 interface D1QueryResponse {
@@ -48,9 +48,9 @@ interface D1BatchResponse {
 
 export async function executeD1(sql: string, params: unknown[] = []): Promise<void> {
   const { url, secret } = proxyCredentials();
-  const res = await fetch(endpoint(url, '/api/d1-query'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+  const res = await fetch(endpoint(url, "/api/d1-query"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
   if (!res.ok) {
@@ -59,7 +59,7 @@ export async function executeD1(sql: string, params: unknown[] = []): Promise<vo
   }
   const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'} (sql: ${sql.slice(0, 80)})`);
+    throw new Error(`D1 proxy error: ${data.error ?? "unknown"} (sql: ${sql.slice(0, 80)})`);
   }
 }
 
@@ -68,9 +68,9 @@ export async function queryD1<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const { url, secret } = proxyCredentials();
-  const res = await fetch(endpoint(url, '/api/d1-query'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+  const res = await fetch(endpoint(url, "/api/d1-query"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
   if (!res.ok) {
@@ -79,16 +79,16 @@ export async function queryD1<T = Record<string, unknown>>(
   }
   const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'} (sql: ${sql.slice(0, 80)})`);
+    throw new Error(`D1 proxy error: ${data.error ?? "unknown"} (sql: ${sql.slice(0, 80)})`);
   }
   return (data.results ?? []) as T[];
 }
 
 async function batchD1(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
   const { url, secret } = proxyCredentials();
-  const res = await fetch(endpoint(url, '/api/d1-batch'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+  const res = await fetch(endpoint(url, "/api/d1-batch"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({ statements }),
   });
   if (!res.ok) {
@@ -97,7 +97,7 @@ async function batchD1(statements: Array<{ sql: string; params?: unknown[] }>): 
   }
   const data = (await res.json()) as D1BatchResponse;
   if (!data.success) {
-    throw new Error(`D1 proxy batch error: ${data.error ?? 'unknown'}`);
+    throw new Error(`D1 proxy batch error: ${data.error ?? "unknown"}`);
   }
 }
 
@@ -106,15 +106,15 @@ async function batchD1(statements: Array<{ sql: string; params?: unknown[] }>): 
 // ---------------------------------------------------------------------------
 
 export const TEST_USER = {
-  id: 'api-e2e-test-user',
-  name: 'API E2E Test User',
-  email: 'api-e2e@test.local',
+  id: "api-e2e-test-user",
+  name: "API E2E Test User",
+  email: "api-e2e@test.local",
 } as const;
 
 /** Ensure the test user exists in D1 (INSERT OR IGNORE). */
 export async function ensureTestUser(): Promise<void> {
   await executeD1(
-    'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+    "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
     [TEST_USER.id, TEST_USER.name, TEST_USER.email],
   );
 }
@@ -124,7 +124,7 @@ export async function ensureTestUser(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /** Generate a unique lowercase slug with a test prefix to avoid collisions. */
-export function testSlug(prefix = 'api-e2e'): string {
+export function testSlug(prefix = "api-e2e"): string {
   return `${prefix}-${nanoid(8)}`.toLowerCase();
 }
 
@@ -138,9 +138,11 @@ export interface SeedLinkOptions {
 }
 
 /** Insert a link into D1 and return the slug + auto-id (single round trip via RETURNING). */
-export async function seedLink(options: SeedLinkOptions = {}): Promise<{ slug: string; id: number }> {
+export async function seedLink(
+  options: SeedLinkOptions = {},
+): Promise<{ slug: string; id: number }> {
   const slug = options.slug ?? testSlug();
-  const originalUrl = options.originalUrl ?? 'https://example.com';
+  const originalUrl = options.originalUrl ?? "https://example.com";
   const userId = options.userId ?? TEST_USER.id;
   const isCustom = options.isCustom ?? true;
   const clicks = options.clicks ?? 0;
@@ -167,16 +169,18 @@ export interface SeedWebhookOptions {
 }
 
 /** Insert a webhook into D1 and return the token. */
-export async function seedWebhook(options: SeedWebhookOptions = {}): Promise<{ token: string; userId: string }> {
+export async function seedWebhook(
+  options: SeedWebhookOptions = {},
+): Promise<{ token: string; userId: string }> {
   const userId = options.userId ?? TEST_USER.id;
   const rateLimit = options.rateLimit ?? 60;
   const token = `wh-${nanoid(16)}`;
   const now = Math.floor(Date.now() / 1000);
 
   // Delete existing webhook for user first (unique constraint on user_id)
-  await executeD1('DELETE FROM webhooks WHERE user_id = ?', [userId]);
+  await executeD1("DELETE FROM webhooks WHERE user_id = ?", [userId]);
   await executeD1(
-    'INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, ?, ?)',
+    "INSERT INTO webhooks (user_id, token, rate_limit, created_at) VALUES (?, ?, ?, ?)",
     [userId, token, rateLimit, now],
   );
 
@@ -194,8 +198,8 @@ export async function seedFolder(name: string, userId?: string): Promise<string>
   const now = Math.floor(Date.now() / 1000);
 
   await executeD1(
-    'INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)',
-    [id, uid, name, 'folder', now],
+    "INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)",
+    [id, uid, name, "folder", now],
   );
 
   return id;
@@ -250,11 +254,14 @@ export interface SeedTagOptions {
 }
 
 /** Insert a tag into D1 and return the tag info. */
-export async function seedTag(userId?: string, options: SeedTagOptions = {}): Promise<{ id: string; name: string }> {
+export async function seedTag(
+  userId?: string,
+  options: SeedTagOptions = {},
+): Promise<{ id: string; name: string }> {
   const uid = userId ?? TEST_USER.id;
   const id = `tag-${nanoid(8)}`;
   const name = options.name ?? `Test Tag ${nanoid(4)}`;
-  const color = options.color ?? '#ff5500';
+  const color = options.color ?? "#ff5500";
   const now = Math.floor(Date.now() / 1000);
 
   await executeD1(
@@ -280,11 +287,14 @@ export interface SeedUploadOptions {
 }
 
 /** Insert an upload into D1 and return the upload info (single round trip via RETURNING). */
-export async function seedUpload(userId?: string, options: SeedUploadOptions = {}): Promise<{ id: number; key: string }> {
+export async function seedUpload(
+  userId?: string,
+  options: SeedUploadOptions = {},
+): Promise<{ id: number; key: string }> {
   const uid = userId ?? TEST_USER.id;
   const key = options.key ?? `test-uploads/${nanoid(8)}.txt`;
-  const fileName = options.fileName ?? 'test-file.txt';
-  const fileType = options.fileType ?? 'text/plain';
+  const fileName = options.fileName ?? "test-file.txt";
+  const fileType = options.fileType ?? "text/plain";
   const fileSize = options.fileSize ?? 1024;
   const publicUrl = options.publicUrl ?? `https://cdn.example.com/${key}`;
   const now = Math.floor(Date.now() / 1000);
@@ -327,16 +337,13 @@ export async function seedIdea(
      RETURNING id`,
     [uid, title, content, excerpt, now, now],
   );
-  if (rows.length === 0) throw new Error('Seeded idea not found');
+  if (rows.length === 0) throw new Error("Seeded idea not found");
   const id = unwrap(rows[0]).id;
 
   // Attach tags if provided
   if (options.tagIds && options.tagIds.length > 0) {
     for (const tagId of options.tagIds) {
-      await executeD1(
-        'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
-        [id, tagId],
-      );
+      await executeD1("INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)", [id, tagId]);
     }
   }
 
@@ -353,20 +360,20 @@ export async function cleanupTestData(userId?: string): Promise<void> {
   // Single round trip via the worker proxy /api/d1-batch endpoint. The proxy
   // is the only D1 path in production, so this also exercises that surface.
   await batchD1([
-    { sql: 'DELETE FROM api_audit_logs WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM api_keys WHERE user_id = ?', params: [uid] },
+    { sql: "DELETE FROM api_audit_logs WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM api_keys WHERE user_id = ?", params: [uid] },
     // idea_tags is cleaned up by CASCADE on ideas delete
-    { sql: 'DELETE FROM ideas WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM tags WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM links WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM folders WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM webhooks WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM uploads WHERE user_id = ?', params: [uid] },
-    { sql: 'DELETE FROM user_settings WHERE user_id = ?', params: [uid] },
+    { sql: "DELETE FROM ideas WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM tags WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM links WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM folders WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM webhooks WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM uploads WHERE user_id = ?", params: [uid] },
+    { sql: "DELETE FROM user_settings WHERE user_id = ?", params: [uid] },
   ]);
   // If a custom user was created, clean it up too
   if (userId && userId !== TEST_USER.id) {
-    await executeD1('DELETE FROM users WHERE id = ?', [uid]);
+    await executeD1("DELETE FROM users WHERE id = ?", [uid]);
   }
 }
 
@@ -378,17 +385,17 @@ export async function resetAndSeedUser(userId: string): Promise<void> {
   const name = `Test User ${userId}`;
   const email = `${userId}@test.local`;
   await batchD1([
-    { sql: 'DELETE FROM api_audit_logs WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM api_keys WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM ideas WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM tags WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM links WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM folders WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM webhooks WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM uploads WHERE user_id = ?', params: [userId] },
-    { sql: 'DELETE FROM user_settings WHERE user_id = ?', params: [userId] },
+    { sql: "DELETE FROM api_audit_logs WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM api_keys WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM ideas WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM tags WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM links WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM folders WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM webhooks WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM uploads WHERE user_id = ?", params: [userId] },
+    { sql: "DELETE FROM user_settings WHERE user_id = ?", params: [userId] },
     {
-      sql: 'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+      sql: "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
       params: [userId, name, email],
     },
   ]);
@@ -398,11 +405,11 @@ export async function resetAndSeedUser(userId: string): Promise<void> {
 // API Key helpers
 // ---------------------------------------------------------------------------
 
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from "node:crypto";
 
 /** Hash an API key using SHA-256 (matches models/api-key.ts). */
 function hashApiKey(key: string): string {
-  return createHash('sha256').update(key).digest('hex');
+  return createHash("sha256").update(key).digest("hex");
 }
 
 export interface SeedApiKeyOptions {
@@ -415,11 +422,11 @@ export interface SeedApiKeyOptions {
  * This is the only time the full key is available.
  */
 export async function seedApiKey(userId: string, options: SeedApiKeyOptions = {}): Promise<string> {
-  const name = options.name ?? 'Test API Key';
-  const scopes = options.scopes ?? 'links:read,links:write';
+  const name = options.name ?? "Test API Key";
+  const scopes = options.scopes ?? "links:read,links:write";
 
   // Generate a full API key
-  const randomPart = randomBytes(24).toString('base64url');
+  const randomPart = randomBytes(24).toString("base64url");
   const fullKey = `zhe_${randomPart}`;
   const prefix = fullKey.substring(0, 12);
   const keyHash = hashApiKey(fullKey);
@@ -441,7 +448,7 @@ export async function seedApiKey(userId: string, options: SeedApiKeyOptions = {}
  */
 export async function seedTestUser(userId: string): Promise<void> {
   await executeD1(
-    'INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)',
+    "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
     [userId, `Test User ${userId}`, `${userId}@test.local`],
   );
 }

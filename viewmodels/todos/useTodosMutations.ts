@@ -1,14 +1,8 @@
 "use client";
 
-import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useState } from "react";
+import { createTodo, deleteTodo, moveTodo, reorderTodoSiblings, updateTodo } from "@/actions/todos";
 import type { MoveTodoResult, TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
-import {
-  createTodo,
-  deleteTodo,
-  moveTodo,
-  reorderTodoSiblings,
-  updateTodo,
-} from "@/actions/todos";
 
 /**
  * Optimistic-first CRUD + move + reorder for the todo tree.
@@ -25,27 +19,28 @@ import {
  * the tree must snap back to the pre-drag state instead of freezing in a
  * half-applied position.
  */
-export function useTodosMutations(
-  setTodos: Dispatch<SetStateAction<TodoTreeNode[]>>,
-) {
+export function useTodosMutations(setTodos: Dispatch<SetStateAction<TodoTreeNode[]>>) {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const projectDetail = useCallback((detail: TodoDetail): TodoTreeNode => ({
-    id: detail.id,
-    parentId: detail.parentId,
-    position: detail.position,
-    title: detail.title,
-    done: detail.done,
-    hasContent: detail.hasContent,
-    excerpt: detail.excerpt,
-    tagNames: detail.tagNames,
-    dueAt: detail.dueAt,
-    emoji: detail.emoji,
-    createdAt: detail.createdAt,
-    updatedAt: detail.updatedAt,
-  }), []);
+  const projectDetail = useCallback(
+    (detail: TodoDetail): TodoTreeNode => ({
+      id: detail.id,
+      parentId: detail.parentId,
+      position: detail.position,
+      title: detail.title,
+      done: detail.done,
+      hasContent: detail.hasContent,
+      excerpt: detail.excerpt,
+      tagNames: detail.tagNames,
+      dueAt: detail.dueAt,
+      emoji: detail.emoji,
+      createdAt: detail.createdAt,
+      updatedAt: detail.updatedAt,
+    }),
+    [],
+  );
 
   const handleCreateTodo = useCallback(
     async (input: Parameters<typeof createTodo>[0]) => {

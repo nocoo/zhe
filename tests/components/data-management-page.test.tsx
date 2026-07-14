@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { DataManagementPage } from '@/components/dashboard/data-management-page';
-import type { ImportResult } from '@/actions/settings';
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ImportResult } from "@/actions/settings";
+import { DataManagementPage } from "@/components/dashboard/data-management-page";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -21,7 +22,7 @@ const mockViewModel = {
   clearImportResult: mockClearImportResult,
 };
 
-vi.mock('@/viewmodels/useSettingsViewModel', () => ({
+vi.mock("@/viewmodels/useSettingsViewModel", () => ({
   useSettingsViewModel: () => mockViewModel,
 }));
 
@@ -29,7 +30,7 @@ vi.mock('@/viewmodels/useSettingsViewModel', () => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('DataManagementPage', () => {
+describe("DataManagementPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockViewModel.isExporting = false;
@@ -37,71 +38,71 @@ describe('DataManagementPage', () => {
     mockViewModel.importResult = null;
   });
 
-  it('renders page sections', () => {
+  it("renders page sections", () => {
     render(<DataManagementPage />);
 
-    expect(screen.getByText('数据导出')).toBeInTheDocument();
-    expect(screen.getByText('数据导入')).toBeInTheDocument();
+    expect(screen.getByText("数据导出")).toBeInTheDocument();
+    expect(screen.getByText("数据导入")).toBeInTheDocument();
   });
 
-  it('renders export button', () => {
+  it("renders export button", () => {
     render(<DataManagementPage />);
 
-    const exportBtn = screen.getByRole('button', { name: /导出/ });
+    const exportBtn = screen.getByRole("button", { name: /导出/ });
     expect(exportBtn).toBeInTheDocument();
   });
 
-  it('calls handleExport when export button clicked', () => {
+  it("calls handleExport when export button clicked", () => {
     render(<DataManagementPage />);
 
-    const exportBtn = screen.getByRole('button', { name: /导出/ });
+    const exportBtn = screen.getByRole("button", { name: /导出/ });
     fireEvent.click(exportBtn);
 
     expect(mockHandleExport).toHaveBeenCalled();
   });
 
-  it('disables export button when exporting', () => {
+  it("disables export button when exporting", () => {
     mockViewModel.isExporting = true;
     render(<DataManagementPage />);
 
-    const exportBtn = screen.getByRole('button', { name: /导出/ });
+    const exportBtn = screen.getByRole("button", { name: /导出/ });
     expect(exportBtn).toBeDisabled();
   });
 
-  it('shows exporting text when exporting', () => {
+  it("shows exporting text when exporting", () => {
     mockViewModel.isExporting = true;
     render(<DataManagementPage />);
 
-    expect(screen.getByText('导出中...')).toBeInTheDocument();
+    expect(screen.getByText("导出中...")).toBeInTheDocument();
   });
 
-  it('renders import file input', () => {
+  it("renders import file input", () => {
     render(<DataManagementPage />);
 
-    const fileInput = screen.getByTestId('import-file-input');
+    const fileInput = screen.getByTestId("import-file-input");
     expect(fileInput).toBeInTheDocument();
-    expect(fileInput).toHaveAttribute('accept', '.json');
+    expect(fileInput).toHaveAttribute("accept", ".json");
   });
 
-  it('calls handleImport when file selected', () => {
+  it("calls handleImport when file selected", () => {
     render(<DataManagementPage />);
 
-    const fileInput = screen.getByTestId('import-file-input');
-    const file = new File(['[]'], 'links.json', { type: 'application/json' });
+    const fileInput = screen.getByTestId("import-file-input");
+    const file = new File(["[]"], "links.json", { type: "application/json" });
 
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     expect(mockHandleImport).toHaveBeenCalledWith(file);
   });
 
-  it('disables import when importing', () => {
+  it("disables import when importing", () => {
     mockViewModel.isImporting = true;
     render(<DataManagementPage />);
 
-    expect(screen.getByText('导入中...')).toBeInTheDocument();
+    expect(screen.getByText("导入中...")).toBeInTheDocument();
   });
 
-  it('shows import result when available', () => {
+  it("shows import result when available", () => {
     mockViewModel.importResult = { created: 5, skipped: 2 };
     render(<DataManagementPage />);
 
@@ -109,32 +110,32 @@ describe('DataManagementPage', () => {
     expect(screen.getByText(/2/)).toBeInTheDocument();
   });
 
-  it('shows dismiss button for import result', () => {
+  it("shows dismiss button for import result", () => {
     mockViewModel.importResult = { created: 3, skipped: 0 };
     render(<DataManagementPage />);
 
-    const dismissBtn = screen.getByRole('button', { name: /确定/ });
+    const dismissBtn = screen.getByRole("button", { name: /确定/ });
     fireEvent.click(dismissBtn);
 
     expect(mockClearImportResult).toHaveBeenCalled();
   });
 
-  it('resets file input after file selection (onFileChange)', () => {
+  it("resets file input after file selection (onFileChange)", () => {
     render(<DataManagementPage />);
 
-    const fileInput = screen.getByTestId('import-file-input') as HTMLInputElement;
-    const file = new File(['{}'], 'data.json', { type: 'application/json' });
+    const fileInput = screen.getByTestId("import-file-input") as HTMLInputElement;
+    const file = new File(["{}"], "data.json", { type: "application/json" });
 
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     expect(mockHandleImport).toHaveBeenCalledWith(file);
-    expect(fileInput.value).toBe('');
+    expect(fileInput.value).toBe("");
   });
 
-  it('does not call handleImport when no file selected (onFileChange)', () => {
+  it("does not call handleImport when no file selected (onFileChange)", () => {
     render(<DataManagementPage />);
 
-    const fileInput = screen.getByTestId('import-file-input');
+    const fileInput = screen.getByTestId("import-file-input");
 
     fireEvent.change(fileInput, { target: { files: [] } });
 

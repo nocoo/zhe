@@ -1,7 +1,13 @@
 // Pure type definitions — no React, no server dependencies.
 // Re-exports DB schema types for convenience and adds UI-specific types.
 
-import type { Link as DBLink, Folder as DBFolder, Tag as DBTag, LinkTag as DBLinkTag, UserSettings as DBUserSettings } from "@/lib/db/schema";
+import type {
+  Folder as DBFolder,
+  Link as DBLink,
+  LinkTag as DBLinkTag,
+  Tag as DBTag,
+  UserSettings as DBUserSettings,
+} from "@/lib/db/schema";
 
 /** Link type re-exported from schema */
 export type Link = DBLink;
@@ -26,4 +32,3 @@ export interface AnalyticsStats {
   browserBreakdown: Record<string, number>;
   osBreakdown: Record<string, number>;
 }
-

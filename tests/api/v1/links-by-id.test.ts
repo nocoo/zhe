@@ -5,9 +5,9 @@
  * isolated test user.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, executeD1, resetAndSeedUser, seedApiKey, seedTag } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -20,7 +20,7 @@ describe("/api/v1/links/[id]", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "links:read" }),
     ]);
   });
 
@@ -45,10 +45,7 @@ describe("/api/v1/links/[id]", () => {
     });
 
     it("returns 400 for invalid link ID", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/not-a-number`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/not-a-number`, apiKeyReadOnly);
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -56,10 +53,7 @@ describe("/api/v1/links/[id]", () => {
     });
 
     it("returns 404 for non-existent link", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/999999999`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/999999999`, apiKeyReadOnly);
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -67,10 +61,7 @@ describe("/api/v1/links/[id]", () => {
     });
 
     it("returns link details with correct structure", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -94,8 +85,14 @@ describe("/api/v1/links/[id]", () => {
       const { link: created } = await createResponse.json();
 
       // Seed two tags and attach them via PATCH addTags
-      const tagA = await seedTag(TEST_USER_ID, { name: `get-tag-a-${Date.now()}`, color: "#ff0000" });
-      const tagB = await seedTag(TEST_USER_ID, { name: `get-tag-b-${Date.now()}`, color: "#00ff00" });
+      const tagA = await seedTag(TEST_USER_ID, {
+        name: `get-tag-a-${Date.now()}`,
+        color: "#ff0000",
+      });
+      const tagB = await seedTag(TEST_USER_ID, {
+        name: `get-tag-b-${Date.now()}`,
+        color: "#00ff00",
+      });
 
       const patchResponse = await authenticatedFetch(
         `${API_URL}/${created.id}`,
@@ -112,10 +109,7 @@ describe("/api/v1/links/[id]", () => {
       expect(patchBody.link.tags).toHaveLength(2);
 
       // Now GET the link and assert tags are present with id/name/color
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${created.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${created.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(200);
       const getBody = await getResponse.json();
       expect(Array.isArray(getBody.link.tags)).toBe(true);
@@ -147,21 +141,17 @@ describe("/api/v1/links/[id]", () => {
       });
       const { link } = await createResponse.json();
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${link.id}`,
-        apiKeyReadOnly,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${link.id}`, apiKeyReadOnly, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent link", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/999999999`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/999999999`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(404);
     });
@@ -187,12 +177,8 @@ describe("/api/v1/links/[id]", () => {
       expect(body.success).toBe(true);
 
       // Verify it's gone
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${link.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${link.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(404);
     });
   });
-
 });

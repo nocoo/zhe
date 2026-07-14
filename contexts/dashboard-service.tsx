@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-} from "react";
-import type { Link, Folder, Tag, LinkTag } from "@/models/types";
+import { createContext, useContext, useMemo } from "react";
 import type { IdeaListItem, TodoTreeNode } from "@/lib/db/scoped";
+import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
 import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
 import { useTodosSlice } from "./dashboard-service-parts/useTodosSlice";
@@ -104,8 +100,7 @@ export function DashboardServiceProvider({
   const core = useDashboardCore(initialFolders);
   const ideasSlice = useIdeasSlice();
   const todosSlice = useTodosSlice();
-  const siteUrl =
-    typeof window !== "undefined" ? window.location.origin : "";
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   // ── Stable state value (changes when data changes) ──
   const stateValue = useMemo<DashboardState>(
@@ -166,9 +161,7 @@ export function DashboardServiceProvider({
 
   return (
     <DashboardActionsContext.Provider value={actionsValue}>
-      <DashboardStateContext.Provider value={stateValue}>
-        {children}
-      </DashboardStateContext.Provider>
+      <DashboardStateContext.Provider value={stateValue}>{children}</DashboardStateContext.Provider>
     </DashboardActionsContext.Provider>
   );
 }
@@ -179,9 +172,7 @@ export function DashboardServiceProvider({
 export function useDashboardState(): DashboardState {
   const ctx = useContext(DashboardStateContext);
   if (!ctx) {
-    throw new Error(
-      "useDashboardState must be used within a DashboardServiceProvider",
-    );
+    throw new Error("useDashboardState must be used within a DashboardServiceProvider");
   }
   return ctx;
 }
@@ -190,9 +181,7 @@ export function useDashboardState(): DashboardState {
 export function useDashboardActions(): DashboardActions {
   const ctx = useContext(DashboardActionsContext);
   if (!ctx) {
-    throw new Error(
-      "useDashboardActions must be used within a DashboardServiceProvider",
-    );
+    throw new Error("useDashboardActions must be used within a DashboardServiceProvider");
   }
   return ctx;
 }

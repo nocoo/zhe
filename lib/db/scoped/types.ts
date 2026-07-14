@@ -4,17 +4,17 @@
  */
 
 /** Sort field for links. */
-export type LinkSortField = 'created' | 'clicks';
+export type LinkSortField = "created" | "clicks";
 
 /** Sort order. */
-export type SortOrder = 'asc' | 'desc';
+export type SortOrder = "asc" | "desc";
 
 /** Filter options for getLinks. */
 export interface GetLinksOptions {
   /** Keyword search across slug, originalUrl, note, metaTitle, metaDescription */
   query?: string;
   /** Filter by folder ID. Use 'inbox' for links with no folder (folder_id IS NULL) */
-  folderId?: string | 'inbox';
+  folderId?: string | "inbox";
   /** Filter by tag ID */
   tagId?: string;
   /** Sort by field (default: created) */
@@ -135,24 +135,24 @@ export interface MoveTodoResult {
  * server-action layer maps this to `ActionResult.error`.
  */
 export class TodoMoveConflictError extends Error {
-  constructor(message = 'Move conflicted or invalid') {
+  constructor(message = "Move conflicted or invalid") {
     super(message);
-    this.name = 'TodoMoveConflictError';
+    this.name = "TodoMoveConflictError";
   }
 }
 
 /** Thrown when a todo id is not found (or belongs to another user). */
 export class TodoNotFoundError extends Error {
-  constructor(message = 'Todo not found') {
+  constructor(message = "Todo not found") {
     super(message);
-    this.name = 'TodoNotFoundError';
+    this.name = "TodoNotFoundError";
   }
 }
 
 /** Thrown when a create/move would breach MAX_TODO_DEPTH. */
 export class TodoDepthExceededError extends Error {
-  constructor(message = 'Todo depth would exceed the maximum') {
+  constructor(message = "Todo depth would exceed the maximum") {
     super(message);
-    this.name = 'TodoDepthExceededError';
+    this.name = "TodoDepthExceededError";
   }
 }

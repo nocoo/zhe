@@ -95,13 +95,21 @@
 }
 
 @keyframes accordion-down {
-  from { height: 0; }
-  to { height: var(--radix-accordion-content-height); }
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
 }
 
 @keyframes accordion-up {
-  from { height: var(--radix-accordion-content-height); }
-  to { height: 0; }
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 @keyframes fade-up {
@@ -224,18 +232,18 @@
    * 8 (orange), chosen to be roughly equidistant on the wheel.
    * Neutral grays are NOT in this scale — use --chart-axis /
    * --chart-muted for axes, gridlines, and tertiary tracks. */
-  --chart-1: 262 83% 58%;   /* purple — brand */
-  --chart-2: 200 90% 55%;   /* blue */
-  --chart-3: 186 80% 45%;   /* teal */
-  --chart-4: 166 72% 44%;   /* green-teal */
-  --chart-5: 142 71% 45%;   /* green */
-  --chart-6: 84 65% 46%;    /* lime */
-  --chart-7: 45 93% 47%;    /* yellow */
-  --chart-8: 30 90% 55%;    /* orange */
-  --chart-9: 15 85% 52%;    /* red-orange */
-  --chart-10: 0 72% 51%;    /* red */
-  --chart-11: 340 82% 55%;  /* pink */
-  --chart-12: 290 65% 55%;  /* magenta */
+  --chart-1: 262 83% 58%; /* purple — brand */
+  --chart-2: 200 90% 55%; /* blue */
+  --chart-3: 186 80% 45%; /* teal */
+  --chart-4: 166 72% 44%; /* green-teal */
+  --chart-5: 142 71% 45%; /* green */
+  --chart-6: 84 65% 46%; /* lime */
+  --chart-7: 45 93% 47%; /* yellow */
+  --chart-8: 30 90% 55%; /* orange */
+  --chart-9: 15 85% 52%; /* red-orange */
+  --chart-10: 0 72% 51%; /* red */
+  --chart-11: 340 82% 55%; /* pink */
+  --chart-12: 290 65% 55%; /* magenta */
 
   --chart-axis: 0 0% 40%;
   --chart-muted: 0 0% 70%;
@@ -340,8 +348,8 @@
     /* Latin first, then a CJK fallback chain so 中文 falls back to the
        platform's preferred Han font instead of the browser default. */
     font-family:
-      "Inter", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB",
-      "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      "Inter", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+      "Noto Sans SC", sans-serif;
     /* CJK reading benefits from a slightly looser leading than Latin. */
     line-height: 1.625;
     text-wrap: pretty;

@@ -11,9 +11,9 @@
  * Uses GET /api/v1/links (lightest endpoint) to keep the burst cheap.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey } from "../helpers/seed";
 
 const BASE = getBaseUrl();
 const TEST_USER_ID = "api-v1-ratelimit-test-user";
@@ -33,41 +33,37 @@ describe("v1 rate limit (429)", () => {
     await cleanupTestData(TEST_USER_ID);
   });
 
-  it(
-    "returns 429 with proper headers after exceeding 100 requests in the window",
-    async () => {
-      const url = `${BASE}/api/v1/links?limit=1`;
-      const total = 105; // 100 allowed + 5 over the line
+  it("returns 429 with proper headers after exceeding 100 requests in the window", async () => {
+    const url = `${BASE}/api/v1/links?limit=1`;
+    const total = 105; // 100 allowed + 5 over the line
 
-      // Fire concurrently: the in-process sliding-window limiter is atomic
-      // under Node's single thread (Map.set + Array.push are synchronous),
-      // so 105 parallel requests deterministically split into 100 OK + 5 429.
-      const responses = await Promise.all(
-        Array.from({ length: total }, () => authenticatedFetch(url, apiKey)),
-      );
+    // Fire concurrently: the in-process sliding-window limiter is atomic
+    // under Node's single thread (Map.set + Array.push are synchronous),
+    // so 105 parallel requests deterministically split into 100 OK + 5 429.
+    const responses = await Promise.all(
+      Array.from({ length: total }, () => authenticatedFetch(url, apiKey)),
+    );
 
-      const okResponses = responses.filter((r) => r.status === 200);
-      const blockedResponses = responses.filter((r) => r.status === 429);
-      const others = responses.filter((r) => r.status !== 200 && r.status !== 429);
+    const okResponses = responses.filter((r) => r.status === 200);
+    const blockedResponses = responses.filter((r) => r.status === 429);
+    const others = responses.filter((r) => r.status !== 200 && r.status !== 429);
 
-      if (others.length > 0) {
-        throw new Error(`Unexpected statuses: ${others.map((r) => r.status).join(",")}`);
-      }
+    if (others.length > 0) {
+      throw new Error(`Unexpected statuses: ${others.map((r) => r.status).join(",")}`);
+    }
 
-      expect(okResponses.length).toBe(100);
-      expect(blockedResponses.length).toBe(5);
+    expect(okResponses.length).toBe(100);
+    expect(blockedResponses.length).toBe(5);
 
-      // First 429 must carry the right shape
-      const blocked = blockedResponses[0];
-      if (!blocked) throw new Error("expected at least one 429 response");
-      expect(blocked.headers.get("x-ratelimit-limit")).toBe("100");
-      expect(blocked.headers.get("x-ratelimit-remaining")).toBe("0");
-      expect(blocked.headers.get("x-ratelimit-reset")).toMatch(/^\d+$/);
-      expect(blocked.headers.get("retry-after")).toMatch(/^\d+$/);
+    // First 429 must carry the right shape
+    const blocked = blockedResponses[0];
+    if (!blocked) throw new Error("expected at least one 429 response");
+    expect(blocked.headers.get("x-ratelimit-limit")).toBe("100");
+    expect(blocked.headers.get("x-ratelimit-remaining")).toBe("0");
+    expect(blocked.headers.get("x-ratelimit-reset")).toMatch(/^\d+$/);
+    expect(blocked.headers.get("retry-after")).toMatch(/^\d+$/);
 
-      const body = await blocked.json();
-      expect(body).toEqual({ error: "Rate limit exceeded" });
-    },
-    60_000,
-  );
+    const body = await blocked.json();
+    expect(body).toEqual({ error: "Rate limit exceeded" });
+  }, 60_000);
 });

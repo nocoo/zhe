@@ -1,16 +1,16 @@
 "use client";
 
-import { Sidebar } from "@/components/sidebar";
-import { Breadcrumbs } from "@/components/breadcrumbs";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { DashboardServiceProvider } from "@/contexts/dashboard-service";
-import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
-import { Menu } from "lucide-react";
-import { GithubIcon } from "@/components/github-icon";
-import { cn } from "@/lib/utils";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { Menu } from "lucide-react";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { GithubIcon } from "@/components/github-icon";
+import { Sidebar } from "@/components/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { DashboardServiceProvider } from "@/contexts/dashboard-service";
+import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
 
 export interface AppShellProps {
@@ -24,12 +24,7 @@ export interface AppShellProps {
   initialFolders?: Folder[];
 }
 
-export function AppShell({
-  children,
-  user,
-  signOutAction,
-  initialFolders = [],
-}: AppShellProps) {
+export function AppShell({ children, user, signOutAction, initialFolders = [] }: AppShellProps) {
   return (
     <DashboardServiceProvider initialFolders={initialFolders}>
       <TooltipProvider>
@@ -58,30 +53,16 @@ function AppShellInner({
   return (
     <div className="flex min-h-screen w-full bg-background">
       {/* Desktop sidebar */}
-      {!isMobile && (
-        <Sidebar
-          {...(user ? { user } : {})}
-          signOutAction={signOutAction}
-        />
-      )}
+      {!isMobile && <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />}
 
       {/* Mobile sidebar — Sheet drawer with slide animation */}
       {isMobile && (
-        <Sheet
-          open={mobileOpen}
-          onOpenChange={(open) => !open && setMobileOpen(false)}
-        >
-          <SheetContent
-            side="left"
-            className="w-[260px] p-0 border-0 [&>button:last-child]:hidden"
-          >
+        <Sheet open={mobileOpen} onOpenChange={(open) => !open && setMobileOpen(false)}>
+          <SheetContent side="left" className="w-[260px] p-0 border-0 [&>button:last-child]:hidden">
             <VisuallyHidden.Root>
               <SheetTitle>Navigation</SheetTitle>
             </VisuallyHidden.Root>
-            <Sidebar
-              {...(user ? { user } : {})}
-              signOutAction={signOutAction}
-            />
+            <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />
           </SheetContent>
         </Sheet>
       )}
@@ -92,6 +73,7 @@ function AppShellInner({
           <div className="flex items-center gap-3">
             {isMobile && (
               <button
+                type="button"
                 onClick={toggle}
                 aria-label="Open menu"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -117,9 +99,7 @@ function AppShellInner({
 
         {/* Content panel — Basalt B-2 rounded panel */}
         <div className={cn("flex-1 px-2 pb-2 md:px-3 md:pb-3")}>
-          <div className="h-full rounded-island bg-card p-3 md:p-5 overflow-y-auto">
-            {children}
-          </div>
+          <div className="h-full rounded-island bg-card p-3 md:p-5 overflow-y-auto">{children}</div>
         </div>
       </main>
     </div>

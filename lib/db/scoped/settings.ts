@@ -2,13 +2,13 @@
  * User settings operations for ScopedDB (preview style, Backy, xray, pull webhook).
  */
 
-import { executeD1Query } from '../d1-client';
-import { rowToUserSettings } from '../mappers';
-import type { UserSettings } from '../schema';
+import { executeD1Query } from "../d1-client";
+import { rowToUserSettings } from "../mappers";
+import type { UserSettings } from "../schema";
 
 export async function getUserSettings(userId: string): Promise<UserSettings | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM user_settings WHERE user_id = ? LIMIT 1',
+    "SELECT * FROM user_settings WHERE user_id = ? LIMIT 1",
     [userId],
   );
   return rows[0] ? rowToUserSettings(rows[0]) : null;
@@ -26,7 +26,7 @@ export async function upsertPreviewStyle(
     [userId, previewStyle],
   );
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToUserSettings(row);
 }
 
@@ -50,7 +50,7 @@ export async function upsertBackySettings(
     [userId, data.webhookUrl, data.apiKey],
   );
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToUserSettings(row);
 }
 
@@ -74,13 +74,11 @@ export async function upsertXraySettings(
     [userId, data.apiUrl, data.apiToken],
   );
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToUserSettings(row);
 }
 
-export async function getBackyPullWebhook(
-  userId: string,
-): Promise<{ key: string } | null> {
+export async function getBackyPullWebhook(userId: string): Promise<{ key: string } | null> {
   const settings = await getUserSettings(userId);
   if (!settings?.backyPullKey) return null;
   return { key: settings.backyPullKey };
@@ -98,13 +96,11 @@ export async function upsertBackyPullWebhook(
     [userId, data.key],
   );
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToUserSettings(row);
 }
 
-export async function deleteBackyPullWebhook(
-  userId: string,
-): Promise<UserSettings | null> {
+export async function deleteBackyPullWebhook(userId: string): Promise<UserSettings | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `UPDATE user_settings SET backy_pull_key = NULL WHERE user_id = ? RETURNING *`,
     [userId],

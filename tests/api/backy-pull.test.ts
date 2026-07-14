@@ -6,11 +6,11 @@
  *
  * Seeded via D1 HTTP API — no in-process mocks.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { apiHead, apiPost, jsonResponse } from './helpers/http';
-import {  seedBackyPullKey, cleanupTestData, resetAndSeedUser } from './helpers/seed';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { apiHead, apiPost, jsonResponse } from "./helpers/http";
+import { cleanupTestData, resetAndSeedUser, seedBackyPullKey } from "./helpers/seed";
 
-const TEST_USER_ID = 'api-backy-test-user';
+const TEST_USER_ID = "api-backy-test-user";
 let pullKey: string;
 
 beforeAll(async () => {
@@ -25,19 +25,19 @@ afterAll(async () => {
 // ============================================================
 // HEAD — Connection Test
 // ============================================================
-describe('HEAD /api/backy/pull', () => {
-  it('returns 200 for a valid key', async () => {
-    const res = await apiHead('/api/backy/pull', { 'x-webhook-key': pullKey });
+describe("HEAD /api/backy/pull", () => {
+  it("returns 200 for a valid key", async () => {
+    const res = await apiHead("/api/backy/pull", { "x-webhook-key": pullKey });
     expect(res.status).toBe(200);
   });
 
-  it('returns 401 for missing key', async () => {
-    const res = await apiHead('/api/backy/pull');
+  it("returns 401 for missing key", async () => {
+    const res = await apiHead("/api/backy/pull");
     expect(res.status).toBe(401);
   });
 
-  it('returns 401 for invalid key', async () => {
-    const res = await apiHead('/api/backy/pull', { 'x-webhook-key': 'bogus-key' });
+  it("returns 401 for invalid key", async () => {
+    const res = await apiHead("/api/backy/pull", { "x-webhook-key": "bogus-key" });
     expect(res.status).toBe(401);
   });
 });
@@ -45,33 +45,33 @@ describe('HEAD /api/backy/pull', () => {
 // ============================================================
 // POST — Trigger Backup
 // ============================================================
-describe('POST /api/backy/pull', () => {
-  it('returns 401 for missing key', async () => {
-    const res = await apiPost('/api/backy/pull', null);
+describe("POST /api/backy/pull", () => {
+  it("returns 401 for missing key", async () => {
+    const res = await apiPost("/api/backy/pull", null);
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(401);
-    expect(body.error).toContain('Missing');
+    expect(body.error).toContain("Missing");
   });
 
-  it('returns 401 for invalid key', async () => {
-    const res = await apiPost('/api/backy/pull', null, {
-      'x-webhook-key': 'invalid-key',
+  it("returns 401 for invalid key", async () => {
+    const res = await apiPost("/api/backy/pull", null, {
+      "x-webhook-key": "invalid-key",
     });
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(401);
-    expect(body.error).toContain('Invalid');
+    expect(body.error).toContain("Invalid");
   });
 
-  it('returns 422 when push config is missing', async () => {
+  it("returns 422 when push config is missing", async () => {
     // Pull key exists but no push config (webhookUrl + apiKey)
-    const res = await apiPost('/api/backy/pull', null, {
-      'x-webhook-key': pullKey,
+    const res = await apiPost("/api/backy/pull", null, {
+      "x-webhook-key": pullKey,
     });
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(422);
-    expect(body.error).toContain('config');
+    expect(body.error).toContain("config");
   });
 });

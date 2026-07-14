@@ -1,12 +1,12 @@
 "use client";
 
+import { Pencil, Tag as TagIcon, Trash2 } from "lucide-react";
 import { memo } from "react";
-import { Trash2, Pencil, Tag as TagIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { IdeaListItem } from "@/lib/db/scoped";
 import { cn, formatDate } from "@/lib/utils";
 import { getTagStyles } from "@/models/tags";
-import type { IdeaListItem } from "@/lib/db/scoped";
 import type { Tag } from "@/models/types";
 
 /**
@@ -95,27 +95,22 @@ export const IdeaCard = memo(function IdeaCard({
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={cn(
-        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/80 cursor-pointer",
+        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/80 cursor-pointer text-left w-full",
         className,
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       aria-label={`打开想法 ${displayTitle}`}
     >
       {/* Title */}
-      <h3 className="font-medium text-foreground line-clamp-1 mb-2">
-        {displayTitle}
-      </h3>
+      <h3 className="font-medium text-foreground line-clamp-1 mb-2">{displayTitle}</h3>
 
       {/* Excerpt */}
       {idea.excerpt && (
-        <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-3">
-          {idea.excerpt}
-        </p>
+        <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-3">{idea.excerpt}</p>
       )}
 
       {/* Tags */}
@@ -124,12 +119,7 @@ export const IdeaCard = memo(function IdeaCard({
           {ideaTags.slice(0, 3).map((tag) => {
             const styles = getTagStyles(tag.name);
             return (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="text-xs"
-                style={styles.badge}
-              >
+              <Badge key={tag.id} variant="secondary" className="text-xs" style={styles.badge}>
                 {tag.name}
               </Badge>
             );
@@ -144,9 +134,7 @@ export const IdeaCard = memo(function IdeaCard({
 
       {/* Footer: date and actions */}
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
-        <span className="text-xs text-muted-foreground">
-          {formatRelativeDate(idea.updatedAt)}
-        </span>
+        <span className="text-xs text-muted-foreground">{formatRelativeDate(idea.updatedAt)}</span>
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
           <Button
             variant="ghost"
@@ -168,7 +156,7 @@ export const IdeaCard = memo(function IdeaCard({
           </Button>
         </div>
       </div>
-    </div>
+    </button>
   );
 });
 
@@ -223,15 +211,14 @@ export const IdeaRow = memo(function IdeaRow({
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={cn(
-        "group flex items-center gap-4 rounded-card border-0 bg-secondary shadow-none px-4 py-3 transition-colors hover:bg-secondary/80 cursor-pointer",
+        "group flex items-center gap-4 rounded-card border-0 bg-secondary shadow-none px-4 py-3 transition-colors hover:bg-secondary/80 cursor-pointer text-left w-full",
         className,
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       aria-label={`打开想法 ${displayTitle}`}
     >
       {/* Icon */}
@@ -242,9 +229,7 @@ export const IdeaRow = memo(function IdeaRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-foreground truncate">
-            {displayTitle}
-          </h3>
+          <h3 className="font-medium text-foreground truncate">{displayTitle}</h3>
           {/* Tags (compact) */}
           {ideaTags.length > 0 && (
             <div className="hidden sm:flex items-center gap-1">
@@ -260,17 +245,13 @@ export const IdeaRow = memo(function IdeaRow({
                 );
               })}
               {ideaTags.length > 2 && (
-                <span className="text-xs text-muted-foreground">
-                  +{ideaTags.length - 2}
-                </span>
+                <span className="text-xs text-muted-foreground">+{ideaTags.length - 2}</span>
               )}
             </div>
           )}
         </div>
         {idea.excerpt && (
-          <p className="text-sm text-muted-foreground truncate mt-0.5">
-            {idea.excerpt}
-          </p>
+          <p className="text-sm text-muted-foreground truncate mt-0.5">{idea.excerpt}</p>
         )}
       </div>
 
@@ -300,6 +281,6 @@ export const IdeaRow = memo(function IdeaRow({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </button>
   );
 });

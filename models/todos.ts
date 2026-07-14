@@ -10,7 +10,7 @@
  */
 
 import type { TodoTreeNode } from "@/lib/db/scoped";
-import { dueStatus, type DueStatus } from "@/lib/todo-due";
+import { type DueStatus, dueStatus } from "@/lib/todo-due";
 
 /** A node in the tree the UI actually renders. Adds `children`. */
 export interface TodoForestNode extends TodoTreeNode {
@@ -27,9 +27,7 @@ export interface TodoForestNode extends TodoTreeNode {
  * Orphans (whose `parentId` is not in the input) are silently promoted to
  * roots so a partially-stale client cache cannot swallow their subtree.
  */
-export function todoForestFromFlat(
-  nodes: readonly TodoTreeNode[],
-): TodoForestNode[] {
+export function todoForestFromFlat(nodes: readonly TodoTreeNode[]): TodoForestNode[] {
   const byId = new Map<number, TodoForestNode>();
   for (const node of nodes) {
     byId.set(node.id, { ...node, children: [] });
@@ -46,7 +44,7 @@ export function todoForestFromFlat(
     else roots.push({ ...node, parentId: null });
   }
   const sortSiblings = (list: TodoForestNode[]) => {
-    list.sort((a, b) => (a.position - b.position) || (a.id - b.id));
+    list.sort((a, b) => a.position - b.position || a.id - b.id);
     for (const child of list) sortSiblings(child.children);
   };
   sortSiblings(roots);
@@ -82,8 +80,7 @@ export function filterTodos(
   nodes: readonly TodoTreeNode[],
   options: TodoFilterOptions = {},
 ): TodoTreeNode[] {
-  const { query, showDone = true, tagName, dueKind, now = new Date() } =
-    options;
+  const { query, showDone = true, tagName, dueKind, now = new Date() } = options;
   const trimmedQuery = query?.trim().toLowerCase() ?? "";
   const wantsDueMatch = dueKind !== undefined;
 
@@ -92,9 +89,7 @@ export function filterTodos(
     if (!showDone && node.done) continue;
     if (trimmedQuery) {
       const titleHit = node.title.toLowerCase().includes(trimmedQuery);
-      const excerptHit =
-        node.excerpt !== null &&
-        node.excerpt.toLowerCase().includes(trimmedQuery);
+      const excerptHit = node.excerpt?.toLowerCase().includes(trimmedQuery);
       if (!titleHit && !excerptHit) continue;
     }
     if (tagName && !node.tagNames.includes(tagName)) continue;

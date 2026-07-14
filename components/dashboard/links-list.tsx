@@ -1,21 +1,21 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
 import { Link2 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { EmptyState } from "@/components/ui/empty-state";
 import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
-import { LinkCard } from "./link-card";
-import { InboxTriage } from "./inbox-triage";
-import { CreateLinkModal } from "./create-link-modal";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useDashboardService } from "@/contexts/dashboard-service";
-import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
-import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Folder, Link, Tag } from "@/models/types";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
+import { CreateLinkModal } from "./create-link-modal";
+import { InboxTriage } from "./inbox-triage";
+import { LinkCard } from "./link-card";
+import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 import { useLinksListFilters } from "./links-list-parts/useLinksListFilters";
 import { useViewMode, type ViewMode } from "./links-list-parts/useViewMode";
-import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 
 function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   if (viewMode === "grid") {
@@ -107,9 +107,17 @@ function LinksContent(props: LinksContentProps) {
 
 export function LinksList() {
   const {
-    links, folders, tags, linkTags, loading,
-    handleLinkCreated, handleLinkDeleted, handleLinkUpdated,
-    handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved,
+    links,
+    folders,
+    tags,
+    linkTags,
+    loading,
+    handleLinkCreated,
+    handleLinkDeleted,
+    handleLinkUpdated,
+    handleTagCreated,
+    handleLinkTagAdded,
+    handleLinkTagRemoved,
     refreshLinks,
     siteUrl,
   } = useDashboardService();

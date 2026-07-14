@@ -5,11 +5,11 @@
  * Requires: ideas:read (GET), ideas:write (POST)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
-import { ideaListItemToResponse, ideaDetailToResponse } from "@/lib/api/serializers";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
+import { ideaDetailToResponse, ideaListItemToResponse } from "@/lib/api/serializers";
+import { isErrorResponse, parseJsonBody, parsePaginationParams } from "@/lib/api/validation";
 import { ScopedDB } from "@/lib/db/scoped";
 
 /**
@@ -109,7 +109,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Validate title if provided
-    if (bodyObj.title !== undefined && bodyObj.title !== null && typeof bodyObj.title !== "string") {
+    if (
+      bodyObj.title !== undefined &&
+      bodyObj.title !== null &&
+      typeof bodyObj.title !== "string"
+    ) {
       return apiError("'title' must be a string or null", 400);
     }
 
@@ -128,8 +132,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create the idea
     const idea = await db.createIdea({
       content,
-      ...(bodyObj.title !== undefined && bodyObj.title !== null && { title: bodyObj.title as string }),
-      ...(bodyObj.tagIds !== undefined && bodyObj.tagIds !== null && { tagIds: bodyObj.tagIds as string[] }),
+      ...(bodyObj.title !== undefined &&
+        bodyObj.title !== null && { title: bodyObj.title as string }),
+      ...(bodyObj.tagIds !== undefined &&
+        bodyObj.tagIds !== null && { tagIds: bodyObj.tagIds as string[] }),
     });
 
     logApiRequest({

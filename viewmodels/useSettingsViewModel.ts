@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { importLinks, exportLinks } from "@/actions/settings";
 import type { ImportResult } from "@/actions/settings";
+import { exportLinks, importLinks } from "@/actions/settings";
 
 /** Return type of useSettingsViewModel — can be used as a prop type */
 export type SettingsViewModel = ReturnType<typeof useSettingsViewModel>;
@@ -61,9 +61,7 @@ export function useSettingsViewModel() {
 
       setImportResult(result.data ?? null);
       if (result.data) {
-        toast.success(
-          `导入完成:成功 ${result.data.created} 条,跳过 ${result.data.skipped} 条`,
-        );
+        toast.success(`导入完成:成功 ${result.data.created} 条,跳过 ${result.data.skipped} 条`);
       }
     } finally {
       setIsImporting(false);

@@ -1,12 +1,12 @@
 "use client";
 
 import { ListTodo } from "lucide-react";
-import { CommandItem } from "@/components/ui/command";
-import { highlightMatches } from "@/models/links";
-import type { TodoTreeNode } from "@/lib/db/scoped";
-import { HighlightText } from "./highlight-text";
-import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
+import { CommandItem } from "@/components/ui/command";
+import type { TodoTreeNode } from "@/lib/db/scoped";
+import { highlightMatches } from "@/models/links";
+import { HighlightText } from "./highlight-text";
 
 interface TodoResultItemProps {
   todo: TodoTreeNode;
@@ -16,12 +16,7 @@ interface TodoResultItemProps {
   onNavigate: (todoId: number) => void;
 }
 
-export function TodoResultItem({
-  todo,
-  trimmedQuery,
-  now,
-  onNavigate,
-}: TodoResultItemProps) {
+export function TodoResultItem({ todo, trimmedQuery, now, onNavigate }: TodoResultItemProps) {
   const displayTitle = todo.title.length > 0 ? todo.title : "Untitled";
 
   return (
@@ -33,10 +28,7 @@ export function TodoResultItem({
     >
       <div className="mt-0.5 shrink-0">
         <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
-          <ListTodo
-            className="w-2 h-2 text-muted-foreground/60"
-            strokeWidth={2}
-          />
+          <ListTodo className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
         </div>
       </div>
       <div className="min-w-0 flex-1">
@@ -63,11 +55,7 @@ export function TodoResultItem({
                 +{todo.tagNames.length - 3}
               </span>
             ) : null}
-            <TodoDueChip
-              dueAt={todo.dueAt}
-              done={todo.done}
-              {...(now ? { now } : {})}
-            />
+            <TodoDueChip dueAt={todo.dueAt} done={todo.done} {...(now ? { now } : {})} />
           </div>
         )}
       </div>

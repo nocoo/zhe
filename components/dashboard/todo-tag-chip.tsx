@@ -13,10 +13,10 @@
  * "components/dashboard/todo-tag-chip.tsx".
  */
 
-import { memo } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { memo } from "react";
 import { todoTagColor } from "@/lib/todo-tag-color";
+import { cn } from "@/lib/utils";
 
 export interface TodoTagChipProps {
   /** Tag name — free-form; the component canonicalises for display only. */

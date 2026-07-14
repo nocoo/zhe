@@ -1,17 +1,15 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { clearMockStorage } from '../setup';
-import { unwrap } from '../test-utils';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clearMockStorage } from "../setup";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockUserId = 'user-backy-123';
-vi.mock('@/auth', () => ({
-  auth: vi.fn(() =>
-    Promise.resolve({ user: { id: mockUserId, name: 'Test' } }),
-  ),
+const mockUserId = "user-backy-123";
+vi.mock("@/auth", () => ({
+  auth: vi.fn(() => Promise.resolve({ user: { id: mockUserId, name: "Test" } })),
 }));
 
 // Mock ScopedDB
@@ -25,7 +23,7 @@ const mockGetBackyPullWebhook = vi.fn();
 const mockUpsertBackyPullWebhook = vi.fn();
 const mockDeleteBackyPullWebhook = vi.fn();
 
-vi.mock('@/lib/db/scoped', () => ({
+vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
     return {
       getBackySettings: mockGetBackySettings,
@@ -42,42 +40,42 @@ vi.mock('@/lib/db/scoped', () => ({
 }));
 
 // Mock APP_VERSION
-vi.mock('@/lib/version', () => ({
-  APP_VERSION: '1.2.3',
+vi.mock("@/lib/version", () => ({
+  APP_VERSION: "1.2.3",
 }));
 
 // Mock serializeLinksForExport
 const mockSerializeLinksForExport = vi.fn();
-vi.mock('@/models/settings', () => ({
+vi.mock("@/models/settings", () => ({
   serializeLinksForExport: (...args: unknown[]) => mockSerializeLinksForExport(...args),
   BACKUP_SCHEMA_VERSION: 2,
 }));
 
 // Mock global fetch
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.stubGlobal("fetch", mockFetch);
 
 // Mock backy.server (server-only crypto)
-vi.mock('@/models/backy.server', () => ({
-  generatePullWebhookKey: () => 'mock-uuid-key',
+vi.mock("@/models/backy.server", () => ({
+  generatePullWebhookKey: () => "mock-uuid-key",
 }));
 
 import {
+  fetchBackyHistory,
+  generateBackyPullWebhook,
   getBackyConfig,
+  getBackyPullWebhook,
+  pushBackup,
+  revokeBackyPullWebhook,
   saveBackyConfig,
   testBackyConnection,
-  fetchBackyHistory,
-  pushBackup,
-  getBackyPullWebhook,
-  generateBackyPullWebhook,
-  revokeBackyPullWebhook,
-} from '@/actions/backy';
+} from "@/actions/backy";
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('backy actions', () => {
+describe("backy actions", () => {
   beforeEach(() => {
     clearMockStorage();
     vi.clearAllMocks();
@@ -86,22 +84,22 @@ describe('backy actions', () => {
   // ==================================================================
   // getBackyConfig
   // ==================================================================
-  describe('getBackyConfig', () => {
-    it('returns config with masked API key when configured', async () => {
+  describe("getBackyConfig", () => {
+    it("returns config with masked API key when configured", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
 
       const result = await getBackyConfig();
       expect(result.success).toBe(true);
       expect(result.data).toEqual({
-        webhookUrl: 'https://backy.example.com/webhook',
-        maskedApiKey: 'sk-1•••••••••••cdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        maskedApiKey: "sk-1•••••••••••cdef",
       });
     });
 
-    it('returns undefined data when not configured', async () => {
+    it("returns undefined data when not configured", async () => {
       mockGetBackySettings.mockResolvedValue(null);
 
       const result = await getBackyConfig();
@@ -109,192 +107,199 @@ describe('backy actions', () => {
       expect(result.data).toBeUndefined();
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await getBackyConfig();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when DB throws', async () => {
-      mockGetBackySettings.mockRejectedValue(new Error('DB error'));
+    it("returns error when DB throws", async () => {
+      mockGetBackySettings.mockRejectedValue(new Error("DB error"));
 
       const result = await getBackyConfig();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to load Backy config');
+      expect(result.error).toBe("Failed to load Backy config");
     });
   });
 
   // ==================================================================
   // saveBackyConfig
   // ==================================================================
-  describe('saveBackyConfig', () => {
-    it('saves valid config and returns masked key', async () => {
+  describe("saveBackyConfig", () => {
+    it("saves valid config and returns masked key", async () => {
       mockUpsertBackySettings.mockResolvedValue({
         userId: mockUserId,
-        previewStyle: 'favicon',
-        backyWebhookUrl: 'https://backy.example.com/webhook',
-        backyApiKey: 'sk-1234567890abcdef',
+        previewStyle: "favicon",
+        backyWebhookUrl: "https://backy.example.com/webhook",
+        backyApiKey: "sk-1234567890abcdef",
       });
 
       const result = await saveBackyConfig({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
 
       expect(result.success).toBe(true);
-      expect(result.data?.webhookUrl).toBe('https://backy.example.com/webhook');
-      expect(result.data?.maskedApiKey).toBe('sk-1•••••••••••cdef');
+      expect(result.data?.webhookUrl).toBe("https://backy.example.com/webhook");
+      expect(result.data?.maskedApiKey).toBe("sk-1•••••••••••cdef");
       expect(mockUpsertBackySettings).toHaveBeenCalledWith({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
     });
 
-    it('rejects invalid webhook URL', async () => {
+    it("rejects invalid webhook URL", async () => {
       const result = await saveBackyConfig({
-        webhookUrl: 'not-a-url',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "not-a-url",
+        apiKey: "sk-1234567890abcdef",
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('格式无效');
+      expect(result.error).toContain("格式无效");
       expect(mockUpsertBackySettings).not.toHaveBeenCalled();
     });
 
-    it('rejects empty API key', async () => {
+    it("rejects empty API key", async () => {
       const result = await saveBackyConfig({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: '',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "",
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('API Key');
+      expect(result.error).toContain("API Key");
     });
 
-    it('trims whitespace from inputs', async () => {
+    it("trims whitespace from inputs", async () => {
       mockUpsertBackySettings.mockResolvedValue({
         userId: mockUserId,
-        previewStyle: 'favicon',
-        backyWebhookUrl: 'https://backy.example.com/webhook',
-        backyApiKey: 'sk-1234567890abcdef',
+        previewStyle: "favicon",
+        backyWebhookUrl: "https://backy.example.com/webhook",
+        backyApiKey: "sk-1234567890abcdef",
       });
 
       await saveBackyConfig({
-        webhookUrl: '  https://backy.example.com/webhook  ',
-        apiKey: '  sk-1234567890abcdef  ',
+        webhookUrl: "  https://backy.example.com/webhook  ",
+        apiKey: "  sk-1234567890abcdef  ",
       });
 
       expect(mockUpsertBackySettings).toHaveBeenCalledWith({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await saveBackyConfig({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when DB throws', async () => {
-      mockUpsertBackySettings.mockRejectedValue(new Error('DB error'));
+    it("returns error when DB throws", async () => {
+      mockUpsertBackySettings.mockRejectedValue(new Error("DB error"));
 
       const result = await saveBackyConfig({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to save Backy config');
+      expect(result.error).toBe("Failed to save Backy config");
     });
   });
 
   // ==================================================================
   // testBackyConnection
   // ==================================================================
-  describe('testBackyConnection', () => {
-    it('returns success when HEAD request succeeds', async () => {
+  describe("testBackyConnection", () => {
+    it("returns success when HEAD request succeeds", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockFetch.mockResolvedValue({ ok: true });
 
       const result = await testBackyConnection();
       expect(result.success).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('https://backy.example.com/webhook', {
-        method: 'HEAD',
-        headers: { Authorization: 'Bearer sk-1234567890abcdef' },
+      expect(mockFetch).toHaveBeenCalledWith("https://backy.example.com/webhook", {
+        method: "HEAD",
+        headers: { Authorization: "Bearer sk-1234567890abcdef" },
       });
     });
 
-    it('returns error when HEAD request fails', async () => {
+    it("returns error when HEAD request fails", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
       const result = await testBackyConnection();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('401');
+      expect(result.error).toContain("401");
     });
 
-    it('returns error when not configured', async () => {
+    it("returns error when not configured", async () => {
       mockGetBackySettings.mockResolvedValue(null);
 
       const result = await testBackyConnection();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Backy 未配置');
+      expect(result.error).toBe("Backy 未配置");
     });
 
-    it('returns error when fetch throws', async () => {
+    it("returns error when fetch throws", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error("Network error"));
 
       const result = await testBackyConnection();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('无法访问');
+      expect(result.error).toContain("无法访问");
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await testBackyConnection();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
   });
 
   // ==================================================================
   // fetchBackyHistory
   // ==================================================================
-  describe('fetchBackyHistory', () => {
+  describe("fetchBackyHistory", () => {
     const mockHistory = {
-      project_name: 'zhe',
-      environment: 'prod',
+      project_name: "zhe",
+      environment: "prod",
       total_backups: 3,
       recent_backups: [
-        { id: '1', tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24T00:00:00Z' },
+        {
+          id: "1",
+          tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
+          environment: "prod",
+          file_size: 1024,
+          is_single_json: 1,
+          created_at: "2026-02-24T00:00:00Z",
+        },
       ],
     };
 
-    it('returns history on success', async () => {
+    it("returns history on success", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockFetch.mockResolvedValue({
         ok: true,
@@ -306,62 +311,64 @@ describe('backy actions', () => {
       expect(result.data).toEqual(mockHistory);
     });
 
-    it('returns error when GET request fails', async () => {
+    it("returns error when GET request fails", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
       const result = await fetchBackyHistory();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('500');
+      expect(result.error).toContain("500");
     });
 
-    it('returns error when not configured', async () => {
+    it("returns error when not configured", async () => {
       mockGetBackySettings.mockResolvedValue(null);
 
       const result = await fetchBackyHistory();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Backy 未配置');
+      expect(result.error).toBe("Backy 未配置");
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await fetchBackyHistory();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
   });
 
   // ==================================================================
   // pushBackup
   // ==================================================================
-  describe('pushBackup', () => {
-    const mockLinks = [
-      { id: 1, slug: 'test', originalUrl: 'https://example.com', clicks: 5 },
+  describe("pushBackup", () => {
+    const mockLinks = [{ id: 1, slug: "test", originalUrl: "https://example.com", clicks: 5 }];
+    const mockFoldersData = [
+      { id: "f1", name: "Work", icon: "folder", createdAt: new Date("2026-01-01") },
     ];
-    const mockFoldersData = [{ id: 'f1', name: 'Work', icon: 'folder', createdAt: new Date('2026-01-01') }];
-    const mockTagsData = [{ id: 't1', name: 'important', color: 'blue', createdAt: new Date('2026-01-01') }];
-    const mockLinkTagsData = [{ linkId: 1, tagId: 't1' }];
-    const mockSerialized = [{ slug: 'test', originalUrl: 'https://example.com' }];
+    const mockTagsData = [
+      { id: "t1", name: "important", color: "blue", createdAt: new Date("2026-01-01") },
+    ];
+    const mockLinkTagsData = [{ linkId: 1, tagId: "t1" }];
+    const mockSerialized = [{ slug: "test", originalUrl: "https://example.com" }];
 
     const mockPushResult = {
-      id: 'backup-1',
-      project_name: 'zhe',
-      tag: 'v1.2.3-2026-02-24-1lnk-1fld-1tag',
-      environment: 'dev',
+      id: "backup-1",
+      project_name: "zhe",
+      tag: "v1.2.3-2026-02-24-1lnk-1fld-1tag",
+      environment: "dev",
       file_size: 512,
       is_single_json: 1,
-      created_at: '2026-02-24T12:00:00Z',
+      created_at: "2026-02-24T12:00:00Z",
     };
 
-    it('exports data and pushes backup successfully', async () => {
+    it("exports data and pushes backup successfully", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
@@ -370,11 +377,18 @@ describe('backy actions', () => {
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
 
       const mockHistory = {
-        project_name: 'zhe',
+        project_name: "zhe",
         environment: null,
         total_backups: 1,
         recent_backups: [
-          { id: 'backup-1', tag: 'v1.2.3-2026-02-24-1lnk-1fld-1tag', environment: 'dev', file_size: 512, is_single_json: 1, created_at: '2026-02-24T12:00:00Z' },
+          {
+            id: "backup-1",
+            tag: "v1.2.3-2026-02-24-1lnk-1fld-1tag",
+            environment: "dev",
+            file_size: 512,
+            is_single_json: 1,
+            created_at: "2026-02-24T12:00:00Z",
+          },
         ],
       };
 
@@ -393,11 +407,11 @@ describe('backy actions', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         ok: true,
-        message: expect.stringContaining('推送成功'),
+        message: expect.stringContaining("推送成功"),
         durationMs: expect.any(Number),
         request: {
-          tag: expect.stringContaining('v1.2.3'),
-          fileName: expect.stringContaining('zhe-backup-'),
+          tag: expect.stringContaining("v1.2.3"),
+          fileName: expect.stringContaining("zhe-backup-"),
           fileSizeBytes: expect.any(Number),
           backupStats: { links: 1, folders: 1, tags: 1, linkTags: 1 },
         },
@@ -408,18 +422,18 @@ describe('backy actions', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(mockFetch).toHaveBeenNthCalledWith(
         1,
-        'https://backy.example.com/webhook',
+        "https://backy.example.com/webhook",
         expect.objectContaining({
-          method: 'POST',
-          headers: { Authorization: 'Bearer sk-1234567890abcdef' },
+          method: "POST",
+          headers: { Authorization: "Bearer sk-1234567890abcdef" },
         }),
       );
       expect(mockFetch).toHaveBeenNthCalledWith(
         2,
-        'https://backy.example.com/webhook',
+        "https://backy.example.com/webhook",
         expect.objectContaining({
-          method: 'GET',
-          headers: { Authorization: 'Bearer sk-1234567890abcdef' },
+          method: "GET",
+          headers: { Authorization: "Bearer sk-1234567890abcdef" },
         }),
       );
 
@@ -427,17 +441,17 @@ describe('backy actions', () => {
       const fetchCall = unwrap(mockFetch.mock.calls[0]);
       const body = unwrap(fetchCall[1]).body;
       expect(body).toBeInstanceOf(FormData);
-      expect(body.get('environment')).toBe('dev');
-      expect(body.get('tag')).toContain('v1.2.3');
-      expect(body.get('tag')).toContain('1lnk');
-      expect(body.get('tag')).toContain('1fld');
-      expect(body.get('tag')).toContain('1tag');
+      expect(body.get("environment")).toBe("dev");
+      expect(body.get("tag")).toContain("v1.2.3");
+      expect(body.get("tag")).toContain("1lnk");
+      expect(body.get("tag")).toContain("1fld");
+      expect(body.get("tag")).toContain("1tag");
     });
 
-    it('returns success without history when inline history fetch fails', async () => {
+    it("returns success without history when inline history fetch fails", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
@@ -462,10 +476,10 @@ describe('backy actions', () => {
       expect(result.data?.history).toBeUndefined();
     });
 
-    it('returns success without history when inline history fetch times out', async () => {
+    it("returns success without history when inline history fetch times out", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
@@ -479,7 +493,7 @@ describe('backy actions', () => {
           ok: true,
           json: () => Promise.resolve(mockPushResult),
         })
-        .mockRejectedValueOnce(new DOMException('The operation was aborted', 'AbortError'));
+        .mockRejectedValueOnce(new DOMException("The operation was aborted", "AbortError"));
 
       const result = await pushBackup();
       expect(result.success).toBe(true);
@@ -487,10 +501,10 @@ describe('backy actions', () => {
       expect(result.data?.history).toBeUndefined();
     });
 
-    it('passes AbortSignal to inline history fetch', async () => {
+    it("passes AbortSignal to inline history fetch", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
@@ -499,7 +513,7 @@ describe('backy actions', () => {
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
 
       const mockHistory = {
-        project_name: 'zhe',
+        project_name: "zhe",
         environment: null,
         total_backups: 1,
         recent_backups: [mockPushResult],
@@ -519,14 +533,14 @@ describe('backy actions', () => {
 
       // Second call (GET history) should include signal
       const secondCall = unwrap(mockFetch.mock.calls[1]);
-      expect(unwrap(secondCall[1])).toHaveProperty('signal');
+      expect(unwrap(secondCall[1])).toHaveProperty("signal");
       expect(unwrap(secondCall[1]).signal).toBeInstanceOf(AbortSignal);
     });
 
-    it('returns error with detail when POST fails', async () => {
+    it("returns error with detail when POST fails", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
@@ -541,65 +555,65 @@ describe('backy actions', () => {
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('413');
+      expect(result.error).toContain("413");
       expect(result.data).toMatchObject({
         ok: false,
         durationMs: expect.any(Number),
-        request: expect.objectContaining({ tag: expect.stringContaining('v1.2.3') }),
-        response: { status: 413, body: { error: 'too large' } },
+        request: expect.objectContaining({ tag: expect.stringContaining("v1.2.3") }),
+        response: { status: 413, body: { error: "too large" } },
       });
       // On failure, no inline history GET should be attempted
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('returns error when not configured', async () => {
+    it("returns error when not configured", async () => {
       mockGetBackySettings.mockResolvedValue(null);
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Backy 未配置');
+      expect(result.error).toBe("Backy 未配置");
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when fetch throws', async () => {
+    it("returns error when fetch throws", async () => {
       mockGetBackySettings.mockResolvedValue({
-        webhookUrl: 'https://backy.example.com/webhook',
-        apiKey: 'sk-1234567890abcdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
       });
       mockGetLinks.mockResolvedValue(mockLinks);
       mockGetFolders.mockResolvedValue(mockFoldersData);
       mockGetTags.mockResolvedValue(mockTagsData);
       mockGetLinkTags.mockResolvedValue(mockLinkTagsData);
       mockSerializeLinksForExport.mockReturnValue(mockSerialized);
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error("Network error"));
 
       const result = await pushBackup();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('推送备份失败');
+      expect(result.error).toBe("推送备份失败");
     });
   });
 
   // ==================================================================
   // getBackyPullWebhook
   // ==================================================================
-  describe('getBackyPullWebhook', () => {
-    it('returns key when configured', async () => {
-      mockGetBackyPullWebhook.mockResolvedValue({ key: 'my-key' });
+  describe("getBackyPullWebhook", () => {
+    it("returns key when configured", async () => {
+      mockGetBackyPullWebhook.mockResolvedValue({ key: "my-key" });
 
       const result = await getBackyPullWebhook();
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({ key: 'my-key' });
+      expect(result.data).toEqual({ key: "my-key" });
     });
 
-    it('returns undefined data when not configured', async () => {
+    it("returns undefined data when not configured", async () => {
       mockGetBackyPullWebhook.mockResolvedValue(null);
 
       const result = await getBackyPullWebhook();
@@ -607,62 +621,62 @@ describe('backy actions', () => {
       expect(result.data).toBeUndefined();
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await getBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when DB throws', async () => {
-      mockGetBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+    it("returns error when DB throws", async () => {
+      mockGetBackyPullWebhook.mockRejectedValue(new Error("DB error"));
 
       const result = await getBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to load pull webhook');
+      expect(result.error).toBe("Failed to load pull webhook");
     });
   });
 
   // ==================================================================
   // generateBackyPullWebhook
   // ==================================================================
-  describe('generateBackyPullWebhook', () => {
-    it('generates and stores new key', async () => {
+  describe("generateBackyPullWebhook", () => {
+    it("generates and stores new key", async () => {
       mockUpsertBackyPullWebhook.mockResolvedValue(undefined);
 
       const result = await generateBackyPullWebhook();
       expect(result.success).toBe(true);
-      expect(result.data).toEqual({ key: 'mock-uuid-key' });
+      expect(result.data).toEqual({ key: "mock-uuid-key" });
       expect(mockUpsertBackyPullWebhook).toHaveBeenCalledWith({
-        key: 'mock-uuid-key',
+        key: "mock-uuid-key",
       });
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await generateBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when DB throws', async () => {
-      mockUpsertBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+    it("returns error when DB throws", async () => {
+      mockUpsertBackyPullWebhook.mockRejectedValue(new Error("DB error"));
 
       const result = await generateBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to generate pull webhook');
+      expect(result.error).toBe("Failed to generate pull webhook");
     });
   });
 
   // ==================================================================
   // revokeBackyPullWebhook
   // ==================================================================
-  describe('revokeBackyPullWebhook', () => {
-    it('deletes credentials successfully', async () => {
+  describe("revokeBackyPullWebhook", () => {
+    it("deletes credentials successfully", async () => {
       mockDeleteBackyPullWebhook.mockResolvedValue(undefined);
 
       const result = await revokeBackyPullWebhook();
@@ -670,21 +684,21 @@ describe('backy actions', () => {
       expect(mockDeleteBackyPullWebhook).toHaveBeenCalled();
     });
 
-    it('returns error when auth fails', async () => {
-      const { auth } = await import('@/auth');
+    it("returns error when auth fails", async () => {
+      const { auth } = await import("@/auth");
       vi.mocked(auth).mockResolvedValueOnce(null as never);
 
       const result = await revokeBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('returns error when DB throws', async () => {
-      mockDeleteBackyPullWebhook.mockRejectedValue(new Error('DB error'));
+    it("returns error when DB throws", async () => {
+      mockDeleteBackyPullWebhook.mockRejectedValue(new Error("DB error"));
 
       const result = await revokeBackyPullWebhook();
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to revoke pull webhook');
+      expect(result.error).toBe("Failed to revoke pull webhook");
     });
   });
 });

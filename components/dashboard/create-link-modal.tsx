@@ -1,10 +1,9 @@
 "use client";
 
+import { Loader2, Plus } from "lucide-react";
 import { useCallback } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { createTag } from "@/actions/tags";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -12,15 +11,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Folder, Link, Tag } from "@/models/types";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
-import { createTag } from "@/actions/tags";
-import type { Link, Folder, Tag } from "@/models/types";
-import {
-  ModeTabs,
-  SlugInput,
-  FolderSelect,
-  TagsField,
-} from "./create-link-modal-parts/fields";
+import { FolderSelect, ModeTabs, SlugInput, TagsField } from "./create-link-modal-parts/fields";
 
 interface CreateLinkModalProps {
   siteUrl: string;
@@ -112,11 +107,7 @@ export function CreateLinkModal({
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          size="sm"
-          className="rounded-widget h-7 w-7 p-0"
-          aria-label="新建链接"
-        >
+        <Button size="sm" className="rounded-widget h-7 w-7 p-0" aria-label="新建链接">
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
@@ -147,11 +138,7 @@ export function CreateLinkModal({
             />
           )}
 
-          <FolderSelect
-            folders={folders}
-            folderId={vm.folderId}
-            setFolderId={vm.setFolderId}
-          />
+          <FolderSelect folders={folders} folderId={vm.folderId} setFolderId={vm.setFolderId} />
 
           <LabelledInput
             id="note"

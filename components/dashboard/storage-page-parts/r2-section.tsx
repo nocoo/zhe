@@ -1,6 +1,5 @@
 "use client";
 
-import { Fragment, useCallback, useState } from "react";
 import {
   AlertTriangle,
   ArrowDown,
@@ -11,10 +10,11 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import { Fragment, useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatBytes } from "@/models/storage";
 import type { StorageFile, StorageScanResult } from "@/models/storage";
+import { formatBytes } from "@/models/storage";
 import { R2FileRow } from "./r2-file-row";
 
 type SortField = "time" | "size";
@@ -36,9 +36,13 @@ function R2Header({ connected }: { connected: boolean }) {
       <HardDrive className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       <h3 className="text-sm font-medium">Cloudflare R2</h3>
       {connected ? (
-        <Badge variant="success" className="text-[10px]">connected</Badge>
+        <Badge variant="success" className="text-[10px]">
+          connected
+        </Badge>
       ) : (
-        <Badge variant="destructive" className="text-[10px]">disconnected</Badge>
+        <Badge variant="destructive" className="text-[10px]">
+          disconnected
+        </Badge>
       )}
     </div>
   );
@@ -73,28 +77,27 @@ function SortControls({
   toggleSort: (field: SortField) => void;
 }) {
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="排序">
-      {(["time", "size"] as const).map((field) => (
-        <Button
-          key={field}
-          variant={sortField === field ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => toggleSort(field)}
-          className="gap-1 text-xs h-7 px-2"
-          role="columnheader"
-          aria-sort={
-            sortField === field
-              ? sortDir === "asc"
-                ? "ascending"
-                : "descending"
-              : "none"
-          }
-        >
-          {field === "time" ? "时间" : "大小"}
-          <SortIcon field={field} active={sortField} dir={sortDir} />
-        </Button>
-      ))}
-    </div>
+    <fieldset className="m-0 flex items-center gap-1 border-0 p-0">
+      <legend className="sr-only">排序</legend>
+      {(["time", "size"] as const).map((field) => {
+        const label = field === "time" ? "时间" : "大小";
+        const sortState = sortField === field ? (sortDir === "asc" ? "升序" : "降序") : "未排序";
+        return (
+          <Button
+            key={field}
+            variant={sortField === field ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => toggleSort(field)}
+            className="gap-1 text-xs h-7 px-2"
+            aria-pressed={sortField === field}
+            aria-label={`按${label}排序，当前${sortState}`}
+          >
+            {label}
+            <SortIcon field={field} active={sortField} dir={sortDir} />
+          </Button>
+        );
+      })}
+    </fieldset>
   );
 }
 
@@ -130,12 +133,7 @@ function ActionBar(props: ActionBarProps) {
       <div className="flex items-center gap-2">
         {hasOrphans && (
           <Fragment>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSelectAllOrphans}
-              className="gap-1.5"
-            >
+            <Button variant="outline" size="sm" onClick={onSelectAllOrphans} className="gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-warning" strokeWidth={1.5} />
               选择全部孤儿文件
             </Button>
@@ -269,11 +267,7 @@ export function R2Section(props: R2SectionProps) {
             onClearSelection={onClearSelection}
             onDeleteSelected={onDeleteSelected}
           />
-          <FileList
-            files={sortedFiles}
-            selectedKeys={selectedKeys}
-            onToggleKey={onToggleKey}
-          />
+          <FileList files={sortedFiles} selectedKeys={selectedKeys} onToggleKey={onToggleKey} />
         </Fragment>
       )}
     </div>

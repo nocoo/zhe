@@ -1,6 +1,6 @@
 // Pure business logic for overview / dashboard stats — no React, no server dependencies.
 
-import type { CronHistoryEntry } from '@/lib/cron-history';
+import type { CronHistoryEntry } from "@/lib/cron-history";
 
 /** A single day's click count for trend charts */
 export interface ClickTrendPoint {
@@ -47,11 +47,11 @@ export function formatClickCount(count: number): string {
 
 /** Format a byte size for display: 1536 → "1.5 KB" */
 export function formatStorageSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   if (i === 0) return `${bytes} B`;
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
+  return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
 }
 
 /**
@@ -115,7 +115,7 @@ export interface WorkerHealthStatus {
 
 /** Derive WorkerHealthStatus from raw cron history entries. */
 export function deriveWorkerHealth(history: CronHistoryEntry[]): WorkerHealthStatus {
-  const lastSuccess = history.find((e) => e.status === 'success');
+  const lastSuccess = history.find((e) => e.status === "success");
 
   return {
     lastSyncTime: lastSuccess?.timestamp ?? null,
@@ -129,10 +129,10 @@ export function formatRelativeTime(isoTimestamp: string): string {
   const then = new Date(isoTimestamp).getTime();
   const diffMs = now - then;
 
-  if (diffMs < 0) return '刚刚';
+  if (diffMs < 0) return "刚刚";
 
   const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return '刚刚';
+  if (seconds < 60) return "刚刚";
 
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} 分钟前`;

@@ -22,9 +22,7 @@ export function TagBadges({ tags, max = 3 }: { tags: Tag[]; max?: number }) {
         );
       })}
       {tags.length > max && (
-        <span className="text-[10px] text-muted-foreground">
-          +{tags.length - max}
-        </span>
+        <span className="text-[10px] text-muted-foreground">+{tags.length - max}</span>
       )}
     </>
   );

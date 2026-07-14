@@ -1,51 +1,49 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import type { LinkTag } from '@/models/types';
-import { unwrap } from '../test-utils';
-import { makeLink, makeTag } from '../fixtures';
+
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { LinkTag } from "@/models/types";
+import { makeLink, makeTag } from "../fixtures";
+import { unwrap } from "../test-utils";
 
 // ── Mocks ──
 
-vi.mock('@/actions/links', () => ({
+vi.mock("@/actions/links", () => ({
   updateLink: vi.fn(),
   updateLinkNote: vi.fn(),
 }));
 
-vi.mock('@/actions/links/metadata', () => ({
+vi.mock("@/actions/links/metadata", () => ({
   batchRefreshLinkMetadata: vi.fn(),
   refreshLinkMetadata: vi.fn(),
 }));
 
-vi.mock('@/actions/links/screenshot', () => ({
+vi.mock("@/actions/links/screenshot", () => ({
   fetchAndSaveScreenshot: vi.fn(),
   saveScreenshot: vi.fn(),
 }));
 
-vi.mock('@/actions/tags', () => ({
+vi.mock("@/actions/tags", () => ({
   createTag: vi.fn(),
   addTagToLink: vi.fn(),
   removeTagFromLink: vi.fn(),
 }));
 
-vi.mock('@/lib/utils', () => ({
+vi.mock("@/lib/utils", () => ({
   copyToClipboard: vi.fn(),
-  cn: (...inputs: string[]) => inputs.join(' '),
+  cn: (...inputs: string[]) => inputs.join(" "),
   formatDate: (d: Date) => d.toISOString(),
   formatNumber: (n: number) => String(n),
 }));
 
-vi.mock('@/models/links', () => ({
+vi.mock("@/models/links", () => ({
   buildShortUrl: (site: string, slug: string) => `${site}/${slug}`,
-  stripProtocol: (url: string) => url.replace(/^https?:\/\//, ''),
+  stripProtocol: (url: string) => url.replace(/^https?:\/\//, ""),
 }));
 
-import {
-  useInlineLinkEditViewModel,
-  type EditLinkCallbacks,
-} from '@/viewmodels/useLinksViewModel';
-import { updateLink, updateLinkNote } from '@/actions/links';
-import { createTag, addTagToLink, removeTagFromLink } from '@/actions/tags';
+import { updateLink, updateLinkNote } from "@/actions/links";
+import { addTagToLink, createTag, removeTagFromLink } from "@/actions/tags";
+import { type EditLinkCallbacks, useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 
 // ── Helpers ──
 
@@ -60,71 +58,71 @@ function makeCallbacks(): EditLinkCallbacks {
 
 // ── Tests ──
 
-describe('useInlineLinkEditViewModel', () => {
+describe("useInlineLinkEditViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   // ── Initial state ──
 
-  describe('initial state', () => {
-    it('initialises form fields from the link', () => {
+  describe("initial state", () => {
+    it("initialises form fields from the link", () => {
       const link = makeLink({
-        originalUrl: 'https://test.com',
-        slug: 'my-slug',
-        folderId: 'f1',
-        note: 'my note',
-        screenshotUrl: 'https://img.example.com/shot.png',
+        originalUrl: "https://test.com",
+        slug: "my-slug",
+        folderId: "f1",
+        note: "my note",
+        screenshotUrl: "https://img.example.com/shot.png",
       });
       const { result } = renderHook(() =>
         useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
       );
 
-      expect(result.current.editUrl).toBe('https://test.com');
-      expect(result.current.editSlug).toBe('my-slug');
-      expect(result.current.editFolderId).toBe('f1');
-      expect(result.current.editNote).toBe('my note');
-      expect(result.current.editScreenshotUrl).toBe('https://img.example.com/shot.png');
+      expect(result.current.editUrl).toBe("https://test.com");
+      expect(result.current.editSlug).toBe("my-slug");
+      expect(result.current.editFolderId).toBe("f1");
+      expect(result.current.editNote).toBe("my note");
+      expect(result.current.editScreenshotUrl).toBe("https://img.example.com/shot.png");
       expect(result.current.isSaving).toBe(false);
-      expect(result.current.error).toBe('');
+      expect(result.current.error).toBe("");
     });
 
-    it('handles null folderId, note, and screenshotUrl gracefully', () => {
+    it("handles null folderId, note, and screenshotUrl gracefully", () => {
       const link = makeLink({ folderId: null, note: null, screenshotUrl: null });
       const { result } = renderHook(() =>
         useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
       );
 
       expect(result.current.editFolderId).toBeNull();
-      expect(result.current.editNote).toBe('');
-      expect(result.current.editScreenshotUrl).toBe('');
+      expect(result.current.editNote).toBe("");
+      expect(result.current.editScreenshotUrl).toBe("");
     });
   });
 
   // ── Assigned tags computation ──
 
-  describe('assigned tags', () => {
-    it('computes assignedTagIds from linkTags', () => {
+  describe("assigned tags", () => {
+    it("computes assignedTagIds from linkTags", () => {
       const link = makeLink({ id: 5 });
-      const tags = [makeTag({ id: 't1' }), makeTag({ id: 't2' }), makeTag({ id: 't3' })];
+      const tags = [makeTag({ id: "t1" }), makeTag({ id: "t2" }), makeTag({ id: "t3" })];
       const linkTags: LinkTag[] = [
-        { linkId: 5, tagId: 't1' },
-        { linkId: 5, tagId: 't3' },
-        { linkId: 99, tagId: 't2' }, // different link
+        { linkId: 5, tagId: "t1" },
+        { linkId: 5, tagId: "t3" },
+        { linkId: 99, tagId: "t2" }, // different link
       ];
 
       const { result } = renderHook(() =>
         useInlineLinkEditViewModel(link, tags, linkTags, makeCallbacks()),
       );
 
-      expect(result.current.assignedTagIds).toEqual(new Set(['t1', 't3']));
+      expect(result.current.assignedTagIds).toEqual(new Set(["t1", "t3"]));
       expect(result.current.assignedTags).toEqual([tags[0], tags[2]]);
     });
 
-    it('returns empty when no linkTags match', () => {
+    it("returns empty when no linkTags match", () => {
       const link = makeLink({ id: 1 });
-      const tags = [makeTag({ id: 't1' })];
-      const linkTags: LinkTag[] = [{ linkId: 99, tagId: 't1' }];
+      const tags = [makeTag({ id: "t1" })];
+      const linkTags: LinkTag[] = [{ linkId: 99, tagId: "t1" }];
 
       const { result } = renderHook(() =>
         useInlineLinkEditViewModel(link, tags, linkTags, makeCallbacks()),
@@ -137,77 +135,86 @@ describe('useInlineLinkEditViewModel', () => {
 
   // ── Save edit ──
 
-  describe('saveEdit', () => {
-    it('updates link and note, calls onLinkUpdated', async () => {
-      const link = makeLink({ id: 1, note: 'old note' });
+  describe("saveEdit", () => {
+    it("updates link and note, calls onLinkUpdated", async () => {
+      const link = makeLink({ id: 1, note: "old note" });
       const cbs = makeCallbacks();
-      const updatedLink = makeLink({ id: 1, originalUrl: 'https://new.com' });
+      const updatedLink = makeLink({ id: 1, originalUrl: "https://new.com" });
 
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
       vi.mocked(updateLinkNote).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      act(() => { result.current.setEditUrl('https://new.com'); });
-      act(() => { result.current.setEditNote('new note'); });
+      act(() => {
+        result.current.setEditUrl("https://new.com");
+      });
+      act(() => {
+        result.current.setEditNote("new note");
+      });
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       expect(updateLink).toHaveBeenCalledWith(1, {
-        originalUrl: 'https://new.com',
+        originalUrl: "https://new.com",
         folderId: undefined,
       });
-      expect(updateLinkNote).toHaveBeenCalledWith(1, 'new note');
+      expect(updateLinkNote).toHaveBeenCalledWith(1, "new note");
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith({
         ...updatedLink,
-        note: 'new note',
+        note: "new note",
         screenshotUrl: null,
       });
       expect(result.current.isSaving).toBe(false);
     });
 
-    it('includes slug in updateLink payload when slug is changed', async () => {
-      const link = makeLink({ id: 1, slug: 'old-slug' });
+    it("includes slug in updateLink payload when slug is changed", async () => {
+      const link = makeLink({ id: 1, slug: "old-slug" });
       const cbs = makeCallbacks();
-      const updatedLink = makeLink({ id: 1, slug: 'new-slug' });
+      const updatedLink = makeLink({ id: 1, slug: "new-slug" });
 
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
+
+      act(() => {
+        result.current.setEditSlug("new-slug");
+      });
+
+      await act(async () => {
+        await result.current.saveEdit();
+      });
+
+      expect(updateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          slug: "new-slug",
+        }),
       );
-
-      act(() => { result.current.setEditSlug('new-slug'); });
-
-      await act(async () => { await result.current.saveEdit(); });
-
-      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
-        slug: 'new-slug',
-      }));
     });
 
-    it('omits slug from payload when slug is unchanged', async () => {
-      const link = makeLink({ id: 1, slug: 'abc123' });
+    it("omits slug from payload when slug is unchanged", async () => {
+      const link = makeLink({ id: 1, slug: "abc123" });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: makeLink({ id: 1 }) });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
       // Do NOT change slug
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       const callArgs = unwrap(vi.mocked(updateLink).mock.calls[0])[1];
-      expect(callArgs).not.toHaveProperty('slug');
+      expect(callArgs).not.toHaveProperty("slug");
     });
 
-    it('skips updateLinkNote when note is unchanged', async () => {
-      const link = makeLink({ id: 1, note: 'same' });
+    it("skips updateLinkNote when note is unchanged", async () => {
+      const link = makeLink({ id: 1, note: "same" });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({
@@ -215,38 +222,38 @@ describe('useInlineLinkEditViewModel', () => {
         data: makeLink({ id: 1 }),
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
       // Note remains 'same' — no change
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       expect(updateLinkNote).not.toHaveBeenCalled();
       expect(cbs.onLinkUpdated).toHaveBeenCalled();
     });
 
-    it('sets error when updateLink fails', async () => {
+    it("sets error when updateLink fails", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({
         success: false,
-        error: 'Invalid URL',
+        error: "Invalid URL",
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
-      expect(result.current.error).toBe('Invalid URL');
+      expect(result.current.error).toBe("Invalid URL");
       expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
-    it('still updates list when updateLinkNote fails, shows warning', async () => {
+    it("still updates list when updateLinkNote fails, shows warning", async () => {
       const link = makeLink({ id: 1, note: null });
       const cbs = makeCallbacks();
 
@@ -256,16 +263,18 @@ describe('useInlineLinkEditViewModel', () => {
       });
       vi.mocked(updateLinkNote).mockResolvedValue({
         success: false,
-        error: 'Note too long',
+        error: "Note too long",
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      act(() => { result.current.setEditNote('new note'); });
+      act(() => {
+        result.current.setEditNote("new note");
+      });
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       // Link update succeeded — list should still be updated
       expect(cbs.onLinkUpdated).toHaveBeenCalled();
@@ -273,11 +282,11 @@ describe('useInlineLinkEditViewModel', () => {
       const updatedLink = unwrap(vi.mocked(cbs.onLinkUpdated).mock.calls[0])[0];
       expect(updatedLink.note).toBeNull();
       // Error is shown
-      expect(result.current.error).toBe('Link saved but note update failed');
+      expect(result.current.error).toBe("Link saved but note update failed");
     });
 
-    it('clears note to null when edit note is empty/whitespace', async () => {
-      const link = makeLink({ id: 1, note: 'old note' });
+    it("clears note to null when edit note is empty/whitespace", async () => {
+      const link = makeLink({ id: 1, note: "old note" });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({
@@ -286,21 +295,21 @@ describe('useInlineLinkEditViewModel', () => {
       });
       vi.mocked(updateLinkNote).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      act(() => { result.current.setEditNote('   '); });
+      act(() => {
+        result.current.setEditNote("   ");
+      });
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       expect(updateLinkNote).toHaveBeenCalledWith(1, null);
-      expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
-        expect.objectContaining({ note: null }),
-      );
+      expect(cbs.onLinkUpdated).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
     });
 
-    it('includes screenshotUrl in payload when changed', async () => {
+    it("includes screenshotUrl in payload when changed", async () => {
       const link = makeLink({ id: 1, screenshotUrl: null });
       const cbs = makeCallbacks();
 
@@ -309,45 +318,50 @@ describe('useInlineLinkEditViewModel', () => {
         data: makeLink({ id: 1 }),
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
+
+      act(() => {
+        result.current.setEditScreenshotUrl("https://img.example.com/shot.png");
+      });
+
+      await act(async () => {
+        await result.current.saveEdit();
+      });
+
+      expect(updateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          screenshotUrl: "https://img.example.com/shot.png",
+        }),
       );
-
-      act(() => { result.current.setEditScreenshotUrl('https://img.example.com/shot.png'); });
-
-      await act(async () => { await result.current.saveEdit(); });
-
-      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
-        screenshotUrl: 'https://img.example.com/shot.png',
-      }));
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
-        expect.objectContaining({ screenshotUrl: 'https://img.example.com/shot.png' }),
+        expect.objectContaining({ screenshotUrl: "https://img.example.com/shot.png" }),
       );
     });
 
-    it('omits screenshotUrl from payload when unchanged', async () => {
-      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/existing.png' });
+    it("omits screenshotUrl from payload when unchanged", async () => {
+      const link = makeLink({ id: 1, screenshotUrl: "https://img.example.com/existing.png" });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({
         success: true,
-        data: makeLink({ id: 1, screenshotUrl: 'https://img.example.com/existing.png' }),
+        data: makeLink({ id: 1, screenshotUrl: "https://img.example.com/existing.png" }),
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
       // Do NOT change screenshotUrl
 
-      await act(async () => { await result.current.saveEdit(); });
+      await act(async () => {
+        await result.current.saveEdit();
+      });
 
       const callArgs = unwrap(vi.mocked(updateLink).mock.calls[0])[1];
-      expect(callArgs).not.toHaveProperty('screenshotUrl');
+      expect(callArgs).not.toHaveProperty("screenshotUrl");
     });
 
-    it('clears screenshotUrl to null when emptied', async () => {
-      const link = makeLink({ id: 1, screenshotUrl: 'https://img.example.com/old.png' });
+    it("clears screenshotUrl to null when emptied", async () => {
+      const link = makeLink({ id: 1, screenshotUrl: "https://img.example.com/old.png" });
       const cbs = makeCallbacks();
 
       vi.mocked(updateLink).mockResolvedValue({
@@ -355,17 +369,22 @@ describe('useInlineLinkEditViewModel', () => {
         data: makeLink({ id: 1 }),
       });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
+
+      act(() => {
+        result.current.setEditScreenshotUrl("");
+      });
+
+      await act(async () => {
+        await result.current.saveEdit();
+      });
+
+      expect(updateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          screenshotUrl: null,
+        }),
       );
-
-      act(() => { result.current.setEditScreenshotUrl(''); });
-
-      await act(async () => { await result.current.saveEdit(); });
-
-      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({
-        screenshotUrl: null,
-      }));
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith(
         expect.objectContaining({ screenshotUrl: null }),
       );
@@ -374,107 +393,107 @@ describe('useInlineLinkEditViewModel', () => {
 
   // ── Tag operations ──
 
-  describe('tag operations', () => {
-    it('addTag optimistically adds and calls server', async () => {
+  describe("tag operations", () => {
+    it("addTag optimistically adds and calls server", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.addTag('t1'); });
+      await act(async () => {
+        await result.current.addTag("t1");
+      });
 
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
-      expect(addTagToLink).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
+      expect(addTagToLink).toHaveBeenCalledWith(1, "t1");
     });
 
-    it('addTag rolls back on server failure', async () => {
+    it("addTag rolls back on server failure", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(addTagToLink).mockResolvedValue({ success: false, error: 'fail' });
+      vi.mocked(addTagToLink).mockResolvedValue({ success: false, error: "fail" });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.addTag('t1'); });
+      await act(async () => {
+        await result.current.addTag("t1");
+      });
 
       // Optimistic add then rollback remove
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
     });
 
-    it('removeTag optimistically removes and calls server', async () => {
+    it("removeTag optimistically removes and calls server", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
       vi.mocked(removeTagFromLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.removeTag('t1'); });
+      await act(async () => {
+        await result.current.removeTag("t1");
+      });
 
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
-      expect(removeTagFromLink).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
+      expect(removeTagFromLink).toHaveBeenCalledWith(1, "t1");
     });
 
-    it('removeTag rolls back on server failure', async () => {
+    it("removeTag rolls back on server failure", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(removeTagFromLink).mockResolvedValue({ success: false, error: 'fail' });
+      vi.mocked(removeTagFromLink).mockResolvedValue({ success: false, error: "fail" });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.removeTag('t1'); });
+      await act(async () => {
+        await result.current.removeTag("t1");
+      });
 
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
     });
   });
 
   // ── Create and assign tag ──
 
-  describe('createAndAssignTag', () => {
-    it('creates tag, calls onTagCreated, then assigns to link', async () => {
+  describe("createAndAssignTag", () => {
+    it("creates tag, calls onTagCreated, then assigns to link", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
-      const newTag = makeTag({ id: 't-new', name: 'work' });
+      const newTag = makeTag({ id: "t-new", name: "work" });
 
       vi.mocked(createTag).mockResolvedValue({ success: true, data: newTag });
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.createAndAssignTag('work'); });
+      await act(async () => {
+        await result.current.createAndAssignTag("work");
+      });
 
-      expect(createTag).toHaveBeenCalledWith({ name: 'work' });
+      expect(createTag).toHaveBeenCalledWith({ name: "work" });
       expect(cbs.onTagCreated).toHaveBeenCalledWith(newTag);
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't-new' });
-      expect(addTagToLink).toHaveBeenCalledWith(1, 't-new');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t-new" });
+      expect(addTagToLink).toHaveBeenCalledWith(1, "t-new");
     });
 
-    it('does not assign tag if createTag fails', async () => {
+    it("does not assign tag if createTag fails", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(createTag).mockResolvedValue({ success: false, error: 'Invalid name' });
+      vi.mocked(createTag).mockResolvedValue({ success: false, error: "Invalid name" });
 
-      const { result } = renderHook(() =>
-        useInlineLinkEditViewModel(link, [], [], cbs),
-      );
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
 
-      await act(async () => { await result.current.createAndAssignTag(''); });
+      await act(async () => {
+        await result.current.createAndAssignTag("");
+      });
 
       expect(cbs.onTagCreated).not.toHaveBeenCalled();
       expect(cbs.onLinkTagAdded).not.toHaveBeenCalled();

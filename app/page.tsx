@@ -1,12 +1,8 @@
-import { signIn, auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/auth";
 import { resolvePublicOriginFromHeaders } from "@/lib/url";
-import {
-  BadgeFooter,
-  BadgeHeader,
-  RadialGlow,
-} from "./page-parts/badge-chrome";
+import { BadgeFooter, BadgeHeader, RadialGlow } from "./page-parts/badge-chrome";
 import { BadgeContent, TopRightControls } from "./page-parts/badge-content";
 
 const BADGE_SHADOW = [
@@ -32,8 +28,7 @@ async function signInWithGoogle(): Promise<void> {
   // legacy bare-`host` behavior) but rejects invalid proto values like
   // `javascript`, falling through to PUBLIC_ORIGIN. The literal
   // localhost is only a final guard for completely empty environments.
-  const origin =
-    resolvePublicOriginFromHeaders(h) || "http://localhost:7006";
+  const origin = resolvePublicOriginFromHeaders(h) || "http://localhost:7006";
   const redirectTo = `${origin}/dashboard/overview`;
   await signIn("google", { redirectTo });
 }

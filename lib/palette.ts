@@ -8,8 +8,7 @@ const v = (token: string) => `hsl(var(--${token}))`;
  * Returns a CSS color string with alpha from a CSS custom property.
  * Usage: `withAlpha("chart-1", 0.12)` → `hsl(var(--chart-1) / 0.12)`
  */
-export const withAlpha = (token: string, alpha: number) =>
-  `hsl(var(--${token}) / ${alpha})`;
+export const withAlpha = (token: string, alpha: number) => `hsl(var(--${token}) / ${alpha})`;
 
 // ── 12 categorical chart colors ──
 //
@@ -20,10 +19,7 @@ export const withAlpha = (token: string, alpha: number) =>
 // visually separable even when stacked with alpha.
 
 /** Ordered array — use for pie / donut / bar where you need N colors by index. */
-export const CHART_COLORS = Array.from(
-  { length: 12 },
-  (_, i) => v(`chart-${i + 1}`),
-);
+export const CHART_COLORS = Array.from({ length: 12 }, (_, i) => v(`chart-${i + 1}`));
 
 // ── Semantic aliases ──
 

@@ -1,12 +1,12 @@
 "use client";
 
 import { ExternalLink, File, FileText, ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatBytes, getFileCategory, getFileName } from "@/models/storage";
+import { cn } from "@/lib/utils";
 import type { StorageFile } from "@/models/storage";
+import { formatBytes, getFileCategory, getFileName } from "@/models/storage";
 
 function FileIcon({ fileKey }: { fileKey: string }) {
   const category = getFileCategory(fileKey);
@@ -47,7 +47,6 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
       )}
 
       {isImage && file.publicUrl ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={file.publicUrl}
           alt={getFileName(file.key)}
@@ -61,9 +60,7 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
       )}
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-mono text-foreground truncate">
-          {getFileName(file.key)}
-        </p>
+        <p className="text-sm font-mono text-foreground truncate">{getFileName(file.key)}</p>
         <p className="text-xs text-muted-foreground truncate">{file.key}</p>
       </div>
 
@@ -72,9 +69,13 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
       </span>
 
       {isOrphan ? (
-        <Badge variant="warning" className="text-[10px] shrink-0">orphan</Badge>
+        <Badge variant="warning" className="text-[10px] shrink-0">
+          orphan
+        </Badge>
       ) : (
-        <Badge variant="success" className="text-[10px] shrink-0">linked</Badge>
+        <Badge variant="success" className="text-[10px] shrink-0">
+          linked
+        </Badge>
       )}
 
       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>

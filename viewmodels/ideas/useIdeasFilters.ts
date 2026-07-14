@@ -50,9 +50,12 @@ export function useIdeasFilters(ideas: IdeaListItem[], tags: Tag[], initialSortB
   }, []);
 
   return {
-    searchQuery, setSearchQuery,
-    selectedTagId, setSelectedTagId,
-    sortBy, setSortBy,
+    searchQuery,
+    setSearchQuery,
+    selectedTagId,
+    setSelectedTagId,
+    sortBy,
+    setSortBy,
     filteredIdeas,
     tagFilterOptions,
     clearFilters,

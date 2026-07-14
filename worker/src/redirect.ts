@@ -3,9 +3,9 @@
  * from handleFetch so the main fetch handler stays small.
  */
 
-import type { Env, KVLinkData } from './types';
-import { forwardToOrigin } from './forward';
-import { recordClickAsync } from './analytics';
+import { recordClickAsync } from "./analytics";
+import { forwardToOrigin } from "./forward";
+import type { Env, KVLinkData } from "./types";
 
 /**
  * Try resolving the slug via the edge KV namespace.
@@ -21,7 +21,7 @@ export async function tryKvLookup(
   request: Request,
 ): Promise<Response | null> {
   try {
-    const kvData = await env.LINKS_KV.get<KVLinkData>(slug, 'json');
+    const kvData = await env.LINKS_KV.get<KVLinkData>(slug, "json");
     if (!kvData) return null;
 
     if (kvData.expiresAt && Date.now() > kvData.expiresAt) {
@@ -45,19 +45,13 @@ interface LookupApiResponse {
 }
 
 /** Fire-and-forget: backfill KV for future edge hits, honouring expiration. */
-function backfillKv(
-  ctx: ExecutionContext,
-  env: Env,
-  slug: string,
-  data: LookupApiResponse,
-): void {
+function backfillKv(ctx: ExecutionContext, env: Env, slug: string, data: LookupApiResponse): void {
   const kvValue = JSON.stringify({
     id: data.id,
     originalUrl: data.originalUrl,
     expiresAt: data.expiresAt ?? null,
   });
-  const expirationSec =
-    data.expiresAt != null ? Math.floor(data.expiresAt / 1000) : null;
+  const expirationSec = data.expiresAt != null ? Math.floor(data.expiresAt / 1000) : null;
   const nowSec = Math.floor(Date.now() / 1000);
   const kvOptions =
     expirationSec != null && expirationSec > nowSec + 60
@@ -78,7 +72,7 @@ async function tombstone404(
     status: 404,
     headers: {
       ...Object.fromEntries(originResponse.headers.entries()),
-      'Cache-Control': 'max-age=60',
+      "Cache-Control": "max-age=60",
     },
   });
   ctx.waitUntil(cache.put(negCacheKey, tomb.clone()));
@@ -101,11 +95,10 @@ export async function tryOriginLookup(
   negCacheKey: Request,
 ): Promise<Response | null> {
   try {
-    const originBase = env.ORIGIN_URL.replace(/\/$/, '');
-    const lookupRes = await fetch(
-      `${originBase}/api/lookup?slug=${encodeURIComponent(slug)}`,
-      { headers: { 'X-Forwarded-Host': url.hostname } },
-    );
+    const originBase = env.ORIGIN_URL.replace(/\/$/, "");
+    const lookupRes = await fetch(`${originBase}/api/lookup?slug=${encodeURIComponent(slug)}`, {
+      headers: { "X-Forwarded-Host": url.hostname },
+    });
 
     if (!lookupRes.ok && lookupRes.status !== 404) return null;
 

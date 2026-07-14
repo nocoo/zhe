@@ -6,9 +6,9 @@
  * Requires: ideas:read (GET), ideas:write (PATCH, DELETE)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { ideaDetailToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 
@@ -21,10 +21,7 @@ type RouteContext = {
  *
  * Response: { idea: IdeaDetail }
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "ideas:read");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -35,7 +32,7 @@ export async function GET(
   const { id } = await context.params;
   const ideaId = parseInt(id, 10);
 
-  if (isNaN(ideaId)) {
+  if (Number.isNaN(ideaId)) {
     return apiError("Invalid idea ID", 400);
   }
 
@@ -56,10 +53,7 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json(
-      { idea: ideaDetailToResponse(idea) },
-      { headers: rateLimitHeaders },
-    );
+    return NextResponse.json({ idea: ideaDetailToResponse(idea) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/ideas/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -76,10 +70,7 @@ export async function GET(
  *
  * Response: { idea: IdeaDetail }
  */
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "ideas:write");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -90,7 +81,7 @@ export async function PATCH(
   const { id } = await context.params;
   const ideaId = parseInt(id, 10);
 
-  if (isNaN(ideaId)) {
+  if (Number.isNaN(ideaId)) {
     return apiError("Invalid idea ID", 400);
   }
 
@@ -163,10 +154,7 @@ export async function PATCH(
       statusCode: 200,
     });
 
-    return NextResponse.json(
-      { idea: ideaDetailToResponse(idea) },
-      { headers: rateLimitHeaders },
-    );
+    return NextResponse.json({ idea: ideaDetailToResponse(idea) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/ideas/${id} PATCH]`, error);
     // Check for invalid tag IDs error
@@ -182,10 +170,7 @@ export async function PATCH(
  *
  * Response: { success: true }
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "ideas:write");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -196,7 +181,7 @@ export async function DELETE(
   const { id } = await context.params;
   const ideaId = parseInt(id, 10);
 
-  if (isNaN(ideaId)) {
+  if (Number.isNaN(ideaId)) {
     return apiError("Invalid idea ID", 400);
   }
 

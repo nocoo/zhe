@@ -3,9 +3,9 @@
  * Uses D1 HTTP API for Vercel deployment.
  */
 
-import { executeD1Query } from './d1-client';
-import { rowToLink, rowToAnalytics, rowToFolder, rowToWebhook } from './mappers';
-import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook, TweetCache } from './schema';
+import { executeD1Query } from "./d1-client";
+import { rowToAnalytics, rowToFolder, rowToLink, rowToWebhook } from "./mappers";
+import type { Analytics, Folder, Link, NewAnalytics, NewLink, TweetCache, Webhook } from "./schema";
 
 // ============================================
 // Link Operations
@@ -16,8 +16,8 @@ import type { Link, NewLink, Analytics, NewAnalytics, Folder, Webhook, TweetCach
  */
 export async function getLinkBySlug(slug: string): Promise<Link | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM links WHERE slug = ? LIMIT 1',
-    [slug]
+    "SELECT * FROM links WHERE slug = ? LIMIT 1",
+    [slug],
   );
 
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -28,8 +28,8 @@ export async function getLinkBySlug(slug: string): Promise<Link | null> {
  */
 export async function slugExists(slug: string): Promise<boolean> {
   const rows = await executeD1Query<{ cnt: number }>(
-    'SELECT COUNT(1) AS cnt FROM links WHERE slug = ? LIMIT 1',
-    [slug]
+    "SELECT COUNT(1) AS cnt FROM links WHERE slug = ? LIMIT 1",
+    [slug],
   );
   return (rows[0]?.cnt ?? 0) > 0;
 }
@@ -37,7 +37,7 @@ export async function slugExists(slug: string): Promise<boolean> {
 /**
  * Create a new link.
  */
-export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promise<Link> {
+export async function createLink(data: Omit<NewLink, "id" | "createdAt">): Promise<Link> {
   const now = Date.now();
   const rows = await executeD1Query<Record<string, unknown>>(
     `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, created_at)
@@ -54,11 +54,11 @@ export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promi
       data.note ?? null,
       data.screenshotUrl ?? null,
       now,
-    ]
+    ],
   );
 
   const row = rows[0];
-  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+  if (!row) throw new Error("INSERT RETURNING * returned no rows");
 
   return rowToLink(row);
 }
@@ -69,8 +69,8 @@ export async function createLink(data: Omit<NewLink, 'id' | 'createdAt'>): Promi
  */
 export async function getLinkByUserAndUrl(userId: string, url: string): Promise<Link | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM links WHERE user_id = ? AND original_url = ? LIMIT 1',
-    [userId, url]
+    "SELECT * FROM links WHERE user_id = ? AND original_url = ? LIMIT 1",
+    [userId, url],
   );
 
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -84,7 +84,7 @@ export async function getAllLinksForKV(): Promise<
   Array<{ id: number; slug: string; originalUrl: string; expiresAt: number | null }>
 > {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT id, slug, original_url, expires_at FROM links',
+    "SELECT id, slug, original_url, expires_at FROM links",
   );
 
   return rows.map((row) => ({
@@ -103,7 +103,7 @@ export async function getAllLinksForKV(): Promise<
  * Record a click event for analytics.
  */
 export async function recordClick(
-  data: Omit<NewAnalytics, 'id' | 'createdAt'>
+  data: Omit<NewAnalytics, "id" | "createdAt">,
 ): Promise<Analytics> {
   const now = Date.now();
 
@@ -127,13 +127,10 @@ export async function recordClick(
     ],
   );
 
-  await executeD1Query(
-    'UPDATE links SET clicks = clicks + 1 WHERE id = ?',
-    [data.linkId],
-  );
+  await executeD1Query("UPDATE links SET clicks = clicks + 1 WHERE id = ?", [data.linkId]);
 
   const row = insertRows[0];
-  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+  if (!row) throw new Error("INSERT RETURNING * returned no rows");
   return rowToAnalytics(row);
 }
 
@@ -147,8 +144,8 @@ export async function recordClick(
  */
 export async function getFolderByUserAndName(userId: string, name: string): Promise<Folder | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1',
-    [userId, name]
+    "SELECT * FROM folders WHERE user_id = ? AND LOWER(name) = LOWER(?) LIMIT 1",
+    [userId, name],
   );
 
   return rows[0] ? rowToFolder(rows[0]) : null;
@@ -163,8 +160,8 @@ export async function getFolderByUserAndName(userId: string, name: string): Prom
  */
 export async function getWebhookByToken(token: string): Promise<Webhook | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM webhooks WHERE token = ? LIMIT 1',
-    [token]
+    "SELECT * FROM webhooks WHERE token = ? LIMIT 1",
+    [token],
   );
   return rows[0] ? rowToWebhook(rows[0]) : null;
 }
@@ -180,11 +177,11 @@ export async function getWebhookStats(userId: string): Promise<{
 }> {
   const [countRows, recentRows] = await Promise.all([
     executeD1Query<Record<string, unknown>>(
-      'SELECT COUNT(*) AS cnt, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?',
+      "SELECT COUNT(*) AS cnt, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?",
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
-      'SELECT slug, original_url, clicks, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 5',
+      "SELECT slug, original_url, clicks, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
       [userId],
     ),
   ]);
@@ -226,8 +223,8 @@ function rowToTweetCache(row: Record<string, unknown>): TweetCache {
  */
 export async function getTweetCacheById(tweetId: string): Promise<TweetCache | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM tweet_cache WHERE tweet_id = ? LIMIT 1',
-    [tweetId]
+    "SELECT * FROM tweet_cache WHERE tweet_id = ? LIMIT 1",
+    [tweetId],
   );
   return rows[0] ? rowToTweetCache(rows[0]) : null;
 }
@@ -274,11 +271,11 @@ export async function upsertTweetCache(data: {
       data.rawData,
       now,
       now,
-    ]
+    ],
   );
 
   const row = rows[0];
-  if (!row) throw new Error('UPSERT RETURNING * returned no rows');
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
   return rowToTweetCache(row);
 }
 // ============================================
@@ -289,16 +286,12 @@ export async function upsertTweetCache(data: {
  * Look up a user by their Backy pull webhook key.
  * Returns the userId if the key is valid, null otherwise.
  */
-export async function verifyBackyPullWebhook(
-  key: string,
-): Promise<{ userId: string } | null> {
+export async function verifyBackyPullWebhook(key: string): Promise<{ userId: string } | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT user_id FROM user_settings WHERE backy_pull_key = ? LIMIT 1',
+    "SELECT user_id FROM user_settings WHERE backy_pull_key = ? LIMIT 1",
     [key],
   );
   if (!rows[0]) return null;
 
   return { userId: rows[0].user_id as string };
 }
-
-

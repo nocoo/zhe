@@ -1,6 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
-import { logApiRequest, recordAuditLog, getAuditLogs, getAuditLogsByUser, type AuditLogEntry } from "@/lib/api/audit";
+import { describe, expect, it } from "vitest";
+import {
+  type AuditLogEntry,
+  getAuditLogs,
+  getAuditLogsByUser,
+  logApiRequest,
+  recordAuditLog,
+} from "@/lib/api/audit";
 
 describe("API Audit Logging", () => {
   const mockEntry: AuditLogEntry = {
@@ -40,18 +46,14 @@ describe("API Audit Logging", () => {
     it("handles various HTTP methods", async () => {
       const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"];
       for (const method of methods) {
-        await expect(
-          recordAuditLog({ ...mockEntry, method }),
-        ).resolves.not.toThrow();
+        await expect(recordAuditLog({ ...mockEntry, method })).resolves.not.toThrow();
       }
     });
 
     it("handles various status codes", async () => {
       const statusCodes = [200, 201, 400, 401, 403, 404, 429, 500];
       for (const statusCode of statusCodes) {
-        await expect(
-          recordAuditLog({ ...mockEntry, statusCode }),
-        ).resolves.not.toThrow();
+        await expect(recordAuditLog({ ...mockEntry, statusCode })).resolves.not.toThrow();
       }
     });
   });

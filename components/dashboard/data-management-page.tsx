@@ -1,24 +1,14 @@
 "use client";
 
+import { CheckCircle, Download, Upload } from "lucide-react";
 import { useRef } from "react";
-import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Download,
-  Upload,
-  CheckCircle,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 
 export function DataManagementPage() {
-  const {
-    isExporting,
-    isImporting,
-    importResult,
-    handleExport,
-    handleImport,
-    clearImportResult,
-  } = useSettingsViewModel();
+  const { isExporting, isImporting, importResult, handleExport, handleImport, clearImportResult } =
+    useSettingsViewModel();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,12 +37,7 @@ export function DataManagementPage() {
           <p className="mb-4 text-sm text-muted-foreground">
             将所有链接数据导出为 JSON 文件，可用于备份或迁移。
           </p>
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-            variant="outline"
-            size="sm"
-          >
+          <Button onClick={handleExport} disabled={isExporting} variant="outline" size="sm">
             {isExporting ? "导出中..." : "导出链接"}
           </Button>
         </CardContent>
@@ -82,11 +67,7 @@ export function DataManagementPage() {
                   <strong>{importResult.skipped}</strong> 条
                 </span>
               </div>
-              <Button
-                onClick={clearImportResult}
-                variant="outline"
-                size="sm"
-              >
+              <Button onClick={clearImportResult} variant="outline" size="sm">
                 确定
               </Button>
             </div>

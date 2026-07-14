@@ -1,7 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   BadgeCheck,
   Bookmark,
@@ -14,6 +12,8 @@ import {
   Quote,
   Repeat2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   formatCount,
   formatTweetDate,
@@ -32,7 +32,6 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
         rel="noopener noreferrer"
         className="shrink-0"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={tweet.author.profile_image_url}
           alt={tweet.author.name}
@@ -49,9 +48,7 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
           >
             {tweet.author.name}
           </a>
-          {tweet.author.is_verified && (
-            <BadgeCheck className="h-4 w-4 shrink-0 text-info" />
-          )}
+          {tweet.author.is_verified && <BadgeCheck className="h-4 w-4 shrink-0 text-info" />}
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <a
@@ -70,11 +67,7 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
   );
 }
 
-function EntitiesBlock({
-  entities,
-}: {
-  entities: XrayTweetData["entities"];
-}) {
+function EntitiesBlock({ entities }: { entities: XrayTweetData["entities"] }) {
   return (
     <>
       {entities.urls.length > 0 && (
@@ -126,9 +119,21 @@ function MetadataRow({ tweet }: { tweet: XrayTweetData }) {
       <span>{formatTweetDate(tweet.created_at)}</span>
       <span>·</span>
       <span className="uppercase">{tweet.lang}</span>
-      {tweet.is_retweet && <Badge variant="secondary" className="text-[10px]">转推</Badge>}
-      {tweet.is_quote && <Badge variant="secondary" className="text-[10px]">引用</Badge>}
-      {tweet.is_reply && <Badge variant="secondary" className="text-[10px]">回复</Badge>}
+      {tweet.is_retweet && (
+        <Badge variant="secondary" className="text-[10px]">
+          转推
+        </Badge>
+      )}
+      {tweet.is_quote && (
+        <Badge variant="secondary" className="text-[10px]">
+          引用
+        </Badge>
+      )}
+      {tweet.is_reply && (
+        <Badge variant="secondary" className="text-[10px]">
+          回复
+        </Badge>
+      )}
       <span>·</span>
       <a
         href={tweet.url}
@@ -176,14 +181,11 @@ function MetricsBar({ metrics }: { metrics: XrayTweetData["metrics"] }) {
 
 function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
   return (
-    <div
-      className={`grid gap-2 ${media.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
-    >
+    <div className={`grid gap-2 ${media.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
       {media.map((item) => (
         <div key={item.id} className="relative overflow-hidden rounded-lg">
           {item.type === "PHOTO" ? (
             <a href={item.url} target="_blank" rel="noopener noreferrer">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.url}
                 alt="Media"
@@ -193,7 +195,6 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
           ) : (
             <a href={item.url} target="_blank" rel="noopener noreferrer">
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={item.thumbnail_url ?? item.url}
                   alt="Video thumbnail"
@@ -225,13 +226,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
 
 // ---- Main exported component -----------------------------------------------
 
-export function TweetCard({
-  tweet,
-  action,
-}: {
-  tweet: XrayTweetData;
-  action?: React.ReactNode;
-}) {
+export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
     <div className="rounded-card bg-secondary p-4 space-y-3">
       <AuthorRow tweet={tweet} />

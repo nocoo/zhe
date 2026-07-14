@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /** Route-to-label mapping for breadcrumbs */
 const ROUTE_LABELS: Record<string, string> = {
@@ -30,10 +30,7 @@ export function Breadcrumbs() {
       <nav aria-label="Breadcrumb">
         <ol className="flex items-center gap-1.5">
           <li>
-            <span
-              className="text-foreground font-medium"
-              aria-current="page"
-            >
+            <span className="text-foreground font-medium" aria-current="page">
               链接管理
             </span>
           </li>
@@ -59,10 +56,7 @@ export function Breadcrumbs() {
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
           </li>
           <li>
-            <span
-              className="text-foreground font-medium"
-              aria-current="page"
-            >
+            <span className="text-foreground font-medium" aria-current="page">
               编辑想法
             </span>
           </li>
@@ -88,10 +82,7 @@ export function Breadcrumbs() {
           <ChevronRight className="h-3 w-3 text-muted-foreground" />
         </li>
         <li>
-          <span
-            className="text-foreground font-medium"
-            aria-current="page"
-          >
+          <span className="text-foreground font-medium" aria-current="page">
             {pageLabel}
           </span>
         </li>

@@ -5,9 +5,9 @@
  * authorization, and business logic.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, executeD1, resetAndSeedUser, seedApiKey, seedTag } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/tags`;
 
@@ -22,8 +22,8 @@ describe("/api/v1/tags", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "tags:read,tags:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "tags:read" }),
-      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "tags:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes", scopes: "" }),
     ]);
   });
 
@@ -184,10 +184,7 @@ describe("/api/v1/tags", () => {
     });
 
     it("returns 404 for non-existent tag", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyReadOnly);
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -195,10 +192,7 @@ describe("/api/v1/tags", () => {
     });
 
     it("returns tag details with correct structure", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testTagId}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testTagId}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -219,43 +213,31 @@ describe("/api/v1/tags", () => {
     });
 
     it("returns 403 when API key lacks tags:write scope", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testTagId}`,
-        apiKeyReadOnly,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Updated" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testTagId}`, apiKeyReadOnly, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Updated" }),
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent tag", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Test" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Test" }),
+      });
 
       expect(response.status).toBe(404);
     });
 
     it("updates tag name", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testTagId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Updated Name" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testTagId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Updated Name" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -263,15 +245,11 @@ describe("/api/v1/tags", () => {
     });
 
     it("updates tag color", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testTagId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ color: "aabbcc" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testTagId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: "aabbcc" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -279,15 +257,11 @@ describe("/api/v1/tags", () => {
     });
 
     it("returns 400 for invalid color", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testTagId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ color: "not-a-color" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testTagId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: "not-a-color" }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -300,21 +274,17 @@ describe("/api/v1/tags", () => {
       // Seed a tag to delete
       const tag = await seedTag(TEST_USER_ID);
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${tag.id}`,
-        apiKeyReadOnly,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${tag.id}`, apiKeyReadOnly, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent tag", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(404);
     });
@@ -324,21 +294,16 @@ describe("/api/v1/tags", () => {
       const tag = await seedTag(TEST_USER_ID);
 
       // Delete it
-      const deleteResponse = await authenticatedFetch(
-        `${API_URL}/${tag.id}`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const deleteResponse = await authenticatedFetch(`${API_URL}/${tag.id}`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(deleteResponse.status).toBe(200);
       const body = await deleteResponse.json();
       expect(body.success).toBe(true);
 
       // Verify it's gone
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${tag.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${tag.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(404);
     });
   });

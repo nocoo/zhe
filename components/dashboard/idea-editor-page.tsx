@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
-import { useEditorShortcuts } from "./idea-editor-page-parts/useEditorShortcuts";
-import { EditorSkeleton, IdeaNotFound } from "./idea-editor-page-parts/states";
-import { EditorToolbar } from "./idea-editor-page-parts/editor-toolbar";
 import { EditorSplit, ErrorToast } from "./idea-editor-page-parts/editor-split";
+import { EditorToolbar } from "./idea-editor-page-parts/editor-toolbar";
+import { EditorSkeleton, IdeaNotFound } from "./idea-editor-page-parts/states";
+import { useEditorShortcuts } from "./idea-editor-page-parts/useEditorShortcuts";
 
 export interface IdeaEditorPageProps {
   id: number;

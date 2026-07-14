@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
-import type { ApiScope } from "@/models/api-key";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Key, Plus } from "lucide-react";
-import { NewKeyBanner } from "./api-keys-page-parts/new-key-banner";
-import { CreateKeyForm } from "./api-keys-page-parts/create-key-form";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ApiScope } from "@/models/api-key";
+import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";
+import { CreateKeyForm } from "./api-keys-page-parts/create-key-form";
+import { NewKeyBanner } from "./api-keys-page-parts/new-key-banner";
 
 export function ApiKeysPage() {
   const vm = useApiKeysViewModel();
@@ -79,10 +79,7 @@ export function ApiKeysPage() {
               )}
 
               {vm.keys.length === 0 && !showCreateForm ? (
-                <p
-                  className="text-sm text-muted-foreground"
-                  data-testid="no-keys-message"
-                >
+                <p className="text-sm text-muted-foreground" data-testid="no-keys-message">
                   还没有 API Key。创建一个来开始使用 API。
                 </p>
               ) : (

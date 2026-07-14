@@ -14,16 +14,12 @@
  * emoji (or `+` placeholder) is rendered.
  */
 
-import { useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export interface TodoEmojiPickerProps {
   /** Currently selected emoji, or null when unset. */
@@ -184,9 +180,7 @@ function filterEntries(query: string): readonly EmojiEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   return ALL_EMOJIS.filter(
-    (e) =>
-      e.char.includes(q) ||
-      e.keywords.some((k) => k.toLowerCase().includes(q)),
+    (e) => e.char.includes(q) || e.keywords.some((k) => k.toLowerCase().includes(q)),
   );
 }
 
@@ -259,11 +253,7 @@ export function TodoEmojiPicker({
 
         <div className="max-h-64 overflow-y-auto">
           {query.trim().length > 0 ? (
-            <EmojiGrid
-              entries={matches}
-              onPick={commit}
-              emptyLabel="未找到匹配的 emoji"
-            />
+            <EmojiGrid entries={matches} onPick={commit} emptyLabel="未找到匹配的 emoji" />
           ) : (
             EMOJI_GROUPS.map((group) => (
               <div key={group.label} className="mb-2 last:mb-0">
@@ -291,13 +281,11 @@ function EmojiGrid({
 }) {
   if (entries.length === 0) {
     return emptyLabel ? (
-      <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-        {emptyLabel}
-      </p>
+      <p className="px-2 py-3 text-center text-xs text-muted-foreground">{emptyLabel}</p>
     ) : null;
   }
   return (
-    <div className="grid grid-cols-8 gap-1" role="grid">
+    <div className="grid grid-cols-8 gap-1">
       {entries.map((e) => (
         <button
           key={e.char}

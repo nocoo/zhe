@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { unwrap } from '../test-utils';
-import { makeUpload } from '../fixtures';
+
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeUpload } from "../fixtures";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -13,18 +14,18 @@ const mockRecordUpload = vi.fn();
 const mockFetchUploads = vi.fn();
 const mockDeleteUploadAction = vi.fn();
 
-vi.mock('@/actions/upload', () => ({
+vi.mock("@/actions/upload", () => ({
   getPresignedUploadUrl: (...args: unknown[]) => mockGetPresignedUploadUrl(...args),
   recordUpload: (...args: unknown[]) => mockRecordUpload(...args),
   deleteUpload: (...args: unknown[]) => mockDeleteUploadAction(...args),
 }));
 
-vi.mock('@/actions/upload-read', () => ({
+vi.mock("@/actions/upload-read", () => ({
   getUploads: (...args: unknown[]) => mockFetchUploads(...args),
 }));
 
-vi.mock('@/models/upload', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/models/upload')>();
+vi.mock("@/models/upload", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/models/upload")>();
   return {
     ...original,
     // Keep real implementations for pure functions
@@ -38,25 +39,22 @@ vi.mock('@/models/upload', async (importOriginal) => {
 });
 
 const mockCopyToClipboard = vi.fn();
-vi.mock('@/lib/utils', () => ({
+vi.mock("@/lib/utils", () => ({
   copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
-  cn: (...inputs: string[]) => inputs.join(' '),
+  cn: (...inputs: string[]) => inputs.join(" "),
   formatDate: (d: Date) => d.toISOString(),
   formatNumber: (n: number) => String(n),
 }));
 
+import { convertPngToJpeg, DEFAULT_JPEG_QUALITY } from "@/models/upload";
 // Import after mocks
-import {
-  useUploadsViewModel,
-  useUploadItemViewModel,
-} from '@/viewmodels/useUploadViewModel';
-import { convertPngToJpeg, DEFAULT_JPEG_QUALITY  } from '@/models/upload';
+import { useUploadItemViewModel, useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeFile(name = 'photo.png', type = 'image/png', size = 1024): File {
+function makeFile(name = "photo.png", type = "image/png", size = 1024): File {
   const content = new Uint8Array(size);
   return new File([content], name, { type });
 }
@@ -68,21 +66,21 @@ const mockFetch = vi.fn();
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useUploadsViewModel', () => {
+describe("useUploadsViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     // Mock global fetch for R2 PUT
-    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal("fetch", mockFetch);
     // Mock crypto.randomUUID
-    vi.stubGlobal('crypto', {
+    vi.stubGlobal("crypto", {
       ...globalThis.crypto,
-      randomUUID: () => 'mock-uuid-1234',
+      randomUUID: () => "mock-uuid-1234",
     });
     // Default: empty uploads from server
     mockFetchUploads.mockResolvedValue({ success: true, data: [] });
-    localStorage.removeItem('autoConvertPng');
-    localStorage.removeItem('jpegQuality');
+    localStorage.removeItem("autoConvertPng");
+    localStorage.removeItem("jpegQuality");
   });
 
   afterEach(() => {
@@ -90,7 +88,7 @@ describe('useUploadsViewModel', () => {
     vi.unstubAllGlobals();
   });
 
-  it('skips fetch and uses initialUploads when provided', () => {
+  it("skips fetch and uses initialUploads when provided", () => {
     const prefetched = [makeUpload({ id: 10 }), makeUpload({ id: 20 })];
 
     const { result } = renderHook(() => useUploadsViewModel(prefetched));
@@ -102,7 +100,7 @@ describe('useUploadsViewModel', () => {
     expect(mockFetchUploads).not.toHaveBeenCalled();
   });
 
-  it('returns loading=true initially, then loads data', async () => {
+  it("returns loading=true initially, then loads data", async () => {
     const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
     mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
 
@@ -119,7 +117,7 @@ describe('useUploadsViewModel', () => {
     expect(result.current.isDragOver).toBe(false);
   });
 
-  it('setIsDragOver toggles drag state', async () => {
+  it("setIsDragOver toggles drag state", async () => {
     const { result } = renderHook(() => useUploadsViewModel());
     await act(async () => {});
 
@@ -134,15 +132,15 @@ describe('useUploadsViewModel', () => {
     expect(result.current.isDragOver).toBe(false);
   });
 
-  describe('handleFiles — full upload flow', () => {
-    it('validates, gets presigned URL, PUTs to R2, records in DB on success', async () => {
+  describe("handleFiles — full upload flow", () => {
+    it("validates, gets presigned URL, PUTs to R2, records in DB on success", async () => {
       const upload = makeUpload({ id: 42 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -159,41 +157,41 @@ describe('useUploadsViewModel', () => {
 
       // Presigned URL was requested
       expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
-        fileName: 'photo.png',
-        fileType: 'image/png',
+        fileName: "photo.png",
+        fileType: "image/png",
         fileSize: 1024,
       });
 
       // File was PUT to R2
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://r2.example.com/presigned',
+        "https://r2.example.com/presigned",
         expect.objectContaining({
-          method: 'PUT',
-          headers: { 'Content-Type': 'image/png' },
+          method: "PUT",
+          headers: { "Content-Type": "image/png" },
         }),
       );
 
       // Upload was recorded in DB
       expect(mockRecordUpload).toHaveBeenCalledWith({
-        key: '20260212/uuid.png',
-        fileName: 'photo.png',
-        fileType: 'image/png',
+        key: "20260212/uuid.png",
+        fileName: "photo.png",
+        fileType: "image/png",
         fileSize: 1024,
-        publicUrl: 'https://s.zhe.to/20260212/uuid.png',
+        publicUrl: "https://s.zhe.to/20260212/uuid.png",
       });
 
       // Upload was added to the list
       expect(result.current.uploads).toEqual([upload]);
     });
 
-    it('accepts any file type (no whitelist restriction)', async () => {
+    it("accepts any file type (no whitelist restriction)", async () => {
       const upload = makeUpload({ id: 99 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.exe',
-          key: '20260212/uuid.exe',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.exe",
+          key: "20260212/uuid.exe",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -203,7 +201,7 @@ describe('useUploadsViewModel', () => {
       await act(async () => {});
 
       await act(async () => {
-        result.current.handleFiles([makeFile('app.exe', 'application/x-msdownload', 100)]);
+        result.current.handleFiles([makeFile("app.exe", "application/x-msdownload", 100)]);
         await vi.runAllTimersAsync();
       });
 
@@ -211,23 +209,23 @@ describe('useUploadsViewModel', () => {
       expect(mockGetPresignedUploadUrl).toHaveBeenCalled();
     });
 
-    it('shows error when file size exceeds limit', async () => {
+    it("shows error when file size exceeds limit", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       await act(async () => {
         // 11MB file
-        result.current.handleFiles([makeFile('huge.png', 'image/png', 11 * 1024 * 1024)]);
+        result.current.handleFiles([makeFile("huge.png", "image/png", 11 * 1024 * 1024)]);
         await vi.runAllTimersAsync();
       });
 
       expect(mockGetPresignedUploadUrl).not.toHaveBeenCalled();
     });
 
-    it('shows error when presigned URL request fails', async () => {
+    it("shows error when presigned URL request fails", async () => {
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: false,
-        error: 'R2 error',
+        error: "R2 error",
       });
 
       const { result } = renderHook(() => useUploadsViewModel());
@@ -243,13 +241,13 @@ describe('useUploadsViewModel', () => {
       expect(result.current.uploads).toEqual([]);
     });
 
-    it('shows error when R2 PUT fails', async () => {
+    it("shows error when R2 PUT fails", async () => {
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
@@ -266,16 +264,16 @@ describe('useUploadsViewModel', () => {
       expect(result.current.uploads).toEqual([]);
     });
 
-    it('shows error when fetch throws (network error)', async () => {
+    it("shows error when fetch throws (network error)", async () => {
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      mockFetch.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -289,19 +287,19 @@ describe('useUploadsViewModel', () => {
       expect(result.current.uploads).toEqual([]);
     });
 
-    it('shows error when recordUpload fails', async () => {
+    it("shows error when recordUpload fails", async () => {
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
       mockRecordUpload.mockResolvedValue({
         success: false,
-        error: 'DB write failed',
+        error: "DB write failed",
       });
 
       const { result } = renderHook(() => useUploadsViewModel());
@@ -317,8 +315,8 @@ describe('useUploadsViewModel', () => {
     });
   });
 
-  describe('handleDelete', () => {
-    it('removes upload from list on success', async () => {
+  describe("handleDelete", () => {
+    it("removes upload from list on success", async () => {
       const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
       mockDeleteUploadAction.mockResolvedValue({ success: true });
@@ -336,7 +334,7 @@ describe('useUploadsViewModel', () => {
       expect(unwrap(result.current.uploads[0]).id).toBe(2);
     });
 
-    it('returns false and keeps upload on failure', async () => {
+    it("returns false and keeps upload on failure", async () => {
       const uploads = [makeUpload({ id: 1 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: uploads });
       mockDeleteUploadAction.mockResolvedValue({ success: false });
@@ -354,8 +352,8 @@ describe('useUploadsViewModel', () => {
     });
   });
 
-  describe('refreshUploads', () => {
-    it('replaces uploads with fresh server data', async () => {
+  describe("refreshUploads", () => {
+    it("replaces uploads with fresh server data", async () => {
       const initial = [makeUpload({ id: 1 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: initial });
 
@@ -372,7 +370,7 @@ describe('useUploadsViewModel', () => {
       expect(result.current.uploads).toEqual(freshUploads);
     });
 
-    it('keeps existing uploads if refresh fails', async () => {
+    it("keeps existing uploads if refresh fails", async () => {
       const initial = [makeUpload({ id: 1 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: initial });
 
@@ -389,15 +387,17 @@ describe('useUploadsViewModel', () => {
     });
   });
 
-  describe('dismissUploadingFile', () => {
-    it('removes a file from the uploading list', async () => {
+  describe("dismissUploadingFile", () => {
+    it("removes a file from the uploading list", async () => {
       // Set up a failed upload so there's an item in uploadingFiles
       // Use a file exceeding the size limit (11MB) to trigger a validation error
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       await act(async () => {
-        result.current.handleFiles([makeFile('huge.bin', 'application/octet-stream', 11 * 1024 * 1024)]);
+        result.current.handleFiles([
+          makeFile("huge.bin", "application/octet-stream", 11 * 1024 * 1024),
+        ]);
         await vi.runAllTimersAsync();
       });
 
@@ -412,16 +412,16 @@ describe('useUploadsViewModel', () => {
     });
   });
 
-  describe('autoConvertPng', () => {
-    it('defaults to false when localStorage has no value', async () => {
+  describe("autoConvertPng", () => {
+    it("defaults to false when localStorage has no value", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       expect(result.current.autoConvertPng).toBe(false);
     });
 
-    it('reads initial value from localStorage', async () => {
-      localStorage.setItem('autoConvertPng', 'true');
+    it("reads initial value from localStorage", async () => {
+      localStorage.setItem("autoConvertPng", "true");
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -429,8 +429,8 @@ describe('useUploadsViewModel', () => {
       expect(result.current.autoConvertPng).toBe(true);
     });
 
-    it('reads false from localStorage', async () => {
-      localStorage.setItem('autoConvertPng', 'false');
+    it("reads false from localStorage", async () => {
+      localStorage.setItem("autoConvertPng", "false");
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -438,7 +438,7 @@ describe('useUploadsViewModel', () => {
       expect(result.current.autoConvertPng).toBe(false);
     });
 
-    it('persists true to localStorage when toggled on', async () => {
+    it("persists true to localStorage when toggled on", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
@@ -446,12 +446,12 @@ describe('useUploadsViewModel', () => {
         result.current.setAutoConvertPng(true);
       });
 
-      expect(localStorage.getItem('autoConvertPng')).toBe('true');
+      expect(localStorage.getItem("autoConvertPng")).toBe("true");
       expect(result.current.autoConvertPng).toBe(true);
     });
 
-    it('persists false to localStorage when toggled off', async () => {
-      localStorage.setItem('autoConvertPng', 'true');
+    it("persists false to localStorage when toggled off", async () => {
+      localStorage.setItem("autoConvertPng", "true");
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -460,11 +460,11 @@ describe('useUploadsViewModel', () => {
         result.current.setAutoConvertPng(false);
       });
 
-      expect(localStorage.getItem('autoConvertPng')).toBe('false');
+      expect(localStorage.getItem("autoConvertPng")).toBe("false");
       expect(result.current.autoConvertPng).toBe(false);
     });
 
-    it('can be toggled on and off', async () => {
+    it("can be toggled on and off", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
@@ -479,17 +479,17 @@ describe('useUploadsViewModel', () => {
       expect(result.current.autoConvertPng).toBe(false);
     });
 
-    it('converts PNG to JPEG before upload when enabled', async () => {
-      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+    it("converts PNG to JPEG before upload when enabled", async () => {
+      const convertedFile = makeFile("photo.jpg", "image/jpeg", 800);
       vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
 
       const upload = makeUpload({ id: 50 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
-          key: '20260212/uuid.jpg',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.jpg",
+          key: "20260212/uuid.jpg",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -503,7 +503,7 @@ describe('useUploadsViewModel', () => {
       });
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        result.current.handleFiles([makeFile("photo.png", "image/png", 1024)]);
         await vi.runAllTimersAsync();
       });
 
@@ -512,28 +512,28 @@ describe('useUploadsViewModel', () => {
 
       // Presigned URL should use the converted file's metadata
       expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
-        fileName: 'photo.jpg',
-        fileType: 'image/jpeg',
+        fileName: "photo.jpg",
+        fileType: "image/jpeg",
         fileSize: 800,
       });
 
       // PUT should use converted file type
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://r2.example.com/presigned',
+        "https://r2.example.com/presigned",
         expect.objectContaining({
-          headers: { 'Content-Type': 'image/jpeg' },
+          headers: { "Content-Type": "image/jpeg" },
         }),
       );
     });
 
-    it('does not convert PNG when autoConvertPng is false', async () => {
+    it("does not convert PNG when autoConvertPng is false", async () => {
       const upload = makeUpload({ id: 51 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -543,26 +543,26 @@ describe('useUploadsViewModel', () => {
       await act(async () => {});
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        result.current.handleFiles([makeFile("photo.png", "image/png", 1024)]);
         await vi.runAllTimersAsync();
       });
 
       expect(convertPngToJpeg).not.toHaveBeenCalled();
       expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
-        fileName: 'photo.png',
-        fileType: 'image/png',
+        fileName: "photo.png",
+        fileType: "image/png",
         fileSize: 1024,
       });
     });
 
-    it('does not convert non-PNG files even when enabled', async () => {
+    it("does not convert non-PNG files even when enabled", async () => {
       const upload = makeUpload({ id: 52 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
-          key: '20260212/uuid.jpg',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.jpg",
+          key: "20260212/uuid.jpg",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -576,23 +576,23 @@ describe('useUploadsViewModel', () => {
       });
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.jpg', 'image/jpeg', 1024)]);
+        result.current.handleFiles([makeFile("photo.jpg", "image/jpeg", 1024)]);
         await vi.runAllTimersAsync();
       });
 
       expect(convertPngToJpeg).not.toHaveBeenCalled();
     });
 
-    it('falls back to original file when conversion fails', async () => {
-      vi.mocked(convertPngToJpeg).mockRejectedValue(new Error('Canvas error'));
+    it("falls back to original file when conversion fails", async () => {
+      vi.mocked(convertPngToJpeg).mockRejectedValue(new Error("Canvas error"));
 
       const upload = makeUpload({ id: 53 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.png',
-          key: '20260212/uuid.png',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.png",
+          key: "20260212/uuid.png",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -606,29 +606,29 @@ describe('useUploadsViewModel', () => {
       });
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        result.current.handleFiles([makeFile("photo.png", "image/png", 1024)]);
         await vi.runAllTimersAsync();
       });
 
       // Should fall back to original PNG
       expect(mockGetPresignedUploadUrl).toHaveBeenCalledWith({
-        fileName: 'photo.png',
-        fileType: 'image/png',
+        fileName: "photo.png",
+        fileType: "image/png",
         fileSize: 1024,
       });
     });
   });
 
-  describe('jpegQuality', () => {
-    it('defaults to DEFAULT_JPEG_QUALITY when localStorage has no value', async () => {
+  describe("jpegQuality", () => {
+    it("defaults to DEFAULT_JPEG_QUALITY when localStorage has no value", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
       expect(result.current.jpegQuality).toBe(DEFAULT_JPEG_QUALITY);
     });
 
-    it('reads initial value from localStorage', async () => {
-      localStorage.setItem('jpegQuality', '75');
+    it("reads initial value from localStorage", async () => {
+      localStorage.setItem("jpegQuality", "75");
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -636,8 +636,8 @@ describe('useUploadsViewModel', () => {
       expect(result.current.jpegQuality).toBe(75);
     });
 
-    it('ignores invalid localStorage value and falls back to default', async () => {
-      localStorage.setItem('jpegQuality', 'abc');
+    it("ignores invalid localStorage value and falls back to default", async () => {
+      localStorage.setItem("jpegQuality", "abc");
 
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
@@ -645,7 +645,7 @@ describe('useUploadsViewModel', () => {
       expect(result.current.jpegQuality).toBe(DEFAULT_JPEG_QUALITY);
     });
 
-    it('persists value to localStorage when set', async () => {
+    it("persists value to localStorage when set", async () => {
       const { result } = renderHook(() => useUploadsViewModel());
       await act(async () => {});
 
@@ -653,21 +653,21 @@ describe('useUploadsViewModel', () => {
         result.current.setJpegQuality(75);
       });
 
-      expect(localStorage.getItem('jpegQuality')).toBe('75');
+      expect(localStorage.getItem("jpegQuality")).toBe("75");
       expect(result.current.jpegQuality).toBe(75);
     });
 
-    it('passes quality to convertPngToJpeg when uploading', async () => {
-      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+    it("passes quality to convertPngToJpeg when uploading", async () => {
+      const convertedFile = makeFile("photo.jpg", "image/jpeg", 800);
       vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
 
       const upload = makeUpload({ id: 60 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
-          key: '20260212/uuid.jpg',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.jpg",
+          key: "20260212/uuid.jpg",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -682,28 +682,25 @@ describe('useUploadsViewModel', () => {
       });
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        result.current.handleFiles([makeFile("photo.png", "image/png", 1024)]);
         await vi.runAllTimersAsync();
       });
 
       // Should pass normalized quality (75 / 100 = 0.75)
-      expect(convertPngToJpeg).toHaveBeenCalledWith(
-        expect.any(File),
-        0.75,
-      );
+      expect(convertPngToJpeg).toHaveBeenCalledWith(expect.any(File), 0.75);
     });
 
-    it('uses default quality when jpegQuality not changed', async () => {
-      const convertedFile = makeFile('photo.jpg', 'image/jpeg', 800);
+    it("uses default quality when jpegQuality not changed", async () => {
+      const convertedFile = makeFile("photo.jpg", "image/jpeg", 800);
       vi.mocked(convertPngToJpeg).mockResolvedValue(convertedFile);
 
       const upload = makeUpload({ id: 61 });
       mockGetPresignedUploadUrl.mockResolvedValue({
         success: true,
         data: {
-          uploadUrl: 'https://r2.example.com/presigned',
-          publicUrl: 'https://s.zhe.to/20260212/uuid.jpg',
-          key: '20260212/uuid.jpg',
+          uploadUrl: "https://r2.example.com/presigned",
+          publicUrl: "https://s.zhe.to/20260212/uuid.jpg",
+          key: "20260212/uuid.jpg",
         },
       });
       mockFetch.mockResolvedValue({ ok: true });
@@ -717,15 +714,12 @@ describe('useUploadsViewModel', () => {
       });
 
       await act(async () => {
-        result.current.handleFiles([makeFile('photo.png', 'image/png', 1024)]);
+        result.current.handleFiles([makeFile("photo.png", "image/png", 1024)]);
         await vi.runAllTimersAsync();
       });
 
       // Should pass normalized default quality (90 / 100 = 0.9)
-      expect(convertPngToJpeg).toHaveBeenCalledWith(
-        expect.any(File),
-        0.9,
-      );
+      expect(convertPngToJpeg).toHaveBeenCalledWith(expect.any(File), 0.9);
     });
   });
 });
@@ -734,15 +728,15 @@ describe('useUploadsViewModel', () => {
 // useUploadItemViewModel
 // ---------------------------------------------------------------------------
 
-describe('useUploadItemViewModel', () => {
+describe("useUploadItemViewModel", () => {
   const mockOnDelete = vi.fn<(id: number) => Promise<boolean>>();
-  const upload = makeUpload({ id: 42, publicUrl: 'https://s.zhe.to/20260212/test.png' });
+  const upload = makeUpload({ id: 42, publicUrl: "https://s.zhe.to/20260212/test.png" });
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockOnDelete.mockClear();
     mockCopyToClipboard.mockReset();
-    vi.stubGlobal('alert', vi.fn());
+    vi.stubGlobal("alert", vi.fn());
   });
 
   afterEach(() => {
@@ -750,14 +744,14 @@ describe('useUploadItemViewModel', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns correct initial state', () => {
+  it("returns correct initial state", () => {
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
 
     expect(result.current.copied).toBe(false);
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleCopy copies publicUrl and sets copied=true, then false after 2s', async () => {
+  it("handleCopy copies publicUrl and sets copied=true, then false after 2s", async () => {
     mockCopyToClipboard.mockResolvedValue(true);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -766,7 +760,7 @@ describe('useUploadItemViewModel', () => {
       await result.current.handleCopy();
     });
 
-    expect(mockCopyToClipboard).toHaveBeenCalledWith('https://s.zhe.to/20260212/test.png');
+    expect(mockCopyToClipboard).toHaveBeenCalledWith("https://s.zhe.to/20260212/test.png");
     expect(result.current.copied).toBe(true);
 
     act(() => {
@@ -776,7 +770,7 @@ describe('useUploadItemViewModel', () => {
     expect(result.current.copied).toBe(false);
   });
 
-  it('handleCopy does not set copied when copyToClipboard fails', async () => {
+  it("handleCopy does not set copied when copyToClipboard fails", async () => {
     mockCopyToClipboard.mockResolvedValue(false);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -788,7 +782,7 @@ describe('useUploadItemViewModel', () => {
     expect(result.current.copied).toBe(false);
   });
 
-  it('handleDelete calls onDelete and resets isDeleting on success', async () => {
+  it("handleDelete calls onDelete and resets isDeleting on success", async () => {
     mockOnDelete.mockResolvedValue(true);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -801,7 +795,7 @@ describe('useUploadItemViewModel', () => {
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete shows alert on failure', async () => {
+  it("handleDelete shows alert on failure", async () => {
     mockOnDelete.mockResolvedValue(false);
 
     const { result } = renderHook(() => useUploadItemViewModel(upload, mockOnDelete));
@@ -810,7 +804,7 @@ describe('useUploadItemViewModel', () => {
       await result.current.handleDelete();
     });
 
-    expect(globalThis.alert).toHaveBeenCalledWith('删除失败，请重试');
+    expect(globalThis.alert).toHaveBeenCalledWith("删除失败，请重试");
     expect(result.current.isDeleting).toBe(false);
   });
 });

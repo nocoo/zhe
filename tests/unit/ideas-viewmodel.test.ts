@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IdeaDetail } from "@/lib/db/scoped";
-import { unwrap } from "../test-utils";
 import { makeIdea, makeTag } from "../fixtures";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -74,9 +75,12 @@ describe("useIdeasViewModel", () => {
 
       expect(result.current.loading).toBe(true);
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(mockGetIdeas).toHaveBeenCalledTimes(1);
       expect(result.current.ideas).toHaveLength(2);
@@ -87,9 +91,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.ideas).toEqual([]);
     });
@@ -97,9 +104,12 @@ describe("useIdeasViewModel", () => {
     it("starts with default view settings", async () => {
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.viewMode).toBe("grid");
       expect(result.current.sortBy).toBe("updatedAt");
@@ -122,9 +132,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setSearchQuery("react");
@@ -144,9 +157,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setSelectedTagId("tag-1");
@@ -162,9 +178,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setSearchQuery("test");
@@ -188,9 +207,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.tagFilterOptions).toHaveLength(2);
     });
@@ -210,9 +232,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(unwrap(result.current.ideas[0]).id).toBe(2);
       expect(unwrap(result.current.ideas[1]).id).toBe(1);
@@ -227,9 +252,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setSortBy("createdAt");
@@ -248,9 +276,12 @@ describe("useIdeasViewModel", () => {
     it("toggles view mode", async () => {
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.viewMode).toBe("grid");
 
@@ -273,9 +304,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       let success: boolean = false;
       await act(async () => {
@@ -297,9 +331,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       let success: boolean = true;
       await act(async () => {
@@ -320,9 +357,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       let success: boolean = false;
       await act(async () => {
@@ -339,9 +379,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       let success: boolean = true;
       await act(async () => {
@@ -361,9 +404,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.ideas).toHaveLength(2);
 
@@ -383,9 +429,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       let success: boolean = true;
       await act(async () => {
@@ -404,9 +453,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.confirmDelete(idea);
@@ -430,9 +482,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.confirmDelete(idea);
@@ -457,9 +512,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.ideas).toEqual([]);
     });
@@ -467,7 +525,10 @@ describe("useIdeasViewModel", () => {
     it("ignores fetch result after unmount (cancelled)", async () => {
       let resolve: ((v: unknown) => void) | undefined;
       mockGetIdeas.mockImplementation(
-        () => new Promise((r) => { resolve = r; }),
+        () =>
+          new Promise((r) => {
+            resolve = r;
+          }),
       );
 
       const { result, unmount } = renderHook(() => useIdeasViewModel());
@@ -538,9 +599,12 @@ describe("useIdeasViewModel", () => {
     it("gets tag by ID", async () => {
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       const tag = result.current.getTagById("tag-1");
       expect(tag?.name).toBe("Work");
@@ -554,9 +618,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       await act(async () => {
         await result.current.handleCreateIdea({ content: "test" });
@@ -576,9 +643,12 @@ describe("useIdeasViewModel", () => {
 
       const { result } = renderHook(() => useIdeasViewModel());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       const newIdeas = [makeIdea({ id: 100 })];
       mockGetIdeas.mockResolvedValue({ success: true, data: newIdeas });

@@ -13,29 +13,26 @@
  * neither is reachable when the parent does not change.
  */
 
-import { executeD1Query, executeD1Batch, type D1Statement } from '../d1-client';
-import { generateExcerpt } from '../../markdown';
+import { generateExcerpt } from "../../markdown";
+import { type D1Statement, executeD1Batch, executeD1Query } from "../d1-client";
 import {
-  MAX_TODO_DEPTH,
-  TodoDepthExceededError,
-  TodoMoveConflictError,
-  TodoNotFoundError,
   type CreateTodoInput,
+  MAX_TODO_DEPTH,
   type MoveTodoInput,
   type MoveTodoResult,
+  TodoDepthExceededError,
   type TodoDetail,
+  TodoMoveConflictError,
+  TodoNotFoundError,
   type TodoTreeNode,
   type UpdateTodoPatch,
-} from './types';
+} from "./types";
 
 /* -------------------------------------------------------------------------- */
 /* Row mappers                                                                */
 /* -------------------------------------------------------------------------- */
 
-function rowToTreeNode(
-  row: Record<string, unknown>,
-  tagNames: string[],
-): TodoTreeNode {
+function rowToTreeNode(row: Record<string, unknown>, tagNames: string[]): TodoTreeNode {
   return {
     id: row.id as number,
     parentId: (row.parent_id as number | null) ?? null,
@@ -52,10 +49,7 @@ function rowToTreeNode(
   };
 }
 
-function rowToDetail(
-  row: Record<string, unknown>,
-  tagNames: string[],
-): TodoDetail {
+function rowToDetail(row: Record<string, unknown>, tagNames: string[]): TodoDetail {
   const base = rowToTreeNode(row, tagNames);
   return {
     ...base,
@@ -86,12 +80,10 @@ function canonicaliseTagNames(input: readonly string[] | undefined): string[] {
   return out;
 }
 
-async function getTagNamesForTodos(
-  todoIds: number[],
-): Promise<Map<number, string[]>> {
+async function getTagNamesForTodos(todoIds: number[]): Promise<Map<number, string[]>> {
   const map = new Map<number, string[]>();
   if (todoIds.length === 0) return map;
-  const placeholders = todoIds.map(() => '?').join(', ');
+  const placeholders = todoIds.map(() => "?").join(", ");
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT todo_id, name FROM todo_tags WHERE todo_id IN (${placeholders}) ORDER BY name`,
     todoIds,
@@ -137,16 +129,13 @@ export async function getTodos(userId: string): Promise<TodoTreeNode[]> {
     // enough to keep on the wire.
     const projected: Record<string, unknown> = {
       ...row,
-      content: row.content_present ? 'x' : null,
+      content: row.content_present ? "x" : null,
     };
     return rowToTreeNode(projected, tagMap.get(row.id as number) ?? []);
   });
 }
 
-export async function getTodoById(
-  userId: string,
-  id: number,
-): Promise<TodoDetail | null> {
+export async function getTodoById(userId: string, id: number): Promise<TodoDetail | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT * FROM todos WHERE id = ? AND user_id = ? LIMIT 1`,
     [id, userId],
@@ -201,10 +190,7 @@ async function computeDepth(userId: string, nodeId: number): Promise<number> {
  * Height of the subtree rooted at `nodeId`, measured as the maximum number
  * of edges from `nodeId` down to any descendant (leaves → 0).
  */
-async function computeSubtreeHeight(
-  userId: string,
-  nodeId: number,
-): Promise<number> {
+async function computeSubtreeHeight(userId: string, nodeId: number): Promise<number> {
   const rows = await executeD1Query<{ h: number | null }>(
     `WITH RECURSIVE d(id, depth_below) AS (
        SELECT id, 0 FROM todos WHERE id = ? AND user_id = ?
@@ -231,20 +217,17 @@ async function computeSubtreeHeight(
  * bindings cannot share the same batch that assigns the new todo id); on
  * tag-batch failure we compensate by deleting the freshly-inserted todo.
  */
-export async function createTodo(
-  userId: string,
-  input: CreateTodoInput,
-): Promise<TodoDetail> {
+export async function createTodo(userId: string, input: CreateTodoInput): Promise<TodoDetail> {
   const title = input.title.trim();
   if (title.length === 0) {
-    throw new Error('Todo title cannot be empty');
+    throw new Error("Todo title cannot be empty");
   }
 
   const parentId = input.parentId ?? null;
   if (parentId !== null) {
     const parentDepth = await computeDepth(userId, parentId);
     if (parentDepth === 0) {
-      throw new TodoNotFoundError('Parent todo not found');
+      throw new TodoNotFoundError("Parent todo not found");
     }
     if (parentDepth + 1 > MAX_TODO_DEPTH) {
       throw new TodoDepthExceededError();
@@ -276,22 +259,10 @@ export async function createTodo(
         ?, ?, ?, 0, NULL, ?, ?, ?, ?
      )
      RETURNING *`,
-    [
-      userId,
-      parentId,
-      userId,
-      parentId,
-      title,
-      content,
-      excerpt,
-      dueAt,
-      emoji,
-      now,
-      now,
-    ],
+    [userId, parentId, userId, parentId, title, content, excerpt, dueAt, emoji, now, now],
   );
   if (!inserted) {
-    throw new Error('Failed to create todo');
+    throw new Error("Failed to create todo");
   }
   const todoId = inserted.id as number;
 
@@ -303,11 +274,8 @@ export async function createTodo(
       }));
       await executeD1Batch(statements);
     } catch (err) {
-      console.error('createTodo: tag insert failed, rolling back todo', err);
-      await executeD1Query('DELETE FROM todos WHERE id = ? AND user_id = ?', [
-        todoId,
-        userId,
-      ]);
+      console.error("createTodo: tag insert failed, rolling back todo", err);
+      await executeD1Query("DELETE FROM todos WHERE id = ? AND user_id = ?", [todoId, userId]);
       throw err;
     }
   }
@@ -333,49 +301,49 @@ export async function updateTodo(
   if (!existing) return null;
 
   const now = Date.now();
-  const setClauses: string[] = ['updated_at = ?'];
+  const setClauses: string[] = ["updated_at = ?"];
   const setParams: unknown[] = [now];
 
   if (patch.title !== undefined) {
     const trimmed = patch.title.trim();
     if (trimmed.length === 0) {
-      throw new Error('Todo title cannot be empty');
+      throw new Error("Todo title cannot be empty");
     }
-    setClauses.push('title = ?');
+    setClauses.push("title = ?");
     setParams.push(trimmed);
   }
   if (patch.content !== undefined) {
     const content = patch.content;
-    setClauses.push('content = ?');
+    setClauses.push("content = ?");
     setParams.push(content);
-    setClauses.push('excerpt = ?');
+    setClauses.push("excerpt = ?");
     setParams.push(content !== null ? generateExcerpt(content, 200) : null);
   }
   if (patch.done !== undefined) {
-    setClauses.push('done = ?');
+    setClauses.push("done = ?");
     setParams.push(patch.done ? 1 : 0);
     // done_at flips in lockstep so historical queries stay consistent.
     // Only overwrite the timestamp when the flag actually changes, so a
     // no-op "done -> done" patch does not shift the completion time.
     if (patch.done !== existing.done) {
-      setClauses.push('done_at = ?');
+      setClauses.push("done_at = ?");
       setParams.push(patch.done ? now : null);
     }
   }
   if (patch.dueAt !== undefined) {
-    setClauses.push('due_at = ?');
+    setClauses.push("due_at = ?");
     setParams.push(patch.dueAt ? patch.dueAt.getTime() : null);
   }
   if (patch.emoji !== undefined) {
     // `null` clears; short strings are stored as-is. Length validation
     // happens in the action layer before we get here.
-    setClauses.push('emoji = ?');
+    setClauses.push("emoji = ?");
     setParams.push(patch.emoji);
   }
 
   const statements: D1Statement[] = [
     {
-      sql: `UPDATE todos SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+      sql: `UPDATE todos SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
       params: [...setParams, id, userId],
     },
   ];
@@ -399,9 +367,7 @@ export async function updateTodo(
   if (!row) return null;
 
   const finalTags =
-    patch.tagNames !== undefined
-      ? canonicaliseTagNames(patch.tagNames)
-      : existing.tagNames;
+    patch.tagNames !== undefined ? canonicaliseTagNames(patch.tagNames) : existing.tagNames;
   return rowToDetail(row, finalTags);
 }
 
@@ -444,10 +410,7 @@ interface MovePreflight {
   oldPosition: number;
 }
 
-async function movePreflight(
-  userId: string,
-  movingId: number,
-): Promise<MovePreflight | null> {
+async function movePreflight(userId: string, movingId: number): Promise<MovePreflight | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT id, parent_id, position FROM todos WHERE id = ? AND user_id = ? LIMIT 1`,
     [movingId, userId],
@@ -503,10 +466,11 @@ async function reorderWithinParent(
   if (newPosition === oldPosition) {
     // No-op reorder; still touch updatedAt on the row so downstream sorts
     // reflect the intent — matches how a text edit would flow.
-    await executeD1Query(
-      `UPDATE todos SET updated_at = ? WHERE id = ? AND user_id = ?`,
-      [now, movingId, userId],
-    );
+    await executeD1Query(`UPDATE todos SET updated_at = ? WHERE id = ? AND user_id = ?`, [
+      now,
+      movingId,
+      userId,
+    ]);
     return {
       movedId: movingId,
       oldParentId: parentId,
@@ -611,13 +575,7 @@ export async function moveTodo(
 
   // Same-parent reorder — different SQL path, no cycle/depth checks needed.
   if (preflight.oldParentId === newParentId) {
-    return reorderWithinParent(
-      userId,
-      id,
-      newParentId,
-      preflight.oldPosition,
-      newPositionRaw,
-    );
+    return reorderWithinParent(userId, id, newParentId, preflight.oldPosition, newPositionRaw);
   }
 
   const now = Date.now();
@@ -693,10 +651,7 @@ export async function moveTodo(
     MAX_TODO_DEPTH,
   ];
 
-  const guardedResult = await executeD1Query<{ position: number }>(
-    guardedUpdateSql,
-    guardParams,
-  );
+  const guardedResult = await executeD1Query<{ position: number }>(guardedUpdateSql, guardParams);
   const guardedRow = guardedResult[0];
   if (!guardedRow) {
     throw new TodoMoveConflictError();
@@ -768,14 +723,7 @@ export async function moveTodo(
              WHERE user_id = ? AND parent_id IS ? AND id != ?
                AND position >= ? AND position < ?
                ${stillParkedSql}`,
-      params: [
-        userId,
-        newParentId,
-        id,
-        newPosition,
-        tailPosition,
-        ...stillParkedParams,
-      ],
+      params: [userId, newParentId, id, newPosition, tailPosition, ...stillParkedParams],
     });
   }
   // If newPosition == tailPosition, Phase 2 already parked the row exactly
@@ -883,7 +831,7 @@ export async function reorderSiblings(
   if (orderedIds.length === 0) {
     if (siblingIds.size !== 0) {
       throw new TodoMoveConflictError(
-        'reorderSiblings: orderedIds is empty but parent has children',
+        "reorderSiblings: orderedIds is empty but parent has children",
       );
     }
     return [];
@@ -891,17 +839,17 @@ export async function reorderSiblings(
 
   const orderedSet = new Set(orderedIds);
   if (orderedSet.size !== orderedIds.length) {
-    throw new TodoMoveConflictError('reorderSiblings: orderedIds contains duplicates');
+    throw new TodoMoveConflictError("reorderSiblings: orderedIds contains duplicates");
   }
   if (orderedSet.size !== siblingIds.size) {
     throw new TodoMoveConflictError(
-      'reorderSiblings: orderedIds does not cover every sibling of the parent',
+      "reorderSiblings: orderedIds does not cover every sibling of the parent",
     );
   }
   for (const childId of orderedIds) {
     if (!siblingIds.has(childId)) {
       throw new TodoMoveConflictError(
-        'reorderSiblings: orderedIds references an id outside this parent',
+        "reorderSiblings: orderedIds references an id outside this parent",
       );
     }
   }

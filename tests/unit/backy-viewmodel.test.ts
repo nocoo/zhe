@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -15,7 +16,7 @@ const mockGetBackyPullWebhook = vi.fn();
 const mockGenerateBackyPullWebhook = vi.fn();
 const mockRevokeBackyPullWebhook = vi.fn();
 
-vi.mock('@/actions/backy', () => ({
+vi.mock("@/actions/backy", () => ({
   getBackyConfig: (...args: unknown[]) => mockGetBackyConfig(...args),
   saveBackyConfig: (...args: unknown[]) => mockSaveBackyConfig(...args),
   testBackyConnection: (...args: unknown[]) => mockTestBackyConnection(...args),
@@ -26,13 +27,13 @@ vi.mock('@/actions/backy', () => ({
   revokeBackyPullWebhook: (...args: unknown[]) => mockRevokeBackyPullWebhook(...args),
 }));
 
-import { useBackyViewModel } from '@/viewmodels/useBackyViewModel';
+import { useBackyViewModel } from "@/viewmodels/useBackyViewModel";
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useBackyViewModel', () => {
+describe("useBackyViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: no config
@@ -47,16 +48,23 @@ describe('useBackyViewModel', () => {
   // SSR prefetch (initialData)
   // ==================================================================
 
-  it('skips fetch and uses initialData when provided', () => {
+  it("skips fetch and uses initialData when provided", () => {
     const prefetched = {
-      webhookUrl: 'https://backy.example.com/webhook',
-      maskedApiKey: 'sk-1••••cdef',
+      webhookUrl: "https://backy.example.com/webhook",
+      maskedApiKey: "sk-1••••cdef",
       history: {
-        project_name: 'zhe',
+        project_name: "zhe",
         environment: null,
         total_backups: 2,
         recent_backups: [
-          { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+          {
+            id: "1",
+            tag: "v1.0.0",
+            environment: "prod",
+            file_size: 1024,
+            is_single_json: 1,
+            created_at: "2026-02-24",
+          },
         ],
       },
     };
@@ -66,8 +74,8 @@ describe('useBackyViewModel', () => {
     // Loading should be false immediately
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isConfigured).toBe(true);
-    expect(result.current.webhookUrl).toBe('https://backy.example.com/webhook');
-    expect(result.current.maskedApiKey).toBe('sk-1••••cdef');
+    expect(result.current.webhookUrl).toBe("https://backy.example.com/webhook");
+    expect(result.current.maskedApiKey).toBe("sk-1••••cdef");
     expect(result.current.history).toEqual(prefetched.history);
     expect(result.current.error).toBeNull();
     // Server actions should NOT be called
@@ -75,10 +83,10 @@ describe('useBackyViewModel', () => {
     expect(mockFetchBackyHistory).not.toHaveBeenCalled();
   });
 
-  it('skips fetch when initialData provided without history', () => {
+  it("skips fetch when initialData provided without history", () => {
     const prefetched = {
-      webhookUrl: 'https://backy.example.com/webhook',
-      maskedApiKey: 'sk-1••••cdef',
+      webhookUrl: "https://backy.example.com/webhook",
+      maskedApiKey: "sk-1••••cdef",
     };
 
     const { result } = renderHook(() => useBackyViewModel(prefetched));
@@ -92,15 +100,15 @@ describe('useBackyViewModel', () => {
   // ==================================================================
   // Initial state
   // ==================================================================
-  it('returns initial loading state', () => {
+  it("returns initial loading state", () => {
     // Don't resolve the config promise yet
     mockGetBackyConfig.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useBackyViewModel());
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.isConfigured).toBe(false);
-    expect(result.current.webhookUrl).toBe('');
-    expect(result.current.apiKey).toBe('');
+    expect(result.current.webhookUrl).toBe("");
+    expect(result.current.apiKey).toBe("");
     expect(result.current.maskedApiKey).toBeNull();
     expect(result.current.isEditing).toBe(false);
     expect(result.current.testResult).toBeNull();
@@ -109,12 +117,12 @@ describe('useBackyViewModel', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('loads config on mount when configured', async () => {
+  it("loads config on mount when configured", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
       data: {
-        webhookUrl: 'https://backy.example.com/webhook',
-        maskedApiKey: 'sk-1••••cdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        maskedApiKey: "sk-1••••cdef",
       },
     });
     mockFetchBackyHistory.mockResolvedValue({ success: false });
@@ -126,24 +134,31 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isConfigured).toBe(true);
-    expect(result.current.webhookUrl).toBe('https://backy.example.com/webhook');
-    expect(result.current.maskedApiKey).toBe('sk-1••••cdef');
+    expect(result.current.webhookUrl).toBe("https://backy.example.com/webhook");
+    expect(result.current.maskedApiKey).toBe("sk-1••••cdef");
   });
 
-  it('auto-loads history on mount when configured', async () => {
+  it("auto-loads history on mount when configured", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
       data: {
-        webhookUrl: 'https://backy.example.com/webhook',
-        maskedApiKey: 'sk-1••••cdef',
+        webhookUrl: "https://backy.example.com/webhook",
+        maskedApiKey: "sk-1••••cdef",
       },
     });
     const mockHistoryData = {
-      project_name: 'zhe',
+      project_name: "zhe",
       environment: null,
       total_backups: 3,
       recent_backups: [
-        { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+        {
+          id: "1",
+          tag: "v1.0.0",
+          environment: "prod",
+          file_size: 1024,
+          is_single_json: 1,
+          created_at: "2026-02-24",
+        },
       ],
     };
     mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
@@ -155,7 +170,7 @@ describe('useBackyViewModel', () => {
     expect(result.current.history).toEqual(mockHistoryData);
   });
 
-  it('does not auto-load history on mount when not configured', async () => {
+  it("does not auto-load history on mount when not configured", async () => {
     mockGetBackyConfig.mockResolvedValue({ success: true, data: undefined });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -165,7 +180,7 @@ describe('useBackyViewModel', () => {
     expect(result.current.history).toBeNull();
   });
 
-  it('loads without config on mount when not configured', async () => {
+  it("loads without config on mount when not configured", async () => {
     mockGetBackyConfig.mockResolvedValue({ success: true, data: undefined });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -179,21 +194,21 @@ describe('useBackyViewModel', () => {
   // ==================================================================
   // handleSave
   // ==================================================================
-  it('saves config successfully', async () => {
+  it("saves config successfully", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     // Set form values
     act(() => {
-      result.current.setWebhookUrl('https://backy.example.com/webhook');
-      result.current.setApiKey('sk-new-key-1234567890');
+      result.current.setWebhookUrl("https://backy.example.com/webhook");
+      result.current.setApiKey("sk-new-key-1234567890");
     });
 
     mockSaveBackyConfig.mockResolvedValue({
       success: true,
       data: {
-        webhookUrl: 'https://backy.example.com/webhook',
-        maskedApiKey: 'sk-n••••7890',
+        webhookUrl: "https://backy.example.com/webhook",
+        maskedApiKey: "sk-n••••7890",
       },
     });
 
@@ -203,34 +218,34 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.isConfigured).toBe(true);
     expect(result.current.isEditing).toBe(false);
-    expect(result.current.webhookUrl).toBe('https://backy.example.com/webhook');
-    expect(result.current.maskedApiKey).toBe('sk-n••••7890');
-    expect(result.current.apiKey).toBe(''); // cleared after save
+    expect(result.current.webhookUrl).toBe("https://backy.example.com/webhook");
+    expect(result.current.maskedApiKey).toBe("sk-n••••7890");
+    expect(result.current.apiKey).toBe(""); // cleared after save
   });
 
-  it('shows error on save failure', async () => {
+  it("shows error on save failure", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     act(() => {
-      result.current.setWebhookUrl('not-a-url');
-      result.current.setApiKey('sk-1234567890abcdef');
+      result.current.setWebhookUrl("not-a-url");
+      result.current.setApiKey("sk-1234567890abcdef");
     });
 
     mockSaveBackyConfig.mockResolvedValue({
       success: false,
-      error: 'Webhook URL 格式无效',
+      error: "Webhook URL 格式无效",
     });
 
     await act(async () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe('Webhook URL 格式无效');
+    expect(result.current.error).toBe("Webhook URL 格式无效");
     expect(result.current.isConfigured).toBe(false);
   });
 
-  it('shows default error when error is empty', async () => {
+  it("shows default error when error is empty", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
@@ -240,16 +255,16 @@ describe('useBackyViewModel', () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe('保存失败');
+    expect(result.current.error).toBe("保存失败");
   });
 
   // ==================================================================
   // handleTest
   // ==================================================================
-  it('tests connection successfully', async () => {
+  it("tests connection successfully", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
-      data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
+      data: { webhookUrl: "https://backy.example.com/webhook", maskedApiKey: "sk-1••••cdef" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -263,15 +278,15 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.testResult).toEqual({
       ok: true,
-      message: '连接成功',
+      message: "连接成功",
     });
     expect(result.current.isTesting).toBe(false);
   });
 
-  it('shows error on test failure', async () => {
+  it("shows error on test failure", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
-      data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
+      data: { webhookUrl: "https://backy.example.com/webhook", maskedApiKey: "sk-1••••cdef" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -279,7 +294,7 @@ describe('useBackyViewModel', () => {
 
     mockTestBackyConnection.mockResolvedValue({
       success: false,
-      error: '连接失败 (401)',
+      error: "连接失败 (401)",
     });
 
     await act(async () => {
@@ -288,17 +303,17 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.testResult).toEqual({
       ok: false,
-      message: '连接失败 (401)',
+      message: "连接失败 (401)",
     });
   });
 
   // ==================================================================
   // handlePush
   // ==================================================================
-  it('pushes backup successfully and updates history from inline response', async () => {
+  it("pushes backup successfully and updates history from inline response", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
-      data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
+      data: { webhookUrl: "https://backy.example.com/webhook", maskedApiKey: "sk-1••••cdef" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -308,11 +323,18 @@ describe('useBackyViewModel', () => {
     mockFetchBackyHistory.mockClear();
 
     const mockHistoryData = {
-      project_name: 'zhe',
+      project_name: "zhe",
       environment: null,
       total_backups: 1,
       recent_backups: [
-        { id: '1', tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag', environment: 'dev', file_size: 512, is_single_json: 1, created_at: '2026-02-24T00:00:00Z' },
+        {
+          id: "1",
+          tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
+          environment: "dev",
+          file_size: 512,
+          is_single_json: 1,
+          created_at: "2026-02-24T00:00:00Z",
+        },
       ],
     };
 
@@ -320,11 +342,11 @@ describe('useBackyViewModel', () => {
       success: true,
       data: {
         ok: true,
-        message: '推送成功 (120ms)',
+        message: "推送成功 (120ms)",
         durationMs: 120,
         request: {
-          tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
-          fileName: 'zhe-backup-2026-02-24.json',
+          tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
+          fileName: "zhe-backup-2026-02-24.json",
           fileSizeBytes: 512,
           backupStats: { links: 10, folders: 2, tags: 3 },
         },
@@ -338,10 +360,10 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.pushResult).toMatchObject({
       ok: true,
-      message: expect.stringContaining('推送成功'),
+      message: expect.stringContaining("推送成功"),
       durationMs: 120,
       request: expect.objectContaining({
-        tag: 'v1.2.3-2026-02-24-10lnk-2fld-3tag',
+        tag: "v1.2.3-2026-02-24-10lnk-2fld-3tag",
       }),
     });
     expect(result.current.isPushing).toBe(false);
@@ -350,10 +372,10 @@ describe('useBackyViewModel', () => {
     expect(mockFetchBackyHistory).not.toHaveBeenCalled();
   });
 
-  it('does not refresh history on push failure', async () => {
+  it("does not refresh history on push failure", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
-      data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
+      data: { webhookUrl: "https://backy.example.com/webhook", maskedApiKey: "sk-1••••cdef" },
     });
     // Drain mount history call
     mockFetchBackyHistory.mockResolvedValue({ success: false });
@@ -368,12 +390,17 @@ describe('useBackyViewModel', () => {
       success: false,
       data: {
         ok: false,
-        message: '推送失败 (413)',
+        message: "推送失败 (413)",
         durationMs: 50,
-        request: { tag: 'v1.2.3', fileName: 'zhe-backup-2026-02-24.json', fileSizeBytes: 999999, backupStats: {} },
-        response: { status: 413, body: 'too large' },
+        request: {
+          tag: "v1.2.3",
+          fileName: "zhe-backup-2026-02-24.json",
+          fileSizeBytes: 999999,
+          backupStats: {},
+        },
+        response: { status: 413, body: "too large" },
       },
-      error: '推送失败 (413)',
+      error: "推送失败 (413)",
     });
 
     await act(async () => {
@@ -382,7 +409,7 @@ describe('useBackyViewModel', () => {
 
     expect(result.current.pushResult).toMatchObject({
       ok: false,
-      message: '推送失败 (413)',
+      message: "推送失败 (413)",
     });
     // History should NOT be refreshed on failure
     expect(mockFetchBackyHistory).not.toHaveBeenCalled();
@@ -391,16 +418,23 @@ describe('useBackyViewModel', () => {
   // ==================================================================
   // handleLoadHistory
   // ==================================================================
-  it('loads history successfully', async () => {
+  it("loads history successfully", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     const mockHistoryData = {
-      project_name: 'zhe',
+      project_name: "zhe",
       environment: null,
       total_backups: 2,
       recent_backups: [
-        { id: '1', tag: 'v1.0.0', environment: 'prod', file_size: 1024, is_single_json: 1, created_at: '2026-02-24' },
+        {
+          id: "1",
+          tag: "v1.0.0",
+          environment: "prod",
+          file_size: 1024,
+          is_single_json: 1,
+          created_at: "2026-02-24",
+        },
       ],
     };
     mockFetchBackyHistory.mockResolvedValue({ success: true, data: mockHistoryData });
@@ -413,29 +447,29 @@ describe('useBackyViewModel', () => {
     expect(result.current.isLoadingHistory).toBe(false);
   });
 
-  it('shows error on history load failure', async () => {
+  it("shows error on history load failure", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     mockFetchBackyHistory.mockResolvedValue({
       success: false,
-      error: '获取历史失败',
+      error: "获取历史失败",
     });
 
     await act(async () => {
       await result.current.handleLoadHistory();
     });
 
-    expect(result.current.error).toBe('获取历史失败');
+    expect(result.current.error).toBe("获取历史失败");
   });
 
   // ==================================================================
   // Editing mode
   // ==================================================================
-  it('startEditing enters edit mode and clears results', async () => {
+  it("startEditing enters edit mode and clears results", async () => {
     mockGetBackyConfig.mockResolvedValue({
       success: true,
-      data: { webhookUrl: 'https://backy.example.com/webhook', maskedApiKey: 'sk-1••••cdef' },
+      data: { webhookUrl: "https://backy.example.com/webhook", maskedApiKey: "sk-1••••cdef" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
@@ -454,18 +488,18 @@ describe('useBackyViewModel', () => {
     });
 
     expect(result.current.isEditing).toBe(true);
-    expect(result.current.apiKey).toBe('');
+    expect(result.current.apiKey).toBe("");
     expect(result.current.testResult).toBeNull();
     expect(result.current.pushResult).toBeNull();
   });
 
-  it('cancelEditing exits edit mode and clears error', async () => {
+  it("cancelEditing exits edit mode and clears error", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
     act(() => {
       result.current.startEditing();
-      result.current.setApiKey('some-key');
+      result.current.setApiKey("some-key");
     });
 
     act(() => {
@@ -473,37 +507,37 @@ describe('useBackyViewModel', () => {
     });
 
     expect(result.current.isEditing).toBe(false);
-    expect(result.current.apiKey).toBe('');
+    expect(result.current.apiKey).toBe("");
     expect(result.current.error).toBeNull();
   });
 
   // ==================================================================
   // Pull webhook
   // ==================================================================
-  it('uses pull webhook from initialData when provided', () => {
+  it("uses pull webhook from initialData when provided", () => {
     const prefetched = {
-      pullWebhook: { key: 'test-key' },
+      pullWebhook: { key: "test-key" },
     };
 
     const { result } = renderHook(() => useBackyViewModel(prefetched));
 
-    expect(result.current.pullKey).toBe('test-key');
+    expect(result.current.pullKey).toBe("test-key");
     expect(mockGetBackyPullWebhook).not.toHaveBeenCalled();
   });
 
-  it('loads pull webhook on mount when no initialData', async () => {
+  it("loads pull webhook on mount when no initialData", async () => {
     mockGetBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'loaded-key' },
+      data: { key: "loaded-key" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
-    expect(result.current.pullKey).toBe('loaded-key');
+    expect(result.current.pullKey).toBe("loaded-key");
   });
 
-  it('handleGeneratePull generates new key', async () => {
+  it("handleGeneratePull generates new key", async () => {
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
@@ -511,27 +545,27 @@ describe('useBackyViewModel', () => {
 
     mockGenerateBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'new-key' },
+      data: { key: "new-key" },
     });
 
     await act(async () => {
       await result.current.handleGeneratePull();
     });
 
-    expect(result.current.pullKey).toBe('new-key');
+    expect(result.current.pullKey).toBe("new-key");
     expect(result.current.isGeneratingPull).toBe(false);
   });
 
-  it('handleRevokePull clears key', async () => {
+  it("handleRevokePull clears key", async () => {
     mockGetBackyPullWebhook.mockResolvedValue({
       success: true,
-      data: { key: 'existing-key' },
+      data: { key: "existing-key" },
     });
 
     const { result } = renderHook(() => useBackyViewModel());
     await act(async () => {});
 
-    expect(result.current.pullKey).toBe('existing-key');
+    expect(result.current.pullKey).toBe("existing-key");
 
     mockRevokeBackyPullWebhook.mockResolvedValue({ success: true });
 

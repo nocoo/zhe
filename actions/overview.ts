@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { getSession } from '@/lib/auth-context';
-import { ScopedDB } from '@/lib/db/scoped';
+import { getSession } from "@/lib/auth-context";
+import { ScopedDB } from "@/lib/db/scoped";
 
 interface OverviewRawStats {
   totalLinks: number;
@@ -32,14 +32,14 @@ export async function getOverviewStats(): Promise<ActionResult<OverviewRawStats>
     const session = await getSession();
     const userId = session?.user?.id;
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const db = new ScopedDB(userId);
     const stats = await db.getOverviewStats();
     return { success: true, data: stats };
   } catch (error) {
-    console.error('Failed to get overview stats:', error);
-    return { success: false, error: 'Failed to get overview stats' };
+    console.error("Failed to get overview stats:", error);
+    return { success: false, error: "Failed to get overview stats" };
   }
 }

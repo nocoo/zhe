@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import type { AnalyticsStats } from '@/models/types';
-import { makeLink } from '../fixtures';
+
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AnalyticsStats } from "@/models/types";
+import { makeLink } from "../fixtures";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -14,7 +15,7 @@ const mockToast = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('@/actions/links', () => ({
+vi.mock("@/actions/links", () => ({
   getLinks: vi.fn(),
   createLink: vi.fn(),
   deleteLink: vi.fn(),
@@ -23,69 +24,80 @@ vi.mock('@/actions/links', () => ({
   getAnalyticsStats: vi.fn(),
 }));
 
-vi.mock('@/actions/links/metadata', () => ({
+vi.mock("@/actions/links/metadata", () => ({
   refreshLinkMetadata: vi.fn(),
   batchRefreshLinkMetadata: vi.fn(),
 }));
 
-vi.mock('@/actions/links/screenshot', () => ({
+vi.mock("@/actions/links/screenshot", () => ({
   fetchAndSaveScreenshot: vi.fn(),
 }));
 
-vi.mock('@/actions/folders', () => ({
+vi.mock("@/actions/folders", () => ({
   getFolders: vi.fn(),
 }));
 
-vi.mock('@/actions/tags', () => ({
+vi.mock("@/actions/tags", () => ({
   createTag: vi.fn(),
   addTagToLink: vi.fn(),
   removeTagFromLink: vi.fn(),
 }));
 
-vi.mock('@/lib/utils', () => ({
+vi.mock("@/lib/utils", () => ({
   copyToClipboard: vi.fn(),
-  cn: (...inputs: string[]) => inputs.join(' '),
+  cn: (...inputs: string[]) => inputs.join(" "),
   formatDate: (d: Date) => d.toISOString(),
   formatNumber: (n: number) => String(n),
 }));
 
-vi.mock('sonner', () => ({
+vi.mock("sonner", () => ({
   toast: mockToast,
 }));
 
 let mockIsMobile = false;
-vi.mock('@/hooks/use-mobile', () => ({
+vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => mockIsMobile,
 }));
 
+import {
+  createLink,
+  deleteLink,
+  getAnalyticsStats,
+  updateLink,
+  updateLinkNote,
+} from "@/actions/links";
+import { batchRefreshLinkMetadata, refreshLinkMetadata } from "@/actions/links/metadata";
+import { fetchAndSaveScreenshot } from "@/actions/links/screenshot";
+import { copyToClipboard } from "@/lib/utils";
+import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
 // Import after mocks are defined
 import {
-  useLinkCardViewModel,
-  useCreateLinkViewModel,
   useAutoRefreshMetadata,
+  useCreateLinkViewModel,
   useInlineLinkEditViewModel,
-} from '@/viewmodels/useLinksViewModel';
-import { useDashboardLayoutViewModel } from '@/viewmodels/useDashboardLayoutViewModel';
-import { createLink, deleteLink, updateLink, updateLinkNote, getAnalyticsStats } from '@/actions/links';
-import { refreshLinkMetadata, batchRefreshLinkMetadata } from '@/actions/links/metadata';
-import { fetchAndSaveScreenshot } from '@/actions/links/screenshot';
-import { copyToClipboard } from '@/lib/utils';
+  useLinkCardViewModel,
+} from "@/viewmodels/useLinksViewModel";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const SITE_URL = 'https://zhe.to';
+const SITE_URL = "https://zhe.to";
 
 // ---------------------------------------------------------------------------
 // useLinkCardViewModel
 // ---------------------------------------------------------------------------
 
-describe('useLinkCardViewModel', () => {
+describe("useLinkCardViewModel", () => {
   const mockOnDelete = vi.fn();
   const mockOnUpdate = vi.fn();
   // Link with metadata populated — avoids triggering auto-fetch useEffect
-  const link = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', metaFavicon: 'https://example.com/icon.png' });
+  const link = makeLink({
+    id: 42,
+    slug: "my-link",
+    metaTitle: "Example",
+    metaFavicon: "https://example.com/icon.png",
+  });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -107,17 +119,17 @@ describe('useLinkCardViewModel', () => {
     vi.restoreAllMocks();
   });
 
-  it('computes shortUrl from siteUrl and slug', () => {
+  it("computes shortUrl from siteUrl and slug", () => {
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
-    expect(result.current.shortUrl).toBe('https://zhe.to/my-link');
+    expect(result.current.shortUrl).toBe("https://zhe.to/my-link");
   });
 
-  it('returns correct initial state', () => {
+  it("returns correct initial state", () => {
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     expect(result.current.copied).toBe(false);
@@ -129,18 +141,18 @@ describe('useLinkCardViewModel', () => {
 
   // --- handleCopy ---
 
-  it('handleCopy calls copyToClipboard, sets copied=true, then false after 2s', async () => {
+  it("handleCopy calls copyToClipboard, sets copied=true, then false after 2s", async () => {
     vi.mocked(copyToClipboard).mockResolvedValue(true);
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
       await result.current.handleCopy();
     });
 
-    expect(copyToClipboard).toHaveBeenCalledWith('https://zhe.to/my-link');
+    expect(copyToClipboard).toHaveBeenCalledWith("https://zhe.to/my-link");
     expect(result.current.copied).toBe(true);
 
     // Advance 2 seconds
@@ -151,11 +163,11 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.copied).toBe(false);
   });
 
-  it('handleCopy does not set copied when copyToClipboard fails', async () => {
+  it("handleCopy does not set copied when copyToClipboard fails", async () => {
     vi.mocked(copyToClipboard).mockResolvedValue(false);
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
@@ -169,11 +181,11 @@ describe('useLinkCardViewModel', () => {
   // Note: confirmation is now handled by AlertDialog in the component layer.
   // handleDelete is called directly after user confirms via AlertDialog.
 
-  it('handleDelete calls deleteLink and onDelete on success', async () => {
+  it("handleDelete calls deleteLink and onDelete on success", async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: true });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
@@ -185,14 +197,14 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete shows toast on failure', async () => {
+  it("handleDelete shows toast on failure", async () => {
     vi.mocked(deleteLink).mockResolvedValue({
       success: false,
-      error: 'Not found',
+      error: "Not found",
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
@@ -200,30 +212,32 @@ describe('useLinkCardViewModel', () => {
     });
 
     expect(mockOnDelete).not.toHaveBeenCalled();
-    expect(mockToast.error).toHaveBeenCalledWith('删除失败', { description: 'Not found' });
+    expect(mockToast.error).toHaveBeenCalledWith("删除失败", { description: "Not found" });
     expect(result.current.isDeleting).toBe(false);
   });
 
-  it('handleDelete shows default error message when error is empty', async () => {
+  it("handleDelete shows default error message when error is empty", async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: false });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('删除失败', { description: 'Failed to delete link' });
+    expect(mockToast.error).toHaveBeenCalledWith("删除失败", {
+      description: "Failed to delete link",
+    });
   });
 
   // --- handleToggleAnalytics ---
 
-  it('handleToggleAnalytics opens and lazy-loads analytics', async () => {
+  it("handleToggleAnalytics opens and lazy-loads analytics", async () => {
     const stats: AnalyticsStats = {
       totalClicks: 100,
-      uniqueCountries: ['US', 'DE'],
+      uniqueCountries: ["US", "DE"],
       deviceBreakdown: { desktop: 80, mobile: 20 },
       browserBreakdown: { Chrome: 60, Firefox: 40 },
       osBreakdown: { Windows: 50, macOS: 50 },
@@ -234,7 +248,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     expect(result.current.showAnalytics).toBe(false);
@@ -249,10 +263,10 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.isLoadingAnalytics).toBe(false);
   });
 
-  it('handleToggleAnalytics does not re-fetch if already loaded', async () => {
+  it("handleToggleAnalytics does not re-fetch if already loaded", async () => {
     const stats: AnalyticsStats = {
       totalClicks: 50,
-      uniqueCountries: ['JP'],
+      uniqueCountries: ["JP"],
       deviceBreakdown: { mobile: 50 },
       browserBreakdown: { Safari: 50 },
       osBreakdown: { iOS: 50 },
@@ -263,7 +277,7 @@ describe('useLinkCardViewModel', () => {
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     // First toggle: open + fetch
@@ -291,12 +305,12 @@ describe('useLinkCardViewModel', () => {
     expect(getAnalyticsStats).toHaveBeenCalledTimes(1); // still 1
   });
 
-  it('handleToggleAnalytics handles fetch failure gracefully', async () => {
-    vi.mocked(getAnalyticsStats).mockRejectedValue(new Error('Network error'));
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it("handleToggleAnalytics handles fetch failure gracefully", async () => {
+    vi.mocked(getAnalyticsStats).mockRejectedValue(new Error("Network error"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
@@ -313,12 +327,16 @@ describe('useLinkCardViewModel', () => {
 
   // --- handleRefreshMetadata ---
 
-  it('does NOT auto-fetch metadata (auto-fetch moved to useAutoRefreshMetadata)', async () => {
-    const noMetaLink = makeLink({ id: 42, slug: 'my-link', metaTitle: null, metaDescription: null, metaFavicon: null });
+  it("does NOT auto-fetch metadata (auto-fetch moved to useAutoRefreshMetadata)", async () => {
+    const noMetaLink = makeLink({
+      id: 42,
+      slug: "my-link",
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
+    });
 
-    renderHook(() =>
-      useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
+    renderHook(() => useLinkCardViewModel(noMetaLink, SITE_URL, mockOnDelete, mockOnUpdate));
 
     await act(async () => {});
 
@@ -327,17 +345,17 @@ describe('useLinkCardViewModel', () => {
     expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
-  it('handleRefreshMetadata calls refreshLinkMetadata and onUpdate on success', async () => {
+  it("handleRefreshMetadata calls refreshLinkMetadata and onUpdate on success", async () => {
     const updatedLink = {
       ...link,
-      metaTitle: 'Example Title',
-      metaDescription: 'A description',
-      metaFavicon: 'https://example.com/favicon.ico',
+      metaTitle: "Example Title",
+      metaDescription: "A description",
+      metaFavicon: "https://example.com/favicon.ico",
     };
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     expect(result.current.isRefreshingMetadata).toBe(false);
@@ -348,49 +366,53 @@ describe('useLinkCardViewModel', () => {
 
     expect(refreshLinkMetadata).toHaveBeenCalledWith(42);
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(mockToast.success).toHaveBeenCalledWith('元数据已刷新');
+    expect(mockToast.success).toHaveBeenCalledWith("元数据已刷新");
     expect(result.current.isRefreshingMetadata).toBe(false);
   });
 
-  it('handleRefreshMetadata shows toast on failure', async () => {
+  it("handleRefreshMetadata shows toast on failure", async () => {
     vi.mocked(refreshLinkMetadata).mockResolvedValue({
       success: false,
-      error: 'Failed to refresh metadata',
+      error: "Failed to refresh metadata",
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
       await result.current.handleRefreshMetadata();
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('刷新元数据失败', { description: 'Failed to refresh metadata' });
+    expect(mockToast.error).toHaveBeenCalledWith("刷新元数据失败", {
+      description: "Failed to refresh metadata",
+    });
     expect(mockOnUpdate).not.toHaveBeenCalled();
     expect(result.current.isRefreshingMetadata).toBe(false);
   });
 
-  it('handleRefreshMetadata shows default error when error is empty', async () => {
+  it("handleRefreshMetadata shows default error when error is empty", async () => {
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
       await result.current.handleRefreshMetadata();
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('刷新元数据失败', { description: 'Failed to refresh metadata' });
+    expect(mockToast.error).toHaveBeenCalledWith("刷新元数据失败", {
+      description: "Failed to refresh metadata",
+    });
   });
 
-  it('handleRefreshMetadata handles thrown errors gracefully', async () => {
-    vi.mocked(refreshLinkMetadata).mockRejectedValue(new Error('Network error'));
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it("handleRefreshMetadata handles thrown errors gracefully", async () => {
+    vi.mocked(refreshLinkMetadata).mockRejectedValue(new Error("Network error"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
@@ -405,12 +427,12 @@ describe('useLinkCardViewModel', () => {
 
   // --- handleFetchPreview ---
 
-  it('handleFetchPreview with microlink source calls server action and updates', async () => {
-    const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
+  it("handleFetchPreview with microlink source calls server action and updates", async () => {
+    const updatedLink = { ...link, screenshotUrl: "https://r2.example.com/img.png" };
     vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     // Flush auto-fetch metadata effect
@@ -418,147 +440,174 @@ describe('useLinkCardViewModel', () => {
     mockToast.info.mockClear();
 
     await act(async () => {
-      await result.current.handleFetchPreview('microlink');
+      await result.current.handleFetchPreview("microlink");
     });
 
-    expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Microlink' });
-    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, 'https://example.com', 'microlink');
+    expect(mockToast.info).toHaveBeenCalledWith("正在抓取预览图...", {
+      description: "来源: Microlink",
+    });
+    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, "https://example.com", "microlink");
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
+    expect(mockToast.success).toHaveBeenCalledWith("预览图已更新");
     expect(result.current.isFetchingPreview).toBe(false);
   });
 
-  it('handleFetchPreview with screenshotDomains source calls server action and updates', async () => {
-    const updatedLink = { ...link, screenshotUrl: 'https://r2.example.com/img.png' };
+  it("handleFetchPreview with screenshotDomains source calls server action and updates", async () => {
+    const updatedLink = { ...link, screenshotUrl: "https://r2.example.com/img.png" };
     vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {});
     mockToast.info.mockClear();
 
     await act(async () => {
-      await result.current.handleFetchPreview('screenshotDomains');
+      await result.current.handleFetchPreview("screenshotDomains");
     });
 
-    expect(mockToast.info).toHaveBeenCalledWith('正在抓取预览图...', { description: '来源: Screenshot Domains' });
-    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, 'https://example.com', 'screenshotDomains');
+    expect(mockToast.info).toHaveBeenCalledWith("正在抓取预览图...", {
+      description: "来源: Screenshot Domains",
+    });
+    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(
+      42,
+      "https://example.com",
+      "screenshotDomains",
+    );
     expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(mockToast.success).toHaveBeenCalledWith('预览图已更新');
+    expect(mockToast.success).toHaveBeenCalledWith("预览图已更新");
     expect(result.current.isFetchingPreview).toBe(false);
   });
 
-  it('handleFetchPreview shows toast when server action returns error', async () => {
+  it("handleFetchPreview shows toast when server action returns error", async () => {
     vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({
       success: false,
-      error: 'Microlink did not return a valid screenshot',
+      error: "Microlink did not return a valid screenshot",
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {});
     mockToast.error.mockClear();
 
     await act(async () => {
-      await result.current.handleFetchPreview('microlink');
+      await result.current.handleFetchPreview("microlink");
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', {
-      description: 'Microlink did not return a valid screenshot',
+    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图失败", {
+      description: "Microlink did not return a valid screenshot",
     });
     expect(mockOnUpdate).not.toHaveBeenCalled();
     expect(result.current.isFetchingPreview).toBe(false);
   });
 
-  it('handleFetchPreview shows toast when server action fails with upload error', async () => {
-    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: false, error: 'Upload failed' });
+  it("handleFetchPreview shows toast when server action fails with upload error", async () => {
+    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: false, error: "Upload failed" });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {});
     mockToast.error.mockClear();
 
     await act(async () => {
-      await result.current.handleFetchPreview('microlink');
+      await result.current.handleFetchPreview("microlink");
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图失败', { description: 'Upload failed' });
+    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图失败", {
+      description: "Upload failed",
+    });
     expect(mockOnUpdate).not.toHaveBeenCalled();
     expect(result.current.isFetchingPreview).toBe(false);
   });
 
   // --- favicon / screenshot display logic ---
 
-  it('returns faviconUrl when no screenshotUrl exists', () => {
-    const noScreenshotLink = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: null });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    expect(result.current.faviconUrl).toBe('https://favicon.im/example.com?larger=true');
-    expect(result.current.screenshotUrl).toBeNull();
-  });
-
-  it('returns faviconUrl=null when screenshotUrl exists', () => {
-    const linkWithScreenshot = makeLink({ id: 42, slug: 'my-link', metaTitle: 'Example', screenshotUrl: 'https://r2.example.com/shot.png' });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(linkWithScreenshot, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    expect(result.current.faviconUrl).toBeNull();
-    expect(result.current.screenshotUrl).toBe('https://r2.example.com/shot.png');
-  });
-
-  it('overrides screenshotUrl with fixed preview for GitHub repo URLs', () => {
-    const githubLink = makeLink({ id: 42, slug: 'gh-repo', originalUrl: 'https://github.com/nocoo/zhe' });
-
-    const { result } = renderHook(() =>
-      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
-
-    expect(result.current.screenshotUrl).toBe('/github-preview.jpg');
-    expect(result.current.faviconUrl).toBeNull();
-  });
-
-  it('overrides screenshotUrl for GitHub repo even if DB has a different screenshot', () => {
-    const githubLink = makeLink({
-      id: 42, slug: 'gh-repo',
-      originalUrl: 'https://github.com/microsoft/playwright',
-      screenshotUrl: 'https://r2.example.com/old-shot.png',
+  it("returns faviconUrl when no screenshotUrl exists", () => {
+    const noScreenshotLink = makeLink({
+      id: 42,
+      slug: "my-link",
+      metaTitle: "Example",
+      screenshotUrl: null,
     });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(noScreenshotLink, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
-    expect(result.current.screenshotUrl).toBe('/github-preview.jpg');
+    expect(result.current.faviconUrl).toBe("https://favicon.im/example.com?larger=true");
+    expect(result.current.screenshotUrl).toBeNull();
+  });
+
+  it("returns faviconUrl=null when screenshotUrl exists", () => {
+    const linkWithScreenshot = makeLink({
+      id: 42,
+      slug: "my-link",
+      metaTitle: "Example",
+      screenshotUrl: "https://r2.example.com/shot.png",
+    });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(linkWithScreenshot, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    expect(result.current.faviconUrl).toBeNull();
+    expect(result.current.screenshotUrl).toBe("https://r2.example.com/shot.png");
+  });
+
+  it("overrides screenshotUrl with fixed preview for GitHub repo URLs", () => {
+    const githubLink = makeLink({
+      id: 42,
+      slug: "gh-repo",
+      originalUrl: "https://github.com/nocoo/zhe",
+    });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    expect(result.current.screenshotUrl).toBe("/github-preview.jpg");
     expect(result.current.faviconUrl).toBeNull();
   });
 
-  it('does not override for GitHub user profile URLs (single segment)', () => {
-    const profileLink = makeLink({ id: 42, slug: 'gh-user', originalUrl: 'https://github.com/nocoo' });
+  it("overrides screenshotUrl for GitHub repo even if DB has a different screenshot", () => {
+    const githubLink = makeLink({
+      id: 42,
+      slug: "gh-repo",
+      originalUrl: "https://github.com/microsoft/playwright",
+      screenshotUrl: "https://r2.example.com/old-shot.png",
+    });
 
     const { result } = renderHook(() =>
-      useLinkCardViewModel(profileLink, SITE_URL, mockOnDelete, mockOnUpdate)
+      useLinkCardViewModel(githubLink, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+
+    expect(result.current.screenshotUrl).toBe("/github-preview.jpg");
+    expect(result.current.faviconUrl).toBeNull();
+  });
+
+  it("does not override for GitHub user profile URLs (single segment)", () => {
+    const profileLink = makeLink({
+      id: 42,
+      slug: "gh-user",
+      originalUrl: "https://github.com/nocoo",
+    });
+
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(profileLink, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     // Should NOT use the fixed preview — it's a profile page, not a repo
     expect(result.current.screenshotUrl).toBeNull();
-    expect(result.current.faviconUrl).toBe('https://favicon.im/github.com?larger=true');
+    expect(result.current.faviconUrl).toBe("https://favicon.im/github.com?larger=true");
   });
 
-  it('does not auto-fetch screenshot on mount', async () => {
-    renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate)
-    );
+  it("does not auto-fetch screenshot on mount", async () => {
+    renderHook(() => useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate));
 
     await act(async () => {});
 
@@ -566,8 +615,8 @@ describe('useLinkCardViewModel', () => {
     expect(fetchAndSaveScreenshot).not.toHaveBeenCalled();
   });
 
-  it('handleFaviconError sets faviconError to true', () => {
-    const linkWithFavicon = makeLink({ metaFavicon: 'https://example.com/favicon.ico' });
+  it("handleFaviconError sets faviconError to true", () => {
+    const linkWithFavicon = makeLink({ metaFavicon: "https://example.com/favicon.ico" });
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(linkWithFavicon, SITE_URL, mockOnDelete, mockOnUpdate),
@@ -580,7 +629,7 @@ describe('useLinkCardViewModel', () => {
     expect(result.current.faviconError).toBe(true);
   });
 
-  it('handleCopyOriginalUrl copies original URL to clipboard', async () => {
+  it("handleCopyOriginalUrl copies original URL to clipboard", async () => {
     vi.mocked(copyToClipboard).mockResolvedValue(true);
 
     const { result } = renderHook(() =>
@@ -591,22 +640,22 @@ describe('useLinkCardViewModel', () => {
       await result.current.handleCopyOriginalUrl();
     });
 
-    expect(copyToClipboard).toHaveBeenCalledWith('https://example.com');
+    expect(copyToClipboard).toHaveBeenCalledWith("https://example.com");
     expect(result.current.copiedOriginalUrl).toBe(true);
   });
 
-  it('handleFetchPreview catches thrown errors and shows error toast', async () => {
-    vi.mocked(fetchAndSaveScreenshot).mockRejectedValue(new Error('Network error'));
+  it("handleFetchPreview catches thrown errors and shows error toast", async () => {
+    vi.mocked(fetchAndSaveScreenshot).mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
 
     await act(async () => {
-      await result.current.handleFetchPreview('microlink');
+      await result.current.handleFetchPreview("microlink");
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith('抓取预览图出错', { description: '请稍后重试' });
+    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图出错", { description: "请稍后重试" });
     expect(result.current.isFetchingPreview).toBe(false);
   });
 });
@@ -615,7 +664,7 @@ describe('useLinkCardViewModel', () => {
 // useAutoRefreshMetadata
 // ---------------------------------------------------------------------------
 
-describe('useAutoRefreshMetadata', () => {
+describe("useAutoRefreshMetadata", () => {
   const mockOnUpdate = vi.fn();
 
   beforeEach(() => {
@@ -623,11 +672,11 @@ describe('useAutoRefreshMetadata', () => {
     vi.mocked(batchRefreshLinkMetadata).mockReset();
   });
 
-  it('calls batchRefreshLinkMetadata for links missing metadata', async () => {
+  it("calls batchRefreshLinkMetadata for links missing metadata", async () => {
     const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
     const link2 = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated1 = { ...link1, metaTitle: 'Title 1' };
-    const updated2 = { ...link2, metaTitle: 'Title 2' };
+    const updated1 = { ...link1, metaTitle: "Title 1" };
+    const updated2 = { ...link2, metaTitle: "Title 2" };
 
     vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
       success: true,
@@ -643,10 +692,15 @@ describe('useAutoRefreshMetadata', () => {
     expect(mockOnUpdate).toHaveBeenCalledWith(updated2);
   });
 
-  it('skips links that already have metadata', async () => {
-    const withMeta = makeLink({ id: 1, metaTitle: 'Has Title' });
-    const withoutMeta = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated2 = { ...withoutMeta, metaTitle: 'Fetched' };
+  it("skips links that already have metadata", async () => {
+    const withMeta = makeLink({ id: 1, metaTitle: "Has Title" });
+    const withoutMeta = makeLink({
+      id: 2,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
+    });
+    const updated2 = { ...withoutMeta, metaTitle: "Fetched" };
 
     vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
       success: true,
@@ -661,10 +715,21 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([2]);
   });
 
-  it('skips links that have a user note', async () => {
-    const withNote = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null, note: 'My note' });
-    const withoutMeta = makeLink({ id: 2, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated2 = { ...withoutMeta, metaTitle: 'Fetched' };
+  it("skips links that have a user note", async () => {
+    const withNote = makeLink({
+      id: 1,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
+      note: "My note",
+    });
+    const withoutMeta = makeLink({
+      id: 2,
+      metaTitle: null,
+      metaDescription: null,
+      metaFavicon: null,
+    });
+    const updated2 = { ...withoutMeta, metaTitle: "Fetched" };
 
     vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
       success: true,
@@ -678,9 +743,9 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).toHaveBeenCalledWith([2]);
   });
 
-  it('does nothing when all links have metadata', async () => {
-    const link1 = makeLink({ id: 1, metaTitle: 'Title' });
-    const link2 = makeLink({ id: 2, metaFavicon: 'https://example.com/icon.png' });
+  it("does nothing when all links have metadata", async () => {
+    const link1 = makeLink({ id: 1, metaTitle: "Title" });
+    const link2 = makeLink({ id: 2, metaFavicon: "https://example.com/icon.png" });
 
     renderHook(() => useAutoRefreshMetadata([link1, link2], mockOnUpdate));
 
@@ -689,7 +754,7 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
-  it('does nothing for empty links array', async () => {
+  it("does nothing for empty links array", async () => {
     renderHook(() => useAutoRefreshMetadata([], mockOnUpdate));
 
     await act(async () => {});
@@ -697,19 +762,18 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
-  it('does not re-process already-processed links on re-render', async () => {
+  it("does not re-process already-processed links on re-render", async () => {
     const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated1 = { ...link1, metaTitle: 'Title 1' };
+    const updated1 = { ...link1, metaTitle: "Title 1" };
 
     vi.mocked(batchRefreshLinkMetadata).mockResolvedValue({
       success: true,
       data: [updated1],
     });
 
-    const { rerender } = renderHook(
-      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
-      { initialProps: { links: [link1] } },
-    );
+    const { rerender } = renderHook(({ links }) => useAutoRefreshMetadata(links, mockOnUpdate), {
+      initialProps: { links: [link1] },
+    });
 
     await act(async () => {});
 
@@ -724,19 +788,18 @@ describe('useAutoRefreshMetadata', () => {
     expect(batchRefreshLinkMetadata).not.toHaveBeenCalled();
   });
 
-  it('handles batch failure gracefully and allows retry', async () => {
+  it("handles batch failure gracefully and allows retry", async () => {
     const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated1 = { ...link1, metaTitle: 'Title 1' };
+    const updated1 = { ...link1, metaTitle: "Title 1" };
 
     vi.mocked(batchRefreshLinkMetadata).mockResolvedValueOnce({
       success: false,
-      error: 'Batch failed',
+      error: "Batch failed",
     });
 
-    const { rerender } = renderHook(
-      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
-      { initialProps: { links: [link1] } },
-    );
+    const { rerender } = renderHook(({ links }) => useAutoRefreshMetadata(links, mockOnUpdate), {
+      initialProps: { links: [link1] },
+    });
 
     await act(async () => {});
 
@@ -756,16 +819,15 @@ describe('useAutoRefreshMetadata', () => {
     expect(mockOnUpdate).toHaveBeenCalledWith(updated1);
   });
 
-  it('handles promise rejection gracefully and allows retry', async () => {
+  it("handles promise rejection gracefully and allows retry", async () => {
     const link1 = makeLink({ id: 1, metaTitle: null, metaDescription: null, metaFavicon: null });
-    const updated1 = { ...link1, metaTitle: 'Title 1' };
+    const updated1 = { ...link1, metaTitle: "Title 1" };
 
-    vi.mocked(batchRefreshLinkMetadata).mockRejectedValueOnce(new Error('Network error'));
+    vi.mocked(batchRefreshLinkMetadata).mockRejectedValueOnce(new Error("Network error"));
 
-    const { rerender } = renderHook(
-      ({ links }) => useAutoRefreshMetadata(links, mockOnUpdate),
-      { initialProps: { links: [link1] } },
-    );
+    const { rerender } = renderHook(({ links }) => useAutoRefreshMetadata(links, mockOnUpdate), {
+      initialProps: { links: [link1] },
+    });
 
     await act(async () => {});
 
@@ -790,7 +852,7 @@ describe('useAutoRefreshMetadata', () => {
 // useCreateLinkViewModel
 // ---------------------------------------------------------------------------
 
-describe('useCreateLinkViewModel', () => {
+describe("useCreateLinkViewModel", () => {
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
@@ -802,43 +864,39 @@ describe('useCreateLinkViewModel', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns correct initial state', () => {
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+  it("returns correct initial state", () => {
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     expect(result.current.isOpen).toBe(false);
-    expect(result.current.mode).toBe('simple');
-    expect(result.current.url).toBe('');
-    expect(result.current.customSlug).toBe('');
+    expect(result.current.mode).toBe("simple");
+    expect(result.current.url).toBe("");
+    expect(result.current.customSlug).toBe("");
     expect(result.current.folderId).toBeUndefined();
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.error).toBe('');
+    expect(result.current.error).toBe("");
     expect(result.current.siteUrl).toBe(SITE_URL);
   });
 
-  it('handleSubmit with success resets form and calls onSuccess', async () => {
-    const createdLink = makeLink({ id: 77, slug: 'new-slug' });
+  it("handleSubmit with success resets form and calls onSuccess", async () => {
+    const createdLink = makeLink({ id: 77, slug: "new-slug" });
     vi.mocked(createLink).mockResolvedValue({
       success: true,
       data: createdLink,
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     // Fill form
     act(() => {
-      result.current.setUrl('https://example.com/long-url');
-      result.current.setCustomSlug('my-slug');
-      result.current.setMode('custom');
+      result.current.setUrl("https://example.com/long-url");
+      result.current.setCustomSlug("my-slug");
+      result.current.setMode("custom");
       result.current.setIsOpen(true);
     });
 
-    expect(result.current.url).toBe('https://example.com/long-url');
-    expect(result.current.customSlug).toBe('my-slug');
-    expect(result.current.mode).toBe('custom');
+    expect(result.current.url).toBe("https://example.com/long-url");
+    expect(result.current.customSlug).toBe("my-slug");
+    expect(result.current.mode).toBe("custom");
     expect(result.current.isOpen).toBe(true);
 
     // Submit
@@ -850,32 +908,30 @@ describe('useCreateLinkViewModel', () => {
 
     expect(fakeEvent.preventDefault).toHaveBeenCalled();
     expect(createLink).toHaveBeenCalledWith({
-      originalUrl: 'https://example.com/long-url',
-      customSlug: 'my-slug',
+      originalUrl: "https://example.com/long-url",
+      customSlug: "my-slug",
       folderId: undefined,
     });
     expect(mockOnSuccess).toHaveBeenCalledWith(createdLink);
 
     // Form should be reset
-    expect(result.current.url).toBe('');
-    expect(result.current.customSlug).toBe('');
+    expect(result.current.url).toBe("");
+    expect(result.current.customSlug).toBe("");
     expect(result.current.isOpen).toBe(false);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.error).toBe('');
+    expect(result.current.error).toBe("");
   });
 
-  it('handleSubmit in simple mode does not send customSlug', async () => {
+  it("handleSubmit in simple mode does not send customSlug", async () => {
     vi.mocked(createLink).mockResolvedValue({
       success: true,
       data: makeLink(),
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
+      result.current.setUrl("https://example.com");
       // mode stays "simple" (default)
     });
 
@@ -886,26 +942,24 @@ describe('useCreateLinkViewModel', () => {
     });
 
     expect(createLink).toHaveBeenCalledWith({
-      originalUrl: 'https://example.com',
+      originalUrl: "https://example.com",
       customSlug: undefined,
       folderId: undefined,
     });
   });
 
-  it('handleSubmit with error sets error message', async () => {
+  it("handleSubmit with error sets error message", async () => {
     vi.mocked(createLink).mockResolvedValue({
       success: false,
-      error: 'Slug already taken',
+      error: "Slug already taken",
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
-      result.current.setMode('custom');
-      result.current.setCustomSlug('taken-slug');
+      result.current.setUrl("https://example.com");
+      result.current.setMode("custom");
+      result.current.setCustomSlug("taken-slug");
     });
 
     const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
@@ -914,23 +968,21 @@ describe('useCreateLinkViewModel', () => {
       await result.current.handleSubmit(fakeEvent);
     });
 
-    expect(result.current.error).toBe('Slug already taken');
+    expect(result.current.error).toBe("Slug already taken");
     expect(result.current.isLoading).toBe(false);
     expect(mockOnSuccess).not.toHaveBeenCalled();
     // Form should NOT be reset on error
-    expect(result.current.url).toBe('https://example.com');
+    expect(result.current.url).toBe("https://example.com");
     expect(result.current.isOpen).toBe(false); // isOpen was never set to true
   });
 
-  it('handleSubmit with error uses default message when error is empty', async () => {
+  it("handleSubmit with error uses default message when error is empty", async () => {
     vi.mocked(createLink).mockResolvedValue({ success: false });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
+      result.current.setUrl("https://example.com");
     });
 
     const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
@@ -939,22 +991,20 @@ describe('useCreateLinkViewModel', () => {
       await result.current.handleSubmit(fakeEvent);
     });
 
-    expect(result.current.error).toBe('Failed to create link');
+    expect(result.current.error).toBe("Failed to create link");
   });
 
-  it('handleSubmit clears previous error before submitting', async () => {
+  it("handleSubmit clears previous error before submitting", async () => {
     // First call fails
     vi.mocked(createLink).mockResolvedValueOnce({
       success: false,
-      error: 'First error',
+      error: "First error",
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
+      result.current.setUrl("https://example.com");
     });
 
     const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
@@ -963,7 +1013,7 @@ describe('useCreateLinkViewModel', () => {
       await result.current.handleSubmit(fakeEvent);
     });
 
-    expect(result.current.error).toBe('First error');
+    expect(result.current.error).toBe("First error");
 
     // Second call succeeds
     vi.mocked(createLink).mockResolvedValueOnce({
@@ -975,22 +1025,20 @@ describe('useCreateLinkViewModel', () => {
       await result.current.handleSubmit(fakeEvent);
     });
 
-    expect(result.current.error).toBe('');
+    expect(result.current.error).toBe("");
   });
 
-  it('handleSubmit passes folderId to createLink', async () => {
+  it("handleSubmit passes folderId to createLink", async () => {
     vi.mocked(createLink).mockResolvedValue({
       success: true,
-      data: makeLink({ folderId: 'folder-123' }),
+      data: makeLink({ folderId: "folder-123" }),
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
-      result.current.setFolderId('folder-123');
+      result.current.setUrl("https://example.com");
+      result.current.setFolderId("folder-123");
     });
 
     const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
@@ -1000,25 +1048,23 @@ describe('useCreateLinkViewModel', () => {
     });
 
     expect(createLink).toHaveBeenCalledWith({
-      originalUrl: 'https://example.com',
+      originalUrl: "https://example.com",
       customSlug: undefined,
-      folderId: 'folder-123',
+      folderId: "folder-123",
     });
   });
 
-  it('handleSubmit resets folderId on success', async () => {
+  it("handleSubmit resets folderId on success", async () => {
     vi.mocked(createLink).mockResolvedValue({
       success: true,
       data: makeLink(),
     });
 
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess)
-    );
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.setUrl('https://example.com');
-      result.current.setFolderId('folder-123');
+      result.current.setUrl("https://example.com");
+      result.current.setFolderId("folder-123");
     });
 
     const fakeEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
@@ -1035,25 +1081,25 @@ describe('useCreateLinkViewModel', () => {
 // useDashboardLayoutViewModel
 // ---------------------------------------------------------------------------
 
-describe('useDashboardLayoutViewModel', () => {
+describe("useDashboardLayoutViewModel", () => {
   beforeEach(() => {
     mockIsMobile = false;
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   });
 
-  it('returns correct initial state', () => {
+  it("returns correct initial state", () => {
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
     expect(result.current.collapsed).toBe(false);
     expect(result.current.mobileOpen).toBe(false);
   });
 
-  it('toggleSidebar on desktop toggles collapsed', () => {
+  it("toggleSidebar on desktop toggles collapsed", () => {
     mockIsMobile = false;
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
@@ -1073,7 +1119,7 @@ describe('useDashboardLayoutViewModel', () => {
     expect(result.current.collapsed).toBe(false);
   });
 
-  it('toggleSidebar on mobile toggles mobileOpen', () => {
+  it("toggleSidebar on mobile toggles mobileOpen", () => {
     mockIsMobile = true;
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
@@ -1093,7 +1139,7 @@ describe('useDashboardLayoutViewModel', () => {
     expect(result.current.mobileOpen).toBe(false);
   });
 
-  it('closeMobileSidebar sets mobileOpen to false', () => {
+  it("closeMobileSidebar sets mobileOpen to false", () => {
     mockIsMobile = true;
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
@@ -1109,7 +1155,7 @@ describe('useDashboardLayoutViewModel', () => {
     expect(result.current.mobileOpen).toBe(false);
   });
 
-  it('closeMobileSidebar is safe to call when already closed', () => {
+  it("closeMobileSidebar is safe to call when already closed", () => {
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
     expect(result.current.mobileOpen).toBe(false);
@@ -1121,7 +1167,7 @@ describe('useDashboardLayoutViewModel', () => {
     expect(result.current.mobileOpen).toBe(false);
   });
 
-  it('does not manage body scroll (delegated to Sheet component)', () => {
+  it("does not manage body scroll (delegated to Sheet component)", () => {
     mockIsMobile = true;
     const { result } = renderHook(() => useDashboardLayoutViewModel());
 
@@ -1131,55 +1177,51 @@ describe('useDashboardLayoutViewModel', () => {
 
     // Body scroll is now managed by Sheet, not the ViewModel
     expect(result.current.mobileOpen).toBe(true);
-    expect(document.body.style.overflow).toBe('');
+    expect(document.body.style.overflow).toBe("");
   });
 });
 
 // ---------------------------------------------------------------------------
 // useCreateLinkViewModel — tag operations
 // ---------------------------------------------------------------------------
-describe('useCreateLinkViewModel — addTag / removeTag', () => {
+describe("useCreateLinkViewModel — addTag / removeTag", () => {
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('addTag adds a tag ID to selectedTagIds', () => {
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess),
-    );
+  it("addTag adds a tag ID to selectedTagIds", () => {
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.addTag('tag-1');
+      result.current.addTag("tag-1");
     });
 
-    expect(result.current.selectedTagIds.has('tag-1')).toBe(true);
+    expect(result.current.selectedTagIds.has("tag-1")).toBe(true);
   });
 
-  it('removeTag removes a tag ID from selectedTagIds', () => {
-    const { result } = renderHook(() =>
-      useCreateLinkViewModel(SITE_URL, mockOnSuccess),
-    );
+  it("removeTag removes a tag ID from selectedTagIds", () => {
+    const { result } = renderHook(() => useCreateLinkViewModel(SITE_URL, mockOnSuccess));
 
     act(() => {
-      result.current.addTag('tag-1');
-      result.current.addTag('tag-2');
+      result.current.addTag("tag-1");
+      result.current.addTag("tag-2");
     });
 
     act(() => {
-      result.current.removeTag('tag-1');
+      result.current.removeTag("tag-1");
     });
 
-    expect(result.current.selectedTagIds.has('tag-1')).toBe(false);
-    expect(result.current.selectedTagIds.has('tag-2')).toBe(true);
+    expect(result.current.selectedTagIds.has("tag-1")).toBe(false);
+    expect(result.current.selectedTagIds.has("tag-2")).toBe(true);
   });
 });
 
 // ---------------------------------------------------------------------------
 // useInlineLinkEditViewModel
 // ---------------------------------------------------------------------------
-describe('useInlineLinkEditViewModel', () => {
+describe("useInlineLinkEditViewModel", () => {
   const link = makeLink();
   const callbacks = {
     onLinkUpdated: vi.fn(),
@@ -1193,25 +1235,21 @@ describe('useInlineLinkEditViewModel', () => {
     vi.clearAllMocks();
   });
 
-  it('initialises form fields from the link', () => {
-    const { result } = renderHook(() =>
-      useInlineLinkEditViewModel(link, [], [], callbacks),
-    );
+  it("initialises form fields from the link", () => {
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], callbacks));
 
-    expect(result.current.editUrl).toBe('https://example.com');
-    expect(result.current.editSlug).toBe('abc123');
-    expect(result.current.editNote).toBe('');
+    expect(result.current.editUrl).toBe("https://example.com");
+    expect(result.current.editSlug).toBe("abc123");
+    expect(result.current.editNote).toBe("");
     expect(result.current.isSaving).toBe(false);
-    expect(result.current.error).toBe('');
+    expect(result.current.error).toBe("");
   });
 
-  it('saveEdit updates link and calls onLinkUpdated on success', async () => {
-    const updatedLink = makeLink({ originalUrl: 'https://new.com' });
+  it("saveEdit updates link and calls onLinkUpdated on success", async () => {
+    const updatedLink = makeLink({ originalUrl: "https://new.com" });
     vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
 
-    const { result } = renderHook(() =>
-      useInlineLinkEditViewModel(link, [], [], callbacks),
-    );
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], callbacks));
 
     let saved: boolean | undefined;
     await act(async () => {
@@ -1220,15 +1258,13 @@ describe('useInlineLinkEditViewModel', () => {
 
     expect(saved).toBe(true);
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
-    expect(result.current.error).toBe('');
+    expect(result.current.error).toBe("");
   });
 
-  it('saveEdit sets error when updateLink returns failure', async () => {
-    vi.mocked(updateLink).mockResolvedValue({ success: false, error: 'Slug taken' });
+  it("saveEdit sets error when updateLink returns failure", async () => {
+    vi.mocked(updateLink).mockResolvedValue({ success: false, error: "Slug taken" });
 
-    const { result } = renderHook(() =>
-      useInlineLinkEditViewModel(link, [], [], callbacks),
-    );
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], callbacks));
 
     let saved: boolean | undefined;
     await act(async () => {
@@ -1236,16 +1272,14 @@ describe('useInlineLinkEditViewModel', () => {
     });
 
     expect(saved).toBe(false); // save failed, returns false
-    expect(result.current.error).toBe('Slug taken');
+    expect(result.current.error).toBe("Slug taken");
     expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
   });
 
-  it('saveEdit sets generic error when updateLink throws', async () => {
-    vi.mocked(updateLink).mockRejectedValue(new Error('Network failure'));
+  it("saveEdit sets generic error when updateLink throws", async () => {
+    vi.mocked(updateLink).mockRejectedValue(new Error("Network failure"));
 
-    const { result } = renderHook(() =>
-      useInlineLinkEditViewModel(link, [], [], callbacks),
-    );
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], callbacks));
 
     let saved: boolean | undefined;
     await act(async () => {
@@ -1253,29 +1287,29 @@ describe('useInlineLinkEditViewModel', () => {
     });
 
     expect(saved).toBe(false);
-    expect(result.current.error).toBe('An unexpected error occurred');
+    expect(result.current.error).toBe("An unexpected error occurred");
   });
 
-  it('saveEdit shows note error when note update fails', async () => {
-    const updatedLink = makeLink({ note: 'old note' });
+  it("saveEdit shows note error when note update fails", async () => {
+    const updatedLink = makeLink({ note: "old note" });
     vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
-    vi.mocked(updateLinkNote).mockResolvedValue({ success: false, error: 'Note too long' });
+    vi.mocked(updateLinkNote).mockResolvedValue({ success: false, error: "Note too long" });
 
-    const linkWithNote = makeLink({ note: 'old note' });
+    const linkWithNote = makeLink({ note: "old note" });
     const { result } = renderHook(() =>
       useInlineLinkEditViewModel(linkWithNote, [], [], callbacks),
     );
 
     // Change the note to trigger the note-update path
     act(() => {
-      result.current.setEditNote('new note');
+      result.current.setEditNote("new note");
     });
 
     await act(async () => {
       await result.current.saveEdit();
     });
 
-    expect(result.current.error).toBe('Link saved but note update failed');
+    expect(result.current.error).toBe("Link saved but note update failed");
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
   });
 });

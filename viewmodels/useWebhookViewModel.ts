@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { migrateFromWebhookAction } from "@/actions/api-keys";
 import {
-  getWebhookToken,
   createWebhookToken,
+  getWebhookToken,
   revokeWebhookToken,
   updateWebhookRateLimit as updateRateLimitAction,
 } from "@/actions/webhook";
-import { migrateFromWebhookAction } from "@/actions/api-keys";
 import { RATE_LIMIT_DEFAULT_MAX } from "@/models/webhook";
 
 /** Initial data from SSR prefetch */
@@ -48,9 +48,10 @@ function useWebhookMountLoad(
       }
       setIsLoading(false);
     })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialData, setters.setToken, setters.setRateLimit, setters.setCreatedAt]);
   return isLoading;
 }
 
@@ -61,8 +62,12 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
   }, []);
 
   const [token, setToken] = useState<string | null>(initialData?.token ?? null);
-  const [createdAt, setCreatedAt] = useState<string | null>(initialData ? String(initialData.createdAt) : null);
-  const [rateLimit, setRateLimit] = useState<number>(initialData?.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
+  const [createdAt, setCreatedAt] = useState<string | null>(
+    initialData ? String(initialData.createdAt) : null,
+  );
+  const [rateLimit, setRateLimit] = useState<number>(
+    initialData?.rateLimit ?? RATE_LIMIT_DEFAULT_MAX,
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);

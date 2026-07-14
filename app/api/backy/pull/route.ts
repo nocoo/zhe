@@ -2,12 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyBackyPullWebhook } from "@/lib/db";
 import { ScopedDB } from "@/lib/db/scoped";
 import { APP_VERSION } from "@/lib/version";
-import { getBackyEnvironment, buildBackyTag } from "@/models/backy";
-import {
-  buildBackupBundle,
-  pushToBacky,
-  fetchBackyHistory,
-} from "./helpers";
+import { buildBackyTag, getBackyEnvironment } from "@/models/backy";
+import { buildBackupBundle, fetchBackyHistory, pushToBacky } from "./helpers";
 
 /**
  * POST /api/backy/pull
@@ -20,27 +16,18 @@ import {
 export async function POST(request: Request) {
   const key = request.headers.get("x-webhook-key");
   if (!key) {
-    return NextResponse.json(
-      { error: "Missing X-Webhook-Key header" },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Missing X-Webhook-Key header" }, { status: 401 });
   }
 
   const result = await verifyBackyPullWebhook(key);
   if (!result) {
-    return NextResponse.json(
-      { error: "Invalid webhook credentials" },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Invalid webhook credentials" }, { status: 401 });
   }
 
   const db = new ScopedDB(result.userId);
   const config = await db.getBackySettings();
   if (!config) {
-    return NextResponse.json(
-      { error: "Backy push config not configured" },
-      { status: 422 },
-    );
+    return NextResponse.json({ error: "Backy push config not configured" }, { status: 422 });
   }
 
   const start = Date.now();
@@ -55,13 +42,7 @@ export async function POST(request: Request) {
   const fileName = `zhe-backup-${new Date().toISOString().slice(0, 10)}.json`;
 
   // Push to Backy
-  const pushResult = await pushToBacky(
-    config,
-    bundle.json,
-    fileName,
-    getBackyEnvironment(),
-    tag,
-  );
+  const pushResult = await pushToBacky(config, bundle.json, fileName, getBackyEnvironment(), tag);
   const durationMs = Date.now() - start;
 
   if (!pushResult.ok) {

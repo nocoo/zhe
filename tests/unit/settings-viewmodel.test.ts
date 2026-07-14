@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -8,14 +9,14 @@ import { renderHook, act } from '@testing-library/react';
 
 const mockImportLinks = vi.fn();
 const mockExportLinks = vi.fn();
-vi.mock('@/actions/settings', () => ({
+vi.mock("@/actions/settings", () => ({
   importLinks: (...args: unknown[]) => mockImportLinks(...args),
   exportLinks: (...args: unknown[]) => mockExportLinks(...args),
 }));
 
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
-vi.mock('sonner', () => ({
+vi.mock("sonner", () => ({
   toast: {
     success: (...args: unknown[]) => mockToastSuccess(...args),
     error: (...args: unknown[]) => mockToastError(...args),
@@ -23,15 +24,15 @@ vi.mock('sonner', () => ({
 }));
 
 // Import after mocks
-import { useSettingsViewModel } from '@/viewmodels/useSettingsViewModel';
+import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Create a mock file with a working text() method (jsdom File lacks it) */
-function makeFile(content: string, name = 'links.json'): File {
-  const file = new File([content], name, { type: 'application/json' });
+function makeFile(content: string, name = "links.json"): File {
+  const file = new File([content], name, { type: "application/json" });
   file.text = () => Promise.resolve(content);
   return file;
 }
@@ -40,7 +41,7 @@ function makeFile(content: string, name = 'links.json'): File {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useSettingsViewModel', () => {
+describe("useSettingsViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -52,7 +53,7 @@ describe('useSettingsViewModel', () => {
   // ====================================================================
   // Initial state
   // ====================================================================
-  it('returns initial state', () => {
+  it("returns initial state", () => {
     const { result } = renderHook(() => useSettingsViewModel());
 
     expect(result.current.isExporting).toBe(false);
@@ -63,17 +64,20 @@ describe('useSettingsViewModel', () => {
   // ====================================================================
   // handleExport
   // ====================================================================
-  it('handleExport calls exportLinks and triggers download', async () => {
-    const mockUrl = 'blob:http://localhost/fake';
+  it("handleExport calls exportLinks and triggers download", async () => {
+    const mockUrl = "blob:http://localhost/fake";
     const mockCreateObjectURL = vi.fn().mockReturnValue(mockUrl);
     const mockRevokeObjectURL = vi.fn();
-    vi.stubGlobal('URL', { createObjectURL: mockCreateObjectURL, revokeObjectURL: mockRevokeObjectURL });
+    vi.stubGlobal("URL", {
+      createObjectURL: mockCreateObjectURL,
+      revokeObjectURL: mockRevokeObjectURL,
+    });
 
     const mockClick = vi.fn();
     const origCreateElement = document.createElement.bind(document);
-    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      if (tag === 'a') {
-        const el = origCreateElement('a');
+    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+      if (tag === "a") {
+        const el = origCreateElement("a");
         el.click = mockClick;
         return el;
       }
@@ -83,7 +87,13 @@ describe('useSettingsViewModel', () => {
     mockExportLinks.mockResolvedValue({
       success: true,
       data: [
-        { originalUrl: 'https://example.com', slug: 'test', isCustom: false, clicks: 5, createdAt: '2026-01-15T00:00:00.000Z' },
+        {
+          originalUrl: "https://example.com",
+          slug: "test",
+          isCustom: false,
+          clicks: 5,
+          createdAt: "2026-01-15T00:00:00.000Z",
+        },
       ],
     });
 
@@ -100,8 +110,8 @@ describe('useSettingsViewModel', () => {
     expect(result.current.isExporting).toBe(false);
   });
 
-  it('handleExport shows alert on failure', async () => {
-    mockExportLinks.mockResolvedValue({ success: false, error: 'Unauthorized' });
+  it("handleExport shows alert on failure", async () => {
+    mockExportLinks.mockResolvedValue({ success: false, error: "Unauthorized" });
 
     const { result } = renderHook(() => useSettingsViewModel());
 
@@ -109,11 +119,11 @@ describe('useSettingsViewModel', () => {
       await result.current.handleExport();
     });
 
-    expect(mockToastError).toHaveBeenCalledWith('Unauthorized');
+    expect(mockToastError).toHaveBeenCalledWith("Unauthorized");
     expect(result.current.isExporting).toBe(false);
   });
 
-  it('handleExport shows default error when error is empty', async () => {
+  it("handleExport shows default error when error is empty", async () => {
     mockExportLinks.mockResolvedValue({ success: false });
 
     const { result } = renderHook(() => useSettingsViewModel());
@@ -122,15 +132,21 @@ describe('useSettingsViewModel', () => {
       await result.current.handleExport();
     });
 
-    expect(mockToastError).toHaveBeenCalledWith('导出失败');
+    expect(mockToastError).toHaveBeenCalledWith("导出失败");
   });
 
   // ====================================================================
   // handleImport
   // ====================================================================
-  it('handleImport parses file and calls importLinks', async () => {
+  it("handleImport parses file and calls importLinks", async () => {
     const fileContent = JSON.stringify([
-      { originalUrl: 'https://example.com', slug: 'test', isCustom: false, clicks: 0, createdAt: '2026-01-01' },
+      {
+        originalUrl: "https://example.com",
+        slug: "test",
+        isCustom: false,
+        clicks: 0,
+        createdAt: "2026-01-01",
+      },
     ]);
     const file = makeFile(fileContent);
 
@@ -147,8 +163,8 @@ describe('useSettingsViewModel', () => {
     expect(result.current.isImporting).toBe(false);
   });
 
-  it('handleImport shows alert on invalid JSON', async () => {
-    const file = makeFile('not json');
+  it("handleImport shows alert on invalid JSON", async () => {
+    const file = makeFile("not json");
 
     const { result } = renderHook(() => useSettingsViewModel());
 
@@ -156,17 +172,23 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining('JSON'));
+    expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining("JSON"));
     expect(mockImportLinks).not.toHaveBeenCalled();
   });
 
-  it('handleImport shows alert on server error', async () => {
+  it("handleImport shows alert on server error", async () => {
     const fileContent = JSON.stringify([
-      { originalUrl: 'https://example.com', slug: 'test', isCustom: false, clicks: 0, createdAt: '2026-01-01' },
+      {
+        originalUrl: "https://example.com",
+        slug: "test",
+        isCustom: false,
+        clicks: 0,
+        createdAt: "2026-01-01",
+      },
     ]);
     const file = makeFile(fileContent);
 
-    mockImportLinks.mockResolvedValue({ success: false, error: 'DB error' });
+    mockImportLinks.mockResolvedValue({ success: false, error: "DB error" });
 
     const { result } = renderHook(() => useSettingsViewModel());
 
@@ -174,13 +196,19 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(mockToastError).toHaveBeenCalledWith('DB error');
+    expect(mockToastError).toHaveBeenCalledWith("DB error");
     expect(result.current.importResult).toBeNull();
   });
 
-  it('handleImport shows default error when error is empty', async () => {
+  it("handleImport shows default error when error is empty", async () => {
     const fileContent = JSON.stringify([
-      { originalUrl: 'https://example.com', slug: 'test', isCustom: false, clicks: 0, createdAt: '2026-01-01' },
+      {
+        originalUrl: "https://example.com",
+        slug: "test",
+        isCustom: false,
+        clicks: 0,
+        createdAt: "2026-01-01",
+      },
     ]);
     const file = makeFile(fileContent);
 
@@ -192,12 +220,18 @@ describe('useSettingsViewModel', () => {
       await result.current.handleImport(file);
     });
 
-    expect(mockToastError).toHaveBeenCalledWith('导入失败');
+    expect(mockToastError).toHaveBeenCalledWith("导入失败");
   });
 
-  it('clearImportResult resets importResult', async () => {
+  it("clearImportResult resets importResult", async () => {
     const fileContent = JSON.stringify([
-      { originalUrl: 'https://example.com', slug: 'test', isCustom: false, clicks: 0, createdAt: '2026-01-01' },
+      {
+        originalUrl: "https://example.com",
+        slug: "test",
+        isCustom: false,
+        clicks: 0,
+        createdAt: "2026-01-01",
+      },
     ]);
     const file = makeFile(fileContent);
     mockImportLinks.mockResolvedValue({ success: true, data: { created: 1, skipped: 0 } });
@@ -214,5 +248,4 @@ describe('useSettingsViewModel', () => {
     });
     expect(result.current.importResult).toBeNull();
   });
-
 });

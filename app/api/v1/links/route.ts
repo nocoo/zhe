@@ -5,20 +5,20 @@
  * Requires: links:read (GET), links:write (POST)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { parsePaginationParams, parseJsonBody, isErrorResponse } from "@/lib/api/validation";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { linkToResponse } from "@/lib/api/serializers";
-import { ScopedDB, type LinkSortField, type SortOrder } from "@/lib/db/scoped";
+import { isErrorResponse, parseJsonBody, parsePaginationParams } from "@/lib/api/validation";
+import { type LinkSortField, ScopedDB, type SortOrder } from "@/lib/db/scoped";
+import { kvPutLink } from "@/lib/kv/client";
 import {
-  validateUrl,
+  parseExpiresAt,
   resolveSlug,
   validateFolderId,
-  parseExpiresAt,
   validateNote,
+  validateUrl,
 } from "./post-validators";
-import { kvPutLink } from "@/lib/kv/client";
 
 /**
  * GET /api/v1/links
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Special handling: folderId=null means inbox (links with no folder)
     const options: {
       query?: string;
-      folderId?: string | 'inbox';
+      folderId?: string | "inbox";
       tagId?: string;
       sortBy?: LinkSortField;
       sortOrder?: SortOrder;
@@ -72,13 +72,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Validate and apply sort options
     if (sortParam) {
-      if (sortParam !== 'created' && sortParam !== 'clicks') {
+      if (sortParam !== "created" && sortParam !== "clicks") {
         return apiError("Invalid sort value. Use 'created' or 'clicks'.", 400);
       }
       options.sortBy = sortParam;
     }
     if (orderParam) {
-      if (orderParam !== 'asc' && orderParam !== 'desc') {
+      if (orderParam !== "asc" && orderParam !== "desc") {
         return apiError("Invalid order value. Use 'asc' or 'desc'.", 400);
       }
       options.sortOrder = orderParam;

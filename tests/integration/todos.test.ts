@@ -16,14 +16,14 @@
  *   • cascade delete removing the whole subtree + its tag rows
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync } from "node:sqlite";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The auth mock has to be installed before importing the actions,
 // which pull in the getAuthContext helper.
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({
-    user: { id: 'test-user-id', name: 'Test', email: 'test@test.com' },
+    user: { id: "test-user-id", name: "Test", email: "test@test.com" },
   }),
 }));
 
@@ -41,7 +41,7 @@ type SqliteDatabase = {
 };
 let db: SqliteDatabase;
 
-vi.mock('@/lib/db/d1-client', () => {
+vi.mock("@/lib/db/d1-client", () => {
   const runQuery = <T>(sql: string, params: unknown[] = []): T[] => {
     const stmt = db.prepare(sql);
     const trimmed = sql.trim().toUpperCase();
@@ -68,13 +68,8 @@ vi.mock('@/lib/db/d1-client', () => {
 });
 
 // Import the SUT AFTER the mocks are installed.
-import {
-  createTodo,
-  deleteTodo,
-  getTodos,
-  moveTodo,
-} from '@/actions/todos';
-import { unwrap } from '../test-utils';
+import { createTodo, deleteTodo, getTodos, moveTodo } from "@/actions/todos";
+import { unwrap } from "../test-utils";
 
 const SCHEMA_SQL = `
   PRAGMA foreign_keys = ON;
@@ -106,12 +101,12 @@ const SCHEMA_SQL = `
   CREATE INDEX idx_todos_user_due     ON todos(user_id, due_at);
 `;
 
-const USER_ID = 'test-user-id';
+const USER_ID = "test-user-id";
 
 function setupDb(): void {
-  db = new DatabaseSync(':memory:') as unknown as SqliteDatabase;
+  db = new DatabaseSync(":memory:") as unknown as SqliteDatabase;
   db.exec(SCHEMA_SQL);
-  db.prepare('INSERT INTO users(id) VALUES (?)').run(USER_ID);
+  db.prepare("INSERT INTO users(id) VALUES (?)").run(USER_ID);
 }
 
 beforeEach(() => {
@@ -128,30 +123,30 @@ async function makeChild(parentId: number, title: string): Promise<number> {
   return detail.id;
 }
 
-describe('Todo server actions — L2 integration', () => {
-  describe('createTodo + getTodos', () => {
-    it('round-trips a root todo and its child through the server action layer', async () => {
-      const rootRes = await createTodo({ title: 'root' });
+describe("Todo server actions — L2 integration", () => {
+  describe("createTodo + getTodos", () => {
+    it("round-trips a root todo and its child through the server action layer", async () => {
+      const rootRes = await createTodo({ title: "root" });
       expect(rootRes.success).toBe(true);
       const root = unwrap(rootRes.data);
-      const childRes = await createTodo({ title: 'child', parentId: root.id });
+      const childRes = await createTodo({ title: "child", parentId: root.id });
       expect(childRes.success).toBe(true);
 
       const listRes = await getTodos();
       expect(listRes.success).toBe(true);
       const items = unwrap(listRes.data);
       expect(items.map((n) => [n.id, n.parentId, n.position, n.title])).toEqual([
-        [root.id, null, 0, 'root'],
-        [unwrap(childRes.data).id, root.id, 0, 'child'],
+        [root.id, null, 0, "root"],
+        [unwrap(childRes.data).id, root.id, 0, "child"],
       ]);
     });
   });
 
-  describe('moveTodo — happy path', () => {
-    it('reparents a child and returns the affected slice for both parents', async () => {
-      const rootA = await makeRoot('A');
-      const rootB = await makeRoot('B');
-      const child = await makeChild(rootA, 'c');
+  describe("moveTodo — happy path", () => {
+    it("reparents a child and returns the affected slice for both parents", async () => {
+      const rootA = await makeRoot("A");
+      const rootB = await makeRoot("B");
+      const child = await makeChild(rootA, "c");
 
       const result = await moveTodo(child, { parentId: rootB, position: 0 });
       expect(result.success).toBe(true);
@@ -165,16 +160,16 @@ describe('Todo server actions — L2 integration', () => {
       // Post-condition: the flat tree reflects the move.
       const items = unwrap((await getTodos()).data);
       const moved = items.find((n) => n.id === child);
-      if (!moved) throw new Error('moved row missing');
+      if (!moved) throw new Error("moved row missing");
       expect(moved.parentId).toBe(rootB);
       expect(moved.position).toBe(0);
     });
   });
 
-  describe('moveTodo — cross-move race', () => {
-    it('rejects exactly one of two mutually-cyclic concurrent moves', async () => {
-      const a = await makeRoot('a');
-      const b = await makeRoot('b');
+  describe("moveTodo — cross-move race", () => {
+    it("rejects exactly one of two mutually-cyclic concurrent moves", async () => {
+      const a = await makeRoot("a");
+      const b = await makeRoot("b");
 
       // Fire both moves in parallel via Promise.allSettled — each on its
       // own tries to place the other under itself, which would form a
@@ -185,39 +180,39 @@ describe('Todo server actions — L2 integration', () => {
         moveTodo(b, { parentId: a, position: 0 }),
       ]);
       const settled = results.map((r) =>
-        r.status === 'fulfilled' ? r.value : { success: false, error: '(threw)' },
+        r.status === "fulfilled" ? r.value : { success: false, error: "(threw)" },
       );
 
       const succeeded = settled.filter((r) => r.success);
       const rejected = settled.filter((r) => !r.success);
       expect(succeeded, JSON.stringify(settled)).toHaveLength(1);
       expect(rejected).toHaveLength(1);
-      expect(rejected[0]?.error).toBe('Move conflicted or invalid');
+      expect(rejected[0]?.error).toBe("Move conflicted or invalid");
 
       // Post-condition: no cycle — exactly one of {a, b} is a root.
       const items = unwrap((await getTodos()).data);
       const aRow = items.find((n) => n.id === a);
       const bRow = items.find((n) => n.id === b);
-      if (!aRow || !bRow) throw new Error('missing row after race');
+      if (!aRow || !bRow) throw new Error("missing row after race");
       const roots = [aRow, bRow].filter((n) => n.parentId === null);
       expect(roots).toHaveLength(1);
     });
 
-    it('rejects self-parent moves with the same stable conflict error', async () => {
-      const t = await makeRoot('t');
+    it("rejects self-parent moves with the same stable conflict error", async () => {
+      const t = await makeRoot("t");
       const result = await moveTodo(t, { parentId: t, position: 0 });
       expect(result).toEqual({
         success: false,
-        error: 'Move conflicted or invalid',
+        error: "Move conflicted or invalid",
       });
     });
   });
 
-  describe('deleteTodo — cascade', () => {
-    it('removes the whole subtree in a single server-action call', async () => {
-      const root = await makeRoot('root');
-      const child = await makeChild(root, 'child');
-      const grand = await makeChild(child, 'grand');
+  describe("deleteTodo — cascade", () => {
+    it("removes the whole subtree in a single server-action call", async () => {
+      const root = await makeRoot("root");
+      const child = await makeChild(root, "child");
+      const grand = await makeChild(child, "grand");
 
       const result = await deleteTodo(root);
       expect(result).toEqual({ success: true });
@@ -232,7 +227,7 @@ describe('Todo server actions — L2 integration', () => {
 
     it('returns "Todo not found" for a stale id', async () => {
       const result = await deleteTodo(9999);
-      expect(result).toEqual({ success: false, error: 'Todo not found' });
+      expect(result).toEqual({ success: false, error: "Todo not found" });
     });
   });
 });

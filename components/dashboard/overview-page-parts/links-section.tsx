@@ -1,22 +1,10 @@
 "use client";
 
+import { Crown, Globe, Link2, Monitor, MousePointerClick, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Crown,
-  Globe,
-  Link2,
-  Monitor,
-  MousePointerClick,
-  TrendingUp,
-} from "lucide-react";
-import { formatClickCount } from "@/models/overview";
 import type { OverviewStats } from "@/models/overview";
-import {
-  BreakdownDonut,
-  ClickTrendChart,
-  StatCard,
-  TopLinksList,
-} from "./charts";
+import { formatClickCount } from "@/models/overview";
+import { BreakdownDonut, ClickTrendChart, StatCard, TopLinksList } from "./charts";
 
 export function LinksSection({ stats }: { stats: OverviewStats }) {
   return (

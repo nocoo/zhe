@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { TodoForestNode } from "@/models/todos";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodoTreeRow } from "@/components/dashboard/todos-page-parts/todo-tree-row";
+import type { TodoForestNode } from "@/models/todos";
 
 afterEach(() => cleanup());
 
@@ -66,9 +67,7 @@ describe("TodoTreeRow — row menu", () => {
     );
 
     // Open the row menu.
-    await user.click(
-      screen.getByRole("button", { name: `Row menu for ${data.title}` }),
-    );
+    await user.click(screen.getByRole("button", { name: `Row menu for ${data.title}` }));
     const menuItem = await screen.findByText(/添加子项/);
     await user.click(menuItem);
     expect(onAddChild).toHaveBeenCalledWith(data.id);
@@ -77,9 +76,7 @@ describe("TodoTreeRow — row menu", () => {
     // A previous version passed `preventDefault()` to `onSelect`, which
     // told Radix to keep the menu open — that left the trigger + menu +
     // any downstream dialog focused in a broken state.
-    await waitFor(() =>
-      expect(screen.queryByText(/添加子项/)).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByText(/添加子项/)).toBeNull());
   });
 
   it("Delete… menu action still fires and lets Radix close the menu", async () => {
@@ -103,15 +100,11 @@ describe("TodoTreeRow — row menu", () => {
       />,
     );
 
-    await user.click(
-      screen.getByRole("button", { name: `Row menu for ${data.title}` }),
-    );
+    await user.click(screen.getByRole("button", { name: `Row menu for ${data.title}` }));
     const deleteItem = await screen.findByText(/删除…/);
     await user.click(deleteItem);
     expect(onConfirmDelete).toHaveBeenCalledWith(data);
-    await waitFor(() =>
-      expect(screen.queryByRole("menuitem", { name: /删除…/ })).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByRole("menuitem", { name: /删除…/ })).toBeNull());
   });
 
   it("right-click on the row opens the context menu with the same items", async () => {

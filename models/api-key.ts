@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 /** Prefix for all API keys (visible in UI, used for key identification). */
 const KEY_PREFIX = "zhe_";
@@ -21,12 +21,15 @@ export type ApiScope = (typeof API_SCOPES)[number];
 
 /** Parse and validate a comma-separated scopes string. */
 export function parseScopes(scopesStr: string): ApiScope[] {
-  const scopes = scopesStr.split(",").map((s) => s.trim()).filter(Boolean);
-  const valid = scopes.filter((s): s is ApiScope =>
-    (API_SCOPES as readonly string[]).includes(s)
-  );
+  const scopes = scopesStr
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const valid = scopes.filter((s): s is ApiScope => (API_SCOPES as readonly string[]).includes(s));
   if (valid.length !== scopes.length) {
-    throw new Error(`Invalid scopes: ${scopes.filter((s) => !valid.includes(s as ApiScope)).join(", ")}`);
+    throw new Error(
+      `Invalid scopes: ${scopes.filter((s) => !valid.includes(s as ApiScope)).join(", ")}`,
+    );
   }
   return valid;
 }

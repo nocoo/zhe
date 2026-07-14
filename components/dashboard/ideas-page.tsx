@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { useState } from "react";
 import type { IdeaListItem } from "@/lib/db/scoped";
-import { IdeasToolbar } from "./ideas-page-parts/ideas-toolbar";
+import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { CreateIdeaModal, DeleteIdeaConfirm, ErrorToast } from "./ideas-page-parts/dialogs";
 import { IdeasContent } from "./ideas-page-parts/ideas-content";
-import {
-  CreateIdeaModal,
-  DeleteIdeaConfirm,
-  ErrorToast,
-} from "./ideas-page-parts/dialogs";
+import { IdeasToolbar } from "./ideas-page-parts/ideas-toolbar";
 
 export function IdeasPage() {
   const vm = useIdeasViewModel();
@@ -40,9 +36,7 @@ export function IdeasPage() {
 
   const toggleNewTag = (tagId: string) => {
     setNewTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId],
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
   };
 

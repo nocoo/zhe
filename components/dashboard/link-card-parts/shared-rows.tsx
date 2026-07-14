@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { Check, Copy, Link2 } from "lucide-react";
+import Image from "next/image";
 import type { Link } from "@/models/types";
 
 /** Favicon image with fallback to placeholder square. */
@@ -33,13 +33,8 @@ export function Favicon({
     );
   }
   return (
-    <div
-      className={`${cls} shrink-0 rounded-sm bg-accent flex items-center justify-center`}
-    >
-      <Link2
-        className={`${iconCls} text-muted-foreground/60`}
-        strokeWidth={2}
-      />
+    <div className={`${cls} shrink-0 rounded-sm bg-accent flex items-center justify-center`}>
+      <Link2 className={`${iconCls} text-muted-foreground/60`} strokeWidth={2} />
     </div>
   );
 }
@@ -87,6 +82,7 @@ function CopyOriginalButton({
   const cls = size === "sm" ? "h-4 w-4" : "h-5 w-5";
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label="Copy original URL"
       className={`shrink-0 flex ${cls} items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors`}
@@ -125,10 +121,7 @@ export function TitleRow({
   variant,
   stopPropagationOnCopy = false,
 }: TitleRowProps) {
-  const rowCls =
-    variant === "grid"
-      ? "flex items-center gap-1.5"
-      : "flex items-center gap-2 mb-1";
+  const rowCls = variant === "grid" ? "flex items-center gap-1.5" : "flex items-center gap-2 mb-1";
   return (
     <div className={rowCls}>
       <Favicon
@@ -137,11 +130,7 @@ export function TitleRow({
         onError={onFaviconError}
         size={variant === "grid" ? "sm" : "md"}
       />
-      <TitleAnchor
-        href={link.originalUrl}
-        note={link.note}
-        titleText={titleText}
-      />
+      <TitleAnchor href={link.originalUrl} note={link.note} titleText={titleText} />
       <CopyOriginalButton
         copied={copiedOriginalUrl}
         onClick={(e) => {
@@ -168,18 +157,13 @@ export function Description({
 }) {
   const baseCls = variant === "grid" ? "" : "mt-0.5";
   if (description) {
-    return (
-      <p
-        className={`text-xs text-muted-foreground/70 truncate ${baseCls}`}
-      >
-        {description}
-      </p>
-    );
+    return <p className={`text-xs text-muted-foreground/70 truncate ${baseCls}`}>{description}</p>;
   }
   return (
     <p className={`text-xs text-muted-foreground/40 truncate ${baseCls}`}>
       未抓取描述 ·{" "}
       <button
+        type="button"
         onClick={onRefresh}
         disabled={isRefreshingMetadata}
         className="hover:text-muted-foreground underline underline-offset-2 transition-colors"

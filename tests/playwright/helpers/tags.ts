@@ -1,29 +1,31 @@
 /**
  * Shared helpers for tag-related E2E specs (tags-create + tags-filter).
  */
-import { expect, type Page, type Locator } from '@playwright/test';
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** Wait for link-list page to finish loading inside <main>. */
 export async function waitForLinksPage(page: Page): Promise<void> {
-  await page.locator('main').getByRole('button', { name: '刷新链接' }).waitFor({ timeout: 15_000 });
+  await page.locator("main").getByRole("button", { name: "刷新链接" }).waitFor({ timeout: 15_000 });
 }
 
 /** Create a link via UI. */
 export async function createLink(page: Page, url: string, slug: string): Promise<void> {
-  const main = page.locator('main');
-  await main.getByRole('button', { name: '新建链接' }).first().click();
+  const main = page.locator("main");
+  await main.getByRole("button", { name: "新建链接" }).first().click();
   await page.locator('button:has-text("自定义 slug")').click();
-  await page.locator('#url').fill(url);
-  await page.locator('#slug').fill(slug);
+  await page.locator("#url").fill(url);
+  await page.locator("#slug").fill(slug);
   await page.locator('button:has-text("创建链接")').click();
-  await expect(page.locator('[role="dialog"]:has-text("创建短链接")')).toBeHidden({ timeout: 30_000 });
+  await expect(page.locator('[role="dialog"]:has-text("创建短链接")')).toBeHidden({
+    timeout: 30_000,
+  });
   await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
 }
 
 /** Enter edit mode for a link card identified by slug text. */
 export async function openEditMode(page: Page, slug: string): Promise<Locator> {
   const card = page.locator(`[data-testid="link-card"]:has-text("${slug}")`).first();
-  await card.getByRole('button', { name: 'Edit link' }).first().click();
+  await card.getByRole("button", { name: "Edit link" }).first().click();
   await expect(card.locator('[data-testid="edit-area"]')).toBeVisible({ timeout: 10_000 });
   return card;
 }
@@ -65,7 +67,7 @@ export async function createTagInEditMode(
 ): Promise<void> {
   await card.locator('[data-testid="tag-picker-trigger"]').click();
 
-  const pickerInput = page.locator('[cmdk-input]').last();
+  const pickerInput = page.locator("[cmdk-input]").last();
   await pickerInput.fill(tagName);
 
   const createOption = page.locator('[data-testid="tag-create-option"]');
@@ -79,7 +81,7 @@ export async function createTagInEditMode(
   ).toBeVisible({ timeout: 30_000 });
 
   // Dismiss the popover so it doesn't block the save button
-  await page.keyboard.press('Escape');
+  await page.keyboard.press("Escape");
   // Wait for the popover to fully close
-  await expect(page.locator('[cmdk-input]')).toBeHidden({ timeout: 5_000 });
+  await expect(page.locator("[cmdk-input]")).toBeHidden({ timeout: 5_000 });
 }

@@ -1,7 +1,7 @@
 /** D1 helpers for sessions. */
 
-import { executeD1Query } from '../db/d1-client';
-import { generateId, type AdapterUser } from './users';
+import { executeD1Query } from "../db/d1-client";
+import { type AdapterUser, generateId } from "./users";
 
 export interface AdapterSession {
   sessionToken: string;
@@ -63,11 +63,11 @@ export async function updateSession(
   const params: unknown[] = [];
 
   if (session.expires) {
-    setClauses.push('expires = ?');
+    setClauses.push("expires = ?");
     params.push(session.expires.getTime());
   }
   if (session.userId) {
-    setClauses.push('userId = ?');
+    setClauses.push("userId = ?");
     params.push(session.userId);
   }
 
@@ -75,12 +75,12 @@ export async function updateSession(
 
   params.push(session.sessionToken);
   const rows = await executeD1Query<Record<string, unknown>>(
-    `UPDATE sessions SET ${setClauses.join(', ')} WHERE sessionToken = ? RETURNING *`,
+    `UPDATE sessions SET ${setClauses.join(", ")} WHERE sessionToken = ? RETURNING *`,
     params,
   );
   return rows[0] ? rowToSession(rows[0]) : null;
 }
 
 export async function deleteSession(sessionToken: string): Promise<void> {
-  await executeD1Query('DELETE FROM sessions WHERE sessionToken = ?', [sessionToken]);
+  await executeD1Query("DELETE FROM sessions WHERE sessionToken = ?", [sessionToken]);
 }

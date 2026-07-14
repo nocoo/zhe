@@ -2,17 +2,13 @@
 
 import { PanelLeft } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { FolderIcon } from "@/components/folder-icon";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
-import { PRE_LINK_NAV_GROUPS, OTHER_NAV_GROUPS, FOLDER_NAV_ITEMS } from "./nav-config";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
+import { FOLDER_NAV_ITEMS, OTHER_NAV_GROUPS, PRE_LINK_NAV_GROUPS } from "./nav-config";
 
 interface SidebarCollapsedProps {
   pathname: string;
@@ -48,11 +44,11 @@ export function SidebarCollapsed({
   return (
     <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-[var(--motion-base)] ease-in-out overflow-hidden">
       <div className="flex h-14 w-full items-center justify-start pl-6 pr-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-24.png" alt="Zhe" width={24} height={24} className="shrink-0" />
       </div>
 
       <button
+        type="button"
         onClick={onToggle}
         aria-label="Expand sidebar"
         className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-2"
@@ -68,7 +64,9 @@ export function SidebarCollapsed({
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>{item.title}</TooltipContent>
+            <TooltipContent side="right" sideOffset={8}>
+              {item.title}
+            </TooltipContent>
           </Tooltip>
         ))}
 
@@ -82,7 +80,9 @@ export function SidebarCollapsed({
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>{item.title}</TooltipContent>
+            <TooltipContent side="right" sideOffset={8}>
+              {item.title}
+            </TooltipContent>
           </Tooltip>
         ))}
 
@@ -96,7 +96,9 @@ export function SidebarCollapsed({
                 <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>{folder.name}</TooltipContent>
+            <TooltipContent side="right" sideOffset={8}>
+              {folder.name}
+            </TooltipContent>
           </Tooltip>
         ))}
 
@@ -107,7 +109,9 @@ export function SidebarCollapsed({
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>{item.title}</TooltipContent>
+            <TooltipContent side="right" sideOffset={8}>
+              {item.title}
+            </TooltipContent>
           </Tooltip>
         ))}
       </nav>
@@ -120,7 +124,9 @@ export function SidebarCollapsed({
               <AvatarFallback className="text-xs">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>{user?.name || "User"}</TooltipContent>
+          <TooltipContent side="right" sideOffset={8}>
+            {user?.name || "User"}
+          </TooltipContent>
         </Tooltip>
       </div>
       <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />

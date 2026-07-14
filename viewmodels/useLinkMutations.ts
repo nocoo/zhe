@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import type { Link, Tag, LinkTag } from "@/models/types";
-import { createTag, addTagToLink, removeTagFromLink } from "@/actions/tags";
+import { addTagToLink, createTag, removeTagFromLink } from "@/actions/tags";
+import type { Link, LinkTag, Tag } from "@/models/types";
 
 /**
  * Shared callback interface for link mutation operations.
@@ -34,9 +34,7 @@ export function useLinkMutations(
   /** Get the set of tag IDs assigned to a given link */
   const getAssignedTagIds = useCallback(
     (linkId: number): Set<string> => {
-      return new Set(
-        allLinkTags.filter((lt) => lt.linkId === linkId).map((lt) => lt.tagId),
-      );
+      return new Set(allLinkTags.filter((lt) => lt.linkId === linkId).map((lt) => lt.tagId));
     },
     [allLinkTags],
   );

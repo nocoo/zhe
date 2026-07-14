@@ -1,6 +1,6 @@
 // ─── Origin Forwarding ──────────────────────────────────────────────────────
 
-import type { Env } from './types';
+import type { Env } from "./types";
 
 /**
  * Forward a request to the Railway origin, preserving method, headers, and body.
@@ -12,25 +12,25 @@ import type { Env } from './types';
  * target URL — the Host header is NOT rewritten.
  */
 export async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
-  const originBase = env.ORIGIN_URL.replace(/\/$/, '');
+  const originBase = env.ORIGIN_URL.replace(/\/$/, "");
   const url = new URL(request.url);
   const target = `${originBase}${url.pathname}${url.search}`;
 
   const headers = new Headers(request.headers);
-  headers.set('X-Forwarded-For', request.headers.get('CF-Connecting-IP') || '');
-  headers.set('X-Forwarded-Proto', 'https');
-  headers.set('X-Forwarded-Host', url.hostname);
-  headers.set('X-Real-Host', url.hostname);
+  headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") || "");
+  headers.set("X-Forwarded-Proto", "https");
+  headers.set("X-Forwarded-Host", url.hostname);
+  headers.set("X-Real-Host", url.hostname);
 
-  const cfCountry = request.headers.get('CF-IPCountry');
+  const cfCountry = request.headers.get("CF-IPCountry");
   const cfCity = (request as unknown as { cf?: { city?: string } }).cf?.city;
-  if (cfCountry) headers.set('x-vercel-ip-country', cfCountry);
-  if (cfCity) headers.set('x-vercel-ip-city', cfCity);
+  if (cfCountry) headers.set("x-vercel-ip-country", cfCountry);
+  if (cfCity) headers.set("x-vercel-ip-city", cfCity);
 
   return fetch(target, {
     method: request.method,
     headers,
-    ...(request.method !== 'GET' && request.method !== 'HEAD' && { body: request.body }),
-    redirect: 'manual',
+    ...(request.method !== "GET" && request.method !== "HEAD" && { body: request.body }),
+    redirect: "manual",
   });
 }

@@ -5,6 +5,6 @@
  * Auth uses a Credentials provider (PLAYWRIGHT=1) to bypass Google OAuth.
  * The test user "e2e-test-user-id" has its own scoped data in D1.
  */
-import { test, expect } from '@playwright/test';
+import { expect, test } from "@playwright/test";
 
-export { test, expect };
+export { expect, test };

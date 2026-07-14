@@ -5,16 +5,15 @@
  * authorization, and business logic.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
 import {
-
-  seedApiKey,
   cleanupTestData,
-  resetAndSeedUser,
-  seedTag,
-  seedIdea,
   executeD1,
+  resetAndSeedUser,
+  seedApiKey,
+  seedIdea,
+  seedTag,
 } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/ideas`;
@@ -29,9 +28,12 @@ describe("/api/v1/ideas", () => {
   beforeAll(async () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
-      seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "ideas:read,ideas:write,tags:read,tags:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "ideas:read" }),
-      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+      seedApiKey(TEST_USER_ID, {
+        name: "Full Access",
+        scopes: "ideas:read,ideas:write,tags:read,tags:write",
+      }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "ideas:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes", scopes: "" }),
     ]);
   });
 
@@ -117,10 +119,7 @@ describe("/api/v1/ideas", () => {
       await seedIdea(TEST_USER_ID, { content: "Alpha bravo charlie" });
       await seedIdea(TEST_USER_ID, { content: "Delta echo foxtrot" });
 
-      const response = await authenticatedFetch(
-        `${API_URL}?q=bravo`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}?q=bravo`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -136,10 +135,7 @@ describe("/api/v1/ideas", () => {
       await seedIdea(TEST_USER_ID, { content: "Tagged idea", tagIds: [tag.id] });
       await seedIdea(TEST_USER_ID, { content: "Untagged idea" });
 
-      const response = await authenticatedFetch(
-        `${API_URL}?tagId=${tag.id}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}?tagId=${tag.id}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -155,10 +151,7 @@ describe("/api/v1/ideas", () => {
         await seedIdea(TEST_USER_ID, { content: `Idea ${i}` });
       }
 
-      const response = await authenticatedFetch(
-        `${API_URL}?limit=2&offset=1`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}?limit=2&offset=1`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -293,5 +286,4 @@ describe("/api/v1/ideas", () => {
       expect(body.error).toContain("Invalid tag IDs");
     });
   });
-
 });

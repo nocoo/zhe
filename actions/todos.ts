@@ -1,4 +1,4 @@
-'use server';
+"use server";
 
 /**
  * Server actions for todos. Mirrors `actions/ideas.ts`:
@@ -13,17 +13,17 @@
  *     UI can key on message text without needing to import the classes.
  */
 
-import { getAuthContext } from '@/lib/auth-context';
+import { getAuthContext } from "@/lib/auth-context";
 import {
-  TodoDepthExceededError,
-  TodoMoveConflictError,
-  TodoNotFoundError,
   type CreateTodoInput,
   type MoveTodoResult,
+  TodoDepthExceededError,
   type TodoDetail,
+  TodoMoveConflictError,
+  TodoNotFoundError,
   type TodoTreeNode,
   type UpdateTodoPatch,
-} from '@/lib/db/scoped';
+} from "@/lib/db/scoped";
 
 export interface ActionResult<T = void> {
   success: boolean;
@@ -77,8 +77,8 @@ export interface MoveTodoActionInput {
  */
 class InvalidDueAtError extends Error {
   constructor() {
-    super('Due date must be a finite timestamp');
-    this.name = 'InvalidDueAtError';
+    super("Due date must be a finite timestamp");
+    this.name = "InvalidDueAtError";
   }
 }
 
@@ -87,7 +87,7 @@ function resolveDueAt(
 ): { present: false } | { present: true; value: Date | null } {
   if (raw === undefined) return { present: false };
   if (raw === null) return { present: true, value: null };
-  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
     throw new InvalidDueAtError();
   }
   return { present: true, value: new Date(raw) };
@@ -108,8 +108,8 @@ function resolveDueAt(
  */
 class InvalidEmojiError extends Error {
   constructor() {
-    super('Emoji must be a short string or null');
-    this.name = 'InvalidEmojiError';
+    super("Emoji must be a short string or null");
+    this.name = "InvalidEmojiError";
   }
 }
 
@@ -118,7 +118,7 @@ function resolveEmoji(
 ): { present: false } | { present: true; value: string | null } {
   if (raw === undefined) return { present: false };
   if (raw === null) return { present: true, value: null };
-  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 8) {
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > 8) {
     throw new InvalidEmojiError();
   }
   return { present: true, value: raw };
@@ -135,11 +135,11 @@ function resolveEmoji(
 export async function getTodos(): Promise<ActionResult<TodoTreeNode[]>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
     return { success: true, data: await ctx.db.getTodos() };
   } catch (error) {
-    console.error('Failed to get todos:', error);
-    return { success: false, error: 'Failed to get todos' };
+    console.error("Failed to get todos:", error);
+    return { success: false, error: "Failed to get todos" };
   }
 }
 
@@ -147,13 +147,13 @@ export async function getTodos(): Promise<ActionResult<TodoTreeNode[]>> {
 export async function getTodo(id: number): Promise<ActionResult<TodoDetail>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
     const todo = await ctx.db.getTodoById(id);
-    if (!todo) return { success: false, error: 'Todo not found' };
+    if (!todo) return { success: false, error: "Todo not found" };
     return { success: true, data: todo };
   } catch (error) {
-    console.error('Failed to get todo:', error);
-    return { success: false, error: 'Failed to get todo' };
+    console.error("Failed to get todo:", error);
+    return { success: false, error: "Failed to get todo" };
   }
 }
 
@@ -161,11 +161,11 @@ export async function getTodo(id: number): Promise<ActionResult<TodoDetail>> {
 export async function getTodoTags(): Promise<ActionResult<string[]>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
     return { success: true, data: await ctx.db.getTodoTags() };
   } catch (error) {
-    console.error('Failed to get todo tags:', error);
-    return { success: false, error: 'Failed to get todo tags' };
+    console.error("Failed to get todo tags:", error);
+    return { success: false, error: "Failed to get todo tags" };
   }
 }
 
@@ -173,23 +173,21 @@ export async function getTodoTags(): Promise<ActionResult<string[]>> {
 /* Mutations                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export async function createTodo(
-  input: CreateTodoActionInput,
-): Promise<ActionResult<TodoDetail>> {
+export async function createTodo(input: CreateTodoActionInput): Promise<ActionResult<TodoDetail>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
 
     const title = input.title.trim();
     if (title.length === 0) {
-      return { success: false, error: 'Title cannot be empty' };
+      return { success: false, error: "Title cannot be empty" };
     }
     if (
       input.parentId !== undefined &&
       input.parentId !== null &&
       !Number.isInteger(input.parentId)
     ) {
-      return { success: false, error: 'Parent id must be an integer or null' };
+      return { success: false, error: "Parent id must be an integer or null" };
     }
 
     const scopedInput: CreateTodoInput = { title };
@@ -211,13 +209,13 @@ export async function createTodo(
       return { success: false, error: error.message };
     }
     if (error instanceof TodoNotFoundError) {
-      return { success: false, error: 'Parent todo not found' };
+      return { success: false, error: "Parent todo not found" };
     }
     if (error instanceof TodoDepthExceededError) {
-      return { success: false, error: 'Todo depth would exceed the maximum' };
+      return { success: false, error: "Todo depth would exceed the maximum" };
     }
-    console.error('Failed to create todo:', error);
-    return { success: false, error: 'Failed to create todo' };
+    console.error("Failed to create todo:", error);
+    return { success: false, error: "Failed to create todo" };
   }
 }
 
@@ -227,12 +225,12 @@ export async function updateTodo(
 ): Promise<ActionResult<TodoDetail>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
 
     // Only validate title when the caller sends one; a caller that leaves
     // it off is intentionally patching other fields.
     if (input.title !== undefined && input.title.trim().length === 0) {
-      return { success: false, error: 'Title cannot be empty' };
+      return { success: false, error: "Title cannot be empty" };
     }
 
     const patch: UpdateTodoPatch = {};
@@ -246,7 +244,7 @@ export async function updateTodo(
     if (input.tagNames !== undefined) patch.tagNames = input.tagNames;
 
     const todo = await ctx.db.updateTodo(id, patch);
-    if (!todo) return { success: false, error: 'Todo not found' };
+    if (!todo) return { success: false, error: "Todo not found" };
     return { success: true, data: todo };
   } catch (error) {
     if (error instanceof InvalidDueAtError) {
@@ -255,8 +253,8 @@ export async function updateTodo(
     if (error instanceof InvalidEmojiError) {
       return { success: false, error: error.message };
     }
-    console.error('Failed to update todo:', error);
-    return { success: false, error: 'Failed to update todo' };
+    console.error("Failed to update todo:", error);
+    return { success: false, error: "Failed to update todo" };
   }
 }
 
@@ -266,13 +264,13 @@ export async function moveTodo(
 ): Promise<ActionResult<MoveTodoResult>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
 
     if (!Number.isInteger(input.position) || input.position < 0) {
-      return { success: false, error: 'Position must be a non-negative integer' };
+      return { success: false, error: "Position must be a non-negative integer" };
     }
     if (input.parentId !== null && !Number.isInteger(input.parentId)) {
-      return { success: false, error: 'Parent id must be an integer or null' };
+      return { success: false, error: "Parent id must be an integer or null" };
     }
 
     const result = await ctx.db.moveTodo(id, {
@@ -285,16 +283,16 @@ export async function moveTodo(
     // map each to a stable ActionResult.error string so the UI can key on
     // message text without importing the classes across the RSC boundary.
     if (error instanceof TodoMoveConflictError) {
-      return { success: false, error: 'Move conflicted or invalid' };
+      return { success: false, error: "Move conflicted or invalid" };
     }
     if (error instanceof TodoNotFoundError) {
-      return { success: false, error: 'Todo not found' };
+      return { success: false, error: "Todo not found" };
     }
     if (error instanceof TodoDepthExceededError) {
-      return { success: false, error: 'Todo depth would exceed the maximum' };
+      return { success: false, error: "Todo depth would exceed the maximum" };
     }
-    console.error('Failed to move todo:', error);
-    return { success: false, error: 'Failed to move todo' };
+    console.error("Failed to move todo:", error);
+    return { success: false, error: "Failed to move todo" };
   }
 }
 
@@ -304,14 +302,14 @@ export async function reorderTodoSiblings(
 ): Promise<ActionResult<number[]>> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
 
     if (parentId !== null && !Number.isInteger(parentId)) {
-      return { success: false, error: 'Parent id must be an integer or null' };
+      return { success: false, error: "Parent id must be an integer or null" };
     }
     for (const cid of orderedIds) {
       if (!Number.isInteger(cid)) {
-        return { success: false, error: 'orderedIds must be integers' };
+        return { success: false, error: "orderedIds must be integers" };
       }
     }
 
@@ -319,22 +317,22 @@ export async function reorderTodoSiblings(
     return { success: true, data: result };
   } catch (error) {
     if (error instanceof TodoMoveConflictError) {
-      return { success: false, error: 'Reorder conflicted or invalid' };
+      return { success: false, error: "Reorder conflicted or invalid" };
     }
-    console.error('Failed to reorder siblings:', error);
-    return { success: false, error: 'Failed to reorder siblings' };
+    console.error("Failed to reorder siblings:", error);
+    return { success: false, error: "Failed to reorder siblings" };
   }
 }
 
 export async function deleteTodo(id: number): Promise<ActionResult> {
   try {
     const ctx = await getAuthContext();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!ctx) return { success: false, error: "Unauthorized" };
     const removed = await ctx.db.deleteTodo(id);
-    if (!removed) return { success: false, error: 'Todo not found' };
+    if (!removed) return { success: false, error: "Todo not found" };
     return { success: true };
   } catch (error) {
-    console.error('Failed to delete todo:', error);
-    return { success: false, error: 'Failed to delete todo' };
+    console.error("Failed to delete todo:", error);
+    return { success: false, error: "Failed to delete todo" };
   }
 }

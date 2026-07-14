@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before importing the module under test
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
@@ -17,7 +17,7 @@ const mockCreateIdea = vi.fn();
 const mockUpdateIdea = vi.fn();
 const mockDeleteIdea = vi.fn();
 
-vi.mock('@/lib/db/scoped', () => ({
+vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
     return {
       getIdeas: mockGetIdeas,
@@ -30,49 +30,43 @@ vi.mock('@/lib/db/scoped', () => ({
 }));
 
 // Suppress console.error noise from catch blocks
-vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, "error").mockImplementation(() => {});
 
 // ---------------------------------------------------------------------------
 // Import the module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import {
-  getIdeas,
-  getIdea,
-  createIdea,
-  updateIdea,
-  deleteIdea,
-} from '@/actions/ideas';
+import { createIdea, deleteIdea, getIdea, getIdeas, updateIdea } from "@/actions/ideas";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const FAKE_USER_ID = 'user-abc-123';
+const FAKE_USER_ID = "user-abc-123";
 
 function authenticatedSession() {
-  return { user: { id: FAKE_USER_ID, name: 'Test', email: 'test@test.com' } };
+  return { user: { id: FAKE_USER_ID, name: "Test", email: "test@test.com" } };
 }
 
 const FAKE_IDEA_LIST = {
   id: 1,
-  title: 'My Idea',
-  excerpt: 'Some markdown text',
-  tagIds: ['tag-1'],
+  title: "My Idea",
+  excerpt: "Some markdown text",
+  tagIds: ["tag-1"],
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
 const FAKE_IDEA_DETAIL = {
   ...FAKE_IDEA_LIST,
-  content: '# My Idea\n\nSome **markdown** text.',
+  content: "# My Idea\n\nSome **markdown** text.",
 };
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('actions/ideas', () => {
+describe("actions/ideas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -80,25 +74,25 @@ describe('actions/ideas', () => {
   // ====================================================================
   // getIdeas
   // ====================================================================
-  describe('getIdeas', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("getIdeas", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await getIdeas();
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when db.getIdeas throws', async () => {
+    it("returns error when db.getIdeas throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetIdeas.mockRejectedValue(new Error('timeout'));
+      mockGetIdeas.mockRejectedValue(new Error("timeout"));
 
       const result = await getIdeas();
 
-      expect(result).toEqual({ success: false, error: 'Failed to get ideas' });
+      expect(result).toEqual({ success: false, error: "Failed to get ideas" });
     });
 
-    it('returns ideas on success', async () => {
+    it("returns ideas on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetIdeas.mockResolvedValue([FAKE_IDEA_LIST]);
 
@@ -107,7 +101,7 @@ describe('actions/ideas', () => {
       expect(result).toEqual({ success: true, data: [FAKE_IDEA_LIST] });
     });
 
-    it('returns empty array when user has no ideas', async () => {
+    it("returns empty array when user has no ideas", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetIdeas.mockResolvedValue([]);
 
@@ -116,47 +110,47 @@ describe('actions/ideas', () => {
       expect(result).toEqual({ success: true, data: [] });
     });
 
-    it('passes options to db.getIdeas', async () => {
+    it("passes options to db.getIdeas", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetIdeas.mockResolvedValue([]);
 
-      await getIdeas({ tagId: 'tag-1' });
+      await getIdeas({ tagId: "tag-1" });
 
-      expect(mockGetIdeas).toHaveBeenCalledWith({ tagId: 'tag-1' });
+      expect(mockGetIdeas).toHaveBeenCalledWith({ tagId: "tag-1" });
     });
   });
 
   // ====================================================================
   // getIdea
   // ====================================================================
-  describe('getIdea', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("getIdea", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await getIdea(1);
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when idea not found', async () => {
+    it("returns error when idea not found", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetIdeaById.mockResolvedValue(null);
 
       const result = await getIdea(999);
 
-      expect(result).toEqual({ success: false, error: 'Idea not found' });
+      expect(result).toEqual({ success: false, error: "Idea not found" });
     });
 
-    it('returns error when db.getIdeaById throws', async () => {
+    it("returns error when db.getIdeaById throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetIdeaById.mockRejectedValue(new Error('timeout'));
+      mockGetIdeaById.mockRejectedValue(new Error("timeout"));
 
       const result = await getIdea(1);
 
-      expect(result).toEqual({ success: false, error: 'Failed to get idea' });
+      expect(result).toEqual({ success: false, error: "Failed to get idea" });
     });
 
-    it('returns idea with full content on success', async () => {
+    it("returns idea with full content on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetIdeaById.mockResolvedValue(FAKE_IDEA_DETAIL);
 
@@ -169,74 +163,74 @@ describe('actions/ideas', () => {
   // ====================================================================
   // createIdea
   // ====================================================================
-  describe('createIdea', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("createIdea", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await createIdea({ content: 'Test' });
+      const result = await createIdea({ content: "Test" });
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when content is empty', async () => {
+    it("returns error when content is empty", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await createIdea({ content: '   ' });
+      const result = await createIdea({ content: "   " });
 
-      expect(result).toEqual({ success: false, error: 'Content cannot be empty' });
+      expect(result).toEqual({ success: false, error: "Content cannot be empty" });
     });
 
-    it('returns error when db.createIdea throws', async () => {
+    it("returns error when db.createIdea throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockCreateIdea.mockRejectedValue(new Error('timeout'));
+      mockCreateIdea.mockRejectedValue(new Error("timeout"));
 
-      const result = await createIdea({ content: 'Test' });
+      const result = await createIdea({ content: "Test" });
 
-      expect(result).toEqual({ success: false, error: 'Failed to create idea' });
+      expect(result).toEqual({ success: false, error: "Failed to create idea" });
     });
 
-    it('returns specific error for invalid tag IDs', async () => {
+    it("returns specific error for invalid tag IDs", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockCreateIdea.mockRejectedValue(new Error('Invalid tag IDs: bad-tag'));
+      mockCreateIdea.mockRejectedValue(new Error("Invalid tag IDs: bad-tag"));
 
-      const result = await createIdea({ content: 'Test', tagIds: ['bad-tag'] });
+      const result = await createIdea({ content: "Test", tagIds: ["bad-tag"] });
 
-      expect(result).toEqual({ success: false, error: 'Invalid tag IDs: bad-tag' });
+      expect(result).toEqual({ success: false, error: "Invalid tag IDs: bad-tag" });
     });
 
-    it('creates idea with content only', async () => {
+    it("creates idea with content only", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateIdea.mockResolvedValue(FAKE_IDEA_DETAIL);
 
-      const result = await createIdea({ content: 'Test content' });
+      const result = await createIdea({ content: "Test content" });
 
       expect(result).toEqual({ success: true, data: FAKE_IDEA_DETAIL });
-      expect(mockCreateIdea).toHaveBeenCalledWith({ content: 'Test content' });
+      expect(mockCreateIdea).toHaveBeenCalledWith({ content: "Test content" });
     });
 
-    it('creates idea with title', async () => {
+    it("creates idea with title", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateIdea.mockResolvedValue(FAKE_IDEA_DETAIL);
 
-      const result = await createIdea({ content: 'Test', title: 'My Title' });
+      const result = await createIdea({ content: "Test", title: "My Title" });
 
       expect(result).toEqual({ success: true, data: FAKE_IDEA_DETAIL });
       expect(mockCreateIdea).toHaveBeenCalledWith({
-        content: 'Test',
-        title: 'My Title',
+        content: "Test",
+        title: "My Title",
       });
     });
 
-    it('creates idea with tags', async () => {
+    it("creates idea with tags", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateIdea.mockResolvedValue(FAKE_IDEA_DETAIL);
 
-      const result = await createIdea({ content: 'Test', tagIds: ['tag-1', 'tag-2'] });
+      const result = await createIdea({ content: "Test", tagIds: ["tag-1", "tag-2"] });
 
       expect(result).toEqual({ success: true, data: FAKE_IDEA_DETAIL });
       expect(mockCreateIdea).toHaveBeenCalledWith({
-        content: 'Test',
-        tagIds: ['tag-1', 'tag-2'],
+        content: "Test",
+        tagIds: ["tag-1", "tag-2"],
       });
     });
   });
@@ -244,81 +238,81 @@ describe('actions/ideas', () => {
   // ====================================================================
   // updateIdea
   // ====================================================================
-  describe('updateIdea', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("updateIdea", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await updateIdea(1, { title: 'New Title' });
+      const result = await updateIdea(1, { title: "New Title" });
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when content is empty', async () => {
+    it("returns error when content is empty", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await updateIdea(1, { content: '   ' });
+      const result = await updateIdea(1, { content: "   " });
 
-      expect(result).toEqual({ success: false, error: 'Content cannot be empty' });
+      expect(result).toEqual({ success: false, error: "Content cannot be empty" });
     });
 
-    it('returns error when idea not found', async () => {
+    it("returns error when idea not found", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpdateIdea.mockResolvedValue(null);
 
-      const result = await updateIdea(999, { title: 'New' });
+      const result = await updateIdea(999, { title: "New" });
 
-      expect(result).toEqual({ success: false, error: 'Idea not found' });
+      expect(result).toEqual({ success: false, error: "Idea not found" });
     });
 
-    it('returns error when db.updateIdea throws', async () => {
+    it("returns error when db.updateIdea throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateIdea.mockRejectedValue(new Error('timeout'));
+      mockUpdateIdea.mockRejectedValue(new Error("timeout"));
 
-      const result = await updateIdea(1, { title: 'New' });
+      const result = await updateIdea(1, { title: "New" });
 
-      expect(result).toEqual({ success: false, error: 'Failed to update idea' });
+      expect(result).toEqual({ success: false, error: "Failed to update idea" });
     });
 
-    it('returns specific error for invalid tag IDs', async () => {
+    it("returns specific error for invalid tag IDs", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateIdea.mockRejectedValue(new Error('Invalid tag IDs: bad-tag'));
+      mockUpdateIdea.mockRejectedValue(new Error("Invalid tag IDs: bad-tag"));
 
-      const result = await updateIdea(1, { tagIds: ['bad-tag'] });
+      const result = await updateIdea(1, { tagIds: ["bad-tag"] });
 
-      expect(result).toEqual({ success: false, error: 'Invalid tag IDs: bad-tag' });
+      expect(result).toEqual({ success: false, error: "Invalid tag IDs: bad-tag" });
     });
 
-    it('updates idea title', async () => {
+    it("updates idea title", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, title: 'Updated' });
+      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, title: "Updated" });
 
-      const result = await updateIdea(1, { title: 'Updated' });
+      const result = await updateIdea(1, { title: "Updated" });
 
       expect(result.success).toBe(true);
-      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { title: 'Updated' });
+      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { title: "Updated" });
     });
 
-    it('updates idea content', async () => {
+    it("updates idea content", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, content: 'New content' });
+      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, content: "New content" });
 
-      const result = await updateIdea(1, { content: 'New content' });
+      const result = await updateIdea(1, { content: "New content" });
 
       expect(result.success).toBe(true);
-      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { content: 'New content' });
+      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { content: "New content" });
     });
 
-    it('updates idea tags', async () => {
+    it("updates idea tags", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, tagIds: ['tag-2'] });
+      mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, tagIds: ["tag-2"] });
 
-      const result = await updateIdea(1, { tagIds: ['tag-2'] });
+      const result = await updateIdea(1, { tagIds: ["tag-2"] });
 
       expect(result.success).toBe(true);
-      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { tagIds: ['tag-2'] });
+      expect(mockUpdateIdea).toHaveBeenCalledWith(1, { tagIds: ["tag-2"] });
     });
 
-    it('clears title with null', async () => {
+    it("clears title with null", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpdateIdea.mockResolvedValue({ ...FAKE_IDEA_DETAIL, title: null });
 
@@ -332,34 +326,34 @@ describe('actions/ideas', () => {
   // ====================================================================
   // deleteIdea
   // ====================================================================
-  describe('deleteIdea', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("deleteIdea", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await deleteIdea(1);
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when idea not found', async () => {
+    it("returns error when idea not found", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockDeleteIdea.mockResolvedValue(false);
 
       const result = await deleteIdea(999);
 
-      expect(result).toEqual({ success: false, error: 'Idea not found' });
+      expect(result).toEqual({ success: false, error: "Idea not found" });
     });
 
-    it('returns error when db.deleteIdea throws', async () => {
+    it("returns error when db.deleteIdea throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockDeleteIdea.mockRejectedValue(new Error('timeout'));
+      mockDeleteIdea.mockRejectedValue(new Error("timeout"));
 
       const result = await deleteIdea(1);
 
-      expect(result).toEqual({ success: false, error: 'Failed to delete idea' });
+      expect(result).toEqual({ success: false, error: "Failed to delete idea" });
     });
 
-    it('deletes idea on success', async () => {
+    it("deletes idea on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockDeleteIdea.mockResolvedValue(true);
 

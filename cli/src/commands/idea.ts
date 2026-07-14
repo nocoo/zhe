@@ -16,15 +16,15 @@ import { updateSubcommand } from "./idea/update.js";
 export { formatTags } from "./idea/helpers.js";
 
 export const ideaCommand = defineCommand({
-	meta: {
-		name: "idea",
-		description: "Manage ideas (Markdown notes)",
-	},
-	subCommands: {
-		list: listSubcommand,
-		get: getSubcommand,
-		add: addSubcommand,
-		update: updateSubcommand,
-		delete: deleteSubcommand,
-	},
+  meta: {
+    name: "idea",
+    description: "Manage ideas (Markdown notes)",
+  },
+  subCommands: {
+    list: listSubcommand,
+    get: getSubcommand,
+    add: addSubcommand,
+    update: updateSubcommand,
+    delete: deleteSubcommand,
+  },
 });

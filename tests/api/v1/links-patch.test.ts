@@ -5,9 +5,9 @@
  * with PATCH→GET round trips that dominate wall time.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, executeD1, resetAndSeedUser, seedApiKey, seedTag } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -20,7 +20,7 @@ describe("/api/v1/links/[id] PATCH", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "links:read" }),
     ]);
   });
 
@@ -43,44 +43,32 @@ describe("/api/v1/links/[id] PATCH", () => {
     });
 
     it("returns 403 when API key lacks links:write scope", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyReadOnly,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note: "Updated note" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyReadOnly, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: "Updated note" }),
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent link", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/999999999`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note: "Test" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/999999999`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: "Test" }),
+      });
 
       expect(response.status).toBe(404);
     });
 
     it("updates link URL", async () => {
       const newUrl = "https://example.com/updated-url";
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ originalUrl: newUrl }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ originalUrl: newUrl }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -88,15 +76,11 @@ describe("/api/v1/links/[id] PATCH", () => {
     });
 
     it("updates link note", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ note: "Updated via API" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: "Updated via API" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -105,15 +89,11 @@ describe("/api/v1/links/[id] PATCH", () => {
 
     it("updates link slug", async () => {
       const newSlug = `patched-${Date.now()}`;
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug: newSlug }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: newSlug }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -122,15 +102,11 @@ describe("/api/v1/links/[id] PATCH", () => {
     });
 
     it("returns 400 when addTags references non-existent tag", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ addTags: ["non-existent-tag-id"] }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addTags: ["non-existent-tag-id"] }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -141,15 +117,11 @@ describe("/api/v1/links/[id] PATCH", () => {
       // Create a tag that exists but is not associated with the link
       const tag = await seedTag(TEST_USER_ID, { name: `orphan-tag-${Date.now()}` });
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ removeTags: [tag.id] }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removeTags: [tag.id] }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -197,15 +169,11 @@ describe("/api/v1/links/[id] PATCH", () => {
       futureDate.setFullYear(futureDate.getFullYear() + 1);
       const isoDate = futureDate.toISOString();
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expiresAt: isoDate }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresAt: isoDate }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -224,31 +192,22 @@ describe("/api/v1/links/[id] PATCH", () => {
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 1);
 
-      await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expiresAt: futureDate.toISOString() }),
-        },
-      );
+      await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresAt: futureDate.toISOString() }),
+      });
 
       // Now clear it
-      const response = await authenticatedFetch(
-        `${API_URL}/${testLinkId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expiresAt: null }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testLinkId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresAt: null }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.link.expiresAt).toBeNull();
     });
   });
-
 });

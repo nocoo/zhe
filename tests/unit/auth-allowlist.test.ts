@@ -1,10 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  isEmailAllowed,
-  parseAllowedEmails,
-  signInCallback,
-} from "@/lib/auth-allowlist";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { isEmailAllowed, parseAllowedEmails, signInCallback } from "@/lib/auth-allowlist";
 
 describe("parseAllowedEmails", () => {
   it("returns null when env var is unset", () => {
@@ -20,10 +16,7 @@ describe("parseAllowedEmails", () => {
   it("trims, lowercases, and dedupes entries", () => {
     const set = parseAllowedEmails("A@example.com, b@Example.COM ,a@example.com");
     expect(set).not.toBeNull();
-    expect(Array.from(set as Set<string>).sort()).toEqual([
-      "a@example.com",
-      "b@example.com",
-    ]);
+    expect(Array.from(set as Set<string>).sort()).toEqual(["a@example.com", "b@example.com"]);
   });
 });
 

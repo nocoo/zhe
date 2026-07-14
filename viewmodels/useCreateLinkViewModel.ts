@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import type { Link } from "@/models/types";
+import { useCallback, useState } from "react";
 import { createLink } from "@/actions/links";
+import type { Link } from "@/models/types";
 
 /** ViewModel for the create-link modal. */
-export function useCreateLinkViewModel(
-  siteUrl: string,
-  onSuccess: (link: Link) => void,
-) {
+export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) => void) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"simple" | "custom">("simple");
   const [url, setUrl] = useState("");
@@ -70,14 +67,23 @@ export function useCreateLinkViewModel(
   );
 
   return {
-    isOpen, setIsOpen,
-    mode, setMode,
-    url, setUrl,
-    customSlug, setCustomSlug,
-    folderId, setFolderId,
-    note, setNote,
-    screenshotUrl, setScreenshotUrl,
-    selectedTagIds, addTag, removeTag,
+    isOpen,
+    setIsOpen,
+    mode,
+    setMode,
+    url,
+    setUrl,
+    customSlug,
+    setCustomSlug,
+    folderId,
+    setFolderId,
+    note,
+    setNote,
+    screenshotUrl,
+    setScreenshotUrl,
+    selectedTagIds,
+    addTag,
+    removeTag,
     isLoading,
     error,
     handleSubmit,

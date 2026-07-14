@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodoEmojiPicker } from "@/components/dashboard/todos-page-parts/todo-emoji-picker";
 
 afterEach(() => cleanup());
@@ -23,9 +24,7 @@ describe("TodoEmojiPicker", () => {
 
   it("renders the current glyph on the trigger when value is set", () => {
     render(<TodoEmojiPicker value="🎯" onChange={vi.fn()} />);
-    expect(
-      screen.getByRole("button", { name: "选择 emoji" }).textContent,
-    ).toBe("🎯");
+    expect(screen.getByRole("button", { name: "选择 emoji" }).textContent).toBe("🎯");
   });
 
   it("clicking a palette entry fires onChange with its glyph", async () => {
@@ -45,9 +44,7 @@ describe("TodoEmojiPicker", () => {
     await user.click(screen.getByRole("button", { name: "选择 emoji" }));
     const search = screen.getByLabelText("搜索 emoji");
     fireEvent.change(search, { target: { value: "nomatch-xyz" } });
-    expect(
-      await screen.findByText("未找到匹配的 emoji"),
-    ).toBeTruthy();
+    expect(await screen.findByText("未找到匹配的 emoji")).toBeTruthy();
   });
 
   it("does not render 清除 when value is null; shows it and fires null when clicked", async () => {

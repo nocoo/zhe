@@ -1,18 +1,18 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
 const mockGetOverviewStats = vi.fn();
 
-vi.mock('@/lib/db/scoped', () => ({
+vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
     return {
       getOverviewStats: mockGetOverviewStats,
@@ -21,46 +21,52 @@ vi.mock('@/lib/db/scoped', () => ({
 }));
 
 // Suppress console.error noise from catch blocks
-vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, "error").mockImplementation(() => {});
 
-import { getOverviewStats } from '@/actions/overview';
+import { getOverviewStats } from "@/actions/overview";
 
-describe('getOverviewStats action', () => {
+describe("getOverviewStats action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns error when not authenticated', async () => {
+  it("returns error when not authenticated", async () => {
     mockAuth.mockResolvedValue(null);
 
     const result = await getOverviewStats();
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Unauthorized');
+    expect(result.error).toBe("Unauthorized");
   });
 
-  it('returns error when user id is missing', async () => {
+  it("returns error when user id is missing", async () => {
     mockAuth.mockResolvedValue({ user: {} });
 
     const result = await getOverviewStats();
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Unauthorized');
+    expect(result.error).toBe("Unauthorized");
   });
 
-  it('returns overview stats on success', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+  it("returns overview stats on success", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
 
     const mockStats = {
       totalLinks: 10,
       totalClicks: 500,
       totalUploads: 5,
       totalStorageBytes: 1048576,
-      clickTrend: [{ date: '2026-02-10', clicks: 1, origin: 0, worker: 1 }, { date: '2026-02-11', clicks: 1, origin: 1, worker: 0 }],
-      uploadTrend: [{ date: '2026-02-10', uploads: 1 }, { date: '2026-02-12', uploads: 1 }],
-      topLinks: [{ slug: 'abc', originalUrl: 'https://example.com', clicks: 100 }],
+      clickTrend: [
+        { date: "2026-02-10", clicks: 1, origin: 0, worker: 1 },
+        { date: "2026-02-11", clicks: 1, origin: 1, worker: 0 },
+      ],
+      uploadTrend: [
+        { date: "2026-02-10", uploads: 1 },
+        { date: "2026-02-12", uploads: 1 },
+      ],
+      topLinks: [{ slug: "abc", originalUrl: "https://example.com", clicks: 100 }],
       deviceBreakdown: { desktop: 300, mobile: 200 },
       browserBreakdown: { Chrome: 400 },
       osBreakdown: { macOS: 300 },
-      fileTypeBreakdown: { 'image/png': 3, 'image/jpeg': 2 },
+      fileTypeBreakdown: { "image/png": 3, "image/jpeg": 2 },
     };
     mockGetOverviewStats.mockResolvedValue(mockStats);
 
@@ -69,12 +75,12 @@ describe('getOverviewStats action', () => {
     expect(result.data).toEqual(mockStats);
   });
 
-  it('returns error when db throws', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
-    mockGetOverviewStats.mockRejectedValue(new Error('DB error'));
+  it("returns error when db throws", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+    mockGetOverviewStats.mockRejectedValue(new Error("DB error"));
 
     const result = await getOverviewStats();
     expect(result.success).toBe(false);
-    expect(result.error).toBe('Failed to get overview stats');
+    expect(result.error).toBe("Failed to get overview stats");
   });
 });

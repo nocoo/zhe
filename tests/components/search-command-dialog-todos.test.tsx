@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardState } from "@/contexts/dashboard-service";
 
 const mockPush = vi.fn();
@@ -11,7 +12,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     const { unoptimized: _u, fill: _f, ...rest } = props;
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...(rest as React.ImgHTMLAttributes<HTMLImageElement>)} />;
   },
 }));
@@ -48,9 +48,7 @@ vi.mock("@/models/tags", () => ({
 import { SearchCommandDialog } from "@/components/search-command-dialog";
 
 function renderDialog(open = true) {
-  return render(
-    <SearchCommandDialog open={open} onOpenChange={vi.fn()} />,
-  );
+  return render(<SearchCommandDialog open={open} onOpenChange={vi.fn()} />);
 }
 
 beforeEach(() => {
@@ -91,13 +89,9 @@ describe("SearchCommandDialog — todos group", () => {
   it("renders a 待办 group with matching rows and routes selection to the todos page", async () => {
     mockState.todos = [TODO_ONE, TODO_DONE];
     renderDialog();
-    const input = screen.getByPlaceholderText(
-      "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-    );
+    const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
     fireEvent.change(input, { target: { value: "milk" } });
-    await waitFor(() =>
-      expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument());
     // Selecting the todo item routes to /dashboard/todos?id=42.
     const item = document.querySelector('[cmdk-item][data-value="todo-42"]');
     if (!item) throw new Error("expected todo cmdk-item");
@@ -120,15 +114,10 @@ describe("SearchCommandDialog — todos group", () => {
     };
     mockState.todos = [parent, child];
     renderDialog();
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-      ),
-      { target: { value: "milk" } },
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument(),
-    );
+    fireEvent.change(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."), {
+      target: { value: "milk" },
+    });
+    await waitFor(() => expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument());
     // Only the direct match renders — the ancestor is not shown as a
     // flat search result even though filterTodos preserves it in tree
     // mode.
@@ -139,30 +128,20 @@ describe("SearchCommandDialog — todos group", () => {
   it("does not render the group when nothing matches", async () => {
     mockState.todos = [TODO_ONE];
     renderDialog();
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-      ),
-      { target: { value: "nomatch" } },
-    );
-    await waitFor(() =>
-      expect(screen.queryByText(/待办 \(/)).toBeNull(),
-    );
+    fireEvent.change(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."), {
+      target: { value: "nomatch" },
+    });
+    await waitFor(() => expect(screen.queryByText(/待办 \(/)).toBeNull());
     expect(screen.getByText("没有找到匹配的结果")).toBeInTheDocument();
   });
 
   it("shows the done row with a line-through class", async () => {
     mockState.todos = [TODO_DONE];
     renderDialog();
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-      ),
-      { target: { value: "read" } },
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument(),
-    );
+    fireEvent.change(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."), {
+      target: { value: "read" },
+    });
+    await waitFor(() => expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument());
     const item = document.querySelector('[cmdk-item][data-value="todo-43"]');
     if (!item) throw new Error("expected done todo item");
     expect(item.innerHTML).toContain("line-through");
@@ -180,15 +159,10 @@ describe("SearchCommandDialog — todos group", () => {
     };
     mockState.todos = [noteHit];
     renderDialog();
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-      ),
-      { target: { value: "iceland" } },
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument(),
-    );
+    fireEvent.change(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."), {
+      target: { value: "iceland" },
+    });
+    await waitFor(() => expect(screen.getByText(/待办 \(1\)/)).toBeInTheDocument());
     const item = document.querySelector('[cmdk-item][data-value="todo-99"]');
     expect(item).toBeTruthy();
     // Selecting still deep-links to /dashboard/todos?id=99.

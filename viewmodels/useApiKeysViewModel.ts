@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  listApiKeys,
-  createApiKeyAction,
-  revokeApiKeyAction,
-} from "@/actions/api-keys";
+import { createApiKeyAction, listApiKeys, revokeApiKeyAction } from "@/actions/api-keys";
 import type { ApiScope } from "@/models/api-key";
 import { API_SCOPES } from "@/models/api-key";
 
@@ -38,7 +34,9 @@ export function useApiKeysViewModel() {
       }
       setIsLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleCreate = useCallback(async (name: string, scopes: ApiScope[]) => {

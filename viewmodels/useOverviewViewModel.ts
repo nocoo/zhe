@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { getOverviewStats } from '@/actions/overview';
-import { getWorkerHealth } from '@/actions/worker-status';
-import type { OverviewStats, WorkerHealthStatus } from '@/models/overview';
+import { useEffect, useRef, useState } from "react";
+import { getOverviewStats } from "@/actions/overview";
+import { getWorkerHealth } from "@/actions/worker-status";
+import type { OverviewStats, WorkerHealthStatus } from "@/models/overview";
 
 /** How long data is considered fresh (5 minutes). */
 export const STALE_THRESHOLD_MS = 5 * 60 * 1000;
@@ -62,7 +62,9 @@ function useWorkerHealth() {
       }
     }
     void loadWorkerHealth();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { workerHealth, workerHealthLoading };
@@ -96,7 +98,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
     // If we have fresh initialData from SSR, no client fetch needed
     if (hasInitial) return;
 
-    const isStale = hasCached && (Date.now() - _cache.fetchedAt) > STALE_THRESHOLD_MS;
+    const isStale = hasCached && Date.now() - _cache.fetchedAt > STALE_THRESHOLD_MS;
 
     // If we have cached data that's still fresh, skip fetch
     if (hasCached && !isStale) return;
@@ -119,7 +121,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
         if (!result.success || !result.data) {
           // On revalidation failure, keep showing stale data
           if (!isStale) {
-            setError(result.error ?? '加载概览数据失败');
+            setError(result.error ?? "加载概览数据失败");
             setStats(null);
           }
         } else {
@@ -130,7 +132,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
         }
       } catch {
         if (!cancelled && !isStale) {
-          setError('加载概览数据失败');
+          setError("加载概览数据失败");
           setStats(null);
         }
       } finally {
@@ -148,7 +150,7 @@ export function useOverviewViewModel(initialData?: OverviewStats): OverviewViewM
       cancelled = true;
       fetchingRef.current = false;
     };
-  }, [hasInitial, hasCached, needsFetch]);
+  }, [hasInitial, hasCached]);
 
   return { loading, error, stats, workerHealth, workerHealthLoading, revalidating };
 }

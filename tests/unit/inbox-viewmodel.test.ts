@@ -1,19 +1,20 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import type { LinkTag } from '@/models/types';
-import { makeLink, makeTag, makeFolder } from '../fixtures';
+
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { LinkTag } from "@/models/types";
+import { makeFolder, makeLink, makeTag } from "../fixtures";
 
 // ── Mocks ──
 
-vi.mock('@/actions/tags', () => ({
+vi.mock("@/actions/tags", () => ({
   createTag: vi.fn(),
   addTagToLink: vi.fn(),
   removeTagFromLink: vi.fn(),
 }));
 
-import { useInboxViewModel, type InboxCallbacks } from '@/viewmodels/useInboxViewModel';
-import { createTag, addTagToLink, removeTagFromLink } from '@/actions/tags';
+import { addTagToLink, createTag, removeTagFromLink } from "@/actions/tags";
+import { type InboxCallbacks, useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 
 // ── Helpers ──
 
@@ -28,17 +29,17 @@ function makeCallbacks(): InboxCallbacks {
 
 // ── Tests ──
 
-describe('useInboxViewModel', () => {
+describe("useInboxViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   // ── inboxLinks filtering ──
 
-  describe('inboxLinks filtering', () => {
-    it('includes only links with folderId === null', () => {
+  describe("inboxLinks filtering", () => {
+    it("includes only links with folderId === null", () => {
       const inboxLink = makeLink({ id: 1, folderId: null });
-      const categorizedLink = makeLink({ id: 2, folderId: 'folder-1' });
+      const categorizedLink = makeLink({ id: 2, folderId: "folder-1" });
 
       const { result } = renderHook(() =>
         useInboxViewModel([inboxLink, categorizedLink], [], [], [], makeCallbacks()),
@@ -47,9 +48,9 @@ describe('useInboxViewModel', () => {
       expect(result.current.inboxLinks).toEqual([inboxLink]);
     });
 
-    it('returns empty array when all links have folders', () => {
-      const link1 = makeLink({ id: 1, folderId: 'f1' });
-      const link2 = makeLink({ id: 2, folderId: 'f2' });
+    it("returns empty array when all links have folders", () => {
+      const link1 = makeLink({ id: 1, folderId: "f1" });
+      const link2 = makeLink({ id: 2, folderId: "f2" });
 
       const { result } = renderHook(() =>
         useInboxViewModel([link1, link2], [], [], [], makeCallbacks()),
@@ -58,7 +59,7 @@ describe('useInboxViewModel', () => {
       expect(result.current.inboxLinks).toEqual([]);
     });
 
-    it('returns all links when none have folders', () => {
+    it("returns all links when none have folders", () => {
       const link1 = makeLink({ id: 1 });
       const link2 = makeLink({ id: 2 });
 
@@ -72,28 +73,28 @@ describe('useInboxViewModel', () => {
 
   // ── getAssignedTagIds / getAssignedTags ──
 
-  describe('getAssignedTagIds / getAssignedTags', () => {
-    it('computes assignedTagIds from allLinkTags for a given link', () => {
+  describe("getAssignedTagIds / getAssignedTags", () => {
+    it("computes assignedTagIds from allLinkTags for a given link", () => {
       const link = makeLink({ id: 5 });
-      const tags = [makeTag({ id: 't1' }), makeTag({ id: 't2' }), makeTag({ id: 't3' })];
+      const tags = [makeTag({ id: "t1" }), makeTag({ id: "t2" }), makeTag({ id: "t3" })];
       const linkTags: LinkTag[] = [
-        { linkId: 5, tagId: 't1' },
-        { linkId: 5, tagId: 't3' },
-        { linkId: 99, tagId: 't2' }, // different link
+        { linkId: 5, tagId: "t1" },
+        { linkId: 5, tagId: "t3" },
+        { linkId: 99, tagId: "t2" }, // different link
       ];
 
       const { result } = renderHook(() =>
         useInboxViewModel([link], [], tags, linkTags, makeCallbacks()),
       );
 
-      expect(result.current.getAssignedTagIds(5)).toEqual(new Set(['t1', 't3']));
+      expect(result.current.getAssignedTagIds(5)).toEqual(new Set(["t1", "t3"]));
       expect(result.current.getAssignedTags(5)).toEqual([tags[0], tags[2]]);
     });
 
-    it('returns empty when no linkTags match', () => {
+    it("returns empty when no linkTags match", () => {
       const link = makeLink({ id: 1 });
-      const tags = [makeTag({ id: 't1' })];
-      const linkTags: LinkTag[] = [{ linkId: 99, tagId: 't1' }];
+      const tags = [makeTag({ id: "t1" })];
+      const linkTags: LinkTag[] = [{ linkId: 99, tagId: "t1" }];
 
       const { result } = renderHook(() =>
         useInboxViewModel([link], [], tags, linkTags, makeCallbacks()),
@@ -106,108 +107,108 @@ describe('useInboxViewModel', () => {
 
   // ── Tag operations ──
 
-  describe('addTag', () => {
-    it('optimistically adds and calls server', async () => {
+  describe("addTag", () => {
+    it("optimistically adds and calls server", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.addTag(1, 't1'); });
+      await act(async () => {
+        await result.current.addTag(1, "t1");
+      });
 
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
-      expect(addTagToLink).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
+      expect(addTagToLink).toHaveBeenCalledWith(1, "t1");
     });
 
-    it('rolls back on server failure', async () => {
+    it("rolls back on server failure", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(addTagToLink).mockResolvedValue({ success: false, error: 'fail' });
+      vi.mocked(addTagToLink).mockResolvedValue({ success: false, error: "fail" });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.addTag(1, 't1'); });
+      await act(async () => {
+        await result.current.addTag(1, "t1");
+      });
 
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
     });
   });
 
-  describe('removeTag', () => {
-    it('optimistically removes and calls server', async () => {
+  describe("removeTag", () => {
+    it("optimistically removes and calls server", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
       vi.mocked(removeTagFromLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.removeTag(1, 't1'); });
+      await act(async () => {
+        await result.current.removeTag(1, "t1");
+      });
 
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
-      expect(removeTagFromLink).toHaveBeenCalledWith(1, 't1');
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
+      expect(removeTagFromLink).toHaveBeenCalledWith(1, "t1");
     });
 
-    it('rolls back on server failure', async () => {
+    it("rolls back on server failure", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(removeTagFromLink).mockResolvedValue({ success: false, error: 'fail' });
+      vi.mocked(removeTagFromLink).mockResolvedValue({ success: false, error: "fail" });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.removeTag(1, 't1'); });
+      await act(async () => {
+        await result.current.removeTag(1, "t1");
+      });
 
-      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, 't1');
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't1' });
+      expect(cbs.onLinkTagRemoved).toHaveBeenCalledWith(1, "t1");
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t1" });
     });
   });
 
   // ── Create and assign tag ──
 
-  describe('createAndAssignTag', () => {
-    it('creates tag, calls onTagCreated, then assigns to link', async () => {
+  describe("createAndAssignTag", () => {
+    it("creates tag, calls onTagCreated, then assigns to link", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
-      const newTag = makeTag({ id: 't-new', name: 'work' });
+      const newTag = makeTag({ id: "t-new", name: "work" });
 
       vi.mocked(createTag).mockResolvedValue({ success: true, data: newTag });
       vi.mocked(addTagToLink).mockResolvedValue({ success: true });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.createAndAssignTag(1, 'work'); });
+      await act(async () => {
+        await result.current.createAndAssignTag(1, "work");
+      });
 
-      expect(createTag).toHaveBeenCalledWith({ name: 'work' });
+      expect(createTag).toHaveBeenCalledWith({ name: "work" });
       expect(cbs.onTagCreated).toHaveBeenCalledWith(newTag);
-      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: 't-new' });
-      expect(addTagToLink).toHaveBeenCalledWith(1, 't-new');
+      expect(cbs.onLinkTagAdded).toHaveBeenCalledWith({ linkId: 1, tagId: "t-new" });
+      expect(addTagToLink).toHaveBeenCalledWith(1, "t-new");
     });
 
-    it('does not assign tag if createTag fails', async () => {
+    it("does not assign tag if createTag fails", async () => {
       const link = makeLink({ id: 1 });
       const cbs = makeCallbacks();
 
-      vi.mocked(createTag).mockResolvedValue({ success: false, error: 'Invalid name' });
+      vi.mocked(createTag).mockResolvedValue({ success: false, error: "Invalid name" });
 
-      const { result } = renderHook(() =>
-        useInboxViewModel([link], [], [], [], cbs),
-      );
+      const { result } = renderHook(() => useInboxViewModel([link], [], [], [], cbs));
 
-      await act(async () => { await result.current.createAndAssignTag(1, ''); });
+      await act(async () => {
+        await result.current.createAndAssignTag(1, "");
+      });
 
       expect(cbs.onTagCreated).not.toHaveBeenCalled();
       expect(cbs.onLinkTagAdded).not.toHaveBeenCalled();
@@ -216,10 +217,10 @@ describe('useInboxViewModel', () => {
 
   // ── passthrough props ──
 
-  describe('passthrough props', () => {
-    it('exposes folders and allTags as-is', () => {
-      const folders = [makeFolder({ id: 'f1' }), makeFolder({ id: 'f2' })];
-      const tags = [makeTag({ id: 't1' }), makeTag({ id: 't2' })];
+  describe("passthrough props", () => {
+    it("exposes folders and allTags as-is", () => {
+      const folders = [makeFolder({ id: "f1" }), makeFolder({ id: "f2" })];
+      const tags = [makeTag({ id: "t1" }), makeTag({ id: "t2" })];
 
       const { result } = renderHook(() =>
         useInboxViewModel([], folders, tags, [], makeCallbacks()),

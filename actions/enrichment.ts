@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { ScopedDB } from '@/lib/db/scoped';
-import { fetchMetadata } from '@/lib/metadata';
-import type { LinkEnrichmentStrategy } from '@/models/enrichment';
-import type { ActionResult } from '@/actions/links/types';
+import type { ActionResult } from "@/actions/links/types";
+import { ScopedDB } from "@/lib/db/scoped";
+import { fetchMetadata } from "@/lib/metadata";
+import type { LinkEnrichmentStrategy } from "@/models/enrichment";
 
 // ---------------------------------------------------------------------------
 // Default HTML Metadata Strategy
@@ -14,7 +14,7 @@ import type { ActionResult } from '@/actions/links/types';
  * Handles any URL that no specialised strategy claims.
  */
 const defaultMetadataStrategy: LinkEnrichmentStrategy = {
-  name: 'default-metadata',
+  name: "default-metadata",
 
   canHandle: () => true, // catch-all
 
@@ -52,17 +52,16 @@ const defaultMetadataStrategy: LinkEnrichmentStrategy = {
  * is actually encountered — keeping the critical path lean.
  */
 const twitterEnrichmentStrategy: LinkEnrichmentStrategy = {
-  name: 'twitter-xray',
+  name: "twitter-xray",
 
   canHandle(url: string): boolean {
     // Inline the detection to avoid importing models/links at module level.
     // Matches: x.com/user/status/id, twitter.com/user/status/id
     try {
       const u = new URL(url);
-      const host = u.hostname.replace(/^(www\.|mobile\.)/, '');
+      const host = u.hostname.replace(/^(www\.|mobile\.)/, "");
       return (
-        (host === 'x.com' || host === 'twitter.com') &&
-        /^\/[^/]+\/status\/\d+/.test(u.pathname)
+        (host === "x.com" || host === "twitter.com") && /^\/[^/]+\/status\/\d+/.test(u.pathname)
       );
     } catch {
       return false;
@@ -70,15 +69,15 @@ const twitterEnrichmentStrategy: LinkEnrichmentStrategy = {
   },
 
   async enrich(url: string, linkId: number): Promise<void> {
-    const { fetchAndCacheTweet } = await import('@/actions/xray');
+    const { fetchAndCacheTweet } = await import("@/actions/xray");
     await fetchAndCacheTweet(url, linkId);
   },
 
   async refresh(url: string, linkId: number): Promise<ActionResult> {
-    const { forceRefreshTweetCache } = await import('@/actions/xray');
+    const { forceRefreshTweetCache } = await import("@/actions/xray");
     const result = await forceRefreshTweetCache(url, linkId);
     if (!result.success) {
-      return { success: false, error: result.error ?? 'Failed to refresh tweet metadata' };
+      return { success: false, error: result.error ?? "Failed to refresh tweet metadata" };
     }
     return { success: true };
   },
@@ -92,10 +91,7 @@ const twitterEnrichmentStrategy: LinkEnrichmentStrategy = {
  * Ordered list of enrichment strategies. First match wins.
  * The default (catch-all) strategy must always be last.
  */
-const strategies: LinkEnrichmentStrategy[] = [
-  twitterEnrichmentStrategy,
-  defaultMetadataStrategy,
-];
+const strategies: LinkEnrichmentStrategy[] = [twitterEnrichmentStrategy, defaultMetadataStrategy];
 
 /**
  * Find the enrichment strategy that can handle the given URL.
@@ -116,11 +112,7 @@ function resolveStrategy(url: string): LinkEnrichmentStrategy {
  * Enrich a newly created link (fire-and-forget).
  * Delegates to the first matching strategy in the registry.
  */
-export async function enrichLink(
-  url: string,
-  linkId: number,
-  userId: string,
-): Promise<void> {
+export async function enrichLink(url: string, linkId: number, userId: string): Promise<void> {
   const strategy = resolveStrategy(url);
   await strategy.enrich(url, linkId, userId);
 }

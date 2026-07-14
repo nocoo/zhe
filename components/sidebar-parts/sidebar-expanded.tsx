@@ -1,25 +1,25 @@
 "use client";
 
-import { PanelLeft, LogOut, Search, Plus } from "lucide-react";
+import { LogOut, PanelLeft, Plus, Search } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SidebarFolderItem } from "@/components/sidebar-folder-item";
-import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SearchCommandDialog } from "@/components/search-command-dialog";
+import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
+import { SidebarFolderItem } from "@/components/sidebar-folder-item";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { APP_VERSION } from "@/lib/version";
-import { CollapsibleNavGroup } from "./collapsible-nav-group";
-import {
-  PRE_LINK_NAV_GROUPS,
-  OTHER_NAV_GROUPS,
-  FOLDER_NAV_ITEMS,
-  type NavGroup,
-} from "./nav-config";
+import type { buildLinkCounts } from "@/models/links";
 import type { Folder } from "@/models/types";
 import type { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
-import type { buildLinkCounts } from "@/models/links";
+import { CollapsibleNavGroup } from "./collapsible-nav-group";
+import {
+  FOLDER_NAV_ITEMS,
+  type NavGroup,
+  OTHER_NAV_GROUPS,
+  PRE_LINK_NAV_GROUPS,
+} from "./nav-config";
 
 type FoldersVm = ReturnType<typeof useFoldersViewModel>;
 type LinkCounts = ReturnType<typeof buildLinkCounts>;
@@ -94,7 +94,6 @@ function SidebarHeader({ onToggle }: { onToggle: () => void }) {
     <div className="px-3 h-14 flex items-center">
       <div className="flex w-full items-center justify-between px-3">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-24.png" alt="Zhe" width={24} height={24} className="shrink-0" />
           <span className="text-lg md:text-xl font-semibold text-foreground">ZHE.TO</span>
           <Badge
@@ -105,6 +104,7 @@ function SidebarHeader({ onToggle }: { onToggle: () => void }) {
           </Badge>
         </div>
         <button
+          type="button"
           onClick={onToggle}
           aria-label="Collapse sidebar"
           className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
@@ -120,6 +120,7 @@ function SidebarSearchButton({ onClick }: { onClick: () => void }) {
   return (
     <div className="px-3 pb-1">
       <button
+        type="button"
         onClick={onClick}
         className="flex w-full items-center gap-3 rounded-lg bg-secondary px-3 py-1.5 cursor-pointer"
       >
@@ -151,11 +152,15 @@ function LinkManagementGroup({
   return (
     <CollapsibleNavGroup
       label="链接管理"
-      open={groupOpen["链接管理"] ?? true}
+      open={groupOpen.链接管理 ?? true}
       onOpenChange={() => toggleGroup("链接管理")}
       trailing={
         <button
-          onClick={(e) => { e.stopPropagation(); foldersVm.setIsCreating(true); }}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            foldersVm.setIsCreating(true);
+          }}
           aria-label="新建文件夹"
           className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
         >

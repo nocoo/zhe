@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from "vitest";
+
 import { render } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import ApiKeysRoute from "@/app/(dashboard)/dashboard/api-keys/page";
 
 // Mock the page component

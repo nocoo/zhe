@@ -1,6 +1,6 @@
 // Pure business logic for storage audit — no React, no server dependencies.
 
-import type { R2Object } from '@/lib/r2/client';
+import type { R2Object } from "@/lib/r2/client";
 
 // ============================================
 // Types
@@ -82,7 +82,7 @@ export function classifyR2Objects(
 
 /** Build a public URL from domain and key. */
 function buildPublicUrl(domain: string, key: string): string {
-  return `${domain.replace(/\/$/, '')}/${key}`;
+  return `${domain.replace(/\/$/, "")}/${key}`;
 }
 
 /**
@@ -91,7 +91,7 @@ function buildPublicUrl(domain: string, key: string): string {
  * We strip the domain prefix to get the key.
  */
 export function extractKeyFromUrl(url: string, publicDomain: string): string | null {
-  const prefix = publicDomain.replace(/\/$/, '') + '/';
+  const prefix = `${publicDomain.replace(/\/$/, "")}/`;
   if (!url.startsWith(prefix)) return null;
   return url.slice(prefix.length);
 }
@@ -120,29 +120,26 @@ export function computeSummary(files: StorageFile[]): StorageSummary {
 
 /** Format bytes into a human-readable string (e.g. "1.5 MB"). */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
-  );
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   const value = bytes / 1024 ** i;
   return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 /** Get a display-friendly file name from an R2 key. */
 export function getFileName(key: string): string {
-  return key.split('/').pop() ?? key;
+  return key.split("/").pop() ?? key;
 }
 
 /** Detect file category from MIME type or key extension. */
-export function getFileCategory(key: string): 'image' | 'document' | 'other' {
-  const ext = key.split('.').pop()?.toLowerCase() ?? '';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'ico'].includes(ext)) {
-    return 'image';
+export function getFileCategory(key: string): "image" | "document" | "other" {
+  const ext = key.split(".").pop()?.toLowerCase() ?? "";
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "ico"].includes(ext)) {
+    return "image";
   }
-  if (['pdf', 'doc', 'docx', 'txt', 'md', 'json', 'csv'].includes(ext)) {
-    return 'document';
+  if (["pdf", "doc", "docx", "txt", "md", "json", "csv"].includes(ext)) {
+    return "document";
   }
-  return 'other';
+  return "other";
 }

@@ -11,10 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getTagStyles } from "@/models/tags";
-import type {
-  IdeasSortBy,
-  IdeasViewModel,
-} from "@/viewmodels/useIdeasViewModel";
+import type { IdeasSortBy, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
 function SearchBox({ vm }: { vm: IdeasViewModel }) {
   return (
@@ -28,6 +25,7 @@ function SearchBox({ vm }: { vm: IdeasViewModel }) {
       />
       {vm.searchQuery && (
         <button
+          type="button"
           onClick={() => vm.setSearchQuery("")}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
         >
@@ -54,10 +52,7 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
         {vm.tagFilterOptions.map((tag) => (
           <SelectItem key={tag.id} value={tag.id}>
             <div className="flex items-center gap-2">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={getTagStyles(tag.name).dot}
-              />
+              <span className="h-2 w-2 rounded-full" style={getTagStyles(tag.name).dot} />
               {tag.name}
             </div>
           </SelectItem>
@@ -84,13 +79,12 @@ function SortSelect({ vm }: { vm: IdeasViewModel }) {
 function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
   const cls = (active: boolean) =>
     `flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
-      active
-        ? "bg-accent text-foreground"
-        : "text-muted-foreground hover:text-foreground"
+      active ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
     }`;
   return (
     <div className="flex items-center rounded-widget bg-background p-0.5">
       <button
+        type="button"
         onClick={() => vm.setViewMode("grid")}
         aria-label="Grid view"
         className={cls(vm.viewMode === "grid")}
@@ -98,6 +92,7 @@ function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
         <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
       </button>
       <button
+        type="button"
         onClick={() => vm.setViewMode("list")}
         aria-label="List view"
         className={cls(vm.viewMode === "list")}
@@ -126,6 +121,7 @@ export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
 
         {(vm.searchQuery || vm.selectedTagId) && (
           <button
+            type="button"
             onClick={vm.clearFilters}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >

@@ -24,14 +24,8 @@ export function CardListSkeleton({
 }: CardListSkeletonProps) {
   return (
     <div className={cn("space-y-2", className)}>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "rounded-card bg-secondary animate-pulse",
-            rowHeightClass,
-          )}
-        />
+      {Array.from({ length: rows }, (_, i) => `sk-row-${i}`).map((id) => (
+        <div key={id} className={cn("rounded-card bg-secondary animate-pulse", rowHeightClass)} />
       ))}
     </div>
   );
@@ -47,8 +41,7 @@ interface CardGridSkeletonProps {
   className?: string;
 }
 
-const DEFAULT_GRID_CLASS =
-  "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+const DEFAULT_GRID_CLASS = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
 
 export function CardGridSkeleton({
   count = 8,
@@ -58,14 +51,8 @@ export function CardGridSkeleton({
 }: CardGridSkeletonProps) {
   return (
     <div className={cn(gridClass, className)}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "rounded-card bg-secondary animate-pulse",
-            aspectClass,
-          )}
-        />
+      {Array.from({ length: count }, (_, i) => `sk-card-${i}`).map((id) => (
+        <div key={id} className={cn("rounded-card bg-secondary animate-pulse", aspectClass)} />
       ))}
     </div>
   );

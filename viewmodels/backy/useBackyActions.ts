@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useCallback, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useState } from "react";
 import {
-  testBackyConnection,
-  pushBackup,
   fetchBackyHistory,
   generateBackyPullWebhook,
+  pushBackup,
   revokeBackyPullWebhook,
+  testBackyConnection,
 } from "@/actions/backy";
 import type { BackyHistoryResponse, BackyPushDetail } from "@/models/backy";
 
 /** Connection test + manual push state, with results. */
-export function useBackyTestPush(setHistory: Dispatch<SetStateAction<BackyHistoryResponse | null>>) {
+export function useBackyTestPush(
+  setHistory: Dispatch<SetStateAction<BackyHistoryResponse | null>>,
+) {
   const [isTesting, setIsTesting] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -53,9 +55,12 @@ export function useBackyTestPush(setHistory: Dispatch<SetStateAction<BackyHistor
   }, []);
 
   return {
-    isTesting, isPushing,
-    testResult, pushResult,
-    handleTest, handlePush,
+    isTesting,
+    isPushing,
+    testResult,
+    pushResult,
+    handleTest,
+    handlePush,
     resetResults,
   };
 }
@@ -109,8 +114,11 @@ export function useBackyPullWebhook(initialKey: string | null) {
   }, []);
 
   return {
-    pullKey, setPullKey,
-    isGeneratingPull, isRevokingPull,
-    handleGeneratePull, handleRevokePull,
+    pullKey,
+    setPullKey,
+    isGeneratingPull,
+    isRevokingPull,
+    handleGeneratePull,
+    handleRevokePull,
   };
 }

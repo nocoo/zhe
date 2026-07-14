@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef } from "react";
 import { FileUp } from "lucide-react";
+import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface UploadZoneProps {
@@ -11,12 +11,7 @@ interface UploadZoneProps {
   disabled?: boolean;
 }
 
-export function UploadZone({
-  isDragOver,
-  onDragOver,
-  onFiles,
-  disabled,
-}: UploadZoneProps) {
+export function UploadZone({ isDragOver, onDragOver, onFiles, disabled }: UploadZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback(
@@ -65,29 +60,8 @@ export function UploadZone({
   );
 
   return (
-    <div
-      data-testid="upload-zone"
-      role="button"
-      tabIndex={0}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        "relative flex flex-col items-center justify-center rounded-card border-2 border-dashed p-8 transition-all cursor-pointer",
-        isDragOver
-          ? "border-primary bg-primary/5"
-          : "border-muted-foreground/20 bg-secondary hover:border-muted-foreground/40",
-        disabled && "pointer-events-none opacity-50",
-      )}
-    >
+    <div className={cn(disabled && "pointer-events-none opacity-50")}>
+      {/* File input is a sibling of the button so the button content stays phrasing-valid. */}
       <input
         ref={inputRef}
         type="file"
@@ -95,18 +69,39 @@ export function UploadZone({
         onChange={handleChange}
         className="hidden"
         data-testid="upload-input"
+        disabled={disabled}
+        tabIndex={-1}
       />
-
-      <div className="flex items-center gap-2 mb-3">
-        <FileUp className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-      </div>
-
-      <p className="text-sm text-foreground font-medium mb-1">
-        {isDragOver ? "释放文件以上传" : "拖拽文件到此处，或点击选择"}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        支持所有文件类型，最大 10MB
-      </p>
+      <button
+        type="button"
+        data-testid="upload-zone"
+        disabled={disabled}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "relative flex w-full flex-col items-center justify-center rounded-card border-2 border-dashed p-8 transition-all cursor-pointer",
+          isDragOver
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/20 bg-secondary hover:border-muted-foreground/40",
+        )}
+      >
+        <span className="mb-3 flex items-center gap-2">
+          <FileUp className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+        </span>
+        <span className="mb-1 text-sm font-medium text-foreground">
+          {isDragOver ? "释放文件以上传" : "拖拽文件到此处，或点击选择"}
+        </span>
+        <span className="text-xs text-muted-foreground">支持所有文件类型，最大 10MB</span>
+      </button>
     </div>
   );
 }

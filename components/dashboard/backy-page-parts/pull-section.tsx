@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, RotateCcw, Trash2, Copy, Check, Webhook } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Copy, Loader2, RotateCcw, Trash2, Webhook } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { FeatureCard } from "@/components/dashboard/feature-card";
+import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "@/lib/utils";
 import type { BackyViewModel } from "@/viewmodels/useBackyViewModel";
 
@@ -106,7 +106,12 @@ function EmptyView({ vm }: { vm: BackyViewModel }) {
       <p className="text-xs text-muted-foreground">
         生成 Webhook Key 后，可将 URL 和 Key 配置到 Backy，实现定时自动备份。
       </p>
-      <Button onClick={vm.handleGeneratePull} disabled={vm.isGeneratingPull} variant="outline" size="sm">
+      <Button
+        onClick={vm.handleGeneratePull}
+        disabled={vm.isGeneratingPull}
+        variant="outline"
+        size="sm"
+      >
         {vm.isGeneratingPull ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (

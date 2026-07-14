@@ -1,8 +1,8 @@
 "use client";
 
 import { AlertTriangle, Clock, Database, HardDrive } from "lucide-react";
-import { formatBytes } from "@/models/storage";
 import type { StorageScanResult } from "@/models/storage";
+import { formatBytes } from "@/models/storage";
 import { computeTmpStats } from "@/models/tmp-storage";
 
 interface SummaryCardProps {
@@ -20,8 +20,8 @@ function Card({ label, value, sub, icon: Icon, variant = "default" }: SummaryCar
     variant === "warning"
       ? "text-warning"
       : variant === "success"
-      ? "text-success"
-      : "text-muted-foreground";
+        ? "text-success"
+        : "text-muted-foreground";
   return (
     <div className="rounded-card bg-secondary p-4 space-y-2">
       <div className="flex items-center gap-2">
@@ -34,7 +34,13 @@ function Card({ label, value, sub, icon: Icon, variant = "default" }: SummaryCar
   );
 }
 
-export function SummaryGrid({ data, SummaryCard }: { data: StorageScanResult; SummaryCard: React.ComponentType<SummaryCardProps> }) {
+export function SummaryGrid({
+  data,
+  SummaryCard,
+}: {
+  data: StorageScanResult;
+  SummaryCard: React.ComponentType<SummaryCardProps>;
+}) {
   const hasOrphans = data.r2.summary.orphanFiles > 0;
   const tmpStats = computeTmpStats(data.r2.files);
   // The provided SummaryCard is the one from the original file (richer visuals).
@@ -58,11 +64,7 @@ export function SummaryGrid({ data, SummaryCard }: { data: StorageScanResult; Su
       <SummaryCard
         label="孤儿文件"
         value={data.r2.summary.orphanFiles.toString()}
-        sub={
-          hasOrphans
-            ? `${formatBytes(data.r2.summary.orphanSize)} 可回收`
-            : "全部干净"
-        }
+        sub={hasOrphans ? `${formatBytes(data.r2.summary.orphanSize)} 可回收` : "全部干净"}
         icon={AlertTriangle}
         variant={hasOrphans ? "warning" : "success"}
         index={2}

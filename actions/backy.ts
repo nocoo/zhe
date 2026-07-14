@@ -1,17 +1,21 @@
-'use server';
+"use server";
 
-import { getScopedDB } from '@/lib/auth-context';
-import { APP_VERSION } from '@/lib/version';
+import { getScopedDB } from "@/lib/auth-context";
+import { APP_VERSION } from "@/lib/version";
 import {
-  validateBackyConfig,
-  maskApiKey,
-  getBackyEnvironment,
-  buildBackyTag,
   type BackyHistoryResponse,
   type BackyPushDetail,
-} from '@/models/backy';
-import { generatePullWebhookKey } from '@/models/backy.server';
-import { serializeLinksForExport, BACKUP_SCHEMA_VERSION, type BackupEnvelope } from '@/models/settings';
+  buildBackyTag,
+  getBackyEnvironment,
+  maskApiKey,
+  validateBackyConfig,
+} from "@/models/backy";
+import { generatePullWebhookKey } from "@/models/backy.server";
+import {
+  BACKUP_SCHEMA_VERSION,
+  type BackupEnvelope,
+  serializeLinksForExport,
+} from "@/models/settings";
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -25,7 +29,7 @@ export async function getBackyConfig(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getBackySettings();
     if (!config) return { success: true };
@@ -38,19 +42,20 @@ export async function getBackyConfig(): Promise<{
       },
     };
   } catch (error) {
-    console.error('Failed to get Backy config:', error);
-    return { success: false, error: 'Failed to load Backy config' };
+    console.error("Failed to get Backy config:", error);
+    return { success: false, error: "Failed to load Backy config" };
   }
 }
 
 /** Save Backy config (webhook URL + API key). */
-export async function saveBackyConfig(config: {
-  webhookUrl: string;
-  apiKey: string;
-}): Promise<{ success: boolean; data?: { webhookUrl: string; maskedApiKey: string }; error?: string }> {
+export async function saveBackyConfig(config: { webhookUrl: string; apiKey: string }): Promise<{
+  success: boolean;
+  data?: { webhookUrl: string; maskedApiKey: string };
+  error?: string;
+}> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const validation = validateBackyConfig(config);
     if (!validation.valid) {
@@ -70,8 +75,8 @@ export async function saveBackyConfig(config: {
       },
     };
   } catch (error) {
-    console.error('Failed to save Backy config:', error);
-    return { success: false, error: 'Failed to save Backy config' };
+    console.error("Failed to save Backy config:", error);
+    return { success: false, error: "Failed to save Backy config" };
   }
 }
 
@@ -82,13 +87,13 @@ export async function testBackyConnection(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getBackySettings();
-    if (!config) return { success: false, error: 'Backy 未配置' };
+    if (!config) return { success: false, error: "Backy 未配置" };
 
     const res = await fetch(config.webhookUrl, {
-      method: 'HEAD',
+      method: "HEAD",
       headers: { Authorization: `Bearer ${config.apiKey}` },
     });
 
@@ -98,8 +103,8 @@ export async function testBackyConnection(): Promise<{
 
     return { success: true };
   } catch (error) {
-    console.error('Backy connection test failed:', error);
-    return { success: false, error: '连接失败：无法访问 Backy 服务' };
+    console.error("Backy connection test failed:", error);
+    return { success: false, error: "连接失败：无法访问 Backy 服务" };
   }
 }
 
@@ -111,13 +116,13 @@ export async function fetchBackyHistory(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getBackySettings();
-    if (!config) return { success: false, error: 'Backy 未配置' };
+    if (!config) return { success: false, error: "Backy 未配置" };
 
     const res = await fetch(config.webhookUrl, {
-      method: 'GET',
+      method: "GET",
       headers: { Authorization: `Bearer ${config.apiKey}` },
     });
 
@@ -128,8 +133,8 @@ export async function fetchBackyHistory(): Promise<{
     const data: BackyHistoryResponse = await res.json();
     return { success: true, data };
   } catch (error) {
-    console.error('Failed to fetch Backy history:', error);
-    return { success: false, error: '获取备份历史失败' };
+    console.error("Failed to fetch Backy history:", error);
+    return { success: false, error: "获取备份历史失败" };
   }
 }
 
@@ -141,10 +146,10 @@ export async function pushBackup(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getBackySettings();
-    if (!config) return { success: false, error: 'Backy 未配置' };
+    if (!config) return { success: false, error: "Backy 未配置" };
 
     const start = Date.now();
 
@@ -191,10 +196,10 @@ export async function pushBackup(): Promise<{
 
     // Push to Backy as multipart/form-data
     const form = new FormData();
-    const blob = new Blob([json], { type: 'application/json' });
-    form.append('file', blob, fileName);
-    form.append('environment', getBackyEnvironment());
-    form.append('tag', tag);
+    const blob = new Blob([json], { type: "application/json" });
+    form.append("file", blob, fileName);
+    form.append("environment", getBackyEnvironment());
+    form.append("tag", tag);
 
     const requestMeta = {
       tag,
@@ -209,7 +214,7 @@ export async function pushBackup(): Promise<{
     };
 
     const res = await fetch(config.webhookUrl, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${config.apiKey}` },
       body: form,
     });
@@ -218,8 +223,12 @@ export async function pushBackup(): Promise<{
 
     if (!res.ok) {
       let body: unknown;
-      const text = await res.text().catch(() => '');
-      try { body = JSON.parse(text); } catch { body = text || null; }
+      const text = await res.text().catch(() => "");
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = text || null;
+      }
       return {
         success: false,
         data: {
@@ -242,7 +251,7 @@ export async function pushBackup(): Promise<{
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       const historyRes = await fetch(config.webhookUrl, {
-        method: 'GET',
+        method: "GET",
         headers: { Authorization: `Bearer ${config.apiKey}` },
         signal: controller.signal,
       });
@@ -265,8 +274,8 @@ export async function pushBackup(): Promise<{
       },
     };
   } catch (error) {
-    console.error('Failed to push backup:', error);
-    return { success: false, error: '推送备份失败' };
+    console.error("Failed to push backup:", error);
+    return { success: false, error: "推送备份失败" };
   }
 }
 
@@ -282,15 +291,15 @@ export async function getBackyPullWebhook(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const creds = await db.getBackyPullWebhook();
     if (!creds) return { success: true };
 
     return { success: true, data: creds };
   } catch (error) {
-    console.error('Failed to get pull webhook:', error);
-    return { success: false, error: 'Failed to load pull webhook' };
+    console.error("Failed to get pull webhook:", error);
+    return { success: false, error: "Failed to load pull webhook" };
   }
 }
 
@@ -302,7 +311,7 @@ export async function generateBackyPullWebhook(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const key = generatePullWebhookKey();
 
@@ -310,8 +319,8 @@ export async function generateBackyPullWebhook(): Promise<{
 
     return { success: true, data: { key } };
   } catch (error) {
-    console.error('Failed to generate pull webhook:', error);
-    return { success: false, error: 'Failed to generate pull webhook' };
+    console.error("Failed to generate pull webhook:", error);
+    return { success: false, error: "Failed to generate pull webhook" };
   }
 }
 
@@ -322,12 +331,12 @@ export async function revokeBackyPullWebhook(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     await db.deleteBackyPullWebhook();
     return { success: true };
   } catch (error) {
-    console.error('Failed to revoke pull webhook:', error);
-    return { success: false, error: 'Failed to revoke pull webhook' };
+    console.error("Failed to revoke pull webhook:", error);
+    return { success: false, error: "Failed to revoke pull webhook" };
   }
 }

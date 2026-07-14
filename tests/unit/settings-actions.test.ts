@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before importing the module under test
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
@@ -15,7 +15,7 @@ const mockGetLinks = vi.fn();
 const mockGetUserSettings = vi.fn();
 const mockUpsertPreviewStyle = vi.fn();
 
-vi.mock('@/lib/db/scoped', () => ({
+vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
     return {
       createLink: mockCreateLink,
@@ -27,33 +27,33 @@ vi.mock('@/lib/db/scoped', () => ({
 }));
 
 // Suppress console.error noise from catch blocks
-vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, "error").mockImplementation(() => {});
 
 // ---------------------------------------------------------------------------
 // Import the module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { importLinks, exportLinks, getPreviewStyle, updatePreviewStyle } from '@/actions/settings';
-import type { ExportedLink } from '@/models/settings';
-import { unwrap } from '../test-utils';
+import { exportLinks, getPreviewStyle, importLinks, updatePreviewStyle } from "@/actions/settings";
+import type { ExportedLink } from "@/models/settings";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const FAKE_USER_ID = 'user-abc-123';
+const FAKE_USER_ID = "user-abc-123";
 
 function authenticatedSession() {
-  return { user: { id: FAKE_USER_ID, name: 'Test', email: 'test@test.com' } };
+  return { user: { id: FAKE_USER_ID, name: "Test", email: "test@test.com" } };
 }
 
 function makeExportedLink(overrides: Partial<ExportedLink> = {}): ExportedLink {
   return {
-    originalUrl: 'https://example.com',
-    slug: 'abc123',
+    originalUrl: "https://example.com",
+    slug: "abc123",
     isCustom: false,
     clicks: 0,
-    createdAt: '2026-01-15T00:00:00.000Z',
+    createdAt: "2026-01-15T00:00:00.000Z",
     ...overrides,
   } as ExportedLink;
 }
@@ -62,8 +62,8 @@ const FAKE_LINK = {
   id: 1,
   userId: FAKE_USER_ID,
   folderId: null,
-  originalUrl: 'https://example.com',
-  slug: 'abc123',
+  originalUrl: "https://example.com",
+  slug: "abc123",
   isCustom: false,
   expiresAt: null,
   clicks: 0,
@@ -79,7 +79,7 @@ const FAKE_LINK = {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('actions/settings', () => {
+describe("actions/settings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -87,24 +87,24 @@ describe('actions/settings', () => {
   // ====================================================================
   // importLinks
   // ====================================================================
-  describe('importLinks', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("importLinks", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await importLinks([makeExportedLink()]);
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error for invalid payload (not an array)', async () => {
+    it("returns error for invalid payload (not an array)", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await importLinks('not-array' as unknown as ExportedLink[]);
+      const result = await importLinks("not-array" as unknown as ExportedLink[]);
 
       expect(result.success).toBe(false);
     });
 
-    it('returns error for empty array', async () => {
+    it("returns error for empty array", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
       const result = await importLinks([]);
@@ -112,46 +112,46 @@ describe('actions/settings', () => {
       expect(result.success).toBe(false);
     });
 
-    it('skips links when createLink throws UNIQUE constraint error', async () => {
+    it("skips links when createLink throws UNIQUE constraint error", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockCreateLink.mockRejectedValue(new Error('UNIQUE constraint failed: links.slug'));
+      mockCreateLink.mockRejectedValue(new Error("UNIQUE constraint failed: links.slug"));
 
-      const result = await importLinks([makeExportedLink({ slug: 'existing' })]);
+      const result = await importLinks([makeExportedLink({ slug: "existing" })]);
 
       expect(result.success).toBe(true);
       expect(unwrap(result.data).created).toBe(0);
       expect(unwrap(result.data).skipped).toBe(1);
     });
 
-    it('creates links for new slugs', async () => {
+    it("creates links for new slugs", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateLink.mockResolvedValue(FAKE_LINK);
 
       const result = await importLinks([
-        makeExportedLink({ slug: 'new-slug', originalUrl: 'https://new.com' }),
+        makeExportedLink({ slug: "new-slug", originalUrl: "https://new.com" }),
       ]);
 
       expect(result.success).toBe(true);
       expect(unwrap(result.data).created).toBe(1);
       expect(unwrap(result.data).skipped).toBe(0);
       expect(mockCreateLink).toHaveBeenCalledWith({
-        originalUrl: 'https://new.com',
-        slug: 'new-slug',
+        originalUrl: "https://new.com",
+        slug: "new-slug",
         isCustom: false,
         clicks: 0,
       });
     });
 
-    it('handles mixed duplicate and new slugs', async () => {
+    it("handles mixed duplicate and new slugs", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       // First slug triggers UNIQUE constraint, second succeeds
       mockCreateLink
-        .mockRejectedValueOnce(new Error('UNIQUE constraint failed: links.slug'))
+        .mockRejectedValueOnce(new Error("UNIQUE constraint failed: links.slug"))
         .mockResolvedValueOnce(FAKE_LINK);
 
       const result = await importLinks([
-        makeExportedLink({ slug: 'existing' }),
-        makeExportedLink({ slug: 'new-one', originalUrl: 'https://b.com' }),
+        makeExportedLink({ slug: "existing" }),
+        makeExportedLink({ slug: "new-one", originalUrl: "https://b.com" }),
       ]);
 
       expect(result.success).toBe(true);
@@ -160,22 +160,20 @@ describe('actions/settings', () => {
       expect(mockCreateLink).toHaveBeenCalledTimes(2);
     });
 
-    it('returns error when createLink throws non-UNIQUE error', async () => {
+    it("returns error when createLink throws non-UNIQUE error", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockCreateLink.mockRejectedValue(new Error('DB connection failed'));
+      mockCreateLink.mockRejectedValue(new Error("DB connection failed"));
 
       const result = await importLinks([makeExportedLink()]);
 
-      expect(result).toEqual({ success: false, error: 'Failed to import links' });
+      expect(result).toEqual({ success: false, error: "Failed to import links" });
     });
 
-    it('passes isCustom and clicks from payload', async () => {
+    it("passes isCustom and clicks from payload", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateLink.mockResolvedValue(FAKE_LINK);
 
-      await importLinks([
-        makeExportedLink({ slug: 's1', isCustom: true, clicks: 42 }),
-      ]);
+      await importLinks([makeExportedLink({ slug: "s1", isCustom: true, clicks: 42 })]);
 
       expect(mockCreateLink).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -189,25 +187,25 @@ describe('actions/settings', () => {
   // ====================================================================
   // exportLinks
   // ====================================================================
-  describe('exportLinks', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("exportLinks", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await exportLinks();
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns serialized links on success', async () => {
+    it("returns serialized links on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetLinks.mockResolvedValue([
         {
           ...FAKE_LINK,
-          originalUrl: 'https://example.com',
-          slug: 'test',
+          originalUrl: "https://example.com",
+          slug: "test",
           isCustom: true,
           clicks: 5,
-          createdAt: new Date('2026-01-15T00:00:00.000Z'),
+          createdAt: new Date("2026-01-15T00:00:00.000Z"),
         },
       ]);
 
@@ -216,11 +214,11 @@ describe('actions/settings', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual([
         {
-          originalUrl: 'https://example.com',
-          slug: 'test',
+          originalUrl: "https://example.com",
+          slug: "test",
           isCustom: true,
           clicks: 5,
-          createdAt: '2026-01-15T00:00:00.000Z',
+          createdAt: "2026-01-15T00:00:00.000Z",
           folderId: null,
           expiresAt: null,
           metaTitle: null,
@@ -232,26 +230,26 @@ describe('actions/settings', () => {
       ]);
     });
 
-    it('returns error when getLinks throws', async () => {
+    it("returns error when getLinks throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetLinks.mockRejectedValue(new Error('DB error'));
+      mockGetLinks.mockRejectedValue(new Error("DB error"));
 
       const result = await exportLinks();
 
-      expect(result).toEqual({ success: false, error: 'Failed to export links' });
+      expect(result).toEqual({ success: false, error: "Failed to export links" });
     });
   });
 
   // ====================================================================
   // getPreviewStyle
   // ====================================================================
-  describe('getPreviewStyle', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("getPreviewStyle", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await getPreviewStyle();
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
     it('returns default "favicon" when no settings row exists', async () => {
@@ -260,101 +258,101 @@ describe('actions/settings', () => {
 
       const result = await getPreviewStyle();
 
-      expect(result).toEqual({ success: true, data: 'favicon' });
+      expect(result).toEqual({ success: true, data: "favicon" });
     });
 
     it('returns "screenshot" when stored in DB', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUserSettings.mockResolvedValue({
         userId: FAKE_USER_ID,
-        previewStyle: 'screenshot',
+        previewStyle: "screenshot",
       });
 
       const result = await getPreviewStyle();
 
-      expect(result).toEqual({ success: true, data: 'screenshot' });
+      expect(result).toEqual({ success: true, data: "screenshot" });
     });
 
-    it('returns default for invalid stored value', async () => {
+    it("returns default for invalid stored value", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUserSettings.mockResolvedValue({
         userId: FAKE_USER_ID,
-        previewStyle: 'invalid-garbage',
+        previewStyle: "invalid-garbage",
       });
 
       const result = await getPreviewStyle();
 
-      expect(result).toEqual({ success: true, data: 'favicon' });
+      expect(result).toEqual({ success: true, data: "favicon" });
     });
 
-    it('returns error when getUserSettings throws', async () => {
+    it("returns error when getUserSettings throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetUserSettings.mockRejectedValue(new Error('DB error'));
+      mockGetUserSettings.mockRejectedValue(new Error("DB error"));
 
       const result = await getPreviewStyle();
 
-      expect(result).toEqual({ success: false, error: 'Failed to get preview style' });
+      expect(result).toEqual({ success: false, error: "Failed to get preview style" });
     });
   });
 
   // ====================================================================
   // updatePreviewStyle
   // ====================================================================
-  describe('updatePreviewStyle', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("updatePreviewStyle", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await updatePreviewStyle('screenshot');
+      const result = await updatePreviewStyle("screenshot");
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
     it('upserts "screenshot" and returns it', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpsertPreviewStyle.mockResolvedValue({
         userId: FAKE_USER_ID,
-        previewStyle: 'screenshot',
+        previewStyle: "screenshot",
       });
 
-      const result = await updatePreviewStyle('screenshot');
+      const result = await updatePreviewStyle("screenshot");
 
-      expect(result).toEqual({ success: true, data: 'screenshot' });
-      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('screenshot');
+      expect(result).toEqual({ success: true, data: "screenshot" });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith("screenshot");
     });
 
     it('upserts "favicon" and returns it', async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpsertPreviewStyle.mockResolvedValue({
         userId: FAKE_USER_ID,
-        previewStyle: 'favicon',
+        previewStyle: "favicon",
       });
 
-      const result = await updatePreviewStyle('favicon');
+      const result = await updatePreviewStyle("favicon");
 
-      expect(result).toEqual({ success: true, data: 'favicon' });
-      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('favicon');
+      expect(result).toEqual({ success: true, data: "favicon" });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith("favicon");
     });
 
-    it('normalizes invalid value to default before upserting', async () => {
+    it("normalizes invalid value to default before upserting", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpsertPreviewStyle.mockResolvedValue({
         userId: FAKE_USER_ID,
-        previewStyle: 'favicon',
+        previewStyle: "favicon",
       });
 
-      const result = await updatePreviewStyle('bogus');
+      const result = await updatePreviewStyle("bogus");
 
-      expect(result).toEqual({ success: true, data: 'favicon' });
-      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith('favicon');
+      expect(result).toEqual({ success: true, data: "favicon" });
+      expect(mockUpsertPreviewStyle).toHaveBeenCalledWith("favicon");
     });
 
-    it('returns error when upsertPreviewStyle throws', async () => {
+    it("returns error when upsertPreviewStyle throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpsertPreviewStyle.mockRejectedValue(new Error('DB error'));
+      mockUpsertPreviewStyle.mockRejectedValue(new Error("DB error"));
 
-      const result = await updatePreviewStyle('screenshot');
+      const result = await updatePreviewStyle("screenshot");
 
-      expect(result).toEqual({ success: false, error: 'Failed to update preview style' });
+      expect(result).toEqual({ success: false, error: "Failed to update preview style" });
     });
   });
 });

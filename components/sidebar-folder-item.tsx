@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Check, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Check, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
-import { FOLDER_ICONS } from "@/models/folders";
-import type { Folder } from "@/models/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { FOLDER_ICONS } from "@/models/folders";
+import type { Folder } from "@/models/types";
 
 export interface SidebarFolderItemProps {
   folder: Folder;
@@ -32,12 +32,7 @@ interface FolderItemEditorProps {
   onCancel: () => void;
 }
 
-function FolderItemEditor({
-  initialName,
-  initialIcon,
-  onSave,
-  onCancel,
-}: FolderItemEditorProps) {
+function FolderItemEditor({ initialName, initialIcon, onSave, onCancel }: FolderItemEditorProps) {
   const [editName, setEditName] = useState(initialName);
   const [editIcon, setEditIcon] = useState(initialIcon);
 
@@ -67,11 +62,12 @@ function FolderItemEditor({
           onKeyDown={handleKeyDown}
           className="flex-1 min-w-0 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
           placeholder="文件夹名称"
-          // Inline rename input just appeared on user-initiated click; auto-focus is the expected UX.
-          // eslint-disable-next-line jsx-a11y/no-autofocus
+          // Inline rename opened by explicit user action — focus is intentional UX.
+          // biome-ignore lint/a11y/noAutofocus: user-initiated inline rename
           autoFocus
         />
         <button
+          type="button"
           onClick={handleConfirm}
           aria-label="确认"
           className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
@@ -79,6 +75,7 @@ function FolderItemEditor({
           <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
         <button
+          type="button"
           onClick={onCancel}
           aria-label="取消"
           className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
@@ -90,6 +87,7 @@ function FolderItemEditor({
       <div className="grid grid-cols-8 gap-0.5">
         {FOLDER_ICONS.map((iconName) => (
           <button
+            type="button"
             key={iconName}
             data-icon-name={iconName}
             data-testid={`icon-${iconName}`}
@@ -138,14 +136,10 @@ export function SidebarFolderItem({
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
           isSelected
             ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground",
         )}
       >
-        <FolderIcon
-          name={folder.icon}
-          className="h-4 w-4 shrink-0"
-          strokeWidth={1.5}
-        />
+        <FolderIcon name={folder.icon} className="h-4 w-4 shrink-0" strokeWidth={1.5} />
         <span className="flex-1 text-left">{folder.name}</span>
         <span className="w-5 shrink-0 text-center text-xs text-muted-foreground tabular-nums group-hover:opacity-0">
           {linkCount}
@@ -156,6 +150,7 @@ export function SidebarFolderItem({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
+            type="button"
             aria-label="文件夹操作"
             className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
           >

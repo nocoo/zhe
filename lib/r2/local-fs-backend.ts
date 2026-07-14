@@ -11,12 +11,12 @@
  * code paths exercise the same call sites, just against a local writer.
  */
 
-import { promises as fs } from 'fs';
-import { dirname, join, normalize, resolve, sep } from 'path';
+import { promises as fs } from "node:fs";
+import { dirname, join, normalize, resolve, sep } from "node:path";
 
-import type { R2Object } from './client';
+import type { R2Object } from "./client";
 
-const DEFAULT_DIR = '.test-storage/r2';
+const DEFAULT_DIR = ".test-storage/r2";
 const DEFAULT_PORT = 18788;
 
 function getRoot(): string {
@@ -35,7 +35,7 @@ function getPort(): number {
  */
 export function keyToPath(key: string): string {
   const root = getRoot();
-  const stripped = key.replace(/^[/\\]+/, '');
+  const stripped = key.replace(/^[/\\]+/, "");
   const full = normalize(resolve(root, stripped));
   if (full !== root && !full.startsWith(root + sep)) {
     throw new Error(`R2 key escapes storage root: ${key}`);
@@ -46,7 +46,7 @@ export function keyToPath(key: string): string {
 function pathToKey(absPath: string): string {
   const root = getRoot();
   const rel = absPath.slice(root.length + 1);
-  return rel.split(sep).join('/');
+  return rel.split(sep).join("/");
 }
 
 async function ensureDirFor(file: string): Promise<void> {
@@ -78,16 +78,16 @@ export async function deleteR2Object(key: string): Promise<void> {
   try {
     await fs.unlink(path);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 }
 
 async function walk(dir: string, prefix?: string, out: R2Object[] = []): Promise<R2Object[]> {
-  let entries: import('fs').Dirent[];
+  let entries: import("fs").Dirent[];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return out;
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return out;
     throw err;
   }
   for (const entry of entries) {
@@ -121,7 +121,7 @@ export async function deleteR2Objects(keys: string[]): Promise<number> {
       await fs.unlink(keyToPath(key));
       deleted += 1;
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") continue;
       throw err;
     }
   }

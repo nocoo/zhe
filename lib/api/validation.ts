@@ -2,8 +2,8 @@
  * Shared API input validation utilities.
  */
 
-import { NextResponse } from 'next/server';
-import { apiError } from './auth';
+import { NextResponse } from "next/server";
+import { apiError } from "./auth";
 
 /**
  * Strict non-negative integer regex.
@@ -24,8 +24,8 @@ export function parsePaginationParams(
   url: URL,
   { maxLimit = 500, defaultLimit = 100 } = {},
 ): { limit: number; offset: number } | NextResponse {
-  const limitParam = url.searchParams.get('limit');
-  const offsetParam = url.searchParams.get('offset');
+  const limitParam = url.searchParams.get("limit");
+  const offsetParam = url.searchParams.get("offset");
 
   let limit = defaultLimit;
   if (limitParam !== null) {
@@ -58,11 +58,11 @@ export async function parseJsonBody(
   try {
     body = await request.json();
   } catch {
-    return apiError('Invalid JSON body', 400);
+    return apiError("Invalid JSON body", 400);
   }
 
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    return apiError('Request body must be an object', 400);
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return apiError("Request body must be an object", 400);
   }
 
   return body as Record<string, unknown>;
@@ -78,7 +78,7 @@ export function isErrorResponse(value: unknown): value is NextResponse {
 /**
  * Allowed URL protocols for user-provided URLs.
  */
-const ALLOWED_PROTOCOLS = ['http:', 'https:'];
+const ALLOWED_PROTOCOLS = ["http:", "https:"];
 
 /**
  * Validate that a URL string is well-formed and uses an allowed protocol.
@@ -89,10 +89,10 @@ export function validateUrl(url: string): URL | string {
   try {
     parsed = new URL(url);
   } catch {
-    return 'Invalid URL';
+    return "Invalid URL";
   }
   if (!ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
-    return 'URL must use http or https protocol';
+    return "URL must use http or https protocol";
   }
   return parsed;
 }

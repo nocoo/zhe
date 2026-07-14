@@ -74,19 +74,18 @@ export async function kvPutLink(slug: string, data: KVLinkData): Promise<void> {
 
   try {
     const url = kvUrl(creds, slug);
-    const expirationSec = data.expiresAt != null
-      ? Math.floor(data.expiresAt / 1000)
-      : null;
+    const expirationSec = data.expiresAt != null ? Math.floor(data.expiresAt / 1000) : null;
     // KV requires expiration to be at least 60s in the future
-    const fetchUrl = expirationSec != null && expirationSec > Math.floor(Date.now() / 1000) + 60
-      ? `${url}?expiration=${expirationSec}`
-      : url;
+    const fetchUrl =
+      expirationSec != null && expirationSec > Math.floor(Date.now() / 1000) + 60
+        ? `${url}?expiration=${expirationSec}`
+        : url;
 
     const response = await fetch(fetchUrl, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
         ...kvHeaders(creds.token),
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
       signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS),
@@ -111,7 +110,7 @@ export async function kvDeleteLink(slug: string): Promise<void> {
 
   try {
     const response = await fetch(kvUrl(creds, slug), {
-      method: 'DELETE',
+      method: "DELETE",
       headers: kvHeaders(creds.token),
       signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS),
     });
@@ -145,18 +144,18 @@ export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> 
         `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/keys`,
       );
       if (cursor) {
-        url.searchParams.set('cursor', cursor);
+        url.searchParams.set("cursor", cursor);
       }
 
       const response = await fetch(url.toString(), {
-        method: 'GET',
+        method: "GET",
         headers: kvHeaders(creds.token),
         signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS),
       });
 
       if (!response.ok) {
         const text = await response.text();
-        console.error('KV list keys failed:', response.status, text);
+        console.error("KV list keys failed:", response.status, text);
         error = true;
         break;
       }
@@ -168,7 +167,7 @@ export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> 
       };
 
       if (!json.success) {
-        console.error('KV list keys returned unsuccessful response');
+        console.error("KV list keys returned unsuccessful response");
         error = true;
         break;
       }
@@ -180,7 +179,7 @@ export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> 
       cursor = json.result_info?.cursor;
     } while (cursor);
   } catch (err) {
-    console.error('KV list keys error:', err);
+    console.error("KV list keys error:", err);
     error = true;
   }
 
@@ -210,10 +209,10 @@ export async function kvBulkDeleteLinks(
       const response = await fetch(
         `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
         {
-          method: 'DELETE',
+          method: "DELETE",
           headers: {
             ...kvHeaders(creds.token),
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(batch),
           signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS * 3),
@@ -256,16 +255,15 @@ export async function kvBulkPutLinks(
     const batch = entries.slice(i, i + BATCH_SIZE);
     const nowSec = Math.floor(Date.now() / 1000);
     const payload = batch.map((e) => {
-      const expirationSec = e.data.expiresAt != null
-        ? Math.floor(e.data.expiresAt / 1000)
-        : null;
+      const expirationSec = e.data.expiresAt != null ? Math.floor(e.data.expiresAt / 1000) : null;
       return {
         key: e.slug,
         value: JSON.stringify(e.data),
         // KV requires expiration to be at least 60s in the future
-        ...(expirationSec != null && expirationSec > nowSec + 60 && {
-          expiration: expirationSec,
-        }),
+        ...(expirationSec != null &&
+          expirationSec > nowSec + 60 && {
+            expiration: expirationSec,
+          }),
       };
     });
 
@@ -273,10 +271,10 @@ export async function kvBulkPutLinks(
       const response = await fetch(
         `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
         {
-          method: 'PUT',
+          method: "PUT",
           headers: {
             ...kvHeaders(creds.token),
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
           signal: AbortSignal.timeout(KV_FETCH_TIMEOUT_MS * 3), // bulk needs more time

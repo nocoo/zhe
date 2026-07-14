@@ -1,27 +1,26 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateWebhookToken } from "@/models/webhook.server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearAllRateLimits } from "@/lib/api/rate-limit";
 import {
-  validateWebhookPayload,
-  checkRateLimit,
-  buildOpenApiSpec,
   buildAgentPrompt,
-  RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_DEFAULT_MAX,
-  RATE_LIMIT_ABSOLUTE_MAX,
-  WEBHOOK_NOTE_MAX_LENGTH,
+  buildOpenApiSpec,
+  checkRateLimit,
   clampRateLimit,
   isValidRateLimit,
+  RATE_LIMIT_ABSOLUTE_MAX,
+  RATE_LIMIT_DEFAULT_MAX,
+  RATE_LIMIT_WINDOW_MS,
+  validateWebhookPayload,
+  WEBHOOK_NOTE_MAX_LENGTH,
 } from "@/models/webhook";
-import { clearAllRateLimits } from "@/lib/api/rate-limit";
+import { generateWebhookToken } from "@/models/webhook.server";
 import { unwrap } from "../test-utils";
 
 describe("webhook model", () => {
   describe("generateWebhookToken", () => {
     it("returns a valid UUID v4 string", () => {
       const token = generateWebhookToken();
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
       expect(token).toMatch(uuidRegex);
     });
 
@@ -304,12 +303,13 @@ describe("webhook model", () => {
       const spec = buildOpenApiSpec(baseUrl);
       const post = spec.paths["/"].post;
       const schema = post.requestBody.content["application/json"].schema;
+      const properties = schema.properties ?? {};
       expect(schema.required).toEqual(["url"]);
-      expect(schema.properties.url).toBeDefined();
-      expect(schema.properties.customSlug).toBeDefined();
-      expect(schema.properties.folder).toBeDefined();
-      expect(schema.properties.note).toBeDefined();
-      expect(schema.properties.note.maxLength).toBe(WEBHOOK_NOTE_MAX_LENGTH);
+      expect(properties.url).toBeDefined();
+      expect(properties.customSlug).toBeDefined();
+      expect(properties.folder).toBeDefined();
+      expect(properties.note).toBeDefined();
+      expect(properties.note?.maxLength).toBe(WEBHOOK_NOTE_MAX_LENGTH);
     });
 
     it("POST operation includes 201, 200, 400, 404, 409, 429 responses", () => {
@@ -333,13 +333,13 @@ describe("webhook model", () => {
       const spec = buildOpenApiSpec(baseUrl, 8);
       const post = spec.paths["/"].post;
       expect(post.description).toContain("8");
-      expect(spec.paths["/"].post.responses["429"].description).toContain("8");
+      expect(post.responses["429"]?.description).toContain("8");
     });
 
     it("POST 201 response schema includes slug, shortUrl, originalUrl", () => {
       const spec = buildOpenApiSpec(baseUrl);
       const created = spec.paths["/"].post.responses["201"];
-      const props = created.content["application/json"].schema.properties;
+      const props = created?.content?.["application/json"].schema.properties ?? {};
       expect(props.slug).toBeDefined();
       expect(props.shortUrl).toBeDefined();
       expect(props.originalUrl).toBeDefined();

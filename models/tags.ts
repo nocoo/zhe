@@ -5,30 +5,30 @@
  * Order must stay in sync with CSS custom properties in basalt/src/index.css.
  */
 export const TAG_PALETTE = [
-  'primary',   // --chart-1   217 91% 60%   brand blue
-  'sky',       // --chart-2   200 90% 55%
-  'teal',      // --chart-3   186 80% 45%
-  'jade',      // --chart-4   166 72% 44%
-  'green',     // --chart-5   142 71% 45%
-  'lime',      // --chart-6   84 65% 46%
-  'amber',     // --chart-7   45 93% 47%
-  'orange',    // --chart-8   30 90% 55%
-  'vermilion', // --chart-9   15 85% 52%
-  'red',       // --chart-10  0 72% 51%
-  'rose',      // --chart-11  340 82% 55%
-  'magenta',   // --chart-12  320 70% 55%
-  'orchid',    // --chart-13  290 65% 55%
-  'purple',    // --chart-14  270 70% 60%
-  'indigo',    // --chart-15  250 65% 58%
-  'cobalt',    // --chart-16  230 70% 56%
-  'steel',     // --chart-17  210 55% 50%
-  'cadet',     // --chart-18  195 45% 55%
-  'seafoam',   // --chart-19  160 50% 50%
-  'olive',     // --chart-20  100 50% 48%
-  'gold',      // --chart-21  60 65% 45%
-  'tangerine', // --chart-22  22 80% 50%
-  'crimson',   // --chart-23  350 65% 50%
-  'gray',      // --chart-24  0 0% 25%
+  "primary", // --chart-1   217 91% 60%   brand blue
+  "sky", // --chart-2   200 90% 55%
+  "teal", // --chart-3   186 80% 45%
+  "jade", // --chart-4   166 72% 44%
+  "green", // --chart-5   142 71% 45%
+  "lime", // --chart-6   84 65% 46%
+  "amber", // --chart-7   45 93% 47%
+  "orange", // --chart-8   30 90% 55%
+  "vermilion", // --chart-9   15 85% 52%
+  "red", // --chart-10  0 72% 51%
+  "rose", // --chart-11  340 82% 55%
+  "magenta", // --chart-12  320 70% 55%
+  "orchid", // --chart-13  290 65% 55%
+  "purple", // --chart-14  270 70% 60%
+  "indigo", // --chart-15  250 65% 58%
+  "cobalt", // --chart-16  230 70% 56%
+  "steel", // --chart-17  210 55% 50%
+  "cadet", // --chart-18  195 45% 55%
+  "seafoam", // --chart-19  160 50% 50%
+  "olive", // --chart-20  100 50% 48%
+  "gold", // --chart-21  60 65% 45%
+  "tangerine", // --chart-22  22 80% 50%
+  "crimson", // --chart-23  350 65% 50%
+  "gray", // --chart-24  0 0% 25%
 ] as const;
 
 export type TagPaletteColor = (typeof TAG_PALETTE)[number];
@@ -43,7 +43,7 @@ export function isValidTagColor(color: string): color is TagPaletteColor {
 
 /** Pick a random color from the palette */
 export function randomTagColor(): TagPaletteColor {
-  return TAG_PALETTE[Math.floor(Math.random() * PALETTE_SIZE)] ?? 'primary';
+  return TAG_PALETTE[Math.floor(Math.random() * PALETTE_SIZE)] ?? "primary";
 }
 
 /**
@@ -69,7 +69,7 @@ function fnv1aHash(str: string): number {
  * Same name → same color, everywhere, always.
  */
 export function tagColorFromName(name: string): TagPaletteColor {
-  return TAG_PALETTE[fnv1aHash(name) % PALETTE_SIZE] ?? 'primary';
+  return TAG_PALETTE[fnv1aHash(name) % PALETTE_SIZE] ?? "primary";
 }
 
 /**
@@ -129,9 +129,9 @@ export type TagColor = TagPaletteColor;
 /** @deprecated Use getTagStyles(name) instead */
 export function getTagColorClassesByName(_name: string): { badge: string; dot: string } {
   // Return empty strings — callers should migrate to getTagStyles()
-  return { badge: '', dot: '' };
+  return { badge: "", dot: "" };
 }
 /** @deprecated Use getTagStyles(name) instead */
 export function getTagColorClasses(_color: string): { badge: string; dot: string } {
-  return { badge: '', dot: '' };
+  return { badge: "", dot: "" };
 }

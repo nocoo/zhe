@@ -6,12 +6,12 @@
  * Requires: tags:read (GET), tags:write (PATCH, DELETE)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { ScopedDB } from "@/lib/db/scoped";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { tagToResponse } from "@/lib/api/serializers";
 import type { Tag } from "@/lib/db/schema";
+import { ScopedDB } from "@/lib/db/scoped";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -22,10 +22,7 @@ type RouteContext = {
  *
  * Response: { tag: Tag }
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "tags:read");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -68,10 +65,7 @@ export async function GET(
  *
  * Response: { tag: Tag }
  */
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "tags:write");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -154,10 +148,7 @@ export async function PATCH(
  *
  * Response: { success: true }
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "tags:write");
   if (authResult instanceof NextResponse) {
     return authResult;

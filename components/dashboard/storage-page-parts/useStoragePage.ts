@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { scanStorage, cleanupOrphanFiles } from "@/actions/storage";
-import { computeSummary } from "@/models/storage";
+import { cleanupOrphanFiles, scanStorage } from "@/actions/storage";
 import type { StorageScanResult } from "@/models/storage";
+import { computeSummary } from "@/models/storage";
 
 /** State + actions for the storage page (split out so the page component stays small). */
 export function useStoragePage(initialData?: StorageScanResult) {
@@ -85,10 +85,12 @@ export function useStoragePage(initialData?: StorageScanResult) {
   }, [selectedKeys, data]);
 
   return {
-    data, loading,
+    data,
+    loading,
     selectedKeys,
     cleaning,
-    showConfirm, setShowConfirm,
+    showConfirm,
+    setShowConfirm,
     scan,
     toggleKey,
     selectAllOrphans,

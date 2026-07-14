@@ -3,18 +3,18 @@
  * ScopedDB methods delegate here to keep scoped.ts small.
  */
 
-import { executeD1Query, executeD1Batch, type D1Statement } from '../d1-client';
-import { rowToIdea, rowToIdeaTag } from '../mappers';
-import type { IdeaTag } from '../schema';
-import { generateExcerpt } from '../../markdown';
-import type { GetIdeasOptions, IdeaListItem, IdeaDetail } from './types';
+import { generateExcerpt } from "../../markdown";
+import { type D1Statement, executeD1Batch, executeD1Query } from "../d1-client";
+import { rowToIdea, rowToIdeaTag } from "../mappers";
+import type { IdeaTag } from "../schema";
+import type { GetIdeasOptions, IdeaDetail, IdeaListItem } from "./types";
 
 function buildIdeasQuery(
   userId: string,
   options: GetIdeasOptions,
 ): { conditions: string[]; params: unknown[]; joinClause: string } {
   const { query, tagId } = options;
-  const conditions: string[] = ['i.user_id = ?'];
+  const conditions: string[] = ["i.user_id = ?"];
   const params: unknown[] = [userId];
 
   if (query) {
@@ -23,10 +23,10 @@ function buildIdeasQuery(
     params.push(searchPattern, searchPattern);
   }
 
-  let joinClause = '';
+  let joinClause = "";
   if (tagId) {
-    joinClause = 'JOIN idea_tags it ON i.id = it.idea_id';
-    conditions.push('it.tag_id = ?');
+    joinClause = "JOIN idea_tags it ON i.id = it.idea_id";
+    conditions.push("it.tag_id = ?");
     params.push(tagId);
   }
 
@@ -38,7 +38,7 @@ async function getIdeaTagMap(ideaIds: number[]): Promise<Map<number, string[]>> 
   const map = new Map<number, string[]>();
   if (ideaIds.length === 0) return map;
 
-  const placeholders = ideaIds.map(() => '?').join(', ');
+  const placeholders = ideaIds.map(() => "?").join(", ");
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT idea_id, tag_id FROM idea_tags WHERE idea_id IN (${placeholders})`,
     ideaIds,
@@ -77,15 +77,15 @@ export async function getIdeas(
     SELECT i.id, i.title, i.excerpt, i.created_at, i.updated_at
     FROM ideas i
     ${joinClause}
-    WHERE ${conditions.join(' AND ')}
+    WHERE ${conditions.join(" AND ")}
     ORDER BY i.created_at DESC
   `;
 
   const rows = await executeD1Query<Record<string, unknown>>(sql, params);
-  const ideaIds = rows.map(r => r.id as number);
+  const ideaIds = rows.map((r) => r.id as number);
   const tagMap = await getIdeaTagMap(ideaIds);
 
-  return rows.map(row => rowToListItem(row, tagMap));
+  return rows.map((row) => rowToListItem(row, tagMap));
 }
 
 export async function getIdeasPage(
@@ -94,7 +94,7 @@ export async function getIdeasPage(
 ): Promise<{ items: IdeaListItem[]; total: number }> {
   const { limit, offset, ...filterOptions } = options;
   const { conditions, params, joinClause } = buildIdeasQuery(userId, filterOptions);
-  const whereClause = conditions.join(' AND ');
+  const whereClause = conditions.join(" AND ");
 
   const countSql = `
     SELECT COUNT(DISTINCT i.id) as cnt FROM ideas i
@@ -119,16 +119,16 @@ export async function getIdeasPage(
   const countRows = results[0] ?? [];
   const dataRows = results[1] ?? [];
   const total = (countRows[0]?.cnt as number) ?? 0;
-  const ideaIds = dataRows.map(r => r.id as number);
+  const ideaIds = dataRows.map((r) => r.id as number);
   const tagMap = await getIdeaTagMap(ideaIds);
 
-  const items = dataRows.map(row => rowToListItem(row, tagMap));
+  const items = dataRows.map((row) => rowToListItem(row, tagMap));
   return { items, total };
 }
 
 export async function getIdeaById(userId: string, id: number): Promise<IdeaDetail | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM ideas WHERE id = ? AND user_id = ? LIMIT 1',
+    "SELECT * FROM ideas WHERE id = ? AND user_id = ? LIMIT 1",
     [id, userId],
   );
   if (!rows[0]) return null;
@@ -149,15 +149,15 @@ export async function getIdeaById(userId: string, id: number): Promise<IdeaDetai
 
 async function validateTagIds(userId: string, tagIds: string[]): Promise<void> {
   if (tagIds.length === 0) return;
-  const placeholders = tagIds.map(() => '?').join(', ');
+  const placeholders = tagIds.map(() => "?").join(", ");
   const validTags = await executeD1Query<{ id: string }>(
     `SELECT id FROM tags WHERE user_id = ? AND id IN (${placeholders})`,
     [userId, ...tagIds],
   );
   if (validTags.length !== tagIds.length) {
-    const validIds = new Set(validTags.map(t => t.id));
-    const invalid = tagIds.filter(tid => !validIds.has(tid));
-    throw new Error(`Invalid tag IDs: ${invalid.join(', ')}`);
+    const validIds = new Set(validTags.map((t) => t.id));
+    const invalid = tagIds.filter((tid) => !validIds.has(tid));
+    throw new Error(`Invalid tag IDs: ${invalid.join(", ")}`);
   }
 }
 
@@ -187,7 +187,7 @@ export async function createIdea(
     [userId, data.title ?? null, data.content, excerpt, now, now],
   );
   if (!ideaRow) {
-    throw new Error('Failed to create idea');
+    throw new Error("Failed to create idea");
   }
   const idea = rowToIdea(ideaRow);
 
@@ -199,8 +199,8 @@ export async function createIdea(
       }));
       await executeD1Batch(tagStatements);
     } catch (err) {
-      console.error('createIdea: tag binding failed, rolling back idea', err);
-      await executeD1Query('DELETE FROM ideas WHERE id = ?', [idea.id]);
+      console.error("createIdea: tag binding failed, rolling back idea", err);
+      await executeD1Query("DELETE FROM ideas WHERE id = ?", [idea.id]);
       throw err;
     }
   }
@@ -223,33 +223,33 @@ function buildUpdateStatements(
   now: number,
 ): D1Statement[] {
   const statements: D1Statement[] = [];
-  const setClauses: string[] = ['updated_at = ?'];
+  const setClauses: string[] = ["updated_at = ?"];
   const setParams: unknown[] = [now];
 
   if (data.title !== undefined) {
-    setClauses.push('title = ?');
+    setClauses.push("title = ?");
     setParams.push(data.title);
   }
   if (data.content !== undefined) {
-    setClauses.push('content = ?');
+    setClauses.push("content = ?");
     setParams.push(data.content);
-    setClauses.push('excerpt = ?');
+    setClauses.push("excerpt = ?");
     setParams.push(generateExcerpt(data.content, 200));
   }
 
   statements.push({
-    sql: `UPDATE ideas SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+    sql: `UPDATE ideas SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params: [...setParams, id, userId],
   });
 
   if (data.tagIds !== undefined) {
     statements.push({
-      sql: 'DELETE FROM idea_tags WHERE idea_id = ?',
+      sql: "DELETE FROM idea_tags WHERE idea_id = ?",
       params: [id],
     });
     for (const tagId of data.tagIds) {
       statements.push({
-        sql: 'INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)',
+        sql: "INSERT INTO idea_tags (idea_id, tag_id) VALUES (?, ?)",
         params: [id, tagId],
       });
     }
@@ -293,7 +293,7 @@ export async function updateIdea(
 
 export async function deleteIdea(userId: string, id: number): Promise<boolean> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'DELETE FROM ideas WHERE id = ? AND user_id = ? RETURNING id',
+    "DELETE FROM ideas WHERE id = ? AND user_id = ? RETURNING id",
     [id, userId],
   );
   return rows.length > 0;

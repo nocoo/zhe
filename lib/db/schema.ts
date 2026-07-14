@@ -1,155 +1,188 @@
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // ============================================
 // Auth.js Tables (required for D1 adapter)
 // ============================================
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  name: text('name'),
-  email: text('email').unique(),
-  emailVerified: integer('emailVerified', { mode: 'timestamp' }),
-  image: text('image'),
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  email: text("email").unique(),
+  emailVerified: integer("emailVerified", { mode: "timestamp" }),
+  image: text("image"),
 });
 
-export const accounts = sqliteTable('accounts', {
-  id: text('id').primaryKey(),
-  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  provider: text('provider').notNull(),
-  providerAccountId: text('providerAccountId').notNull(),
-  refresh_token: text('refresh_token'),
-  access_token: text('access_token'),
-  expires_at: integer('expires_at'),
-  token_type: text('token_type'),
-  scope: text('scope'),
-  id_token: text('id_token'),
-  session_state: text('session_state'),
+export const accounts = sqliteTable("accounts", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  provider: text("provider").notNull(),
+  providerAccountId: text("providerAccountId").notNull(),
+  refresh_token: text("refresh_token"),
+  access_token: text("access_token"),
+  expires_at: integer("expires_at"),
+  token_type: text("token_type"),
+  scope: text("scope"),
+  id_token: text("id_token"),
+  session_state: text("session_state"),
 });
 
-export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(),
-  sessionToken: text('sessionToken').unique().notNull(),
-  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  expires: integer('expires', { mode: 'timestamp' }).notNull(),
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  sessionToken: text("sessionToken").unique().notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: integer("expires", { mode: "timestamp" }).notNull(),
 });
 
-export const verificationTokens = sqliteTable('verificationTokens', {
-  identifier: text('identifier').notNull(),
-  token: text('token').notNull(),
-  expires: integer('expires', { mode: 'timestamp' }).notNull(),
-}, (table) => ({
-  compositePk: primaryKey({ columns: [table.identifier, table.token] }),
-}));
+export const verificationTokens = sqliteTable(
+  "verificationTokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: integer("expires", { mode: "timestamp" }).notNull(),
+  },
+  (table) => ({
+    compositePk: primaryKey({ columns: [table.identifier, table.token] }),
+  }),
+);
 
 // ============================================
 // Application Tables
 // ============================================
 
-export const folders = sqliteTable('folders', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  icon: text('icon').notNull().default('folder'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const folders = sqliteTable("folders", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  icon: text("icon").notNull().default("folder"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const links = sqliteTable('links', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  folderId: text('folder_id').references(() => folders.id, { onDelete: 'set null' }),
-  originalUrl: text('original_url').notNull(),
-  slug: text('slug').notNull().unique(),
-  isCustom: integer('is_custom', { mode: 'boolean' }).default(false),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }),
-  clicks: integer('clicks').default(0),
-  metaTitle: text('meta_title'),
-  metaDescription: text('meta_description'),
-  metaFavicon: text('meta_favicon'),
-  screenshotUrl: text('screenshot_url'),
-  note: text('note'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const links = sqliteTable("links", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
+  originalUrl: text("original_url").notNull(),
+  slug: text("slug").notNull().unique(),
+  isCustom: integer("is_custom", { mode: "boolean" }).default(false),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  clicks: integer("clicks").default(0),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  metaFavicon: text("meta_favicon"),
+  screenshotUrl: text("screenshot_url"),
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const analytics = sqliteTable('analytics', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  linkId: integer('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
-  country: text('country'),
-  city: text('city'),
-  device: text('device'),
-  browser: text('browser'),
-  os: text('os'),
-  referer: text('referer'),
-  source: text('source'), // 'worker' | 'origin' | null (legacy data)
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const analytics = sqliteTable("analytics", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  linkId: integer("link_id")
+    .notNull()
+    .references(() => links.id, { onDelete: "cascade" }),
+  country: text("country"),
+  city: text("city"),
+  device: text("device"),
+  browser: text("browser"),
+  os: text("os"),
+  referer: text("referer"),
+  source: text("source"), // 'worker' | 'origin' | null (legacy data)
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const webhooks = sqliteTable('webhooks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
-  token: text('token').notNull().unique(),
-  rateLimit: integer('rate_limit').notNull().default(5),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const webhooks = sqliteTable("webhooks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" })
+    .unique(),
+  token: text("token").notNull().unique(),
+  rateLimit: integer("rate_limit").notNull().default(5),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const uploads = sqliteTable('uploads', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  key: text('key').notNull().unique(),
-  fileName: text('file_name').notNull(),
-  fileType: text('file_type').notNull(),
-  fileSize: integer('file_size').notNull(),
-  publicUrl: text('public_url').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const uploads = sqliteTable("uploads", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  key: text("key").notNull().unique(),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  publicUrl: text("public_url").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const tags = sqliteTable('tags', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  color: text('color').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+export const tags = sqliteTable("tags", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const linkTags = sqliteTable('link_tags', {
-  linkId: integer('link_id').notNull().references(() => links.id, { onDelete: 'cascade' }),
-  tagId: text('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
-}, (table) => ({
-  compositePk: primaryKey({ columns: [table.linkId, table.tagId] }),
-}));
+export const linkTags = sqliteTable(
+  "link_tags",
+  {
+    linkId: integer("link_id")
+      .notNull()
+      .references(() => links.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    compositePk: primaryKey({ columns: [table.linkId, table.tagId] }),
+  }),
+);
 
-export const userSettings = sqliteTable('user_settings', {
-  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  previewStyle: text('preview_style').notNull().default('favicon'),
-  backyWebhookUrl: text('backy_webhook_url'),
-  backyApiKey: text('backy_api_key'),
-  xrayApiUrl: text('xray_api_url'),
-  xrayApiToken: text('xray_api_token'),
-  backyPullKey: text('backy_pull_key'),
+export const userSettings = sqliteTable("user_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  previewStyle: text("preview_style").notNull().default("favicon"),
+  backyWebhookUrl: text("backy_webhook_url"),
+  backyApiKey: text("backy_api_key"),
+  xrayApiUrl: text("xray_api_url"),
+  xrayApiToken: text("xray_api_token"),
+  backyPullKey: text("backy_pull_key"),
 });
 
-export const tweetCache = sqliteTable('tweet_cache', {
-  tweetId: text('tweet_id').primaryKey(),
-  authorUsername: text('author_username').notNull(),
-  authorName: text('author_name').notNull(),
-  authorAvatar: text('author_avatar').notNull(),
-  tweetText: text('tweet_text').notNull(),
-  tweetUrl: text('tweet_url').notNull(),
-  lang: text('lang'),
-  tweetCreatedAt: text('tweet_created_at').notNull(),
-  rawData: text('raw_data').notNull(),
-  fetchedAt: integer('fetched_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+export const tweetCache = sqliteTable("tweet_cache", {
+  tweetId: text("tweet_id").primaryKey(),
+  authorUsername: text("author_username").notNull(),
+  authorName: text("author_name").notNull(),
+  authorAvatar: text("author_avatar").notNull(),
+  tweetText: text("tweet_text").notNull(),
+  tweetUrl: text("tweet_url").notNull(),
+  lang: text("lang"),
+  tweetCreatedAt: text("tweet_created_at").notNull(),
+  rawData: text("raw_data").notNull(),
+  fetchedAt: integer("fetched_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 
 export const apiKeys = sqliteTable("api_keys", {
   id: text("id").primaryKey(),
-  prefix: text("prefix").notNull(),     // First 8 chars for display (e.g., "zhe_xxxx")
-  keyHash: text("key_hash").notNull(),  // SHA-256 hash of the full key
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),         // User-provided label (e.g., "CLI key")
-  scopes: text("scopes").notNull(),     // Comma-separated scopes (e.g., "links:read,links:write")
+  prefix: text("prefix").notNull(), // First 8 chars for display (e.g., "zhe_xxxx")
+  keyHash: text("key_hash").notNull(), // SHA-256 hash of the full key
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // User-provided label (e.g., "CLI key")
+  scopes: text("scopes").notNull(), // Comma-separated scopes (e.g., "links:read,links:write")
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
@@ -157,7 +190,9 @@ export const apiKeys = sqliteTable("api_keys", {
 
 export const apiAuditLogs = sqliteTable("api_audit_logs", {
   id: text("id").primaryKey(),
-  keyId: text("key_id").notNull().references(() => apiKeys.id, { onDelete: "cascade" }),
+  keyId: text("key_id")
+    .notNull()
+    .references(() => apiKeys.id, { onDelete: "cascade" }),
   keyPrefix: text("key_prefix").notNull(),
   userId: text("user_id").notNull(),
   endpoint: text("endpoint").notNull(),
@@ -168,7 +203,9 @@ export const apiAuditLogs = sqliteTable("api_audit_logs", {
 
 export const ideas = sqliteTable("ideas", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   title: text("title"),
   content: text("content").notNull(),
   excerpt: text("excerpt"),
@@ -176,12 +213,20 @@ export const ideas = sqliteTable("ideas", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-export const ideaTags = sqliteTable("idea_tags", {
-  ideaId: integer("idea_id").notNull().references(() => ideas.id, { onDelete: "cascade" }),
-  tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
-}, (table) => ({
-  compositePk: primaryKey({ columns: [table.ideaId, table.tagId] }),
-}));
+export const ideaTags = sqliteTable(
+  "idea_tags",
+  {
+    ideaId: integer("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    compositePk: primaryKey({ columns: [table.ideaId, table.tagId] }),
+  }),
+);
 
 // ============================================
 // Todos (docs/21-todos-feature.md)
@@ -189,10 +234,14 @@ export const ideaTags = sqliteTable("idea_tags", {
 
 export const todos = sqliteTable("todos", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   // Self-referential parent; null = root. Cast keeps Drizzle happy about the
   // forward-reference to `todos` inside its own initializer.
-  parentId: integer("parent_id").references((): AnySQLiteColumn => todos.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id").references((): AnySQLiteColumn => todos.id, {
+    onDelete: "cascade",
+  }),
   position: integer("position").notNull(),
   title: text("title").notNull(),
   content: text("content"),
@@ -212,13 +261,19 @@ export const todos = sqliteTable("todos", {
 // The name string is the natural PK (canonicalised to lowercase in the
 // application layer). Colour is derived client-side from the name; nothing
 // to persist here.
-export const todoTags = sqliteTable("todo_tags", {
-  todoId: integer("todo_id").notNull().references(() => todos.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-}, (table) => ({
-  compositePk: primaryKey({ columns: [table.todoId, table.name] }),
-}));
+export const todoTags = sqliteTable(
+  "todo_tags",
+  {
+    todoId: integer("todo_id")
+      .notNull()
+      .references(() => todos.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => ({
+    compositePk: primaryKey({ columns: [table.todoId, table.name] }),
+  }),
+);
 
 // ============================================
 // Type exports

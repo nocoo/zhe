@@ -18,32 +18,20 @@
  * layer.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Plus, SlidersHorizontal } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { PageHeader } from "@/components/ui/page-header";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  useCoarsePointer,
-  useNarrowViewport,
-} from "@/hooks/use-media-query";
-import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
-import { TodoTreeShell } from "./todos-page-parts/todo-tree-shell";
-import { TodoDetailPane } from "./todos-page-parts/todo-detail-pane";
-import { TodosFilterBar } from "./todos-page-parts/todos-filter-bar";
-import { TodoDeleteConfirm } from "./todos-page-parts/todo-delete-confirm";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useCoarsePointer, useNarrowViewport } from "@/hooks/use-media-query";
 import type { TodoForestNode } from "@/models/todos";
+import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
+import { TodoDeleteConfirm } from "./todos-page-parts/todo-delete-confirm";
+import { TodoDetailPane } from "./todos-page-parts/todo-detail-pane";
+import { TodoTreeShell } from "./todos-page-parts/todo-tree-shell";
+import { TodosFilterBar } from "./todos-page-parts/todos-filter-bar";
 
 /**
  * Count strict descendants of a node in the flat tree — used to display
@@ -152,18 +140,12 @@ export function TodosPage() {
   );
 
   const descendantCount = useMemo(
-    () =>
-      vm.todoToDelete
-        ? countDescendants(vm.todos, vm.todoToDelete.id)
-        : 0,
+    () => (vm.todoToDelete ? countDescendants(vm.todos, vm.todoToDelete.id) : 0),
     [vm.todoToDelete, vm.todos],
   );
 
   const totalCount = vm.todos.length;
-  const visibleCount = vm.forest.reduce(function count(
-    acc: number,
-    node: TodoForestNode,
-  ): number {
+  const visibleCount = vm.forest.reduce(function count(acc: number, node: TodoForestNode): number {
     return node.children.reduce(count, acc + 1);
   }, 0);
   const hasActiveFilters =
@@ -203,10 +185,7 @@ export function TodosPage() {
             {!narrow && <TodosFilterBar {...filterProps} />}
 
             {narrow && (
-              <Popover
-                open={mobileFilterOpen}
-                onOpenChange={setMobileFilterOpen}
-              >
+              <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -214,10 +193,7 @@ export function TodosPage() {
                     className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
                     aria-label="筛选与搜索"
                   >
-                    <SlidersHorizontal
-                      className="h-3.5 w-3.5"
-                      strokeWidth={1.5}
-                    />
+                    <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>筛选</span>
                     {activeFilterCount > 0 && (
                       <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
@@ -226,10 +202,7 @@ export function TodosPage() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-[calc(100vw-2rem)] max-w-xs p-3"
-                >
+                <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <TodosFilterBar {...filterProps} />
                   </div>
@@ -326,9 +299,7 @@ export function TodosPage() {
             data-todos-detail-sheet
           >
             <SheetHeader className="px-4 pt-4 pb-2">
-              <SheetTitle className="text-sm">
-                {vm.detail?.title ?? "待办详情"}
-              </SheetTitle>
+              <SheetTitle className="text-sm">{vm.detail?.title ?? "待办详情"}</SheetTitle>
             </SheetHeader>
             <div className="flex-1 min-h-0 overflow-hidden">
               <TodoDetailPane

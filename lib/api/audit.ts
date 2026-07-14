@@ -5,8 +5,8 @@
  * Logs are stored in D1 for future querying.
  */
 
-import { executeD1Query } from "@/lib/db/d1-client";
 import { nanoid } from "nanoid";
+import { executeD1Query } from "@/lib/db/d1-client";
 
 export interface AuditLogEntry {
   keyId: string;
@@ -67,16 +67,18 @@ export async function recordAuditLog(entry: AuditLogEntry): Promise<void> {
 export async function getAuditLogs(
   keyId: string,
   limit: number = 100,
-): Promise<{
-  id: string;
-  keyId: string;
-  keyPrefix: string;
-  userId: string;
-  endpoint: string;
-  method: string;
-  statusCode: number;
-  timestamp: Date;
-}[]> {
+): Promise<
+  {
+    id: string;
+    keyId: string;
+    keyPrefix: string;
+    userId: string;
+    endpoint: string;
+    method: string;
+    statusCode: number;
+    timestamp: Date;
+  }[]
+> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT * FROM api_audit_logs WHERE key_id = ? ORDER BY timestamp DESC LIMIT ?`,
     [keyId, limit],
@@ -103,16 +105,18 @@ export async function getAuditLogs(
 export async function getAuditLogsByUser(
   userId: string,
   limit: number = 100,
-): Promise<{
-  id: string;
-  keyId: string;
-  keyPrefix: string;
-  userId: string;
-  endpoint: string;
-  method: string;
-  statusCode: number;
-  timestamp: Date;
-}[]> {
+): Promise<
+  {
+    id: string;
+    keyId: string;
+    keyPrefix: string;
+    userId: string;
+    endpoint: string;
+    method: string;
+    statusCode: number;
+    timestamp: Date;
+  }[]
+> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `SELECT * FROM api_audit_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?`,
     [userId, limit],

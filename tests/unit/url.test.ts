@@ -1,9 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  resolvePublicOrigin,
-  resolvePublicOriginFromHeaders,
-} from "@/lib/url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolvePublicOrigin, resolvePublicOriginFromHeaders } from "@/lib/url";
 
 const ENV_KEYS = ["TRUSTED_ORIGINS", "PUBLIC_ORIGIN"] as const;
 type EnvKey = (typeof ENV_KEYS)[number];

@@ -165,7 +165,10 @@ export function clearAllRateLimits(): void {
 /**
  * Get current request count for a key (for monitoring).
  */
-export function getRateLimitCount(keyId: string, config: RateLimitConfig = DEFAULT_RATE_LIMIT): number {
+export function getRateLimitCount(
+  keyId: string,
+  config: RateLimitConfig = DEFAULT_RATE_LIMIT,
+): number {
   const entry = windows.get(`api:${keyId}`);
   if (!entry) return 0;
 

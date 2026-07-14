@@ -4,7 +4,7 @@
 
 /** Get the base URL for API requests. */
 export function getBaseUrl(): string {
-  const port = process.env.API_E2E_PORT ?? '17006';
+  const port = process.env.API_E2E_PORT ?? "17006";
   return `http://localhost:${port}`;
 }
 

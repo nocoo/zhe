@@ -2,13 +2,9 @@
 
 import { LayoutGrid, LayoutList, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { LinkFilterBar } from "../link-filter-bar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
+import { LinkFilterBar } from "../link-filter-bar";
 
 type ViewMode = "list" | "grid";
 
@@ -58,6 +54,7 @@ function FilterControls(props: FilterControlsProps) {
       />
       <div className="flex items-center rounded-widget bg-background p-0.5">
         <button
+          type="button"
           onClick={() => onViewModeChange("list")}
           aria-label="List view"
           className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
@@ -69,6 +66,7 @@ function FilterControls(props: FilterControlsProps) {
           <LayoutList className="w-4 h-4" strokeWidth={1.5} />
         </button>
         <button
+          type="button"
           onClick={() => onViewModeChange("grid")}
           aria-label="Grid view"
           className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
@@ -88,10 +86,7 @@ function FilterControls(props: FilterControlsProps) {
         disabled={isRefreshing}
         aria-label="刷新链接"
       >
-        <RefreshCw
-          className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-          strokeWidth={1.5}
-        />
+        <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
       </Button>
     </>
   );
@@ -125,14 +120,10 @@ export function LinksListToolbar(props: ToolbarProps) {
 
   return (
     <div className="flex items-center justify-between mb-6 gap-4">
-      <h2 className="text-lg font-semibold text-foreground shrink-0">
-        {headerTitle}
-      </h2>
+      <h2 className="text-lg font-semibold text-foreground shrink-0">{headerTitle}</h2>
       <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
         <p className="text-sm text-muted-foreground whitespace-nowrap">
-          {hasActiveFilters
-            ? `${linkCount} / ${totalCount} 条链接`
-            : `共 ${linkCount} 条链接`}
+          {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
         </p>
 
         {!isMobile && <FilterControls {...controls} />}
@@ -155,10 +146,7 @@ export function LinksListToolbar(props: ToolbarProps) {
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              className="w-[calc(100vw-2rem)] max-w-xs p-3"
-            >
+            <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <FilterControls {...controls} />
               </div>

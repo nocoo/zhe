@@ -7,9 +7,9 @@
 
 /** E2E test user — must match the CredentialsProvider in auth.ts. */
 export const TEST_USER = {
-  id: 'e2e-test-user-id',
-  name: 'E2E Test User',
-  email: 'e2e@test.local',
+  id: "e2e-test-user-id",
+  name: "E2E Test User",
+  email: "e2e@test.local",
 } as const;
 
 export interface ExecuteD1Options {
@@ -21,24 +21,25 @@ function proxyCredentials(softFail = false): { url: string; secret: string } | n
   const url = process.env.D1_PROXY_URL;
   const secret = process.env.D1_PROXY_SECRET;
   if (!url || !secret) {
-    const msg = 'D1_PROXY_URL / D1_PROXY_SECRET not set. Playwright globalSetup must call applyLocalStackEnv() first.';
+    const msg =
+      "D1_PROXY_URL / D1_PROXY_SECRET not set. Playwright globalSetup must call applyLocalStackEnv() first.";
     if (softFail) {
       console.warn(`[pw:d1] ${msg}`);
       return null;
     }
     throw new Error(msg);
   }
-  if (!url.includes('127.0.0.1') && !url.includes('localhost')) {
+  if (!url.includes("127.0.0.1") && !url.includes("localhost")) {
     throw new Error(
       `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
-      'Refusing to run destructive operations against a remote target.',
+        "Refusing to run destructive operations against a remote target.",
     );
   }
   return { url, secret };
 }
 
 function endpoint(base: string, path: string): string {
-  return base.endsWith('/') ? `${base}${path.replace(/^\//, '')}` : `${base}${path}`;
+  return base.endsWith("/") ? `${base}${path.replace(/^\//, "")}` : `${base}${path}`;
 }
 
 interface D1QueryResponse {
@@ -61,9 +62,9 @@ export async function executeD1(
   const creds = proxyCredentials(options.softFail);
   if (!creds) return;
 
-  const res = await fetch(endpoint(creds.url, '/api/d1-query'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${creds.secret}`, 'Content-Type': 'application/json' },
+  const res = await fetch(endpoint(creds.url, "/api/d1-query"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${creds.secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
 
@@ -79,7 +80,7 @@ export async function executeD1(
 
   const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    const msg = `D1 proxy error: ${data.error ?? 'unknown'}`;
+    const msg = `D1 proxy error: ${data.error ?? "unknown"}`;
     if (options.softFail) {
       console.error(`[pw:d1] ${msg}`);
       return;
@@ -94,11 +95,11 @@ export async function queryD1<T = Record<string, unknown>>(
   params: unknown[] = [],
 ): Promise<T[]> {
   const creds = proxyCredentials();
-  if (!creds) throw new Error('proxyCredentials() returned null with softFail off');
+  if (!creds) throw new Error("proxyCredentials() returned null with softFail off");
 
-  const res = await fetch(endpoint(creds.url, '/api/d1-query'), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${creds.secret}`, 'Content-Type': 'application/json' },
+  const res = await fetch(endpoint(creds.url, "/api/d1-query"), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${creds.secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
 
@@ -109,7 +110,7 @@ export async function queryD1<T = Record<string, unknown>>(
 
   const data = (await res.json()) as D1QueryResponse;
   if (!data.success) {
-    throw new Error(`D1 proxy error: ${data.error ?? 'unknown'}`);
+    throw new Error(`D1 proxy error: ${data.error ?? "unknown"}`);
   }
 
   return (data.results ?? []) as T[];

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearMockStorage } from "../mocks/db-storage";
 
 // Mock auth-context before importing actions
@@ -8,9 +8,14 @@ vi.mock("@/lib/auth-context", () => ({
   getScopedDB: vi.fn(),
 }));
 
+import {
+  createApiKeyAction,
+  listApiKeys,
+  migrateFromWebhookAction,
+  revokeApiKeyAction,
+} from "@/actions/api-keys";
 import { getScopedDB } from "@/lib/auth-context";
 import { ScopedDB } from "@/lib/db/scoped";
-import { listApiKeys, createApiKeyAction, revokeApiKeyAction, migrateFromWebhookAction } from "@/actions/api-keys";
 
 describe("api-key actions", () => {
   beforeEach(() => {

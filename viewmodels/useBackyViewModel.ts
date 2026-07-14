@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  getBackyConfig,
-  fetchBackyHistory,
-  getBackyPullWebhook,
-} from "@/actions/backy";
+import { useEffect, useState } from "react";
+import { fetchBackyHistory, getBackyConfig, getBackyPullWebhook } from "@/actions/backy";
 import type { BackyHistoryResponse } from "@/models/backy";
 import { getBackyEnvironment } from "@/models/backy";
+import { useBackyHistory, useBackyPullWebhook, useBackyTestPush } from "./backy/useBackyActions";
 import { useBackyConfigState } from "./backy/useBackyConfigState";
-import {
-  useBackyTestPush,
-  useBackyHistory,
-  useBackyPullWebhook,
-} from "./backy/useBackyActions";
 
 /** Initial data from SSR prefetch */
 export interface BackyInitialData {
@@ -34,10 +26,7 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
     ...(initialData?.webhookUrl !== undefined ? { webhookUrl: initialData.webhookUrl } : {}),
     ...(initialData?.maskedApiKey !== undefined ? { maskedApiKey: initialData.maskedApiKey } : {}),
   });
-  const historyHook = useBackyHistory(
-    initialData?.history ?? null,
-    (msg) => config.setError(msg),
-  );
+  const historyHook = useBackyHistory(initialData?.history ?? null, (msg) => config.setError(msg));
   const testPush = useBackyTestPush(historyHook.setHistory);
   const pull = useBackyPullWebhook(initialData?.pullWebhook?.key ?? null);
 
@@ -68,9 +57,17 @@ export function useBackyViewModel(initialData?: BackyInitialData) {
 
       setIsLoading(false);
     })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    initialData,
+    config.setMaskedApiKey,
+    pull.setPullKey,
+    historyHook.setHistory,
+    config.setWebhookUrl,
+    config.setIsConfigured,
+  ]);
 
   const startEditing = () => {
     config.startEditing();

@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { Link, AnalyticsStats } from "@/models/types";
-import {
-  deleteLink,
-  getAnalyticsStats,
-} from "@/actions/links";
+import { deleteLink, getAnalyticsStats } from "@/actions/links";
 import { refreshLinkMetadata } from "@/actions/links/metadata";
 import { fetchAndSaveScreenshot } from "@/actions/links/screenshot";
 import { copyToClipboard } from "@/lib/utils";
 import {
   buildShortUrl,
-  isGitHubRepoUrl,
   GITHUB_REPO_PREVIEW_URL,
+  isGitHubRepoUrl,
   type ScreenshotSource,
 } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
+import type { AnalyticsStats, Link } from "@/models/types";
 
 /** Track clipboard copy state with auto-reset. */
 function useCopyState(text: string) {
@@ -58,9 +55,7 @@ function useLinkAnalyticsToggle(linkId: number) {
 
 /** Screenshot state — DB is primary source; supports manual refresh from a chosen source. */
 function useScreenshotPreview(link: Link, onUpdate: (link: Link) => void) {
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(
-    link.screenshotUrl ?? null,
-  );
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(link.screenshotUrl ?? null);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
   useEffect(() => {
@@ -108,7 +103,9 @@ function useMetadataRefresh(linkId: number, onUpdate: (link: Link) => void) {
         onUpdate(result.data);
         toast.success("元数据已刷新");
       } else {
-        toast.error("刷新元数据失败", { description: result.error || "Failed to refresh metadata" });
+        toast.error("刷新元数据失败", {
+          description: result.error || "Failed to refresh metadata",
+        });
       }
     } catch (error) {
       console.error("Failed to refresh metadata:", error);
@@ -121,10 +118,14 @@ function useMetadataRefresh(linkId: number, onUpdate: (link: Link) => void) {
 }
 
 /** Favicon load-failure tracking with reset on URL change. */
-function useFaviconState(metaFavicon: string | null | undefined) {
+function useFaviconState(_metaFavicon: string | null | undefined) {
   const [faviconError, setFaviconError] = useState(false);
-  useEffect(() => { setFaviconError(false); }, [metaFavicon]);
-  const handleFaviconError = useCallback(() => { setFaviconError(true); }, []);
+  useEffect(() => {
+    setFaviconError(false);
+  }, []);
+  const handleFaviconError = useCallback(() => {
+    setFaviconError(true);
+  }, []);
   return { faviconError, handleFaviconError };
 }
 

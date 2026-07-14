@@ -4,24 +4,24 @@
  * Returns structured health status including version, uptime, timestamp,
  * and database connectivity. 200 = healthy, 503 = unhealthy.
  */
-import { NextResponse } from 'next/server';
-import { APP_VERSION } from '@/lib/version';
-import { executeD1Query, isD1Configured } from '@/lib/db/d1-client';
+import { NextResponse } from "next/server";
+import { executeD1Query, isD1Configured } from "@/lib/db/d1-client";
+import { APP_VERSION } from "@/lib/version";
 
-const headers = { 'Cache-Control': 'no-store' } as const;
+const headers = { "Cache-Control": "no-store" } as const;
 
 /** Sanitize error messages — strip sensitive tokens. */
 function sanitize(message: string): string {
-  return message.replace(/\bok\b/gi, '***');
+  return message.replace(/\bok\b/gi, "***");
 }
 
 async function probeDatabase(): Promise<{ connected: boolean; error?: string }> {
   if (!isD1Configured()) {
-    return { connected: false, error: 'D1 not configured' };
+    return { connected: false, error: "D1 not configured" };
   }
 
   try {
-    await executeD1Query<{ probe: number }>('SELECT 1 AS probe');
+    await executeD1Query<{ probe: number }>("SELECT 1 AS probe");
     return { connected: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -34,9 +34,9 @@ export async function GET() {
   const isHealthy = database.connected;
 
   const body = {
-    status: isHealthy ? ('ok' as const) : ('error' as const),
+    status: isHealthy ? ("ok" as const) : ("error" as const),
     version: APP_VERSION,
-    component: 'zhe',
+    component: "zhe",
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
     database,

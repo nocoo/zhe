@@ -6,12 +6,12 @@
  *
  * Seeded via D1 HTTP API — no in-process mocks.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { apiGet, apiHead, jsonResponse } from './helpers/http';
-import { seedWebhook, cleanupTestData, resetAndSeedUser } from './helpers/seed';
-import { unwrap } from '../test-utils';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { unwrap } from "../test-utils";
+import { apiGet, apiHead, jsonResponse } from "./helpers/http";
+import { cleanupTestData, resetAndSeedUser, seedWebhook } from "./helpers/seed";
 
-const TEST_USER_ID = 'api-webhook-test-user';
+const TEST_USER_ID = "api-webhook-test-user";
 let webhookToken: string;
 
 beforeAll(async () => {
@@ -27,14 +27,14 @@ afterAll(async () => {
 // ============================================================
 // HEAD — Connection Test
 // ============================================================
-describe('HEAD /api/link/create/[token]', () => {
-  it('returns 200 for a valid token', async () => {
+describe("HEAD /api/link/create/[token]", () => {
+  it("returns 200 for a valid token", async () => {
     const res = await apiHead(`/api/link/create/${webhookToken}`);
     expect(res.status).toBe(200);
   });
 
-  it('returns 404 for an invalid token', async () => {
-    const res = await apiHead('/api/link/create/nonexistent-token');
+  it("returns 404 for an invalid token", async () => {
+    const res = await apiHead("/api/link/create/nonexistent-token");
     expect(res.status).toBe(404);
   });
 });
@@ -42,16 +42,16 @@ describe('HEAD /api/link/create/[token]', () => {
 // ============================================================
 // GET — Status & Documentation
 // ============================================================
-describe('GET /api/link/create/[token]', () => {
-  it('returns 404 for an invalid token', async () => {
-    const res = await apiGet('/api/link/create/bad-token');
+describe("GET /api/link/create/[token]", () => {
+  it("returns 404 for an invalid token", async () => {
+    const res = await apiGet("/api/link/create/bad-token");
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(404);
-    expect(body.error).toBe('Invalid webhook token');
+    expect(body.error).toBe("Invalid webhook token");
   });
 
-  it('returns status, stats, and docs for a valid token', async () => {
+  it("returns status, stats, and docs for a valid token", async () => {
     const res = await apiGet(`/api/link/create/${webhookToken}`);
     const { status, body } = await jsonResponse<{
       status: string;
@@ -62,11 +62,11 @@ describe('GET /api/link/create/[token]', () => {
     }>(res);
 
     expect(status).toBe(200);
-    expect(body.status).toBe('active');
+    expect(body.status).toBe("active");
     expect(body.createdAt).toBeDefined();
     expect(body.rateLimit).toBeGreaterThan(0);
     expect(body.stats).toBeDefined();
-    expect(body.docs.openapi).toBe('3.1.0');
+    expect(body.docs.openapi).toBe("3.1.0");
     expect(body.docs.servers[0]).toBeDefined();
     expect(unwrap(body.docs.servers[0]).url).toContain(`/api/link/create/${webhookToken}`);
   });

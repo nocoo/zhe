@@ -29,19 +29,11 @@ export function EmptyState({
   return (
     <div
       data-testid={testId}
-      className={cn(
-        "rounded-card border-0 bg-secondary shadow-none p-12 text-center",
-        className,
-      )}
+      className={cn("rounded-card border-0 bg-secondary shadow-none p-12 text-center", className)}
     >
-      <Icon
-        className="w-10 h-10 mx-auto text-muted-foreground mb-4"
-        strokeWidth={1.5}
-      />
+      <Icon className="w-10 h-10 mx-auto text-muted-foreground mb-4" strokeWidth={1.5} />
       <p className="text-sm text-muted-foreground mb-2">{title}</p>
-      {description && (
-        <p className="text-xs text-muted-foreground mb-6">{description}</p>
-      )}
+      {description && <p className="text-xs text-muted-foreground mb-6">{description}</p>}
       {action}
     </div>
   );

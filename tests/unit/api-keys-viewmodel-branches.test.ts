@@ -9,8 +9,8 @@
 // produce (e.g. listApiKeys returning success:false, mid-flight
 // unmount, createApiKeyAction throwing).
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/actions/api-keys", () => ({
   listApiKeys: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock("@/actions/api-keys", () => ({
   revokeApiKeyAction: vi.fn(),
 }));
 
-import { listApiKeys, createApiKeyAction, revokeApiKeyAction } from "@/actions/api-keys";
+import { createApiKeyAction, listApiKeys, revokeApiKeyAction } from "@/actions/api-keys";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 
 describe("useApiKeysViewModel — failure & cancel branches", () => {
@@ -48,7 +48,9 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     // setState warnings.
     let resolveList: (v: Awaited<ReturnType<typeof listApiKeys>>) => void = () => {};
     vi.mocked(listApiKeys).mockReturnValue(
-      new Promise((resolve) => { resolveList = resolve; }),
+      new Promise((resolve) => {
+        resolveList = resolve;
+      }),
     );
 
     const { unmount } = renderHook(() => useApiKeysViewModel());
@@ -59,7 +61,14 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     const target = {
       success: true as const,
       data: [
-        { id: "k1", prefix: "zhe_p", name: "Late", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
+        {
+          id: "k1",
+          prefix: "zhe_p",
+          name: "Late",
+          scopes: "links:read",
+          createdAt: new Date(0),
+          lastUsedAt: null,
+        },
       ],
     };
     const sentinel = new Proxy(target, {
@@ -92,7 +101,9 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     // entirely would make the cancelled-branch test pass for the wrong reason.
     let resolveList: (v: Awaited<ReturnType<typeof listApiKeys>>) => void = () => {};
     vi.mocked(listApiKeys).mockReturnValue(
-      new Promise((resolve) => { resolveList = resolve; }),
+      new Promise((resolve) => {
+        resolveList = resolve;
+      }),
     );
 
     const { result } = renderHook(() => useApiKeysViewModel());
@@ -101,7 +112,14 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     const target = {
       success: true as const,
       data: [
-        { id: "k1", prefix: "zhe_p", name: "Late", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
+        {
+          id: "k1",
+          prefix: "zhe_p",
+          name: "Late",
+          scopes: "links:read",
+          createdAt: new Date(0),
+          lastUsedAt: null,
+        },
       ],
     };
     const sentinel = new Proxy(target, {
@@ -156,9 +174,9 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     await act(async () => {
-      await expect(
-        result.current.handleCreate("Name", ["links:read"]),
-      ).rejects.toThrow(/network down/);
+      await expect(result.current.handleCreate("Name", ["links:read"])).rejects.toThrow(
+        /network down/,
+      );
     });
 
     expect(result.current.isCreating).toBe(false);
@@ -194,7 +212,14 @@ describe("useApiKeysViewModel — failure & cancel branches", () => {
     vi.mocked(listApiKeys).mockResolvedValue({
       success: true,
       data: [
-        { id: "k1", prefix: "zhe_p", name: "Keep", scopes: "links:read", createdAt: new Date(0), lastUsedAt: null },
+        {
+          id: "k1",
+          prefix: "zhe_p",
+          name: "Keep",
+          scopes: "links:read",
+          createdAt: new Date(0),
+          lastUsedAt: null,
+        },
       ],
     });
     vi.mocked(revokeApiKeyAction).mockResolvedValue({

@@ -1,6 +1,6 @@
 // Pure business logic for link operations — no React, no DOM.
 
-import type { Link, Tag, LinkTag, AnalyticsStats } from "./types";
+import type { AnalyticsStats, Link, LinkTag, Tag } from "./types";
 
 /** Build a short URL from site base URL and slug */
 export function buildShortUrl(siteUrl: string, slug: string): string {
@@ -30,14 +30,14 @@ export function isLinkExpired(link: Link): boolean {
 /** Sort links by creation date (newest first) */
 export function sortLinksByDate(links: Link[]): Link[] {
   return [...links].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
 
 /** Get the top N entries from a breakdown, sorted by count descending */
 export function topBreakdownEntries(
   breakdown: Record<string, number>,
-  n: number
+  n: number,
 ): [string, number][] {
   return Object.entries(breakdown)
     .sort((a, b) => b[1] - a[1])
@@ -68,11 +68,7 @@ export interface FilterContext {
  *
  * When `ctx` is provided, tag names associated with each link are also searched.
  */
-export function filterLinks(
-  links: Link[],
-  query: string,
-  ctx?: FilterContext,
-): Link[] {
+export function filterLinks(links: Link[], query: string, ctx?: FilterContext): Link[] {
   const trimmed = query.trim().toLowerCase();
   if (trimmed === "") return [];
 
@@ -127,10 +123,7 @@ export interface HighlightSegment {
   highlight: boolean;
 }
 
-export function highlightMatches(
-  text: string,
-  query: string,
-): HighlightSegment[] {
+export function highlightMatches(text: string, query: string): HighlightSegment[] {
   if (!query) return [{ text, highlight: false }];
 
   const lower = text.toLowerCase();
@@ -191,8 +184,8 @@ export function buildLinkCounts(links: Link[]): LinkCounts {
 export function isTwitterUrl(url: string): boolean {
   try {
     const { hostname, pathname } = new URL(url);
-    const host = hostname.replace(/^(www|mobile)\./, '');
-    if (host !== 'x.com' && host !== 'twitter.com') return false;
+    const host = hostname.replace(/^(www|mobile)\./, "");
+    if (host !== "x.com" && host !== "twitter.com") return false;
     // pathname must match /<username>/status/<id>
     return /^\/[^/]+\/status\/\d+/.test(pathname);
   } catch {

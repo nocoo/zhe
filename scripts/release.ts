@@ -26,39 +26,39 @@
  *   is skipped with a warning.
  */
 
-import { spawn } from 'child_process';
-import { resolve as pathResolve } from 'path';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { spawn } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve as pathResolve } from "node:path";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROJECT_ROOT = pathResolve(import.meta.dirname ?? '.', '..');
-const PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'package.json');
-const CLI_PACKAGE_JSON = pathResolve(PROJECT_ROOT, 'cli', 'package.json');
-const CHANGELOG_MD = pathResolve(PROJECT_ROOT, 'CHANGELOG.md');
+const PROJECT_ROOT = pathResolve(import.meta.dirname ?? ".", "..");
+const PACKAGE_JSON = pathResolve(PROJECT_ROOT, "package.json");
+const CLI_PACKAGE_JSON = pathResolve(PROJECT_ROOT, "cli", "package.json");
+const CHANGELOG_MD = pathResolve(PROJECT_ROOT, "CHANGELOG.md");
 
 // Auto-detect project name from package.json
 function readProjectName(): string {
-  const raw = readFileSync(PACKAGE_JSON, 'utf-8');
+  const raw = readFileSync(PACKAGE_JSON, "utf-8");
   const match = /"name"\s*:\s*"([^"]+)"/.exec(raw);
-  return match?.[1] ?? 'project';
+  return match?.[1] ?? "project";
 }
 
 // Auto-detect CHANGELOG header format: `## [vx.y.z]` vs `## [x.y.z]`
 function detectChangelogVPrefix(): boolean {
   try {
-    const content = readFileSync(CHANGELOG_MD, 'utf-8');
+    const content = readFileSync(CHANGELOG_MD, "utf-8");
     // Check existing entries for v-prefix pattern
-    return content.includes('## [v');
+    return content.includes("## [v");
   } catch {
     // No CHANGELOG yet — default to v-prefix
     return true;
   }
 }
 
-const BUMP_TYPES = ['patch', 'minor', 'major'] as const;
+const BUMP_TYPES = ["patch", "minor", "major"] as const;
 type BumpType = (typeof BUMP_TYPES)[number];
 
 interface Commit {
@@ -74,16 +74,16 @@ interface ChangelogSections {
 }
 
 const COMMIT_TYPE_MAP: Record<string, keyof ChangelogSections> = {
-  feat: 'added',
-  fix: 'fixed',
-  refactor: 'changed',
-  chore: 'changed',
-  docs: 'changed',
-  test: 'changed',
-  perf: 'changed',
-  style: 'changed',
-  ci: 'changed',
-  build: 'changed',
+  feat: "added",
+  fix: "fixed",
+  refactor: "changed",
+  chore: "changed",
+  docs: "changed",
+  test: "changed",
+  perf: "changed",
+  style: "changed",
+  ci: "changed",
+  build: "changed",
 };
 
 const REMOVED_KEYWORDS = /\b(remove|delete|drop)\b/i;
@@ -109,32 +109,28 @@ function run(
   return new Promise((resolve) => {
     const child = spawn(cmd, args, {
       cwd: opts?.cwd ?? PROJECT_ROOT,
-      stdio: opts?.inherit ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+      stdio: opts?.inherit ? "inherit" : ["ignore", "pipe", "pipe"],
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
     if (!opts?.inherit) {
-      child.stdout?.on('data', (d: Buffer) => {
+      child.stdout?.on("data", (d: Buffer) => {
         stdout += d.toString();
       });
-      child.stderr?.on('data', (d: Buffer) => {
+      child.stderr?.on("data", (d: Buffer) => {
         stderr += d.toString();
       });
     }
 
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       resolve({ code: code ?? 1, stdout, stderr });
     });
   });
 }
 
-async function runOrDie(
-  cmd: string,
-  args: string[],
-  errorMsg: string,
-): Promise<string> {
+async function runOrDie(cmd: string, args: string[], errorMsg: string): Promise<string> {
   const result = await run(cmd, args);
   if (result.code !== 0) {
     console.error(`❌ ${errorMsg}`);
@@ -155,7 +151,7 @@ function parseSemver(version: string): [number, number, number] {
     console.error(`❌ Invalid semver: "${version}"`);
     process.exit(1);
   }
-  const parts = version.split('.').map(Number) as [number, number, number];
+  const parts = version.split(".").map(Number) as [number, number, number];
   return parts;
 }
 
@@ -170,9 +166,7 @@ function compareSemver(a: string, b: string): number {
 function bumpVersion(current: string, bumpArg: string): string {
   if (SEMVER_RE.test(bumpArg)) {
     if (compareSemver(bumpArg, current) <= 0) {
-      console.error(
-        `❌ Explicit version ${bumpArg} must be greater than current ${current}`,
-      );
+      console.error(`❌ Explicit version ${bumpArg} must be greater than current ${current}`);
       process.exit(1);
     }
     return bumpArg;
@@ -186,11 +180,11 @@ function bumpVersion(current: string, bumpArg: string): string {
 
   const [major, minor, patch] = parseSemver(current);
   switch (bumpArg as BumpType) {
-    case 'major':
+    case "major":
       return `${major + 1}.0.0`;
-    case 'minor':
+    case "minor":
       return `${major}.${minor + 1}.0`;
-    case 'patch':
+    case "patch":
       return `${major}.${minor}.${patch + 1}`;
   }
 }
@@ -200,35 +194,29 @@ function bumpVersion(current: string, bumpArg: string): string {
 // ---------------------------------------------------------------------------
 
 async function getLastTag(): Promise<string | undefined> {
-  const result = await run('git', [
-    'describe',
-    '--tags',
-    '--abbrev=0',
-  ]);
+  const result = await run("git", ["describe", "--tags", "--abbrev=0"]);
   if (result.code !== 0) return undefined;
   return result.stdout.trim();
 }
 
-async function getCommitsSinceTag(
-  tag: string | undefined,
-): Promise<Commit[]> {
-  const range = tag ? `${tag}..HEAD` : 'HEAD';
-  const args = ['log', range, '--format=%H|||%s'];
-  const stdout = await runOrDie('git', args, 'Failed to read git log');
+async function getCommitsSinceTag(tag: string | undefined): Promise<Commit[]> {
+  const range = tag ? `${tag}..HEAD` : "HEAD";
+  const args = ["log", range, "--format=%H|||%s"];
+  const stdout = await runOrDie("git", args, "Failed to read git log");
 
   if (!stdout) return [];
 
   return stdout
-    .split('\n')
-    .filter((line) => line.includes('|||'))
+    .split("\n")
+    .filter((line) => line.includes("|||"))
     .map((line) => {
-      const sepIdx = line.indexOf('|||');
+      const sepIdx = line.indexOf("|||");
       return {
         hash: line.slice(0, sepIdx),
         subject: line.slice(sepIdx + 3),
       };
     })
-    .filter((c) => !c.subject.startsWith('chore: bump version to '));
+    .filter((c) => !c.subject.startsWith("chore: bump version to "));
 }
 
 // ---------------------------------------------------------------------------
@@ -247,27 +235,24 @@ function classifyCommits(commits: Commit[]): ChangelogSections {
     const { subject } = commit;
 
     // Skip merge commits
-    if (subject.startsWith('Merge ')) continue;
+    if (subject.startsWith("Merge ")) continue;
 
     let description: string;
     let section: keyof ChangelogSections;
 
     const match = CONVENTIONAL_RE.exec(subject);
     if (match) {
-      const type = (match[1] ?? '').toLowerCase();
-      description = capitalizeFirst((match[2] ?? '').trim());
-      section = COMMIT_TYPE_MAP[type] ?? 'changed';
+      const type = (match[1] ?? "").toLowerCase();
+      description = capitalizeFirst((match[2] ?? "").trim());
+      section = COMMIT_TYPE_MAP[type] ?? "changed";
     } else {
       description = capitalizeFirst(subject.trim());
-      section = 'changed';
+      section = "changed";
     }
 
     // Override: keywords indicating removal (only when type is ambiguous)
-    if (
-      REMOVED_KEYWORDS.test(subject) &&
-      section === 'changed'
-    ) {
-      section = 'removed';
+    if (REMOVED_KEYWORDS.test(subject) && section === "changed") {
+      section = "removed";
     }
 
     if (!sections[section].includes(description)) {
@@ -293,16 +278,16 @@ function formatChangelogSection(
   const lines: string[] = [`## [${tag}] - ${date}`];
 
   const sectionOrder: [keyof ChangelogSections, string][] = [
-    ['added', 'Added'],
-    ['changed', 'Changed'],
-    ['fixed', 'Fixed'],
-    ['removed', 'Removed'],
+    ["added", "Added"],
+    ["changed", "Changed"],
+    ["fixed", "Fixed"],
+    ["removed", "Removed"],
   ];
 
   for (const [key, heading] of sectionOrder) {
     const items = sections[key];
     if (items.length > 0) {
-      lines.push('');
+      lines.push("");
       lines.push(`### ${heading}`);
       for (const item of items) {
         lines.push(`- ${item}`);
@@ -310,21 +295,20 @@ function formatChangelogSection(
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function updateChangelog(newSection: string, vPrefix: boolean): void {
-  const content = readFileSync(CHANGELOG_MD, 'utf-8');
-  const marker = vPrefix ? '## [v' : '## [';
+  const content = readFileSync(CHANGELOG_MD, "utf-8");
+  const marker = vPrefix ? "## [v" : "## [";
   const idx = content.indexOf(marker);
 
   let updated: string;
   if (idx === -1) {
     // No existing entries — append after header
-    updated = content.trimEnd() + '\n\n' + newSection + '\n';
+    updated = `${content.trimEnd()}\n\n${newSection}\n`;
   } else {
-    updated =
-      content.slice(0, idx) + newSection + '\n\n' + content.slice(idx);
+    updated = `${content.slice(0, idx) + newSection}\n\n${content.slice(idx)}`;
   }
 
   writeFileSync(CHANGELOG_MD, updated);
@@ -335,7 +319,7 @@ function updateChangelog(newSection: string, vPrefix: boolean): void {
 // ---------------------------------------------------------------------------
 
 function readCurrentVersion(): string {
-  const raw = readFileSync(PACKAGE_JSON, 'utf-8');
+  const raw = readFileSync(PACKAGE_JSON, "utf-8");
   const match = VERSION_FIELD_RE.exec(raw);
   if (!match) {
     console.error('❌ Could not find "version" field in package.json');
@@ -345,14 +329,14 @@ function readCurrentVersion(): string {
   const fullMatch = match[0];
   const verMatch = /\d+\.\d+\.\d+/.exec(fullMatch);
   if (!verMatch) {
-    console.error('❌ Could not parse version from package.json');
+    console.error("❌ Could not parse version from package.json");
     process.exit(1);
   }
   return verMatch[0];
 }
 
 function bumpVersionField(filePath: string, newVersion: string): void {
-  const raw = readFileSync(filePath, 'utf-8');
+  const raw = readFileSync(filePath, "utf-8");
   const updated = raw.replace(VERSION_FIELD_RE, `$1${newVersion}$2`);
   if (updated === raw) {
     console.error(`❌ Failed to update version in ${filePath}`);
@@ -376,44 +360,39 @@ function updatePackageJson(newVersion: string): void {
 
 async function main(): Promise<void> {
   // --- Parse args ---
-  const rawArgs = process.argv.slice(2).filter((a) => a !== '--');
-  const isDryRun = rawArgs.includes('--dry-run');
-  const skipL3 = rawArgs.includes('--skip-l3');
-  const skipRedeploy = rawArgs.includes('--skip-redeploy');
-  const bumpArg =
-    rawArgs.find((a) => !a.startsWith('--')) ?? 'patch';
+  const rawArgs = process.argv.slice(2).filter((a) => a !== "--");
+  const isDryRun = rawArgs.includes("--dry-run");
+  const skipL3 = rawArgs.includes("--skip-l3");
+  const skipRedeploy = rawArgs.includes("--skip-redeploy");
+  const bumpArg = rawArgs.find((a) => !a.startsWith("--")) ?? "patch";
 
   if (isDryRun) {
-    console.log('🏜️  Dry-run mode — no changes will be made\n');
+    console.log("🏜️  Dry-run mode — no changes will be made\n");
   }
 
   // --- Phase 0: Preflight ---
-  console.log('📋 Preflight checks...\n');
+  console.log("📋 Preflight checks...\n");
 
   // Clean working tree
-  const status = await runOrDie(
-    'git',
-    ['status', '--porcelain'],
-    'Failed to check git status',
-  );
+  const status = await runOrDie("git", ["status", "--porcelain"], "Failed to check git status");
   if (status) {
-    console.error('❌ Working tree is not clean. Commit or stash changes first.');
+    console.error("❌ Working tree is not clean. Commit or stash changes first.");
     console.error(status);
     process.exit(1);
   }
 
   // On a branch
   const branch = await runOrDie(
-    'git',
-    ['symbolic-ref', '--short', 'HEAD'],
-    'Detached HEAD — checkout a branch first',
+    "git",
+    ["symbolic-ref", "--short", "HEAD"],
+    "Detached HEAD — checkout a branch first",
   );
 
   // gh auth
-  const ghResult = await run('gh', ['auth', 'status']);
+  const ghResult = await run("gh", ["auth", "status"]);
   const ghAuthed = ghResult.code === 0;
   if (!ghAuthed) {
-    console.log('⚠️  gh CLI not authenticated — will skip GitHub release');
+    console.log("⚠️  gh CLI not authenticated — will skip GitHub release");
   }
 
   // D1 prod schema reachability check.
@@ -424,25 +403,33 @@ async function main(): Promise<void> {
   // and do its tables match the union of `drizzle/migrations/*.sql`?" — a
   // proper local-vs-prod diff is a future improvement. For now we only
   // verify wrangler can talk to prod (catches auth issues before tagging).
-  console.log('   🔄 Probing prod D1 reachability...');
+  console.log("   🔄 Probing prod D1 reachability...");
   const tableQuery = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";
-  const prodTablesResult = await run('wrangler', ['d1', 'execute', 'zhe-db', '--command', tableQuery, '--remote', '--json']);
+  const prodTablesResult = await run("wrangler", [
+    "d1",
+    "execute",
+    "zhe-db",
+    "--command",
+    tableQuery,
+    "--remote",
+    "--json",
+  ]);
 
   if (prodTablesResult.code !== 0) {
-    console.log('   ⚠️  Could not query prod D1 (wrangler unavailable or auth issue)');
+    console.log("   ⚠️  Could not query prod D1 (wrangler unavailable or auth issue)");
     console.log(`      prod: ${prodTablesResult.stderr.trim().slice(0, 120)}`);
-    console.log('   ⚠️  Proceeding without prod D1 probe — verify manually!');
+    console.log("   ⚠️  Proceeding without prod D1 probe — verify manually!");
   } else {
     try {
       const data = JSON.parse(prodTablesResult.stdout);
       const results = data?.[0]?.results ?? [];
-      const prodTables = (results as Array<{ name: string }>).map(r => r.name);
+      const prodTables = (results as Array<{ name: string }>).map((r) => r.name);
       console.log(`   ✅ Prod D1 reachable (${prodTables.length} tables)`);
     } catch {
-      console.log('   ⚠️  Could not parse prod D1 table list — proceeding without probe');
+      console.log("   ⚠️  Could not parse prod D1 table list — proceeding without probe");
     }
   }
-  console.log('');
+  console.log("");
 
   // Current version & bump
   const currentVersion = readCurrentVersion();
@@ -456,8 +443,8 @@ async function main(): Promise<void> {
   console.log(`   New version:     ${newVersion}`);
   console.log(`   Bump type:       ${bumpArg}`);
   console.log(`   Branch:          ${branch}`);
-  console.log(`   Last tag:        ${lastTag ?? '(none)'}`);
-  console.log('');
+  console.log(`   Last tag:        ${lastTag ?? "(none)"}`);
+  console.log("");
 
   // --- Phase 0.5: L3 Playwright preflight ---
   // pre-commit covers L1+G1+G2, pre-push covers L2 — but L3 only fires in
@@ -465,198 +452,174 @@ async function main(): Promise<void> {
   // browser suite here (before the version bump) so a missed assertion
   // aborts the release rather than turning into a follow-up patch commit.
   if (skipL3) {
-    console.log('🎭 Phase 0.5: L3 Playwright preflight... [skipped via --skip-l3]\n');
+    console.log("🎭 Phase 0.5: L3 Playwright preflight... [skipped via --skip-l3]\n");
   } else if (isDryRun) {
-    console.log('🎭 Phase 0.5: L3 Playwright preflight... [dry-run, would run bun run test:e2e:pw]\n');
+    console.log(
+      "🎭 Phase 0.5: L3 Playwright preflight... [dry-run, would run bun run test:e2e:pw]\n",
+    );
   } else {
-    console.log('🎭 Phase 0.5: L3 Playwright preflight (bun run test:e2e:pw)...\n');
-    const l3Result = await run('bun', ['run', 'test:e2e:pw'], { inherit: true });
+    console.log("🎭 Phase 0.5: L3 Playwright preflight (bun run test:e2e:pw)...\n");
+    const l3Result = await run("bun", ["run", "test:e2e:pw"], { inherit: true });
     if (l3Result.code !== 0) {
-      console.error('\n❌ L3 Playwright suite failed.');
-      console.error('   Fix the failing specs (or pass --skip-l3 to bypass at your own risk) and retry.');
+      console.error("\n❌ L3 Playwright suite failed.");
+      console.error(
+        "   Fix the failing specs (or pass --skip-l3 to bypass at your own risk) and retry.",
+      );
       process.exit(1);
     }
-    console.log('   ✅ L3 Playwright suite passed\n');
+    console.log("   ✅ L3 Playwright suite passed\n");
   }
 
   // --- Phase 1: Version bump + lockfile sync ---
-  console.log('📝 Phase 1: Updating version...\n');
+  console.log("📝 Phase 1: Updating version...\n");
 
   if (isDryRun) {
-    console.log(
-      `   [dry-run] Would update package.json ${currentVersion} → ${newVersion}`,
-    );
-    console.log('   [dry-run] Would run bun install to sync lockfile');
+    console.log(`   [dry-run] Would update package.json ${currentVersion} → ${newVersion}`);
+    console.log("   [dry-run] Would run bun install to sync lockfile");
   } else {
     updatePackageJson(newVersion);
     console.log(`   ✅ package.json updated: ${currentVersion} → ${newVersion}`);
 
-    console.log('   🔄 Running bun install to sync lockfile...');
-    const installResult = await run('bun', ['install'], { inherit: true });
+    console.log("   🔄 Running bun install to sync lockfile...");
+    const installResult = await run("bun", ["install"], { inherit: true });
     if (installResult.code !== 0) {
-      console.error('❌ bun install failed');
+      console.error("❌ bun install failed");
       process.exit(1);
     }
-    console.log('   ✅ Lockfile synced');
+    console.log("   ✅ Lockfile synced");
   }
-  console.log('');
+  console.log("");
 
   // --- Phase 2: CHANGELOG ---
-  console.log('📝 Phase 2: Generating CHANGELOG...\n');
+  console.log("📝 Phase 2: Generating CHANGELOG...\n");
 
   const commits = await getCommitsSinceTag(lastTag);
   if (commits.length === 0) {
-    console.log('   ⚠️  No commits since last tag — CHANGELOG section will be empty');
+    console.log("   ⚠️  No commits since last tag — CHANGELOG section will be empty");
   }
 
   const sections = classifyCommits(commits);
   const today = new Date().toISOString().slice(0, 10);
   const changelogSection = formatChangelogSection(newVersion, today, sections, vPrefix);
 
-  console.log('   --- Generated CHANGELOG section ---');
+  console.log("   --- Generated CHANGELOG section ---");
   console.log(changelogSection);
-  console.log('   --- End ---\n');
+  console.log("   --- End ---\n");
 
   if (isDryRun) {
-    console.log('   [dry-run] Would prepend above section to CHANGELOG.md');
+    console.log("   [dry-run] Would prepend above section to CHANGELOG.md");
   } else {
     updateChangelog(changelogSection, vPrefix);
-    console.log('   ✅ CHANGELOG.md updated');
+    console.log("   ✅ CHANGELOG.md updated");
   }
-  console.log('');
+  console.log("");
 
   // --- Phase 3: Stale version verification ---
-  console.log('🔍 Phase 3: Checking for stale version strings...\n');
+  console.log("🔍 Phase 3: Checking for stale version strings...\n");
 
   // Use word boundaries to avoid false positives (e.g., "1.9.4" matching "1707618622812934144")
-  const versionPattern = `\\b${currentVersion.replace(/\./g, '\\.')}\\b`;
-  const rgResult = await run('rg', [
+  const versionPattern = `\\b${currentVersion.replace(/\./g, "\\.")}\\b`;
+  const rgResult = await run("rg", [
     versionPattern,
-    '--glob',
-    '*.ts',
-    '--glob',
-    '*.tsx',
-    '--glob',
-    '!node_modules/**',
-    '--glob',
-    '!scripts/release.ts',
+    "--glob",
+    "*.ts",
+    "--glob",
+    "*.tsx",
+    "--glob",
+    "!node_modules/**",
+    "--glob",
+    "!scripts/release.ts",
   ]);
 
   if (rgResult.code === 0 && rgResult.stdout.trim()) {
-    console.error(
-      `❌ Found stale version "${currentVersion}" in source files:`,
-    );
+    console.error(`❌ Found stale version "${currentVersion}" in source files:`);
     console.error(rgResult.stdout.trim());
     if (!isDryRun) {
-      console.error('   Aborting. Update these files before releasing.');
+      console.error("   Aborting. Update these files before releasing.");
       process.exit(1);
     } else {
-      console.log('   [dry-run] Would abort here in a real run');
+      console.log("   [dry-run] Would abort here in a real run");
     }
   } else {
-    console.log('   ✅ No stale version strings found');
+    console.log("   ✅ No stale version strings found");
   }
-  console.log('');
+  console.log("");
 
   // --- Phase 4: Commit ---
-  console.log('💾 Phase 4: Committing...\n');
+  console.log("💾 Phase 4: Committing...\n");
 
   if (isDryRun) {
-    console.log(
-      `   [dry-run] Would commit: chore: bump version to ${newVersion}`,
-    );
+    console.log(`   [dry-run] Would commit: chore: bump version to ${newVersion}`);
   } else {
-    const filesToStage = ['package.json', 'bun.lock', 'CHANGELOG.md'];
+    const filesToStage = ["package.json", "bun.lock", "CHANGELOG.md"];
     if (existsSync(CLI_PACKAGE_JSON)) {
-      filesToStage.push('cli/package.json');
+      filesToStage.push("cli/package.json");
     }
-    await runOrDie(
-      'git',
-      ['add', ...filesToStage],
-      'Failed to stage files',
-    );
-    const commitResult = await run('git', [
-      'commit',
-      '-m',
-      `chore: bump version to ${newVersion}`,
-    ]);
+    await runOrDie("git", ["add", ...filesToStage], "Failed to stage files");
+    const commitResult = await run("git", ["commit", "-m", `chore: bump version to ${newVersion}`]);
     if (commitResult.code !== 0) {
-      console.error('❌ Commit failed (pre-commit hooks?)');
+      console.error("❌ Commit failed (pre-commit hooks?)");
       if (commitResult.stderr.trim()) {
         console.error(commitResult.stderr.trim());
       }
-      console.error('   Fix the issues and retry.');
+      console.error("   Fix the issues and retry.");
       process.exit(1);
     }
     console.log(`   ✅ Committed: chore: bump version to ${newVersion}`);
   }
-  console.log('');
+  console.log("");
 
   // --- Phase 5: Push + Tag + Release ---
-  console.log('🚀 Phase 5: Push, tag & release\n');
+  console.log("🚀 Phase 5: Push, tag & release\n");
 
-  console.log('   The following actions will be performed:');
+  console.log("   The following actions will be performed:");
   console.log(`     • git push`);
   console.log(`     • git tag -a v${newVersion} -m "v${newVersion}"`);
   console.log(`     • git push --tags`);
   if (ghAuthed) {
-    console.log(
-      `     • gh release create v${newVersion} --title "v${newVersion}"`,
-    );
+    console.log(`     • gh release create v${newVersion} --title "v${newVersion}"`);
   }
-  console.log('');
+  console.log("");
 
   if (isDryRun) {
-    console.log('   [dry-run] Would perform the above actions');
+    console.log("   [dry-run] Would perform the above actions");
     console.log(`\n✅ Dry run complete for v${newVersion}`);
     process.exit(0);
   }
 
   // Push
-  console.log('\n   🔄 Pushing...');
-  const pushResult = await run('git', ['push'], { inherit: true });
+  console.log("\n   🔄 Pushing...");
+  const pushResult = await run("git", ["push"], { inherit: true });
   if (pushResult.code !== 0) {
-    console.error('❌ git push failed');
-    console.error('   Recovery commands:');
+    console.error("❌ git push failed");
+    console.error("   Recovery commands:");
     console.error(`     git push`);
-    console.error(
-      `     git tag -a v${newVersion} -m "v${newVersion}"`,
-    );
+    console.error(`     git tag -a v${newVersion} -m "v${newVersion}"`);
     console.error(`     git push --tags`);
-    console.error(
-      `     gh release create v${newVersion} --title "v${newVersion}" --notes "..."`,
-    );
+    console.error(`     gh release create v${newVersion} --title "v${newVersion}" --notes "..."`);
     process.exit(1);
   }
-  console.log('   ✅ Pushed');
+  console.log("   ✅ Pushed");
 
   // Tag
   console.log(`   🔄 Creating tag v${newVersion}...`);
-  const tagResult = await run('git', [
-    'tag',
-    '-a',
-    `v${newVersion}`,
-    '-m',
-    `v${newVersion}`,
-  ]);
+  const tagResult = await run("git", ["tag", "-a", `v${newVersion}`, "-m", `v${newVersion}`]);
   if (tagResult.code !== 0) {
     console.error(`❌ Failed to create tag v${newVersion}`);
-    if (tagResult.stderr.includes('already exists')) {
-      console.error(
-        `   Tag already exists. Delete with: git tag -d v${newVersion}`,
-      );
+    if (tagResult.stderr.includes("already exists")) {
+      console.error(`   Tag already exists. Delete with: git tag -d v${newVersion}`);
     }
     process.exit(1);
   }
 
   // Push tags
-  console.log('   🔄 Pushing tags...');
-  const pushTagResult = await run('git', ['push', '--tags'], {
+  console.log("   🔄 Pushing tags...");
+  const pushTagResult = await run("git", ["push", "--tags"], {
     inherit: true,
   });
   if (pushTagResult.code !== 0) {
-    console.error('❌ git push --tags failed');
-    console.error('   Recovery: git push --tags');
+    console.error("❌ git push --tags failed");
+    console.error("   Recovery: git push --tags");
     process.exit(1);
   }
   console.log(`   ✅ Tag v${newVersion} pushed`);
@@ -664,18 +627,18 @@ async function main(): Promise<void> {
   // GitHub Release
   if (ghAuthed) {
     console.log(`   🔄 Creating GitHub release v${newVersion}...`);
-    const releaseResult = await run('gh', [
-      'release',
-      'create',
+    const releaseResult = await run("gh", [
+      "release",
+      "create",
       `v${newVersion}`,
-      '--title',
+      "--title",
       `v${newVersion}`,
-      '--notes',
+      "--notes",
       changelogSection,
     ]);
 
     if (releaseResult.code !== 0) {
-      console.error('⚠️  GitHub release creation failed (tag is pushed)');
+      console.error("⚠️  GitHub release creation failed (tag is pushed)");
       console.error(
         `   Create manually: gh release create v${newVersion} --title "v${newVersion}"`,
       );
@@ -694,26 +657,23 @@ async function main(): Promise<void> {
   // SKIPPED, leaving prod stuck on the previous tag. Force a fresh deploy
   // from main HEAD and then poll /api/live until version matches.
   if (!skipRedeploy) {
-    console.log('\n🚂 Phase 6: Railway redeploy + health check\n');
+    console.log("\n🚂 Phase 6: Railway redeploy + health check\n");
 
-    const railwayCheck = await run('railway', ['status']);
+    const railwayCheck = await run("railway", ["status"]);
     if (railwayCheck.code !== 0) {
-      console.log('   ⚠️  railway CLI unavailable or not linked — skipping');
-      console.log('       Check prod manually: curl https://zhe.to/api/live');
+      console.log("   ⚠️  railway CLI unavailable or not linked — skipping");
+      console.log("       Check prod manually: curl https://zhe.to/api/live");
     } else {
-      console.log('   🔄 Triggering railway redeploy --from-source --yes...');
-      const redeployResult = await run(
-        'railway',
-        ['redeploy', '--from-source', '--yes'],
-      );
+      console.log("   🔄 Triggering railway redeploy --from-source --yes...");
+      const redeployResult = await run("railway", ["redeploy", "--from-source", "--yes"]);
       if (redeployResult.code !== 0) {
-        console.error('   ⚠️  railway redeploy failed (tag is still pushed)');
+        console.error("   ⚠️  railway redeploy failed (tag is still pushed)");
         if (redeployResult.stderr.trim()) {
-          console.error('      ' + redeployResult.stderr.trim().slice(0, 200));
+          console.error(`      ${redeployResult.stderr.trim().slice(0, 200)}`);
         }
-        console.error('   Trigger manually: railway redeploy --from-source --yes');
+        console.error("   Trigger manually: railway redeploy --from-source --yes");
       } else {
-        console.log('   ✅ Redeploy triggered');
+        console.log("   ✅ Redeploy triggered");
 
         // Poll /api/live for up to 5 minutes; report (don't fail) on
         // timeout — the tag is already public and the script's job here
@@ -723,13 +683,13 @@ async function main(): Promise<void> {
         const timeoutMs = 5 * 60_000;
         const intervalMs = 15_000;
         let live = false;
-        let lastSeen = '';
+        let lastSeen = "";
         while (Date.now() - start < timeoutMs) {
-          const probe = await run('curl', ['-sS', '--max-time', '5', 'https://zhe.to/api/live']);
+          const probe = await run("curl", ["-sS", "--max-time", "5", "https://zhe.to/api/live"]);
           if (probe.code === 0) {
             try {
               const data = JSON.parse(probe.stdout);
-              const version = String(data?.version ?? '');
+              const version = String(data?.version ?? "");
               if (version) lastSeen = version;
               if (version === newVersion) {
                 live = true;
@@ -746,29 +706,31 @@ async function main(): Promise<void> {
           console.log(`   ✅ /api/live now reports v${newVersion} (after ${elapsed}s)`);
         } else {
           console.error(`   ⚠️  /api/live did not report v${newVersion} within 5min`);
-          console.error(`      Last observed version: ${lastSeen || '(no response)'}`);
-          console.error('      Check Railway dashboard or rerun: railway redeploy --from-source --yes');
+          console.error(`      Last observed version: ${lastSeen || "(no response)"}`);
+          console.error(
+            "      Check Railway dashboard or rerun: railway redeploy --from-source --yes",
+          );
         }
       }
     }
   }
 
   // Summary
-  console.log('\n' + '='.repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log(`✅ Released v${newVersion}`);
   console.log(`   📋 Commit:  chore: bump version to ${newVersion}`);
   console.log(`   🏷️  Tag:     v${newVersion}`);
   if (ghAuthed) {
-    const repoUrl = await run('gh', ['repo', 'view', '--json', 'url', '-q', '.url']);
+    const repoUrl = await run("gh", ["repo", "view", "--json", "url", "-q", ".url"]);
     const repo = repoUrl.stdout.trim();
     if (repo) {
       console.log(`   🔗 Release: ${repo}/releases/tag/v${newVersion}`);
     }
   }
-  console.log('='.repeat(50));
+  console.log("=".repeat(50));
 }
 
 main().catch((err: unknown) => {
-  console.error('❌ Unexpected error:', err);
+  console.error("❌ Unexpected error:", err);
   process.exit(1);
 });

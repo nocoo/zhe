@@ -15,73 +15,72 @@
  */
 
 import type {
-  Link,
   Analytics,
+  ApiKey,
   Folder,
   FolderWithLinkCount,
-  NewLink,
-  NewFolder,
-  Upload,
-  NewUpload,
-  Webhook,
-  Tag,
-  LinkTag,
-  UserSettings,
-  ApiKey,
   IdeaTag,
-} from './schema';
-
-import * as linksOps from './scoped/links';
-import * as analyticsOps from './scoped/analytics';
-import * as foldersOps from './scoped/folders';
-import * as uploadsOps from './scoped/uploads';
-import * as overviewOps from './scoped/overview';
-import * as webhookOps from './scoped/webhook';
-import * as tagsOps from './scoped/tags';
-import * as settingsOps from './scoped/settings';
-import * as apiKeysOps from './scoped/api-keys';
-import * as ideasOps from './scoped/ideas';
-import * as todosOps from './scoped/todos';
+  Link,
+  LinkTag,
+  NewFolder,
+  NewLink,
+  NewUpload,
+  Tag,
+  Upload,
+  UserSettings,
+  Webhook,
+} from "./schema";
+import * as analyticsOps from "./scoped/analytics";
+import * as apiKeysOps from "./scoped/api-keys";
+import * as foldersOps from "./scoped/folders";
+import * as ideasOps from "./scoped/ideas";
+import * as linksOps from "./scoped/links";
+import * as overviewOps from "./scoped/overview";
+import * as settingsOps from "./scoped/settings";
+import * as tagsOps from "./scoped/tags";
+import * as todosOps from "./scoped/todos";
+import * as uploadsOps from "./scoped/uploads";
+import * as webhookOps from "./scoped/webhook";
 
 // Re-export shared types so existing import paths keep working.
 export type {
-  LinkSortField,
-  SortOrder,
-  GetLinksOptions,
-  GetIdeasOptions,
-  IdeaListItem,
-  IdeaDetail,
-  TodoTreeNode,
-  TodoDetail,
   CreateTodoInput,
-  UpdateTodoPatch,
+  GetIdeasOptions,
+  GetLinksOptions,
+  IdeaDetail,
+  IdeaListItem,
+  LinkSortField,
   MoveTodoInput,
   MoveTodoResult,
-} from './scoped/types';
+  SortOrder,
+  TodoDetail,
+  TodoTreeNode,
+  UpdateTodoPatch,
+} from "./scoped/types";
 export {
   MAX_TODO_DEPTH,
+  TodoDepthExceededError,
   TodoMoveConflictError,
   TodoNotFoundError,
-  TodoDepthExceededError,
-} from './scoped/types';
+} from "./scoped/types";
 
 import type {
-  GetLinksOptions,
-  GetIdeasOptions,
-  IdeaListItem,
-  IdeaDetail,
-  TodoTreeNode,
-  TodoDetail,
   CreateTodoInput,
-  UpdateTodoPatch,
+  GetIdeasOptions,
+  GetLinksOptions,
+  IdeaDetail,
+  IdeaListItem,
   MoveTodoInput,
   MoveTodoResult,
-} from './scoped/types';
+  TodoDetail,
+  TodoTreeNode,
+  UpdateTodoPatch,
+} from "./scoped/types";
 
 export class ScopedDB {
   constructor(private readonly userId: string) {
     if (!userId) {
-      throw new Error('ScopedDB requires a non-empty userId');
+      throw new Error("ScopedDB requires a non-empty userId");
     }
   }
 
@@ -105,7 +104,7 @@ export class ScopedDB {
     return linksOps.getLinksByIds(this.userId, ids);
   }
 
-  createLink(data: Omit<NewLink, 'id' | 'createdAt' | 'userId'>): Promise<Link> {
+  createLink(data: Omit<NewLink, "id" | "createdAt" | "userId">): Promise<Link> {
     return linksOps.createLink(this.userId, data);
   }
 
@@ -153,14 +152,11 @@ export class ScopedDB {
     return foldersOps.getFolderById(this.userId, id);
   }
 
-  createFolder(data: Omit<NewFolder, 'id' | 'createdAt' | 'userId'>): Promise<Folder> {
+  createFolder(data: Omit<NewFolder, "id" | "createdAt" | "userId">): Promise<Folder> {
     return foldersOps.createFolder(this.userId, data);
   }
 
-  updateFolder(
-    id: string,
-    data: Partial<Pick<Folder, 'name' | 'icon'>>,
-  ): Promise<Folder | null> {
+  updateFolder(id: string, data: Partial<Pick<Folder, "name" | "icon">>): Promise<Folder | null> {
     return foldersOps.updateFolder(this.userId, id, data);
   }
 
@@ -174,7 +170,7 @@ export class ScopedDB {
     return uploadsOps.getUploads(this.userId);
   }
 
-  createUpload(data: Omit<NewUpload, 'id' | 'createdAt' | 'userId'>): Promise<Upload> {
+  createUpload(data: Omit<NewUpload, "id" | "createdAt" | "userId">): Promise<Upload> {
     return uploadsOps.createUpload(this.userId, data);
   }
 
@@ -216,17 +212,25 @@ export class ScopedDB {
 
   // ---- Tags / Link-Tags -------------------------------------
 
-  getTags(): Promise<Tag[]> { return tagsOps.getTags(this.userId); }
-  getTagById(id: string): Promise<Tag | null> { return tagsOps.getTagById(this.userId, id); }
+  getTags(): Promise<Tag[]> {
+    return tagsOps.getTags(this.userId);
+  }
+  getTagById(id: string): Promise<Tag | null> {
+    return tagsOps.getTagById(this.userId, id);
+  }
   createTag(data: { name: string; color: string }): Promise<Tag> {
     return tagsOps.createTag(this.userId, data);
   }
-  updateTag(id: string, data: Partial<Pick<Tag, 'name' | 'color'>>): Promise<Tag | null> {
+  updateTag(id: string, data: Partial<Pick<Tag, "name" | "color">>): Promise<Tag | null> {
     return tagsOps.updateTag(this.userId, id, data);
   }
-  deleteTag(id: string): Promise<boolean> { return tagsOps.deleteTag(this.userId, id); }
+  deleteTag(id: string): Promise<boolean> {
+    return tagsOps.deleteTag(this.userId, id);
+  }
 
-  getLinkTags(): Promise<LinkTag[]> { return tagsOps.getLinkTags(this.userId); }
+  getLinkTags(): Promise<LinkTag[]> {
+    return tagsOps.getLinkTags(this.userId);
+  }
   getTagsForLink(linkId: number): Promise<Tag[]> {
     return tagsOps.getTagsForLink(this.userId, linkId);
   }
@@ -272,7 +276,9 @@ export class ScopedDB {
 
   // ---- API Keys ---------------------------------------------
 
-  getApiKeys(): Promise<ApiKey[]> { return apiKeysOps.getApiKeys(this.userId); }
+  getApiKeys(): Promise<ApiKey[]> {
+    return apiKeysOps.getApiKeys(this.userId);
+  }
   createApiKey(data: {
     id: string;
     prefix: string;

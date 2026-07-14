@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeIdea, makeLink } from "../fixtures";
 import { unwrap } from "../test-utils";
-import { makeLink, makeIdea } from "../fixtures";
 
 // ── Mocks ──
 
@@ -16,7 +17,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     const { unoptimized: _, fill: _f, ...rest } = props;
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...(rest as React.ImgHTMLAttributes<HTMLImageElement>)} />;
   },
 }));
@@ -87,10 +87,7 @@ function expectNoItem(slug: string) {
 
 function renderDialog(props: { open?: boolean; onOpenChange?: () => void } = {}) {
   return render(
-    <SearchCommandDialog
-      open={props.open ?? true}
-      onOpenChange={props.onOpenChange ?? vi.fn()}
-    />,
+    <SearchCommandDialog open={props.open ?? true} onOpenChange={props.onOpenChange ?? vi.fn()} />,
   );
 }
 
@@ -116,8 +113,18 @@ describe("SearchCommandDialog (search & ideas)", () => {
   describe("search filtering edge cases", () => {
     it("filters links by metaDescription substring", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "lib", originalUrl: "https://a.com", metaDescription: "A library for building UIs" }),
-        makeLink({ id: 2, slug: "server", originalUrl: "https://b.com", metaDescription: "Server-side rendering" }),
+        makeLink({
+          id: 1,
+          slug: "lib",
+          originalUrl: "https://a.com",
+          metaDescription: "A library for building UIs",
+        }),
+        makeLink({
+          id: 2,
+          slug: "server",
+          originalUrl: "https://b.com",
+          metaDescription: "Server-side rendering",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -128,9 +135,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
     });
 
     it("does not match protocol prefix in URL", async () => {
-      mockState.links = [
-        makeLink({ id: 1, slug: "site", originalUrl: "https://example.com" }),
-      ];
+      mockState.links = [makeLink({ id: 1, slug: "site", originalUrl: "https://example.com" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "https" } });
@@ -221,7 +226,12 @@ describe("SearchCommandDialog (search & ideas)", () => {
   describe("keyword highlighting", () => {
     it("highlights matching keyword in title", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "react", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
+        makeLink({
+          id: 1,
+          slug: "react",
+          originalUrl: "https://react.dev",
+          metaTitle: "React Documentation",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -235,7 +245,12 @@ describe("SearchCommandDialog (search & ideas)", () => {
 
     it("highlights matching keyword in description", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "lib", originalUrl: "https://a.com", metaDescription: "A library for building UIs" }),
+        makeLink({
+          id: 1,
+          slug: "lib",
+          originalUrl: "https://a.com",
+          metaDescription: "A library for building UIs",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -247,9 +262,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
     });
 
     it("highlights matching keyword in slug", async () => {
-      mockState.links = [
-        makeLink({ id: 1, slug: "my-link", originalUrl: "https://example.com" }),
-      ];
+      mockState.links = [makeLink({ id: 1, slug: "my-link", originalUrl: "https://example.com" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "my-link" } });
@@ -367,11 +380,14 @@ describe("SearchCommandDialog (search & ideas)", () => {
 
     it("displays both links and ideas when both match", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "react-docs", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
+        makeLink({
+          id: 1,
+          slug: "react-docs",
+          originalUrl: "https://react.dev",
+          metaTitle: "React Documentation",
+        }),
       ];
-      mockState.ideas = [
-        makeIdea({ id: 1, title: "React Patterns" }),
-      ];
+      mockState.ideas = [makeIdea({ id: 1, title: "React Patterns" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
@@ -388,9 +404,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       mockState.tags = [
         { id: "t1", userId: "user-1", name: "Frontend", color: "#ff0000", createdAt: new Date() },
       ];
-      mockState.ideas = [
-        makeIdea({ id: 1, title: "React App", tagIds: ["t1"] }),
-      ];
+      mockState.ideas = [makeIdea({ id: 1, title: "React App", tagIds: ["t1"] })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
@@ -404,9 +418,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       mockState.tags = [
         { id: "t1", userId: "user-1", name: "MyTag", color: "#abcdef", createdAt: new Date() },
       ];
-      mockState.ideas = [
-        makeIdea({ id: 1, title: "React App", tagIds: ["t1"] }),
-      ];
+      mockState.ideas = [makeIdea({ id: 1, title: "React App", tagIds: ["t1"] })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });

@@ -9,81 +9,82 @@
  * Orphan file selection and deletion are not tested here because they
  * depend on the actual R2 state and could be destructive.
  */
-import { test, expect } from './fixtures';
-import type { Page } from '@playwright/test';
 
-const STORAGE_URL = '/dashboard/storage';
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+
+const STORAGE_URL = "/dashboard/storage";
 
 /** Navigate to storage page and wait for scan results to load. */
 async function goToStorage(page: Page): Promise<void> {
   await page.goto(STORAGE_URL);
   // Wait for the skeleton to disappear and summary cards to render.
   // Scope to main to avoid matching any hidden responsive duplicates.
-  await page.locator('main').getByText('R2 总存储', { exact: true }).waitFor({ timeout: 30_000 });
+  await page.locator("main").getByText("R2 总存储", { exact: true }).waitFor({ timeout: 30_000 });
 }
 
-test.describe('Storage Management', () => {
-  test('page renders with summary cards after scan', async ({ page }) => {
+test.describe("Storage Management", () => {
+  test("page renders with summary cards after scan", async ({ page }) => {
     await goToStorage(page);
 
     // 4 summary cards (scoped to main to avoid sidebar/responsive duplicates)
     // Use longer timeout for CI environments where rendering can be slower
-    const main = page.locator('main');
-    await expect(main.getByText('R2 总存储', { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(main.getByText('D1 数据库', { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(main.getByText('孤儿文件', { exact: true })).toBeVisible({ timeout: 15_000 });
-    await expect(main.getByText('临时文件', { exact: true })).toBeVisible({ timeout: 15_000 });
+    const main = page.locator("main");
+    await expect(main.getByText("R2 总存储", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText("D1 数据库", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText("孤儿文件", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(main.getByText("临时文件", { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // R2 storage sub-text shows file count
     await expect(page.getByText(/个文件/).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test('D1 section shows connected badge and table list', async ({ page }) => {
+  test("D1 section shows connected badge and table list", async ({ page }) => {
     await goToStorage(page);
 
     // D1 header with badge
-    await expect(page.getByText('Cloudflare D1').first()).toBeVisible();
-    await expect(page.getByText('connected').first()).toBeVisible();
+    await expect(page.getByText("Cloudflare D1").first()).toBeVisible();
+    await expect(page.getByText("connected").first()).toBeVisible();
 
     // D1 table headers
-    await expect(page.getByText('Table').first()).toBeVisible();
-    await expect(page.getByText('Rows').first()).toBeVisible();
+    await expect(page.getByText("Table").first()).toBeVisible();
+    await expect(page.getByText("Rows").first()).toBeVisible();
 
     // Known D1 tables should appear
-    await expect(page.getByText('links').first()).toBeVisible();
-    await expect(page.getByText('uploads').first()).toBeVisible();
+    await expect(page.getByText("links").first()).toBeVisible();
+    await expect(page.getByText("uploads").first()).toBeVisible();
   });
 
-  test('R2 section shows connected badge', async ({ page }) => {
+  test("R2 section shows connected badge", async ({ page }) => {
     await goToStorage(page);
 
     // R2 header with badge
-    await expect(page.getByText('Cloudflare R2').first()).toBeVisible();
+    await expect(page.getByText("Cloudflare R2").first()).toBeVisible();
     // At least one "connected" badge (D1 and/or R2)
-    const connectedBadges = page.getByText('connected');
+    const connectedBadges = page.getByText("connected");
     await expect(connectedBadges.first()).toBeVisible();
   });
 
-  test('rescan button triggers a new scan', async ({ page }) => {
+  test("rescan button triggers a new scan", async ({ page }) => {
     await goToStorage(page);
 
-    const rescanBtn = page.getByRole('button', { name: '重新扫描' });
+    const rescanBtn = page.getByRole("button", { name: "重新扫描" });
     await expect(rescanBtn).toBeVisible();
 
     // Click rescan — button should become disabled briefly while scanning
     await rescanBtn.click();
 
     // After scan completes, summary cards should still be visible
-    await page.locator('main').getByText('R2 总存储', { exact: true }).waitFor({ timeout: 30_000 });
+    await page.locator("main").getByText("R2 总存储", { exact: true }).waitFor({ timeout: 30_000 });
     await expect(rescanBtn).toBeEnabled({ timeout: 15_000 });
   });
 
-  test('sort controls for R2 files are functional', async ({ page }) => {
+  test("sort controls for R2 files are functional", async ({ page }) => {
     await goToStorage(page);
 
     // Sort buttons (use columnheader role — buttons have role="columnheader")
-    const timeBtn = page.getByRole('columnheader', { name: /时间/ }).first();
-    const sizeBtn = page.getByRole('columnheader', { name: /大小/ }).first();
+    const timeBtn = page.getByRole("columnheader", { name: /时间/ }).first();
+    const sizeBtn = page.getByRole("columnheader", { name: /大小/ }).first();
 
     await expect(timeBtn).toBeVisible();
     await expect(sizeBtn).toBeVisible();
@@ -98,13 +99,13 @@ test.describe('Storage Management', () => {
     await timeBtn.click();
 
     // No crash, page still shows data
-    await expect(page.locator('main').getByText('R2 总存储', { exact: true })).toBeVisible();
+    await expect(page.locator("main").getByText("R2 总存储", { exact: true })).toBeVisible();
   });
 
-  test('D1 database card shows connection status', async ({ page }) => {
+  test("D1 database card shows connection status", async ({ page }) => {
     await goToStorage(page);
 
     // The D1 summary card should show "已连接"
-    await expect(page.getByText('已连接').first()).toBeVisible();
+    await expect(page.getByText("已连接").first()).toBeVisible();
   });
 });

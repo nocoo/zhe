@@ -5,15 +5,9 @@
  * isolated test user so cleanup of one file does not race with the other.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import {
-
-  seedApiKey,
-  cleanupTestData,
-  resetAndSeedUser,
-  seedIdea,
-} from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey, seedIdea } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/ideas`;
 
@@ -25,8 +19,11 @@ describe("/api/v1/ideas/[id]", () => {
   beforeAll(async () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
-      seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "ideas:read,ideas:write,tags:read,tags:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "ideas:read" }),
+      seedApiKey(TEST_USER_ID, {
+        name: "Full Access",
+        scopes: "ideas:read,ideas:write,tags:read,tags:write",
+      }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "ideas:read" }),
     ]);
   });
 
@@ -47,10 +44,7 @@ describe("/api/v1/ideas/[id]", () => {
     });
 
     it("returns 404 for non-existent idea", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/9999999`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/9999999`, apiKeyReadOnly);
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -58,10 +52,7 @@ describe("/api/v1/ideas/[id]", () => {
     });
 
     it("returns 400 for invalid idea ID", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/not-a-number`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/not-a-number`, apiKeyReadOnly);
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -69,10 +60,7 @@ describe("/api/v1/ideas/[id]", () => {
     });
 
     it("returns idea details with full content", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -91,21 +79,17 @@ describe("/api/v1/ideas/[id]", () => {
       // Seed an idea to delete
       const idea = await seedIdea(TEST_USER_ID, { content: "To delete" });
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${idea.id}`,
-        apiKeyReadOnly,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${idea.id}`, apiKeyReadOnly, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent idea", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/9999999`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/9999999`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(404);
     });
@@ -126,10 +110,7 @@ describe("/api/v1/ideas/[id]", () => {
       expect(body.success).toBe(true);
 
       // Verify it's gone
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${idea.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${idea.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(404);
     });
   });

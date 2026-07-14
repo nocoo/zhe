@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { getAuthContext } from '@/lib/auth-context';
-import type { Upload } from '@/lib/db/schema';
+import { getAuthContext } from "@/lib/auth-context";
+import type { Upload } from "@/lib/db/schema";
 
 interface ActionResult<T = void> {
   success: boolean;
@@ -26,13 +26,13 @@ export async function getUploads(): Promise<ActionResult<Upload[]>> {
   try {
     const ctx = await getAuthContext();
     if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const uploads = await ctx.db.getUploads();
     return { success: true, data: uploads };
   } catch (error) {
-    console.error('Failed to get uploads:', error);
-    return { success: false, error: 'Failed to get uploads' };
+    console.error("Failed to get uploads:", error);
+    return { success: false, error: "Failed to get uploads" };
   }
 }

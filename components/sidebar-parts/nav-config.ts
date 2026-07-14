@@ -2,17 +2,17 @@
 
 import {
   BarChart3,
+  CloudUpload,
+  Database,
+  FileUp,
+  HardDrive,
+  Inbox,
+  Key,
   Lightbulb,
   Link2,
-  Inbox,
-  FileUp,
-  CloudUpload,
   ListTodo,
   Radar,
-  HardDrive,
-  Database,
   Webhook,
-  Key,
 } from "lucide-react";
 
 /** Nav items for folder filtering — rendered as <Link>. */

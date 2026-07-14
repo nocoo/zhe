@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { IdeaDetail, IdeaListItem } from "@/lib/db/scoped";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getIdea, updateIdea } from "@/actions/ideas";
-import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
+import { useDashboardActions, useDashboardState } from "@/contexts/dashboard-service";
+import type { IdeaDetail, IdeaListItem } from "@/lib/db/scoped";
 
 /** Return type of useIdeaEditorViewModel */
 export type IdeaEditorViewModel = ReturnType<typeof useIdeaEditorViewModel>;
@@ -89,24 +89,47 @@ function useIdeaFetch(ideaId: number) {
       }
     }
     fetchIdea();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [ideaId]);
 
   return {
-    idea, setIdea,
+    idea,
+    setIdea,
     loading,
-    error, setError,
+    error,
+    setError,
     notFound,
-    title, setTitle,
-    content, setContent,
-    tagIds, setTagIds,
-    lastSavedAt, setLastSavedAt,
+    title,
+    setTitle,
+    content,
+    setContent,
+    tagIds,
+    setTagIds,
+    lastSavedAt,
+    setLastSavedAt,
   };
 }
 
 export function useIdeaEditorViewModel(ideaId: number) {
   const fetched = useIdeaFetch(ideaId);
-  const { idea, setIdea, loading, error, setError, notFound, title, setTitle, content, setContent, tagIds, setTagIds, lastSavedAt, setLastSavedAt } = fetched;
+  const {
+    idea,
+    setIdea,
+    loading,
+    error,
+    setError,
+    notFound,
+    title,
+    setTitle,
+    content,
+    setContent,
+    tagIds,
+    setTagIds,
+    lastSavedAt,
+    setLastSavedAt,
+  } = fetched;
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -115,7 +138,9 @@ export function useIdeaEditorViewModel(ideaId: number) {
 
   const mountedRef = useRef(true);
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // ── Dirty tracking ──
@@ -152,11 +177,14 @@ export function useIdeaEditorViewModel(ideaId: number) {
   }, [idea, ideaId, title, content, tagIds, handleIdeaUpdated, setError, setIdea, setLastSavedAt]);
 
   // ── Tag toggle helper ──
-  const toggleTag = useCallback((tagId: string) => {
-    setTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
-    );
-  }, [setTagIds]);
+  const toggleTag = useCallback(
+    (tagId: string) => {
+      setTagIds((prev) =>
+        prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+      );
+    },
+    [setTagIds],
+  );
 
   // ── Clear error ──
   const clearError = useCallback(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
@@ -20,7 +20,11 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <button aria-label="Toggle theme" className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground">
+      <button
+        type="button"
+        aria-label="Toggle theme"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground"
+      >
         <Sun className="h-4 w-4" strokeWidth={1.5} />
       </button>
     );
@@ -28,6 +32,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={cycleTheme}
       aria-label="Toggle theme"
       className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

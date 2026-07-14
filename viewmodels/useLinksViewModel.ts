@@ -7,15 +7,15 @@
  */
 
 import { useEffect, useRef } from "react";
-import type { Link } from "@/models/types";
 import { batchRefreshLinkMetadata } from "@/actions/links/metadata";
+import type { Link } from "@/models/types";
 
-export { useLinkCardViewModel } from "./useLinkCardViewModel";
 export { useCreateLinkViewModel } from "./useCreateLinkViewModel";
 export {
-  useInlineLinkEditViewModel,
   type EditLinkCallbacks,
+  useInlineLinkEditViewModel,
 } from "./useInlineLinkEditViewModel";
+export { useLinkCardViewModel } from "./useLinkCardViewModel";
 
 /** Determine whether a link needs auto-fetched metadata. */
 function linkNeedsMetadata(link: Link): boolean {
@@ -32,10 +32,7 @@ function linkNeedsMetadata(link: Link): boolean {
  * @param links      - The current list of links.
  * @param onUpdate   - Callback to update individual links in parent state.
  */
-export function useAutoRefreshMetadata(
-  links: Link[],
-  onUpdate: (link: Link) => void,
-) {
+export function useAutoRefreshMetadata(links: Link[], onUpdate: (link: Link) => void) {
   const processedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {

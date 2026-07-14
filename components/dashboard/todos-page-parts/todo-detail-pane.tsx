@@ -12,13 +12,13 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import type { TodoDetail } from "@/lib/db/scoped";
+import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
+import { MarkdownPreview } from "@/components/markdown-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MarkdownPreview } from "@/components/markdown-preview";
-import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
-import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
+import type { TodoDetail } from "@/lib/db/scoped";
 import { TodoEmojiPicker } from "./todo-emoji-picker";
 
 /** Loose input shape matching the server action's UpdateTodoActionInput. */
@@ -65,11 +65,7 @@ function dateInputValueToMs(value: string): number | null {
   return new Date(y, m, d, 23, 59, 59, 999).getTime();
 }
 
-export function TodoDetailPane({
-  detail,
-  detailLoading,
-  onUpdate,
-}: TodoDetailPaneProps) {
+export function TodoDetailPane({ detail, detailLoading, onUpdate }: TodoDetailPaneProps) {
   if (!detail) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -92,13 +88,9 @@ function TodoDetailPaneBody({
 }) {
   const [title, setTitle] = useState(detail.title);
   const [contentDraft, setContentDraft] = useState(detail.content ?? "");
-  const [contentMode, setContentMode] = useState<"view" | "edit">(
-    detail.content ? "view" : "edit",
-  );
+  const [contentMode, setContentMode] = useState<"view" | "edit">(detail.content ? "view" : "edit");
   const [tagDraft, setTagDraft] = useState("");
-  const [dueInputValue, setDueInputValue] = useState(
-    toDateInputValue(detail.dueAt),
-  );
+  const [dueInputValue, setDueInputValue] = useState(toDateInputValue(detail.dueAt));
 
   // Re-sync when the server truth changes (e.g. after another window
   // updated the row and a refresh landed).
@@ -240,9 +232,7 @@ function TodoDetailPaneBody({
             variant="ghost"
             size="sm"
             className="h-6 text-xs"
-            onClick={() =>
-              setContentMode((m) => (m === "view" ? "edit" : "view"))
-            }
+            onClick={() => setContentMode((m) => (m === "view" ? "edit" : "view"))}
           >
             {contentMode === "view" ? "编辑" : "预览"}
           </Button>
@@ -257,15 +247,14 @@ function TodoDetailPaneBody({
             aria-label="Todo notes"
           />
         ) : (
-          <div
+          <button
+            type="button"
             onDoubleClick={() => setContentMode("edit")}
-            className="min-h-[10rem] rounded-sm border border-transparent p-2 hover:border-border/60"
+            className="min-h-[10rem] w-full rounded-sm border border-transparent p-2 text-left hover:border-border/60"
+            aria-label="Todo notes preview. Double-click to edit."
           >
-            <MarkdownPreview
-              content={contentDraft}
-              placeholder="暂无备注，双击进入编辑。"
-            />
-          </div>
+            <MarkdownPreview content={contentDraft} placeholder="暂无备注，双击进入编辑。" />
+          </button>
         )}
       </div>
 

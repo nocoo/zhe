@@ -44,7 +44,7 @@
  *          └── error → forwardToOrigin (full fallback)
  */
 
-import { handleD1Query, handleD1Batch } from "./d1-proxy";
+import { handleD1Batch, handleD1Query } from "./d1-proxy";
 
 export interface Env {
   LINKS_KV: KVNamespace;
@@ -58,19 +58,19 @@ export interface Env {
 // Must stay in sync with lib/constants.ts RESERVED_PATHS.
 
 const RESERVED_PATHS = new Set([
-  'login',
-  'logout',
-  'auth',
-  'callback',
-  'dashboard',
-  'api',
-  'admin',
-  'live',
-  '_next',
-  'static',
-  'favicon.ico',
-  'robots.txt',
-  'sitemap.xml',
+  "login",
+  "logout",
+  "auth",
+  "callback",
+  "dashboard",
+  "api",
+  "admin",
+  "live",
+  "_next",
+  "static",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
 ]);
 
 /** Check if the first path segment is a reserved path (exact or prefix match). */
@@ -81,45 +81,39 @@ function isReservedPath(segment: string): boolean {
 // ─── Static Asset Detection ─────────────────────────────────────────────────
 // Same extensions excluded by Next.js middleware matcher.
 
-const STATIC_EXTENSIONS = new Set([
-  '.png', '.ico', '.svg', '.jpg', '.jpeg', '.webp',
-]);
+const STATIC_EXTENSIONS = new Set([".png", ".ico", ".svg", ".jpg", ".jpeg", ".webp"]);
 
 function isStaticAsset(pathname: string): boolean {
-  const dot = pathname.lastIndexOf('.');
+  const dot = pathname.lastIndexOf(".");
   if (dot === -1) return false;
   return STATIC_EXTENSIONS.has(pathname.slice(dot).toLowerCase());
 }
 
 // Sub-modules — keeps this file focused on the fetch handler.
-import { forwardToOrigin } from './forward';
-import { tryKvLookup, tryOriginLookup } from './redirect';
+import { forwardToOrigin } from "./forward";
+import { tryKvLookup, tryOriginLookup } from "./redirect";
 
-async function handleFetch(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<Response> {
+async function handleFetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
 
   // 0. D1 proxy endpoints — MUST be checked BEFORE reserved path logic
   //    Otherwise /api/* gets forwarded to origin and these handlers never run
-  if (pathname === '/api/d1-query' && request.method === 'POST') {
+  if (pathname === "/api/d1-query" && request.method === "POST") {
     return handleD1Query(request, env);
   }
-  if (pathname === '/api/d1-batch' && request.method === 'POST') {
+  if (pathname === "/api/d1-batch" && request.method === "POST") {
     return handleD1Batch(request, env);
   }
 
   // 1. Root path, static assets → forward to origin
-  if (pathname === '/' || pathname === '' || isStaticAsset(pathname)) {
+  if (pathname === "/" || pathname === "" || isStaticAsset(pathname)) {
     return forwardToOrigin(request, env);
   }
 
   // 2. Extract first path segment; reserved + multi-segment → forward to origin
-  const slug = pathname.slice(1).split('/')[0] ?? '';
-  if (isReservedPath(slug) || pathname.slice(1).includes('/')) {
+  const slug = pathname.slice(1).split("/")[0] ?? "";
+  if (isReservedPath(slug) || pathname.slice(1).includes("/")) {
     return forwardToOrigin(request, env);
   }
 
@@ -156,45 +150,45 @@ async function handleScheduled(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<void> {
-  const originBase = env.ORIGIN_URL.replace(/\/$/, '');
+  const originBase = env.ORIGIN_URL.replace(/\/$/, "");
 
   // Cleanup expired tmp files from R2
   ctx.waitUntil(
     fetch(`${originBase}/api/cron/cleanup`, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${env.WORKER_SECRET}` },
     })
       .then(async (res) => {
         if (!res.ok) {
-          const text = await res.text().catch(() => '');
+          const text = await res.text().catch(() => "");
           console.error(`Cleanup cron failed (${res.status}): ${text}`);
         } else {
           const data = await res.json().catch(() => ({}));
-          console.log('Cleanup cron result:', JSON.stringify(data));
+          console.log("Cleanup cron result:", JSON.stringify(data));
         }
       })
       .catch((err) => {
-        console.error('Cleanup cron fetch error:', err);
+        console.error("Cleanup cron fetch error:", err);
       }),
   );
 
   // KV sync (D1 → KV delta)
   ctx.waitUntil(
     fetch(`${originBase}/api/cron/sync-kv`, {
-      method: 'POST',
+      method: "POST",
       headers: { Authorization: `Bearer ${env.WORKER_SECRET}` },
     })
       .then(async (res) => {
         if (!res.ok) {
-          const text = await res.text().catch(() => '');
+          const text = await res.text().catch(() => "");
           console.error(`Sync-kv cron failed (${res.status}): ${text}`);
         } else {
           const data = await res.json().catch(() => ({}));
-          console.log('Sync-kv cron result:', JSON.stringify(data));
+          console.log("Sync-kv cron result:", JSON.stringify(data));
         }
       })
       .catch((err) => {
-        console.error('Sync-kv cron fetch error:', err);
+        console.error("Sync-kv cron fetch error:", err);
       }),
   );
 }

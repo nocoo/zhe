@@ -12,10 +12,10 @@
  * aria-labels remain in English to keep the existing test contracts.
  */
 
-import { useMemo } from "react";
 import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -62,11 +62,7 @@ export function TodosFilterBar({
   onClearFilters,
 }: TodosFilterBarProps) {
   const isDirty = useMemo(
-    () =>
-      searchQuery.length > 0 ||
-      !showDone ||
-      selectedTagName !== null ||
-      dueFilter !== "all",
+    () => searchQuery.length > 0 || !showDone || selectedTagName !== null || dueFilter !== "all",
     [searchQuery, showDone, selectedTagName, dueFilter],
   );
 
@@ -83,14 +79,8 @@ export function TodosFilterBar({
         />
       </div>
 
-      <Select
-        value={dueFilter}
-        onValueChange={(v) => onDueFilterChange(v as TodoDueFilterKind)}
-      >
-        <SelectTrigger
-          className="w-[110px] h-8 text-xs rounded-lg"
-          aria-label="Due date filter"
-        >
+      <Select value={dueFilter} onValueChange={(v) => onDueFilterChange(v as TodoDueFilterKind)}>
+        <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg" aria-label="Due date filter">
           <SelectValue placeholder="全部截止" />
         </SelectTrigger>
         <SelectContent>
@@ -106,10 +96,7 @@ export function TodosFilterBar({
         value={selectedTagName ?? "__any"}
         onValueChange={(v) => onSelectedTagNameChange(v === "__any" ? null : v)}
       >
-        <SelectTrigger
-          className="w-[110px] h-8 text-xs rounded-lg"
-          aria-label="Tag filter"
-        >
+        <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg" aria-label="Tag filter">
           <SelectValue placeholder="全部标签" />
         </SelectTrigger>
         <SelectContent>

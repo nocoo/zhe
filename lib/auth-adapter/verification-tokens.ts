@@ -1,6 +1,6 @@
 /** D1 helpers for one-time verification tokens (magic-link flow). */
 
-import { executeD1Query } from '../db/d1-client';
+import { executeD1Query } from "../db/d1-client";
 
 export interface AdapterVerificationToken {
   identifier: string;
@@ -21,7 +21,6 @@ export async function createVerificationToken(
 
 /** Consume the token; returns null if no matching row existed. */
 // `use` prefix is the NextAuth adapter API contract, not a React hook.
-// eslint-disable-next-line @eslint-react/no-unnecessary-use-prefix
 export async function useVerificationToken(
   identifier: string,
   token: string,

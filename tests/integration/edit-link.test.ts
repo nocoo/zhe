@@ -12,17 +12,17 @@
  *
  * BDD style — each scenario simulates a real user workflow.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { clearMockStorage } from '../setup';
-import { unwrap } from '../test-utils';
-import type { Link, Tag } from '@/lib/db/schema';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Link, Tag } from "@/lib/db/schema";
+import { clearMockStorage } from "../setup";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks — auth (D1 uses the global mock from setup.ts)
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
@@ -30,12 +30,12 @@ vi.mock('@/auth', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-const USER_A = 'user-edit-e2e-a';
-const USER_B = 'user-edit-e2e-b';
+const USER_A = "user-edit-e2e-a";
+const USER_B = "user-edit-e2e-b";
 
 function authenticatedAs(userId: string) {
   mockAuth.mockResolvedValue({
-    user: { id: userId, name: 'E2E User', email: 'e2e@test.com' },
+    user: { id: userId, name: "E2E User", email: "e2e@test.com" },
   });
 }
 
@@ -45,7 +45,7 @@ function unauthenticated() {
 
 /** Create a link for the current authenticated user via server action */
 async function seedLink(url: string): Promise<Link> {
-  const { createLink } = await import('@/actions/links');
+  const { createLink } = await import("@/actions/links");
   const result = await createLink({ originalUrl: url });
   if (!result.success || !result.data) {
     throw new Error(`Failed to seed link: ${result.error}`);
@@ -57,7 +57,7 @@ async function seedLink(url: string): Promise<Link> {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Edit-Link E2E — full lifecycle', () => {
+describe("Edit-Link E2E — full lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearMockStorage();
@@ -67,65 +67,65 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // Scenario 1: Unauthenticated access denied
   // As an unauthenticated visitor, all edit operations should fail.
   // ============================================================
-  describe('unauthenticated user', () => {
-    it('cannot update a link', async () => {
+  describe("unauthenticated user", () => {
+    it("cannot update a link", async () => {
       unauthenticated();
-      const { updateLink } = await import('@/actions/links');
+      const { updateLink } = await import("@/actions/links");
 
-      const result = await updateLink(1, { originalUrl: 'https://evil.com' });
+      const result = await updateLink(1, { originalUrl: "https://evil.com" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot update a link note', async () => {
+    it("cannot update a link note", async () => {
       unauthenticated();
-      const { updateLinkNote } = await import('@/actions/links');
+      const { updateLinkNote } = await import("@/actions/links");
 
-      const result = await updateLinkNote(1, 'sneaky note');
+      const result = await updateLinkNote(1, "sneaky note");
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot create tags', async () => {
+    it("cannot create tags", async () => {
       unauthenticated();
-      const { createTag } = await import('@/actions/tags');
+      const { createTag } = await import("@/actions/tags");
 
-      const result = await createTag({ name: 'sneaky' });
+      const result = await createTag({ name: "sneaky" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot list tags', async () => {
+    it("cannot list tags", async () => {
       unauthenticated();
-      const { getTags } = await import('@/actions/tags');
+      const { getTags } = await import("@/actions/tags");
 
       const result = await getTags();
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot add tag to link', async () => {
+    it("cannot add tag to link", async () => {
       unauthenticated();
-      const { addTagToLink } = await import('@/actions/tags');
+      const { addTagToLink } = await import("@/actions/tags");
 
-      const result = await addTagToLink(1, 'tag-id');
+      const result = await addTagToLink(1, "tag-id");
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
 
-    it('cannot remove tag from link', async () => {
+    it("cannot remove tag from link", async () => {
       unauthenticated();
-      const { removeTagFromLink } = await import('@/actions/tags');
+      const { removeTagFromLink } = await import("@/actions/tags");
 
-      const result = await removeTagFromLink(1, 'tag-id');
+      const result = await removeTagFromLink(1, "tag-id");
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Unauthorized');
+      expect(result.error).toBe("Unauthorized");
     });
   });
 
@@ -139,38 +139,39 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // 5. Remove a tag from the link
   // 6. Verify final state
   // ============================================================
-  describe('authenticated user — complete edit lifecycle', () => {
-    it('create link → update URL → add note → create & assign tags → remove tag → verify', async () => {
+  describe("authenticated user — complete edit lifecycle", () => {
+    it("create link → update URL → add note → create & assign tags → remove tag → verify", async () => {
       authenticatedAs(USER_A);
-      const { updateLink, updateLinkNote, getLinks } = await import('@/actions/links');
-      const { createTag, getTags, getLinkTags, addTagToLink, removeTagFromLink } =
-        await import('@/actions/tags');
+      const { updateLink, updateLinkNote, getLinks } = await import("@/actions/links");
+      const { createTag, getTags, getLinkTags, addTagToLink, removeTagFromLink } = await import(
+        "@/actions/tags"
+      );
 
       // Step 1: Create a link
-      const link = await seedLink('https://original.com');
-      expect(link.originalUrl).toBe('https://original.com');
+      const link = await seedLink("https://original.com");
+      expect(link.originalUrl).toBe("https://original.com");
       expect(link.note).toBeNull();
 
       // Step 2: Update URL
       const urlResult = await updateLink(link.id, {
-        originalUrl: 'https://updated.com',
+        originalUrl: "https://updated.com",
       });
       expect(urlResult.success).toBe(true);
-      expect(unwrap(urlResult.data).originalUrl).toBe('https://updated.com');
+      expect(unwrap(urlResult.data).originalUrl).toBe("https://updated.com");
 
       // Step 3: Add a note
-      const noteResult = await updateLinkNote(link.id, 'Important bookmark');
+      const noteResult = await updateLinkNote(link.id, "Important bookmark");
       expect(noteResult.success).toBe(true);
-      expect(unwrap(noteResult.data).note).toBe('Important bookmark');
+      expect(unwrap(noteResult.data).note).toBe("Important bookmark");
 
       // Step 4: Create two tags
-      const tag1Result = await createTag({ name: 'work', color: 'cobalt' });
+      const tag1Result = await createTag({ name: "work", color: "cobalt" });
       expect(tag1Result.success).toBe(true);
       const tag1 = unwrap(tag1Result.data);
-      expect(tag1.name).toBe('work');
-      expect(tag1.color).toBe('cobalt');
+      expect(tag1.name).toBe("work");
+      expect(tag1.color).toBe("cobalt");
 
-      const tag2Result = await createTag({ name: 'reference', color: 'green' });
+      const tag2Result = await createTag({ name: "reference", color: "green" });
       expect(tag2Result.success).toBe(true);
       const tag2 = unwrap(tag2Result.data);
 
@@ -186,7 +187,9 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(linkTagsResult.success).toBe(true);
       expect(linkTagsResult.data).toHaveLength(2);
 
-      const assignedTagIds = unwrap(linkTagsResult.data).map((lt) => lt.tagId).sort();
+      const assignedTagIds = unwrap(linkTagsResult.data)
+        .map((lt) => lt.tagId)
+        .sort();
       expect(assignedTagIds).toEqual([tag1.id, tag2.id].sort());
 
       // Step 7: Remove one tag
@@ -206,8 +209,8 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const linksResult = await getLinks();
       expect(linksResult.success).toBe(true);
       const finalLink = unwrap(unwrap(linksResult.data).find((l) => l.id === link.id));
-      expect(finalLink.originalUrl).toBe('https://updated.com');
-      expect(finalLink.note).toBe('Important bookmark');
+      expect(finalLink.originalUrl).toBe("https://updated.com");
+      expect(finalLink.note).toBe("Important bookmark");
     });
   });
 
@@ -216,18 +219,17 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // As an authenticated user, I want to manage tags:
   // create → list → update (name + color) → delete
   // ============================================================
-  describe('tag CRUD lifecycle', () => {
-    it('create → list → update → delete', async () => {
+  describe("tag CRUD lifecycle", () => {
+    it("create → list → update → delete", async () => {
       authenticatedAs(USER_A);
-      const { createTag, getTags, updateTag, deleteTag } =
-        await import('@/actions/tags');
+      const { createTag, getTags, updateTag, deleteTag } = await import("@/actions/tags");
 
       // Create
-      const createResult = await createTag({ name: 'devops', color: 'orange' });
+      const createResult = await createTag({ name: "devops", color: "orange" });
       expect(createResult.success).toBe(true);
       const tag = unwrap(createResult.data);
-      expect(tag.name).toBe('devops');
-      expect(tag.color).toBe('orange');
+      expect(tag.name).toBe("devops");
+      expect(tag.color).toBe("orange");
 
       // List
       const listResult = await getTags();
@@ -235,16 +237,16 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(unwrap(unwrap(listResult.data)[0]).id).toBe(tag.id);
 
       // Update name
-      const updateNameResult = await updateTag(tag.id, { name: 'infrastructure' });
+      const updateNameResult = await updateTag(tag.id, { name: "infrastructure" });
       expect(updateNameResult.success).toBe(true);
-      expect(unwrap(updateNameResult.data).name).toBe('infrastructure');
-      expect(unwrap(updateNameResult.data).color).toBe('orange'); // color unchanged
+      expect(unwrap(updateNameResult.data).name).toBe("infrastructure");
+      expect(unwrap(updateNameResult.data).color).toBe("orange"); // color unchanged
 
       // Update color
-      const updateColorResult = await updateTag(tag.id, { color: 'teal' });
+      const updateColorResult = await updateTag(tag.id, { color: "teal" });
       expect(updateColorResult.success).toBe(true);
-      expect(unwrap(updateColorResult.data).name).toBe('infrastructure'); // name unchanged
-      expect(unwrap(updateColorResult.data).color).toBe('teal');
+      expect(unwrap(updateColorResult.data).name).toBe("infrastructure"); // name unchanged
+      expect(unwrap(updateColorResult.data).color).toBe("teal");
 
       // Delete
       const deleteResult = await deleteTag(tag.id);
@@ -260,15 +262,14 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // Scenario 4: Cascade delete — deleting a tag removes link-tag
   // associations, but the link itself stays intact.
   // ============================================================
-  describe('cascade delete behavior', () => {
-    it('deleting a tag removes its link-tag associations', async () => {
+  describe("cascade delete behavior", () => {
+    it("deleting a tag removes its link-tag associations", async () => {
       authenticatedAs(USER_A);
-      const { createTag, deleteTag, addTagToLink, getLinkTags } =
-        await import('@/actions/tags');
+      const { createTag, deleteTag, addTagToLink, getLinkTags } = await import("@/actions/tags");
 
       // Create a link and a tag
-      const link = await seedLink('https://cascade-test.com');
-      const tagResult = await createTag({ name: 'temporary', color: 'rose' });
+      const link = await seedLink("https://cascade-test.com");
+      const tagResult = await createTag({ name: "temporary", color: "rose" });
       const tag = unwrap(tagResult.data);
 
       // Assign tag to link
@@ -286,15 +287,14 @@ describe('Edit-Link E2E — full lifecycle', () => {
       expect(after.data).toHaveLength(0);
     });
 
-    it('deleting a link removes its link-tag associations', async () => {
+    it("deleting a link removes its link-tag associations", async () => {
       authenticatedAs(USER_A);
-      const { deleteLink } = await import('@/actions/links');
-      const { createTag, addTagToLink, getLinkTags, getTags } =
-        await import('@/actions/tags');
+      const { deleteLink } = await import("@/actions/links");
+      const { createTag, addTagToLink, getLinkTags, getTags } = await import("@/actions/tags");
 
       // Create a link and a tag, then associate
-      const link = await seedLink('https://link-delete-test.com');
-      const tagResult = await createTag({ name: 'permanent', color: 'indigo' });
+      const link = await seedLink("https://link-delete-test.com");
+      const tagResult = await createTag({ name: "permanent", color: "indigo" });
       const tag = unwrap(tagResult.data);
       await addTagToLink(link.id, tag.id);
 
@@ -322,30 +322,29 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // User A's tags and link-tag associations should be invisible
   // to User B, and vice versa.
   // ============================================================
-  describe('multi-user isolation', () => {
-    it('users cannot see or modify each other\'s tags', async () => {
-      const { createTag, getTags, updateTag, deleteTag } =
-        await import('@/actions/tags');
+  describe("multi-user isolation", () => {
+    it("users cannot see or modify each other's tags", async () => {
+      const { createTag, getTags, updateTag, deleteTag } = await import("@/actions/tags");
 
       // User A creates tags
       authenticatedAs(USER_A);
-      const tagA = await createTag({ name: 'user-a-tag', color: 'red' });
+      const tagA = await createTag({ name: "user-a-tag", color: "red" });
       expect(tagA.success).toBe(true);
 
       // User B creates tags
       authenticatedAs(USER_B);
-      const tagB = await createTag({ name: 'user-b-tag', color: 'cobalt' });
+      const tagB = await createTag({ name: "user-b-tag", color: "cobalt" });
       expect(tagB.success).toBe(true);
 
       // User B can only see their own tags
       const listB = await getTags();
       expect(listB.data).toHaveLength(1);
-      expect(unwrap(unwrap(listB.data)[0]).name).toBe('user-b-tag');
+      expect(unwrap(unwrap(listB.data)[0]).name).toBe("user-b-tag");
 
       // User B cannot update User A's tag
-      const updateAttempt = await updateTag(unwrap(tagA.data).id, { name: 'hacked' });
+      const updateAttempt = await updateTag(unwrap(tagA.data).id, { name: "hacked" });
       expect(updateAttempt.success).toBe(false);
-      expect(updateAttempt.error).toBe('Tag not found or access denied');
+      expect(updateAttempt.error).toBe("Tag not found or access denied");
 
       // User B cannot delete User A's tag
       const deleteAttempt = await deleteTag(unwrap(tagA.data).id);
@@ -355,23 +354,24 @@ describe('Edit-Link E2E — full lifecycle', () => {
       authenticatedAs(USER_A);
       const listA = await getTags();
       expect(listA.data).toHaveLength(1);
-      expect(unwrap(unwrap(listA.data)[0]).name).toBe('user-a-tag');
+      expect(unwrap(unwrap(listA.data)[0]).name).toBe("user-a-tag");
     });
 
-    it('users cannot see or modify each other\'s link-tag associations', async () => {
-      const { createTag, addTagToLink, getLinkTags, removeTagFromLink } =
-        await import('@/actions/tags');
+    it("users cannot see or modify each other's link-tag associations", async () => {
+      const { createTag, addTagToLink, getLinkTags, removeTagFromLink } = await import(
+        "@/actions/tags"
+      );
 
       // User A creates a link + tag + association
       authenticatedAs(USER_A);
-      const linkA = await seedLink('https://user-a.com');
-      const tagA = await createTag({ name: 'a-private', color: 'amber' });
+      const linkA = await seedLink("https://user-a.com");
+      const tagA = await createTag({ name: "a-private", color: "amber" });
       await addTagToLink(linkA.id, unwrap(tagA.data).id);
 
       // User B creates a link + tag + association
       authenticatedAs(USER_B);
-      const linkB = await seedLink('https://user-b.com');
-      const tagB = await createTag({ name: 'b-private', color: 'purple' });
+      const linkB = await seedLink("https://user-b.com");
+      const tagB = await createTag({ name: "b-private", color: "purple" });
       await addTagToLink(linkB.id, unwrap(tagB.data).id);
 
       // User B can only see their own link-tags
@@ -395,23 +395,23 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // Scenario 6: Note lifecycle
   // As an authenticated user, I want to add, update, and clear notes.
   // ============================================================
-  describe('note lifecycle', () => {
-    it('add note → update note → clear note', async () => {
+  describe("note lifecycle", () => {
+    it("add note → update note → clear note", async () => {
       authenticatedAs(USER_A);
-      const { updateLinkNote, getLinks } = await import('@/actions/links');
+      const { updateLinkNote, getLinks } = await import("@/actions/links");
 
-      const link = await seedLink('https://note-test.com');
+      const link = await seedLink("https://note-test.com");
       expect(link.note).toBeNull();
 
       // Add note
-      const addResult = await updateLinkNote(link.id, 'First note');
+      const addResult = await updateLinkNote(link.id, "First note");
       expect(addResult.success).toBe(true);
-      expect(unwrap(addResult.data).note).toBe('First note');
+      expect(unwrap(addResult.data).note).toBe("First note");
 
       // Update note
-      const updateResult = await updateLinkNote(link.id, 'Updated note');
+      const updateResult = await updateLinkNote(link.id, "Updated note");
       expect(updateResult.success).toBe(true);
-      expect(unwrap(updateResult.data).note).toBe('Updated note');
+      expect(unwrap(updateResult.data).note).toBe("Updated note");
 
       // Clear note (set to null)
       const clearResult = await updateLinkNote(link.id, null);
@@ -429,75 +429,75 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // Scenario 7: Tag validation
   // Server actions should reject invalid tag names and colors.
   // ============================================================
-  describe('tag validation', () => {
+  describe("tag validation", () => {
     beforeEach(() => {
       authenticatedAs(USER_A);
     });
 
-    it('rejects empty tag name', async () => {
-      const { createTag } = await import('@/actions/tags');
+    it("rejects empty tag name", async () => {
+      const { createTag } = await import("@/actions/tags");
 
-      const result = await createTag({ name: '' });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tag name');
-    });
-
-    it('rejects whitespace-only tag name', async () => {
-      const { createTag } = await import('@/actions/tags');
-
-      const result = await createTag({ name: '   ' });
+      const result = await createTag({ name: "" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tag name');
+      expect(result.error).toBe("Invalid tag name");
     });
 
-    it('rejects tag name exceeding 30 characters', async () => {
-      const { createTag } = await import('@/actions/tags');
+    it("rejects whitespace-only tag name", async () => {
+      const { createTag } = await import("@/actions/tags");
 
-      const result = await createTag({ name: 'a'.repeat(31) });
+      const result = await createTag({ name: "   " });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tag name');
+      expect(result.error).toBe("Invalid tag name");
     });
 
-    it('rejects invalid color on create', async () => {
-      const { createTag } = await import('@/actions/tags');
+    it("rejects tag name exceeding 30 characters", async () => {
+      const { createTag } = await import("@/actions/tags");
 
-      const result = await createTag({ name: 'valid-name', color: 'neon-green' });
+      const result = await createTag({ name: "a".repeat(31) });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tag color');
+      expect(result.error).toBe("Invalid tag name");
     });
 
-    it('rejects invalid color on update', async () => {
-      const { createTag, updateTag } = await import('@/actions/tags');
+    it("rejects invalid color on create", async () => {
+      const { createTag } = await import("@/actions/tags");
 
-      const tag = await createTag({ name: 'test', color: 'cobalt' });
-      const result = await updateTag(unwrap(tag.data).id, { color: 'rainbow' });
+      const result = await createTag({ name: "valid-name", color: "neon-green" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tag color');
+      expect(result.error).toBe("Invalid tag color");
     });
 
-    it('trims tag name whitespace', async () => {
-      const { createTag } = await import('@/actions/tags');
+    it("rejects invalid color on update", async () => {
+      const { createTag, updateTag } = await import("@/actions/tags");
 
-      const result = await createTag({ name: '  trimmed  ', color: 'rose' });
+      const tag = await createTag({ name: "test", color: "cobalt" });
+      const result = await updateTag(unwrap(tag.data).id, { color: "rainbow" });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid tag color");
+    });
+
+    it("trims tag name whitespace", async () => {
+      const { createTag } = await import("@/actions/tags");
+
+      const result = await createTag({ name: "  trimmed  ", color: "rose" });
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).name).toBe('trimmed');
+      expect(unwrap(result.data).name).toBe("trimmed");
     });
 
-    it('assigns deterministic color from name when none specified', async () => {
-      const { createTag } = await import('@/actions/tags');
-      const { TAG_COLORS, tagColorFromName } = await import('@/models/tags');
+    it("assigns deterministic color from name when none specified", async () => {
+      const { createTag } = await import("@/actions/tags");
+      const { TAG_COLORS, tagColorFromName } = await import("@/models/tags");
 
-      const result = await createTag({ name: 'auto-color' });
+      const result = await createTag({ name: "auto-color" });
 
       expect(result.success).toBe(true);
       expect(TAG_COLORS).toContain(unwrap(result.data).color);
-      expect(unwrap(result.data).color).toBe(tagColorFromName('auto-color'));
+      expect(unwrap(result.data).color).toBe(tagColorFromName("auto-color"));
     });
   });
 
@@ -506,17 +506,16 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // As an authenticated user, I want to assign the same tag to
   // multiple links and multiple tags to the same link.
   // ============================================================
-  describe('many-to-many relationships', () => {
-    it('one tag can be assigned to multiple links', async () => {
+  describe("many-to-many relationships", () => {
+    it("one tag can be assigned to multiple links", async () => {
       authenticatedAs(USER_A);
-      const { createTag, addTagToLink, getLinkTags } =
-        await import('@/actions/tags');
+      const { createTag, addTagToLink, getLinkTags } = await import("@/actions/tags");
 
-      const link1 = await seedLink('https://site-1.com');
-      const link2 = await seedLink('https://site-2.com');
-      const link3 = await seedLink('https://site-3.com');
+      const link1 = await seedLink("https://site-1.com");
+      const link2 = await seedLink("https://site-2.com");
+      const link3 = await seedLink("https://site-3.com");
 
-      const tag = await createTag({ name: 'shared', color: 'teal' });
+      const tag = await createTag({ name: "shared", color: "teal" });
 
       await addTagToLink(link1.id, unwrap(tag.data).id);
       await addTagToLink(link2.id, unwrap(tag.data).id);
@@ -525,19 +524,20 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const linkTags = await getLinkTags();
       expect(linkTags.data).toHaveLength(3);
 
-      const linkedIds = unwrap(linkTags.data).map((lt) => lt.linkId).sort((a, b) => a - b);
+      const linkedIds = unwrap(linkTags.data)
+        .map((lt) => lt.linkId)
+        .sort((a, b) => a - b);
       expect(linkedIds).toEqual([link1.id, link2.id, link3.id].sort((a, b) => a - b));
     });
 
-    it('one link can have multiple tags', async () => {
+    it("one link can have multiple tags", async () => {
       authenticatedAs(USER_A);
-      const { createTag, addTagToLink, getLinkTags } =
-        await import('@/actions/tags');
+      const { createTag, addTagToLink, getLinkTags } = await import("@/actions/tags");
 
-      const link = await seedLink('https://multi-tag.com');
+      const link = await seedLink("https://multi-tag.com");
 
       const tags: Tag[] = [];
-      const colors = ['red', 'cobalt', 'green', 'orange', 'purple'];
+      const colors = ["red", "cobalt", "green", "orange", "purple"];
       for (const color of colors) {
         const result = await createTag({ name: `tag-${color}`, color });
         tags.push(unwrap(result.data));
@@ -550,7 +550,9 @@ describe('Edit-Link E2E — full lifecycle', () => {
       const linkTags = await getLinkTags();
       expect(linkTags.data).toHaveLength(5);
 
-      const assignedTagIds = unwrap(linkTags.data).map((lt) => lt.tagId).sort();
+      const assignedTagIds = unwrap(linkTags.data)
+        .map((lt) => lt.tagId)
+        .sort();
       const expectedIds = tags.map((t) => t.id).sort();
       expect(assignedTagIds).toEqual(expectedIds);
     });
@@ -560,43 +562,43 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // Scenario 9: Edit link with invalid data
   // Server actions should reject invalid URLs and non-existent links.
   // ============================================================
-  describe('edit link validation', () => {
+  describe("edit link validation", () => {
     beforeEach(() => {
       authenticatedAs(USER_A);
     });
 
-    it('rejects invalid URL on update', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("rejects invalid URL on update", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link = await seedLink('https://valid.com');
-      const result = await updateLink(link.id, { originalUrl: 'not-a-url' });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid URL');
-    });
-
-    it('rejects update for non-existent link', async () => {
-      const { updateLink } = await import('@/actions/links');
-
-      const result = await updateLink(99999, { originalUrl: 'https://ghost.com' });
+      const link = await seedLink("https://valid.com");
+      const result = await updateLink(link.id, { originalUrl: "not-a-url" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Link not found or access denied');
+      expect(result.error).toBe("Invalid URL");
     });
 
-    it('rejects note update for non-existent link', async () => {
-      const { updateLinkNote } = await import('@/actions/links');
+    it("rejects update for non-existent link", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const result = await updateLinkNote(99999, 'orphaned note');
+      const result = await updateLink(99999, { originalUrl: "https://ghost.com" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Link not found or access denied');
+      expect(result.error).toBe("Link not found or access denied");
     });
 
-    it('rejects adding tag to non-existent link', async () => {
-      const { createTag, addTagToLink } = await import('@/actions/tags');
+    it("rejects note update for non-existent link", async () => {
+      const { updateLinkNote } = await import("@/actions/links");
 
-      const tag = await createTag({ name: 'orphan', color: 'gray' });
+      const result = await updateLinkNote(99999, "orphaned note");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Link not found or access denied");
+    });
+
+    it("rejects adding tag to non-existent link", async () => {
+      const { createTag, addTagToLink } = await import("@/actions/tags");
+
+      const tag = await createTag({ name: "orphan", color: "gray" });
       const result = await addTagToLink(99999, unwrap(tag.data).id);
 
       expect(result.success).toBe(false);
@@ -608,118 +610,118 @@ describe('Edit-Link E2E — full lifecycle', () => {
   // As an authenticated user, I want to change a link's slug,
   // including validation, uniqueness checks, and edge cases.
   // ============================================================
-  describe('slug editing', () => {
+  describe("slug editing", () => {
     beforeEach(() => {
       authenticatedAs(USER_A);
     });
 
-    it('updates slug to a new custom value', async () => {
-      const { updateLink, getLinks } = await import('@/actions/links');
+    it("updates slug to a new custom value", async () => {
+      const { updateLink, getLinks } = await import("@/actions/links");
 
-      const link = await seedLink('https://slug-test.com');
-      const result = await updateLink(link.id, { slug: 'my-custom-slug' });
+      const link = await seedLink("https://slug-test.com");
+      const result = await updateLink(link.id, { slug: "my-custom-slug" });
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).slug).toBe('my-custom-slug');
+      expect(unwrap(result.data).slug).toBe("my-custom-slug");
       expect(unwrap(result.data).isCustom).toBe(true);
 
       // Verify persisted
       const links = await getLinks();
-      const found = unwrap(unwrap(links.data).find(l => l.id === link.id));
-      expect(found.slug).toBe('my-custom-slug');
+      const found = unwrap(unwrap(links.data).find((l) => l.id === link.id));
+      expect(found.slug).toBe("my-custom-slug");
     });
 
-    it('allows keeping the same slug (no-op for custom slug)', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("allows keeping the same slug (no-op for custom slug)", async () => {
+      const { updateLink } = await import("@/actions/links");
 
       // First create and set a custom lowercase slug
-      const link = await seedLink('https://same-slug.com');
-      const setResult = await updateLink(link.id, { slug: 'my-stable' });
+      const link = await seedLink("https://same-slug.com");
+      const setResult = await updateLink(link.id, { slug: "my-stable" });
       expect(setResult.success).toBe(true);
 
       // Now "update" to the same slug — should succeed
-      const result = await updateLink(link.id, { slug: 'my-stable' });
+      const result = await updateLink(link.id, { slug: "my-stable" });
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).slug).toBe('my-stable');
+      expect(unwrap(result.data).slug).toBe("my-stable");
     });
 
-    it('rejects slug that is already taken by another link', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("rejects slug that is already taken by another link", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link1 = await seedLink('https://slug-a.com');
+      const link1 = await seedLink("https://slug-a.com");
       // Give link1 a known lowercase custom slug
-      await updateLink(link1.id, { slug: 'taken-one' });
+      await updateLink(link1.id, { slug: "taken-one" });
 
-      const link2 = await seedLink('https://slug-b.com');
+      const link2 = await seedLink("https://slug-b.com");
 
       // Try to set link2's slug to link1's slug
-      const result = await updateLink(link2.id, { slug: 'taken-one' });
+      const result = await updateLink(link2.id, { slug: "taken-one" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('This slug is already taken');
+      expect(result.error).toBe("This slug is already taken");
     });
 
-    it('rejects invalid slug characters', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("rejects invalid slug characters", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link = await seedLink('https://invalid-slug.com');
-      const result = await updateLink(link.id, { slug: 'has spaces!' });
+      const link = await seedLink("https://invalid-slug.com");
+      const result = await updateLink(link.id, { slug: "has spaces!" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid slug');
+      expect(result.error).toContain("Invalid slug");
     });
 
-    it('rejects reserved path as slug', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("rejects reserved path as slug", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link = await seedLink('https://reserved-slug.com');
-      const result = await updateLink(link.id, { slug: 'dashboard' });
+      const link = await seedLink("https://reserved-slug.com");
+      const result = await updateLink(link.id, { slug: "dashboard" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid slug');
+      expect(result.error).toContain("Invalid slug");
     });
 
-    it('lowercases slug via sanitizeSlug', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("lowercases slug via sanitizeSlug", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link = await seedLink('https://case-slug.com');
-      const result = await updateLink(link.id, { slug: 'MySlug' });
+      const link = await seedLink("https://case-slug.com");
+      const result = await updateLink(link.id, { slug: "MySlug" });
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).slug).toBe('myslug');
+      expect(unwrap(result.data).slug).toBe("myslug");
     });
 
-    it('cross-user slug uniqueness — cannot steal another user slug', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("cross-user slug uniqueness — cannot steal another user slug", async () => {
+      const { updateLink } = await import("@/actions/links");
 
       // User A creates a link with a known custom slug
-      const linkA = await seedLink('https://user-a.com');
-      await updateLink(linkA.id, { slug: 'user-a-slug' });
+      const linkA = await seedLink("https://user-a.com");
+      await updateLink(linkA.id, { slug: "user-a-slug" });
 
       // User B creates a link
       authenticatedAs(USER_B);
-      const linkB = await seedLink('https://user-b.com');
+      const linkB = await seedLink("https://user-b.com");
 
       // User B tries to change slug to User A's slug
-      const result = await updateLink(linkB.id, { slug: 'user-a-slug' });
+      const result = await updateLink(linkB.id, { slug: "user-a-slug" });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('This slug is already taken');
+      expect(result.error).toBe("This slug is already taken");
     });
 
-    it('can update slug and URL simultaneously', async () => {
-      const { updateLink } = await import('@/actions/links');
+    it("can update slug and URL simultaneously", async () => {
+      const { updateLink } = await import("@/actions/links");
 
-      const link = await seedLink('https://both.com');
+      const link = await seedLink("https://both.com");
       const result = await updateLink(link.id, {
-        originalUrl: 'https://updated-both.com',
-        slug: 'both-updated',
+        originalUrl: "https://updated-both.com",
+        slug: "both-updated",
       });
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).originalUrl).toBe('https://updated-both.com');
-      expect(unwrap(result.data).slug).toBe('both-updated');
+      expect(unwrap(result.data).originalUrl).toBe("https://updated-both.com");
+      expect(unwrap(result.data).slug).toBe("both-updated");
       expect(unwrap(result.data).isCustom).toBe(true);
     });
   });

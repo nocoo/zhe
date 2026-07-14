@@ -1,15 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { Copy, FolderOpen, Link2 } from "lucide-react";
+import Image from "next/image";
 import { CommandItem } from "@/components/ui/command";
-import {
-  buildShortUrl,
-  extractHostname,
-  highlightMatches,
-} from "@/models/links";
 import type { HighlightSegment } from "@/models/links";
-import type { Tag, Link  } from "@/models/types";
+import { buildShortUrl, extractHostname, highlightMatches } from "@/models/links";
+import type { Link, Tag } from "@/models/types";
 import { HighlightText } from "./highlight-text";
 import { TagBadges } from "./tag-badges";
 

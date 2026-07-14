@@ -4,16 +4,9 @@
  * Split from ideas-by-id.test.ts to parallelize the heavy PATCH suite.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import {
-
-  seedApiKey,
-  cleanupTestData,
-  resetAndSeedUser,
-  seedTag,
-  seedIdea,
-} from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey, seedIdea, seedTag } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/ideas`;
 
@@ -25,8 +18,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
   beforeAll(async () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
-      seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "ideas:read,ideas:write,tags:read,tags:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "ideas:read" }),
+      seedApiKey(TEST_USER_ID, {
+        name: "Full Access",
+        scopes: "ideas:read,ideas:write,tags:read,tags:write",
+      }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "ideas:read" }),
     ]);
   });
 
@@ -47,43 +43,31 @@ describe("/api/v1/ideas/[id] PATCH", () => {
     });
 
     it("returns 403 when API key lacks ideas:write scope", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyReadOnly,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "Updated" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyReadOnly, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Updated" }),
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent idea", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/9999999`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "Test" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/9999999`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Test" }),
+      });
 
       expect(response.status).toBe(404);
     });
 
     it("updates idea title", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "Updated Title" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Updated Title" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -91,15 +75,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
     });
 
     it("sets title to null", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: null }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: null }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -107,15 +87,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
     });
 
     it("updates idea content", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "# New Content\n\nUpdated body." }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "# New Content\n\nUpdated body." }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -124,15 +100,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
     });
 
     it("returns 400 for empty content", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "   " }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "   " }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -152,15 +124,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
       });
 
       // Then replace with different tags
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tagIds: [tag2.id] }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagIds: [tag2.id] }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -180,15 +148,11 @@ describe("/api/v1/ideas/[id] PATCH", () => {
       });
 
       // Clear with null
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tagIds: null }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagIds: null }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -196,20 +160,15 @@ describe("/api/v1/ideas/[id] PATCH", () => {
     });
 
     it("returns 400 for invalid tag IDs", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testIdeaId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tagIds: ["non-existent"] }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testIdeaId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagIds: ["non-existent"] }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.error).toContain("Invalid tag IDs");
     });
   });
-
 });

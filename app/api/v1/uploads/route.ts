@@ -7,9 +7,9 @@
  * or presigned URL flow. The CLI should use the dashboard upload flow.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { uploadToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 
@@ -40,7 +40,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ uploads: uploads.map(uploadToResponse) }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { uploads: uploads.map(uploadToResponse) },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/uploads GET]", error);
     return apiError("Internal server error", 500);

@@ -9,11 +9,14 @@
  * and our internal shapes.
  */
 
-import type { Adapter } from '@auth/core/adapters';
-import * as users from './auth-adapter/users';
-import * as accounts from './auth-adapter/accounts';
-import * as sessions from './auth-adapter/sessions';
-import * as verificationTokens from './auth-adapter/verification-tokens';
+import type { Adapter } from "@auth/core/adapters";
+import * as accounts from "./auth-adapter/accounts";
+import * as sessions from "./auth-adapter/sessions";
+import * as users from "./auth-adapter/users";
+import {
+  useVerificationToken as consumeVerificationToken,
+  createVerificationToken,
+} from "./auth-adapter/verification-tokens";
 
 export function D1Adapter(): Adapter {
   return {
@@ -34,8 +37,9 @@ export function D1Adapter(): Adapter {
     updateSession: (session) => sessions.updateSession(session),
     deleteSession: (sessionToken) => sessions.deleteSession(sessionToken),
 
-    createVerificationToken: (token) => verificationTokens.createVerificationToken(token),
-    useVerificationToken: ({ identifier, token }) =>
-      verificationTokens.useVerificationToken(identifier, token),
+    createVerificationToken: (token) => createVerificationToken(token),
+    // Auth.js Adapter callback name (not a React Hook). Call site is aliased
+    // to consumeVerificationToken so useHookAtTopLevel does not false-positive.
+    useVerificationToken: ({ identifier, token }) => consumeVerificationToken(identifier, token),
   };
 }

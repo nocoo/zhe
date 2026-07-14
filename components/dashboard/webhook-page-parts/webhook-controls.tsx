@@ -98,11 +98,7 @@ interface RateLimitControlProps {
   onCommit: (v: number) => void;
 }
 
-export function RateLimitControl({
-  rateLimit,
-  setRateLimit,
-  onCommit,
-}: RateLimitControlProps) {
+export function RateLimitControl({ rateLimit, setRateLimit, onCommit }: RateLimitControlProps) {
   return (
     <div className="max-w-2xl space-y-2">
       <div className="flex items-center justify-between">

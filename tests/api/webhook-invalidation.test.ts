@@ -13,17 +13,17 @@
  *   3. POST exceeding the per-token rate limit returns 429 with Retry-After.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { apiGet, apiHead, apiPost } from './helpers/http';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { apiGet, apiHead, apiPost } from "./helpers/http";
 import {
-  
-  seedWebhook,
   cleanupTestData,
-  resetAndSeedUser,  executeD1,
+  executeD1,
+  resetAndSeedUser,
+  seedWebhook,
   testSlug,
-} from './helpers/seed';
+} from "./helpers/seed";
 
-const TEST_USER_ID = 'api-webhook-invalidation-test-user';
+const TEST_USER_ID = "api-webhook-invalidation-test-user";
 
 beforeAll(async () => {
   await resetAndSeedUser(TEST_USER_ID);
@@ -33,28 +33,28 @@ afterAll(async () => {
   await cleanupTestData(TEST_USER_ID);
 });
 
-describe('webhook token invalidation', () => {
-  it('HEAD/GET/POST return 404 after the webhook row is deleted', async () => {
+describe("webhook token invalidation", () => {
+  it("HEAD/GET/POST return 404 after the webhook row is deleted", async () => {
     const { token } = await seedWebhook({ userId: TEST_USER_ID });
 
     // Sanity: token works before delete
     expect((await apiHead(`/api/link/create/${token}`)).status).toBe(200);
 
     // Delete the webhook (hard delete — no soft-delete in this codebase)
-    await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER_ID]);
+    await executeD1("DELETE FROM webhooks WHERE user_id = ?", [TEST_USER_ID]);
 
     expect((await apiHead(`/api/link/create/${token}`)).status).toBe(404);
     expect((await apiGet(`/api/link/create/${token}`)).status).toBe(404);
 
     const post = await apiPost(`/api/link/create/${token}`, {
-      url: 'https://example.com/after-revoke',
+      url: "https://example.com/after-revoke",
     });
     expect(post.status).toBe(404);
     const body = await post.json();
-    expect(body.error).toBe('Invalid webhook token');
+    expect(body.error).toBe("Invalid webhook token");
   });
 
-  it('rotating the webhook invalidates the previous token', async () => {
+  it("rotating the webhook invalidates the previous token", async () => {
     const { token: oldToken } = await seedWebhook({ userId: TEST_USER_ID });
     expect((await apiHead(`/api/link/create/${oldToken}`)).status).toBe(200);
 
@@ -68,8 +68,8 @@ describe('webhook token invalidation', () => {
   });
 });
 
-describe('webhook rate limiting', () => {
-  it('returns 429 with Retry-After once per-token limit is exhausted', async () => {
+describe("webhook rate limiting", () => {
+  it("returns 429 with Retry-After once per-token limit is exhausted", async () => {
     // Tight limit so we can trip it cheaply
     const RL = 5;
     const { token } = await seedWebhook({ userId: TEST_USER_ID, rateLimit: RL });
@@ -89,16 +89,16 @@ describe('webhook rate limiting', () => {
     const others = responses.filter((r) => r.status !== 201 && r.status !== 429);
 
     if (others.length > 0) {
-      throw new Error(`Unexpected statuses: ${others.map((r) => r.status).join(',')}`);
+      throw new Error(`Unexpected statuses: ${others.map((r) => r.status).join(",")}`);
     }
 
     expect(created.length).toBe(RL);
     expect(blocked.length).toBe(TOTAL - RL);
 
     const first = blocked[0];
-    if (!first) throw new Error('expected at least one 429 response');
-    expect(first.headers.get('retry-after')).toMatch(/^\d+$/);
+    if (!first) throw new Error("expected at least one 429 response");
+    expect(first.headers.get("retry-after")).toMatch(/^\d+$/);
     const body = await first.json();
-    expect(body.error).toBe('Rate limit exceeded');
+    expect(body.error).toBe("Rate limit exceeded");
   });
 });

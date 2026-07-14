@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { timingSafeEqual } from 'crypto';
-import { isKVConfigured } from '@/lib/kv/client';
-import { performKVSync } from '@/lib/kv/sync';
+import { timingSafeEqual } from "node:crypto";
+import { NextResponse } from "next/server";
+import { isKVConfigured } from "@/lib/kv/client";
+import { performKVSync } from "@/lib/kv/sync";
 
 /** Timing-safe string comparison to prevent timing attacks. */
 function safeCompare(a: string, b: string): boolean {
@@ -25,26 +25,20 @@ export async function POST(request: Request) {
   // 1. Verify WORKER_SECRET
   const workerSecret = process.env.WORKER_SECRET;
   if (!workerSecret) {
-    return NextResponse.json(
-      { error: 'WORKER_SECRET not configured' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "WORKER_SECRET not configured" }, { status: 500 });
   }
 
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token || !safeCompare(token, workerSecret)) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // 2. Check KV is configured
   if (!isKVConfigured()) {
     return NextResponse.json(
-      { error: 'KV not configured (missing CLOUDFLARE_KV_NAMESPACE_ID)' },
+      { error: "KV not configured (missing CLOUDFLARE_KV_NAMESPACE_ID)" },
       { status: 503 },
     );
   }
@@ -53,14 +47,11 @@ export async function POST(request: Request) {
   const result = await performKVSync();
 
   if (result.skipped) {
-    return NextResponse.json({ skipped: true, message: 'No mutations since last sync' });
+    return NextResponse.json({ skipped: true, message: "No mutations since last sync" });
   }
 
   if (result.error) {
-    return NextResponse.json(
-      { error: result.error },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
 
   return NextResponse.json({

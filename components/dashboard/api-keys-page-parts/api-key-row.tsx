@@ -1,8 +1,6 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +12,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import type { ApiKeyListItem } from "@/viewmodels/useApiKeysViewModel";
 
@@ -96,9 +96,7 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
         </div>
         <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
           <span>创建于 {formatDate(apiKey.createdAt)}</span>
-          <span>
-            最后使用 {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : "从未使用"}
-          </span>
+          <span>最后使用 {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : "从未使用"}</span>
         </div>
       </div>
 

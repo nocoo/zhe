@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,18 +14,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
@@ -46,9 +42,7 @@ export function DeleteLinkDialog({ trigger, isDeleting, onConfirm }: DeleteLinkD
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
-          <AlertDialogDescription>
-            此操作不可撤销，确定要删除这条链接吗？
-          </AlertDialogDescription>
+          <AlertDialogDescription>此操作不可撤销，确定要删除这条链接吗？</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
@@ -172,20 +166,14 @@ export function TagPicker({
       </PopoverTrigger>
       <PopoverContent className={`${popoverWidth} p-0`} align="start">
         <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="搜索或创建标签..."
-            value={search}
-            onValueChange={setSearch}
-          />
+          <CommandInput placeholder="搜索或创建标签..." value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
               未找到标签
             </CommandEmpty>
             <CommandGroup>
               {unassignedTags
-                .filter((t) =>
-                  t.name.toLowerCase().includes(search.toLowerCase()),
-                )
+                .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
                 .map((tag) => {
                   const styles = getTagStyles(tag.name);
                   return (
@@ -202,9 +190,7 @@ export function TagPicker({
                 })}
             </CommandGroup>
             {search.trim() &&
-              !allTags.some(
-                (t) => t.name.toLowerCase() === search.trim().toLowerCase(),
-              ) && (
+              !allTags.some((t) => t.name.toLowerCase() === search.trim().toLowerCase()) && (
                 <CommandGroup>
                   <CommandItem
                     onSelect={handleCreate}

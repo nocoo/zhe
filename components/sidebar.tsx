@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSidebar } from "@/components/sidebar-context";
-import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { useDashboardState } from "@/contexts/dashboard-service";
 import { buildLinkCounts } from "@/models/links";
+import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { SidebarCollapsed } from "./sidebar-parts/sidebar-collapsed";
 import { SidebarExpanded } from "./sidebar-parts/sidebar-expanded";
 
@@ -40,8 +40,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     设置: true,
   });
   const toggleGroup = useCallback(
-    (label: string) =>
-      setGroupOpen((prev) => ({ ...prev, [label]: !prev[label] })),
+    (label: string) => setGroupOpen((prev) => ({ ...prev, [label]: !prev[label] })),
     [],
   );
 

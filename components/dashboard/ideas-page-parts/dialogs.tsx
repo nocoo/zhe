@@ -1,6 +1,8 @@
 "use client";
 
 import { Loader2, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,11 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
@@ -43,9 +43,7 @@ export function CreateIdeaModal({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>新想法</DialogTitle>
-          <DialogDescription>
-            记录新的想法，支持 Markdown 格式。
-          </DialogDescription>
+          <DialogDescription>记录新的想法，支持 Markdown 格式。</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -96,10 +94,7 @@ export function CreateIdeaModal({
           <Button variant="outline" onClick={() => vm.setIsCreateModalOpen(false)}>
             取消
           </Button>
-          <Button
-            onClick={onCreate}
-            disabled={!newContent.trim() || vm.isSaving}
-          >
+          <Button onClick={onCreate} disabled={!newContent.trim() || vm.isSaving}>
             {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             创建
           </Button>
@@ -115,19 +110,13 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>删除想法</DialogTitle>
-          <DialogDescription>
-            确定要删除这个想法吗？此操作无法撤销。
-          </DialogDescription>
+          <DialogDescription>确定要删除这个想法吗？此操作无法撤销。</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={vm.cancelDelete}>
             取消
           </Button>
-          <Button
-            variant="destructive"
-            onClick={vm.executeDelete}
-            disabled={vm.isDeleting}
-          >
+          <Button variant="destructive" onClick={vm.executeDelete} disabled={vm.isDeleting}>
             {vm.isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             删除
           </Button>
@@ -137,17 +126,11 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
   );
 }
 
-export function ErrorToast({
-  message,
-  onClear,
-}: {
-  message: string;
-  onClear: () => void;
-}) {
+export function ErrorToast({ message, onClear }: { message: string; onClear: () => void }) {
   return (
     <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
       <span>{message}</span>
-      <button onClick={onClear}>
+      <button type="button" onClick={onClear}>
         <X className="h-4 w-4" />
       </button>
     </div>

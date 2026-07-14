@@ -6,8 +6,8 @@
  * which run in Node.js runtime.
  */
 
-import { executeD1Query } from './d1-client';
-import { hashApiKey, verifyApiKey, parseScopes, type ApiScope } from '@/models/api-key';
+import { type ApiScope, hashApiKey, parseScopes, verifyApiKey } from "@/models/api-key";
+import { executeD1Query } from "./d1-client";
 
 export type ApiKeyVerifyResult = {
   userId: string;
@@ -27,9 +27,7 @@ export type ApiKeyVerifyResult = {
  * 4. Update last_used_at timestamp (fire-and-forget)
  * 5. Return { userId, keyId, scopes } or null
  */
-export async function verifyApiKeyAndGetUser(
-  key: string,
-): Promise<ApiKeyVerifyResult | null> {
+export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyResult | null> {
   const keyHash = hashApiKey(key);
 
   // Look up by hash (indexed column)
@@ -69,8 +67,5 @@ export async function verifyApiKeyAndGetUser(
  */
 async function updateApiKeyLastUsedAt(keyId: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await executeD1Query(
-    `UPDATE api_keys SET last_used_at = ? WHERE id = ?`,
-    [now, keyId],
-  );
+  await executeD1Query(`UPDATE api_keys SET last_used_at = ? WHERE id = ?`, [now, keyId]);
 }

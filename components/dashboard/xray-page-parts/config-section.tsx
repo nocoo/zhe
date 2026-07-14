@@ -1,12 +1,12 @@
 "use client";
 
+import { Loader2, Pencil, Radar, Save } from "lucide-react";
+import { FeatureCard } from "@/components/dashboard/feature-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Radar, Pencil, Loader2, Save } from "lucide-react";
 import { XRAY_PRESETS } from "@/models/xray";
-import { type UrlMode, type XrayViewModel } from "@/viewmodels/useXrayViewModel";
+import type { UrlMode, XrayViewModel } from "@/viewmodels/useXrayViewModel";
 
 function UrlModeSelector({ vm }: { vm: XrayViewModel }) {
   const urlModes: { label: UrlMode; display: string }[] = [
@@ -51,7 +51,9 @@ function ConfigForm({ vm }: { vm: XrayViewModel }) {
       <UrlModeSelector vm={vm} />
 
       <div className="space-y-1">
-        <Label htmlFor="xray-token" className="text-sm">API Key</Label>
+        <Label htmlFor="xray-token" className="text-sm">
+          API Key
+        </Label>
         <Input
           id="xray-token"
           data-testid="xray-api-token"

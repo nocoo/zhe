@@ -5,9 +5,9 @@
  * test user ID so cleanup doesn't race with links.test.ts.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -20,7 +20,7 @@ describe("/api/v1/links POST + rate-limit", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "links:read" }),
     ]);
   });
 

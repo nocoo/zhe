@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -12,26 +13,26 @@ const mockRevokeWebhookToken = vi.fn();
 const mockUpdateWebhookRateLimit = vi.fn();
 const mockMigrateFromWebhookAction = vi.fn();
 
-vi.mock('@/actions/webhook', () => ({
+vi.mock("@/actions/webhook", () => ({
   getWebhookToken: (...args: unknown[]) => mockGetWebhookToken(...args),
   createWebhookToken: (...args: unknown[]) => mockCreateWebhookToken(...args),
   revokeWebhookToken: (...args: unknown[]) => mockRevokeWebhookToken(...args),
   updateWebhookRateLimit: (...args: unknown[]) => mockUpdateWebhookRateLimit(...args),
 }));
 
-vi.mock('@/actions/api-keys', () => ({
+vi.mock("@/actions/api-keys", () => ({
   migrateFromWebhookAction: (...args: unknown[]) => mockMigrateFromWebhookAction(...args),
 }));
 
 // Import after mocks
-import { useWebhookViewModel } from '@/viewmodels/useWebhookViewModel';
-import { unwrap } from '../test-utils';
+import { useWebhookViewModel } from "@/viewmodels/useWebhookViewModel";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('useWebhookViewModel', () => {
+describe("useWebhookViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetWebhookToken.mockResolvedValue({ success: true, data: null });
@@ -41,10 +42,10 @@ describe('useWebhookViewModel', () => {
   // SSR prefetch (initialData)
   // ====================================================================
 
-  it('skips fetch and uses initialData when provided', () => {
+  it("skips fetch and uses initialData when provided", () => {
     const prefetched = {
-      token: 'prefetched-token',
-      createdAt: '2026-01-15T00:00:00.000Z',
+      token: "prefetched-token",
+      createdAt: "2026-01-15T00:00:00.000Z",
       rateLimit: 8,
     };
 
@@ -52,19 +53,23 @@ describe('useWebhookViewModel', () => {
 
     // Loading should be false immediately
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.token).toBe('prefetched-token');
-    expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
+    expect(result.current.token).toBe("prefetched-token");
+    expect(result.current.createdAt).toBe("2026-01-15T00:00:00.000Z");
     expect(result.current.rateLimit).toBe(8);
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/prefetched-token');
-    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/prefetched-token');
+    expect(result.current.webhookUrl).toBe(
+      "http://localhost:3000/api/link/create/prefetched-token",
+    );
+    expect(result.current.tmpUploadUrl).toBe(
+      "http://localhost:3000/api/tmp/upload/prefetched-token",
+    );
     // Server action should NOT be called
     expect(mockGetWebhookToken).not.toHaveBeenCalled();
   });
 
-  it('uses default rateLimit when initialData omits it', () => {
+  it("uses default rateLimit when initialData omits it", () => {
     const prefetched = {
-      token: 'prefetched-token',
-      createdAt: '2026-01-15T00:00:00.000Z',
+      token: "prefetched-token",
+      createdAt: "2026-01-15T00:00:00.000Z",
     };
 
     const { result } = renderHook(() => useWebhookViewModel(prefetched));
@@ -77,7 +82,7 @@ describe('useWebhookViewModel', () => {
   // Initial state & loading
   // ====================================================================
 
-  it('returns initial state with loading true', () => {
+  it("returns initial state with loading true", () => {
     // Never resolve — so we catch the initial state
     mockGetWebhookToken.mockReturnValue(new Promise(() => {}));
 
@@ -92,46 +97,55 @@ describe('useWebhookViewModel', () => {
     expect(result.current.tmpUploadUrl).toBeNull();
   });
 
-  it('loads existing token on mount', async () => {
+  it("loads existing token on mount", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc-123', createdAt: '2026-01-15T00:00:00.000Z' },
+      data: { token: "abc-123", createdAt: "2026-01-15T00:00:00.000Z" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    }, { interval: 5 });
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { interval: 5 },
+    );
 
-    expect(result.current.token).toBe('abc-123');
-    expect(result.current.createdAt).toBe('2026-01-15T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/abc-123');
-    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/abc-123');
+    expect(result.current.token).toBe("abc-123");
+    expect(result.current.createdAt).toBe("2026-01-15T00:00:00.000Z");
+    expect(result.current.webhookUrl).toBe("http://localhost:3000/api/link/create/abc-123");
+    expect(result.current.tmpUploadUrl).toBe("http://localhost:3000/api/tmp/upload/abc-123");
   });
 
-  it('sets token to null when no token exists', async () => {
+  it("sets token to null when no token exists", async () => {
     mockGetWebhookToken.mockResolvedValue({ success: true, data: null });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    }, { interval: 5 });
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { interval: 5 },
+    );
 
     expect(result.current.token).toBeNull();
     expect(result.current.webhookUrl).toBeNull();
     expect(result.current.tmpUploadUrl).toBeNull();
   });
 
-  it('handles load failure gracefully', async () => {
-    mockGetWebhookToken.mockResolvedValue({ success: false, error: 'Unauthorized' });
+  it("handles load failure gracefully", async () => {
+    mockGetWebhookToken.mockResolvedValue({ success: false, error: "Unauthorized" });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    }, { interval: 5 });
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { interval: 5 },
+    );
 
     expect(result.current.token).toBeNull();
   });
@@ -140,14 +154,14 @@ describe('useWebhookViewModel', () => {
   // handleGenerate
   // ====================================================================
 
-  it('generates a new token', async () => {
+  it("generates a new token", async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockCreateWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'new-token-456', createdAt: '2026-02-01T00:00:00.000Z' },
+      data: { token: "new-token-456", createdAt: "2026-02-01T00:00:00.000Z" },
     });
 
     await act(async () => {
@@ -155,21 +169,23 @@ describe('useWebhookViewModel', () => {
     });
 
     expect(mockCreateWebhookToken).toHaveBeenCalledOnce();
-    expect(result.current.token).toBe('new-token-456');
-    expect(result.current.createdAt).toBe('2026-02-01T00:00:00.000Z');
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/new-token-456');
-    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/new-token-456');
+    expect(result.current.token).toBe("new-token-456");
+    expect(result.current.createdAt).toBe("2026-02-01T00:00:00.000Z");
+    expect(result.current.webhookUrl).toBe("http://localhost:3000/api/link/create/new-token-456");
+    expect(result.current.tmpUploadUrl).toBe("http://localhost:3000/api/tmp/upload/new-token-456");
     expect(result.current.isGenerating).toBe(false);
   });
 
-  it('sets isGenerating while generating', async () => {
+  it("sets isGenerating while generating", async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     let resolveCreate!: (v: unknown) => void;
     mockCreateWebhookToken.mockReturnValue(
-      new Promise((r) => { resolveCreate = r; }),
+      new Promise((r) => {
+        resolveCreate = r;
+      }),
     );
 
     let generatePromise: Promise<void>;
@@ -180,19 +196,19 @@ describe('useWebhookViewModel', () => {
     expect(result.current.isGenerating).toBe(true);
 
     await act(async () => {
-      resolveCreate({ success: true, data: { token: 'x', createdAt: '2026-01-01' } });
+      resolveCreate({ success: true, data: { token: "x", createdAt: "2026-01-01" } });
       await unwrap(generatePromise);
     });
 
     expect(result.current.isGenerating).toBe(false);
   });
 
-  it('handles generate failure gracefully', async () => {
+  it("handles generate failure gracefully", async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
-    mockCreateWebhookToken.mockResolvedValue({ success: false, error: 'Server error' });
+    mockCreateWebhookToken.mockResolvedValue({ success: false, error: "Server error" });
 
     await act(async () => {
       await result.current.handleGenerate();
@@ -206,15 +222,15 @@ describe('useWebhookViewModel', () => {
   // handleRevoke
   // ====================================================================
 
-  it('revokes a token', async () => {
+  it("revokes a token", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'existing-token', createdAt: '2026-01-15T00:00:00.000Z' },
+      data: { token: "existing-token", createdAt: "2026-01-15T00:00:00.000Z" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
+    await waitFor(() => expect(result.current.token).toBe("existing-token"), { interval: 5 });
 
     mockRevokeWebhookToken.mockResolvedValue({ success: true });
 
@@ -230,19 +246,21 @@ describe('useWebhookViewModel', () => {
     expect(result.current.isRevoking).toBe(false);
   });
 
-  it('sets isRevoking while revoking', async () => {
+  it("sets isRevoking while revoking", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'existing-token', createdAt: '2026-01-15T00:00:00.000Z' },
+      data: { token: "existing-token", createdAt: "2026-01-15T00:00:00.000Z" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
+    await waitFor(() => expect(result.current.token).toBe("existing-token"), { interval: 5 });
 
     let resolveRevoke!: (v: unknown) => void;
     mockRevokeWebhookToken.mockReturnValue(
-      new Promise((r) => { resolveRevoke = r; }),
+      new Promise((r) => {
+        resolveRevoke = r;
+      }),
     );
 
     let revokePromise: Promise<void>;
@@ -260,23 +278,23 @@ describe('useWebhookViewModel', () => {
     expect(result.current.isRevoking).toBe(false);
   });
 
-  it('keeps token if revoke fails', async () => {
+  it("keeps token if revoke fails", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'existing-token', createdAt: '2026-01-15T00:00:00.000Z' },
+      data: { token: "existing-token", createdAt: "2026-01-15T00:00:00.000Z" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
-    await waitFor(() => expect(result.current.token).toBe('existing-token'), { interval: 5 });
+    await waitFor(() => expect(result.current.token).toBe("existing-token"), { interval: 5 });
 
-    mockRevokeWebhookToken.mockResolvedValue({ success: false, error: 'DB error' });
+    mockRevokeWebhookToken.mockResolvedValue({ success: false, error: "DB error" });
 
     await act(async () => {
       await result.current.handleRevoke();
     });
 
-    expect(result.current.token).toBe('existing-token');
+    expect(result.current.token).toBe("existing-token");
     expect(result.current.isRevoking).toBe(false);
   });
 
@@ -284,25 +302,25 @@ describe('useWebhookViewModel', () => {
   // webhookUrl derivation
   // ====================================================================
 
-  it('derives webhookUrl from siteUrl and token', async () => {
+  it("derives webhookUrl from siteUrl and token", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'my-token', createdAt: '2026-01-01' },
+      data: { token: "my-token", createdAt: "2026-01-01" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
-    expect(result.current.webhookUrl).toBe('http://localhost:3000/api/link/create/my-token');
-    expect(result.current.tmpUploadUrl).toBe('http://localhost:3000/api/tmp/upload/my-token');
+    expect(result.current.webhookUrl).toBe("http://localhost:3000/api/link/create/my-token");
+    expect(result.current.tmpUploadUrl).toBe("http://localhost:3000/api/tmp/upload/my-token");
   });
 
   // ====================================================================
   // rateLimit
   // ====================================================================
 
-  it('defaults rateLimit to RATE_LIMIT_DEFAULT_MAX (5)', async () => {
+  it("defaults rateLimit to RATE_LIMIT_DEFAULT_MAX (5)", async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
@@ -310,10 +328,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(5);
   });
 
-  it('loads rateLimit from existing token data', async () => {
+  it("loads rateLimit from existing token data", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc-123', createdAt: '2026-01-15', rateLimit: 8 },
+      data: { token: "abc-123", createdAt: "2026-01-15", rateLimit: 8 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -323,10 +341,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(8);
   });
 
-  it('falls back to default when rateLimit is missing from token data', async () => {
+  it("falls back to default when rateLimit is missing from token data", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc-123', createdAt: '2026-01-15' },
+      data: { token: "abc-123", createdAt: "2026-01-15" },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -336,14 +354,14 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(5);
   });
 
-  it('sets rateLimit from handleGenerate response', async () => {
+  it("sets rateLimit from handleGenerate response", async () => {
     const { result } = renderHook(() => useWebhookViewModel());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
 
     mockCreateWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'new-token', createdAt: '2026-02-01', rateLimit: 7 },
+      data: { token: "new-token", createdAt: "2026-02-01", rateLimit: 7 },
     });
 
     await act(async () => {
@@ -353,10 +371,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(7);
   });
 
-  it('resets rateLimit to default on revoke', async () => {
+  it("resets rateLimit to default on revoke", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'existing', createdAt: '2026-01-15', rateLimit: 9 },
+      data: { token: "existing", createdAt: "2026-01-15", rateLimit: 9 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -376,10 +394,10 @@ describe('useWebhookViewModel', () => {
   // handleRateLimitChange
   // ====================================================================
 
-  it('optimistically updates rateLimit and confirms from server', async () => {
+  it("optimistically updates rateLimit and confirms from server", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -399,10 +417,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(8);
   });
 
-  it('keeps optimistic value when server confirms same value', async () => {
+  it("keeps optimistic value when server confirms same value", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -422,10 +440,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(3);
   });
 
-  it('handles server clamping the rate limit value', async () => {
+  it("handles server clamping the rate limit value", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -446,10 +464,10 @@ describe('useWebhookViewModel', () => {
     expect(result.current.rateLimit).toBe(10);
   });
 
-  it('keeps optimistic value when updateWebhookRateLimit fails', async () => {
+  it("keeps optimistic value when updateWebhookRateLimit fails", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -458,7 +476,7 @@ describe('useWebhookViewModel', () => {
 
     mockUpdateWebhookRateLimit.mockResolvedValue({
       success: false,
-      error: 'DB error',
+      error: "DB error",
     });
 
     await act(async () => {
@@ -473,10 +491,10 @@ describe('useWebhookViewModel', () => {
   // handleMigrate
   // ====================================================================
 
-  it('migrates to API key successfully', async () => {
+  it("migrates to API key successfully", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -486,12 +504,12 @@ describe('useWebhookViewModel', () => {
     mockMigrateFromWebhookAction.mockResolvedValue({
       success: true,
       data: {
-        id: 'key-123',
-        prefix: 'zhe_abcdefgh',
-        name: 'Migrated from Webhook',
-        scopes: 'links:read,links:write',
-        createdAt: '2026-01-15T00:00:00.000Z',
-        fullKey: 'zhe_abcdefghijklmnopqrstuvwxyz12345',
+        id: "key-123",
+        prefix: "zhe_abcdefgh",
+        name: "Migrated from Webhook",
+        scopes: "links:read,links:write",
+        createdAt: "2026-01-15T00:00:00.000Z",
+        fullKey: "zhe_abcdefghijklmnopqrstuvwxyz12345",
       },
     });
 
@@ -500,14 +518,14 @@ describe('useWebhookViewModel', () => {
     });
 
     expect(mockMigrateFromWebhookAction).toHaveBeenCalledOnce();
-    expect(result.current.migratedApiKey).toBe('zhe_abcdefghijklmnopqrstuvwxyz12345');
+    expect(result.current.migratedApiKey).toBe("zhe_abcdefghijklmnopqrstuvwxyz12345");
     expect(result.current.isMigrating).toBe(false);
   });
 
-  it('sets isMigrating while migrating', async () => {
+  it("sets isMigrating while migrating", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -516,7 +534,9 @@ describe('useWebhookViewModel', () => {
 
     let resolveMigrate!: (v: unknown) => void;
     mockMigrateFromWebhookAction.mockReturnValue(
-      new Promise((r) => { resolveMigrate = r; }),
+      new Promise((r) => {
+        resolveMigrate = r;
+      }),
     );
 
     let migratePromise: Promise<void>;
@@ -527,17 +547,17 @@ describe('useWebhookViewModel', () => {
     expect(result.current.isMigrating).toBe(true);
 
     await act(async () => {
-      resolveMigrate({ success: true, data: { fullKey: 'zhe_test' } });
+      resolveMigrate({ success: true, data: { fullKey: "zhe_test" } });
       await unwrap(migratePromise);
     });
 
     expect(result.current.isMigrating).toBe(false);
   });
 
-  it('handles migrate failure gracefully', async () => {
+  it("handles migrate failure gracefully", async () => {
     mockGetWebhookToken.mockResolvedValue({
       success: true,
-      data: { token: 'abc', createdAt: '2026-01-15', rateLimit: 5 },
+      data: { token: "abc", createdAt: "2026-01-15", rateLimit: 5 },
     });
 
     const { result } = renderHook(() => useWebhookViewModel());
@@ -546,7 +566,7 @@ describe('useWebhookViewModel', () => {
 
     mockMigrateFromWebhookAction.mockResolvedValue({
       success: false,
-      error: 'Server error',
+      error: "Server error",
     });
 
     await act(async () => {

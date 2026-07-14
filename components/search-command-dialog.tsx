@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Monitor, Moon, Search, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Moon, Sun, Monitor, Search } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,21 +12,21 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
-import { buildShortUrl, filterLinks } from "@/models/links";
+import { useDashboardActions, useDashboardState } from "@/contexts/dashboard-service";
 import { filterIdeas } from "@/models/ideas";
+import { buildShortUrl, filterLinks } from "@/models/links";
 import { filterTodos } from "@/models/todos";
 import type { Tag } from "@/models/types";
-import { LinkResultItem } from "./search-command-dialog-parts/link-result-item";
 import { IdeaResultItem } from "./search-command-dialog-parts/idea-result-item";
-import { TodoResultItem } from "./search-command-dialog-parts/todo-result-item";
 import {
-  PageJumpGroup,
   ActionGroup,
-  countPageMatches,
   countActionMatches,
+  countPageMatches,
   type LauncherAction,
+  PageJumpGroup,
 } from "./search-command-dialog-parts/launcher-groups";
+import { LinkResultItem } from "./search-command-dialog-parts/link-result-item";
+import { TodoResultItem } from "./search-command-dialog-parts/todo-result-item";
 
 export interface SearchCommandDialogProps {
   open: boolean;
@@ -186,10 +186,7 @@ function SearchEmptyHint() {
   );
 }
 
-export function SearchCommandDialog({
-  open,
-  onOpenChange,
-}: SearchCommandDialogProps) {
+export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogProps) {
   const { links, folders, tags, linkTags, siteUrl, ideas, todos } = useDashboardState();
   const { ensureIdeasLoaded, ensureTodosLoaded } = useDashboardActions();
   const [searchQuery, setSearchQuery] = useState("");
@@ -222,7 +219,7 @@ export function SearchCommandDialog({
     // Search: match on title + excerpt).
     return filterTodos(todos, { query: trimmedQuery }).filter((t) => {
       if (t.title.toLowerCase().includes(needle)) return true;
-      if (t.excerpt && t.excerpt.toLowerCase().includes(needle)) return true;
+      if (t.excerpt?.toLowerCase().includes(needle)) return true;
       return false;
     });
   }, [todos, trimmedQuery, hasQuery]);
@@ -237,7 +234,7 @@ export function SearchCommandDialog({
   }, [folders]);
 
   const getFolderName = useCallback(
-    (folderId: string | null) => (folderId ? folderNameMap.get(folderId) ?? null : null),
+    (folderId: string | null) => (folderId ? (folderNameMap.get(folderId) ?? null) : null),
     [folderNameMap],
   );
 

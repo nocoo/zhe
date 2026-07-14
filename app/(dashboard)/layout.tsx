@@ -1,13 +1,9 @@
-import { signOut } from "@/auth";
-import { getSession } from "@/lib/auth-context";
-import { AppShell } from "@/components/app-shell";
 import { getFolders } from "@/actions/folders";
+import { signOut } from "@/auth";
+import { AppShell } from "@/components/app-shell";
+import { getSession } from "@/lib/auth-context";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
   // Server action that can be passed to client components

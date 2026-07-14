@@ -1,5 +1,5 @@
-import { XrayPage } from '@/components/dashboard/xray-page';
-import { getXrayConfig } from '@/actions/xray';
+import { getXrayConfig } from "@/actions/xray";
+import { XrayPage } from "@/components/dashboard/xray-page";
 
 export default async function XrayRoute() {
   const result = await getXrayConfig();

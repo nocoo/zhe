@@ -5,7 +5,7 @@
  * Designed for graceful degradation — never throws, returns nulls on failure.
  */
 
-import urlMetadata from 'url-metadata';
+import urlMetadata from "url-metadata";
 
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_TITLE_LENGTH = 512;
@@ -29,8 +29,8 @@ export async function fetchMetadata(url: string): Promise<LinkMetadata> {
   try {
     const meta = await urlMetadata(url, { timeout: FETCH_TIMEOUT_MS });
 
-    const rawTitle = (meta.title || meta['og:title'] || '') as string;
-    const rawDescription = (meta.description || meta['og:description'] || '') as string;
+    const rawTitle = (meta.title || meta["og:title"] || "") as string;
+    const rawDescription = (meta.description || meta["og:description"] || "") as string;
 
     const title = sanitizeText(rawTitle, MAX_TITLE_LENGTH);
     const description = sanitizeText(rawDescription, MAX_DESCRIPTION_LENGTH);
@@ -50,10 +50,7 @@ function sanitizeText(raw: string, maxLength: number): string | null {
 }
 
 /** Extract the best favicon URL, resolving relative paths. */
-function extractFavicon(
-  meta: Record<string, unknown>,
-  pageUrl: string,
-): string | null {
+function extractFavicon(meta: Record<string, unknown>, pageUrl: string): string | null {
   const favicons = (meta.favicons ?? []) as Array<{ href?: string }>;
 
   // Find the first favicon with a non-empty href
@@ -76,12 +73,12 @@ function extractFavicon(
 function resolveUrl(href: string, base: string): string {
   try {
     // Handle protocol-relative URLs
-    if (href.startsWith('//')) {
+    if (href.startsWith("//")) {
       const protocol = new URL(base).protocol;
       return `${protocol}${href}`;
     }
     // Handle relative paths
-    if (href.startsWith('/')) {
+    if (href.startsWith("/")) {
       const origin = new URL(base).origin;
       return `${origin}${href}`;
     }

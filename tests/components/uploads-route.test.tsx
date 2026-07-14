@@ -1,44 +1,45 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
 
-vi.mock('@/actions/upload-read', () => ({
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/actions/upload-read", () => ({
   getUploads: vi.fn().mockResolvedValue({ success: false }),
 }));
 
-vi.mock('@/components/dashboard/upload-list', () => ({
+vi.mock("@/components/dashboard/upload-list", () => ({
   UploadList: ({ initialUploads }: { initialUploads?: unknown }) => (
-    <div>UploadList{initialUploads ? ' with data' : ''}</div>
+    <div>UploadList{initialUploads ? " with data" : ""}</div>
   ),
 }));
 
-import UploadsPage from '@/app/(dashboard)/dashboard/uploads/page';
-import { getUploads } from '@/actions/upload-read';
+import { getUploads } from "@/actions/upload-read";
+import UploadsPage from "@/app/(dashboard)/dashboard/uploads/page";
 
-describe('UploadsPage', () => {
+describe("UploadsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders UploadList with prefetched data', async () => {
+  it("renders UploadList with prefetched data", async () => {
     vi.mocked(getUploads).mockResolvedValue({
       success: true,
-      data: [{ id: '1', filename: 'test.png', url: 'https://example.com/test.png' }] as never,
+      data: [{ id: "1", filename: "test.png", url: "https://example.com/test.png" }] as never,
     });
 
     const jsx = await UploadsPage();
     render(jsx);
 
-    expect(screen.getByText('UploadList with data')).toBeInTheDocument();
+    expect(screen.getByText("UploadList with data")).toBeInTheDocument();
     expect(getUploads).toHaveBeenCalledOnce();
   });
 
-  it('renders UploadList without data on failure', async () => {
-    vi.mocked(getUploads).mockResolvedValue({ success: false, error: 'Unauthorized' });
+  it("renders UploadList without data on failure", async () => {
+    vi.mocked(getUploads).mockResolvedValue({ success: false, error: "Unauthorized" });
 
     const jsx = await UploadsPage();
     render(jsx);
 
-    expect(screen.getByText('UploadList')).toBeInTheDocument();
+    expect(screen.getByText("UploadList")).toBeInTheDocument();
   });
 });

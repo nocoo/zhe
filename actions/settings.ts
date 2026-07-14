@@ -1,16 +1,16 @@
-'use server';
+"use server";
 
-import { getScopedDB } from '@/lib/auth-context';
-import { kvBulkPutLinks, type KVLinkData } from '@/lib/kv/client';
-import { markKVDirty } from '@/lib/kv/dirty';
+import { getScopedDB } from "@/lib/auth-context";
+import { type KVLinkData, kvBulkPutLinks } from "@/lib/kv/client";
+import { markKVDirty } from "@/lib/kv/dirty";
 
 import {
+  type ExportedLink,
+  type PreviewStyle,
   parseImportPayload,
   parsePreviewStyle,
   serializeLinksForExport,
-  type ExportedLink,
-  type PreviewStyle,
-} from '@/models/settings';
+} from "@/models/settings";
 
 export interface ImportResult {
   created: number;
@@ -27,12 +27,12 @@ export async function importLinks(
   try {
     const db = await getScopedDB();
     if (!db) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const parsed = parseImportPayload(payload);
     if (!parsed.success || !parsed.data) {
-      return { success: false, error: parsed.error ?? 'Invalid import data' };
+      return { success: false, error: parsed.error ?? "Invalid import data" };
     }
 
     let created = 0;
@@ -60,8 +60,12 @@ export async function importLinks(
       } catch (err) {
         // UNIQUE constraint on slug — treat as skip (eliminates TOCTOU race
         // that existed with the previous slugExists-then-insert pattern)
-        const message = err instanceof Error ? err.message : '';
-        if (message.includes('UNIQUE') || message.includes('unique') || message.includes('duplicate')) {
+        const message = err instanceof Error ? err.message : "";
+        if (
+          message.includes("UNIQUE") ||
+          message.includes("unique") ||
+          message.includes("duplicate")
+        ) {
           skipped++;
         } else {
           throw err;
@@ -77,8 +81,8 @@ export async function importLinks(
 
     return { success: true, data: { created, skipped } };
   } catch (error) {
-    console.error('Failed to import links:', error);
-    return { success: false, error: 'Failed to import links' };
+    console.error("Failed to import links:", error);
+    return { success: false, error: "Failed to import links" };
   }
 }
 
@@ -93,15 +97,15 @@ export async function exportLinks(): Promise<{
   try {
     const db = await getScopedDB();
     if (!db) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const links = await db.getLinks();
     const exported = serializeLinksForExport(links);
     return { success: true, data: exported };
   } catch (error) {
-    console.error('Failed to export links:', error);
-    return { success: false, error: 'Failed to export links' };
+    console.error("Failed to export links:", error);
+    return { success: false, error: "Failed to export links" };
   }
 }
 
@@ -117,15 +121,15 @@ export async function getPreviewStyle(): Promise<{
   try {
     const db = await getScopedDB();
     if (!db) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const settings = await db.getUserSettings();
     const style = parsePreviewStyle(settings?.previewStyle);
     return { success: true, data: style };
   } catch (error) {
-    console.error('Failed to get preview style:', error);
-    return { success: false, error: 'Failed to get preview style' };
+    console.error("Failed to get preview style:", error);
+    return { success: false, error: "Failed to get preview style" };
   }
 }
 
@@ -139,14 +143,14 @@ export async function updatePreviewStyle(
   try {
     const db = await getScopedDB();
     if (!db) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const style = parsePreviewStyle(value);
     await db.upsertPreviewStyle(style);
     return { success: true, data: style };
   } catch (error) {
-    console.error('Failed to update preview style:', error);
-    return { success: false, error: 'Failed to update preview style' };
+    console.error("Failed to update preview style:", error);
+    return { success: false, error: "Failed to update preview style" };
   }
 }

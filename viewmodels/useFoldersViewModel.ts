@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import {
-  createFolder,
-  updateFolder,
-  deleteFolder,
-} from "@/actions/folders";
-import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
+import { useCallback, useState } from "react";
+import { createFolder, deleteFolder, updateFolder } from "@/actions/folders";
+import { useDashboardActions, useDashboardState } from "@/contexts/dashboard-service";
 
 /** Return type of useFoldersViewModel — can be used as a prop type */
 export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
@@ -19,11 +15,7 @@ export type FoldersViewModel = ReturnType<typeof useFoldersViewModel>;
  */
 export function useFoldersViewModel() {
   const { folders } = useDashboardState();
-  const {
-    handleFolderCreated,
-    handleFolderDeleted,
-    handleFolderUpdated,
-  } = useDashboardActions();
+  const { handleFolderCreated, handleFolderDeleted, handleFolderUpdated } = useDashboardActions();
 
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);

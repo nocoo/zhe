@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { IdeaListItem } from "@/lib/db/scoped";
 import { getIdeas } from "@/actions/ideas";
+import type { IdeaListItem } from "@/lib/db/scoped";
 
 /**
  * Owns the ideas slice of the dashboard. Ideas are lazy-loaded (fetched the

@@ -5,9 +5,9 @@
  * Requires: tags:read (GET), tags:write (POST)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { tagToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 
@@ -108,7 +108,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       statusCode: 201,
     });
 
-    return NextResponse.json({ tag: tagToResponse(tag) }, { status: 201, headers: rateLimitHeaders });
+    return NextResponse.json(
+      { tag: tagToResponse(tag) },
+      { status: 201, headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/tags POST]", error);
     return apiError("Internal server error", 500);

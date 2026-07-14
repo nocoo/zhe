@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest";
+
 import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type { TodoTreeNode } from "@/lib/db/scoped";
 import { useTodosFilters } from "@/viewmodels/todos/useTodosFilters";
 

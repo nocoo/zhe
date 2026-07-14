@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactElement } from "react";
+
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseTodosViewModel = vi.fn();
 vi.mock("@/viewmodels/useTodosViewModel", () => ({
@@ -49,15 +50,12 @@ function installMatchMedia(matches: (query: string) => boolean) {
 }
 
 const mockShellProps = vi.fn();
-vi.mock(
-  "@/components/dashboard/todos-page-parts/todo-tree-shell",
-  () => ({
-    TodoTreeShell: (props: unknown) => {
-      mockShellProps(props);
-      return <div data-testid="tree-shell-stub" />;
-    },
-  }),
-);
+vi.mock("@/components/dashboard/todos-page-parts/todo-tree-shell", () => ({
+  TodoTreeShell: (props: unknown) => {
+    mockShellProps(props);
+    return <div data-testid="tree-shell-stub" />;
+  },
+}));
 
 vi.mock("react-arborist", () => ({
   Tree: ({
@@ -157,9 +155,7 @@ describe("TodosPage — narrow viewport Sheet fallback", () => {
     mockUseTodosViewModel.mockReturnValue(baseVm);
     render(<TodosPage />);
     // Side detail section (labelled) is gone.
-    expect(
-      screen.queryByRole("region", { name: /Selected todo detail/i }),
-    ).toBeNull();
+    expect(screen.queryByRole("region", { name: /Selected todo detail/i })).toBeNull();
   });
 
   it("opens the Sheet with detail content when a row is selected", () => {
@@ -178,9 +174,7 @@ describe("TodosPage — narrow viewport Sheet fallback", () => {
     const { container } = render(<TodosPage />);
     // Radix Dialog portals — attribute-scoped queries on the portal root
     // work regardless of portal location.
-    const sheet = container.ownerDocument.querySelector(
-      "[data-todos-detail-sheet]",
-    );
+    const sheet = container.ownerDocument.querySelector("[data-todos-detail-sheet]");
     expect(sheet).toBeTruthy();
     expect(sheet?.textContent).toContain("root");
   });
@@ -214,12 +208,8 @@ describe("TodosPage — desktop viewport", () => {
     installMatchMedia(() => false);
     mockUseTodosViewModel.mockReturnValue(baseVm);
     const { container } = render(<TodosPage />);
-    expect(
-      screen.getByRole("region", { name: /Selected todo detail/i }),
-    ).toBeTruthy();
-    expect(
-      container.ownerDocument.querySelector("[data-todos-detail-sheet]"),
-    ).toBeNull();
+    expect(screen.getByRole("region", { name: /Selected todo detail/i })).toBeTruthy();
+    expect(container.ownerDocument.querySelector("[data-todos-detail-sheet]")).toBeNull();
   });
 });
 
@@ -232,9 +222,7 @@ describe("TodosPage — coarse pointer wiring", () => {
     // matchMedia commits, TodoTreeShell rerenders with the true value.
     // Assert against the *latest* captured call rather than the first.
     const calls = mockShellProps.mock.calls;
-    const lastCall = calls[calls.length - 1]?.[0] as
-      | { disableDrag?: boolean }
-      | undefined;
+    const lastCall = calls[calls.length - 1]?.[0] as { disableDrag?: boolean } | undefined;
     expect(lastCall?.disableDrag).toBe(true);
   });
 
@@ -243,9 +231,7 @@ describe("TodosPage — coarse pointer wiring", () => {
     mockUseTodosViewModel.mockReturnValue(baseVm);
     render(<TodosPage />);
     const calls = mockShellProps.mock.calls;
-    const lastCall = calls[calls.length - 1]?.[0] as
-      | { disableDrag?: boolean }
-      | undefined;
+    const lastCall = calls[calls.length - 1]?.[0] as { disableDrag?: boolean } | undefined;
     expect(lastCall?.disableDrag).toBe(false);
   });
 });

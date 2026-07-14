@@ -42,17 +42,11 @@ export function EditorSplit({
   );
 }
 
-export function ErrorToast({
-  error,
-  onClear,
-}: {
-  error: string;
-  onClear: () => void;
-}) {
+export function ErrorToast({ error, onClear }: { error: string; onClear: () => void }) {
   return (
     <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 z-50">
       <span className="text-sm">{error}</span>
-      <button onClick={onClear}>
+      <button type="button" onClick={onClear}>
         <X className="h-4 w-4" />
       </button>
     </div>

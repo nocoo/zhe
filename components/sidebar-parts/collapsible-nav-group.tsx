@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 interface CollapsibleNavGroupProps {
   label: string;

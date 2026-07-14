@@ -1,5 +1,5 @@
-import { OverviewPage } from '@/components/dashboard/overview-page';
-import { getOverviewStats } from '@/actions/overview';
+import { getOverviewStats } from "@/actions/overview";
+import { OverviewPage } from "@/components/dashboard/overview-page";
 
 export default async function OverviewRoute() {
   const result = await getOverviewStats();

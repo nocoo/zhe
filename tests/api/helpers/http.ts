@@ -5,9 +5,9 @@
  * from the API_E2E_BASE_URL environment variable (set by run-api-e2e.ts).
  */
 
-import { unwrap } from '../../test-utils';
+import { unwrap } from "../../test-utils";
 
-const BASE_URL = process.env.API_E2E_BASE_URL ?? 'http://localhost:17006';
+const BASE_URL = process.env.API_E2E_BASE_URL ?? "http://localhost:17006";
 
 /** Build an absolute URL from a path like `/api/health`. */
 export function url(path: string): string {
@@ -29,9 +29,9 @@ export async function apiPost(
 ): Promise<Response> {
   const hasBody = body !== null && body !== undefined;
   return fetch(url(path), {
-    method: 'POST',
+    method: "POST",
     headers: {
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...headers,
     },
     ...(hasBody && { body: JSON.stringify(body) }),
@@ -41,7 +41,7 @@ export async function apiPost(
 /** HEAD request to an API path. */
 export async function apiHead(path: string, headers?: Record<string, string>): Promise<Response> {
   return fetch(url(path), {
-    method: 'HEAD',
+    method: "HEAD",
     ...(headers !== undefined && { headers }),
   });
 }
@@ -71,41 +71,42 @@ export async function getSessionCookie(): Promise<string> {
   if (cachedSessionCookie) return cachedSessionCookie;
 
   // Step 1: Get CSRF token (also sets a csrf cookie we need to forward)
-  const csrfRes = await fetch(url('/api/auth/csrf'));
-  const { csrfToken } = await csrfRes.json() as { csrfToken: string };
+  const csrfRes = await fetch(url("/api/auth/csrf"));
+  const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
 
   // Extract the csrf cookie from the response to forward it
   const csrfCookies = csrfRes.headers.getSetCookie?.() ?? [];
-  const csrfCookieStr = csrfCookies
-    .map((c: string) => unwrap(c.split(';')[0]))
-    .join('; ');
+  const csrfCookieStr = csrfCookies.map((c: string) => unwrap(c.split(";")[0])).join("; ");
 
   // Step 2: POST to credentials callback with csrf cookie and redirect: manual
-  const callbackRes = await fetch(url('/api/auth/callback/e2e-credentials'), {
-    method: 'POST',
+  const callbackRes = await fetch(url("/api/auth/callback/e2e-credentials"), {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      "Content-Type": "application/x-www-form-urlencoded",
       ...(csrfCookieStr ? { Cookie: csrfCookieStr } : {}),
     },
     body: new URLSearchParams({
       csrfToken,
-      email: 'e2e@test.local',
-      name: 'API E2E Test User',
+      email: "e2e@test.local",
+      name: "API E2E Test User",
     }),
-    redirect: 'manual',
+    redirect: "manual",
   });
 
   // Extract Set-Cookie header(s) — session token comes from the callback
   const cookies = callbackRes.headers.getSetCookie?.() ?? [];
   const sessionCookie = cookies
-    .map((c: string) => unwrap(c.split(';')[0]))
-    .filter((c: string) => c.startsWith('authjs.session-token=') || c.startsWith('__Secure-authjs.session-token='))
-    .join('; ');
+    .map((c: string) => unwrap(c.split(";")[0]))
+    .filter(
+      (c: string) =>
+        c.startsWith("authjs.session-token=") || c.startsWith("__Secure-authjs.session-token="),
+    )
+    .join("; ");
 
   if (!sessionCookie) {
     throw new Error(
       `Failed to obtain session cookie from e2e-credentials callback. ` +
-      `Status: ${callbackRes.status}, cookies: ${cookies.join(', ')}`,
+        `Status: ${callbackRes.status}, cookies: ${cookies.join(", ")}`,
     );
   }
 
@@ -132,7 +133,7 @@ export async function apiPostAuth(path: string, body: unknown): Promise<Response
 /** Build an Authorization Bearer header using the WORKER_SECRET env var. */
 function workerAuthHeader(): Record<string, string> {
   const secret = process.env.WORKER_SECRET;
-  if (!secret) throw new Error('WORKER_SECRET not set in test environment');
+  if (!secret) throw new Error("WORKER_SECRET not set in test environment");
   return { Authorization: `Bearer ${secret}` };
 }
 

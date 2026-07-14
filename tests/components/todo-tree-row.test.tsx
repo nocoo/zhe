@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { TodoForestNode } from "@/models/todos";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodoTreeRow } from "@/components/dashboard/todos-page-parts/todo-tree-row";
+import type { TodoForestNode } from "@/models/todos";
 
 afterEach(() => cleanup());
 
@@ -128,7 +129,7 @@ describe("TodoTreeRow — interactions", () => {
 
   it("done rows render with line-through on the title label", () => {
     const { container } = renderRow({ done: true, title: "old" });
-    const label = container.querySelector<HTMLElement>('[data-todo-row-guard]');
+    const label = container.querySelector<HTMLElement>("[data-todo-row-guard]");
     // Any element inside the row-guard group with line-through counts —
     // the row's title button carries the class when done.
     const anyStruck = container.querySelector(".line-through");

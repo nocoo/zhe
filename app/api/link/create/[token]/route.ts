@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
-import { getWebhookByToken, getWebhookStats, getLinkByUserAndUrl, getFolderByUserAndName, slugExists, createLink } from "@/lib/db";
 import {
-  validateWebhookPayload,
-  checkRateLimit,
-  buildOpenApiSpec,
-} from "@/models/webhook";
-import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
-import { resolvePublicOrigin } from "@/lib/url";
+  createLink,
+  getFolderByUserAndName,
+  getLinkByUserAndUrl,
+  getWebhookByToken,
+  getWebhookStats,
+  slugExists,
+} from "@/lib/db";
 import { kvPutLink } from "@/lib/kv/client";
 import { markKVDirty } from "@/lib/kv/dirty";
+import { generateUniqueSlug, sanitizeSlug } from "@/lib/slug";
+import { resolvePublicOrigin } from "@/lib/url";
+import { buildOpenApiSpec, checkRateLimit, validateWebhookPayload } from "@/models/webhook";
 
 /**
  * Deprecation headers for webhook-token-based API.
@@ -18,10 +21,11 @@ import { markKVDirty } from "@/lib/kv/dirty";
  * and more features.
  */
 const DEPRECATION_HEADERS = {
-  "Deprecation": "true",
-  "Sunset": "2026-10-01",
-  "Link": '</api/v1/links>; rel="successor-version"',
-  "X-Deprecation-Notice": "This endpoint is deprecated. Migrate to /api/v1/links with API key authentication. See /dashboard/api-keys to create an API key.",
+  Deprecation: "true",
+  Sunset: "2026-10-01",
+  Link: '</api/v1/links>; rel="successor-version"',
+  "X-Deprecation-Notice":
+    "This endpoint is deprecated. Migrate to /api/v1/links with API key authentication. See /dashboard/api-keys to create an API key.",
 };
 
 /**
@@ -32,10 +36,7 @@ const DEPRECATION_HEADERS = {
  *
  * @deprecated Use /api/v1/links with API key authentication instead.
  */
-export async function HEAD(
-  _request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function HEAD(_request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   const webhook = await getWebhookByToken(token);
@@ -55,10 +56,7 @@ export async function HEAD(
  *
  * @deprecated Use /api/v1/links with API key authentication instead.
  */
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   const webhook = await getWebhookByToken(token);
@@ -87,7 +85,8 @@ export async function GET(
       },
       docs,
       deprecation: {
-        message: "This endpoint is deprecated. Please migrate to /api/v1/links with API key authentication.",
+        message:
+          "This endpoint is deprecated. Please migrate to /api/v1/links with API key authentication.",
         sunset: "2026-10-01",
         migrationGuide: "/dashboard/api-keys",
       },
@@ -164,10 +163,7 @@ async function resolveWebhookSlug(
   return { slug: sanitized, isCustom: true };
 }
 
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function POST(request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   // 1. Look up webhook by token

@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Link, Folder, Tag, LinkTag } from "@/models/types";
 import { getDashboardData } from "@/actions/dashboard";
 import { getLinks } from "@/actions/links";
+import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 
 /** Mount-effect: load links/tags/linkTags via a single server action. */
 function useInitialFetch(
@@ -30,9 +30,10 @@ function useInitialFetch(
       }
     }
     fetchData();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [setTags, setLoading, setLinks, setLinkTags]);
 }
 
 /**
@@ -108,9 +109,7 @@ export function useDashboardCore(initialFolders: Folder[]) {
     setLinkTags((prev) => [...prev, linkTag]);
   }, []);
   const handleLinkTagRemoved = useCallback((linkId: number, tagId: string) => {
-    setLinkTags((prev) =>
-      prev.filter((lt) => !(lt.linkId === linkId && lt.tagId === tagId)),
-    );
+    setLinkTags((prev) => prev.filter((lt) => !(lt.linkId === linkId && lt.tagId === tagId)));
   }, []);
 
   return {

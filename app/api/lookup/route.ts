@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getLinkBySlug } from '@/lib/db';
+import { type NextRequest, NextResponse } from "next/server";
+import { getLinkBySlug } from "@/lib/db";
 
 /**
  * GET /api/lookup?slug=xxx
@@ -7,10 +7,10 @@ import { getLinkBySlug } from '@/lib/db';
  * Used by middleware to query D1 database.
  */
 export async function GET(request: NextRequest) {
-  const slug = request.nextUrl.searchParams.get('slug');
+  const slug = request.nextUrl.searchParams.get("slug");
 
   if (!slug) {
-    return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
+    return NextResponse.json({ error: "Missing slug" }, { status: 400 });
   }
 
   try {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       expiresAt: link.expiresAt?.getTime() ?? null,
     });
   } catch (error) {
-    console.error('Lookup error:', error);
-    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
+    console.error("Lookup error:", error);
+    return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
 }

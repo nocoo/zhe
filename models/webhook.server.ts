@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Token generation (server-only — uses Node.js crypto)

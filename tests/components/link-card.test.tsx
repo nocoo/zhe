@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LinkCard } from "@/components/dashboard/link-card";
-import type { Link, Tag, LinkTag, Folder, AnalyticsStats  } from "@/models/types";
+import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { unwrap } from "../test-utils";
 
@@ -964,7 +965,7 @@ describe("LinkCard", () => {
     fireEvent.click(screen.getByTitle("Edit link"));
 
     const urlInput = screen.getByPlaceholderText("https://example.com");
-    fireEvent.change(urlInput, { target: { value: '' } });
+    fireEvent.change(urlInput, { target: { value: "" } });
     fireEvent.change(urlInput, { target: { value: "https://new.com" } });
 
     expect(mockEditVm.setEditUrl).toHaveBeenCalled();
@@ -976,7 +977,7 @@ describe("LinkCard", () => {
     fireEvent.click(screen.getByTitle("Edit link"));
 
     const slugInput = screen.getByPlaceholderText("custom-slug");
-    fireEvent.change(slugInput, { target: { value: '' } });
+    fireEvent.change(slugInput, { target: { value: "" } });
     fireEvent.change(slugInput, { target: { value: "new-slug" } });
 
     expect(mockEditVm.setEditSlug).toHaveBeenCalled();

@@ -1,84 +1,81 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  getTweetCacheById,
-  upsertTweetCache,
-} from '@/lib/db';
-import { clearMockStorage } from '../mocks/db-storage';
-import { unwrap } from '../test-utils';
+import { beforeEach, describe, expect, it } from "vitest";
+import { getTweetCacheById, upsertTweetCache } from "@/lib/db";
+import { clearMockStorage } from "../mocks/db-storage";
+import { unwrap } from "../test-utils";
 
 const SAMPLE_TWEET = {
-  tweetId: '2026360908398862478',
-  authorUsername: 'karpathy',
-  authorName: 'Andrej Karpathy',
-  authorAvatar: 'https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg',
+  tweetId: "2026360908398862478",
+  authorUsername: "karpathy",
+  authorName: "Andrej Karpathy",
+  authorAvatar: "https://pbs.twimg.com/profile_images/1296667294148382721/9Pr6XrPB_normal.jpg",
   tweetText: 'CLIs are super exciting precisely because they are a "legacy" technology.',
-  tweetUrl: 'https://x.com/karpathy/status/2026360908398862478',
-  lang: 'en',
-  tweetCreatedAt: '2026-02-24T18:17:43.000Z',
-  rawData: JSON.stringify({ id: '2026360908398862478', text: 'CLIs are super exciting' }),
+  tweetUrl: "https://x.com/karpathy/status/2026360908398862478",
+  lang: "en",
+  tweetCreatedAt: "2026-02-24T18:17:43.000Z",
+  rawData: JSON.stringify({ id: "2026360908398862478", text: "CLIs are super exciting" }),
 };
 
-describe('Tweet Cache DB Operations', () => {
+describe("Tweet Cache DB Operations", () => {
   beforeEach(() => {
     clearMockStorage();
   });
 
-  describe('getTweetCacheById', () => {
-    it('returns null when cache is empty', async () => {
-      const result = await getTweetCacheById('nonexistent');
+  describe("getTweetCacheById", () => {
+    it("returns null when cache is empty", async () => {
+      const result = await getTweetCacheById("nonexistent");
       expect(result).toBeNull();
     });
 
-    it('returns cached tweet after upsert', async () => {
+    it("returns cached tweet after upsert", async () => {
       await upsertTweetCache(SAMPLE_TWEET);
       const result = await getTweetCacheById(SAMPLE_TWEET.tweetId);
 
       expect(result).not.toBeNull();
       expect(unwrap(result).tweetId).toBe(SAMPLE_TWEET.tweetId);
-      expect(unwrap(result).authorUsername).toBe('karpathy');
-      expect(unwrap(result).authorName).toBe('Andrej Karpathy');
+      expect(unwrap(result).authorUsername).toBe("karpathy");
+      expect(unwrap(result).authorName).toBe("Andrej Karpathy");
       expect(unwrap(result).tweetText).toBe(SAMPLE_TWEET.tweetText);
       expect(unwrap(result).tweetUrl).toBe(SAMPLE_TWEET.tweetUrl);
-      expect(unwrap(result).lang).toBe('en');
+      expect(unwrap(result).lang).toBe("en");
     });
 
-    it('returns null for non-matching tweet ID', async () => {
+    it("returns null for non-matching tweet ID", async () => {
       await upsertTweetCache(SAMPLE_TWEET);
-      const result = await getTweetCacheById('999999');
+      const result = await getTweetCacheById("999999");
       expect(result).toBeNull();
     });
   });
 
-  describe('upsertTweetCache', () => {
-    it('inserts a new tweet into cache', async () => {
+  describe("upsertTweetCache", () => {
+    it("inserts a new tweet into cache", async () => {
       const result = await upsertTweetCache(SAMPLE_TWEET);
 
       expect(result.tweetId).toBe(SAMPLE_TWEET.tweetId);
-      expect(result.authorUsername).toBe('karpathy');
+      expect(result.authorUsername).toBe("karpathy");
       expect(result.fetchedAt).toBeGreaterThan(0);
       expect(result.updatedAt).toBeGreaterThan(0);
     });
 
-    it('updates existing tweet on conflict', async () => {
+    it("updates existing tweet on conflict", async () => {
       const first = await upsertTweetCache(SAMPLE_TWEET);
       const originalFetchedAt = first.fetchedAt;
 
       // Wait a tiny bit so updatedAt differs
       const updated = await upsertTweetCache({
         ...SAMPLE_TWEET,
-        authorName: 'AK Updated',
-        tweetText: 'Updated text',
+        authorName: "AK Updated",
+        tweetText: "Updated text",
       });
 
       expect(updated.tweetId).toBe(SAMPLE_TWEET.tweetId);
-      expect(updated.authorName).toBe('AK Updated');
-      expect(updated.tweetText).toBe('Updated text');
+      expect(updated.authorName).toBe("AK Updated");
+      expect(updated.tweetText).toBe("Updated text");
       // fetchedAt should be preserved from original insert
       expect(updated.fetchedAt).toBe(originalFetchedAt);
     });
 
-    it('handles null lang correctly', async () => {
+    it("handles null lang correctly", async () => {
       const result = await upsertTweetCache({
         ...SAMPLE_TWEET,
         lang: null,
@@ -86,12 +83,11 @@ describe('Tweet Cache DB Operations', () => {
       expect(result.lang).toBeNull();
     });
 
-    it('stores rawData as JSON string', async () => {
+    it("stores rawData as JSON string", async () => {
       const result = await upsertTweetCache(SAMPLE_TWEET);
       expect(() => JSON.parse(result.rawData)).not.toThrow();
       const parsed = JSON.parse(result.rawData);
-      expect(parsed.id).toBe('2026360908398862478');
+      expect(parsed.id).toBe("2026360908398862478");
     });
   });
-
 });

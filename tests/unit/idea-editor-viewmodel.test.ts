@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IdeaDetail } from "@/lib/db/scoped";
 import { makeIdea, makeTag } from "../fixtures";
 
@@ -64,9 +65,12 @@ describe("useIdeaEditorViewModel", () => {
 
       expect(result.current.loading).toBe(true);
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(mockGetIdea).toHaveBeenCalledWith(42);
       expect(result.current.title).toBe("My Idea");
@@ -80,9 +84,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(999));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.notFound).toBe(true);
       expect(result.current.error).toBe("Not found");
@@ -100,9 +107,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(1));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.isDirty()).toBe(false);
     });
@@ -113,9 +123,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(1));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setContent("Changed content");
@@ -141,19 +154,31 @@ describe("useIdeaEditorViewModel", () => {
 
   describe("fast switch (ideaId change)", () => {
     it("resets idea snapshot and draft when ideaId changes", async () => {
-      const idea1 = makeIdeaDetail({ id: 1, title: "First", content: "Content 1", tagIds: ["tag-1"] });
-      const idea2 = makeIdeaDetail({ id: 2, title: "Second", content: "Content 2", tagIds: ["tag-2"] });
+      const idea1 = makeIdeaDetail({
+        id: 1,
+        title: "First",
+        content: "Content 1",
+        tagIds: ["tag-1"],
+      });
+      const idea2 = makeIdeaDetail({
+        id: 2,
+        title: "Second",
+        content: "Content 2",
+        tagIds: ["tag-2"],
+      });
 
       mockGetIdea.mockResolvedValue({ success: true, data: idea1 });
 
-      const { result, rerender } = renderHook(
-        ({ id }) => useIdeaEditorViewModel(id),
-        { initialProps: { id: 1 } },
-      );
+      const { result, rerender } = renderHook(({ id }) => useIdeaEditorViewModel(id), {
+        initialProps: { id: 1 },
+      });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.title).toBe("First");
       expect(result.current.content).toBe("Content 1");
@@ -166,9 +191,12 @@ describe("useIdeaEditorViewModel", () => {
       expect(result.current.loading).toBe(true);
       expect(result.current.isDirty()).toBe(false);
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.title).toBe("Second");
       expect(result.current.content).toBe("Content 2");
@@ -180,14 +208,16 @@ describe("useIdeaEditorViewModel", () => {
 
       mockGetIdea.mockResolvedValue({ success: true, data: idea1 });
 
-      const { result, rerender } = renderHook(
-        ({ id }) => useIdeaEditorViewModel(id),
-        { initialProps: { id: 1 } },
-      );
+      const { result, rerender } = renderHook(({ id }) => useIdeaEditorViewModel(id), {
+        initialProps: { id: 1 },
+      });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       // Switch to idea 2 — never resolves
       mockGetIdea.mockImplementation(() => new Promise(() => {}));
@@ -210,14 +240,16 @@ describe("useIdeaEditorViewModel", () => {
       // First fetch resolves immediately
       mockGetIdea.mockResolvedValueOnce({ success: true, data: idea1 });
 
-      const { result, rerender } = renderHook(
-        ({ id }) => useIdeaEditorViewModel(id),
-        { initialProps: { id: 1 } },
-      );
+      const { result, rerender } = renderHook(({ id }) => useIdeaEditorViewModel(id), {
+        initialProps: { id: 1 },
+      });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.title).toBe("First");
 
@@ -226,7 +258,10 @@ describe("useIdeaEditorViewModel", () => {
       // it won't set state. Here we just verify the new idea loads correctly.
       let resolveSecond: ((v: unknown) => void) | undefined;
       mockGetIdea.mockImplementationOnce(
-        () => new Promise((r) => { resolveSecond = r; }),
+        () =>
+          new Promise((r) => {
+            resolveSecond = r;
+          }),
       );
 
       rerender({ id: 2 });
@@ -241,9 +276,12 @@ describe("useIdeaEditorViewModel", () => {
         if (resolveSecond) resolveSecond({ success: true, data: idea2 });
       });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.title).toBe("Second");
       expect(result.current.content).toBe("Content 2");
@@ -263,9 +301,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(1));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setTitle("Changed");
@@ -297,9 +338,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(1));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       act(() => {
         result.current.setContent("changed");
@@ -327,9 +371,12 @@ describe("useIdeaEditorViewModel", () => {
 
       const { result } = renderHook(() => useIdeaEditorViewModel(1));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      }, { interval: 5 });
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
 
       expect(result.current.tagIds).toEqual(["tag-1"]);
 

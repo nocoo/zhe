@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeFolder, makeLink } from "../fixtures";
 import { unwrap } from "../test-utils";
-import { makeLink, makeFolder } from "../fixtures";
 
 // ── Mocks ──
 
@@ -16,7 +17,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     const { unoptimized: _, fill: _f, ...rest } = props;
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...(rest as React.ImgHTMLAttributes<HTMLImageElement>)} />;
   },
 }));
@@ -85,10 +85,7 @@ function expectNoItem(slug: string) {
 
 function renderDialog(props: { open?: boolean; onOpenChange?: () => void } = {}) {
   return render(
-    <SearchCommandDialog
-      open={props.open ?? true}
-      onOpenChange={props.onOpenChange ?? vi.fn()}
-    />,
+    <SearchCommandDialog open={props.open ?? true} onOpenChange={props.onOpenChange ?? vi.fn()} />,
   );
 }
 
@@ -113,24 +110,28 @@ describe("SearchCommandDialog", () => {
   describe("rendering", () => {
     it("renders the search input when open", () => {
       renderDialog();
-      expect(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
     it("does not render content when closed", () => {
       renderDialog({ open: false });
-      expect(screen.queryByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...")).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).not.toBeInTheDocument();
     });
 
     it("shows hint text when search input is empty", () => {
       renderDialog();
       expect(screen.getByText("输入关键词搜索")).toBeInTheDocument();
-      expect(screen.getByText("搜索短链、想法、待办、标签 · 跳转页面 · 触发动作")).toBeInTheDocument();
+      expect(
+        screen.getByText("搜索短链、想法、待办、标签 · 跳转页面 · 触发动作"),
+      ).toBeInTheDocument();
     });
 
     it("shows empty state when query has no matches", async () => {
-      mockState.links = [
-        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" }),
-      ];
+      mockState.links = [makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "nonexistent" } });
@@ -139,7 +140,12 @@ describe("SearchCommandDialog", () => {
 
     it("renders link items with title and slug when query matches", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com/page", metaTitle: "Example Page" }),
+        makeLink({
+          id: 1,
+          slug: "abc",
+          originalUrl: "https://example.com/page",
+          metaTitle: "Example Page",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -182,7 +188,12 @@ describe("SearchCommandDialog", () => {
 
     it("renders metaDescription when available", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com", metaDescription: "A great page" }),
+        makeLink({
+          id: 1,
+          slug: "abc",
+          originalUrl: "https://example.com",
+          metaDescription: "A great page",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -193,7 +204,12 @@ describe("SearchCommandDialog", () => {
 
     it("renders note when available", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "abc", originalUrl: "https://example.com", note: "My personal note" }),
+        makeLink({
+          id: 1,
+          slug: "abc",
+          originalUrl: "https://example.com",
+          note: "My personal note",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -208,7 +224,9 @@ describe("SearchCommandDialog", () => {
   describe("open original URL on click", () => {
     it("opens original URL in new tab when selecting a link", async () => {
       const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-      mockState.links = [makeLink({ id: 1, slug: "abc123", originalUrl: "https://example.com/page" })];
+      mockState.links = [
+        makeLink({ id: 1, slug: "abc123", originalUrl: "https://example.com/page" }),
+      ];
       const onOpenChange = vi.fn();
       renderDialog({ onOpenChange });
 
@@ -219,7 +237,11 @@ describe("SearchCommandDialog", () => {
       expect(item).toBeTruthy();
       fireEvent.click(unwrap(item));
 
-      expect(windowOpenSpy).toHaveBeenCalledWith("https://example.com/page", "_blank", "noopener,noreferrer");
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        "https://example.com/page",
+        "_blank",
+        "noopener,noreferrer",
+      );
       expect(onOpenChange).toHaveBeenCalledWith(false);
       windowOpenSpy.mockRestore();
     });
@@ -281,10 +303,7 @@ describe("SearchCommandDialog", () => {
 
   describe("copy short URL", () => {
     it("renders copy button for each link next to slug", async () => {
-      mockState.links = [
-        makeLink({ id: 1, slug: "abc" }),
-        makeLink({ id: 2, slug: "xyz" }),
-      ];
+      mockState.links = [makeLink({ id: 1, slug: "abc" }), makeLink({ id: 2, slug: "xyz" })];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "example" } });
@@ -318,9 +337,7 @@ describe("SearchCommandDialog", () => {
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "my-link" } });
 
-      expect(
-        screen.getByLabelText("Copy https://zhe.to/my-link"),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Copy https://zhe.to/my-link")).toBeInTheDocument();
     });
   });
 
@@ -329,7 +346,9 @@ describe("SearchCommandDialog", () => {
   describe("dialog state", () => {
     it("passes open prop to CommandDialog", () => {
       renderDialog({ open: true });
-      expect(screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
     it("calls onOpenChange when dialog is dismissed", () => {
@@ -410,8 +429,18 @@ describe("SearchCommandDialog", () => {
 
     it("filters links by metaTitle substring", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "react-docs", originalUrl: "https://react.dev", metaTitle: "React Documentation" }),
-        makeLink({ id: 2, slug: "vue-guide", originalUrl: "https://vuejs.org", metaTitle: "Vue.js Guide" }),
+        makeLink({
+          id: 1,
+          slug: "react-docs",
+          originalUrl: "https://react.dev",
+          metaTitle: "React Documentation",
+        }),
+        makeLink({
+          id: 2,
+          slug: "vue-guide",
+          originalUrl: "https://vuejs.org",
+          metaTitle: "Vue.js Guide",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
@@ -500,7 +529,12 @@ describe("SearchCommandDialog", () => {
 
     it("shows metaTitle in search results when available", async () => {
       mockState.links = [
-        makeLink({ id: 1, slug: "docs", originalUrl: "https://example.com/docs", metaTitle: "API Reference" }),
+        makeLink({
+          id: 1,
+          slug: "docs",
+          originalUrl: "https://example.com/docs",
+          metaTitle: "API Reference",
+        }),
       ];
       renderDialog();
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");

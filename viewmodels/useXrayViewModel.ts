@@ -1,9 +1,9 @@
 "use client";
 
-import { useXrayConfig, type XrayInitialData, type UrlMode } from "./xray/useXrayConfig";
-import { useXrayTweetTest, useXrayBookmarks } from "./xray/useXrayTweetAndBookmarks";
+import { type UrlMode, useXrayConfig, type XrayInitialData } from "./xray/useXrayConfig";
+import { useXrayBookmarks, useXrayTweetTest } from "./xray/useXrayTweetAndBookmarks";
 
-export type { XrayInitialData, UrlMode };
+export type { UrlMode, XrayInitialData };
 export type XrayViewModel = ReturnType<typeof useXrayViewModel>;
 
 /**

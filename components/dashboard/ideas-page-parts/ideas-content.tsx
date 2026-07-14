@@ -1,15 +1,12 @@
 "use client";
 
 import { Lightbulb, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
-import type {
-  IdeasViewModel,
-  IdeasViewMode,
-} from "@/viewmodels/useIdeasViewModel";
+import { Button } from "@/components/ui/button";
+import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
+import type { IdeasViewMode, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
 function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
   if (viewMode === "grid") {
@@ -23,13 +20,7 @@ function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
   return <CardListSkeleton />;
 }
 
-function IdeasEmpty({
-  vm,
-  filtered,
-}: {
-  vm: IdeasViewModel;
-  filtered: boolean;
-}) {
+function IdeasEmpty({ vm, filtered }: { vm: IdeasViewModel; filtered: boolean }) {
   return (
     <EmptyState
       icon={Lightbulb}

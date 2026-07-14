@@ -1,13 +1,13 @@
 // Auth setup: Playwright authenticates via the Credentials provider
 // (activated by PLAYWRIGHT=1) and saves the session cookie for reuse.
-import { test as setup, expect } from '@playwright/test';
-import { TEST_USER } from './helpers/d1';
+import { expect, test as setup } from "@playwright/test";
+import { TEST_USER } from "./helpers/d1";
 
-const authFile = 'tests/playwright/.auth/user.json';
+const authFile = "tests/playwright/.auth/user.json";
 
-setup('authenticate', async ({ page, context }) => {
+setup("authenticate", async ({ page, context }) => {
   // Step 1: Get CSRF token from the auth endpoint
-  const csrfRes = await page.request.get('/api/auth/csrf');
+  const csrfRes = await page.request.get("/api/auth/csrf");
   expect(csrfRes.ok()).toBeTruthy();
   const { csrfToken } = await csrfRes.json();
 
@@ -15,7 +15,7 @@ setup('authenticate', async ({ page, context }) => {
   // redirect with Set-Cookie for the session token. We use fetch
   // with redirect: 'manual' to capture the cookie without following
   // the redirect (which may point to a production hostname).
-  const callbackRes = await page.request.post('/api/auth/callback/e2e-credentials', {
+  const callbackRes = await page.request.post("/api/auth/callback/e2e-credentials", {
     form: {
       csrfToken,
       email: TEST_USER.email,
@@ -29,8 +29,8 @@ setup('authenticate', async ({ page, context }) => {
 
   // Step 3: Navigate to dashboard — the session cookie should be set
   // from the POST response above
-  await page.goto('/dashboard');
-  await expect(page.locator('h2')).toContainText('全部链接', { timeout: 15_000 });
+  await page.goto("/dashboard");
+  await expect(page.locator("h2")).toContainText("全部链接", { timeout: 15_000 });
 
   // Save signed-in state
   await context.storageState({ path: authFile });
@@ -39,15 +39,15 @@ setup('authenticate', async ({ page, context }) => {
   // This serializes compilation before parallel workers fan out,
   // preventing cold-start stampede that causes intermittent failures.
   const warmupRoutes = [
-    '/dashboard/overview',
-    '/dashboard/ideas',
-    '/dashboard/backy',
-    '/dashboard/api-keys',
-    '/dashboard/data-management',
-    '/dashboard/webhook',
+    "/dashboard/overview",
+    "/dashboard/ideas",
+    "/dashboard/backy",
+    "/dashboard/api-keys",
+    "/dashboard/data-management",
+    "/dashboard/webhook",
   ];
   for (const route of warmupRoutes) {
     await page.goto(route);
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
   }
 });

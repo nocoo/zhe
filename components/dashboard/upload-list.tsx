@@ -1,14 +1,14 @@
 "use client";
 
 import { Upload as UploadIcon } from "lucide-react";
-import { UploadZone } from "./upload-zone";
-import { UploadItem, UploadingItem } from "./upload-item";
-import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
+import { UploadItem, UploadingItem } from "./upload-item";
+import { UploadZone } from "./upload-zone";
 
 function UploadListSkeleton() {
   return (
@@ -28,11 +28,8 @@ function UploadListSkeleton() {
 
       {/* Upload item skeletons */}
       <div className="space-y-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-card bg-secondary p-4 flex items-center gap-4"
-          >
+        {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
+          <div key={id} className="rounded-card bg-secondary p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-lg bg-background shrink-0" />
             <div className="flex-1 min-w-0 space-y-2">
               <div className="h-4 w-40 rounded bg-background" />
@@ -66,18 +63,13 @@ function UploadOptions({
           checked={autoConvertPng}
           onCheckedChange={setAutoConvertPng}
         />
-        <Label
-          htmlFor="auto-convert-png"
-          className="text-sm text-muted-foreground cursor-pointer"
-        >
+        <Label htmlFor="auto-convert-png" className="text-sm text-muted-foreground cursor-pointer">
           PNG 自动转 JPG
         </Label>
       </div>
       {autoConvertPng && (
         <div className="flex items-center gap-3">
-          <Label className="text-sm text-muted-foreground whitespace-nowrap">
-            质量
-          </Label>
+          <Label className="text-sm text-muted-foreground whitespace-nowrap">质量</Label>
           <Slider
             value={[jpegQuality]}
             onValueChange={([v]) => setJpegQuality(v ?? jpegQuality)}
@@ -96,7 +88,11 @@ function UploadOptions({
   );
 }
 
-export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/db/schema').Upload[] }) {
+export function UploadList({
+  initialUploads,
+}: {
+  initialUploads?: import("@/lib/db/schema").Upload[];
+}) {
   const {
     uploads,
     loading,
@@ -121,9 +117,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
       {/* Header */}
       <PageHeader
         title="文件上传"
-        description={
-          <span data-testid="upload-file-count">共 {uploads.length} 个文件</span>
-        }
+        description={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
       />
 
       {/* Options */}
@@ -136,22 +130,14 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
 
       {/* Upload zone */}
       <div className="mb-6">
-        <UploadZone
-          isDragOver={isDragOver}
-          onDragOver={setIsDragOver}
-          onFiles={handleFiles}
-        />
+        <UploadZone isDragOver={isDragOver} onDragOver={setIsDragOver} onFiles={handleFiles} />
       </div>
 
       {/* Uploading files (in-progress / errors) */}
       {uploadingFiles.length > 0 && (
         <div className="space-y-2 mb-4">
           {uploadingFiles.map((file) => (
-            <UploadingItem
-              key={file.id}
-              file={file}
-              onDismiss={dismissUploadingFile}
-            />
+            <UploadingItem key={file.id} file={file} onDismiss={dismissUploadingFile} />
           ))}
         </div>
       )}
@@ -167,11 +153,7 @@ export function UploadList({ initialUploads }: { initialUploads?: import('@/lib/
       ) : (
         <div className="space-y-2">
           {uploads.map((upload) => (
-            <UploadItem
-              key={upload.id}
-              upload={upload}
-              onDelete={handleDelete}
-            />
+            <UploadItem key={upload.id} upload={upload} onDelete={handleDelete} />
           ))}
         </div>
       )}

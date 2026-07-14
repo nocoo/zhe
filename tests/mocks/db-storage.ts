@@ -3,7 +3,7 @@
  * This is used by vitest to mock the D1 client.
  */
 
-import type { Link, Analytics, Upload, Folder, Webhook, Tag, TweetCache } from '@/lib/db/schema';
+import type { Analytics, Folder, Link, Tag, TweetCache, Upload, Webhook } from "@/lib/db/schema";
 
 // LinkTag raw row shape (matches D1 column names)
 export interface MockLinkTag {

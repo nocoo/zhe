@@ -5,11 +5,11 @@
  * Requires: folders:read (GET), folders:write (POST)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { ScopedDB } from "@/lib/db/scoped";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import type { Folder, FolderWithLinkCount } from "@/lib/db/schema";
+import { ScopedDB } from "@/lib/db/scoped";
 
 /**
  * GET /api/v1/folders
@@ -38,7 +38,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       statusCode: 200,
     });
 
-    return NextResponse.json({ folders: folders.map(folderWithCountToResponse) }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { folders: folders.map(folderWithCountToResponse) },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/folders GET]", error);
     return apiError("Internal server error", 500);
@@ -99,7 +102,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       statusCode: 201,
     });
 
-    return NextResponse.json({ folder: folderToResponse(folder) }, { status: 201, headers: rateLimitHeaders });
+    return NextResponse.json(
+      { folder: folderToResponse(folder) },
+      { status: 201, headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error("[/api/v1/folders POST]", error);
     return apiError("Internal server error", 500);

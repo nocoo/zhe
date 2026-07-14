@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before importing the module under test
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
@@ -16,7 +16,7 @@ const mockCreateFolder = vi.fn();
 const mockUpdateFolder = vi.fn();
 const mockDeleteFolder = vi.fn();
 
-vi.mock('@/lib/db/scoped', () => ({
+vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
     return {
       getFolders: mockGetFolders,
@@ -28,34 +28,29 @@ vi.mock('@/lib/db/scoped', () => ({
 }));
 
 // Suppress console.error noise from catch blocks
-vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, "error").mockImplementation(() => {});
 
 // ---------------------------------------------------------------------------
 // Import the module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import {
-  getFolders,
-  createFolder,
-  updateFolder,
-  deleteFolder,
-} from '@/actions/folders';
+import { createFolder, deleteFolder, getFolders, updateFolder } from "@/actions/folders";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const FAKE_USER_ID = 'user-abc-123';
+const FAKE_USER_ID = "user-abc-123";
 
 function authenticatedSession() {
-  return { user: { id: FAKE_USER_ID, name: 'Test', email: 'test@test.com' } };
+  return { user: { id: FAKE_USER_ID, name: "Test", email: "test@test.com" } };
 }
 
 const FAKE_FOLDER = {
-  id: 'folder-uuid-1',
+  id: "folder-uuid-1",
   userId: FAKE_USER_ID,
-  name: 'Work',
-  icon: 'briefcase',
+  name: "Work",
+  icon: "briefcase",
   createdAt: new Date(),
 };
 
@@ -63,7 +58,7 @@ const FAKE_FOLDER = {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('actions/folders', () => {
+describe("actions/folders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -71,25 +66,25 @@ describe('actions/folders', () => {
   // ====================================================================
   // getFolders
   // ====================================================================
-  describe('getFolders', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("getFolders", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
       const result = await getFolders();
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error when db.getFolders throws', async () => {
+    it("returns error when db.getFolders throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockGetFolders.mockRejectedValue(new Error('timeout'));
+      mockGetFolders.mockRejectedValue(new Error("timeout"));
 
       const result = await getFolders();
 
-      expect(result).toEqual({ success: false, error: 'Failed to get folders' });
+      expect(result).toEqual({ success: false, error: "Failed to get folders" });
     });
 
-    it('returns folders on success', async () => {
+    it("returns folders on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetFolders.mockResolvedValue([FAKE_FOLDER]);
 
@@ -98,7 +93,7 @@ describe('actions/folders', () => {
       expect(result).toEqual({ success: true, data: [FAKE_FOLDER] });
     });
 
-    it('returns empty array when user has no folders', async () => {
+    it("returns empty array when user has no folders", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetFolders.mockResolvedValue([]);
 
@@ -111,225 +106,228 @@ describe('actions/folders', () => {
   // ====================================================================
   // createFolder
   // ====================================================================
-  describe('createFolder', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("createFolder", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await createFolder({ name: 'Test' });
+      const result = await createFolder({ name: "Test" });
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error for empty name', async () => {
+    it("returns error for empty name", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await createFolder({ name: '   ' });
+      const result = await createFolder({ name: "   " });
 
-      expect(result).toEqual({ success: false, error: 'Invalid folder name' });
+      expect(result).toEqual({ success: false, error: "Invalid folder name" });
       expect(mockCreateFolder).not.toHaveBeenCalled();
     });
 
-    it('returns error for name exceeding max length', async () => {
+    it("returns error for name exceeding max length", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await createFolder({ name: 'a'.repeat(51) });
+      const result = await createFolder({ name: "a".repeat(51) });
 
-      expect(result).toEqual({ success: false, error: 'Invalid folder name' });
+      expect(result).toEqual({ success: false, error: "Invalid folder name" });
       expect(mockCreateFolder).not.toHaveBeenCalled();
     });
 
-    it('returns error for invalid icon', async () => {
+    it("returns error for invalid icon", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await createFolder({ name: 'Test', icon: 'not-a-real-icon' });
+      const result = await createFolder({ name: "Test", icon: "not-a-real-icon" });
 
-      expect(result).toEqual({ success: false, error: 'Invalid icon' });
+      expect(result).toEqual({ success: false, error: "Invalid icon" });
       expect(mockCreateFolder).not.toHaveBeenCalled();
     });
 
-    it('creates folder with name only (default icon)', async () => {
+    it("creates folder with name only (default icon)", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateFolder.mockResolvedValue(FAKE_FOLDER);
 
-      const result = await createFolder({ name: 'Work' });
+      const result = await createFolder({ name: "Work" });
 
       expect(result).toEqual({ success: true, data: FAKE_FOLDER });
-      expect(mockCreateFolder).toHaveBeenCalledWith({ name: 'Work' });
+      expect(mockCreateFolder).toHaveBeenCalledWith({ name: "Work" });
     });
 
-    it('creates folder with name and icon', async () => {
+    it("creates folder with name and icon", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateFolder.mockResolvedValue(FAKE_FOLDER);
 
-      const result = await createFolder({ name: 'Work', icon: 'briefcase' });
+      const result = await createFolder({ name: "Work", icon: "briefcase" });
 
       expect(result).toEqual({ success: true, data: FAKE_FOLDER });
-      expect(mockCreateFolder).toHaveBeenCalledWith({ name: 'Work', icon: 'briefcase' });
+      expect(mockCreateFolder).toHaveBeenCalledWith({ name: "Work", icon: "briefcase" });
     });
 
-    it('trims whitespace from name', async () => {
+    it("trims whitespace from name", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateFolder.mockResolvedValue(FAKE_FOLDER);
 
-      await createFolder({ name: '  Work  ' });
+      await createFolder({ name: "  Work  " });
 
-      expect(mockCreateFolder).toHaveBeenCalledWith({ name: 'Work' });
+      expect(mockCreateFolder).toHaveBeenCalledWith({ name: "Work" });
     });
 
-    it('returns error when db.createFolder throws', async () => {
+    it("returns error when db.createFolder throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockCreateFolder.mockRejectedValue(new Error('DB error'));
+      mockCreateFolder.mockRejectedValue(new Error("DB error"));
 
-      const result = await createFolder({ name: 'Work' });
+      const result = await createFolder({ name: "Work" });
 
-      expect(result).toEqual({ success: false, error: 'Failed to create folder' });
+      expect(result).toEqual({ success: false, error: "Failed to create folder" });
     });
   });
 
   // ====================================================================
   // updateFolder
   // ====================================================================
-  describe('updateFolder', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("updateFolder", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await updateFolder('folder-1', { name: 'New' });
+      const result = await updateFolder("folder-1", { name: "New" });
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns error for empty name', async () => {
+    it("returns error for empty name", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await updateFolder('folder-1', { name: '   ' });
+      const result = await updateFolder("folder-1", { name: "   " });
 
-      expect(result).toEqual({ success: false, error: 'Invalid folder name' });
+      expect(result).toEqual({ success: false, error: "Invalid folder name" });
       expect(mockUpdateFolder).not.toHaveBeenCalled();
     });
 
-    it('returns error for name exceeding max length', async () => {
+    it("returns error for name exceeding max length", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await updateFolder('folder-1', { name: 'a'.repeat(51) });
+      const result = await updateFolder("folder-1", { name: "a".repeat(51) });
 
-      expect(result).toEqual({ success: false, error: 'Invalid folder name' });
+      expect(result).toEqual({ success: false, error: "Invalid folder name" });
       expect(mockUpdateFolder).not.toHaveBeenCalled();
     });
 
-    it('returns error for invalid icon', async () => {
+    it("returns error for invalid icon", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
 
-      const result = await updateFolder('folder-1', { icon: 'invalid-icon' });
+      const result = await updateFolder("folder-1", { icon: "invalid-icon" });
 
-      expect(result).toEqual({ success: false, error: 'Invalid icon' });
+      expect(result).toEqual({ success: false, error: "Invalid icon" });
       expect(mockUpdateFolder).not.toHaveBeenCalled();
     });
 
-    it('returns not found when db.updateFolder returns null', async () => {
+    it("returns not found when db.updateFolder returns null", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpdateFolder.mockResolvedValue(null);
 
-      const result = await updateFolder('nonexistent', { name: 'Test' });
+      const result = await updateFolder("nonexistent", { name: "Test" });
 
       expect(result).toEqual({
         success: false,
-        error: 'Folder not found or access denied',
+        error: "Folder not found or access denied",
       });
     });
 
-    it('updates folder name on success', async () => {
+    it("updates folder name on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      const updatedFolder = { ...FAKE_FOLDER, name: 'Renamed' };
+      const updatedFolder = { ...FAKE_FOLDER, name: "Renamed" };
       mockUpdateFolder.mockResolvedValue(updatedFolder);
 
-      const result = await updateFolder('folder-uuid-1', { name: 'Renamed' });
+      const result = await updateFolder("folder-uuid-1", { name: "Renamed" });
 
       expect(result).toEqual({ success: true, data: updatedFolder });
-      expect(mockUpdateFolder).toHaveBeenCalledWith('folder-uuid-1', { name: 'Renamed' });
+      expect(mockUpdateFolder).toHaveBeenCalledWith("folder-uuid-1", { name: "Renamed" });
     });
 
-    it('updates folder icon on success', async () => {
+    it("updates folder icon on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      const updatedFolder = { ...FAKE_FOLDER, icon: 'star' };
+      const updatedFolder = { ...FAKE_FOLDER, icon: "star" };
       mockUpdateFolder.mockResolvedValue(updatedFolder);
 
-      const result = await updateFolder('folder-uuid-1', { icon: 'star' });
+      const result = await updateFolder("folder-uuid-1", { icon: "star" });
 
       expect(result).toEqual({ success: true, data: updatedFolder });
-      expect(mockUpdateFolder).toHaveBeenCalledWith('folder-uuid-1', { icon: 'star' });
+      expect(mockUpdateFolder).toHaveBeenCalledWith("folder-uuid-1", { icon: "star" });
     });
 
-    it('updates both name and icon on success', async () => {
+    it("updates both name and icon on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      const updatedFolder = { ...FAKE_FOLDER, name: 'New', icon: 'heart' };
+      const updatedFolder = { ...FAKE_FOLDER, name: "New", icon: "heart" };
       mockUpdateFolder.mockResolvedValue(updatedFolder);
 
-      const result = await updateFolder('folder-uuid-1', { name: 'New', icon: 'heart' });
+      const result = await updateFolder("folder-uuid-1", { name: "New", icon: "heart" });
 
       expect(result).toEqual({ success: true, data: updatedFolder });
-      expect(mockUpdateFolder).toHaveBeenCalledWith('folder-uuid-1', { name: 'New', icon: 'heart' });
+      expect(mockUpdateFolder).toHaveBeenCalledWith("folder-uuid-1", {
+        name: "New",
+        icon: "heart",
+      });
     });
 
-    it('trims whitespace from name when updating', async () => {
+    it("trims whitespace from name when updating", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockUpdateFolder.mockResolvedValue(FAKE_FOLDER);
 
-      await updateFolder('folder-uuid-1', { name: '  Trimmed  ' });
+      await updateFolder("folder-uuid-1", { name: "  Trimmed  " });
 
-      expect(mockUpdateFolder).toHaveBeenCalledWith('folder-uuid-1', { name: 'Trimmed' });
+      expect(mockUpdateFolder).toHaveBeenCalledWith("folder-uuid-1", { name: "Trimmed" });
     });
 
-    it('returns error when db.updateFolder throws', async () => {
+    it("returns error when db.updateFolder throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockUpdateFolder.mockRejectedValue(new Error('DB error'));
+      mockUpdateFolder.mockRejectedValue(new Error("DB error"));
 
-      const result = await updateFolder('folder-1', { name: 'Test' });
+      const result = await updateFolder("folder-1", { name: "Test" });
 
-      expect(result).toEqual({ success: false, error: 'Failed to update folder' });
+      expect(result).toEqual({ success: false, error: "Failed to update folder" });
     });
   });
 
   // ====================================================================
   // deleteFolder
   // ====================================================================
-  describe('deleteFolder', () => {
-    it('returns Unauthorized when not authenticated', async () => {
+  describe("deleteFolder", () => {
+    it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
-      const result = await deleteFolder('folder-1');
+      const result = await deleteFolder("folder-1");
 
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
     });
 
-    it('returns not found when db.deleteFolder returns false', async () => {
+    it("returns not found when db.deleteFolder returns false", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockDeleteFolder.mockResolvedValue(false);
 
-      const result = await deleteFolder('nonexistent');
+      const result = await deleteFolder("nonexistent");
 
       expect(result).toEqual({
         success: false,
-        error: 'Folder not found or access denied',
+        error: "Folder not found or access denied",
       });
     });
 
-    it('returns success when folder is deleted', async () => {
+    it("returns success when folder is deleted", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockDeleteFolder.mockResolvedValue(true);
 
-      const result = await deleteFolder('folder-uuid-1');
+      const result = await deleteFolder("folder-uuid-1");
 
       expect(result).toEqual({ success: true });
-      expect(mockDeleteFolder).toHaveBeenCalledWith('folder-uuid-1');
+      expect(mockDeleteFolder).toHaveBeenCalledWith("folder-uuid-1");
     });
 
-    it('returns error when db.deleteFolder throws', async () => {
+    it("returns error when db.deleteFolder throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
-      mockDeleteFolder.mockRejectedValue(new Error('constraint'));
+      mockDeleteFolder.mockRejectedValue(new Error("constraint"));
 
-      const result = await deleteFolder('folder-1');
+      const result = await deleteFolder("folder-1");
 
-      expect(result).toEqual({ success: false, error: 'Failed to delete folder' });
+      expect(result).toEqual({ success: false, error: "Failed to delete folder" });
     });
   });
 });

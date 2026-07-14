@@ -1,7 +1,14 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { NextRequest } from "next/server";
-import { authenticateApiKey, hasScope, requireAuth, requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  apiError,
+  authenticateApiKey,
+  hasScope,
+  requireAuth,
+  requireAuthWithRateLimit,
+} from "@/lib/api/auth";
 import { clearAllRateLimits } from "@/lib/api/rate-limit";
 import * as db from "@/lib/db/api-keys";
 import type { ApiScope } from "@/models/api-key";

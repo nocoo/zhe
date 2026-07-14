@@ -1,6 +1,6 @@
-import { ThemeToggle } from "@/components/theme-toggle";
 import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopRightControls() {
   return (
@@ -27,7 +27,6 @@ export function BadgeContent({ signInAction }: { signInAction: () => Promise<voi
   return (
     <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
       <div className="h-24 w-24 overflow-hidden rounded-full bg-secondary dark:bg-background ring-1 ring-border p-2.5">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-80.png"
           alt="Zhe"

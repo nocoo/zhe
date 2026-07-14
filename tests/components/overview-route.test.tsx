@@ -1,22 +1,23 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
 
-vi.mock('@/actions/overview', () => ({
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/actions/overview", () => ({
   getOverviewStats: vi.fn().mockResolvedValue({ success: false }),
 }));
 
-vi.mock('@/components/dashboard/overview-page', () => ({
+vi.mock("@/components/dashboard/overview-page", () => ({
   OverviewPage: ({ initialData }: { initialData?: unknown }) => (
-    <div>Overview{initialData ? ' with data' : ''}</div>
+    <div>Overview{initialData ? " with data" : ""}</div>
   ),
 }));
 
-import OverviewRoute from '@/app/(dashboard)/dashboard/overview/page';
-import { getOverviewStats } from '@/actions/overview';
+import { getOverviewStats } from "@/actions/overview";
+import OverviewRoute from "@/app/(dashboard)/dashboard/overview/page";
 
-describe('OverviewRoute', () => {
-  it('renders OverviewPage with prefetched data', async () => {
+describe("OverviewRoute", () => {
+  it("renders OverviewPage with prefetched data", async () => {
     vi.mocked(getOverviewStats).mockResolvedValue({
       success: true,
       data: { totalLinks: 1 } as never,
@@ -25,19 +26,19 @@ describe('OverviewRoute', () => {
     const jsx = await OverviewRoute();
     render(jsx);
 
-    expect(screen.getByText('Overview with data')).toBeInTheDocument();
+    expect(screen.getByText("Overview with data")).toBeInTheDocument();
     expect(getOverviewStats).toHaveBeenCalledOnce();
   });
 
-  it('renders OverviewPage without data on failure', async () => {
+  it("renders OverviewPage without data on failure", async () => {
     vi.mocked(getOverviewStats).mockResolvedValue({
       success: false,
-      error: 'Unauthorized',
+      error: "Unauthorized",
     });
 
     const jsx = await OverviewRoute();
     render(jsx);
 
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText("Overview")).toBeInTheDocument();
   });
 });

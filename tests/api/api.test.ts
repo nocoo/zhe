@@ -10,12 +10,12 @@
  * 3. POST /api/record-click — click analytics
  * 4. Full redirect flow — lookup → record-click → verify
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { apiGet, apiPostWorker, jsonResponse } from './helpers/http';
-import {  seedLink, cleanupTestData, resetAndSeedUser, queryD1, testSlug } from './helpers/seed';
-import { unwrap } from '../test-utils';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { unwrap } from "../test-utils";
+import { apiGet, apiPostWorker, jsonResponse } from "./helpers/http";
+import { cleanupTestData, queryD1, resetAndSeedUser, seedLink, testSlug } from "./helpers/seed";
 
-const TEST_USER_ID = 'api-root-test-user';
+const TEST_USER_ID = "api-root-test-user";
 
 // ---------------------------------------------------------------------------
 // Setup: ensure test user exists, clean up before/after
@@ -31,13 +31,17 @@ afterAll(async () => {
 // ============================================================
 // Scenario 1: Health Check
 // ============================================================
-describe('GET /api/health', () => {
-  it('returns status ok with version and timestamp', async () => {
-    const res = await apiGet('/api/health');
-    const { status, body } = await jsonResponse<{ status: string; version: string; timestamp: string }>(res);
+describe("GET /api/health", () => {
+  it("returns status ok with version and timestamp", async () => {
+    const res = await apiGet("/api/health");
+    const { status, body } = await jsonResponse<{
+      status: string;
+      version: string;
+      timestamp: string;
+    }>(res);
 
     expect(status).toBe(200);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe("ok");
     expect(body.version).toBeDefined();
     expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp);
   });
@@ -46,42 +50,47 @@ describe('GET /api/health', () => {
 // ============================================================
 // Scenario 2: Slug Lookup
 // ============================================================
-describe('GET /api/lookup', () => {
-  it('returns 400 when slug parameter is missing', async () => {
-    const res = await apiGet('/api/lookup');
+describe("GET /api/lookup", () => {
+  it("returns 400 when slug parameter is missing", async () => {
+    const res = await apiGet("/api/lookup");
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(400);
-    expect(body.error).toBe('Missing slug');
+    expect(body.error).toBe("Missing slug");
   });
 
-  it('returns 404 when slug does not exist', async () => {
-    const res = await apiGet('/api/lookup?slug=nonexistent-never-exists');
+  it("returns 404 when slug does not exist", async () => {
+    const res = await apiGet("/api/lookup?slug=nonexistent-never-exists");
     const { status, body } = await jsonResponse<{ found: boolean }>(res);
 
     expect(status).toBe(404);
     expect(body.found).toBe(false);
   });
 
-  it('returns the link when slug exists', async () => {
-    const slug = testSlug('lookup');
-    await seedLink({ slug, originalUrl: 'https://github.com', userId: TEST_USER_ID });
+  it("returns the link when slug exists", async () => {
+    const slug = testSlug("lookup");
+    await seedLink({ slug, originalUrl: "https://github.com", userId: TEST_USER_ID });
 
     const res = await apiGet(`/api/lookup?slug=${slug}`);
-    const { status, body } = await jsonResponse<{ found: boolean; originalUrl: string; slug: string; expiresAt: string | null }>(res);
+    const { status, body } = await jsonResponse<{
+      found: boolean;
+      originalUrl: string;
+      slug: string;
+      expiresAt: string | null;
+    }>(res);
 
     expect(status).toBe(200);
     expect(body.found).toBe(true);
-    expect(body.originalUrl).toBe('https://github.com');
+    expect(body.originalUrl).toBe("https://github.com");
     expect(body.slug).toBe(slug);
     expect(body.expiresAt).toBeNull();
   });
 
-  it('returns 404 for an expired link', async () => {
-    const slug = testSlug('expired');
+  it("returns 404 for an expired link", async () => {
+    const slug = testSlug("expired");
     await seedLink({
       slug,
-      originalUrl: 'https://expired.example.com',
+      originalUrl: "https://expired.example.com",
       expiresAt: new Date(Date.now() - 86_400_000).toISOString(), // expired yesterday
       userId: TEST_USER_ID,
     });
@@ -98,32 +107,35 @@ describe('GET /api/lookup', () => {
 // ============================================================
 // Scenario 3: Record Click
 // ============================================================
-describe('POST /api/record-click', () => {
-  it('returns 400 when linkId is missing', async () => {
-    const res = await apiPostWorker('/api/record-click', {});
+describe("POST /api/record-click", () => {
+  it("returns 400 when linkId is missing", async () => {
+    const res = await apiPostWorker("/api/record-click", {});
     const { status, body } = await jsonResponse<{ error: string }>(res);
 
     expect(status).toBe(400);
-    expect(body.error).toContain('linkId');
+    expect(body.error).toContain("linkId");
   });
 
-  it('returns 400 when linkId is not a number', async () => {
-    const res = await apiPostWorker('/api/record-click', { linkId: 'abc' });
+  it("returns 400 when linkId is not a number", async () => {
+    const res = await apiPostWorker("/api/record-click", { linkId: "abc" });
 
     expect(res.status).toBe(400);
   });
 
-  it('records a click successfully with full metadata', async () => {
-    const { id: linkId, slug } = await seedLink({ slug: testSlug('click-full'), userId: TEST_USER_ID });
+  it("records a click successfully with full metadata", async () => {
+    const { id: linkId, slug } = await seedLink({
+      slug: testSlug("click-full"),
+      userId: TEST_USER_ID,
+    });
 
-    const res = await apiPostWorker('/api/record-click', {
+    const res = await apiPostWorker("/api/record-click", {
       linkId,
-      device: 'desktop',
-      browser: 'Chrome',
-      os: 'macOS',
-      country: 'US',
-      city: 'San Francisco',
-      referer: 'https://twitter.com',
+      device: "desktop",
+      browser: "Chrome",
+      os: "macOS",
+      country: "US",
+      city: "San Francisco",
+      referer: "https://twitter.com",
     });
     const { status, body } = await jsonResponse<{ success: boolean }>(res);
 
@@ -131,15 +143,17 @@ describe('POST /api/record-click', () => {
     expect(body.success).toBe(true);
 
     // Verify click count via D1 query (black-box: check DB side effect)
-    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [slug]);
+    const rows = await queryD1<{ clicks: number }>("SELECT clicks FROM links WHERE slug = ?", [
+      slug,
+    ]);
     expect(rows[0]).toBeDefined();
     expect(unwrap(rows[0]).clicks).toBe(1);
   });
 
-  it('records a click with minimal metadata', async () => {
-    const { id: linkId } = await seedLink({ slug: testSlug('click-min'), userId: TEST_USER_ID });
+  it("records a click with minimal metadata", async () => {
+    const { id: linkId } = await seedLink({ slug: testSlug("click-min"), userId: TEST_USER_ID });
 
-    const res = await apiPostWorker('/api/record-click', { linkId });
+    const res = await apiPostWorker("/api/record-click", { linkId });
     const { status, body } = await jsonResponse<{ success: boolean }>(res);
 
     expect(status).toBe(200);
@@ -150,58 +164,70 @@ describe('POST /api/record-click', () => {
 // ============================================================
 // Scenario 4: Full Redirect Flow (lookup → record-click → verify)
 // ============================================================
-describe('Redirect flow (lookup → analytics)', () => {
+describe("Redirect flow (lookup → analytics)", () => {
   let flowSlug: string;
   let flowLinkId: number;
 
   beforeEach(async () => {
-    flowSlug = testSlug('flow');
-    const seeded = await seedLink({ slug: flowSlug, originalUrl: 'https://example.com/target', userId: TEST_USER_ID });
+    flowSlug = testSlug("flow");
+    const seeded = await seedLink({
+      slug: flowSlug,
+      originalUrl: "https://example.com/target",
+      userId: TEST_USER_ID,
+    });
     flowLinkId = seeded.id;
   });
 
-  it('complete flow: seed link → lookup → record click → verify analytics', async () => {
+  it("complete flow: seed link → lookup → record click → verify analytics", async () => {
     // Step 1: Lookup the slug
     const lookupRes = await apiGet(`/api/lookup?slug=${flowSlug}`);
-    const { body: lookupBody } = await jsonResponse<{ found: boolean; originalUrl: string; id: number }>(lookupRes);
+    const { body: lookupBody } = await jsonResponse<{
+      found: boolean;
+      originalUrl: string;
+      id: number;
+    }>(lookupRes);
 
     expect(lookupRes.status).toBe(200);
     expect(lookupBody.found).toBe(true);
-    expect(lookupBody.originalUrl).toBe('https://example.com/target');
+    expect(lookupBody.originalUrl).toBe("https://example.com/target");
 
     // Step 2: Record a click
-    const clickRes = await apiPostWorker('/api/record-click', {
+    const clickRes = await apiPostWorker("/api/record-click", {
       linkId: lookupBody.id,
-      device: 'mobile',
-      browser: 'Safari',
-      os: 'iOS',
-      country: 'JP',
-      city: 'Tokyo',
+      device: "mobile",
+      browser: "Safari",
+      os: "iOS",
+      country: "JP",
+      city: "Tokyo",
       referer: null,
     });
     expect(clickRes.status).toBe(200);
 
     // Step 3: Verify click count incremented
-    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
+    const rows = await queryD1<{ clicks: number }>("SELECT clicks FROM links WHERE slug = ?", [
+      flowSlug,
+    ]);
     expect(rows[0]).toBeDefined();
     expect(unwrap(rows[0]).clicks).toBe(1);
   });
 
-  it('multiple clicks increment counter correctly', async () => {
+  it("multiple clicks increment counter correctly", async () => {
     // Record 3 clicks
     for (let i = 0; i < 3; i++) {
-      const res = await apiPostWorker('/api/record-click', {
+      const res = await apiPostWorker("/api/record-click", {
         linkId: flowLinkId,
-        device: i % 2 === 0 ? 'desktop' : 'mobile',
-        browser: 'Chrome',
-        os: 'Windows',
-        country: 'US',
+        device: i % 2 === 0 ? "desktop" : "mobile",
+        browser: "Chrome",
+        os: "Windows",
+        country: "US",
       });
       expect(res.status).toBe(200);
     }
 
     // Verify
-    const rows = await queryD1<{ clicks: number }>('SELECT clicks FROM links WHERE slug = ?', [flowSlug]);
+    const rows = await queryD1<{ clicks: number }>("SELECT clicks FROM links WHERE slug = ?", [
+      flowSlug,
+    ]);
     expect(unwrap(rows[0]).clicks).toBe(3);
   });
 });

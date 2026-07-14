@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+
+import { act, renderHook } from "@testing-library/react";
 import { useState } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TodoTreeNode } from "@/lib/db/scoped";
 
 const mockCreateTodo = vi.fn();
@@ -18,7 +19,7 @@ vi.mock("@/actions/todos", () => ({
   reorderTodoSiblings: (...args: unknown[]) => mockReorderTodoSiblings(...args),
 }));
 
-import { useTodosMutations, applyMoveResult } from "@/viewmodels/todos/useTodosMutations";
+import { applyMoveResult, useTodosMutations } from "@/viewmodels/todos/useTodosMutations";
 
 /** Deterministic factory. */
 function node(overrides: Partial<TodoTreeNode> & { id: number }): TodoTreeNode {
@@ -90,10 +91,7 @@ describe("useTodosMutations", () => {
   });
 
   it("handleDeleteTodo returns true on success and drops the subtree", async () => {
-    const initial = [
-      node({ id: 1 }),
-      node({ id: 2, parentId: 1 }),
-    ];
+    const initial = [node({ id: 1 }), node({ id: 2, parentId: 1 })];
     const { result } = renderHook(() => useTodosMutationsWithState(initial));
     mockDeleteTodo.mockResolvedValueOnce({ success: true });
     await act(async () => {
@@ -289,10 +287,7 @@ describe("applyMoveResult", () => {
 
   it("applies newParentId=null correctly (regression: `??` swallowed null → row stuck under old parent)", () => {
     const stateRef: { current: TodoTreeNode[] } = {
-      current: [
-        node({ id: 1 }),
-        node({ id: 2, parentId: 1, position: 0 }),
-      ],
+      current: [node({ id: 1 }), node({ id: 2, parentId: 1, position: 0 })],
     };
     const setter = (updater: TodoTreeNode[] | ((p: TodoTreeNode[]) => TodoTreeNode[])) => {
       stateRef.current = typeof updater === "function" ? updater(stateRef.current) : updater;

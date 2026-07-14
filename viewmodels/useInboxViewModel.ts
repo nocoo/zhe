@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Link, Tag, LinkTag, Folder } from "@/models/types";
-import { useLinkMutations } from "@/viewmodels/useLinkMutations";
+import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
+import { useLinkMutations } from "@/viewmodels/useLinkMutations";
 
 /** Callbacks for syncing triage mutations back to the parent service.
  *  Alias for the shared LinkMutationCallbacks interface.
@@ -19,10 +19,7 @@ export function useInboxViewModel(
   callbacks: InboxCallbacks,
 ) {
   // Filter to uncategorized (inbox) links
-  const inboxLinks = useMemo(
-    () => links.filter((l) => l.folderId === null),
-    [links],
-  );
+  const inboxLinks = useMemo(() => links.filter((l) => l.folderId === null), [links]);
 
   // ── Tag helpers — delegated to shared useLinkMutations hook ──
   const {

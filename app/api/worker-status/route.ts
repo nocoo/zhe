@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { getCronHistory } from '@/lib/cron-history';
-import { deriveWorkerHealth } from '@/models/overview';
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getCronHistory } from "@/lib/cron-history";
+import { deriveWorkerHealth } from "@/models/overview";
 
 /**
  * GET /api/worker-status
@@ -15,7 +15,7 @@ import { deriveWorkerHealth } from '@/models/overview';
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const history = getCronHistory();

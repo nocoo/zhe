@@ -5,8 +5,8 @@
  * Returns user info and scopes on success, or an error response on failure.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { verifyApiKeyAndGetUser, type ApiKeyVerifyResult } from "@/lib/db/api-keys";
+import { type NextRequest, NextResponse } from "next/server";
+import { type ApiKeyVerifyResult, verifyApiKeyAndGetUser } from "@/lib/db/api-keys";
 import type { ApiScope } from "@/models/api-key";
 import { checkRateLimit, type RateLimitConfig } from "./rate-limit";
 
@@ -20,9 +20,7 @@ export type AuthResult =
  * @param request - The incoming request
  * @returns AuthResult with user info on success, error details on failure
  */
-export async function authenticateApiKey(
-  request: NextRequest,
-): Promise<AuthResult> {
+export async function authenticateApiKey(request: NextRequest): Promise<AuthResult> {
   const authHeader = request.headers.get("authorization");
 
   // Check header exists
@@ -81,14 +79,8 @@ export function hasScope(auth: ApiKeyVerifyResult, requiredScope: ApiScope): boo
 /**
  * Create a JSON error response for API routes.
  */
-export function apiError(
-  message: string,
-  status: number,
-): NextResponse {
-  return NextResponse.json(
-    { error: message },
-    { status },
-  );
+export function apiError(message: string, status: number): NextResponse {
+  return NextResponse.json({ error: message }, { status });
 }
 
 /**

@@ -3,7 +3,7 @@
 // Endpoints called by the Railway origin to execute D1 queries via the Worker's
 // native binding (much faster than the Cloudflare REST API).
 
-import type { Env } from './types';
+import type { Env } from "./types";
 
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -37,31 +37,31 @@ interface D1BatchResponse {
 
 /** Verify Authorization: Bearer <D1_PROXY_SECRET>. Returns null on success, or a 401 Response. */
 function verifyAuth(request: Request, env: Env): Response | null {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
   const token = authHeader.slice(7);
   if (!timingSafeEqual(token, env.D1_PROXY_SECRET)) {
-    return Response.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
   return null;
 }
 
 async function parseJson<T>(request: Request): Promise<T | Response> {
   try {
-    return await request.json() as T;
+    return (await request.json()) as T;
   } catch {
-    return Response.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+    return Response.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
   }
 }
 
 function buildErrorResponse(err: unknown, fallback: string): Response {
   const message = err instanceof Error ? err.message : String(err);
   if (/unique/i.test(message)) {
-    return Response.json({ success: false, error: 'UNIQUE constraint failed' }, { status: 200 });
+    return Response.json({ success: false, error: "UNIQUE constraint failed" }, { status: 200 });
   }
-  console.error('D1 proxy error:', message);
+  console.error("D1 proxy error:", message);
   return Response.json({ success: false, error: fallback }, { status: 200 });
 }
 
@@ -74,8 +74,8 @@ export async function handleD1Query(request: Request, env: Env): Promise<Respons
   if (parsed instanceof Response) return parsed;
 
   const { sql, params = [] } = parsed;
-  if (typeof sql !== 'string' || !sql.trim()) {
-    return Response.json({ success: false, error: 'Missing or empty sql field' }, { status: 400 });
+  if (typeof sql !== "string" || !sql.trim()) {
+    return Response.json({ success: false, error: "Missing or empty sql field" }, { status: 400 });
   }
 
   try {
@@ -87,7 +87,7 @@ export async function handleD1Query(request: Request, env: Env): Promise<Respons
       meta: { changes: result.meta.changes, last_row_id: result.meta.last_row_id },
     } satisfies D1ProxyResponse);
   } catch (err) {
-    return buildErrorResponse(err, 'D1 query failed');
+    return buildErrorResponse(err, "D1 query failed");
   }
 }
 
@@ -101,13 +101,19 @@ export async function handleD1Batch(request: Request, env: Env): Promise<Respons
 
   const { statements } = parsed;
   if (!Array.isArray(statements) || statements.length === 0) {
-    return Response.json({ success: false, error: 'Missing or empty statements array' }, { status: 400 });
+    return Response.json(
+      { success: false, error: "Missing or empty statements array" },
+      { status: 400 },
+    );
   }
 
   const preparedStatements: D1PreparedStatement[] = [];
   for (const stmt of statements) {
-    if (typeof stmt.sql !== 'string' || !stmt.sql.trim()) {
-      return Response.json({ success: false, error: 'Invalid statement: missing sql' }, { status: 400 });
+    if (typeof stmt.sql !== "string" || !stmt.sql.trim()) {
+      return Response.json(
+        { success: false, error: "Invalid statement: missing sql" },
+        { status: 400 },
+      );
     }
     preparedStatements.push(env.DB.prepare(stmt.sql).bind(...(stmt.params || [])));
   }
@@ -124,9 +130,12 @@ export async function handleD1Batch(request: Request, env: Env): Promise<Respons
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (/unique/i.test(message)) {
-      return Response.json({ success: false, error: 'UNIQUE constraint failed' } satisfies D1BatchResponse);
+      return Response.json({
+        success: false,
+        error: "UNIQUE constraint failed",
+      } satisfies D1BatchResponse);
     }
-    console.error('D1 batch error:', message);
+    console.error("D1 batch error:", message);
     return Response.json({
       success: false,
       error: `D1 batch failed: ${message}`,

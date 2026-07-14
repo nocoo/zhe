@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest";
+
 import { cleanup, render } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 
 afterEach(() => cleanup());
@@ -8,8 +9,7 @@ afterEach(() => cleanup());
 const local = (y: number, m: number, d: number, h = 0, mi = 0) =>
   new Date(y, m - 1, d, h, mi, 0, 0);
 
-const localEndOfDay = (y: number, m: number, d: number) =>
-  new Date(y, m - 1, d, 23, 59, 59, 999);
+const localEndOfDay = (y: number, m: number, d: number) => new Date(y, m - 1, d, 23, 59, 59, 999);
 
 describe("TodoDueChip", () => {
   const now = local(2026, 7, 10, 10, 30); // ref time
@@ -32,51 +32,39 @@ describe("TodoDueChip", () => {
     const { container } = render(
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 10)} done={false} now={now} />,
     );
-    expect(container.querySelector('[data-due-kind="today"]')?.textContent).toContain(
-      "今日",
-    );
+    expect(container.querySelector('[data-due-kind="today"]')?.textContent).toContain("今日");
   });
 
   it("renders `tomorrow` for the next local day", () => {
     const { container } = render(
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 11)} done={false} now={now} />,
     );
-    expect(container.querySelector('[data-due-kind="tomorrow"]')?.textContent).toContain(
-      "明日",
-    );
+    expect(container.querySelector('[data-due-kind="tomorrow"]')?.textContent).toContain("明日");
   });
 
   it("renders `soon` within the 7-day window", () => {
     const { container } = render(
       <TodoDueChip dueAt={localEndOfDay(2026, 7, 15)} done={false} now={now} />,
     );
-    expect(container.querySelector('[data-due-kind="soon"]')?.textContent).toContain(
-      "7月15日",
-    );
+    expect(container.querySelector('[data-due-kind="soon"]')?.textContent).toContain("7月15日");
   });
 
   it("renders `later` past the 7-day window", () => {
     const { container } = render(
       <TodoDueChip dueAt={localEndOfDay(2026, 8, 3)} done={false} now={now} />,
     );
-    expect(container.querySelector('[data-due-kind="later"]')?.textContent).toContain(
-      "8月3日",
-    );
+    expect(container.querySelector('[data-due-kind="later"]')?.textContent).toContain("8月3日");
   });
 
   it("flips to low-emphasis `done-with-due` when done=true, regardless of dueAt", () => {
-    const past = render(
-      <TodoDueChip dueAt={localEndOfDay(2026, 7, 8)} done={true} now={now} />,
-    );
+    const past = render(<TodoDueChip dueAt={localEndOfDay(2026, 7, 8)} done={true} now={now} />);
     expect(past.container.querySelector('[data-due-kind="done-with-due"]')?.textContent).toContain(
       "原定 7月8日",
     );
 
     cleanup();
 
-    const future = render(
-      <TodoDueChip dueAt={localEndOfDay(2026, 7, 30)} done={true} now={now} />,
-    );
+    const future = render(<TodoDueChip dueAt={localEndOfDay(2026, 7, 30)} done={true} now={now} />);
     // Even a future dueAt on a done row uses the same low-emphasis kind.
     expect(future.container.querySelector('[data-due-kind="done-with-due"]')).toBeTruthy();
   });

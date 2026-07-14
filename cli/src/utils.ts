@@ -15,38 +15,38 @@ import { pc } from "@nocoo/cli-base";
 
 /** Mask an API key for display: zhe_abcd...wxyz */
 export function maskApiKey(apiKey: string): string {
-	if (!apiKey || apiKey.length < 12) {
-		return apiKey;
-	}
-	const prefix = apiKey.slice(0, 8);
-	const suffix = apiKey.slice(-4);
-	return `${prefix}...${suffix}`;
+  if (!apiKey || apiKey.length < 12) {
+    return apiKey;
+  }
+  const prefix = apiKey.slice(0, 8);
+  const suffix = apiKey.slice(-4);
+  return `${prefix}...${suffix}`;
 }
 
 /** Validate API key format: must start with zhe_ and be non-empty. */
 export function isValidApiKeyFormat(apiKey: string): boolean {
-	return apiKey.startsWith("zhe_") && apiKey.length > 4;
+  return apiKey.startsWith("zhe_") && apiKey.length > 4;
 }
 
 /** Format a date string for display (YYYY-MM-DD). */
 export function formatDate(isoDate: string): string {
-	const date = new Date(isoDate);
-	const parts = date.toISOString().split("T");
-	return parts[0] ?? "";
+  const date = new Date(isoDate);
+  const parts = date.toISOString().split("T");
+  return parts[0] ?? "";
 }
 
 /** Format a date string with time (YYYY-MM-DD HH:MM:SS). */
 export function formatDateTime(isoDate: string): string {
-	const date = new Date(isoDate);
-	return date.toISOString().replace("T", " ").slice(0, 19);
+  const date = new Date(isoDate);
+  return date.toISOString().replace("T", " ").slice(0, 19);
 }
 
 /** Truncate a string to a max length with ellipsis. */
 export function truncate(str: string, maxLength: number): string {
-	if (str.length <= maxLength) {
-		return str;
-	}
-	return `${str.slice(0, maxLength - 3)}...`;
+  if (str.length <= maxLength) {
+    return str;
+  }
+  return `${str.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -58,19 +58,19 @@ export function truncate(str: string, maxLength: number): string {
 const STRICT_POSITIVE_INT = /^[1-9]\d*$/;
 
 export function parsePositiveInt(input: string): number | null {
-	if (!STRICT_POSITIVE_INT.test(input)) {
-		return null;
-	}
-	const id = Number(input);
-	if (!Number.isSafeInteger(id) || id <= 0) {
-		return null;
-	}
-	return id;
+  if (!STRICT_POSITIVE_INT.test(input)) {
+    return null;
+  }
+  const id = Number(input);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return null;
+  }
+  return id;
 }
 
 /** Parse a link ID from string; uses strict positive-integer parsing. */
 export function parseLinkId(input: string): number | null {
-	return parsePositiveInt(input);
+  return parsePositiveInt(input);
 }
 
 /**
@@ -78,37 +78,36 @@ export function parseLinkId(input: string): number | null {
  * Uses spawn() with argv to prevent shell injection.
  */
 export function openInBrowser(url: string): void {
-	const platform = process.platform;
-	let command: string;
-	let args: string[];
+  const platform = process.platform;
+  let command: string;
+  let args: string[];
 
-	if (platform === "darwin") {
-		command = "open";
-		args = [url];
-	} else if (platform === "linux") {
-		command = "xdg-open";
-		args = [url];
-	} else if (platform === "win32") {
-		command = "cmd";
-		args = ["/c", "start", "", url];
-	} else {
-		console.log(pc.dim(`Unable to open browser on ${platform}. Visit: ${url}`));
-		return;
-	}
+  if (platform === "darwin") {
+    command = "open";
+    args = [url];
+  } else if (platform === "linux") {
+    command = "xdg-open";
+    args = [url];
+  } else if (platform === "win32") {
+    command = "cmd";
+    args = ["/c", "start", "", url];
+  } else {
+    console.log(pc.dim(`Unable to open browser on ${platform}. Visit: ${url}`));
+    return;
+  }
 
-	const child = spawn(command, args, { stdio: "ignore" });
-	const fallback = () =>
-		console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
-	let failed = false;
-	child.on("error", () => {
-		failed = true;
-		fallback();
-	});
-	child.on("close", (code) => {
-		if (!failed && code !== 0) {
-			fallback();
-		}
-	});
+  const child = spawn(command, args, { stdio: "ignore" });
+  const fallback = () => console.log(pc.dim(`Failed to open browser. Visit: ${url}`));
+  let failed = false;
+  child.on("error", () => {
+    failed = true;
+    fallback();
+  });
+  child.on("close", (code) => {
+    if (!failed && code !== 0) {
+      fallback();
+    }
+  });
 }
 
 // ── Re-exports ──────────────────────────────────────────────────────────────
@@ -116,17 +115,17 @@ export function openInBrowser(url: string): void {
 // tests; implementations live in ./utils/*.ts.
 
 export {
-	type FormatLinksTableOptions,
-	formatFoldersTable,
-	formatLinkDetail,
-	formatLinksMinimal,
-	formatLinksTable,
-	formatTagsTable,
+  type FormatLinksTableOptions,
+  formatFoldersTable,
+  formatLinkDetail,
+  formatLinksMinimal,
+  formatLinksTable,
+  formatTagsTable,
 } from "./utils/format.js";
 
 export {
-	resolveFolderName,
-	resolveTagName,
-	resolveTagRef,
-	type TagRef,
+  resolveFolderName,
+  resolveTagName,
+  resolveTagRef,
+  type TagRef,
 } from "./utils/resolve.js";

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -17,7 +18,14 @@ vi.mock("sonner", () => ({
 }));
 
 const mockVm = {
-  keys: [] as { id: string; name: string; prefix: string; scopes: string[]; createdAt: Date; lastUsedAt: Date | null }[],
+  keys: [] as {
+    id: string;
+    name: string;
+    prefix: string;
+    scopes: string[];
+    createdAt: Date;
+    lastUsedAt: Date | null;
+  }[],
   isLoading: false,
   isCreating: false,
   newlyCreatedKey: null as string | null,
@@ -59,9 +67,12 @@ describe("ApiKeysPage — clipboard", () => {
 
     fireEvent.click(screen.getByTestId("copy-new-key-btn"));
 
-    await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalledWith("已复制到剪贴板");
-    }, { interval: 5 });
+    await waitFor(
+      () => {
+        expect(mockToastSuccess).toHaveBeenCalledWith("已复制到剪贴板");
+      },
+      { interval: 5 },
+    );
 
     expect(writeTextMock).toHaveBeenCalledWith("zhe_live_abc123secret");
     expect(mockToastError).not.toHaveBeenCalled();
@@ -77,9 +88,12 @@ describe("ApiKeysPage — clipboard", () => {
 
     fireEvent.click(screen.getByTestId("copy-new-key-btn"));
 
-    await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith("复制失败");
-    }, { interval: 5 });
+    await waitFor(
+      () => {
+        expect(mockToastError).toHaveBeenCalledWith("复制失败");
+      },
+      { interval: 5 },
+    );
 
     expect(mockToastSuccess).not.toHaveBeenCalled();
   });

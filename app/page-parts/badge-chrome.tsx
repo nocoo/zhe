@@ -16,9 +16,7 @@ export function BadgeHeader({ dateStr }: { dateStr: string }) {
         />
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary-foreground" strokeWidth={1.5} />
-          <span className="text-sm font-semibold text-primary-foreground">
-            zhe.
-          </span>
+          <span className="text-sm font-semibold text-primary-foreground">zhe.</span>
         </div>
         <span className="text-[10px] font-medium uppercase tracking-widest text-primary-foreground/60">
           Visitor
@@ -42,9 +40,7 @@ export function BadgeFooter() {
     <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-background py-2.5">
       <div className="flex items-center gap-1.5">
         <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-        <span className="text-[10px] text-muted-foreground">
-          Secure authentication
-        </span>
+        <span className="text-[10px] text-muted-foreground">Secure authentication</span>
       </div>
     </div>
   );
@@ -64,10 +60,5 @@ export function RadialGlow() {
     "hsl(var(--foreground) / 0.002) 86%,",
     "transparent 100%)",
   ].join(" ");
-  return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      style={{ background: gradient }}
-    />
-  );
+  return <div className="pointer-events-none absolute inset-0" style={{ background: gradient }} />;
 }

@@ -5,9 +5,9 @@
  * authorization, and business logic.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser, seedTag, executeD1 } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, executeD1, resetAndSeedUser, seedApiKey, seedTag } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/links`;
 
@@ -22,8 +22,8 @@ describe("/api/v1/links", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "links:read,links:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "links:read" }),
-      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "links:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes", scopes: "" }),
     ]);
   });
 
@@ -142,8 +142,13 @@ describe("/api/v1/links", () => {
       expect(listResponse.status).toBe(200);
       const listBody = await listResponse.json();
 
-      const byId = new Map<number, { id: number; tags: { id: string; name: string; color: string }[] }>(
-        listBody.links.map((l: { id: number; tags: { id: string; name: string; color: string }[] }) => [l.id, l]),
+      const byId = new Map<
+        number,
+        { id: number; tags: { id: string; name: string; color: string }[] }
+      >(
+        listBody.links.map(
+          (l: { id: number; tags: { id: string; name: string; color: string }[] }) => [l.id, l],
+        ),
       );
       const fetchedA = byId.get(linkA.id);
       const fetchedB = byId.get(linkB.id);
@@ -174,7 +179,10 @@ describe("/api/v1/links", () => {
     });
 
     it("supports sorting by clicks", async () => {
-      const response = await authenticatedFetch(`${API_URL}?sort=clicks&order=desc`, apiKeyReadOnly);
+      const response = await authenticatedFetch(
+        `${API_URL}?sort=clicks&order=desc`,
+        apiKeyReadOnly,
+      );
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -186,15 +194,19 @@ describe("/api/v1/links", () => {
     });
 
     it("supports sorting by created date ascending", async () => {
-      const response = await authenticatedFetch(`${API_URL}?sort=created&order=asc`, apiKeyReadOnly);
+      const response = await authenticatedFetch(
+        `${API_URL}?sort=created&order=asc`,
+        apiKeyReadOnly,
+      );
 
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(Array.isArray(body.links)).toBe(true);
       // Verify ascending order by createdAt
       for (let i = 1; i < body.links.length; i++) {
-        expect(new Date(body.links[i - 1].createdAt).getTime())
-          .toBeLessThanOrEqual(new Date(body.links[i].createdAt).getTime());
+        expect(new Date(body.links[i - 1].createdAt).getTime()).toBeLessThanOrEqual(
+          new Date(body.links[i].createdAt).getTime(),
+        );
       }
     });
 
@@ -214,5 +226,4 @@ describe("/api/v1/links", () => {
       expect(body.error).toContain("Invalid order value");
     });
   });
-
 });

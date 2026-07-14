@@ -30,9 +30,19 @@ interface Vector {
 
 const vectors: Vector[] = [
   // Spring-forward: 2026-03-09 00:00 local should be 'tomorrow', not 'today'.
-  { name: "spring-tomorrow", now: local(2026, 3, 8, 10), due: local(2026, 3, 9, 0), want: "tomorrow" },
+  {
+    name: "spring-tomorrow",
+    now: local(2026, 3, 8, 10),
+    due: local(2026, 3, 9, 0),
+    want: "tomorrow",
+  },
   // Fall-back: 2026-11-01 23:30 local should be 'today', not 'tomorrow'.
-  { name: "fall-today", now: local(2026, 11, 1, 10), due: local(2026, 11, 1, 23, 30), want: "today" },
+  {
+    name: "fall-today",
+    now: local(2026, 11, 1, 10),
+    due: local(2026, 11, 1, 23, 30),
+    want: "today",
+  },
   // 7-day soon-window boundary across spring-forward: 3/14 00:00 must be
   // 'soon' (day 6 out), not 'later'. Under 24h-ms arithmetic the soon
   // boundary starting from 3/8 00:00 lands at 3/15 01:00, so 3/15 00:00

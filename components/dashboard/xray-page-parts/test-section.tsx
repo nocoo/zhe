@@ -1,19 +1,21 @@
 "use client";
 
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
+import { FeatureCard } from "@/components/dashboard/feature-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, CheckCircle, Search, ChevronDown, ChevronUp } from "lucide-react";
-import { type XrayViewModel } from "@/viewmodels/useXrayViewModel";
+import type { XrayViewModel } from "@/viewmodels/useXrayViewModel";
 import { TweetCard } from "./tweet-card";
 
 function TestInputArea({ vm }: { vm: XrayViewModel }) {
   return (
     <div className="max-w-lg space-y-3">
       <div className="space-y-1">
-        <Label htmlFor="tweet-url" className="text-sm">帖子 URL</Label>
+        <Label htmlFor="tweet-url" className="text-sm">
+          帖子 URL
+        </Label>
         <div className="flex gap-2">
           <Input
             id="tweet-url"
@@ -108,9 +110,7 @@ export function TestSection({ vm }: { vm: XrayViewModel }) {
         <>
           粘贴 Twitter/X 帖子链接，自动提取 ID 并调用 API 获取内容。
           {!vm.isConfigured && (
-            <span className="ml-1 text-warning">
-              （未配置 API，将使用 Mock 数据）
-            </span>
+            <span className="ml-1 text-warning">（未配置 API，将使用 Mock 数据）</span>
           )}
         </>
       }

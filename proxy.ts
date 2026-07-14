@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest, NextFetchEvent } from 'next/server';
-import { auth } from '@/auth';
-import { isReservedPath } from '@/lib/constants';
-import { extractClickMetadata } from '@/lib/analytics';
-import { getLinkBySlug, recordClick } from '@/lib/db';
-import type { Link } from '@/lib/db/schema';
+import type { NextFetchEvent, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { extractClickMetadata } from "@/lib/analytics";
+import { isReservedPath } from "@/lib/constants";
+import { getLinkBySlug, recordClick } from "@/lib/db";
+import type { Link } from "@/lib/db/schema";
 
 // ─── In-memory LRU cache for slug lookups ──────────────────────────────────
 // Avoids a D1 HTTP round-trip on every redirect for popular short links.
@@ -45,27 +45,27 @@ function setCachedSlug(slug: string, link: Link | null): void {
 }
 
 // Export for testing
-export { slugCache, getCachedSlug, setCachedSlug, SLUG_CACHE_TTL_MS, SLUG_CACHE_MAX };
+export { getCachedSlug, SLUG_CACHE_MAX, SLUG_CACHE_TTL_MS, setCachedSlug, slugCache };
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   // Skip root path
-  if (pathname === '/') {
+  if (pathname === "/") {
     return NextResponse.next();
   }
 
   // Get the first segment of the path (potential slug)
-  const slug = pathname.slice(1).split('/')[0] ?? '';
+  const slug = pathname.slice(1).split("/")[0] ?? "";
 
   // Skip reserved paths - let Auth.js and Next.js handle them
   if (isReservedPath(slug)) {
     // Check auth for dashboard
-    if (pathname.startsWith('/dashboard')) {
+    if (pathname.startsWith("/dashboard")) {
       const session = await auth();
       if (!session?.user) {
-        const loginUrl = new URL('/', request.url);
-        loginUrl.searchParams.set('callbackUrl', pathname);
+        const loginUrl = new URL("/", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }
     }
@@ -85,12 +85,12 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
 
     // Not found
     if (!link) {
-      return NextResponse.rewrite(new URL('/not-found', request.url));
+      return NextResponse.rewrite(new URL("/not-found", request.url));
     }
 
     // Expired
     if (link.expiresAt && new Date() > link.expiresAt) {
-      return NextResponse.rewrite(new URL('/not-found', request.url));
+      return NextResponse.rewrite(new URL("/not-found", request.url));
     }
 
     // Record click analytics using waitUntil for non-blocking execution
@@ -105,17 +105,17 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
         country: metadata.country,
         city: metadata.city,
         referer: metadata.referer,
-        source: 'origin',
+        source: "origin",
       }).catch((err) => {
-        console.error('Failed to record click:', err);
-      })
+        console.error("Failed to record click:", err);
+      }),
     );
 
     // Redirect to original URL immediately (no waiting for analytics)
     return NextResponse.redirect(link.originalUrl, { status: 307 });
   } catch (error) {
-    console.error('Middleware lookup error:', error);
-    return NextResponse.rewrite(new URL('/not-found', request.url));
+    console.error("Middleware lookup error:", error);
+    return NextResponse.rewrite(new URL("/not-found", request.url));
   }
 }
 
@@ -128,6 +128,6 @@ export const config = {
      * - Static assets (images, icons, etc.)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    '/((?!_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.jpeg$|.*\\.webp$|sitemap.xml|robots.txt).*)',
+    "/((?!_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.jpeg$|.*\\.webp$|sitemap.xml|robots.txt).*)",
   ],
 };

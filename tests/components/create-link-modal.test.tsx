@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CreateLinkModal } from "@/components/dashboard/create-link-modal";
 
 const mockVm = {
@@ -87,9 +88,7 @@ describe("CreateLinkModal", () => {
     render(<CreateLinkModal {...defaultProps} />);
 
     expect(screen.getByLabelText("原始链接")).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("https://example.com/very-long-url")
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("https://example.com/very-long-url")).toBeInTheDocument();
   });
 
   it("calls setUrl when URL input changes", () => {
@@ -152,15 +151,19 @@ describe("CreateLinkModal", () => {
     render(<CreateLinkModal {...defaultProps} />);
 
     // The submit button text (not the trigger button)
-    const submitButton = screen
-      .getAllByText("创建链接")
-      .find((el) => el.closest("form"));
+    const submitButton = screen.getAllByText("创建链接").find((el) => el.closest("form"));
     expect(submitButton).toBeInTheDocument();
   });
 
   describe("folder selector", () => {
     const folders = [
-      { id: "f1", userId: "u1", name: "工作", icon: "briefcase", createdAt: new Date("2026-01-01") },
+      {
+        id: "f1",
+        userId: "u1",
+        name: "工作",
+        icon: "briefcase",
+        createdAt: new Date("2026-01-01"),
+      },
       { id: "f2", userId: "u1", name: "个人", icon: "heart", createdAt: new Date("2026-01-02") },
     ];
 
@@ -279,7 +282,13 @@ describe("CreateLinkModal", () => {
 
   describe("tags", () => {
     const tags = [
-      { id: "t1", userId: "u1", name: "design", color: "#ff0000", createdAt: new Date("2026-01-01") },
+      {
+        id: "t1",
+        userId: "u1",
+        name: "design",
+        color: "#ff0000",
+        createdAt: new Date("2026-01-01"),
+      },
       { id: "t2", userId: "u1", name: "dev", color: "#00ff00", createdAt: new Date("2026-01-02") },
     ];
 
@@ -330,23 +339,29 @@ describe("CreateLinkModal", () => {
 
   describe("tag creation", () => {
     const tags = [
-      { id: "t1", userId: "u1", name: "design", color: "#ff0000", createdAt: new Date("2026-01-01") },
+      {
+        id: "t1",
+        userId: "u1",
+        name: "design",
+        color: "#ff0000",
+        createdAt: new Date("2026-01-01"),
+      },
     ];
 
     it("calls createTag and onTagCreated when a new tag is created", async () => {
       const onTagCreated = vi.fn();
-      const newTag = { id: "t-new", userId: "u1", name: "newTag", color: "#0000ff", createdAt: new Date() };
+      const newTag = {
+        id: "t-new",
+        userId: "u1",
+        name: "newTag",
+        color: "#0000ff",
+        createdAt: new Date(),
+      };
       vi.mocked(createTag).mockResolvedValue({ success: true, data: newTag });
       mockVm.isOpen = true;
       mockVm.selectedTagIds = new Set();
 
-      render(
-        <CreateLinkModal
-          {...defaultProps}
-          tags={tags}
-          onTagCreated={onTagCreated}
-        />,
-      );
+      render(<CreateLinkModal {...defaultProps} tags={tags} onTagCreated={onTagCreated} />);
 
       // Open tag picker
       fireEvent.click(screen.getByTestId("tag-picker-trigger"));

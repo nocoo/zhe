@@ -59,10 +59,7 @@ describe("filterTodos", () => {
   });
 
   it("hides done rows when showDone=false", () => {
-    const flat = [
-      node({ id: 1 }),
-      node({ id: 2, parentId: 1, done: true, title: "x" }),
-    ];
+    const flat = [node({ id: 1 }), node({ id: 2, parentId: 1, done: true, title: "x" })];
     const result = filterTodos(flat, { showDone: false });
     expect(result.map((n) => n.id)).toEqual([1]);
   });
@@ -79,10 +76,7 @@ describe("filterTodos", () => {
   });
 
   it("filters by tagName using the canonical (lowercase) name", () => {
-    const flat = [
-      node({ id: 1, tagNames: ["work"] }),
-      node({ id: 2, tagNames: ["home"] }),
-    ];
+    const flat = [node({ id: 1, tagNames: ["work"] }), node({ id: 2, tagNames: ["home"] })];
     expect(filterTodos(flat, { tagName: "work" }).map((n) => n.id)).toEqual([1]);
   });
 

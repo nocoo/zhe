@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import type { IdeaListItem } from "@/lib/db/scoped";
+import { useCallback, useEffect, useState } from "react";
 import { getIdeas } from "@/actions/ideas";
+import { useDashboardActions, useDashboardState } from "@/contexts/dashboard-service";
+import type { IdeaListItem } from "@/lib/db/scoped";
 import type { Tag } from "@/models/types";
-import { useDashboardState, useDashboardActions } from "@/contexts/dashboard-service";
-import { useIdeasMutations } from "./ideas/useIdeasMutations";
 import { useIdeasFilters } from "./ideas/useIdeasFilters";
+import { useIdeasMutations } from "./ideas/useIdeasMutations";
 
 /** View mode for the ideas list */
 export type IdeasViewMode = "grid" | "list";
@@ -43,7 +43,9 @@ function useIdeasData() {
       }
     }
     fetchIdeas();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const refreshIdeas = useCallback(async () => {
@@ -120,17 +122,22 @@ export function useIdeasViewModel() {
     error: mutations.error,
 
     // View state
-    viewMode, setViewMode,
-    sortBy: filters.sortBy, setSortBy: filters.setSortBy,
+    viewMode,
+    setViewMode,
+    sortBy: filters.sortBy,
+    setSortBy: filters.setSortBy,
 
     // Filter state
-    searchQuery: filters.searchQuery, setSearchQuery: filters.setSearchQuery,
-    selectedTagId: filters.selectedTagId, setSelectedTagId: filters.setSelectedTagId,
+    searchQuery: filters.searchQuery,
+    setSearchQuery: filters.setSearchQuery,
+    selectedTagId: filters.selectedTagId,
+    setSelectedTagId: filters.setSelectedTagId,
     clearFilters: filters.clearFilters,
     tagFilterOptions: filters.tagFilterOptions,
 
     // Modal state
-    isCreateModalOpen, setIsCreateModalOpen,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
     isDeleteConfirmOpen: deleteConfirm.isDeleteConfirmOpen,
     ideaToDelete: deleteConfirm.ideaToDelete,
 

@@ -5,38 +5,42 @@
  * Validates status code, response body, and cache headers
  * from the perspective of an external monitoring service.
  */
-import { describe, it, expect } from 'vitest';
-import { apiGet, jsonResponse } from './helpers/http';
+import { describe, expect, it } from "vitest";
+import { apiGet, jsonResponse } from "./helpers/http";
 
-describe('GET /api/live', () => {
-  it('returns 200 with ok status, version, and component', async () => {
-    const res = await apiGet('/api/live');
-    const { status, body } = await jsonResponse<{ status: string; version: string; component: string }>(res);
+describe("GET /api/live", () => {
+  it("returns 200 with ok status, version, and component", async () => {
+    const res = await apiGet("/api/live");
+    const { status, body } = await jsonResponse<{
+      status: string;
+      version: string;
+      component: string;
+    }>(res);
 
     expect(status).toBe(200);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe("ok");
     expect(body.version).toEqual(expect.any(String));
-    expect(body.component).toBe('zhe');
+    expect(body.component).toBe("zhe");
   });
 
-  it('sets no-cache headers for monitoring accuracy', async () => {
-    const res = await apiGet('/api/live');
+  it("sets no-cache headers for monitoring accuracy", async () => {
+    const res = await apiGet("/api/live");
 
-    const cc = res.headers.get('Cache-Control');
-    expect(cc).toContain('no-store');
+    const cc = res.headers.get("Cache-Control");
+    expect(cc).toContain("no-store");
   });
 
-  it('returns required fields: component, status, version, timestamp, uptime, database', async () => {
-    const res = await apiGet('/api/live');
+  it("returns required fields: component, status, version, timestamp, uptime, database", async () => {
+    const res = await apiGet("/api/live");
     const { body } = await jsonResponse<Record<string, unknown>>(res);
 
     expect(Object.keys(body).sort()).toEqual([
-      'component',
-      'database',
-      'status',
-      'timestamp',
-      'uptime',
-      'version',
+      "component",
+      "database",
+      "status",
+      "timestamp",
+      "uptime",
+      "version",
     ]);
   });
 });

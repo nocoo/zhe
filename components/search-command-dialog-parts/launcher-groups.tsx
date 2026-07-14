@@ -1,19 +1,13 @@
 "use client";
 
+import { ArrowRight, type LucideIcon, Monitor, Moon, Sun } from "lucide-react";
 import { useMemo } from "react";
 import {
-  ArrowRight,
-  Moon,
-  Sun,
-  Monitor,
-  type LucideIcon,
-} from "lucide-react";
-import { CommandGroup, CommandItem } from "@/components/ui/command";
-import {
-  PRE_LINK_NAV_GROUPS,
   FOLDER_NAV_ITEMS,
   OTHER_NAV_GROUPS,
+  PRE_LINK_NAV_GROUPS,
 } from "@/components/sidebar-parts/nav-config";
+import { CommandGroup, CommandItem } from "@/components/ui/command";
 
 /**
  * Flatten the sidebar nav config into a single list of jump-to-page
@@ -101,11 +95,7 @@ interface PageJumpGroupProps {
 
 /** Page jumps — shown in both the empty state ("home" view) and the
  *  active-query state (filtered by substring against title/alias). */
-export function PageJumpGroup({
-  query,
-  visibleWhenEmpty = 5,
-  onNavigate,
-}: PageJumpGroupProps) {
+export function PageJumpGroup({ query, visibleWhenEmpty = 5, onNavigate }: PageJumpGroupProps) {
   const all = useMemo(() => buildPageDestinations(), []);
   const trimmed = query.trim().toLowerCase();
   const matches = useMemo(() => {
@@ -154,11 +144,7 @@ interface ActionGroupProps {
   visibleWhenEmpty?: number;
 }
 
-export function ActionGroup({
-  query,
-  actions,
-  visibleWhenEmpty = 5,
-}: ActionGroupProps) {
+export function ActionGroup({ query, actions, visibleWhenEmpty = 5 }: ActionGroupProps) {
   const trimmed = query.trim().toLowerCase();
   const matches = useMemo(() => {
     if (!trimmed) return actions.slice(0, visibleWhenEmpty);

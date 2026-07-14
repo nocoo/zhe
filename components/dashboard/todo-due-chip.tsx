@@ -11,10 +11,10 @@
  * status table.
  */
 
-import { memo, type CSSProperties } from "react";
 import { AlertCircle, CalendarDays, Check, Clock } from "lucide-react";
+import { type CSSProperties, memo } from "react";
+import { type DueStatus, dueStatus } from "@/lib/todo-due";
 import { cn } from "@/lib/utils";
-import { dueStatus, type DueStatus } from "@/lib/todo-due";
 
 export interface TodoDueChipProps {
   /** Stored dueAt; `null` = no due date (chip is not rendered). */
@@ -31,11 +31,14 @@ export interface TodoDueChipProps {
  * pay for class-string composition, and so a future dark-mode pass can
  * flip the tokens in one place.
  */
-const KIND_STYLES: Record<Exclude<DueStatus["kind"], "no-due">, {
-  className: string;
-  Icon: typeof AlertCircle;
-  style?: CSSProperties;
-}> = {
+const KIND_STYLES: Record<
+  Exclude<DueStatus["kind"], "no-due">,
+  {
+    className: string;
+    Icon: typeof AlertCircle;
+    style?: CSSProperties;
+  }
+> = {
   overdue: {
     className: "bg-destructive/15 text-destructive border-destructive/25",
     Icon: AlertCircle,

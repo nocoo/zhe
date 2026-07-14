@@ -1,8 +1,8 @@
 /** D1 helpers for OAuth account links. */
 
-import type { AdapterAccount } from '@auth/core/adapters';
-import { executeD1Query } from '../db/d1-client';
-import { generateId } from './users';
+import type { AdapterAccount } from "@auth/core/adapters";
+import { executeD1Query } from "../db/d1-client";
+import { generateId } from "./users";
 
 export async function linkAccount(account: AdapterAccount): Promise<AdapterAccount> {
   const id = generateId();
@@ -27,12 +27,9 @@ export async function linkAccount(account: AdapterAccount): Promise<AdapterAccou
   return account;
 }
 
-export async function unlinkAccount(
-  providerAccountId: string,
-  provider: string,
-): Promise<void> {
-  await executeD1Query(
-    'DELETE FROM accounts WHERE provider = ? AND providerAccountId = ?',
-    [provider, providerAccountId],
-  );
+export async function unlinkAccount(providerAccountId: string, provider: string): Promise<void> {
+  await executeD1Query("DELETE FROM accounts WHERE provider = ? AND providerAccountId = ?", [
+    provider,
+    providerAccountId,
+  ]);
 }

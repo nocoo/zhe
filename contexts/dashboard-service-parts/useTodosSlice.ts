@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { TodoTreeNode } from "@/lib/db/scoped";
 import { getTodos } from "@/actions/todos";
+import type { TodoTreeNode } from "@/lib/db/scoped";
 
 /**
  * Owns the todos slice of the dashboard context. Todos are lazy-loaded

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { recordClick } from '@/lib/db';
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from "node:crypto";
+import { type NextRequest, NextResponse } from "next/server";
+import { recordClick } from "@/lib/db";
 
 /** Timing-safe string comparison to prevent timing attacks. */
 function safeCompare(a: string, b: string): boolean {
@@ -20,25 +20,22 @@ export async function POST(request: NextRequest) {
     const workerSecret = process.env.WORKER_SECRET;
     if (!workerSecret) {
       return NextResponse.json(
-        { error: 'Server misconfiguration: WORKER_SECRET not set' },
+        { error: "Server misconfiguration: WORKER_SECRET not set" },
         { status: 500 },
       );
     }
 
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!token || !safeCompare(token, workerSecret)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
     const { linkId, device, browser, os, country, city, referer, source } = body;
 
-    if (!linkId || typeof linkId !== 'number') {
-      return NextResponse.json(
-        { error: 'Missing or invalid linkId' },
-        { status: 400 }
-      );
+    if (!linkId || typeof linkId !== "number") {
+      return NextResponse.json({ error: "Missing or invalid linkId" }, { status: 400 });
     }
 
     await recordClick({
@@ -54,10 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error recording click:', error);
-    return NextResponse.json(
-      { error: 'Failed to record click' },
-      { status: 500 }
-    );
+    console.error("Error recording click:", error);
+    return NextResponse.json({ error: "Failed to record click" }, { status: 500 });
   }
 }

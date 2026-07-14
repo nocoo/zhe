@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { timingSafeEqual } from 'crypto';
-import { listR2Objects, deleteR2Objects } from '@/lib/r2/client';
-import { TMP_PREFIX, findExpiredTmpKeys } from '@/models/tmp-storage';
+import { timingSafeEqual } from "node:crypto";
+import { NextResponse } from "next/server";
+import { deleteR2Objects, listR2Objects } from "@/lib/r2/client";
+import { findExpiredTmpKeys, TMP_PREFIX } from "@/models/tmp-storage";
 
 /** Timing-safe string comparison to prevent timing attacks. */
 function safeCompare(a: string, b: string): boolean {
@@ -23,20 +23,14 @@ export async function POST(request: Request) {
   // 1. Verify WORKER_SECRET
   const workerSecret = process.env.WORKER_SECRET;
   if (!workerSecret) {
-    return NextResponse.json(
-      { error: 'WORKER_SECRET not configured' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "WORKER_SECRET not configured" }, { status: 500 });
   }
 
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token || !safeCompare(token, workerSecret)) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // 2. List all objects under tmp/ prefix
@@ -45,11 +39,8 @@ export async function POST(request: Request) {
     const objects = await listR2Objects(TMP_PREFIX);
     allKeys = objects.map((o) => o.key);
   } catch (err) {
-    console.error('Failed to list tmp/ objects:', err);
-    return NextResponse.json(
-      { error: 'Failed to list tmp objects' },
-      { status: 500 },
-    );
+    console.error("Failed to list tmp/ objects:", err);
+    return NextResponse.json({ error: "Failed to list tmp objects" }, { status: 500 });
   }
 
   if (allKeys.length === 0) {
@@ -68,11 +59,8 @@ export async function POST(request: Request) {
   try {
     deleted = await deleteR2Objects(expiredKeys);
   } catch (err) {
-    console.error('Failed to delete expired tmp files:', err);
-    return NextResponse.json(
-      { error: 'Failed to delete expired files' },
-      { status: 500 },
-    );
+    console.error("Failed to delete expired tmp files:", err);
+    return NextResponse.json({ error: "Failed to delete expired files" }, { status: 500 });
   }
 
   return NextResponse.json({

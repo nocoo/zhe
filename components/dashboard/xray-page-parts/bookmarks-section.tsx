@@ -1,10 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle, BookmarkIcon, Check, Loader2, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { BookmarkIcon, Loader2, Plus, Check, RefreshCw, AlertTriangle } from "lucide-react";
-import { type XrayViewModel } from "@/viewmodels/useXrayViewModel";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { XrayViewModel } from "@/viewmodels/useXrayViewModel";
 import { TweetCard } from "./tweet-card";
 
 export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
@@ -46,14 +46,10 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
         ) : vm.bookmarksError ? (
           <div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-            <p className="text-sm text-destructive">
-              {vm.bookmarksError}
-            </p>
+            <p className="text-sm text-destructive">{vm.bookmarksError}</p>
           </div>
         ) : vm.bookmarks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            点击「加载书签」获取您的 X 书签列表。
-          </p>
+          <p className="text-sm text-muted-foreground">点击「加载书签」获取您的 X 书签列表。</p>
         ) : (
           <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
             {vm.bookmarks.map((tweet) => (
@@ -125,4 +121,3 @@ function BookmarkAddButton({
 // ---------------------------------------------------------------------------
 // Tweet card — renders a single tweet with author, text, media, metrics
 // ---------------------------------------------------------------------------
-

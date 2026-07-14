@@ -2,13 +2,13 @@
  * Helpers for POST /api/backy/pull — keeps the route handler small.
  */
 
-import { ScopedDB } from "@/lib/db/scoped";
+import type { ScopedDB } from "@/lib/db/scoped";
+import type { BackyHistoryResponse } from "@/models/backy";
 import {
-  serializeLinksForExport,
   BACKUP_SCHEMA_VERSION,
   type BackupEnvelope,
+  serializeLinksForExport,
 } from "@/models/settings";
-import type { BackyHistoryResponse } from "@/models/backy";
 
 export interface BackupBundle {
   envelope: BackupEnvelope;
@@ -61,9 +61,7 @@ export async function buildBackupBundle(db: ScopedDB): Promise<BackupBundle> {
   };
 }
 
-export type PushResult =
-  | { ok: true }
-  | { ok: false; status: number; body: unknown };
+export type PushResult = { ok: true } | { ok: false; status: number; body: unknown };
 
 /** Push backup JSON to the user's Backy as multipart/form-data. */
 export async function pushToBacky(

@@ -5,9 +5,9 @@
  * Uses a separate test user ID to keep cleanup scoped per file.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/folders`;
 
@@ -20,7 +20,7 @@ describe("/api/v1/folders/[id]", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "folders:read,folders:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "folders:read" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "folders:read" }),
     ]);
   });
 
@@ -43,10 +43,7 @@ describe("/api/v1/folders/[id]", () => {
     });
 
     it("returns 404 for non-existent folder", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyReadOnly);
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -54,10 +51,7 @@ describe("/api/v1/folders/[id]", () => {
     });
 
     it("returns folder details with correct structure", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testFolderId}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testFolderId}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -83,43 +77,31 @@ describe("/api/v1/folders/[id]", () => {
     });
 
     it("returns 403 when API key lacks folders:write scope", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testFolderId}`,
-        apiKeyReadOnly,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Updated" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testFolderId}`, apiKeyReadOnly, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Updated" }),
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent folder", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Test" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Test" }),
+      });
 
       expect(response.status).toBe(404);
     });
 
     it("updates folder name", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testFolderId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "Updated Name" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testFolderId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Updated Name" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -127,15 +109,11 @@ describe("/api/v1/folders/[id]", () => {
     });
 
     it("updates folder icon", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testFolderId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ icon: "archive" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testFolderId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ icon: "archive" }),
+      });
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -143,15 +121,11 @@ describe("/api/v1/folders/[id]", () => {
     });
 
     it("returns 400 for empty name", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testFolderId}`,
-        apiKeyWithReadWrite,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "" }),
-        },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testFolderId}`, apiKeyWithReadWrite, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "" }),
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -169,21 +143,17 @@ describe("/api/v1/folders/[id]", () => {
       });
       const { folder } = await createResponse.json();
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${folder.id}`,
-        apiKeyReadOnly,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${folder.id}`, apiKeyReadOnly, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 404 for non-existent folder", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/non-existent-id`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/non-existent-id`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(404);
     });
@@ -209,10 +179,7 @@ describe("/api/v1/folders/[id]", () => {
       expect(body.success).toBe(true);
 
       // Verify it's gone
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${folder.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${folder.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(404);
     });
   });

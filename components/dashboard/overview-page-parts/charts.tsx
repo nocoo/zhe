@@ -1,22 +1,22 @@
 "use client";
 
 import { useId } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-  ResponsiveContainer,
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import { CHART_COLORS, withAlpha, chartAxis } from "@/lib/palette";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CHART_COLORS, chartAxis, withAlpha } from "@/lib/palette";
+import type { ClickTrendPoint, TopLinkEntry, UploadTrendPoint } from "@/models/overview";
 import { formatClickCount } from "@/models/overview";
-import type { ClickTrendPoint, UploadTrendPoint, TopLinkEntry } from "@/models/overview";
 
 export interface StatCardProps {
   label: string;
@@ -40,18 +40,17 @@ export function Sparkline({ data }: { data: number[] }) {
       height={h}
       viewBox={`0 0 ${w} ${h}`}
       className="shrink-0"
-      aria-hidden
+      aria-hidden="true"
+      focusable="false"
     >
+      <title>Sparkline</title>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
           <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
         </linearGradient>
       </defs>
-      <polygon
-        points={`0,${h} ${points} ${w},${h}`}
-        fill={`url(#${gradientId})`}
-      />
+      <polygon points={`0,${h} ${points} ${w},${h}`} fill={`url(#${gradientId})`} />
       <polyline
         points={points}
         fill="none"
@@ -77,7 +76,10 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
         <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <div className="mt-2 flex items-center gap-3">
-        <p className="text-xl md:text-2xl font-semibold font-display tabular-nums tracking-tight" data-testid="stat-value">
+        <p
+          className="text-xl md:text-2xl font-semibold font-display tabular-nums tracking-tight"
+          data-testid="stat-value"
+        >
           {value}
         </p>
         {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}
@@ -90,10 +92,7 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
 
 export function StatSkeleton() {
   return (
-    <div
-      className="rounded-xl bg-secondary p-4 md:p-5 animate-pulse"
-      data-testid="stat-skeleton"
-    >
+    <div className="rounded-xl bg-secondary p-4 md:p-5 animate-pulse" data-testid="stat-skeleton">
       <div className="flex items-center justify-between">
         <div className="h-3 w-16 rounded bg-background" />
         <div className="h-4 w-4 rounded bg-background" />
@@ -145,7 +144,11 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               <stop offset="100%" stopColor={CHART_COLORS[8]} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={withAlpha("chart-axis", 0.15)} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke={withAlpha("chart-axis", 0.15)}
+          />
           <XAxis
             dataKey="date"
             axisLine={false}
@@ -168,14 +171,18 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
             }}
             labelFormatter={(label) => String(label)}
             formatter={(value, name) => {
-              const labels: Record<string, string> = { clicks: "总计", worker: "Worker", origin: "Origin" };
+              const labels: Record<string, string> = {
+                clicks: "总计",
+                worker: "Worker",
+                origin: "Origin",
+              };
               return [String(value ?? 0), labels[String(name ?? "")] ?? String(name ?? "")];
             }}
           />
           <Area
             type="monotone"
             dataKey="clicks"
-            stroke={CHART_COLORS[0] ?? ''}
+            stroke={CHART_COLORS[0] ?? ""}
             fill="url(#clickGradientTotal)"
             strokeWidth={2}
             name="clicks"
@@ -183,7 +190,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="worker"
-            stroke={CHART_COLORS[4] ?? ''}
+            stroke={CHART_COLORS[4] ?? ""}
             fill="url(#clickGradientWorker)"
             strokeWidth={1.5}
             name="worker"
@@ -191,7 +198,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="origin"
-            stroke={CHART_COLORS[8] ?? ''}
+            stroke={CHART_COLORS[8] ?? ""}
             fill="url(#clickGradientOrigin)"
             strokeWidth={1.5}
             name="origin"
@@ -223,7 +230,11 @@ export function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
               <stop offset="100%" stopColor={CHART_COLORS[1]} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={withAlpha("chart-axis", 0.15)} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke={withAlpha("chart-axis", 0.15)}
+          />
           <XAxis
             dataKey="date"
             axisLine={false}
@@ -250,7 +261,7 @@ export function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="uploads"
-            stroke={CHART_COLORS[1] ?? ''}
+            stroke={CHART_COLORS[1] ?? ""}
             fill="url(#uploadGradient)"
             strokeWidth={2}
           />
@@ -289,8 +300,8 @@ export function BreakdownDonut({ data }: { data: Record<string, number> }) {
               paddingAngle={2}
               dataKey="value"
             >
-              {pieData.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length] ?? ''} />
+              {pieData.map((entry, i) => (
+                <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length] ?? ""} />
               ))}
             </Pie>
             <Tooltip
@@ -341,18 +352,12 @@ export function TopLinksList({ links }: { links: TopLinkEntry[] }) {
           data-testid="top-link-item"
           data-slug={link.slug}
         >
-          <span className="w-5 text-center text-xs text-muted-foreground font-medium">
-            {i + 1}
-          </span>
+          <span className="w-5 text-center text-xs text-muted-foreground font-medium">{i + 1}</span>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{link.slug}</p>
-            <p className="text-xs text-muted-foreground truncate">
-              {link.originalUrl}
-            </p>
+            <p className="text-xs text-muted-foreground truncate">{link.originalUrl}</p>
           </div>
-          <span className="text-sm font-medium tabular-nums">
-            {formatClickCount(link.clicks)}
-          </span>
+          <span className="text-sm font-medium tabular-nums">{formatClickCount(link.clicks)}</span>
         </div>
       ))}
     </div>

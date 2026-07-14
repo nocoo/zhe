@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { getAuthContext } from '@/lib/auth-context';
-import type { Link } from '@/lib/db/schema';
-import type { ActionResult } from './types';
+import { getAuthContext } from "@/lib/auth-context";
+import type { Link } from "@/lib/db/schema";
+import type { ActionResult } from "./types";
 
 /**
  * Re-fetch link metadata (title, description, favicon) for a single link via
@@ -12,30 +12,30 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
   try {
     const ctx = await getAuthContext();
     if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
     const { db, userId } = ctx;
 
     const link = await db.getLinkById(linkId);
     if (!link) {
-      return { success: false, error: 'Link not found or access denied' };
+      return { success: false, error: "Link not found or access denied" };
     }
 
-    const { refreshLinkEnrichment } = await import('@/actions/enrichment');
+    const { refreshLinkEnrichment } = await import("@/actions/enrichment");
     const result = await refreshLinkEnrichment(link.originalUrl, linkId, userId);
     if (!result.success) {
-      return { success: false, error: result.error ?? 'Failed to refresh metadata' };
+      return { success: false, error: result.error ?? "Failed to refresh metadata" };
     }
 
     // Re-fetch the updated link
     const updated = await db.getLinkById(linkId);
     if (!updated) {
-      return { success: false, error: 'Link not found after refresh' };
+      return { success: false, error: "Link not found after refresh" };
     }
     return { success: true, data: updated };
   } catch (error) {
-    console.error('Failed to refresh metadata:', error);
-    return { success: false, error: 'Failed to refresh metadata' };
+    console.error("Failed to refresh metadata:", error);
+    return { success: false, error: "Failed to refresh metadata" };
   }
 }
 
@@ -55,9 +55,7 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
 const BATCH_REFRESH_MAX = 500;
 const BATCH_CONCURRENCY = 5;
 
-export async function batchRefreshLinkMetadata(
-  linkIds: number[],
-): Promise<ActionResult<Link[]>> {
+export async function batchRefreshLinkMetadata(linkIds: number[]): Promise<ActionResult<Link[]>> {
   if (linkIds.length === 0) {
     return { success: true, data: [] };
   }
@@ -72,7 +70,7 @@ export async function batchRefreshLinkMetadata(
   try {
     const ctx = await getAuthContext();
     if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
     const { db, userId } = ctx;
 
@@ -83,7 +81,7 @@ export async function batchRefreshLinkMetadata(
     }
 
     // Enrich each link using the strategy registry with concurrency limit
-    const { refreshLinkEnrichment } = await import('@/actions/enrichment');
+    const { refreshLinkEnrichment } = await import("@/actions/enrichment");
     const queue = [...links];
     const settled: number[] = [];
 
@@ -94,22 +92,21 @@ export async function batchRefreshLinkMetadata(
         try {
           await refreshLinkEnrichment(link.originalUrl, link.id, userId);
         } catch {
-          console.error('Batch enrichment failed for link', link.id);
+          console.error("Batch enrichment failed for link", link.id);
         }
         settled.push(link.id);
       }
     }
 
-    const workers = Array.from(
-      { length: Math.min(BATCH_CONCURRENCY, links.length) },
-      () => processNext(),
+    const workers = Array.from({ length: Math.min(BATCH_CONCURRENCY, links.length) }, () =>
+      processNext(),
     );
     await Promise.all(workers);
 
     const updatedLinks = await db.getLinksByIds(settled);
     return { success: true, data: updatedLinks };
   } catch (error) {
-    console.error('Failed to batch refresh metadata:', error);
-    return { success: false, error: 'Failed to batch refresh metadata' };
+    console.error("Failed to batch refresh metadata:", error);
+    return { success: false, error: "Failed to batch refresh metadata" };
   }
 }

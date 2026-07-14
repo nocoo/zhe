@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, expect, it, vi, beforeEach } from "vitest";
+
 import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockGetTodos = vi.fn();
 vi.mock("@/actions/todos", () => ({
@@ -63,9 +64,7 @@ describe("useTodosSlice", () => {
     act(() => result.current.handleTodoCreated(node({ id: 1, title: "first" })));
     act(() => result.current.handleTodoCreated(node({ id: 2, title: "second" })));
     expect(result.current.todos.map((t) => t.id)).toEqual([2, 1]);
-    act(() =>
-      result.current.handleTodoUpdated(node({ id: 1, title: "renamed" })),
-    );
+    act(() => result.current.handleTodoUpdated(node({ id: 1, title: "renamed" })));
     expect(result.current.todos.find((t) => t.id === 1)?.title).toBe("renamed");
   });
 

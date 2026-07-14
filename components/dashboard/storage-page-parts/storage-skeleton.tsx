@@ -4,8 +4,8 @@ export function StorageSkeleton() {
   return (
     <div className="animate-pulse space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl bg-secondary p-4 h-[88px]" />
+        {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
+          <div key={id} className="rounded-xl bg-secondary p-4 h-[88px]" />
         ))}
       </div>
       <div className="space-y-3">

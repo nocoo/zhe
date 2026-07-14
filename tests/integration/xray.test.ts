@@ -14,26 +14,26 @@
  *
  * BDD style — each scenario simulates a real user workflow.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { clearMockStorage } from '../setup';
-import { getMockTweetCache } from '../mocks/db-storage';
-import { unwrap } from '../test-utils';
-import type { Link } from '@/lib/db/schema';
-import type { XrayTweetData, XrayTweetResponse } from '@/models/xray';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Link } from "@/lib/db/schema";
+import type { XrayTweetData, XrayTweetResponse } from "@/models/xray";
+import { getMockTweetCache } from "../mocks/db-storage";
+import { clearMockStorage } from "../setup";
+import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
 // Mocks — auth (D1 uses the global mock from setup.ts)
 // ---------------------------------------------------------------------------
 
 const mockAuth = vi.fn();
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
 // saveScreenshot mock (dynamically imported by actions/xray)
 const mockSaveScreenshot = vi.fn();
-vi.mock('@/actions/links/screenshot', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/actions/links/screenshot')>();
+vi.mock("@/actions/links/screenshot", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/actions/links/screenshot")>();
   return {
     ...actual,
     saveScreenshot: (...args: unknown[]) => mockSaveScreenshot(...args),
@@ -44,12 +44,12 @@ vi.mock('@/actions/links/screenshot', async (importOriginal) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const USER_A = 'user-xray-e2e-a';
-const USER_B = 'user-xray-e2e-b';
+const USER_A = "user-xray-e2e-a";
+const USER_B = "user-xray-e2e-b";
 
 function authenticatedAs(userId: string) {
   mockAuth.mockResolvedValue({
-    user: { id: userId, name: 'E2E User', email: 'e2e@test.com' },
+    user: { id: userId, name: "E2E User", email: "e2e@test.com" },
   });
 }
 
@@ -58,11 +58,8 @@ function unauthenticated() {
 }
 
 /** Create a link for the current authenticated user via server action */
-async function seedLink(
-  url: string,
-  opts?: { customSlug?: string },
-): Promise<Link> {
-  const { createLink } = await import('@/actions/links');
+async function seedLink(url: string, opts?: { customSlug?: string }): Promise<Link> {
+  const { createLink } = await import("@/actions/links");
   const result = await createLink({
     originalUrl: url,
     customSlug: opts?.customSlug,
@@ -75,18 +72,18 @@ async function seedLink(
 
 // Sample tweet data
 const SAMPLE_TWEET: XrayTweetData = {
-  id: '9990001111222233334',
-  text: 'This is a test tweet for E2E xray integration.',
+  id: "9990001111222233334",
+  text: "This is a test tweet for E2E xray integration.",
   author: {
-    id: '12345678',
-    username: 'testuser',
-    name: 'Test User',
-    profile_image_url: 'https://pbs.twimg.com/profile_images/test_normal.jpg',
+    id: "12345678",
+    username: "testuser",
+    name: "Test User",
+    profile_image_url: "https://pbs.twimg.com/profile_images/test_normal.jpg",
     followers_count: 1000,
     is_verified: false,
   },
-  created_at: '2026-02-28T12:00:00.000Z',
-  url: 'https://x.com/testuser/status/9990001111222233334',
+  created_at: "2026-02-28T12:00:00.000Z",
+  url: "https://x.com/testuser/status/9990001111222233334",
   metrics: {
     retweet_count: 10,
     like_count: 50,
@@ -98,29 +95,27 @@ const SAMPLE_TWEET: XrayTweetData = {
   is_retweet: false,
   is_quote: false,
   is_reply: false,
-  lang: 'en',
+  lang: "en",
   entities: { hashtags: [], mentioned_users: [], urls: [] },
 };
 
 const SAMPLE_TWEET_WITH_PHOTO: XrayTweetData = {
   ...SAMPLE_TWEET,
-  id: '9990001111222244445',
-  url: 'https://x.com/testuser/status/9990001111222244445',
-  media: [
-    { id: 'media-e2e-1', type: 'PHOTO', url: 'https://pbs.twimg.com/media/E2E_TEST.jpg' },
-  ],
+  id: "9990001111222244445",
+  url: "https://x.com/testuser/status/9990001111222244445",
+  media: [{ id: "media-e2e-1", type: "PHOTO", url: "https://pbs.twimg.com/media/E2E_TEST.jpg" }],
 };
 
 const SECOND_TWEET: XrayTweetData = {
   ...SAMPLE_TWEET,
-  id: '8880001111222255556',
-  text: 'A second tweet for cache isolation test.',
-  url: 'https://x.com/testuser/status/8880001111222255556',
+  id: "8880001111222255556",
+  text: "A second tweet for cache isolation test.",
+  url: "https://x.com/testuser/status/8880001111222255556",
 };
 
 const XRAY_CONFIG = {
-  apiUrl: 'https://xray.hexly.ai',
-  apiToken: 'xray-e2e-token-abcdefghij',
+  apiUrl: "https://xray.hexly.ai",
+  apiToken: "xray-e2e-token-abcdefghij",
 };
 
 function mockFetchOk(data: XrayTweetResponse | { success: boolean; data: XrayTweetData[] }) {
@@ -134,7 +129,7 @@ function mockFetchOk(data: XrayTweetResponse | { success: boolean; data: XrayTwe
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Xray Twitter integration (E2E)', () => {
+describe("Xray Twitter integration (E2E)", () => {
   beforeEach(async () => {
     clearMockStorage();
     // Flush fire-and-forget microtasks (e.g. saveScreenshot) from previous tests
@@ -152,8 +147,8 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 1. Auth guard — all 6 actions must reject unauthenticated users
   // =========================================================================
-  describe('unauthenticated access', () => {
-    it('rejects all 6 server actions', async () => {
+  describe("unauthenticated access", () => {
+    it("rejects all 6 server actions", async () => {
       unauthenticated();
       const {
         getXrayConfig,
@@ -162,20 +157,20 @@ describe('Xray Twitter integration (E2E)', () => {
         fetchBookmarks,
         fetchAndCacheTweet,
         forceRefreshTweetCache,
-      } = await import('@/actions/xray');
+      } = await import("@/actions/xray");
 
       const results = await Promise.all([
         getXrayConfig(),
-        saveXrayConfig({ apiUrl: 'https://x.ai', apiToken: 'tok' }),
-        fetchTweet('https://x.com/user/status/123'),
+        saveXrayConfig({ apiUrl: "https://x.ai", apiToken: "tok" }),
+        fetchTweet("https://x.com/user/status/123"),
         fetchBookmarks(),
-        fetchAndCacheTweet('https://x.com/user/status/123'),
-        forceRefreshTweetCache('https://x.com/user/status/123', 1),
+        fetchAndCacheTweet("https://x.com/user/status/123"),
+        forceRefreshTweetCache("https://x.com/user/status/123", 1),
       ]);
 
       for (const r of results) {
         expect(r.success).toBe(false);
-        expect(r.error).toBe('Unauthorized');
+        expect(r.error).toBe("Unauthorized");
       }
     });
   });
@@ -183,128 +178,128 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 2. Config CRUD
   // =========================================================================
-  describe('config lifecycle', () => {
-    it('returns no config initially', async () => {
+  describe("config lifecycle", () => {
+    it("returns no config initially", async () => {
       authenticatedAs(USER_A);
-      const { getXrayConfig } = await import('@/actions/xray');
+      const { getXrayConfig } = await import("@/actions/xray");
 
       const result = await getXrayConfig();
       expect(result.success).toBe(true);
       expect(result.data).toBeUndefined();
     });
 
-    it('saves config and returns masked token', async () => {
+    it("saves config and returns masked token", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig } = await import("@/actions/xray");
 
       const result = await saveXrayConfig(XRAY_CONFIG);
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(result.data).apiUrl).toBe("https://xray.hexly.ai");
       // Token: "xray-e2e-token-abcdefghij" (25 chars)
       // maskToken: first 4 + (25-8)=17 dots + last 4
-      expect(unwrap(result.data).maskedToken).toBe('xray•••••••••••••••••ghij');
+      expect(unwrap(result.data).maskedToken).toBe("xray•••••••••••••••••ghij");
     });
 
-    it('retrieves saved config with masked token', async () => {
+    it("retrieves saved config with masked token", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, getXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig, getXrayConfig } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
       const result = await getXrayConfig();
 
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
-      expect(unwrap(result.data).maskedToken).toBe('xray•••••••••••••••••ghij');
+      expect(unwrap(result.data).apiUrl).toBe("https://xray.hexly.ai");
+      expect(unwrap(result.data).maskedToken).toBe("xray•••••••••••••••••ghij");
     });
 
-    it('upserts config (overwrite existing)', async () => {
+    it("upserts config (overwrite existing)", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, getXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig, getXrayConfig } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
       await saveXrayConfig({
-        apiUrl: 'https://xray.dev.hexly.ai',
-        apiToken: 'new-token-0123456789',
+        apiUrl: "https://xray.dev.hexly.ai",
+        apiToken: "new-token-0123456789",
       });
 
       const result = await getXrayConfig();
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).apiUrl).toBe('https://xray.dev.hexly.ai');
-      expect(unwrap(result.data).maskedToken).toBe('new-••••••••••••6789');
+      expect(unwrap(result.data).apiUrl).toBe("https://xray.dev.hexly.ai");
+      expect(unwrap(result.data).maskedToken).toBe("new-••••••••••••6789");
     });
 
-    it('validates empty URL', async () => {
+    it("validates empty URL", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig } = await import("@/actions/xray");
 
-      const result = await saveXrayConfig({ apiUrl: '', apiToken: 'tok' });
+      const result = await saveXrayConfig({ apiUrl: "", apiToken: "tok" });
       expect(result.success).toBe(false);
-      expect(result.error).toContain('URL');
+      expect(result.error).toContain("URL");
     });
 
-    it('validates invalid URL', async () => {
+    it("validates invalid URL", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig } = await import("@/actions/xray");
 
-      const result = await saveXrayConfig({ apiUrl: 'not-a-url', apiToken: 'tok' });
+      const result = await saveXrayConfig({ apiUrl: "not-a-url", apiToken: "tok" });
       expect(result.success).toBe(false);
-      expect(result.error).toContain('URL');
+      expect(result.error).toContain("URL");
     });
 
-    it('validates empty token', async () => {
+    it("validates empty token", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig } = await import("@/actions/xray");
 
-      const result = await saveXrayConfig({ apiUrl: 'https://xray.hexly.ai', apiToken: '' });
+      const result = await saveXrayConfig({ apiUrl: "https://xray.hexly.ai", apiToken: "" });
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Token');
+      expect(result.error).toContain("Token");
     });
 
-    it('trims whitespace from URL and token', async () => {
+    it("trims whitespace from URL and token", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, getXrayConfig } = await import('@/actions/xray');
+      const { saveXrayConfig, getXrayConfig } = await import("@/actions/xray");
 
       await saveXrayConfig({
-        apiUrl: '  https://xray.hexly.ai  ',
-        apiToken: '  xray-e2e-token-abcdefghij  ',
+        apiUrl: "  https://xray.hexly.ai  ",
+        apiToken: "  xray-e2e-token-abcdefghij  ",
       });
 
       const result = await getXrayConfig();
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(result.data).apiUrl).toBe("https://xray.hexly.ai");
     });
   });
 
   // =========================================================================
   // 3. fetchTweet
   // =========================================================================
-  describe('fetchTweet', () => {
-    it('returns mock data when API is not configured', async () => {
+  describe("fetchTweet", () => {
+    it("returns mock data when API is not configured", async () => {
       authenticatedAs(USER_A);
-      const { fetchTweet } = await import('@/actions/xray');
-      const { MOCK_TWEET_RESPONSE } = await import('@/models/xray');
+      const { fetchTweet } = await import("@/actions/xray");
+      const { MOCK_TWEET_RESPONSE } = await import("@/models/xray");
 
-      const result = await fetchTweet('https://x.com/karpathy/status/2026360908398862478');
+      const result = await fetchTweet("https://x.com/karpathy/status/2026360908398862478");
 
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
       expect(result.data).toEqual(MOCK_TWEET_RESPONSE);
     });
 
-    it('returns error for invalid tweet URL', async () => {
+    it("returns error for invalid tweet URL", async () => {
       authenticatedAs(USER_A);
-      const { fetchTweet } = await import('@/actions/xray');
+      const { fetchTweet } = await import("@/actions/xray");
 
-      const result = await fetchTweet('https://example.com/not-a-tweet');
+      const result = await fetchTweet("https://example.com/not-a-tweet");
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Tweet ID');
+      expect(result.error).toContain("Tweet ID");
     });
 
-    it('calls real API when configured', async () => {
+    it("calls real API when configured", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -313,18 +308,18 @@ describe('Xray Twitter integration (E2E)', () => {
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET });
 
       try {
-        const result = await fetchTweet('https://x.com/testuser/status/9990001111222233334');
+        const result = await fetchTweet("https://x.com/testuser/status/9990001111222233334");
 
         expect(result.success).toBe(true);
         expect(result.mock).toBe(false);
-        expect(unwrap(result.data).data.id).toBe('9990001111222233334');
+        expect(unwrap(result.data).data.id).toBe("9990001111222233334");
 
         // Verify the correct API URL was called
         expect(globalThis.fetch).toHaveBeenCalledWith(
-          'https://xray.hexly.ai/api/twitter/tweets/9990001111222233334',
+          "https://xray.hexly.ai/api/twitter/tweets/9990001111222233334",
           expect.objectContaining({
             headers: expect.objectContaining({
-              'X-Webhook-Key': XRAY_CONFIG.apiToken,
+              "X-Webhook-Key": XRAY_CONFIG.apiToken,
             }),
           }),
         );
@@ -333,9 +328,9 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('returns error when API responds with non-ok status', async () => {
+    it("returns error when API responds with non-ok status", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -343,29 +338,29 @@ describe('Xray Twitter integration (E2E)', () => {
       globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
 
       try {
-        const result = await fetchTweet('https://x.com/user/status/123');
+        const result = await fetchTweet("https://x.com/user/status/123");
         expect(result.success).toBe(false);
-        expect(result.error).toContain('500');
+        expect(result.error).toContain("500");
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('accepts twitter.com URLs', async () => {
+    it("accepts twitter.com URLs", async () => {
       authenticatedAs(USER_A);
-      const { fetchTweet } = await import('@/actions/xray');
+      const { fetchTweet } = await import("@/actions/xray");
 
       // Without config, returns mock (proves URL was parsed successfully)
-      const result = await fetchTweet('https://twitter.com/elonmusk/status/123456');
+      const result = await fetchTweet("https://twitter.com/elonmusk/status/123456");
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
     });
 
-    it('accepts raw numeric tweet IDs', async () => {
+    it("accepts raw numeric tweet IDs", async () => {
       authenticatedAs(USER_A);
-      const { fetchTweet } = await import('@/actions/xray');
+      const { fetchTweet } = await import("@/actions/xray");
 
-      const result = await fetchTweet('123456789');
+      const result = await fetchTweet("123456789");
       expect(result.success).toBe(true);
       expect(result.mock).toBe(true);
     });
@@ -374,19 +369,19 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 4. fetchBookmarks
   // =========================================================================
-  describe('fetchBookmarks', () => {
-    it('returns error when API is not configured', async () => {
+  describe("fetchBookmarks", () => {
+    it("returns error when API is not configured", async () => {
       authenticatedAs(USER_A);
-      const { fetchBookmarks } = await import('@/actions/xray');
+      const { fetchBookmarks } = await import("@/actions/xray");
 
       const result = await fetchBookmarks();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('配置');
+      expect(result.error).toContain("配置");
     });
 
-    it('fetches bookmarks from correct endpoint', async () => {
+    it("fetches bookmarks from correct endpoint", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchBookmarks } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchBookmarks } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -403,12 +398,12 @@ describe('Xray Twitter integration (E2E)', () => {
         expect(unwrap(result.data).data).toHaveLength(2);
 
         expect(globalThis.fetch).toHaveBeenCalledWith(
-          'https://xray.hexly.ai/api/twitter/me/bookmarks',
+          "https://xray.hexly.ai/api/twitter/me/bookmarks",
           expect.objectContaining({
-            method: 'GET',
+            method: "GET",
             headers: expect.objectContaining({
-              'X-Webhook-Key': XRAY_CONFIG.apiToken,
-              'accept': 'application/json',
+              "X-Webhook-Key": XRAY_CONFIG.apiToken,
+              accept: "application/json",
             }),
           }),
         );
@@ -417,9 +412,9 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('handles empty bookmarks list', async () => {
+    it("handles empty bookmarks list", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchBookmarks } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchBookmarks } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -435,9 +430,9 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('returns error when API request fails', async () => {
+    it("returns error when API request fails", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchBookmarks } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchBookmarks } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -447,7 +442,7 @@ describe('Xray Twitter integration (E2E)', () => {
       try {
         const result = await fetchBookmarks();
         expect(result.success).toBe(false);
-        expect(result.error).toContain('403');
+        expect(result.error).toContain("403");
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -457,28 +452,28 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 5. fetchAndCacheTweet — cache lifecycle
   // =========================================================================
-  describe('fetchAndCacheTweet', () => {
-    it('returns error for invalid tweet URL', async () => {
+  describe("fetchAndCacheTweet", () => {
+    it("returns error for invalid tweet URL", async () => {
       authenticatedAs(USER_A);
-      const { fetchAndCacheTweet } = await import('@/actions/xray');
+      const { fetchAndCacheTweet } = await import("@/actions/xray");
 
-      const result = await fetchAndCacheTweet('not-a-url');
+      const result = await fetchAndCacheTweet("not-a-url");
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tweet URL');
+      expect(result.error).toBe("Invalid tweet URL");
     });
 
-    it('returns error when API is not configured and cache misses', async () => {
+    it("returns error when API is not configured and cache misses", async () => {
       authenticatedAs(USER_A);
-      const { fetchAndCacheTweet } = await import('@/actions/xray');
+      const { fetchAndCacheTweet } = await import("@/actions/xray");
 
-      const result = await fetchAndCacheTweet('https://x.com/user/status/99999');
+      const result = await fetchAndCacheTweet("https://x.com/user/status/99999");
       expect(result.success).toBe(false);
-      expect(result.error).toBe('xray API not configured');
+      expect(result.error).toBe("xray API not configured");
     });
 
-    it('fetches from API on cache miss and writes to cache', async () => {
+    it("fetches from API on cache miss and writes to cache", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -487,22 +482,22 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
         );
         expect(result.success).toBe(true);
 
         // Verify tweet was written to cache
         const cache = getMockTweetCache();
-        expect(cache.has('9990001111222233334')).toBe(true);
-        expect(unwrap(cache.get('9990001111222233334')).authorUsername).toBe('testuser');
+        expect(cache.has("9990001111222233334")).toBe(true);
+        expect(unwrap(cache.get("9990001111222233334")).authorUsername).toBe("testuser");
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('returns from cache on second call without API request', async () => {
+    it("returns from cache on second call without API request", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -512,12 +507,12 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         // First call — cache miss, API call
-        await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+        await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
         expect(fetchMock).toHaveBeenCalledTimes(1);
 
         // Second call — cache hit, no API call
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
         );
         expect(result.success).toBe(true);
         expect(fetchMock).toHaveBeenCalledTimes(1); // Still 1
@@ -526,15 +521,15 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('updates link metadata when linkId is provided (cache miss)', async () => {
+    it("updates link metadata when linkId is provided (cache miss)", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
       // Create a link to associate metadata with
-      const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-        customSlug: 'xray-meta-test',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+        customSlug: "xray-meta-test",
       });
 
       const originalFetch = globalThis.fetch;
@@ -542,16 +537,16 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
           link.id,
         );
         expect(result.success).toBe(true);
 
         // Verify link metadata was updated
-        const { getLinks } = await import('@/actions/links');
+        const { getLinks } = await import("@/actions/links");
         const links = await getLinks();
-        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-meta-test'));
-        expect(updated.metaTitle).toBe('@testuser posted on x.com');
+        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === "xray-meta-test"));
+        expect(updated.metaTitle).toBe("@testuser posted on x.com");
         expect(updated.metaDescription).toBe(SAMPLE_TWEET.text);
         expect(updated.metaFavicon).toBe(SAMPLE_TWEET.author.profile_image_url);
       } finally {
@@ -559,9 +554,9 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('updates link metadata when linkId is provided (cache hit)', async () => {
+    it("updates link metadata when linkId is provided (cache hit)", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -570,37 +565,39 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         // Prime the cache
-        await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+        await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
 
         // Create a link and call with linkId
-        const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-          customSlug: 'xray-cache-hit-meta',
+        const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+          customSlug: "xray-cache-hit-meta",
         });
 
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
           link.id,
         );
         expect(result.success).toBe(true);
 
         // Verify link metadata was updated from cache
-        const { getLinks } = await import('@/actions/links');
+        const { getLinks } = await import("@/actions/links");
         const links = await getLinks();
-        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-cache-hit-meta'));
-        expect(updated.metaTitle).toBe('@testuser posted on x.com');
+        const updated = unwrap(
+          unwrap(links.data).find((l: Link) => l.slug === "xray-cache-hit-meta"),
+        );
+        expect(updated.metaTitle).toBe("@testuser posted on x.com");
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('calls saveScreenshot when tweet has PHOTO media', async () => {
+    it("calls saveScreenshot when tweet has PHOTO media", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222244445', {
-        customSlug: 'xray-photo-test',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222244445", {
+        customSlug: "xray-photo-test",
       });
 
       const originalFetch = globalThis.fetch;
@@ -609,61 +606,58 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222244445',
+          "https://x.com/testuser/status/9990001111222244445",
           link.id,
         );
         expect(result.success).toBe(true);
 
         expect(mockSaveScreenshot).toHaveBeenCalledWith(
           link.id,
-          'https://pbs.twimg.com/media/E2E_TEST.jpg',
+          "https://pbs.twimg.com/media/E2E_TEST.jpg",
         );
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('does not call saveScreenshot when tweet has no media', async () => {
+    it("does not call saveScreenshot when tweet has no media", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-        customSlug: 'xray-no-media',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+        customSlug: "xray-no-media",
       });
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET });
 
       try {
-        await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222233334',
-          link.id,
-        );
+        await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334", link.id);
         expect(mockSaveScreenshot).not.toHaveBeenCalled();
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('does not fail when saveScreenshot rejects (fire-and-forget)', async () => {
+    it("does not fail when saveScreenshot rejects (fire-and-forget)", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222244445', {
-        customSlug: 'xray-screenshot-fail',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222244445", {
+        customSlug: "xray-screenshot-fail",
       });
 
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET_WITH_PHOTO });
-      mockSaveScreenshot.mockRejectedValue(new Error('R2 upload failed'));
+      mockSaveScreenshot.mockRejectedValue(new Error("R2 upload failed"));
 
       try {
         const result = await fetchAndCacheTweet(
-          'https://x.com/testuser/status/9990001111222244445',
+          "https://x.com/testuser/status/9990001111222244445",
           link.id,
         );
         // Should still succeed — screenshot is fire-and-forget
@@ -677,33 +671,35 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 6. forceRefreshTweetCache
   // =========================================================================
-  describe('forceRefreshTweetCache', () => {
-    it('returns error for invalid tweet URL', async () => {
+  describe("forceRefreshTweetCache", () => {
+    it("returns error for invalid tweet URL", async () => {
       authenticatedAs(USER_A);
-      const { forceRefreshTweetCache } = await import('@/actions/xray');
+      const { forceRefreshTweetCache } = await import("@/actions/xray");
 
-      const result = await forceRefreshTweetCache('garbage', 1);
+      const result = await forceRefreshTweetCache("garbage", 1);
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid tweet URL');
+      expect(result.error).toBe("Invalid tweet URL");
     });
 
-    it('returns error when API is not configured', async () => {
+    it("returns error when API is not configured", async () => {
       authenticatedAs(USER_A);
-      const { forceRefreshTweetCache } = await import('@/actions/xray');
+      const { forceRefreshTweetCache } = await import("@/actions/xray");
 
-      const result = await forceRefreshTweetCache('https://x.com/user/status/123', 1);
+      const result = await forceRefreshTweetCache("https://x.com/user/status/123", 1);
       expect(result.success).toBe(false);
-      expect(result.error).toBe('xray API not configured');
+      expect(result.error).toBe("xray API not configured");
     });
 
-    it('bypasses cache and always calls API', async () => {
+    it("bypasses cache and always calls API", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet, forceRefreshTweetCache } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet, forceRefreshTweetCache } = await import(
+        "@/actions/xray"
+      );
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-        customSlug: 'xray-force-refresh',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+        customSlug: "xray-force-refresh",
       });
 
       const originalFetch = globalThis.fetch;
@@ -712,12 +708,12 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         // Prime cache
-        await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+        await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
         expect(fetchMock).toHaveBeenCalledTimes(1);
 
         // Force refresh — should call API again despite cache hit
         const result = await forceRefreshTweetCache(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
           link.id,
         );
         expect(result.success).toBe(true);
@@ -727,19 +723,19 @@ describe('Xray Twitter integration (E2E)', () => {
       }
     });
 
-    it('updates cache and link metadata', async () => {
+    it("updates cache and link metadata", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, forceRefreshTweetCache } = await import('@/actions/xray');
+      const { saveXrayConfig, forceRefreshTweetCache } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-        customSlug: 'xray-refresh-meta',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+        customSlug: "xray-refresh-meta",
       });
 
       const updatedTweet: XrayTweetData = {
         ...SAMPLE_TWEET,
-        text: 'Updated tweet text after force refresh.',
+        text: "Updated tweet text after force refresh.",
       };
 
       const originalFetch = globalThis.fetch;
@@ -747,29 +743,31 @@ describe('Xray Twitter integration (E2E)', () => {
 
       try {
         const result = await forceRefreshTweetCache(
-          'https://x.com/testuser/status/9990001111222233334',
+          "https://x.com/testuser/status/9990001111222233334",
           link.id,
         );
         expect(result.success).toBe(true);
 
         // Verify cache was updated
         const cache = getMockTweetCache();
-        const cached = unwrap(cache.get('9990001111222233334'));
-        expect(cached.tweetText).toBe('Updated tweet text after force refresh.');
+        const cached = unwrap(cache.get("9990001111222233334"));
+        expect(cached.tweetText).toBe("Updated tweet text after force refresh.");
 
         // Verify link metadata was updated
-        const { getLinks } = await import('@/actions/links');
+        const { getLinks } = await import("@/actions/links");
         const links = await getLinks();
-        const updated = unwrap(unwrap(links.data).find((l: Link) => l.slug === 'xray-refresh-meta'));
-        expect(updated.metaDescription).toBe('Updated tweet text after force refresh.');
+        const updated = unwrap(
+          unwrap(links.data).find((l: Link) => l.slug === "xray-refresh-meta"),
+        );
+        expect(updated.metaDescription).toBe("Updated tweet text after force refresh.");
       } finally {
         globalThis.fetch = originalFetch;
       }
     });
 
-    it('returns error when API request fails', async () => {
+    it("returns error when API request fails", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, forceRefreshTweetCache } = await import('@/actions/xray');
+      const { saveXrayConfig, forceRefreshTweetCache } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -777,9 +775,9 @@ describe('Xray Twitter integration (E2E)', () => {
       globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 429 });
 
       try {
-        const result = await forceRefreshTweetCache('https://x.com/user/status/123', 1);
+        const result = await forceRefreshTweetCache("https://x.com/user/status/123", 1);
         expect(result.success).toBe(false);
-        expect(result.error).toContain('API request failed');
+        expect(result.error).toContain("API request failed");
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -789,10 +787,10 @@ describe('Xray Twitter integration (E2E)', () => {
   // =========================================================================
   // 7. Tweet cache persistence — different tweets get separate cache entries
   // =========================================================================
-  describe('tweet cache persistence', () => {
-    it('caches multiple tweets independently', async () => {
+  describe("tweet cache persistence", () => {
+    it("caches multiple tweets independently", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       await saveXrayConfig(XRAY_CONFIG);
 
@@ -800,63 +798,61 @@ describe('Xray Twitter integration (E2E)', () => {
 
       // Fetch first tweet
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET });
-      await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+      await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
 
       // Fetch second tweet
       globalThis.fetch = mockFetchOk({ success: true, data: SECOND_TWEET });
-      await fetchAndCacheTweet('https://x.com/testuser/status/8880001111222255556');
+      await fetchAndCacheTweet("https://x.com/testuser/status/8880001111222255556");
 
       globalThis.fetch = originalFetch;
 
       const cache = getMockTweetCache();
       expect(cache.size).toBe(2);
-      expect(unwrap(cache.get('9990001111222233334')).tweetText).toBe(SAMPLE_TWEET.text);
-      expect(unwrap(cache.get('8880001111222255556')).tweetText).toBe(SECOND_TWEET.text);
+      expect(unwrap(cache.get("9990001111222233334")).tweetText).toBe(SAMPLE_TWEET.text);
+      expect(unwrap(cache.get("8880001111222255556")).tweetText).toBe(SECOND_TWEET.text);
     });
 
-    it('upserts cache on force refresh (updates existing entry)', async () => {
+    it("upserts cache on force refresh (updates existing entry)", async () => {
       authenticatedAs(USER_A);
-      const { saveXrayConfig, fetchAndCacheTweet, forceRefreshTweetCache } =
-        await import('@/actions/xray');
+      const { saveXrayConfig, fetchAndCacheTweet, forceRefreshTweetCache } = await import(
+        "@/actions/xray"
+      );
 
       await saveXrayConfig(XRAY_CONFIG);
 
-      const link = await seedLink('https://x.com/testuser/status/9990001111222233334', {
-        customSlug: 'xray-upsert-cache',
+      const link = await seedLink("https://x.com/testuser/status/9990001111222233334", {
+        customSlug: "xray-upsert-cache",
       });
 
       const originalFetch = globalThis.fetch;
 
       // Prime cache
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET });
-      await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+      await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
 
       // Force refresh with updated text
       const updatedTweet: XrayTweetData = {
         ...SAMPLE_TWEET,
-        text: 'Refreshed text.',
+        text: "Refreshed text.",
       };
       globalThis.fetch = mockFetchOk({ success: true, data: updatedTweet });
-      await forceRefreshTweetCache(
-        'https://x.com/testuser/status/9990001111222233334',
-        link.id,
-      );
+      await forceRefreshTweetCache("https://x.com/testuser/status/9990001111222233334", link.id);
 
       globalThis.fetch = originalFetch;
 
       // Cache should have updated text, not old text
       const cache = getMockTweetCache();
       expect(cache.size).toBe(1); // Still 1 entry, not 2
-      expect(unwrap(cache.get('9990001111222233334')).tweetText).toBe('Refreshed text.');
+      expect(unwrap(cache.get("9990001111222233334")).tweetText).toBe("Refreshed text.");
     });
   });
 
   // =========================================================================
   // 8. Multi-user isolation — configs are per-user
   // =========================================================================
-  describe('multi-user isolation', () => {
-    it('config is isolated per user', async () => {
-      const { saveXrayConfig, getXrayConfig } = await import('@/actions/xray');
+  describe("multi-user isolation", () => {
+    it("config is isolated per user", async () => {
+      const { saveXrayConfig, getXrayConfig } = await import("@/actions/xray");
 
       // User A saves config
       authenticatedAs(USER_A);
@@ -872,11 +868,11 @@ describe('Xray Twitter integration (E2E)', () => {
       authenticatedAs(USER_A);
       const resultA = await getXrayConfig();
       expect(resultA.success).toBe(true);
-      expect(unwrap(resultA.data).apiUrl).toBe('https://xray.hexly.ai');
+      expect(unwrap(resultA.data).apiUrl).toBe("https://xray.hexly.ai");
     });
 
-    it('tweet cache is shared (global, not per-user)', async () => {
-      const { saveXrayConfig, fetchAndCacheTweet } = await import('@/actions/xray');
+    it("tweet cache is shared (global, not per-user)", async () => {
+      const { saveXrayConfig, fetchAndCacheTweet } = await import("@/actions/xray");
 
       // User A configures and fetches a tweet
       authenticatedAs(USER_A);
@@ -885,20 +881,18 @@ describe('Xray Twitter integration (E2E)', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mockFetchOk({ success: true, data: SAMPLE_TWEET });
 
-      await fetchAndCacheTweet('https://x.com/testuser/status/9990001111222233334');
+      await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
       expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 
       // User B configures same API and fetches same tweet
       authenticatedAs(USER_B);
       await saveXrayConfig({
-        apiUrl: 'https://xray.hexly.ai',
-        apiToken: 'user-b-token-1234567890',
+        apiUrl: "https://xray.hexly.ai",
+        apiToken: "user-b-token-1234567890",
       });
 
       // Should hit cache — no additional API call
-      const result = await fetchAndCacheTweet(
-        'https://x.com/testuser/status/9990001111222233334',
-      );
+      const result = await fetchAndCacheTweet("https://x.com/testuser/status/9990001111222233334");
       expect(result.success).toBe(true);
       expect(globalThis.fetch).toHaveBeenCalledTimes(1); // Still 1 — cache hit
 

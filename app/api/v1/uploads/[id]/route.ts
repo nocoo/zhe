@@ -5,9 +5,9 @@
  * Requires: uploads:read (GET), uploads:write (DELETE)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { uploadToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
 import { deleteR2Object } from "@/lib/r2/client";
@@ -21,10 +21,7 @@ type RouteContext = {
  *
  * Response: { upload: Upload }
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "uploads:read");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -35,7 +32,7 @@ export async function GET(
   const { id } = await context.params;
   const uploadId = parseInt(id, 10);
 
-  if (isNaN(uploadId)) {
+  if (Number.isNaN(uploadId)) {
     return apiError("Invalid upload ID", 400);
   }
 
@@ -68,10 +65,7 @@ export async function GET(
  *
  * Response: { success: true }
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "uploads:write");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -82,7 +76,7 @@ export async function DELETE(
   const { id } = await context.params;
   const uploadId = parseInt(id, 10);
 
-  if (isNaN(uploadId)) {
+  if (Number.isNaN(uploadId)) {
     return apiError("Invalid upload ID", 400);
   }
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getWebhookByToken } from "@/lib/db";
-import { checkRateLimit } from "@/models/webhook";
 import { uploadBufferToR2 } from "@/lib/r2/client";
 import { MAX_FILE_SIZE } from "@/models/upload";
+import { checkRateLimit } from "@/models/webhook";
 
 /** Extract file extension from a filename (lowercase, no dot). */
 function extractExtension(filename: string): string {
@@ -25,19 +25,13 @@ function extractExtension(filename: string): string {
  * Request: multipart/form-data with a `file` field.
  * Response (201): { key, url, size, contentType }
  */
-export async function POST(
-  request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function POST(request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   // 1. Look up webhook by token
   const webhook = await getWebhookByToken(token);
   if (!webhook) {
-    return NextResponse.json(
-      { error: "Invalid webhook token" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Invalid webhook token" }, { status: 404 });
   }
 
   // 2. Rate limit check (shared with link creation)
@@ -58,26 +52,17 @@ export async function POST(
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid multipart form data" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid multipart form data" }, { status: 400 });
   }
 
   const file = formData.get("file");
   if (!file || !(file instanceof File)) {
-    return NextResponse.json(
-      { error: "Missing 'file' field in form data" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing 'file' field in form data" }, { status: 400 });
   }
 
   // 4. Validate file size
   if (file.size === 0) {
-    return NextResponse.json(
-      { error: "File is empty" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "File is empty" }, { status: 400 });
   }
 
   if (file.size > MAX_FILE_SIZE) {
@@ -101,10 +86,7 @@ export async function POST(
     await uploadBufferToR2(key, buffer, contentType);
   } catch (err) {
     console.error("Failed to upload tmp file to R2:", err);
-    return NextResponse.json(
-      { error: "Failed to upload file" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }
 
   // 7. Build public download URL
@@ -117,10 +99,7 @@ export async function POST(
   }
   const url = `${publicDomain}/${key}`;
 
-  return NextResponse.json(
-    { key, url, size: file.size, contentType },
-    { status: 201 },
-  );
+  return NextResponse.json({ key, url, size: file.size, contentType }, { status: 201 });
 }
 
 /**
@@ -128,18 +107,12 @@ export async function POST(
  *
  * Returns endpoint info and usage docs.
  */
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function GET(_request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   const webhook = await getWebhookByToken(token);
   if (!webhook) {
-    return NextResponse.json(
-      { error: "Invalid webhook token" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Invalid webhook token" }, { status: 404 });
   }
 
   return NextResponse.json({
@@ -161,10 +134,7 @@ export async function GET(
  *
  * Connection test — verifies the token is valid.
  */
-export async function HEAD(
-  _request: Request,
-  context: { params: Promise<{ token: string }> },
-) {
+export async function HEAD(_request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
 
   const webhook = await getWebhookByToken(token);

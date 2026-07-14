@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { fetchTweet, fetchBookmarks } from "@/actions/xray";
+import { useCallback, useEffect, useState } from "react";
 import { createLink } from "@/actions/links";
-import { extractTweetId, type XrayTweetResponse, type XrayTweetData } from "@/models/xray";
+import { fetchBookmarks, fetchTweet } from "@/actions/xray";
+import { extractTweetId, type XrayTweetData, type XrayTweetResponse } from "@/models/xray";
 
 /** Tweet test state — input, extracted ID, fetch result, raw-JSON toggle. */
 export function useXrayTweetTest() {
@@ -42,7 +42,8 @@ export function useXrayTweetTest() {
   const toggleRawJson = useCallback(() => setShowRawJson((prev) => !prev), []);
 
   return {
-    tweetInput, setTweetInput,
+    tweetInput,
+    setTweetInput,
     extractedId,
     tweetResult,
     isMockResult,

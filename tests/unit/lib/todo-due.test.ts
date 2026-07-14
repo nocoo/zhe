@@ -13,8 +13,7 @@ const local = (y: number, m: number, d: number, h = 0, mi = 0, s = 0) =>
   new Date(y, m - 1, d, h, mi, s, 0);
 
 /** Local end-of-day, matching how the client encodes a date-only pick. */
-const localEndOfDay = (y: number, m: number, d: number) =>
-  new Date(y, m - 1, d, 23, 59, 59, 999);
+const localEndOfDay = (y: number, m: number, d: number) => new Date(y, m - 1, d, 23, 59, 59, 999);
 
 describe("dueStatus", () => {
   const now = local(2026, 7, 10, 10, 30); // 2026-07-10 10:30 local
@@ -134,10 +133,7 @@ describe("dueStatus — DST (America/New_York, subprocess)", () => {
   it("spring-forward, fall-back, and 7-day soon-window boundaries hold", async () => {
     const { spawnSync } = await import("node:child_process");
     const path = await import("node:path");
-    const scriptPath = path.resolve(
-      __dirname,
-      "../../../scripts/todo-due-dst-vectors.ts",
-    );
+    const scriptPath = path.resolve(__dirname, "../../../scripts/todo-due-dst-vectors.ts");
     const result = spawnSync("bun", ["run", scriptPath], {
       env: { ...process.env, TZ: "America/New_York" },
       encoding: "utf8",

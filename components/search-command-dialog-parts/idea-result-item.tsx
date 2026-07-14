@@ -2,8 +2,8 @@
 
 import { Lightbulb } from "lucide-react";
 import { CommandItem } from "@/components/ui/command";
-import { highlightMatches } from "@/models/links";
 import type { IdeaListItem } from "@/lib/db/scoped";
+import { highlightMatches } from "@/models/links";
 import type { Tag } from "@/models/types";
 import { HighlightText } from "./highlight-text";
 import { TagBadges } from "./tag-badges";
@@ -25,12 +25,7 @@ interface IdeaResultItemProps {
   onNavigate: (ideaId: number) => void;
 }
 
-export function IdeaResultItem({
-  idea,
-  trimmedQuery,
-  tags,
-  onNavigate,
-}: IdeaResultItemProps) {
+export function IdeaResultItem({ idea, trimmedQuery, tags, onNavigate }: IdeaResultItemProps) {
   const displayTitle = idea.title || formatIdeaDate(idea.createdAt);
 
   return (

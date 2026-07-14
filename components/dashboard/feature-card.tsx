@@ -32,7 +32,13 @@ interface FeatureCardProps {
  * dashboard settings pages. Renders a coloured icon badge, title, description,
  * separator, then the children content.
  */
-export function FeatureCard({ title, description, icon: Icon, accent, children }: FeatureCardProps) {
+export function FeatureCard({
+  title,
+  description,
+  icon: Icon,
+  accent,
+  children,
+}: FeatureCardProps) {
   const colors = ACCENT_CLASSES[accent];
 
   return (

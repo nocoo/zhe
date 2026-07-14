@@ -5,9 +5,9 @@
  * authorization, and business logic.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedApiKey, cleanupTestData, resetAndSeedUser } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, resetAndSeedUser, seedApiKey } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/folders`;
 
@@ -22,8 +22,8 @@ describe("/api/v1/folders", () => {
     await resetAndSeedUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "folders:read,folders:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "folders:read" }),
-      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "folders:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes", scopes: "" }),
     ]);
   });
 
@@ -168,5 +168,4 @@ describe("/api/v1/folders", () => {
       expect(body.folder.icon).toBe("star");
     });
   });
-
 });

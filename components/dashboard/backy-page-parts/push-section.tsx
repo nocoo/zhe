@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  CloudUpload,
   History,
   Loader2,
   Pencil,
@@ -9,14 +10,13 @@ import {
   RefreshCw,
   Save,
   Send,
-  CloudUpload,
 } from "lucide-react";
+import { FeatureCard } from "@/components/dashboard/feature-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { FeatureCard } from "@/components/dashboard/feature-card";
 import { formatFileSize, formatTimeAgo } from "@/models/backy";
 import type { BackyViewModel } from "@/viewmodels/useBackyViewModel";
 
@@ -31,7 +31,9 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
   return (
     <div className="max-w-lg space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="backy-url" className="text-sm">Webhook URL</Label>
+        <Label htmlFor="backy-url" className="text-sm">
+          Webhook URL
+        </Label>
         <Input
           id="backy-url"
           data-testid="backy-webhook-url"
@@ -42,7 +44,9 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="backy-key" className="text-sm">API Key</Label>
+        <Label htmlFor="backy-key" className="text-sm">
+          API Key
+        </Label>
         <Input
           id="backy-key"
           data-testid="backy-api-key"
@@ -54,15 +58,23 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
         />
       </div>
       {vm.error && (
-        <p className="text-xs text-destructive" data-testid="backy-error">{vm.error}</p>
+        <p className="text-xs text-destructive" data-testid="backy-error">
+          {vm.error}
+        </p>
       )}
       <div className="flex items-center gap-2">
         <Button onClick={vm.handleSave} disabled={vm.isSaving} variant="outline" size="sm">
-          {vm.isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {vm.isSaving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
           保存
         </Button>
         {vm.isEditing && (
-          <Button onClick={vm.cancelEditing} variant="ghost" size="sm">取消</Button>
+          <Button onClick={vm.cancelEditing} variant="ghost" size="sm">
+            取消
+          </Button>
         )}
       </div>
     </div>
@@ -79,7 +91,13 @@ function ConfigDisplay({ vm }: { vm: BackyViewModel }) {
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">API Key:</span>
         <code className="rounded bg-accent px-2 py-0.5 text-xs">{vm.maskedApiKey}</code>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={vm.startEditing} aria-label="编辑配置">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          onClick={vm.startEditing}
+          aria-label="编辑配置"
+        >
           <Pencil className="h-3 w-3" />
         </Button>
       </div>
@@ -123,10 +141,14 @@ function PushResult({ result }: { result: BackyViewModel["pushResult"] }) {
           {result.request && (
             <div className="space-y-1 text-xs text-success">
               <p>Tag: {result.request.tag}</p>
-              <p>文件: {result.request.fileName} ({formatFileSize(result.request.fileSizeBytes)})</p>
+              <p>
+                文件: {result.request.fileName} ({formatFileSize(result.request.fileSizeBytes)})
+              </p>
               <div className="grid grid-cols-3 gap-x-4 gap-y-0.5">
                 {Object.entries(result.request.backupStats).map(([key, count]) => (
-                  <span key={key}>{STAT_LABELS[key] ?? key}: {count}</span>
+                  <span key={key}>
+                    {STAT_LABELS[key] ?? key}: {count}
+                  </span>
                 ))}
               </div>
             </div>
@@ -179,13 +201,17 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
                   </Badge>
                   <span className="text-muted-foreground">{formatFileSize(entry.file_size)}</span>
                 </div>
-                <p className="truncate text-muted-foreground" title={entry.tag}>{entry.tag}</p>
+                <p className="truncate text-muted-foreground" title={entry.tag}>
+                  {entry.tag}
+                </p>
                 <p className="text-muted-foreground">{formatTimeAgo(entry.created_at)}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground" data-testid="backy-history">暂无备份记录</p>
+          <p className="text-xs text-muted-foreground" data-testid="backy-history">
+            暂无备份记录
+          </p>
         )
       ) : null}
     </div>
@@ -199,11 +225,13 @@ function ConfiguredView({ vm }: { vm: BackyViewModel }) {
       <div className="flex items-center gap-2">
         <Button onClick={vm.handleTest} disabled={vm.isTesting} variant="outline" size="sm">
           {vm.isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <Plug className="mr-2 h-4 w-4" />测试连接
+          <Plug className="mr-2 h-4 w-4" />
+          测试连接
         </Button>
         <Button onClick={vm.handlePush} disabled={vm.isPushing} variant="outline" size="sm">
           {vm.isPushing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <Send className="mr-2 h-4 w-4" />推送备份
+          <Send className="mr-2 h-4 w-4" />
+          推送备份
         </Button>
       </div>
       <TestResult result={vm.testResult} />
@@ -219,9 +247,7 @@ export function PushSection({ vm }: { vm: BackyViewModel }) {
     <div className="flex items-center gap-2">
       <span>远程备份</span>
       {vm.isConfigured && (
-        <Badge variant={vm.environment === "prod" ? "success" : "warning"}>
-          {vm.environment}
-        </Badge>
+        <Badge variant={vm.environment === "prod" ? "success" : "warning"}>{vm.environment}</Badge>
       )}
     </div>
   );

@@ -2,17 +2,17 @@
  * Link operations for ScopedDB. Free functions that take userId.
  */
 
-import { executeD1Query } from '../d1-client';
-import { rowToLink } from '../mappers';
-import type { Link, NewLink } from '../schema';
-import type { GetLinksOptions } from './types';
+import { executeD1Query } from "../d1-client";
+import { rowToLink } from "../mappers";
+import type { Link, NewLink } from "../schema";
+import type { GetLinksOptions } from "./types";
 
 export function buildLinksQuery(
   userId: string,
   options: GetLinksOptions,
 ): { conditions: string[]; params: unknown[]; joinClause: string; orderClause: string } {
-  const { query, folderId, tagId, sortBy = 'created', sortOrder = 'desc' } = options;
-  const conditions: string[] = ['l.user_id = ?'];
+  const { query, folderId, tagId, sortBy = "created", sortOrder = "desc" } = options;
+  const conditions: string[] = ["l.user_id = ?"];
   const params: unknown[] = [userId];
 
   if (query) {
@@ -27,22 +27,22 @@ export function buildLinksQuery(
     params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
   }
 
-  if (folderId === 'inbox') {
-    conditions.push('l.folder_id IS NULL');
+  if (folderId === "inbox") {
+    conditions.push("l.folder_id IS NULL");
   } else if (folderId) {
-    conditions.push('l.folder_id = ?');
+    conditions.push("l.folder_id = ?");
     params.push(folderId);
   }
 
-  let joinClause = '';
+  let joinClause = "";
   if (tagId) {
-    joinClause = 'JOIN link_tags lt ON l.id = lt.link_id';
-    conditions.push('lt.tag_id = ?');
+    joinClause = "JOIN link_tags lt ON l.id = lt.link_id";
+    conditions.push("lt.tag_id = ?");
     params.push(tagId);
   }
 
-  const sortColumn = sortBy === 'clicks' ? 'l.clicks' : 'l.created_at';
-  const sortDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  const sortColumn = sortBy === "clicks" ? "l.clicks" : "l.created_at";
+  const sortDirection = sortOrder === "asc" ? "ASC" : "DESC";
   const orderClause = `ORDER BY ${sortColumn} ${sortDirection}`;
 
   return { conditions, params, joinClause, orderClause };
@@ -53,7 +53,7 @@ export async function getLinks(userId: string, options: GetLinksOptions = {}): P
   const sql = `
     SELECT l.* FROM links l
     ${joinClause}
-    WHERE ${conditions.join(' AND ')}
+    WHERE ${conditions.join(" AND ")}
     ${orderClause}
   `;
   const rows = await executeD1Query<Record<string, unknown>>(sql, params);
@@ -66,7 +66,7 @@ export async function getLinksPage(
 ): Promise<{ items: Link[]; total: number }> {
   const { limit, offset, ...filterOptions } = options;
   const { conditions, params, joinClause, orderClause } = buildLinksQuery(userId, filterOptions);
-  const whereClause = conditions.join(' AND ');
+  const whereClause = conditions.join(" AND ");
 
   const countSql = `
     SELECT COUNT(DISTINCT l.id) as cnt FROM links l
@@ -81,7 +81,7 @@ export async function getLinksPage(
     LIMIT ? OFFSET ?
   `;
 
-  const { executeD1Batch } = await import('../d1-client');
+  const { executeD1Batch } = await import("../d1-client");
   const results = await executeD1Batch<Record<string, unknown>>([
     { sql: countSql, params: [...params] },
     { sql: selectSql, params: [...params, limit, offset] },
@@ -94,7 +94,7 @@ export async function getLinksPage(
 
 export async function getLinkById(userId: string, id: number): Promise<Link | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'SELECT * FROM links WHERE id = ? AND user_id = ? LIMIT 1',
+    "SELECT * FROM links WHERE id = ? AND user_id = ? LIMIT 1",
     [id, userId],
   );
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -106,7 +106,7 @@ export async function getLinksByIds(userId: string, ids: number[]): Promise<Link
   const results: Link[] = [];
   for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
     const chunk = ids.slice(i, i + CHUNK_SIZE);
-    const placeholders = chunk.map(() => '?').join(', ');
+    const placeholders = chunk.map(() => "?").join(", ");
     const rows = await executeD1Query<Record<string, unknown>>(
       `SELECT * FROM links WHERE id IN (${placeholders}) AND user_id = ?`,
       [...chunk, userId],
@@ -118,7 +118,7 @@ export async function getLinksByIds(userId: string, ids: number[]): Promise<Link
 
 export async function createLink(
   userId: string,
-  data: Omit<NewLink, 'id' | 'createdAt' | 'userId'>,
+  data: Omit<NewLink, "id" | "createdAt" | "userId">,
 ): Promise<Link> {
   const now = Date.now();
   const rows = await executeD1Query<Record<string, unknown>>(
@@ -139,13 +139,13 @@ export async function createLink(
     ],
   );
   const row = rows[0];
-  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+  if (!row) throw new Error("INSERT RETURNING * returned no rows");
   return rowToLink(row);
 }
 
 export async function deleteLink(userId: string, id: number): Promise<boolean> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'DELETE FROM links WHERE id = ? AND user_id = ? RETURNING id',
+    "DELETE FROM links WHERE id = ? AND user_id = ? RETURNING id",
     [id, userId],
   );
   return rows.length > 0;
@@ -163,12 +163,30 @@ export interface UpdateLinkData {
 function buildUpdateSet(data: UpdateLinkData): { setClauses: string[]; params: unknown[] } {
   const setClauses: string[] = [];
   const params: unknown[] = [];
-  if (data.originalUrl !== undefined) { setClauses.push('original_url = ?'); params.push(data.originalUrl); }
-  if (data.folderId !== undefined) { setClauses.push('folder_id = ?'); params.push(data.folderId ?? null); }
-  if (data.expiresAt !== undefined) { setClauses.push('expires_at = ?'); params.push(data.expiresAt ? data.expiresAt.getTime() : null); }
-  if (data.slug !== undefined) { setClauses.push('slug = ?'); params.push(data.slug); }
-  if (data.isCustom !== undefined) { setClauses.push('is_custom = ?'); params.push(data.isCustom ? 1 : 0); }
-  if (data.screenshotUrl !== undefined) { setClauses.push('screenshot_url = ?'); params.push(data.screenshotUrl); }
+  if (data.originalUrl !== undefined) {
+    setClauses.push("original_url = ?");
+    params.push(data.originalUrl);
+  }
+  if (data.folderId !== undefined) {
+    setClauses.push("folder_id = ?");
+    params.push(data.folderId ?? null);
+  }
+  if (data.expiresAt !== undefined) {
+    setClauses.push("expires_at = ?");
+    params.push(data.expiresAt ? data.expiresAt.getTime() : null);
+  }
+  if (data.slug !== undefined) {
+    setClauses.push("slug = ?");
+    params.push(data.slug);
+  }
+  if (data.isCustom !== undefined) {
+    setClauses.push("is_custom = ?");
+    params.push(data.isCustom ? 1 : 0);
+  }
+  if (data.screenshotUrl !== undefined) {
+    setClauses.push("screenshot_url = ?");
+    params.push(data.screenshotUrl);
+  }
   return { setClauses, params };
 }
 
@@ -182,7 +200,7 @@ export async function updateLink(
 
   params.push(id, userId);
   const rows = await executeD1Query<Record<string, unknown>>(
-    `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+    `UPDATE links SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params,
   );
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -201,14 +219,23 @@ export async function updateLinkMetadata(
 ): Promise<Link | null> {
   const setClauses: string[] = [];
   const params: unknown[] = [];
-  if (data.metaTitle !== undefined) { setClauses.push('meta_title = ?'); params.push(data.metaTitle); }
-  if (data.metaDescription !== undefined) { setClauses.push('meta_description = ?'); params.push(data.metaDescription); }
-  if (data.metaFavicon !== undefined) { setClauses.push('meta_favicon = ?'); params.push(data.metaFavicon); }
+  if (data.metaTitle !== undefined) {
+    setClauses.push("meta_title = ?");
+    params.push(data.metaTitle);
+  }
+  if (data.metaDescription !== undefined) {
+    setClauses.push("meta_description = ?");
+    params.push(data.metaDescription);
+  }
+  if (data.metaFavicon !== undefined) {
+    setClauses.push("meta_favicon = ?");
+    params.push(data.metaFavicon);
+  }
 
   if (setClauses.length === 0) return getLinkById(userId, id);
   params.push(id, userId);
   const rows = await executeD1Query<Record<string, unknown>>(
-    `UPDATE links SET ${setClauses.join(', ')} WHERE id = ? AND user_id = ? RETURNING *`,
+    `UPDATE links SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params,
   );
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -220,7 +247,7 @@ export async function updateLinkScreenshot(
   screenshotUrl: string,
 ): Promise<Link | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'UPDATE links SET screenshot_url = ? WHERE id = ? AND user_id = ? RETURNING *',
+    "UPDATE links SET screenshot_url = ? WHERE id = ? AND user_id = ? RETURNING *",
     [screenshotUrl, id, userId],
   );
   return rows[0] ? rowToLink(rows[0]) : null;
@@ -232,7 +259,7 @@ export async function updateLinkNote(
   note: string | null,
 ): Promise<Link | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
-    'UPDATE links SET note = ? WHERE id = ? AND user_id = ? RETURNING *',
+    "UPDATE links SET note = ? WHERE id = ? AND user_id = ? RETURNING *",
     [note, id, userId],
   );
   return rows[0] ? rowToLink(rows[0]) : null;

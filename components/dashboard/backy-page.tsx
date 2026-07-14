@@ -1,8 +1,8 @@
 "use client";
 
-import { useBackyViewModel, type BackyInitialData } from "@/viewmodels/useBackyViewModel";
-import { PushSection } from "./backy-page-parts/push-section";
+import { type BackyInitialData, useBackyViewModel } from "@/viewmodels/useBackyViewModel";
 import { PullSection } from "./backy-page-parts/pull-section";
+import { PushSection } from "./backy-page-parts/push-section";
 
 export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
   const vm = useBackyViewModel(initialData);

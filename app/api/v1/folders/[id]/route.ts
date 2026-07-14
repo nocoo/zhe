@@ -6,11 +6,11 @@
  * Requires: folders:read (GET), folders:write (PATCH, DELETE)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { ScopedDB } from "@/lib/db/scoped";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import type { Folder } from "@/lib/db/schema";
+import { ScopedDB } from "@/lib/db/scoped";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -21,10 +21,7 @@ type RouteContext = {
  *
  * Response: { folder: Folder }
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "folders:read");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -67,10 +64,7 @@ export async function GET(
  *
  * Response: { folder: Folder }
  */
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "folders:write");
   if (authResult instanceof NextResponse) {
     return authResult;
@@ -137,7 +131,10 @@ export async function PATCH(
       statusCode: 200,
     });
 
-    return NextResponse.json({ folder: folderToResponse(updatedFolder) }, { headers: rateLimitHeaders });
+    return NextResponse.json(
+      { folder: folderToResponse(updatedFolder) },
+      { headers: rateLimitHeaders },
+    );
   } catch (error) {
     console.error(`[/api/v1/folders/${id} PATCH]`, error);
     return apiError("Internal server error", 500);
@@ -149,10 +146,7 @@ export async function PATCH(
  *
  * Response: { success: true }
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "folders:write");
   if (authResult instanceof NextResponse) {
     return authResult;

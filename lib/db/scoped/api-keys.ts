@@ -2,9 +2,9 @@
  * API key operations for ScopedDB.
  */
 
-import { executeD1Query } from '../d1-client';
-import { rowToApiKey } from '../mappers';
-import type { ApiKey } from '../schema';
+import { executeD1Query } from "../d1-client";
+import { rowToApiKey } from "../mappers";
+import type { ApiKey } from "../schema";
 
 export async function getApiKeys(userId: string): Promise<ApiKey[]> {
   const rows = await executeD1Query<Record<string, unknown>>(
@@ -32,7 +32,7 @@ export async function createApiKey(
     [data.id, data.prefix, data.keyHash, userId, data.name, data.scopes, now],
   );
   const row = rows[0];
-  if (!row) throw new Error('INSERT RETURNING * returned no rows');
+  if (!row) throw new Error("INSERT RETURNING * returned no rows");
   return rowToApiKey(row);
 }
 
@@ -47,8 +47,5 @@ export async function revokeApiKey(userId: string, id: string): Promise<ApiKey |
 
 export async function updateApiKeyLastUsed(id: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await executeD1Query(
-    `UPDATE api_keys SET last_used_at = ? WHERE id = ?`,
-    [now, id],
-  );
+  await executeD1Query(`UPDATE api_keys SET last_used_at = ? WHERE id = ?`, [now, id]);
 }

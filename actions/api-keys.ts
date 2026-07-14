@@ -1,8 +1,8 @@
 "use server";
 
-import { getScopedDB } from "@/lib/auth-context";
-import { generateApiKey, serializeScopes, type ApiScope, API_SCOPES } from "@/models/api-key";
 import { nanoid } from "nanoid";
+import { getScopedDB } from "@/lib/auth-context";
+import { API_SCOPES, type ApiScope, generateApiKey, serializeScopes } from "@/models/api-key";
 
 /**
  * List all active (non-revoked) API keys for the authenticated user.
@@ -30,10 +30,7 @@ export async function listApiKeys() {
  * Create a new API key.
  * Returns the full key ONCE — it cannot be retrieved again.
  */
-export async function createApiKeyAction(input: {
-  name: string;
-  scopes: ApiScope[];
-}) {
+export async function createApiKeyAction(input: { name: string; scopes: ApiScope[] }) {
   const db = await getScopedDB();
   if (!db) return { success: false as const, error: "Unauthorized" };
 
@@ -47,9 +44,7 @@ export async function createApiKeyAction(input: {
   if (!input.scopes.length) {
     return { success: false as const, error: "At least one scope is required" };
   }
-  const invalidScopes = input.scopes.filter(
-    (s) => !(API_SCOPES as readonly string[]).includes(s),
-  );
+  const invalidScopes = input.scopes.filter((s) => !(API_SCOPES as readonly string[]).includes(s));
   if (invalidScopes.length) {
     return { success: false as const, error: `Invalid scopes: ${invalidScopes.join(", ")}` };
   }

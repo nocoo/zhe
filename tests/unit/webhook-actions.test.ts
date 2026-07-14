@@ -1,13 +1,11 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearMockStorage } from "../setup";
 
 // Mock auth
 const mockUserId = "user-123";
 vi.mock("@/auth", () => ({
-  auth: vi.fn(() =>
-    Promise.resolve({ user: { id: mockUserId, name: "Test" } }),
-  ),
+  auth: vi.fn(() => Promise.resolve({ user: { id: mockUserId, name: "Test" } })),
 }));
 
 // Mock ScopedDB
@@ -34,8 +32,8 @@ vi.mock("@/models/webhook.server", () => ({
 }));
 
 import {
-  getWebhookToken,
   createWebhookToken,
+  getWebhookToken,
   revokeWebhookToken,
   updateWebhookRateLimit,
 } from "@/actions/webhook";

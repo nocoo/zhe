@@ -1,21 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { Check, ChevronDown, FolderOpen, Tag, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { useState } from "react";
 import {
   Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { getTagStyles } from "@/models/tags";
 import type { Folder, Tag as TagType } from "@/models/types";
 
@@ -63,11 +59,7 @@ export function LinkFilterBar({
       )}
 
       {/* Tag filter */}
-      <TagFilter
-        tags={tags}
-        selectedTagIds={filterTagIds}
-        onToggle={onToggleTag}
-      />
+      <TagFilter tags={tags} selectedTagIds={filterTagIds} onToggle={onToggleTag} />
 
       {/* Active tag badges */}
       {selectedTags.map((tag) => {
@@ -118,7 +110,12 @@ interface FolderFilterProps {
   onSelect: (folderId: string | null) => void;
 }
 
-function FolderFilter({ folders, selectedFolderId, selectedFolderName, onSelect }: FolderFilterProps) {
+function FolderFilter({
+  folders,
+  selectedFolderId,
+  selectedFolderName,
+  onSelect,
+}: FolderFilterProps) {
   const [open, setOpen] = useState(false);
 
   const handleSelect = (folderId: string | null) => {
@@ -147,18 +144,25 @@ function FolderFilter({ folders, selectedFolderId, selectedFolderName, onSelect 
         <Command shouldFilter={false}>
           <CommandList>
             <CommandGroup>
-              <CommandItem
-                onSelect={() => handleSelect(null)}
-                className="flex items-center gap-2"
-              >
-                <Check className={cn("h-3.5 w-3.5", selectedFolderId === null ? "opacity-100" : "opacity-0")} />
+              <CommandItem onSelect={() => handleSelect(null)} className="flex items-center gap-2">
+                <Check
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    selectedFolderId === null ? "opacity-100" : "opacity-0",
+                  )}
+                />
                 <span>全部文件夹</span>
               </CommandItem>
               <CommandItem
                 onSelect={() => handleSelect("uncategorized")}
                 className="flex items-center gap-2"
               >
-                <Check className={cn("h-3.5 w-3.5", selectedFolderId === "uncategorized" ? "opacity-100" : "opacity-0")} />
+                <Check
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    selectedFolderId === "uncategorized" ? "opacity-100" : "opacity-0",
+                  )}
+                />
                 <span>Inbox</span>
               </CommandItem>
               {folders.map((folder) => (
@@ -167,7 +171,12 @@ function FolderFilter({ folders, selectedFolderId, selectedFolderName, onSelect 
                   onSelect={() => handleSelect(folder.id)}
                   className="flex items-center gap-2"
                 >
-                  <Check className={cn("h-3.5 w-3.5", selectedFolderId === folder.id ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      selectedFolderId === folder.id ? "opacity-100" : "opacity-0",
+                    )}
+                  />
                   <span>{folder.name}</span>
                 </CommandItem>
               ))}
@@ -191,9 +200,7 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const filteredTags = tags.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredTags = tags.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -209,21 +216,13 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           data-testid="tag-filter-trigger"
         >
           <Tag className="h-3.5 w-3.5" strokeWidth={1.5} />
-          <span>
-            {selectedTagIds.size > 0
-              ? `标签 (${selectedTagIds.size})`
-              : "标签"}
-          </span>
+          <span>{selectedTagIds.size > 0 ? `标签 (${selectedTagIds.size})` : "标签"}</span>
           <ChevronDown className="h-3 w-3 opacity-50" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="搜索标签..."
-            value={search}
-            onValueChange={setSearch}
-          />
+          <CommandInput placeholder="搜索标签..." value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
               未找到标签
@@ -232,16 +231,18 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
               {filteredTags.map((tag) => {
                 const styles = getTagStyles(tag.name);
                 const isSelected = selectedTagIds.has(tag.id);
-                  return (
-                    <CommandItem
-                      key={tag.id}
-                      value={tag.id}
-                      onSelect={() => onToggle(tag.id)}
-                      className="flex items-center gap-2"
-                      data-testid="tag-filter-item"
-                      data-tag-name={tag.name}
-                    >
-                    <Check className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")} />
+                return (
+                  <CommandItem
+                    key={tag.id}
+                    value={tag.id}
+                    onSelect={() => onToggle(tag.id)}
+                    className="flex items-center gap-2"
+                    data-testid="tag-filter-item"
+                    data-tag-name={tag.name}
+                  >
+                    <Check
+                      className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")}
+                    />
                     <span className="h-2 w-2 rounded-full" style={styles.dot} />
                     <span>{tag.name}</span>
                   </CommandItem>

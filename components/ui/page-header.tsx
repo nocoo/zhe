@@ -15,31 +15,15 @@ interface PageHeaderProps {
  * on the right. Keeps spacing identical between pages so headers don't
  * shift around when navigating.
  */
-export function PageHeader({
-  title,
-  description,
-  actions,
-  className,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between mb-6 gap-4",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center justify-between mb-6 gap-4", className)}>
       <div className="min-w-0">
-        <h2 className="text-lg font-semibold text-foreground truncate">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-        )}
+        <h2 className="text-lg font-semibold text-foreground truncate">{title}</h2>
+        {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
-          {actions}
-        </div>
+        <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">{actions}</div>
       )}
     </div>
   );

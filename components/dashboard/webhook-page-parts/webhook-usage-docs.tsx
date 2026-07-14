@@ -1,6 +1,6 @@
 "use client";
 
-import { buildOpenApiSpec, buildAgentPrompt } from "@/models/webhook";
+import { buildAgentPrompt, buildOpenApiSpec } from "@/models/webhook";
 import {
   AgentPromptSection,
   BehaviorNotes,
@@ -35,19 +35,12 @@ export function WebhookUsageDocs({
   const spec = buildOpenApiSpec(webhookUrl, rateLimit);
   const postOp = spec.paths["/"].post;
   const postSchema = postOp.requestBody.content["application/json"].schema;
-  const properties = postSchema.properties as Record<string, PostProperty>;
-  const required = (postSchema.required as string[]) ?? [];
-  const agentPrompt = buildAgentPrompt(
-    webhookUrl,
-    rateLimit,
-    tmpUploadUrl ?? undefined,
-  );
+  const properties = (postSchema.properties ?? {}) as Record<string, PostProperty>;
+  const required = postSchema.required ?? [];
+  const agentPrompt = buildAgentPrompt(webhookUrl, rateLimit, tmpUploadUrl ?? undefined);
 
   return (
-    <div
-      className="space-y-4 border-t border-border/50 pt-4"
-      data-testid="webhook-usage-docs"
-    >
+    <div className="space-y-4 border-t border-border/50 pt-4" data-testid="webhook-usage-docs">
       <p className="text-xs font-medium text-foreground">使用说明</p>
 
       <MethodsTable spec={spec} />
@@ -56,14 +49,9 @@ export function WebhookUsageDocs({
       <PostResponseFormat />
       <RateLimitNote rateLimit={rateLimit} />
       <BehaviorNotes />
-      <ErrorCodesTable
-        responses={postOp.responses as Record<string, { description: string }>}
-      />
+      <ErrorCodesTable responses={postOp.responses as Record<string, { description: string }>} />
 
-      <AgentPromptSection
-        agentPrompt={agentPrompt}
-        copyToClipboard={copyToClipboard}
-      />
+      <AgentPromptSection agentPrompt={agentPrompt} copyToClipboard={copyToClipboard} />
     </div>
   );
 }

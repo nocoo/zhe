@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockGetTodos = vi.fn();
 const mockGetTodo = vi.fn();
@@ -135,7 +136,10 @@ describe("useTodosViewModel", () => {
     // deselect, and (b) drop the late response instead of writing it.
     let resolvePending: ((value: unknown) => void) | undefined;
     mockGetTodo.mockImplementationOnce(
-      () => new Promise((res) => { resolvePending = res; }),
+      () =>
+        new Promise((res) => {
+          resolvePending = res;
+        }),
     );
 
     const { result } = renderHook(() => useTodosViewModel());

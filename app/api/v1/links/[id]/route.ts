@@ -6,19 +6,19 @@
  * Requires: links:read (GET), links:write (PATCH, DELETE)
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuthWithRateLimit, apiError } from "@/lib/api/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { logApiRequest } from "@/lib/api/audit";
-import { parseJsonBody, isErrorResponse } from "@/lib/api/validation";
+import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { linkToResponse } from "@/lib/api/serializers";
-import { ScopedDB } from "@/lib/db/scoped";
+import { isErrorResponse, parseJsonBody } from "@/lib/api/validation";
 import { executeD1Batch } from "@/lib/db/d1-client";
-import { kvPutLink, kvDeleteLink } from "@/lib/kv/client";
+import { ScopedDB } from "@/lib/db/scoped";
+import { kvDeleteLink, kvPutLink } from "@/lib/kv/client";
 import {
-  validatePatchFields,
-  validateTagOps,
   buildPatchStatements,
   type UpdateLinkData,
+  validatePatchFields,
+  validateTagOps,
 } from "./patch-helpers";
 
 type RouteContext = {
@@ -27,7 +27,7 @@ type RouteContext = {
 
 function parseLinkId(id: string): number | NextResponse {
   const linkId = parseInt(id, 10);
-  return isNaN(linkId) ? apiError("Invalid link ID", 400) : linkId;
+  return Number.isNaN(linkId) ? apiError("Invalid link ID", 400) : linkId;
 }
 
 /**
@@ -35,10 +35,7 @@ function parseLinkId(id: string): number | NextResponse {
  *
  * Response: { link: Link }
  */
-export async function GET(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "links:read");
   if (authResult instanceof NextResponse) return authResult;
 
@@ -64,10 +61,7 @@ export async function GET(
       statusCode: 200,
     });
 
-    return NextResponse.json(
-      { link: linkToResponse(link, tags) },
-      { headers: rateLimitHeaders },
-    );
+    return NextResponse.json({ link: linkToResponse(link, tags) }, { headers: rateLimitHeaders });
   } catch (error) {
     console.error(`[/api/v1/links/${id} GET]`, error);
     return apiError("Internal server error", 500);
@@ -104,10 +98,7 @@ function syncKvAfterPatch(
  *   - originalUrl, slug, folderId, expiresAt, note, metaTitle, metaDescription,
  *     screenshotUrl, addTags, removeTags
  */
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "links:write");
   if (authResult instanceof NextResponse) return authResult;
 
@@ -179,10 +170,7 @@ export async function PATCH(
  *
  * Response: { success: true }
  */
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   const authResult = await requireAuthWithRateLimit(request, "links:write");
   if (authResult instanceof NextResponse) return authResult;
 

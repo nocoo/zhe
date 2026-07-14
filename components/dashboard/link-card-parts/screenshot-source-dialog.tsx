@@ -1,5 +1,7 @@
 "use client";
 
+import { Camera, ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Camera, ImageIcon } from "lucide-react";
 import type { ScreenshotSource } from "@/models/links";
 
 /** Modal for picking which provider to call when refreshing the screenshot. */
@@ -28,9 +28,7 @@ export function ScreenshotSourceDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>选择截图来源</DialogTitle>
-          <DialogDescription>
-            选择一个服务来抓取网页预览截图
-          </DialogDescription>
+          <DialogDescription>选择一个服务来抓取网页预览截图</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 pt-2">
           <Button
@@ -44,9 +42,7 @@ export function ScreenshotSourceDialog({
             </div>
             <div className="text-left">
               <p className="text-sm font-medium">Microlink</p>
-              <p className="text-xs text-muted-foreground">
-                通用截图服务，支持大部分网站
-              </p>
+              <p className="text-xs text-muted-foreground">通用截图服务，支持大部分网站</p>
             </div>
           </Button>
           <Button
@@ -60,9 +56,7 @@ export function ScreenshotSourceDialog({
             </div>
             <div className="text-left">
               <p className="text-sm font-medium">Screenshot Domains</p>
-              <p className="text-xs text-muted-foreground">
-                基于域名的截图服务
-              </p>
+              <p className="text-xs text-muted-foreground">基于域名的截图服务</p>
             </div>
           </Button>
         </div>

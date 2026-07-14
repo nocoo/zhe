@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useState } from "react";
+import { createIdea, deleteIdea, updateIdea } from "@/actions/ideas";
 import type { IdeaListItem } from "@/lib/db/scoped";
-import { createIdea, updateIdea, deleteIdea } from "@/actions/ideas";
 
 interface DashboardCallbacks {
   handleIdeaCreated: (idea: IdeaListItem) => void;
@@ -67,10 +67,7 @@ export function useIdeasMutations(
   );
 
   const handleUpdateIdea = useCallback(
-    async (
-      id: number,
-      data: { content?: string; title?: string | null; tagIds?: string[] },
-    ) => {
+    async (id: number, data: { content?: string; title?: string | null; tagIds?: string[] }) => {
       setIsSaving(true);
       setError(null);
       try {

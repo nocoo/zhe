@@ -2,7 +2,7 @@
  * Overview stats for ScopedDB (cross-domain aggregates).
  */
 
-import { executeD1Query } from '../d1-client';
+import { executeD1Query } from "../d1-client";
 
 export interface OverviewStats {
   totalLinks: number;
@@ -25,20 +25,20 @@ function rowsToBreakdown(rows: Record<string, unknown>[], key: string): Record<s
 }
 
 async function fetchOverviewRows(userId: string) {
-  const analyticsJoin = 'FROM analytics a JOIN links l ON a.link_id = l.id WHERE l.user_id = ?';
+  const analyticsJoin = "FROM analytics a JOIN links l ON a.link_id = l.id WHERE l.user_id = ?";
   const analyticsParams = [userId];
 
   return Promise.all([
     executeD1Query<Record<string, unknown>>(
-      'SELECT COUNT(*) AS total_links, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?',
+      "SELECT COUNT(*) AS total_links, COALESCE(SUM(clicks), 0) AS total_clicks FROM links WHERE user_id = ?",
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
-      'SELECT slug, original_url, clicks FROM links WHERE user_id = ? ORDER BY clicks DESC',
+      "SELECT slug, original_url, clicks FROM links WHERE user_id = ? ORDER BY clicks DESC",
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
-      'SELECT COUNT(*) AS total_uploads, COALESCE(SUM(file_size), 0) AS total_storage FROM uploads WHERE user_id = ?',
+      "SELECT COUNT(*) AS total_uploads, COALESCE(SUM(file_size), 0) AS total_storage FROM uploads WHERE user_id = ?",
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
@@ -46,7 +46,7 @@ async function fetchOverviewRows(userId: string) {
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
-      'SELECT file_type, COUNT(*) as count FROM uploads WHERE user_id = ? GROUP BY file_type',
+      "SELECT file_type, COUNT(*) as count FROM uploads WHERE user_id = ? GROUP BY file_type",
       [userId],
     ),
     executeD1Query<Record<string, unknown>>(
@@ -86,16 +86,16 @@ export async function getOverviewStats(userId: string): Promise<OverviewStats> {
   const totalUploads = (uploadStatsRows[0]?.total_uploads as number) ?? 0;
   const totalStorageBytes = (uploadStatsRows[0]?.total_storage as number) ?? 0;
 
-  const topLinks = topLinkRows.map(r => ({
+  const topLinks = topLinkRows.map((r) => ({
     slug: r.slug as string,
     originalUrl: r.original_url as string,
     clicks: (r.clicks as number) ?? 0,
   }));
-  const uploadTrend = uploadTrendRows.map(r => ({
+  const uploadTrend = uploadTrendRows.map((r) => ({
     date: r.date as string,
     uploads: r.uploads as number,
   }));
-  const clickTrend = clickTrendRows.map(r => ({
+  const clickTrend = clickTrendRows.map((r) => ({
     date: r.date as string,
     clicks: r.clicks as number,
     origin: (r.origin_clicks as number) ?? 0,
@@ -110,9 +110,9 @@ export async function getOverviewStats(userId: string): Promise<OverviewStats> {
     clickTrend,
     uploadTrend,
     topLinks,
-    deviceBreakdown: rowsToBreakdown(deviceRows, 'device'),
-    browserBreakdown: rowsToBreakdown(browserRows, 'browser'),
-    osBreakdown: rowsToBreakdown(osRows, 'os'),
-    fileTypeBreakdown: rowsToBreakdown(fileTypeRows, 'file_type'),
+    deviceBreakdown: rowsToBreakdown(deviceRows, "device"),
+    browserBreakdown: rowsToBreakdown(browserRows, "browser"),
+    osBreakdown: rowsToBreakdown(osRows, "os"),
+    fileTypeBreakdown: rowsToBreakdown(fileTypeRows, "file_type"),
   };
 }

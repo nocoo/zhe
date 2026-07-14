@@ -6,6 +6,7 @@
 
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +18,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatBytes } from "@/models/storage";
 import type { StorageScanResult } from "@/models/storage";
-import { useStoragePage } from "./storage-page-parts/useStoragePage";
-import { SummaryGrid } from "./storage-page-parts/summary-grid";
-import { SummaryCard } from "./storage-page-parts/summary-card";
+import { formatBytes } from "@/models/storage";
 import { D1Section } from "./storage-page-parts/d1-section";
 import { R2Section } from "./storage-page-parts/r2-section";
 import { StorageSkeleton } from "./storage-page-parts/storage-skeleton";
+import { SummaryCard } from "./storage-page-parts/summary-card";
+import { SummaryGrid } from "./storage-page-parts/summary-grid";
+import { useStoragePage } from "./storage-page-parts/useStoragePage";
 
 function DeleteConfirmDialog({
   open,
@@ -52,12 +52,7 @@ function DeleteConfirmDialog({
           <AlertDialogTitle>删除孤儿文件？</AlertDialogTitle>
           <AlertDialogDescription>
             即将从 R2 永久删除 {selectedKeys.size} 个文件
-            {data.r2.files.length > 0 && (
-              <>
-                {" "}
-                ({formatBytes(selectedBytes)})
-              </>
-            )}
+            {data.r2.files.length > 0 && <> ({formatBytes(selectedBytes)})</>}
             。仅确认为孤儿（D1 中无引用）的文件会被删除。此操作不可撤销。
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -97,10 +92,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
           disabled={loading}
           className="gap-1.5"
         >
-          <RefreshCw
-            className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-            strokeWidth={1.5}
-          />
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} strokeWidth={1.5} />
           重新扫描
         </Button>
       </div>

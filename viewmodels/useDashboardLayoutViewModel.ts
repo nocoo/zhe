@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 /** ViewModel for the dashboard layout — manages sidebar collapse and mobile drawer */

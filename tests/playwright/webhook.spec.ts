@@ -8,201 +8,222 @@
  *
  * Global teardown also cleans webhooks for the test user.
  */
-import { test, expect } from './fixtures';
-import type { Page } from '@playwright/test';
-import { executeD1, TEST_USER } from './helpers/d1';
 
-const WEBHOOK_URL = '/dashboard/webhook';
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { executeD1, TEST_USER } from "./helpers/d1";
+
+const WEBHOOK_URL = "/dashboard/webhook";
 
 /** Navigate to webhook page and wait for it to be hydrated. */
 async function goToWebhook(page: Page): Promise<void> {
   await page.goto(WEBHOOK_URL);
   // Wait for the Webhook card title to appear (SSR content)
-  await page.getByText('Webhook').first().waitFor({ timeout: 15_000 });
+  await page.getByText("Webhook").first().waitFor({ timeout: 15_000 });
   // Wait for network idle — ensures all JS chunks have loaded and React
   // hydration has completed, so onClick handlers are attached.
-  await page.waitForLoadState('networkidle', { timeout: 15_000 });
+  await page.waitForLoadState("networkidle", { timeout: 15_000 });
 }
 
-test.describe.serial('Webhook Management UI', () => {
-  // Ensure clean state: no existing webhook token for the test user
-  test.beforeAll(async () => {
-    await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER.id], { softFail: true });
+test.describe
+  .serial("Webhook Management UI", () => {
+    // Ensure clean state: no existing webhook token for the test user
+    test.beforeAll(async () => {
+      await executeD1("DELETE FROM webhooks WHERE user_id = ?", [TEST_USER.id], { softFail: true });
+    });
+
+    test.afterAll(async () => {
+      await executeD1("DELETE FROM webhooks WHERE user_id = ?", [TEST_USER.id], { softFail: true });
+    });
+
+    test("page renders with description and generate button when no token exists", async ({
+      page,
+    }) => {
+      await goToWebhook(page);
+
+      // Description text
+      await expect(
+        page.getByText("通过 Webhook 令牌，外部系统可以调用 API 创建短链接"),
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Generate button visible (initial state)
+      const generateBtn = page.locator('[data-testid="generate-token-btn"]');
+      await expect(generateBtn).toBeVisible({ timeout: 15_000 });
+      await expect(generateBtn).toHaveText("生成令牌");
+
+      // Token section should NOT be visible
+      await expect(page.locator('[data-testid="webhook-token-section"]')).not.toBeVisible();
+    });
+
+    test("generates a token and displays token section", async ({ page }) => {
+      await goToWebhook(page);
+
+      // Click generate
+      await page.locator('[data-testid="generate-token-btn"]').click();
+
+      // Wait for token section to appear
+      const tokenSection = page.locator('[data-testid="webhook-token-section"]');
+      await expect(tokenSection).toBeVisible({ timeout: 10_000 });
+
+      // Token value is displayed (non-empty)
+      const tokenValue = page.locator('[data-testid="webhook-token-value"]');
+      await expect(tokenValue).toBeVisible();
+      const tokenText = await tokenValue.textContent();
+      expect(tokenText).toBeTruthy();
+      if (!tokenText) throw new Error("expected tokenText to be non-null");
+      expect(tokenText.length).toBeGreaterThan(8);
+
+      // Webhook URL is displayed (contains /api/link/create/ and the token)
+      const urlValue = page.locator('[data-testid="webhook-url-value"]');
+      await expect(urlValue).toBeVisible();
+      const urlText = await urlValue.textContent();
+      expect(urlText).toContain("/api/link/create/");
+      expect(urlText).toContain(tokenText);
+    });
+
+    test("shows regenerate and revoke buttons when token exists", async ({ page }) => {
+      await goToWebhook(page);
+
+      // Wait for token section
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Regenerate button
+      const regenBtn = page.locator('[data-testid="regenerate-token-btn"]');
+      await expect(regenBtn).toBeVisible();
+      await expect(regenBtn).toHaveText("重新生成");
+
+      // Revoke button
+      const revokeBtn = page.locator('[data-testid="revoke-token-btn"]');
+      await expect(revokeBtn).toBeVisible();
+      await expect(revokeBtn).toHaveText("撤销令牌");
+    });
+
+    test("shows copy buttons for token and URL", async ({ page }) => {
+      await goToWebhook(page);
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Copy token button
+      await expect(page.locator('[data-testid="copy-token-btn"]')).toBeVisible();
+
+      // Copy URL button
+      await expect(page.locator('[data-testid="copy-url-btn"]')).toBeVisible();
+    });
+
+    test("shows rate limit display and slider", async ({ page }) => {
+      await goToWebhook(page);
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Rate limit value (default: 5 次/分钟)
+      const rateLimitValue = page.locator('[data-testid="rate-limit-value"]');
+      await expect(rateLimitValue).toBeVisible();
+      await expect(rateLimitValue).toContainText("次/分钟");
+
+      // Slider is visible
+      await expect(page.locator('[data-testid="rate-limit-slider"]')).toBeVisible();
+    });
+
+    test("shows usage documentation section", async ({ page }) => {
+      await goToWebhook(page);
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Usage docs section
+      const usageDocs = page.locator('[data-testid="webhook-usage-docs"]');
+      await expect(usageDocs).toBeVisible();
+
+      // Documentation subsections
+      await expect(usageDocs.getByText("使用说明")).toBeVisible();
+      await expect(usageDocs.getByText("支持的方法")).toBeVisible();
+      await expect(usageDocs.getByText("请求示例")).toBeVisible();
+      await expect(usageDocs.getByText("速率限制")).toBeVisible();
+      await expect(usageDocs.getByText("错误码")).toBeVisible();
+
+      // Curl example is present (use .first() — the agent prompt section also contains "curl")
+      await expect(usageDocs.getByText(/curl/).first()).toBeVisible();
+
+      // HTTP methods listed in the methods table (use exact match to avoid
+      // collisions with summary text like "Get status..." or "Create a short link")
+      const methodsTable = usageDocs.locator("table").first();
+      await expect(methodsTable.getByText("HEAD", { exact: true })).toBeVisible();
+      await expect(methodsTable.getByText("GET", { exact: true })).toBeVisible();
+      await expect(methodsTable.getByText("POST", { exact: true })).toBeVisible();
+    });
+
+    test("regenerates token and gets a new value", async ({ page }) => {
+      await goToWebhook(page);
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Capture current token
+      const tokenEl = page.locator('[data-testid="webhook-token-value"]');
+      const oldToken = await tokenEl.textContent();
+
+      // Click regenerate and wait for the token to change.
+      // Skip the toBeDisabled check — in fast CI environments the button may
+      // complete before we can observe the disabled state.
+      await page.locator('[data-testid="regenerate-token-btn"]').click();
+
+      // Verify the token has changed
+      if (!oldToken) throw new Error("expected oldToken to be non-null");
+      await expect(tokenEl).not.toHaveText(oldToken, { timeout: 15_000 });
+
+      const newToken = await tokenEl.textContent();
+      expect(newToken).toBeTruthy();
+      expect(newToken).not.toBe(oldToken);
+
+      // URL is updated to contain the new token
+      const urlText = await page.locator('[data-testid="webhook-url-value"]').textContent();
+      if (!newToken) throw new Error("expected newToken to be non-null");
+      expect(urlText).toContain(newToken);
+    });
+
+    test("revokes token and returns to initial state", async ({ page }) => {
+      await goToWebhook(page);
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Click revoke and wait for the token section to disappear from the UI.
+      // This is more stable than waiting for a specific server action response,
+      // since response-body filters can be unreliable with streaming/Server Actions.
+      await page.locator('[data-testid="revoke-token-btn"]').click();
+      await expect(page.locator('[data-testid="webhook-token-section"]')).toBeHidden({
+        timeout: 10_000,
+      });
+
+      // Generate button is back
+      const generateBtn = page.locator('[data-testid="generate-token-btn"]');
+      await expect(generateBtn).toBeVisible();
+      await expect(generateBtn).toHaveText("生成令牌");
+    });
+
+    test("can generate token again after revoking", async ({ page }) => {
+      await goToWebhook(page);
+
+      // Currently no token (revoked in previous test)
+      await expect(page.locator('[data-testid="generate-token-btn"]')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Generate a new token
+      await page.locator('[data-testid="generate-token-btn"]').click();
+
+      // Token section appears
+      const tokenSection = page.locator('[data-testid="webhook-token-section"]');
+      await expect(tokenSection).toBeVisible({ timeout: 10_000 });
+
+      // Token value is valid
+      const tokenText = await page.locator('[data-testid="webhook-token-value"]').textContent();
+      expect(tokenText).toBeTruthy();
+      if (!tokenText) throw new Error("expected tokenText to be non-null");
+      expect(tokenText.length).toBeGreaterThan(8);
+    });
   });
-
-  test.afterAll(async () => {
-    await executeD1('DELETE FROM webhooks WHERE user_id = ?', [TEST_USER.id], { softFail: true });
-  });
-
-  test('page renders with description and generate button when no token exists', async ({ page }) => {
-    await goToWebhook(page);
-
-    // Description text
-    await expect(page.getByText('通过 Webhook 令牌，外部系统可以调用 API 创建短链接')).toBeVisible({ timeout: 15_000 });
-
-    // Generate button visible (initial state)
-    const generateBtn = page.locator('[data-testid="generate-token-btn"]');
-    await expect(generateBtn).toBeVisible({ timeout: 15_000 });
-    await expect(generateBtn).toHaveText('生成令牌');
-
-    // Token section should NOT be visible
-    await expect(page.locator('[data-testid="webhook-token-section"]')).not.toBeVisible();
-  });
-
-  test('generates a token and displays token section', async ({ page }) => {
-    await goToWebhook(page);
-
-    // Click generate
-    await page.locator('[data-testid="generate-token-btn"]').click();
-
-    // Wait for token section to appear
-    const tokenSection = page.locator('[data-testid="webhook-token-section"]');
-    await expect(tokenSection).toBeVisible({ timeout: 10_000 });
-
-    // Token value is displayed (non-empty)
-    const tokenValue = page.locator('[data-testid="webhook-token-value"]');
-    await expect(tokenValue).toBeVisible();
-    const tokenText = await tokenValue.textContent();
-    expect(tokenText).toBeTruthy();
-    if (!tokenText) throw new Error('expected tokenText to be non-null');
-    expect(tokenText.length).toBeGreaterThan(8);
-
-    // Webhook URL is displayed (contains /api/link/create/ and the token)
-    const urlValue = page.locator('[data-testid="webhook-url-value"]');
-    await expect(urlValue).toBeVisible();
-    const urlText = await urlValue.textContent();
-    expect(urlText).toContain('/api/link/create/');
-    expect(urlText).toContain(tokenText);
-  });
-
-  test('shows regenerate and revoke buttons when token exists', async ({ page }) => {
-    await goToWebhook(page);
-
-    // Wait for token section
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Regenerate button
-    const regenBtn = page.locator('[data-testid="regenerate-token-btn"]');
-    await expect(regenBtn).toBeVisible();
-    await expect(regenBtn).toHaveText('重新生成');
-
-    // Revoke button
-    const revokeBtn = page.locator('[data-testid="revoke-token-btn"]');
-    await expect(revokeBtn).toBeVisible();
-    await expect(revokeBtn).toHaveText('撤销令牌');
-  });
-
-  test('shows copy buttons for token and URL', async ({ page }) => {
-    await goToWebhook(page);
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Copy token button
-    await expect(page.locator('[data-testid="copy-token-btn"]')).toBeVisible();
-
-    // Copy URL button
-    await expect(page.locator('[data-testid="copy-url-btn"]')).toBeVisible();
-  });
-
-  test('shows rate limit display and slider', async ({ page }) => {
-    await goToWebhook(page);
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Rate limit value (default: 5 次/分钟)
-    const rateLimitValue = page.locator('[data-testid="rate-limit-value"]');
-    await expect(rateLimitValue).toBeVisible();
-    await expect(rateLimitValue).toContainText('次/分钟');
-
-    // Slider is visible
-    await expect(page.locator('[data-testid="rate-limit-slider"]')).toBeVisible();
-  });
-
-  test('shows usage documentation section', async ({ page }) => {
-    await goToWebhook(page);
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Usage docs section
-    const usageDocs = page.locator('[data-testid="webhook-usage-docs"]');
-    await expect(usageDocs).toBeVisible();
-
-    // Documentation subsections
-    await expect(usageDocs.getByText('使用说明')).toBeVisible();
-    await expect(usageDocs.getByText('支持的方法')).toBeVisible();
-    await expect(usageDocs.getByText('请求示例')).toBeVisible();
-    await expect(usageDocs.getByText('速率限制')).toBeVisible();
-    await expect(usageDocs.getByText('错误码')).toBeVisible();
-
-    // Curl example is present (use .first() — the agent prompt section also contains "curl")
-    await expect(usageDocs.getByText(/curl/).first()).toBeVisible();
-
-    // HTTP methods listed in the methods table (use exact match to avoid
-    // collisions with summary text like "Get status..." or "Create a short link")
-    const methodsTable = usageDocs.locator('table').first();
-    await expect(methodsTable.getByText('HEAD', { exact: true })).toBeVisible();
-    await expect(methodsTable.getByText('GET', { exact: true })).toBeVisible();
-    await expect(methodsTable.getByText('POST', { exact: true })).toBeVisible();
-  });
-
-  test('regenerates token and gets a new value', async ({ page }) => {
-    await goToWebhook(page);
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Capture current token
-    const tokenEl = page.locator('[data-testid="webhook-token-value"]');
-    const oldToken = await tokenEl.textContent();
-
-    // Click regenerate and wait for the token to change.
-    // Skip the toBeDisabled check — in fast CI environments the button may
-    // complete before we can observe the disabled state.
-    await page.locator('[data-testid="regenerate-token-btn"]').click();
-
-    // Verify the token has changed
-    if (!oldToken) throw new Error('expected oldToken to be non-null');
-    await expect(tokenEl).not.toHaveText(oldToken, { timeout: 15_000 });
-
-    const newToken = await tokenEl.textContent();
-    expect(newToken).toBeTruthy();
-    expect(newToken).not.toBe(oldToken);
-
-    // URL is updated to contain the new token
-    const urlText = await page.locator('[data-testid="webhook-url-value"]').textContent();
-    if (!newToken) throw new Error('expected newToken to be non-null');
-    expect(urlText).toContain(newToken);
-  });
-
-  test('revokes token and returns to initial state', async ({ page }) => {
-    await goToWebhook(page);
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeVisible({ timeout: 10_000 });
-
-    // Click revoke and wait for the token section to disappear from the UI.
-    // This is more stable than waiting for a specific server action response,
-    // since response-body filters can be unreliable with streaming/Server Actions.
-    await page.locator('[data-testid="revoke-token-btn"]').click();
-    await expect(page.locator('[data-testid="webhook-token-section"]')).toBeHidden({ timeout: 10_000 });
-
-    // Generate button is back
-    const generateBtn = page.locator('[data-testid="generate-token-btn"]');
-    await expect(generateBtn).toBeVisible();
-    await expect(generateBtn).toHaveText('生成令牌');
-  });
-
-  test('can generate token again after revoking', async ({ page }) => {
-    await goToWebhook(page);
-
-    // Currently no token (revoked in previous test)
-    await expect(page.locator('[data-testid="generate-token-btn"]')).toBeVisible({ timeout: 10_000 });
-
-    // Generate a new token
-    await page.locator('[data-testid="generate-token-btn"]').click();
-
-    // Token section appears
-    const tokenSection = page.locator('[data-testid="webhook-token-section"]');
-    await expect(tokenSection).toBeVisible({ timeout: 10_000 });
-
-    // Token value is valid
-    const tokenText = await page.locator('[data-testid="webhook-token-value"]').textContent();
-    expect(tokenText).toBeTruthy();
-    if (!tokenText) throw new Error('expected tokenText to be non-null');
-    expect(tokenText.length).toBeGreaterThan(8);
-  });
-
-});

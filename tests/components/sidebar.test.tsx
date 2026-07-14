@@ -1,36 +1,47 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import type { FoldersViewModel } from '@/viewmodels/useFoldersViewModel';
-import { unwrap } from '../test-utils';
-import { makeLink } from '../fixtures';
-import type { Link } from '@/models/types';
 
-let mockPathname = '/dashboard';
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { Link } from "@/models/types";
+import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
+import { makeLink } from "../fixtures";
+import { unwrap } from "../test-utils";
+
+let mockPathname = "/dashboard";
 let mockSearchParamsFolder: string | null = null;
 
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => ({
-    get: (key: string) => key === 'folder' ? mockSearchParamsFolder : null,
+    get: (key: string) => (key === "folder" ? mockSearchParamsFolder : null),
   }),
 }));
 
 // Mock next/link to a simple anchor
-vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
-    <a href={href} {...props}>{children}</a>
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
 // Mock actions to prevent next-auth/next-server import chain
-vi.mock('@/actions/links', () => ({
+vi.mock("@/actions/links", () => ({
   getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),
 }));
 
-vi.mock('@/actions/folders', () => ({
+vi.mock("@/actions/folders", () => ({
   getFolders: vi.fn(),
   createFolder: vi.fn(),
   updateFolder: vi.fn(),
@@ -41,9 +52,11 @@ vi.mock('@/actions/folders', () => ({
 
 let mockLinks: Link[] = [];
 
-vi.mock('@/contexts/dashboard-service', () => ({
+vi.mock("@/contexts/dashboard-service", () => ({
   useDashboardState: () => ({
-    get links() { return mockLinks; },
+    get links() {
+      return mockLinks;
+    },
     folders: [],
     tags: [],
     linkTags: [],
@@ -52,7 +65,7 @@ vi.mock('@/contexts/dashboard-service', () => ({
     loading: false,
     ideasLoading: false,
     todosLoading: false,
-    siteUrl: 'https://zhe.to',
+    siteUrl: "https://zhe.to",
   }),
   useDashboardActions: () => ({
     ensureIdeasLoaded: vi.fn(),
@@ -73,7 +86,7 @@ let mockFoldersVm: FoldersViewModel = {
   cancelEditing: vi.fn(),
 };
 
-vi.mock('@/viewmodels/useFoldersViewModel', () => ({
+vi.mock("@/viewmodels/useFoldersViewModel", () => ({
   useFoldersViewModel: () => mockFoldersVm,
 }));
 
@@ -87,12 +100,12 @@ let mockSidebarCtx = {
   setMobileOpen: vi.fn(),
 };
 
-vi.mock('@/components/sidebar-context', () => ({
+vi.mock("@/components/sidebar-context", () => ({
   useSidebar: () => mockSidebarCtx,
   SidebarProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-import { Sidebar } from '@/components/sidebar';
+import { Sidebar } from "@/components/sidebar";
 
 function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
   mockFoldersVm = {
@@ -109,27 +122,29 @@ function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
   };
 }
 
-function renderSidebar(props: Partial<Parameters<typeof Sidebar>[0]> & { collapsed?: boolean } = {}) {
+function renderSidebar(
+  props: Partial<Parameters<typeof Sidebar>[0]> & { collapsed?: boolean } = {},
+) {
   const { collapsed, ...sidebarProps } = props;
   // Set the mock context before rendering
   if (collapsed !== undefined) {
     mockSidebarCtx.collapsed = collapsed;
   }
   const defaultProps = {
-    user: { name: 'Test User', email: 'test@example.com', image: null },
+    user: { name: "Test User", email: "test@example.com", image: null },
     signOutAction: vi.fn(async () => {}),
     ...sidebarProps,
   };
   return render(
     <TooltipProvider>
       <Sidebar {...defaultProps} />
-    </TooltipProvider>
+    </TooltipProvider>,
   );
 }
 
-describe('Sidebar', () => {
+describe("Sidebar", () => {
   beforeEach(() => {
-    mockPathname = '/dashboard';
+    mockPathname = "/dashboard";
     mockSearchParamsFolder = null;
     mockLinks = [];
     mockSidebarCtx = {
@@ -148,250 +163,264 @@ describe('Sidebar', () => {
     cleanup();
   });
 
-  describe('collapsed mode', () => {
-    it('renders narrow sidebar with icon-only navigation', () => {
+  describe("collapsed mode", () => {
+    it("renders narrow sidebar with icon-only navigation", () => {
       const { container } = renderSidebar({ collapsed: true });
 
       // Should render the narrow aside (68px)
-      const aside = container.querySelector('aside');
+      const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain('w-[68px]');
+      expect(aside?.className).toContain("w-[68px]");
 
       // "全部链接" and "Inbox" should not be visible as text
-      expect(screen.queryByText('全部链接')).not.toBeInTheDocument();
-      expect(screen.queryByText('Inbox')).not.toBeInTheDocument();
+      expect(screen.queryByText("全部链接")).not.toBeInTheDocument();
+      expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
     });
 
-    it('renders all nav items as links in collapsed mode', () => {
+    it("renders all nav items as links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
       // All items (3 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
-      const navLinks = container.querySelectorAll('nav a');
+      const navLinks = container.querySelectorAll("nav a");
       expect(navLinks.length).toBe(12);
     });
 
-    it('does not show version badge in collapsed mode', () => {
+    it("does not show version badge in collapsed mode", () => {
       renderSidebar({ collapsed: true });
       expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument();
     });
   });
 
-  describe('expanded mode', () => {
-    it('renders wide sidebar with text navigation', () => {
+  describe("expanded mode", () => {
+    it("renders wide sidebar with text navigation", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       // Should render the wide aside (260px)
-      const aside = container.querySelector('aside');
+      const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain('w-[260px]');
+      expect(aside?.className).toContain("w-[260px]");
 
       // Should display nav item text labels
-      expect(screen.getByText('全部链接')).toBeInTheDocument();
-      expect(screen.getByText('Inbox')).toBeInTheDocument();
+      expect(screen.getByText("全部链接")).toBeInTheDocument();
+      expect(screen.getByText("Inbox")).toBeInTheDocument();
     });
 
-    it('displays brand name ZHE.TO', () => {
+    it("displays brand name ZHE.TO", () => {
       renderSidebar({ collapsed: false });
-      expect(screen.getByText('ZHE.TO')).toBeInTheDocument();
+      expect(screen.getByText("ZHE.TO")).toBeInTheDocument();
     });
 
-    it('displays version badge next to brand name', () => {
+    it("displays version badge next to brand name", () => {
       renderSidebar({ collapsed: false });
       expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeInTheDocument();
     });
 
-    it('displays search button with text', () => {
+    it("displays search button with text", () => {
       renderSidebar({ collapsed: false });
-      expect(screen.getByText('搜索链接...')).toBeInTheDocument();
+      expect(screen.getByText("搜索链接...")).toBeInTheDocument();
     });
 
-    it('displays ⌘K keyboard shortcut hint in search button', () => {
+    it("displays ⌘K keyboard shortcut hint in search button", () => {
       renderSidebar({ collapsed: false });
-      expect(screen.getByText('K')).toBeInTheDocument();
+      expect(screen.getByText("K")).toBeInTheDocument();
     });
   });
 
-  describe('search functionality', () => {
-    it('opens search dialog when search button is clicked', () => {
+  describe("search functionality", () => {
+    it("opens search dialog when search button is clicked", () => {
       renderSidebar({ collapsed: false });
 
-      const searchButton = screen.getByText('搜索链接...').closest('button');
+      const searchButton = screen.getByText("搜索链接...").closest("button");
       expect(searchButton).toBeInTheDocument();
       fireEvent.click(unwrap(searchButton));
 
       // SearchCommandDialog should render with a search input
-      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
-    it('opens search dialog on Cmd+K', () => {
+    it("opens search dialog on Cmd+K", () => {
       renderSidebar({ collapsed: false });
 
-      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+      fireEvent.keyDown(document, { key: "k", metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
-    it('opens search dialog on Ctrl+K', () => {
+    it("opens search dialog on Ctrl+K", () => {
       renderSidebar({ collapsed: false });
 
-      fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
+      fireEvent.keyDown(document, { key: "k", ctrlKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
-    it('toggles search dialog closed on second Cmd+K', () => {
+    it("toggles search dialog closed on second Cmd+K", () => {
       renderSidebar({ collapsed: false });
 
       // Open
-      fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      fireEvent.keyDown(document, { key: "k", metaKey: true });
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
 
       // Close — the CommandInput placeholder should disappear
-      fireEvent.keyDown(document, { key: 'k', metaKey: true });
-      expect(screen.queryByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).not.toBeInTheDocument();
+      fireEvent.keyDown(document, { key: "k", metaKey: true });
+      expect(
+        screen.queryByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).not.toBeInTheDocument();
     });
 
-    it('does not open search dialog on plain K key', () => {
+    it("does not open search dialog on plain K key", () => {
       renderSidebar({ collapsed: false });
 
-      fireEvent.keyDown(document, { key: 'k' });
+      fireEvent.keyDown(document, { key: "k" });
 
       // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
-      const allMatches = screen.queryAllByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...');
+      const allMatches = screen.queryAllByPlaceholderText(
+        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
+      );
       expect(allMatches).toHaveLength(0);
     });
 
-    it('does not render search button in collapsed mode', () => {
+    it("does not render search button in collapsed mode", () => {
       renderSidebar({ collapsed: true });
 
-      expect(screen.queryByText('搜索链接...')).not.toBeInTheDocument();
+      expect(screen.queryByText("搜索链接...")).not.toBeInTheDocument();
     });
 
-    it('opens search dialog on Cmd+K even when sidebar is collapsed', () => {
+    it("opens search dialog on Cmd+K even when sidebar is collapsed", () => {
       renderSidebar({ collapsed: true });
 
-      fireEvent.keyDown(document, { key: 'k', metaKey: true });
+      fireEvent.keyDown(document, { key: "k", metaKey: true });
 
-      expect(screen.getByPlaceholderText('搜索链接、想法、待办 · 跳转页面 · 触发动作...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+      ).toBeInTheDocument();
     });
 
-    it('prevents default browser behavior on Cmd+K', () => {
+    it("prevents default browser behavior on Cmd+K", () => {
       renderSidebar({ collapsed: false });
 
-      const event = new KeyboardEvent('keydown', {
-        key: 'k',
+      const event = new KeyboardEvent("keydown", {
+        key: "k",
         metaKey: true,
         bubbles: true,
         cancelable: true,
       });
-      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+      const preventDefaultSpy = vi.spyOn(event, "preventDefault");
       document.dispatchEvent(event);
 
       expect(preventDefaultSpy).toHaveBeenCalled();
     });
   });
 
-  describe('overview nav item', () => {
+  describe("overview nav item", () => {
     it('renders "概览" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
       // Find the link by href (the section label "概览" also exists as text)
-      const overviewLink = screen.getByRole('link', { name: '概览' });
+      const overviewLink = screen.getByRole("link", { name: "概览" });
       expect(overviewLink).toBeInTheDocument();
-      expect(overviewLink.getAttribute('href')).toBe('/dashboard/overview');
+      expect(overviewLink.getAttribute("href")).toBe("/dashboard/overview");
     });
 
     it('highlights "概览" when on overview page', () => {
-      mockPathname = '/dashboard/overview';
+      mockPathname = "/dashboard/overview";
       renderSidebar({ collapsed: false });
 
-      const overviewLink = screen.getByRole('link', { name: '概览' });
-      expect(overviewLink.className).toContain('bg-primary/10');
-      expect(overviewLink.className).toContain('text-primary');
+      const overviewLink = screen.getByRole("link", { name: "概览" });
+      expect(overviewLink.className).toContain("bg-primary/10");
+      expect(overviewLink.className).toContain("text-primary");
     });
 
-    it('renders overview section label above 链接管理', () => {
+    it("renders overview section label above 链接管理", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       // Find section labels by B-2 spec class (upgraded from text-sm font-normal)
-      const sectionLabels = container.querySelectorAll('.text-xs.font-medium.uppercase');
+      const sectionLabels = container.querySelectorAll(".text-xs.font-medium.uppercase");
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
       // Overview should come before 链接管理
-      const overviewIndex = labels.indexOf('概览');
-      const linksIndex = labels.indexOf('链接管理');
+      const overviewIndex = labels.indexOf("概览");
+      const linksIndex = labels.indexOf("链接管理");
       expect(overviewIndex).toBeLessThan(linksIndex);
     });
   });
 
-  describe('folder nav items as links', () => {
+  describe("folder nav items as links", () => {
     it('renders "全部链接" and "Inbox" as links not buttons', () => {
       renderSidebar({ collapsed: false });
 
-      const allLinksAnchor = screen.getByText('全部链接').closest('a');
+      const allLinksAnchor = screen.getByText("全部链接").closest("a");
       expect(allLinksAnchor).toBeInTheDocument();
-      expect(allLinksAnchor?.getAttribute('href')).toBe('/dashboard');
+      expect(allLinksAnchor?.getAttribute("href")).toBe("/dashboard");
 
-      const uncategorizedAnchor = screen.getByText('Inbox').closest('a');
+      const uncategorizedAnchor = screen.getByText("Inbox").closest("a");
       expect(uncategorizedAnchor).toBeInTheDocument();
-      expect(uncategorizedAnchor?.getAttribute('href')).toBe('/dashboard?folder=uncategorized');
+      expect(uncategorizedAnchor?.getAttribute("href")).toBe("/dashboard?folder=uncategorized");
     });
 
     it('highlights "全部链接" when no folder param in URL', () => {
       mockSearchParamsFolder = null;
       renderSidebar({ collapsed: false });
 
-      const allLinksAnchor = screen.getByText('全部链接').closest('a');
-      expect(allLinksAnchor?.className).toContain('bg-primary/10');
-      expect(allLinksAnchor?.className).toContain('text-primary');
+      const allLinksAnchor = screen.getByText("全部链接").closest("a");
+      expect(allLinksAnchor?.className).toContain("bg-primary/10");
+      expect(allLinksAnchor?.className).toContain("text-primary");
     });
 
     it('highlights "Inbox" when folder=uncategorized in URL', () => {
-      mockSearchParamsFolder = 'uncategorized';
+      mockSearchParamsFolder = "uncategorized";
       renderSidebar({ collapsed: false });
 
-      const uncategorizedAnchor = screen.getByText('Inbox').closest('a');
-      expect(uncategorizedAnchor?.className).toContain('bg-primary/10');
-      expect(uncategorizedAnchor?.className).toContain('text-primary');
+      const uncategorizedAnchor = screen.getByText("Inbox").closest("a");
+      expect(uncategorizedAnchor?.className).toContain("bg-primary/10");
+      expect(uncategorizedAnchor?.className).toContain("text-primary");
 
-      const allLinksAnchor = screen.getByText('全部链接').closest('a');
-      expect(allLinksAnchor?.className).toContain('text-muted-foreground');
+      const allLinksAnchor = screen.getByText("全部链接").closest("a");
+      expect(allLinksAnchor?.className).toContain("text-muted-foreground");
     });
   });
 
-  describe('user avatar', () => {
-    it('shows fallback initial when no image is provided', () => {
+  describe("user avatar", () => {
+    it("shows fallback initial when no image is provided", () => {
       renderSidebar({
         collapsed: false,
-        user: { name: 'Test User', email: 'test@example.com', image: null },
+        user: { name: "Test User", email: "test@example.com", image: null },
       });
 
       // AvatarFallback renders the first character of the name
-      expect(screen.getByText('T')).toBeInTheDocument();
+      expect(screen.getByText("T")).toBeInTheDocument();
     });
 
     it('shows "U" fallback when user has no name and no image', () => {
       renderSidebar({
         collapsed: false,
-        user: { name: null, email: 'test@example.com', image: null },
+        user: { name: null, email: "test@example.com", image: null },
       });
 
-      expect(screen.getByText('U')).toBeInTheDocument();
+      expect(screen.getByText("U")).toBeInTheDocument();
     });
 
-    it('displays user name and email in expanded mode', () => {
+    it("displays user name and email in expanded mode", () => {
       renderSidebar({
         collapsed: false,
-        user: { name: 'Alice', email: 'alice@example.com', image: null },
+        user: { name: "Alice", email: "alice@example.com", image: null },
       });
 
-      expect(screen.getByText('Alice')).toBeInTheDocument();
-      expect(screen.getByText('alice@example.com')).toBeInTheDocument();
+      expect(screen.getByText("Alice")).toBeInTheDocument();
+      expect(screen.getByText("alice@example.com")).toBeInTheDocument();
     });
   });
 
-  describe('sign out button', () => {
-    it('renders a sign out submit button in expanded mode', () => {
+  describe("sign out button", () => {
+    it("renders a sign out submit button in expanded mode", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const submitButton = container.querySelector('form button[type="submit"]');
@@ -399,72 +428,78 @@ describe('Sidebar', () => {
     });
   });
 
-  describe('toggle button', () => {
-    it('calls toggle when toggle button is clicked', () => {
+  describe("toggle button", () => {
+    it("calls toggle when toggle button is clicked", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       // The toggle button contains the PanelLeft icon and is in the header area
-      const buttons = container.querySelectorAll('button');
+      const buttons = container.querySelectorAll("button");
       // First button in header area is the toggle (not the submit button)
-      const toggleButton = Array.from(buttons).find((btn) =>
-        !btn.getAttribute('type') || btn.getAttribute('type') !== 'submit'
+      const toggleButton = Array.from(buttons).find(
+        (btn) => !btn.getAttribute("type") || btn.getAttribute("type") !== "submit",
       );
       fireEvent.click(unwrap(toggleButton));
       expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
     });
   });
 
-  describe('folders in sidebar', () => {
+  describe("folders in sidebar", () => {
     const mockFolders = [
-      { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
-      { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
+      {
+        id: "f1",
+        userId: "u1",
+        name: "工作",
+        icon: "briefcase",
+        createdAt: new Date("2026-01-01"),
+      },
+      { id: "f2", userId: "u1", name: "个人", icon: "heart", createdAt: new Date("2026-01-02") },
     ];
 
-    it('renders folder items in expanded mode', () => {
+    it("renders folder items in expanded mode", () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('工作')).toBeInTheDocument();
-      expect(screen.getByText('个人')).toBeInTheDocument();
+      expect(screen.getByText("工作")).toBeInTheDocument();
+      expect(screen.getByText("个人")).toBeInTheDocument();
     });
 
-    it('renders folder items as links with correct href', () => {
+    it("renders folder items as links with correct href", () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const workLink = screen.getByText('工作').closest('a');
+      const workLink = screen.getByText("工作").closest("a");
       expect(workLink).toBeInTheDocument();
-      expect(workLink?.getAttribute('href')).toBe('/dashboard?folder=f1');
+      expect(workLink?.getAttribute("href")).toBe("/dashboard?folder=f1");
     });
 
-    it('highlights selected folder based on URL param', () => {
-      mockSearchParamsFolder = 'f2';
+    it("highlights selected folder based on URL param", () => {
+      mockSearchParamsFolder = "f2";
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const personalLink = screen.getByText('个人').closest('a');
-      expect(personalLink?.className).toContain('bg-primary/10');
-      expect(personalLink?.className).toContain('text-primary');
+      const personalLink = screen.getByText("个人").closest("a");
+      expect(personalLink?.className).toContain("bg-primary/10");
+      expect(personalLink?.className).toContain("text-primary");
 
-      const workLink = screen.getByText('工作').closest('a');
-      expect(workLink?.className).toContain('text-muted-foreground');
+      const workLink = screen.getByText("工作").closest("a");
+      expect(workLink?.className).toContain("text-muted-foreground");
     });
 
-    it('renders no folder items when folders is empty', () => {
+    it("renders no folder items when folders is empty", () => {
       resetMockFoldersVm({ folders: [] });
       renderSidebar({ collapsed: false });
 
       // Static items still exist
-      expect(screen.getByText('全部链接')).toBeInTheDocument();
-      expect(screen.getByText('Inbox')).toBeInTheDocument();
+      expect(screen.getByText("全部链接")).toBeInTheDocument();
+      expect(screen.getByText("Inbox")).toBeInTheDocument();
     });
 
-    it('shows folder icons in collapsed mode as tooltip links', () => {
+    it("shows folder icons in collapsed mode as tooltip links", () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
       // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 14
-      const navLinks = container.querySelectorAll('nav a');
+      const navLinks = container.querySelectorAll("nav a");
       expect(navLinks.length).toBe(14);
     });
 
@@ -472,43 +507,43 @@ describe('Sidebar', () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByLabelText('新建文件夹')).toBeInTheDocument();
+      expect(screen.getByLabelText("新建文件夹")).toBeInTheDocument();
     });
 
     it('calls setIsCreating(true) when "新建文件夹" button is clicked', () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      fireEvent.click(screen.getByLabelText('新建文件夹'));
+      fireEvent.click(screen.getByLabelText("新建文件夹"));
       expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(true);
     });
 
-    it('renders SidebarFolderItem with context menu trigger for each folder', () => {
+    it("renders SidebarFolderItem with context menu trigger for each folder", () => {
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
       // Each SidebarFolderItem in normal mode has a "文件夹操作" menu trigger
-      const menuTriggers = screen.getAllByLabelText('文件夹操作');
+      const menuTriggers = screen.getAllByLabelText("文件夹操作");
       expect(menuTriggers).toHaveLength(2);
     });
 
-    it('shows edit form for the folder being edited', () => {
+    it("shows edit form for the folder being edited", () => {
       resetMockFoldersVm({
         folders: mockFolders,
-        editingFolderId: 'f1',
+        editingFolderId: "f1",
       });
       renderSidebar({ collapsed: false });
 
       // The editing folder should show an input with its name
-      expect(screen.getByDisplayValue('工作')).toBeInTheDocument();
-      expect(screen.getByLabelText('确认')).toBeInTheDocument();
-      expect(screen.getByLabelText('取消')).toBeInTheDocument();
+      expect(screen.getByDisplayValue("工作")).toBeInTheDocument();
+      expect(screen.getByLabelText("确认")).toBeInTheDocument();
+      expect(screen.getByLabelText("取消")).toBeInTheDocument();
 
       // The non-editing folder should still show normally
-      expect(screen.getByText('个人')).toBeInTheDocument();
+      expect(screen.getByText("个人")).toBeInTheDocument();
     });
 
-    it('shows create form when isCreating is true', () => {
+    it("shows create form when isCreating is true", () => {
       resetMockFoldersVm({
         folders: mockFolders,
         isCreating: true,
@@ -516,272 +551,270 @@ describe('Sidebar', () => {
       renderSidebar({ collapsed: false });
 
       // SidebarFolderCreate renders an empty input with placeholder
-      expect(screen.getByPlaceholderText('文件夹名称')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("文件夹名称")).toBeInTheDocument();
     });
 
-    it('does not show create form when isCreating is false', () => {
+    it("does not show create form when isCreating is false", () => {
       resetMockFoldersVm({
         folders: mockFolders,
         isCreating: false,
       });
       renderSidebar({ collapsed: false });
 
-      expect(screen.queryByPlaceholderText('文件夹名称')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("文件夹名称")).not.toBeInTheDocument();
     });
 
-    it('wires handleCreateFolder to SidebarFolderCreate onCreate', () => {
+    it("wires handleCreateFolder to SidebarFolderCreate onCreate", () => {
       resetMockFoldersVm({
         folders: mockFolders,
         isCreating: true,
       });
       renderSidebar({ collapsed: false });
 
-      const input = screen.getByPlaceholderText('文件夹名称');
-      fireEvent.change(input, { target: { value: '新文件夹' } });
-      fireEvent.click(screen.getByLabelText('确认'));
+      const input = screen.getByPlaceholderText("文件夹名称");
+      fireEvent.change(input, { target: { value: "新文件夹" } });
+      fireEvent.click(screen.getByLabelText("确认"));
 
-      expect(mockFoldersVm.handleCreateFolder).toHaveBeenCalledWith('新文件夹', 'folder');
+      expect(mockFoldersVm.handleCreateFolder).toHaveBeenCalledWith("新文件夹", "folder");
     });
 
-    it('wires setIsCreating(false) to SidebarFolderCreate onCancel', () => {
+    it("wires setIsCreating(false) to SidebarFolderCreate onCancel", () => {
       resetMockFoldersVm({
         folders: mockFolders,
         isCreating: true,
       });
       renderSidebar({ collapsed: false });
 
-      fireEvent.click(screen.getByLabelText('取消'));
+      fireEvent.click(screen.getByLabelText("取消"));
       expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(false);
     });
   });
 
-  describe('工具 nav group', () => {
+  describe("工具 nav group", () => {
     it('renders "工具" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('工具')).toBeInTheDocument();
+      expect(screen.getByText("工具")).toBeInTheDocument();
     });
 
     it('renders "Backy" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      const backyLink = screen.getByRole('link', { name: 'Backy' });
+      const backyLink = screen.getByRole("link", { name: "Backy" });
       expect(backyLink).toBeInTheDocument();
-      expect(backyLink.getAttribute('href')).toBe('/dashboard/backy');
+      expect(backyLink.getAttribute("href")).toBe("/dashboard/backy");
     });
 
     it('highlights "Backy" when on backy page', () => {
-      mockPathname = '/dashboard/backy';
+      mockPathname = "/dashboard/backy";
       renderSidebar({ collapsed: false });
 
-      const backyLink = screen.getByRole('link', { name: 'Backy' });
-      expect(backyLink.className).toContain('bg-primary/10');
-      expect(backyLink.className).toContain('text-primary');
+      const backyLink = screen.getByRole("link", { name: "Backy" });
+      expect(backyLink.className).toContain("bg-primary/10");
+      expect(backyLink.className).toContain("text-primary");
     });
 
     it('renders "Xray" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      const xrayLink = screen.getByRole('link', { name: 'Xray' });
+      const xrayLink = screen.getByRole("link", { name: "Xray" });
       expect(xrayLink).toBeInTheDocument();
-      expect(xrayLink.getAttribute('href')).toBe('/dashboard/xray');
+      expect(xrayLink.getAttribute("href")).toBe("/dashboard/xray");
     });
 
     it('highlights "Xray" when on xray page', () => {
-      mockPathname = '/dashboard/xray';
+      mockPathname = "/dashboard/xray";
       renderSidebar({ collapsed: false });
 
-      const xrayLink = screen.getByRole('link', { name: 'Xray' });
-      expect(xrayLink.className).toContain('bg-primary/10');
-      expect(xrayLink.className).toContain('text-primary');
+      const xrayLink = screen.getByRole("link", { name: "Xray" });
+      expect(xrayLink.className).toContain("bg-primary/10");
+      expect(xrayLink.className).toContain("text-primary");
     });
   });
 
-  describe('集成 / 设置 nav groups', () => {
+  describe("集成 / 设置 nav groups", () => {
     it('renders "集成" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('集成')).toBeInTheDocument();
+      expect(screen.getByText("集成")).toBeInTheDocument();
     });
 
     it('renders "设置" section label in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      expect(screen.getByText('设置')).toBeInTheDocument();
+      expect(screen.getByText("设置")).toBeInTheDocument();
     });
 
     it('renders "数据管理" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
-      const dataLink = screen.getByRole('link', { name: '数据管理' });
+      const dataLink = screen.getByRole("link", { name: "数据管理" });
       expect(dataLink).toBeInTheDocument();
-      expect(dataLink.getAttribute('href')).toBe('/dashboard/data-management');
+      expect(dataLink.getAttribute("href")).toBe("/dashboard/data-management");
     });
 
     it('highlights "数据管理" when on data management page', () => {
-      mockPathname = '/dashboard/data-management';
+      mockPathname = "/dashboard/data-management";
       renderSidebar({ collapsed: false });
 
-      const dataLink = screen.getByRole('link', { name: '数据管理' });
-      expect(dataLink.className).toContain('bg-primary/10');
-      expect(dataLink.className).toContain('text-primary');
+      const dataLink = screen.getByRole("link", { name: "数据管理" });
+      expect(dataLink.className).toContain("bg-primary/10");
+      expect(dataLink.className).toContain("text-primary");
     });
 
     it('renders "Webhook" link in expanded mode with Legacy badge', () => {
       renderSidebar({ collapsed: false });
 
-      const webhookLink = screen.getByRole('link', { name: /Webhook/ });
+      const webhookLink = screen.getByRole("link", { name: /Webhook/ });
       expect(webhookLink).toBeInTheDocument();
-      expect(webhookLink.getAttribute('href')).toBe('/dashboard/webhook');
-      expect(webhookLink.textContent).toContain('Legacy');
+      expect(webhookLink.getAttribute("href")).toBe("/dashboard/webhook");
+      expect(webhookLink.textContent).toContain("Legacy");
     });
 
     it('highlights "Webhook" when on webhook page', () => {
-      mockPathname = '/dashboard/webhook';
+      mockPathname = "/dashboard/webhook";
       renderSidebar({ collapsed: false });
 
-      const webhookLink = screen.getByRole('link', { name: /Webhook/ });
-      expect(webhookLink.className).toContain('bg-primary/10');
-      expect(webhookLink.className).toContain('text-primary');
+      const webhookLink = screen.getByRole("link", { name: /Webhook/ });
+      expect(webhookLink.className).toContain("bg-primary/10");
+      expect(webhookLink.className).toContain("text-primary");
     });
 
-    it('renders 集成 and 设置 sections below 工具 section', () => {
+    it("renders 集成 and 设置 sections below 工具 section", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const sectionLabels = container.querySelectorAll('.text-xs.font-medium.uppercase');
+      const sectionLabels = container.querySelectorAll(".text-xs.font-medium.uppercase");
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
-      const toolsIndex = labels.indexOf('工具');
-      const integrationsIndex = labels.indexOf('集成');
-      const settingsIndex = labels.indexOf('设置');
+      const toolsIndex = labels.indexOf("工具");
+      const integrationsIndex = labels.indexOf("集成");
+      const settingsIndex = labels.indexOf("设置");
       expect(toolsIndex).toBeGreaterThanOrEqual(0);
       expect(integrationsIndex).toBeGreaterThan(toolsIndex);
       expect(settingsIndex).toBeGreaterThan(integrationsIndex);
     });
 
-    it('renders all nav links in collapsed mode', () => {
+    it("renders all nav links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
       // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 12
-      const navLinks = container.querySelectorAll('nav a');
+      const navLinks = container.querySelectorAll("nav a");
       expect(navLinks.length).toBe(12);
     });
   });
 
-  describe('collapsible nav groups', () => {
-    it('renders ChevronUp icon for each nav group', () => {
+  describe("collapsible nav groups", () => {
+    it("renders ChevronUp icon for each nav group", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       // 5 groups: 概览, 链接管理, 工具, 集成, 设置
-      const triggers = container.querySelectorAll('[data-state]');
+      const triggers = container.querySelectorAll("[data-state]");
       expect(triggers.length).toBeGreaterThanOrEqual(5);
     });
 
-    it('uses B-2 spec group label styling', () => {
+    it("uses B-2 spec group label styling", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const labels = container.querySelectorAll('.text-xs.font-medium.uppercase.tracking-wider');
+      const labels = container.querySelectorAll(".text-xs.font-medium.uppercase.tracking-wider");
       // 5 groups: 概览, 链接管理, 工具, 集成, 设置
       expect(labels.length).toBe(5);
     });
   });
 
-  describe('link count badges', () => {
+  describe("link count badges", () => {
     const mockFolders = [
-      { id: 'f1', userId: 'u1', name: '工作', icon: 'briefcase', createdAt: new Date('2026-01-01') },
-      { id: 'f2', userId: 'u1', name: '个人', icon: 'heart', createdAt: new Date('2026-01-02') },
+      {
+        id: "f1",
+        userId: "u1",
+        name: "工作",
+        icon: "briefcase",
+        createdAt: new Date("2026-01-01"),
+      },
+      { id: "f2", userId: "u1", name: "个人", icon: "heart", createdAt: new Date("2026-01-02") },
     ];
 
     it('shows total link count next to "全部链接"', () => {
       mockLinks = [
         makeLink({ id: 1, folderId: null }),
-        makeLink({ id: 2, folderId: 'f1' }),
-        makeLink({ id: 3, folderId: 'f2' }),
+        makeLink({ id: 2, folderId: "f1" }),
+        makeLink({ id: 3, folderId: "f2" }),
       ];
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const allLinksItem = unwrap(screen.getByText('全部链接').closest('a'));
-      expect(allLinksItem.textContent).toContain('3');
+      const allLinksItem = unwrap(screen.getByText("全部链接").closest("a"));
+      expect(allLinksItem.textContent).toContain("3");
     });
 
     it('shows uncategorized link count next to "Inbox"', () => {
       mockLinks = [
         makeLink({ id: 1, folderId: null }),
         makeLink({ id: 2, folderId: null }),
-        makeLink({ id: 3, folderId: 'f1' }),
+        makeLink({ id: 3, folderId: "f1" }),
       ];
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
-      const uncategorizedItem = unwrap(screen.getByText('Inbox').closest('a'));
-      expect(uncategorizedItem.textContent).toContain('2');
+      const uncategorizedItem = unwrap(screen.getByText("Inbox").closest("a"));
+      expect(uncategorizedItem.textContent).toContain("2");
     });
 
-    it('shows per-folder link count next to folder name', () => {
+    it("shows per-folder link count next to folder name", () => {
       mockLinks = [
-        makeLink({ id: 1, folderId: 'f1' }),
-        makeLink({ id: 2, folderId: 'f1' }),
-        makeLink({ id: 3, folderId: 'f1' }),
-        makeLink({ id: 4, folderId: 'f2' }),
+        makeLink({ id: 1, folderId: "f1" }),
+        makeLink({ id: 2, folderId: "f1" }),
+        makeLink({ id: 3, folderId: "f1" }),
+        makeLink({ id: 4, folderId: "f2" }),
       ];
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
       // SidebarFolderItem for '工作' should display count 3
-      const workItem = unwrap(screen.getByText('工作').closest('a'));
-      expect(workItem.textContent).toContain('3');
+      const workItem = unwrap(screen.getByText("工作").closest("a"));
+      expect(workItem.textContent).toContain("3");
 
       // SidebarFolderItem for '个人' should display count 1
-      const personalItem = unwrap(screen.getByText('个人').closest('a'));
-      expect(personalItem.textContent).toContain('1');
+      const personalItem = unwrap(screen.getByText("个人").closest("a"));
+      expect(personalItem.textContent).toContain("1");
     });
 
-    it('shows 0 count for folder with no links', () => {
-      mockLinks = [
-        makeLink({ id: 1, folderId: 'f1' }),
-      ];
+    it("shows 0 count for folder with no links", () => {
+      mockLinks = [makeLink({ id: 1, folderId: "f1" })];
       resetMockFoldersVm({ folders: mockFolders });
       renderSidebar({ collapsed: false });
 
       // '个人' (f2) has no links, should show 0
-      const personalItem = unwrap(screen.getByText('个人').closest('a'));
-      expect(personalItem.textContent).toContain('0');
+      const personalItem = unwrap(screen.getByText("个人").closest("a"));
+      expect(personalItem.textContent).toContain("0");
     });
 
     it('wraps "全部链接" and "Inbox" counts in a fixed-width w-5 container', () => {
-      mockLinks = [
-        makeLink({ id: 1, folderId: null }),
-        makeLink({ id: 2, folderId: null }),
-      ];
+      mockLinks = [makeLink({ id: 1, folderId: null }), makeLink({ id: 2, folderId: null })];
       resetMockFoldersVm({ folders: [] });
       renderSidebar({ collapsed: false });
 
-      const allLinksItem = unwrap(screen.getByText('全部链接').closest('a'));
-      const allCount = unwrap(allLinksItem.querySelector('.tabular-nums'));
+      const allLinksItem = unwrap(screen.getByText("全部链接").closest("a"));
+      const allCount = unwrap(allLinksItem.querySelector(".tabular-nums"));
       const allContainer = unwrap(allCount.parentElement);
-      expect(allContainer.className).toContain('w-5');
-      expect(allContainer.className).toContain('shrink-0');
+      expect(allContainer.className).toContain("w-5");
+      expect(allContainer.className).toContain("shrink-0");
 
-      const uncategorizedItem = unwrap(screen.getByText('Inbox').closest('a'));
-      const uncatCount = unwrap(uncategorizedItem.querySelector('.tabular-nums'));
+      const uncategorizedItem = unwrap(screen.getByText("Inbox").closest("a"));
+      const uncatCount = unwrap(uncategorizedItem.querySelector(".tabular-nums"));
       const uncatContainer = unwrap(uncatCount.parentElement);
-      expect(uncatContainer.className).toContain('w-5');
-      expect(uncatContainer.className).toContain('shrink-0');
+      expect(uncatContainer.className).toContain("w-5");
+      expect(uncatContainer.className).toContain("shrink-0");
     });
 
-    it('does not show count badges in collapsed mode', () => {
-      mockLinks = [
-        makeLink({ id: 1, folderId: null }),
-        makeLink({ id: 2, folderId: 'f1' }),
-      ];
+    it("does not show count badges in collapsed mode", () => {
+      mockLinks = [makeLink({ id: 1, folderId: null }), makeLink({ id: 2, folderId: "f1" })];
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
       // Collapsed mode should not have any count text (just icons)
       // The nav should only contain icon links, no text counts
-      const navText = container.querySelector('nav')?.textContent ?? '';
-      expect(navText.trim()).toBe('');
+      const navText = container.querySelector("nav")?.textContent ?? "";
+      expect(navText.trim()).toBe("");
     });
   });
 });

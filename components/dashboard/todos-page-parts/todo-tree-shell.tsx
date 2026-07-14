@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useRef } from "react";
-import { Tree, type NodeRendererProps, type TreeApi } from "react-arborist";
+import { type NodeRendererProps, Tree, type TreeApi } from "react-arborist";
 import type { TodoForestNode } from "@/models/todos";
 import { TodoTreeRow } from "./todo-tree-row";
 

@@ -4,11 +4,11 @@
  * NextResponse error to short-circuit.
  */
 
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/auth";
 import { slugExists } from "@/lib/db";
+import type { ScopedDB } from "@/lib/db/scoped";
 import { generateUniqueSlug } from "@/lib/slug";
-import { ScopedDB } from "@/lib/db/scoped";
 
 /** Validate url field is a string and parses as a URL. */
 export function validateUrl(value: unknown): NextResponse | string {
@@ -53,10 +53,7 @@ export async function resolveSlug(
 }
 
 /** Validate folderId is a string and references an existing folder, if provided. */
-export async function validateFolderId(
-  db: ScopedDB,
-  value: unknown,
-): Promise<NextResponse | null> {
+export async function validateFolderId(db: ScopedDB, value: unknown): Promise<NextResponse | null> {
   if (value === undefined) return null;
   if (typeof value !== "string") {
     return apiError("'folderId' must be a string", 400);
@@ -73,7 +70,7 @@ export function parseExpiresAt(value: unknown): NextResponse | Date | undefined 
     return apiError("'expiresAt' must be a string (ISO 8601 format)", 400);
   }
   const parsed = new Date(value);
-  if (isNaN(parsed.getTime())) {
+  if (Number.isNaN(parsed.getTime())) {
     return apiError("Invalid expiresAt format. Use ISO 8601.", 400);
   }
   if (parsed.getTime() <= Date.now()) {

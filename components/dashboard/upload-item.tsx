@@ -1,30 +1,34 @@
 "use client";
 
 import {
-  Copy,
   Check,
-  Trash2,
+  Copy,
   ExternalLink,
-  Image as ImageIcon,
   FileText,
+  Image as ImageIcon,
   Loader2,
+  Trash2,
   X,
 } from "lucide-react";
 import {
   AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { formatDate } from "@/lib/utils";
-import { useUploadItemViewModel, formatFileSize, isImageType } from "@/viewmodels/useUploadViewModel";
 import type { Upload } from "@/lib/db/schema";
+import { formatDate } from "@/lib/utils";
 import type { UploadingFile } from "@/models/upload";
+import {
+  formatFileSize,
+  isImageType,
+  useUploadItemViewModel,
+} from "@/viewmodels/useUploadViewModel";
 
 // ---------------------------------------------------------------------------
 // UploadItem — a completed upload in the list
@@ -46,6 +50,7 @@ function DeleteUploadDialog({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <button
+          type="button"
           aria-label="Delete file"
           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           disabled={isDeleting}
@@ -56,9 +61,7 @@ function DeleteUploadDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
-          <AlertDialogDescription>
-            此操作不可撤销，确定要删除这个文件吗？
-          </AlertDialogDescription>
+          <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
@@ -77,13 +80,15 @@ function DeleteUploadDialog({
 }
 
 export function UploadItem({ upload, onDelete }: UploadItemProps) {
-  const { copied, isDeleting, handleCopy, handleDelete } =
-    useUploadItemViewModel(upload, onDelete);
+  const { copied, isDeleting, handleCopy, handleDelete } = useUploadItemViewModel(upload, onDelete);
 
   const isImage = isImageType(upload.fileType);
 
   return (
-    <div data-testid="upload-item" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div
+      data-testid="upload-item"
+      className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
@@ -97,7 +102,10 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
 
           <div className="flex-1 min-w-0">
             {/* File name */}
-            <p data-testid="upload-file-name" className="text-sm font-medium text-foreground truncate">
+            <p
+              data-testid="upload-file-name"
+              className="text-sm font-medium text-foreground truncate"
+            >
               {upload.fileName}
             </p>
 
@@ -123,6 +131,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
         {/* Actions */}
         <div className="flex items-center gap-0.5">
           <button
+            type="button"
             onClick={handleCopy}
             aria-label="Copy link"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -161,7 +170,10 @@ interface UploadingItemProps {
 
 export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
   return (
-    <div data-testid="uploading-item" className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors">
+    <div
+      data-testid="uploading-item"
+      className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors"
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}
@@ -176,9 +188,7 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
-              {file.fileName}
-            </p>
+            <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
             {file.status === "error" && file.error && (
               <p className="text-xs text-destructive mt-0.5">{file.error}</p>
             )}
@@ -190,15 +200,14 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
                 />
               </div>
             )}
-            {file.status === "success" && (
-              <p className="text-xs text-success mt-0.5">上传成功</p>
-            )}
+            {file.status === "success" && <p className="text-xs text-success mt-0.5">上传成功</p>}
           </div>
         </div>
 
         {/* Dismiss for errors */}
         {file.status === "error" && (
           <button
+            type="button"
             onClick={() => onDismiss(file.id)}
             aria-label="Dismiss"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

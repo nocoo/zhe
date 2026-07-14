@@ -1,26 +1,26 @@
-'use server';
+"use server";
 
-import { getScopedDB } from '@/lib/auth-context';
-import { ScopedDB } from '@/lib/db/scoped';
-import { getTweetCacheById, upsertTweetCache } from '@/lib/db';
+import { getScopedDB } from "@/lib/auth-context";
+import { getTweetCacheById, upsertTweetCache } from "@/lib/db";
+import type { ScopedDB } from "@/lib/db/scoped";
 import {
-  validateXrayConfig,
-  maskToken,
+  buildBookmarksApiUrl,
+  buildTweetApiUrl,
   extractTweetId,
   extractTweetImageUrl,
-  buildTweetApiUrl,
-  buildBookmarksApiUrl,
   MOCK_TWEET_RESPONSE,
-  type XrayTweetResponse,
-  type XrayTweetData,
+  maskToken,
+  validateXrayConfig,
   type XrayBookmarksResponse,
-} from '@/models/xray';
+  type XrayTweetData,
+  type XrayTweetResponse,
+} from "@/models/xray";
 
 /** Authenticated GET request to the xray API. */
 function xrayFetch(url: string, token: string): Promise<Response> {
   return fetch(url, {
-    method: 'GET',
-    headers: { 'accept': 'application/json', 'X-Webhook-Key': token },
+    method: "GET",
+    headers: { accept: "application/json", "X-Webhook-Key": token },
   });
 }
 
@@ -52,7 +52,7 @@ async function updateLinkFromTweet(
   });
   const imageUrl = extractTweetImageUrl(tweet);
   if (imageUrl) {
-    const { saveScreenshot } = await import('@/actions/links/screenshot');
+    const { saveScreenshot } = await import("@/actions/links/screenshot");
     saveScreenshot(linkId, imageUrl).catch(() => {});
   }
 }
@@ -69,7 +69,7 @@ export async function getXrayConfig(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getXraySettings();
     if (!config) return { success: true };
@@ -82,23 +82,20 @@ export async function getXrayConfig(): Promise<{
       },
     };
   } catch (error) {
-    console.error('Failed to get xray config:', error);
-    return { success: false, error: 'Failed to load xray config' };
+    console.error("Failed to get xray config:", error);
+    return { success: false, error: "Failed to load xray config" };
   }
 }
 
 /** Save xray API config (URL + token). */
-export async function saveXrayConfig(config: {
-  apiUrl: string;
-  apiToken: string;
-}): Promise<{
+export async function saveXrayConfig(config: { apiUrl: string; apiToken: string }): Promise<{
   success: boolean;
   data?: { apiUrl: string; maskedToken: string };
   error?: string;
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const validation = validateXrayConfig(config);
     if (!validation.valid) {
@@ -118,8 +115,8 @@ export async function saveXrayConfig(config: {
       },
     };
   } catch (error) {
-    console.error('Failed to save xray config:', error);
-    return { success: false, error: 'Failed to save xray config' };
+    console.error("Failed to save xray config:", error);
+    return { success: false, error: "Failed to save xray config" };
   }
 }
 
@@ -132,12 +129,12 @@ export async function fetchTweet(tweetUrl: string): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     // Extract tweet ID from the input
     const tweetId = extractTweetId(tweetUrl);
     if (!tweetId) {
-      return { success: false, error: '无法从输入中提取 Tweet ID，请检查 URL 格式' };
+      return { success: false, error: "无法从输入中提取 Tweet ID，请检查 URL 格式" };
     }
 
     // Check if API is configured
@@ -169,8 +166,8 @@ export async function fetchTweet(tweetUrl: string): Promise<{
       mock: false,
     };
   } catch (error) {
-    console.error('Failed to fetch tweet:', error);
-    return { success: false, error: '获取推文失败' };
+    console.error("Failed to fetch tweet:", error);
+    return { success: false, error: "获取推文失败" };
   }
 }
 
@@ -182,11 +179,11 @@ export async function fetchBookmarks(): Promise<{
 }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const config = await db.getXraySettings();
     if (!config) {
-      return { success: false, error: '请先配置 xray API' };
+      return { success: false, error: "请先配置 xray API" };
     }
 
     const apiUrl = buildBookmarksApiUrl(config.apiUrl);
@@ -202,8 +199,8 @@ export async function fetchBookmarks(): Promise<{
     const data: XrayBookmarksResponse = await res.json();
     return { success: true, data };
   } catch (error) {
-    console.error('Failed to fetch bookmarks:', error);
-    return { success: false, error: '获取书签失败' };
+    console.error("Failed to fetch bookmarks:", error);
+    return { success: false, error: "获取书签失败" };
   }
 }
 
@@ -223,10 +220,10 @@ export async function fetchAndCacheTweet(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const tweetId = extractTweetId(tweetUrl);
-    if (!tweetId) return { success: false, error: 'Invalid tweet URL' };
+    if (!tweetId) return { success: false, error: "Invalid tweet URL" };
 
     // Check cache first
     const cached = await getTweetCacheById(tweetId);
@@ -241,7 +238,7 @@ export async function fetchAndCacheTweet(
 
     // Cache miss — fetch from API
     const config = await db.getXraySettings();
-    if (!config) return { success: false, error: 'xray API not configured' };
+    if (!config) return { success: false, error: "xray API not configured" };
 
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
     const res = await xrayFetch(apiUrl, config.apiToken);
@@ -263,8 +260,8 @@ export async function fetchAndCacheTweet(
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to fetch and cache tweet:', error);
-    return { success: false, error: 'Failed to fetch tweet' };
+    console.error("Failed to fetch and cache tweet:", error);
+    return { success: false, error: "Failed to fetch tweet" };
   }
 }
 
@@ -280,13 +277,13 @@ export async function forceRefreshTweetCache(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const db = await getScopedDB();
-    if (!db) return { success: false, error: 'Unauthorized' };
+    if (!db) return { success: false, error: "Unauthorized" };
 
     const tweetId = extractTweetId(tweetUrl);
-    if (!tweetId) return { success: false, error: 'Invalid tweet URL' };
+    if (!tweetId) return { success: false, error: "Invalid tweet URL" };
 
     const config = await db.getXraySettings();
-    if (!config) return { success: false, error: 'xray API not configured' };
+    if (!config) return { success: false, error: "xray API not configured" };
 
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
     const res = await xrayFetch(apiUrl, config.apiToken);
@@ -306,7 +303,7 @@ export async function forceRefreshTweetCache(
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to force refresh tweet cache:', error);
-    return { success: false, error: 'Failed to refresh tweet' };
+    console.error("Failed to force refresh tweet cache:", error);
+    return { success: false, error: "Failed to refresh tweet" };
   }
 }

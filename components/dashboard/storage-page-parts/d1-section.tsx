@@ -11,9 +11,13 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
         <Database className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
         <h3 className="text-sm font-medium">Cloudflare D1</h3>
         {data.connected ? (
-          <Badge variant="success" className="text-[10px]">connected</Badge>
+          <Badge variant="success" className="text-[10px]">
+            connected
+          </Badge>
         ) : (
-          <Badge variant="destructive" className="text-[10px]">disconnected</Badge>
+          <Badge variant="destructive" className="text-[10px]">
+            disconnected
+          </Badge>
         )}
       </div>
 

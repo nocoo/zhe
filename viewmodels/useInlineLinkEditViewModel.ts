@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import type { Link, Tag, LinkTag } from "@/models/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { updateLink, updateLinkNote } from "@/actions/links";
-import { useLinkMutations } from "@/viewmodels/useLinkMutations";
+import type { Link, LinkTag, Tag } from "@/models/types";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
+import { useLinkMutations } from "@/viewmodels/useLinkMutations";
 
 /** Callbacks for syncing edit mutations back to the parent service.
  *  Alias for the shared LinkMutationCallbacks interface.
@@ -68,16 +68,13 @@ async function executeSave(
   const currentNote = link.note ?? "";
   let noteSaved = true;
   if (fields.editNote !== currentNote) {
-    const noteResult = await updateLinkNote(
-      link.id,
-      fields.editNote.trim() || null,
-    );
+    const noteResult = await updateLinkNote(link.id, fields.editNote.trim() || null);
     if (!noteResult.success) noteSaved = false;
   }
 
   const updatedLink: Link = {
     ...linkResult.data,
-    note: noteSaved ? (fields.editNote.trim() || null) : (link.note ?? null),
+    note: noteSaved ? fields.editNote.trim() || null : (link.note ?? null),
     screenshotUrl: fields.editScreenshotUrl.trim() || null,
   };
   return { ok: true, updatedLink, noteFailed: !noteSaved };
@@ -104,17 +101,14 @@ export function useInlineLinkEditViewModel(
     setEditFolderId(link.folderId ?? null);
     setEditNote(link.note ?? "");
     setEditScreenshotUrl(link.screenshotUrl ?? "");
-  }, [link.id, link.originalUrl, link.slug, link.folderId, link.note, link.screenshotUrl]);
+  }, [link.originalUrl, link.slug, link.folderId, link.note, link.screenshotUrl]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
 
   const mutations = useLinkMutations(allTags, allLinkTags, callbacks);
 
-  const assignedTagIds = useMemo(
-    () => mutations.getAssignedTagIds(link.id),
-    [link.id, mutations],
-  );
+  const assignedTagIds = useMemo(() => mutations.getAssignedTagIds(link.id), [link.id, mutations]);
   const assignedTags = useMemo(
     () => allTags.filter((t) => assignedTagIds.has(t.id)),
     [allTags, assignedTagIds],
@@ -125,7 +119,11 @@ export function useInlineLinkEditViewModel(
     setError("");
     try {
       const fields: EditFields = {
-        editUrl, editSlug, editFolderId, editNote, editScreenshotUrl,
+        editUrl,
+        editSlug,
+        editFolderId,
+        editNote,
+        editScreenshotUrl,
       };
       const result = await executeSave(link, fields);
       if (!result.ok || !result.updatedLink) {
@@ -146,11 +144,15 @@ export function useInlineLinkEditViewModel(
   }, [link, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
 
   const addTag = useCallback(
-    async (tagId: string) => { await mutations.addTag(link.id, tagId); },
+    async (tagId: string) => {
+      await mutations.addTag(link.id, tagId);
+    },
     [link.id, mutations],
   );
   const removeTag = useCallback(
-    async (tagId: string) => { await mutations.removeTag(link.id, tagId); },
+    async (tagId: string) => {
+      await mutations.removeTag(link.id, tagId);
+    },
     [link.id, mutations],
   );
   const createAndAssignTag = useCallback(
@@ -159,11 +161,16 @@ export function useInlineLinkEditViewModel(
   );
 
   return {
-    editUrl, setEditUrl,
-    editSlug, setEditSlug,
-    editFolderId, setEditFolderId,
-    editNote, setEditNote,
-    editScreenshotUrl, setEditScreenshotUrl,
+    editUrl,
+    setEditUrl,
+    editSlug,
+    setEditSlug,
+    editFolderId,
+    setEditFolderId,
+    editNote,
+    setEditNote,
+    editScreenshotUrl,
+    setEditScreenshotUrl,
     isSaving,
     error,
     assignedTagIds,

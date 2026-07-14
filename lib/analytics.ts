@@ -3,7 +3,7 @@
  */
 
 export interface ClickMetadata {
-  device: 'mobile' | 'tablet' | 'desktop' | 'unknown';
+  device: "mobile" | "tablet" | "desktop" | "unknown";
   browser: string;
   os: string;
   country: string | null;
@@ -14,105 +14,111 @@ export interface ClickMetadata {
 /**
  * Parse device type from User-Agent string.
  */
-export function parseDevice(ua: string): 'mobile' | 'tablet' | 'desktop' | 'unknown' {
-  if (!ua) return 'unknown';
-  
+export function parseDevice(ua: string): "mobile" | "tablet" | "desktop" | "unknown" {
+  if (!ua) return "unknown";
+
   const lowerUA = ua.toLowerCase();
-  
+
   // Check for tablets first (some tablets include "mobile" in UA)
   if (
-    lowerUA.includes('ipad') ||
-    lowerUA.includes('tablet') ||
-    (lowerUA.includes('android') && !lowerUA.includes('mobile'))
+    lowerUA.includes("ipad") ||
+    lowerUA.includes("tablet") ||
+    (lowerUA.includes("android") && !lowerUA.includes("mobile"))
   ) {
-    return 'tablet';
+    return "tablet";
   }
-  
+
   // Check for mobile devices
   if (
-    lowerUA.includes('mobile') ||
-    lowerUA.includes('iphone') ||
-    lowerUA.includes('ipod') ||
-    lowerUA.includes('android') ||
-    lowerUA.includes('blackberry') ||
-    lowerUA.includes('windows phone')
+    lowerUA.includes("mobile") ||
+    lowerUA.includes("iphone") ||
+    lowerUA.includes("ipod") ||
+    lowerUA.includes("android") ||
+    lowerUA.includes("blackberry") ||
+    lowerUA.includes("windows phone")
   ) {
-    return 'mobile';
+    return "mobile";
   }
-  
+
   // Check for desktop indicators
   if (
-    lowerUA.includes('windows') ||
-    lowerUA.includes('macintosh') ||
-    lowerUA.includes('linux') ||
-    lowerUA.includes('x11')
+    lowerUA.includes("windows") ||
+    lowerUA.includes("macintosh") ||
+    lowerUA.includes("linux") ||
+    lowerUA.includes("x11")
   ) {
-    return 'desktop';
+    return "desktop";
   }
-  
-  return 'unknown';
+
+  return "unknown";
 }
 
 /**
  * Parse browser name from User-Agent string.
  */
 export function parseBrowser(ua: string): string {
-  if (!ua) return 'Unknown';
+  if (!ua) return "Unknown";
 
   // Order matters - check more specific patterns first
   // iOS variants use their own tokens (CriOS, FxiOS, EdgiOS, OPiOS)
-  if (ua.includes('Edg/') || ua.includes('EdgiOS/')) return 'Edge';
-  if (ua.includes('OPR/') || ua.includes('Opera/') || ua.includes('OPiOS/')) return 'Opera';
-  if (ua.includes('CriOS/')) return 'Chrome'; // Chrome on iOS
-  if (ua.includes('FxiOS/')) return 'Firefox'; // Firefox on iOS
-  if (ua.includes('Chrome/') && !ua.includes('Chromium/')) return 'Chrome';
-  if (ua.includes('Safari/') && !ua.includes('Chrome/') && !ua.includes('CriOS/') && !ua.includes('FxiOS/')) return 'Safari';
-  if (ua.includes('Firefox/')) return 'Firefox';
-  if (ua.includes('MSIE') || ua.includes('Trident/')) return 'IE';
-  if (ua.includes('Chromium/')) return 'Chromium';
+  if (ua.includes("Edg/") || ua.includes("EdgiOS/")) return "Edge";
+  if (ua.includes("OPR/") || ua.includes("Opera/") || ua.includes("OPiOS/")) return "Opera";
+  if (ua.includes("CriOS/")) return "Chrome"; // Chrome on iOS
+  if (ua.includes("FxiOS/")) return "Firefox"; // Firefox on iOS
+  if (ua.includes("Chrome/") && !ua.includes("Chromium/")) return "Chrome";
+  if (
+    ua.includes("Safari/") &&
+    !ua.includes("Chrome/") &&
+    !ua.includes("CriOS/") &&
+    !ua.includes("FxiOS/")
+  )
+    return "Safari";
+  if (ua.includes("Firefox/")) return "Firefox";
+  if (ua.includes("MSIE") || ua.includes("Trident/")) return "IE";
+  if (ua.includes("Chromium/")) return "Chromium";
 
-  return 'Unknown';
+  return "Unknown";
 }
 
 /**
  * Parse OS name from User-Agent string.
  */
 export function parseOS(ua: string): string {
-  if (!ua) return 'Unknown';
-  
+  if (!ua) return "Unknown";
+
   // iOS detection
-  if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) {
-    return 'iOS';
+  if (ua.includes("iPhone") || ua.includes("iPad") || ua.includes("iPod")) {
+    return "iOS";
   }
-  
+
   // Android detection
-  if (ua.includes('Android')) {
-    return 'Android';
+  if (ua.includes("Android")) {
+    return "Android";
   }
-  
+
   // Windows detection
-  if (ua.includes('Windows NT 10')) return 'Windows 10';
-  if (ua.includes('Windows NT 6.3')) return 'Windows 8.1';
-  if (ua.includes('Windows NT 6.2')) return 'Windows 8';
-  if (ua.includes('Windows NT 6.1')) return 'Windows 7';
-  if (ua.includes('Windows')) return 'Windows';
-  
+  if (ua.includes("Windows NT 10")) return "Windows 10";
+  if (ua.includes("Windows NT 6.3")) return "Windows 8.1";
+  if (ua.includes("Windows NT 6.2")) return "Windows 8";
+  if (ua.includes("Windows NT 6.1")) return "Windows 7";
+  if (ua.includes("Windows")) return "Windows";
+
   // macOS detection
-  if (ua.includes('Macintosh') || ua.includes('Mac OS X')) {
-    return 'macOS';
+  if (ua.includes("Macintosh") || ua.includes("Mac OS X")) {
+    return "macOS";
   }
-  
+
   // Linux detection
-  if (ua.includes('Linux') && !ua.includes('Android')) {
-    return 'Linux';
+  if (ua.includes("Linux") && !ua.includes("Android")) {
+    return "Linux";
   }
-  
+
   // Chrome OS
-  if (ua.includes('CrOS')) {
-    return 'Chrome OS';
+  if (ua.includes("CrOS")) {
+    return "Chrome OS";
   }
-  
-  return 'Unknown';
+
+  return "Unknown";
 }
 
 /**
@@ -120,15 +126,15 @@ export function parseOS(ua: string): string {
  * Uses Vercel's geo headers for location data.
  */
 export function extractClickMetadata(headers: Headers): ClickMetadata {
-  const userAgent = headers.get('user-agent') || '';
-  
+  const userAgent = headers.get("user-agent") || "";
+
   return {
     device: parseDevice(userAgent),
     browser: parseBrowser(userAgent),
     os: parseOS(userAgent),
     // Vercel provides these headers automatically
-    country: headers.get('x-vercel-ip-country'),
-    city: headers.get('x-vercel-ip-city'),
-    referer: headers.get('referer'),
+    country: headers.get("x-vercel-ip-country"),
+    city: headers.get("x-vercel-ip-city"),
+    referer: headers.get("referer"),
   };
 }

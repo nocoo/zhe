@@ -5,9 +5,9 @@
  * authorization, and business logic.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getBaseUrl, authenticatedFetch } from "../helpers/api-client";
-import { seedTestUser, seedApiKey, cleanupTestData, seedUpload } from "../helpers/seed";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { authenticatedFetch, getBaseUrl } from "../helpers/api-client";
+import { cleanupTestData, seedApiKey, seedTestUser, seedUpload } from "../helpers/seed";
 
 const API_URL = `${getBaseUrl()}/api/v1/uploads`;
 
@@ -23,8 +23,8 @@ describe("/api/v1/uploads", () => {
     await seedTestUser(TEST_USER_ID);
     [apiKeyWithReadWrite, apiKeyReadOnly, apiKeyNoScopes] = await Promise.all([
       seedApiKey(TEST_USER_ID, { name: "Full Access", scopes: "uploads:read,uploads:write" }),
-      seedApiKey(TEST_USER_ID, { name: "Read Only",   scopes: "uploads:read" }),
-      seedApiKey(TEST_USER_ID, { name: "No Scopes",   scopes: "" }),
+      seedApiKey(TEST_USER_ID, { name: "Read Only", scopes: "uploads:read" }),
+      seedApiKey(TEST_USER_ID, { name: "No Scopes", scopes: "" }),
     ]);
   });
 
@@ -103,10 +103,7 @@ describe("/api/v1/uploads", () => {
     });
 
     it("returns 400 for invalid upload ID", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/not-a-number`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/not-a-number`, apiKeyReadOnly);
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -114,10 +111,7 @@ describe("/api/v1/uploads", () => {
     });
 
     it("returns 404 for non-existent upload", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/999999999`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/999999999`, apiKeyReadOnly);
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -125,10 +119,7 @@ describe("/api/v1/uploads", () => {
     });
 
     it("returns upload details with correct structure", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/${testUploadId}`,
-        apiKeyReadOnly,
-      );
+      const response = await authenticatedFetch(`${API_URL}/${testUploadId}`, apiKeyReadOnly);
 
       expect(response.status).toBe(200);
       const body = await response.json();
@@ -147,21 +138,17 @@ describe("/api/v1/uploads", () => {
       // Seed an upload to delete
       const upload = await seedUpload(TEST_USER_ID);
 
-      const response = await authenticatedFetch(
-        `${API_URL}/${upload.id}`,
-        apiKeyReadOnly,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/${upload.id}`, apiKeyReadOnly, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(403);
     });
 
     it("returns 400 for invalid upload ID", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/not-a-number`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/not-a-number`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(400);
       const body = await response.json();
@@ -169,11 +156,9 @@ describe("/api/v1/uploads", () => {
     });
 
     it("returns 404 for non-existent upload", async () => {
-      const response = await authenticatedFetch(
-        `${API_URL}/999999999`,
-        apiKeyWithReadWrite,
-        { method: "DELETE" },
-      );
+      const response = await authenticatedFetch(`${API_URL}/999999999`, apiKeyWithReadWrite, {
+        method: "DELETE",
+      });
 
       expect(response.status).toBe(404);
     });
@@ -194,10 +179,7 @@ describe("/api/v1/uploads", () => {
       expect(body.success).toBe(true);
 
       // Verify it's gone
-      const getResponse = await authenticatedFetch(
-        `${API_URL}/${upload.id}`,
-        apiKeyReadOnly,
-      );
+      const getResponse = await authenticatedFetch(`${API_URL}/${upload.id}`, apiKeyReadOnly);
       expect(getResponse.status).toBe(404);
     });
   });

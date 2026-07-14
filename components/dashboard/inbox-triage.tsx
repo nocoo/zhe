@@ -1,19 +1,16 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import {
-  Inbox as InboxIcon,
-  RefreshCw,
-} from "lucide-react";
+import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { LinkCard } from "@/components/dashboard/link-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { LinkCard } from "@/components/dashboard/link-card";
 import { useDashboardService } from "@/contexts/dashboard-service";
+import type { LinkTag } from "@/models/types";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
-import type { LinkTag } from "@/models/types";
 
 function InboxSkeleton() {
   return (
@@ -25,8 +22,8 @@ function InboxSkeleton() {
         </div>
       </div>
       <div className="animate-pulse space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-card bg-secondary p-4 space-y-3">
+        {Array.from({ length: 3 }, (_, i) => `sk-${i}`).map((id) => (
+          <div key={id} className="rounded-card bg-secondary p-4 space-y-3">
             <div className="h-4 w-3/4 rounded bg-background" />
             <div className="h-3 w-1/2 rounded bg-background" />
             <div className="flex gap-3">
@@ -43,11 +40,7 @@ function InboxSkeleton() {
 
 function InboxEmpty() {
   return (
-    <EmptyState
-      icon={InboxIcon}
-      title="Inbox 已清空"
-      description="所有链接都已整理到文件夹中"
-    />
+    <EmptyState icon={InboxIcon} title="Inbox 已清空" description="所有链接都已整理到文件夹中" />
   );
 }
 
@@ -128,12 +121,15 @@ export function InboxTriage() {
     }
   }, [refreshLinks]);
 
-  const editCallbacks: EditLinkCallbacks = useMemo(() => ({
-    onLinkUpdated: handleLinkUpdated,
-    onTagCreated: handleTagCreated,
-    onLinkTagAdded: handleLinkTagAdded,
-    onLinkTagRemoved: handleLinkTagRemoved,
-  }), [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved]);
+  const editCallbacks: EditLinkCallbacks = useMemo(
+    () => ({
+      onLinkUpdated: handleLinkUpdated,
+      onTagCreated: handleTagCreated,
+      onLinkTagAdded: handleLinkTagAdded,
+      onLinkTagRemoved: handleLinkTagRemoved,
+    }),
+    [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
+  );
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
 

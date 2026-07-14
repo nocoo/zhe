@@ -1,10 +1,10 @@
-'use server';
+"use server";
 
-import { getSession } from '@/lib/auth-context';
-import { getCronHistory } from '@/lib/cron-history';
-import { performKVSync } from '@/lib/kv/sync';
-import { deriveWorkerHealth } from '@/models/overview';
-import type { WorkerHealthStatus } from '@/models/overview';
+import { getSession } from "@/lib/auth-context";
+import { getCronHistory } from "@/lib/cron-history";
+import { performKVSync } from "@/lib/kv/sync";
+import type { WorkerHealthStatus } from "@/models/overview";
+import { deriveWorkerHealth } from "@/models/overview";
 
 interface ActionResult<T = void> {
   success: boolean;
@@ -23,7 +23,7 @@ export async function getWorkerHealth(): Promise<ActionResult<WorkerHealthStatus
     const session = await getSession();
     const userId = session?.user?.id;
     if (!userId) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     // Seed the buffer on first dashboard visit after deploy
@@ -36,7 +36,7 @@ export async function getWorkerHealth(): Promise<ActionResult<WorkerHealthStatus
     const health = deriveWorkerHealth(history);
     return { success: true, data: health };
   } catch (error) {
-    console.error('Failed to get KV cache status:', error);
-    return { success: false, error: 'Failed to get KV cache status' };
+    console.error("Failed to get KV cache status:", error);
+    return { success: false, error: "Failed to get KV cache status" };
   }
 }

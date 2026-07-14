@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { saveBackyConfig } from "@/actions/backy";
 
 /**
@@ -8,10 +8,7 @@ import { saveBackyConfig } from "@/actions/backy";
  * edit/save flow. Exposed as a hook so other Backy concerns can use parallel
  * sub-hooks of the same shape.
  */
-export function useBackyConfigState(initialData?: {
-  webhookUrl?: string;
-  maskedApiKey?: string;
-}) {
+export function useBackyConfigState(initialData?: { webhookUrl?: string; maskedApiKey?: string }) {
   const [webhookUrl, setWebhookUrl] = useState(initialData?.webhookUrl ?? "");
   const [apiKey, setApiKey] = useState("");
   const [maskedApiKey, setMaskedApiKey] = useState<string | null>(
@@ -55,10 +52,14 @@ export function useBackyConfigState(initialData?: {
   }, []);
 
   return {
-    webhookUrl, setWebhookUrl,
-    apiKey, setApiKey,
-    maskedApiKey, setMaskedApiKey,
-    isConfigured, setIsConfigured,
+    webhookUrl,
+    setWebhookUrl,
+    apiKey,
+    setApiKey,
+    maskedApiKey,
+    setMaskedApiKey,
+    isConfigured,
+    setIsConfigured,
     isEditing,
     isSaving,
     error,

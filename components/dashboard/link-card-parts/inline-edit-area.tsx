@@ -1,6 +1,11 @@
 "use client";
 
 import { Loader2, Trash2 } from "lucide-react";
+import {
+  DeleteLinkDialog,
+  TagBadge,
+  TagPicker,
+} from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,17 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
-import {
-  DeleteLinkDialog,
-  TagBadge,
-  TagPicker,
-} from "@/components/dashboard/shared-link-components";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 
-const FIELD_INPUT_CLS =
-  "h-8 rounded-widget border-border bg-background text-xs";
+const FIELD_INPUT_CLS = "h-8 rounded-widget border-border bg-background text-xs";
 
 function LabelledField({
   id,
@@ -60,11 +59,7 @@ interface EditVm {
 function UrlSlugRow({ link, vm }: { link: Link; vm: EditVm }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <LabelledField
-        id={`edit-url-${link.id}`}
-        label="目标链接"
-        className="flex-1 min-w-[200px]"
-      >
+      <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="flex-1 min-w-[200px]">
         <Input
           id={`edit-url-${link.id}`}
           type="url"
@@ -88,23 +83,13 @@ function UrlSlugRow({ link, vm }: { link: Link; vm: EditVm }) {
   );
 }
 
-function FolderNoteRow({
-  link,
-  folders,
-  vm,
-}: {
-  link: Link;
-  folders: Folder[];
-  vm: EditVm;
-}) {
+function FolderNoteRow({ link, folders, vm }: { link: Link; folders: Folder[]; vm: EditVm }) {
   return (
     <div className="flex flex-wrap items-end gap-3">
       <LabelledField id={`edit-folder-${link.id}`} label="文件夹">
         <Select
           value={vm.editFolderId ?? "__inbox__"}
-          onValueChange={(v) =>
-            vm.setEditFolderId(v === "__inbox__" ? null : v)
-          }
+          onValueChange={(v) => vm.setEditFolderId(v === "__inbox__" ? null : v)}
         >
           <SelectTrigger
             id={`edit-folder-${link.id}`}
@@ -122,11 +107,7 @@ function FolderNoteRow({
           </SelectContent>
         </Select>
       </LabelledField>
-      <LabelledField
-        id={`edit-note-${link.id}`}
-        label="备注"
-        className="flex-1 min-w-[200px]"
-      >
+      <LabelledField id={`edit-note-${link.id}`} label="备注" className="flex-1 min-w-[200px]">
         <Input
           id={`edit-note-${link.id}`}
           type="text"
@@ -201,6 +182,7 @@ function EditToolbar({
       <DeleteLinkDialog
         trigger={
           <button
+            type="button"
             aria-label="Delete link"
             className="flex h-8 items-center gap-1.5 rounded-widget px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             disabled={isDeleting}
@@ -212,12 +194,7 @@ function EditToolbar({
         isDeleting={isDeleting}
         onConfirm={onDelete}
       />
-      <Button
-        size="sm"
-        className="h-8 rounded-widget text-xs"
-        onClick={onSave}
-        disabled={isSaving}
-      >
+      <Button size="sm" className="h-8 rounded-widget text-xs" onClick={onSave} disabled={isSaving}>
         {isSaving ? (
           <>
             <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
@@ -263,10 +240,7 @@ export function InlineEditArea({
   };
 
   return (
-    <div
-      className="mt-4 pt-4 border-t border-border px-0 pb-0 space-y-3"
-      data-testid="edit-area"
-    >
+    <div className="mt-4 pt-4 border-t border-border px-0 pb-0 space-y-3" data-testid="edit-area">
       <UrlSlugRow link={link} vm={editVm} />
       <FolderNoteRow link={link} folders={folders} vm={editVm} />
       <ScreenshotUrlRow link={link} vm={editVm} />

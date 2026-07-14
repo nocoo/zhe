@@ -1,10 +1,10 @@
-'use server';
+"use server";
 
-import { getAuthContext } from '@/lib/auth-context';
-import { uploadBufferToR2 } from '@/lib/r2/client';
-import { hashUserId, generateObjectKey, buildPublicUrl } from '@/models/upload';
-import type { Link } from '@/lib/db/schema';
-import type { ActionResult } from './types';
+import { getAuthContext } from "@/lib/auth-context";
+import type { Link } from "@/lib/db/schema";
+import { uploadBufferToR2 } from "@/lib/r2/client";
+import { buildPublicUrl, generateObjectKey, hashUserId } from "@/models/upload";
+import type { ActionResult } from "./types";
 
 /**
  * Fetch a screenshot from the given source entirely on the server, upload it
@@ -16,32 +16,33 @@ import type { ActionResult } from './types';
 export async function fetchAndSaveScreenshot(
   linkId: number,
   originalUrl: string,
-  source: 'microlink' | 'screenshotDomains',
+  source: "microlink" | "screenshotDomains",
 ): Promise<ActionResult<Link>> {
   try {
     const ctx = await getAuthContext();
     if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     // Step 1: resolve screenshot URL on the server (no CORS)
-    const { fetchMicrolinkScreenshot, fetchScreenshotDomains } = await import('@/models/links');
-    const tempUrl = source === 'microlink'
-      ? await fetchMicrolinkScreenshot(originalUrl)
-      : await fetchScreenshotDomains(originalUrl);
+    const { fetchMicrolinkScreenshot, fetchScreenshotDomains } = await import("@/models/links");
+    const tempUrl =
+      source === "microlink"
+        ? await fetchMicrolinkScreenshot(originalUrl)
+        : await fetchScreenshotDomains(originalUrl);
 
     if (!tempUrl) {
       return {
         success: false,
-        error: `${source === 'microlink' ? 'Microlink' : 'Screenshot Domains'} did not return a valid screenshot`,
+        error: `${source === "microlink" ? "Microlink" : "Screenshot Domains"} did not return a valid screenshot`,
       };
     }
 
     // Step 2: delegate to saveScreenshot for download → R2 → DB
     return saveScreenshot(linkId, tempUrl);
   } catch (error) {
-    console.error('Failed to fetch and save screenshot:', error);
-    return { success: false, error: 'Failed to fetch and save screenshot' };
+    console.error("Failed to fetch and save screenshot:", error);
+    return { success: false, error: "Failed to fetch and save screenshot" };
   }
 }
 
@@ -54,9 +55,9 @@ function validateScreenshotUrl(screenshotUrl: string): string | null {
   try {
     parsedUrl = new URL(screenshotUrl);
   } catch {
-    return 'Invalid screenshot URL';
+    return "Invalid screenshot URL";
   }
-  if (parsedUrl.protocol !== 'https:') return 'Only HTTPS URLs are allowed';
+  if (parsedUrl.protocol !== "https:") return "Only HTTPS URLs are allowed";
   return null;
 }
 
@@ -71,20 +72,21 @@ async function downloadScreenshot(
     res = await fetch(screenshotUrl, { signal: controller.signal });
   } catch (err) {
     clearTimeout(timeout);
-    const message = err instanceof Error && err.name === 'AbortError'
-      ? 'Screenshot download timed out'
-      : 'Failed to download screenshot';
+    const message =
+      err instanceof Error && err.name === "AbortError"
+        ? "Screenshot download timed out"
+        : "Failed to download screenshot";
     return { error: message };
   }
   clearTimeout(timeout);
-  if (!res.ok) return { error: 'Failed to download screenshot' };
+  if (!res.ok) return { error: "Failed to download screenshot" };
 
-  const declaredLength = Number(res.headers.get('content-length') || '0');
-  if (declaredLength > MAX_SCREENSHOT_BYTES) return { error: 'Screenshot too large' };
+  const declaredLength = Number(res.headers.get("content-length") || "0");
+  if (declaredLength > MAX_SCREENSHOT_BYTES) return { error: "Screenshot too large" };
 
-  const contentType = res.headers.get('content-type') || 'image/png';
+  const contentType = res.headers.get("content-type") || "image/png";
   const rawBuffer = await res.arrayBuffer();
-  if (rawBuffer.byteLength > MAX_SCREENSHOT_BYTES) return { error: 'Screenshot too large' };
+  if (rawBuffer.byteLength > MAX_SCREENSHOT_BYTES) return { error: "Screenshot too large" };
 
   return { buffer: new Uint8Array(rawBuffer), contentType };
 }
@@ -103,34 +105,34 @@ export async function saveScreenshot(
   try {
     const ctx = await getAuthContext();
     if (!ctx) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: "Unauthorized" };
     }
 
     const urlError = validateScreenshotUrl(screenshotUrl);
     if (urlError) return { success: false, error: urlError };
 
     const dl = await downloadScreenshot(screenshotUrl);
-    if ('error' in dl) return { success: false, error: dl.error };
+    if ("error" in dl) return { success: false, error: dl.error };
 
     // Generate R2 key and upload
     const salt = process.env.R2_USER_HASH_SALT;
-    if (!salt) return { success: false, error: 'R2 user hash salt not configured' };
+    if (!salt) return { success: false, error: "R2 user hash salt not configured" };
     const userHash = await hashUserId(ctx.userId, salt);
-    const key = generateObjectKey('screenshot.png', userHash);
+    const key = generateObjectKey("screenshot.png", userHash);
     await uploadBufferToR2(key, dl.buffer, dl.contentType);
 
     // Build the permanent R2 public URL
     const publicDomain = process.env.R2_PUBLIC_DOMAIN;
-    if (!publicDomain) return { success: false, error: 'R2 public domain not configured' };
+    if (!publicDomain) return { success: false, error: "R2 public domain not configured" };
     const r2Url = buildPublicUrl(publicDomain, key);
 
     // Persist the R2 URL in the DB
     const updated = await ctx.db.updateLinkScreenshot(linkId, r2Url);
-    if (!updated) return { success: false, error: 'Link not found or access denied' };
+    if (!updated) return { success: false, error: "Link not found or access denied" };
 
     return { success: true, data: updated };
   } catch (error) {
-    console.error('Failed to save screenshot:', error);
-    return { success: false, error: 'Failed to save screenshot' };
+    console.error("Failed to save screenshot:", error);
+    return { success: false, error: "Failed to save screenshot" };
   }
 }

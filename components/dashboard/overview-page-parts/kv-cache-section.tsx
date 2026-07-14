@@ -1,8 +1,8 @@
 "use client";
 
 import { Clock, Database } from "lucide-react";
-import { formatRelativeTime } from "@/models/overview";
 import type { WorkerHealthStatus } from "@/models/overview";
+import { formatRelativeTime } from "@/models/overview";
 import { StatCard, StatSkeleton } from "./charts";
 
 export function KVCacheSection({
@@ -41,13 +41,13 @@ export function KVCacheSection({
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <StatCard
           label="最近同步"
-          value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : '暂无'}
+          value={health.lastSyncTime ? formatRelativeTime(health.lastSyncTime) : "暂无"}
           icon={Clock}
           index={0}
         />
         <StatCard
           label="KV 键数"
-          value={health.kvKeyCount !== null ? String(health.kvKeyCount) : '—'}
+          value={health.kvKeyCount !== null ? String(health.kvKeyCount) : "—"}
           icon={Database}
           index={1}
         />
@@ -55,4 +55,3 @@ export function KVCacheSection({
     </section>
   );
 }
-

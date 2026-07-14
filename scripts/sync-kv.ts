@@ -16,41 +16,41 @@
  *   bun run sync-kv --dry-run  # fetch links but skip KV writes
  */
 
-import { getAllLinksForKV } from '../lib/db';
-import { kvBulkPutLinks, isKVConfigured } from '../lib/kv/client';
+import { getAllLinksForKV } from "../lib/db";
+import { isKVConfigured, kvBulkPutLinks } from "../lib/kv/client";
 
-const isDryRun = process.argv.includes('--dry-run');
+const isDryRun = process.argv.includes("--dry-run");
 
 async function main() {
-  console.log('=== D1 → KV Full Sync ===');
-  console.log(`Mode: ${isDryRun ? 'DRY RUN (no writes)' : 'LIVE'}`);
+  console.log("=== D1 → KV Full Sync ===");
+  console.log(`Mode: ${isDryRun ? "DRY RUN (no writes)" : "LIVE"}`);
   console.log();
 
   // 1. Check KV configuration
   if (!isKVConfigured()) {
     console.error(
-      'Error: KV not configured. Ensure CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ' +
-        'and CLOUDFLARE_KV_NAMESPACE_ID are set.',
+      "Error: KV not configured. Ensure CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, " +
+        "and CLOUDFLARE_KV_NAMESPACE_ID are set.",
     );
     process.exit(1);
   }
-  console.log('KV credentials: OK');
+  console.log("KV credentials: OK");
 
   // 2. Fetch all links from D1
-  console.log('Fetching links from D1...');
+  console.log("Fetching links from D1...");
   const startFetch = Date.now();
   let links: Awaited<ReturnType<typeof getAllLinksForKV>>;
   try {
     links = await getAllLinksForKV();
   } catch (err) {
-    console.error('Failed to fetch links from D1:', err);
+    console.error("Failed to fetch links from D1:", err);
     process.exit(1);
   }
   const fetchDurationMs = Date.now() - startFetch;
   console.log(`Fetched ${links.length} links from D1 (${fetchDurationMs}ms)`);
 
   if (links.length === 0) {
-    console.log('No links to sync. Done.');
+    console.log("No links to sync. Done.");
     process.exit(0);
   }
 
@@ -58,7 +58,7 @@ async function main() {
   if (isDryRun) {
     console.log();
     console.log(`Dry run complete. Would sync ${links.length} links to KV.`);
-    console.log('Sample entries:');
+    console.log("Sample entries:");
     for (const link of links.slice(0, 5)) {
       console.log(`  ${link.slug} → ${link.originalUrl}`);
     }
@@ -68,7 +68,7 @@ async function main() {
     process.exit(0);
   }
 
-  console.log('Writing to KV...');
+  console.log("Writing to KV...");
   const startWrite = Date.now();
   const entries = links.map((link) => ({
     slug: link.slug,
@@ -85,7 +85,7 @@ async function main() {
 
   // 4. Report
   console.log();
-  console.log('=== Sync Complete ===');
+  console.log("=== Sync Complete ===");
   console.log(`Total links:  ${links.length}`);
   console.log(`Synced:       ${result.success}`);
   console.log(`Failed:       ${result.failed}`);
@@ -100,6 +100,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Unexpected error:', err);
+  console.error("Unexpected error:", err);
   process.exit(1);
 });

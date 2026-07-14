@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, cleanup, waitFor } from "@testing-library/react";
-import type { Link, Folder, Tag, LinkTag } from "@/models/types";
+
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardService } from "@/contexts/dashboard-service";
+import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { unwrap } from "../test-utils";
 
 // ── Mocks ──
@@ -28,10 +29,7 @@ import { getLinks } from "@/actions/links";
 // getIdeas / getTodos are mocked above and used by DashboardServiceProvider
 import "@/actions/ideas";
 import "@/actions/todos";
-import {
-  DashboardServiceProvider,
-  useDashboardService,
-} from "@/contexts/dashboard-service";
+import { DashboardServiceProvider, useDashboardService } from "@/contexts/dashboard-service";
 
 // ── Helpers ──
 
@@ -85,9 +83,7 @@ function makeLinkTag(overrides: Partial<LinkTag> = {}): LinkTag {
   };
 }
 
-function wrapper({
-  initialFolders = [],
-}: { initialFolders?: Folder[] } = {}) {
+function wrapper({ initialFolders = [] }: { initialFolders?: Folder[] } = {}) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <DashboardServiceProvider initialFolders={initialFolders}>
@@ -105,9 +101,12 @@ async function renderService(opts?: { initialFolders?: Folder[] }) {
       wrapper: wrapper(opts),
     });
   });
-  await waitFor(() => {
-    expect(hook.result.current.loading).toBe(false);
-  }, { interval: 5 });
+  await waitFor(
+    () => {
+      expect(hook.result.current.loading).toBe(false);
+    },
+    { interval: 5 },
+  );
   return hook;
 }
 
@@ -115,11 +114,7 @@ async function renderService(opts?: { initialFolders?: Folder[] }) {
  * Helper to set up getDashboardData mock with specific links/tags/linkTags.
  * Merges provided data with empty defaults.
  */
-function mockDashboardData(data: {
-  links?: Link[];
-  tags?: Tag[];
-  linkTags?: LinkTag[];
-} = {}) {
+function mockDashboardData(data: { links?: Link[]; tags?: Tag[]; linkTags?: LinkTag[] } = {}) {
   vi.mocked(getDashboardData).mockResolvedValue({
     success: true,
     data: {
@@ -286,9 +281,7 @@ describe("DashboardService", () => {
       const { result } = await renderService();
 
       act(() => {
-        result.current.handleLinkUpdated(
-          makeLink({ id: 999, originalUrl: "https://nope.com" }),
-        );
+        result.current.handleLinkUpdated(makeLink({ id: 999, originalUrl: "https://nope.com" }));
       });
 
       expect(result.current.links).toHaveLength(1);
@@ -351,17 +344,11 @@ describe("DashboardService", () => {
     });
 
     it("handleFolderDeleted does not affect links of other folders", async () => {
-      const links = [
-        makeLink({ id: 1, folderId: "f1" }),
-        makeLink({ id: 2, folderId: "f2" }),
-      ];
+      const links = [makeLink({ id: 1, folderId: "f1" }), makeLink({ id: 2, folderId: "f2" })];
       mockDashboardData({ links });
 
       const { result } = await renderService({
-        initialFolders: [
-          makeFolder({ id: "f1" }),
-          makeFolder({ id: "f2" }),
-        ],
+        initialFolders: [makeFolder({ id: "f1" }), makeFolder({ id: "f2" })],
       });
 
       act(() => {
@@ -389,9 +376,7 @@ describe("DashboardService", () => {
       const { result } = await renderService({ initialFolders: [initial] });
 
       act(() => {
-        result.current.handleFolderUpdated(
-          makeFolder({ id: "f999", name: "Ghost" }),
-        );
+        result.current.handleFolderUpdated(makeFolder({ id: "f999", name: "Ghost" }));
       });
 
       expect(result.current.folders).toHaveLength(1);
@@ -420,7 +405,9 @@ describe("DashboardService", () => {
     it("handleTagCreated appends a tag", async () => {
       const { result } = await renderService();
       const tag = makeTag({ id: "t-new" });
-      act(() => { result.current.handleTagCreated(tag); });
+      act(() => {
+        result.current.handleTagCreated(tag);
+      });
       expect(result.current.tags).toHaveLength(1);
       expect(unwrap(result.current.tags[0])).toEqual(tag);
     });
@@ -431,7 +418,9 @@ describe("DashboardService", () => {
       });
       const { result } = await renderService();
 
-      act(() => { result.current.handleTagDeleted("t1"); });
+      act(() => {
+        result.current.handleTagDeleted("t1");
+      });
       expect(result.current.tags).toHaveLength(1);
       expect(unwrap(result.current.tags[0]).id).toBe("t2");
     });
@@ -446,7 +435,9 @@ describe("DashboardService", () => {
       });
 
       const { result } = await renderService();
-      act(() => { result.current.handleTagDeleted("t1"); });
+      act(() => {
+        result.current.handleTagDeleted("t1");
+      });
 
       expect(result.current.linkTags).toHaveLength(1);
       expect(unwrap(result.current.linkTags[0]).tagId).toBe("t2");
@@ -488,7 +479,9 @@ describe("DashboardService", () => {
     it("handleLinkTagAdded appends a link-tag association", async () => {
       const { result } = await renderService();
       const lt = makeLinkTag({ linkId: 5, tagId: "t3" });
-      act(() => { result.current.handleLinkTagAdded(lt); });
+      act(() => {
+        result.current.handleLinkTagAdded(lt);
+      });
       expect(result.current.linkTags).toHaveLength(1);
       expect(unwrap(result.current.linkTags[0])).toEqual(lt);
     });
@@ -503,12 +496,14 @@ describe("DashboardService", () => {
       });
 
       const { result } = await renderService();
-      act(() => { result.current.handleLinkTagRemoved(1, "t1"); });
+      act(() => {
+        result.current.handleLinkTagRemoved(1, "t1");
+      });
 
       expect(result.current.linkTags).toHaveLength(2);
-      expect(result.current.linkTags.find(
-        (lt) => lt.linkId === 1 && lt.tagId === "t1"
-      )).toBeUndefined();
+      expect(
+        result.current.linkTags.find((lt) => lt.linkId === 1 && lt.tagId === "t1"),
+      ).toBeUndefined();
     });
   });
 

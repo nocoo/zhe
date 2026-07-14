@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from "vitest";
+
 import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useTodosDnd } from "@/viewmodels/todos/useTodosDnd";
 
 function mountDnd(handleMoveTodo: (...args: unknown[]) => Promise<unknown>) {
-  return renderHook(() =>
-    useTodosDnd({ handleMoveTodo: handleMoveTodo as never }),
-  );
+  return renderHook(() => useTodosDnd({ handleMoveTodo: handleMoveTodo as never }));
 }
 
 describe("useTodosDnd — onArboristMove", () => {

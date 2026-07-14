@@ -1,6 +1,6 @@
-import { cache } from 'react';
-import { auth } from '@/auth';
-import { ScopedDB } from '@/lib/db/scoped';
+import { cache } from "react";
+import { auth } from "@/auth";
+import { ScopedDB } from "@/lib/db/scoped";
 
 /**
  * Deduplicated auth() — cached within a single React server render.

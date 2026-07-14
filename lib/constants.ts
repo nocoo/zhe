@@ -3,28 +3,28 @@
  * These paths are used by the application for routing.
  */
 export const RESERVED_PATHS = [
-  'login',
-  'logout',
-  'auth',
-  'callback',
-  'dashboard',
-  'api',
-  'admin',
-  'live',
-  '_next',
-  'static',
-  'favicon.ico',
-  'robots.txt',
-  'sitemap.xml',
+  "login",
+  "logout",
+  "auth",
+  "callback",
+  "dashboard",
+  "api",
+  "admin",
+  "live",
+  "_next",
+  "static",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
 ] as const;
 
 /**
  * Check if a path is reserved and cannot be used as a slug.
  */
 export function isReservedPath(path: string): boolean {
-  const normalizedPath = path.toLowerCase().replace(/^\//, '');
+  const normalizedPath = path.toLowerCase().replace(/^\//, "");
   return RESERVED_PATHS.some(
-    (reserved) => normalizedPath === reserved || normalizedPath.startsWith(`${reserved}/`)
+    (reserved) => normalizedPath === reserved || normalizedPath.startsWith(`${reserved}/`),
   );
 }
 

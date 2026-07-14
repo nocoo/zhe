@@ -1,7 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
-import { filterIdeas } from "@/models/ideas";
+import { describe, expect, it } from "vitest";
 import type { IdeaListItem } from "@/lib/db/scoped";
+import { filterIdeas } from "@/models/ideas";
 import type { Tag } from "@/models/types";
 
 // Helper to create test ideas
@@ -56,9 +56,7 @@ describe("filterIdeas", () => {
     });
 
     it("handles null title", () => {
-      const ideas = [
-        createIdea({ id: 1, title: null, excerpt: "Some content" }),
-      ];
+      const ideas = [createIdea({ id: 1, title: null, excerpt: "Some content" })];
 
       const result = filterIdeas(ideas, "content");
       expect(result).toHaveLength(1);
@@ -69,9 +67,7 @@ describe("filterIdeas", () => {
     });
 
     it("handles null excerpt", () => {
-      const ideas = [
-        createIdea({ id: 1, title: "My Idea", excerpt: null }),
-      ];
+      const ideas = [createIdea({ id: 1, title: "My Idea", excerpt: null })];
 
       const result = filterIdeas(ideas, "idea");
       expect(result).toHaveLength(1);
@@ -99,9 +95,7 @@ describe("filterIdeas", () => {
     });
 
     it("does not match tags when context is not provided", () => {
-      const ideas = [
-        createIdea({ id: 1, title: "API Design", tagIds: ["tag-1"] }),
-      ];
+      const ideas = [createIdea({ id: 1, title: "API Design", tagIds: ["tag-1"] })];
 
       // Without context, tag search won't work
       const result = filterIdeas(ideas, "frontend");
@@ -113,9 +107,7 @@ describe("filterIdeas", () => {
         createTag({ id: "tag-1", name: "React" }),
         createTag({ id: "tag-2", name: "Testing" }),
       ];
-      const ideas = [
-        createIdea({ id: 1, title: "Component Tests", tagIds: ["tag-1", "tag-2"] }),
-      ];
+      const ideas = [createIdea({ id: 1, title: "Component Tests", tagIds: ["tag-1", "tag-2"] })];
 
       // Should match either tag
       expect(filterIdeas(ideas, "react", { tags })).toHaveLength(1);
@@ -124,9 +116,7 @@ describe("filterIdeas", () => {
 
     it("handles ideas with empty tagIds", () => {
       const tags = [createTag({ id: "tag-1", name: "Important" })];
-      const ideas = [
-        createIdea({ id: 1, title: "Untagged Idea", tagIds: [] }),
-      ];
+      const ideas = [createIdea({ id: 1, title: "Untagged Idea", tagIds: [] })];
 
       // Should not crash on empty tagIds
       const result = filterIdeas(ideas, "important", { tags });
@@ -135,9 +125,7 @@ describe("filterIdeas", () => {
 
     it("handles tagIds referencing non-existent tags", () => {
       const tags = [createTag({ id: "tag-1", name: "Known" })];
-      const ideas = [
-        createIdea({ id: 1, title: "Orphan Tags", tagIds: ["tag-unknown"] }),
-      ];
+      const ideas = [createIdea({ id: 1, title: "Orphan Tags", tagIds: ["tag-unknown"] })];
 
       // Should not crash on unknown tag IDs
       const result = filterIdeas(ideas, "unknown", { tags });

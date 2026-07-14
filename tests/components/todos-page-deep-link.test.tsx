@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactElement } from "react";
+
 import { cleanup, render } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Regression tests for `TodosPage` selection seeding from `?id=N`

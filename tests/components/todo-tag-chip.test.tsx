@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
 import { todoTagColor } from "@/lib/todo-tag-color";
 
@@ -65,9 +66,7 @@ describe("TodoTagChip", () => {
   it("never nests interactive controls (regression: onClick + onRemove used to render a <button> inside a <button>)", () => {
     const onClick = vi.fn();
     const onRemove = vi.fn();
-    const { container } = render(
-      <TodoTagChip name="work" onClick={onClick} onRemove={onRemove} />,
-    );
+    const { container } = render(<TodoTagChip name="work" onClick={onClick} onRemove={onRemove} />);
     // Nested <button> inside another <button> is invalid HTML and breaks
     // keyboard / screen-reader semantics; the layout must peel the
     // remove affordance out as a sibling instead.

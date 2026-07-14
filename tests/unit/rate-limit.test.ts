@@ -5,9 +5,9 @@ import {
   clearAllRateLimits,
   DEFAULT_RATE_LIMIT,
   getRateLimitCount,
+  type RateLimitConfig,
   resetRateLimit,
   slidingWindowCheck,
-  type RateLimitConfig,
 } from "@/lib/api/rate-limit";
 
 describe("Rate Limiting", () => {

@@ -5,7 +5,19 @@
  * scoped.ts (ScopedDB user-owned operations) to eliminate duplication.
  */
 
-import type { Link, Analytics, Folder, Upload, Webhook, Tag, LinkTag, UserSettings, ApiKey, Idea, IdeaTag } from './schema';
+import type {
+  Analytics,
+  ApiKey,
+  Folder,
+  Idea,
+  IdeaTag,
+  Link,
+  LinkTag,
+  Tag,
+  Upload,
+  UserSettings,
+  Webhook,
+} from "./schema";
 
 export function rowToLink(row: Record<string, unknown>): Link {
   return {
@@ -46,7 +58,7 @@ export function rowToFolder(row: Record<string, unknown>): Folder {
     id: row.id as string,
     userId: row.user_id as string,
     name: row.name as string,
-    icon: (row.icon as string) || 'folder',
+    icon: (row.icon as string) || "folder",
     createdAt: new Date(row.created_at as number),
   };
 }

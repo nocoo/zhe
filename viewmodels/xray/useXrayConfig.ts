@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getXrayConfig, saveXrayConfig } from "@/actions/xray";
-import { XRAY_PRESETS, XRAY_DEFAULT_URL } from "@/models/xray";
+import { XRAY_DEFAULT_URL, XRAY_PRESETS } from "@/models/xray";
 
 export type UrlMode = (typeof XRAY_PRESETS)[number]["label"] | "custom";
 
@@ -44,7 +44,9 @@ export function useXrayConfig(initialData?: XrayInitialData) {
       }
       setIsLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initialData]);
 
   const handleUrlModeChange = useCallback((mode: UrlMode) => {
@@ -90,9 +92,12 @@ export function useXrayConfig(initialData?: XrayInitialData) {
   }, []);
 
   return {
-    apiUrl, setApiUrl,
-    urlMode, handleUrlModeChange,
-    apiToken, setApiToken,
+    apiUrl,
+    setApiUrl,
+    urlMode,
+    handleUrlModeChange,
+    apiToken,
+    setApiToken,
     maskedToken,
     isConfigured,
     isEditing,

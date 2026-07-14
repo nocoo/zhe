@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+import path from "node:path";
+import { defineConfig } from "vitest/config";
 
 /**
  * Vitest config for L2 API E2E tests (real HTTP).
@@ -12,11 +12,9 @@ import path from 'path';
  */
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: "node",
     globals: true,
-    include: [
-      'tests/api/**/*.test.ts',
-    ],
+    include: ["tests/api/**/*.test.ts"],
     testTimeout: 15_000, // real HTTP can be slower
     fileParallelism: true,
     maxConcurrency: 4,
@@ -24,7 +22,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      "@": path.resolve(__dirname, "./"),
     },
   },
 });

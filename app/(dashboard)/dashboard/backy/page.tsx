@@ -1,12 +1,9 @@
-import { BackyPage } from '@/components/dashboard/backy-page';
-import { getBackyConfig, fetchBackyHistory, getBackyPullWebhook } from '@/actions/backy';
-import type { BackyInitialData } from '@/viewmodels/useBackyViewModel';
+import { fetchBackyHistory, getBackyConfig, getBackyPullWebhook } from "@/actions/backy";
+import { BackyPage } from "@/components/dashboard/backy-page";
+import type { BackyInitialData } from "@/viewmodels/useBackyViewModel";
 
 export default async function BackyRoute() {
-  const [configResult, pullResult] = await Promise.all([
-    getBackyConfig(),
-    getBackyPullWebhook(),
-  ]);
+  const [configResult, pullResult] = await Promise.all([getBackyConfig(), getBackyPullWebhook()]);
 
   const initialData: BackyInitialData = {
     ...(pullResult.success && pullResult.data ? { pullWebhook: pullResult.data } : {}),

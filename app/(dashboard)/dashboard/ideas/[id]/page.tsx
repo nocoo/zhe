@@ -1,10 +1,6 @@
 import { IdeaEditorPage } from "@/components/dashboard/idea-editor-page";
 
-export default async function IdeaEditorRoute({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function IdeaEditorRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ideaId = Number(id);
 

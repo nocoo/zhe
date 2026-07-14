@@ -1,14 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileType, HardDrive, ImageIcon, Upload } from "lucide-react";
-import { formatClickCount, formatStorageSize } from "@/models/overview";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverviewStats } from "@/models/overview";
-import {
-  BreakdownDonut,
-  StatCard,
-  UploadTrendChart,
-} from "./charts";
+import { formatClickCount, formatStorageSize } from "@/models/overview";
+import { BreakdownDonut, StatCard, UploadTrendChart } from "./charts";
 
 export function UploadsSection({ stats }: { stats: OverviewStats }) {
   return (

@@ -1,10 +1,15 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { getPresignedUploadUrl, recordUpload } from "@/actions/upload";
 import type { Upload } from "@/lib/db/schema";
 import type { UploadingFile } from "@/models/upload";
-import { validateUploadRequest, isPngFile, convertPngToJpeg, normalizeJpegQuality } from "@/models/upload";
-import { getPresignedUploadUrl, recordUpload } from "@/actions/upload";
+import {
+  convertPngToJpeg,
+  isPngFile,
+  normalizeJpegQuality,
+  validateUploadRequest,
+} from "@/models/upload";
 
 interface FlowSetters {
   setUploadingFiles: Dispatch<SetStateAction<UploadingFile[]>>;
@@ -22,9 +27,7 @@ function patchUploading(
   tempId: string,
   patch: Partial<UploadingFile>,
 ) {
-  setUploadingFiles((prev) =>
-    prev.map((f) => (f.id === tempId ? { ...f, ...patch } : f)),
-  );
+  setUploadingFiles((prev) => prev.map((f) => (f.id === tempId ? { ...f, ...patch } : f)));
 }
 
 function markError(
@@ -107,11 +110,7 @@ export async function runUploadFlow(
   try {
     await putToR2(uploadUrl, fileToUpload);
   } catch (error) {
-    markError(
-      setUploadingFiles,
-      tempId,
-      error instanceof Error ? error.message : "Upload failed",
-    );
+    markError(setUploadingFiles, tempId, error instanceof Error ? error.message : "Upload failed");
     return;
   }
 

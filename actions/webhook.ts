@@ -1,12 +1,8 @@
 "use server";
 
 import { getScopedDB } from "@/lib/auth-context";
+import { clampRateLimit, isValidRateLimit, RATE_LIMIT_DEFAULT_MAX } from "@/models/webhook";
 import { generateWebhookToken as generateToken } from "@/models/webhook.server";
-import {
-  clampRateLimit,
-  isValidRateLimit,
-  RATE_LIMIT_DEFAULT_MAX,
-} from "@/models/webhook";
 
 // ---------------------------------------------------------------------------
 // Actions

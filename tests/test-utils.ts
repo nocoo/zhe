@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { expect } from "vitest";
 
 /**
  * Assert a value is neither `null` nor `undefined` and return it narrowed.
@@ -11,7 +11,7 @@ import { expect } from 'vitest';
  *   expect(data.slug).toBe('foo');
  */
 export function unwrap<T>(value: T | null | undefined, message?: string): T {
-  expect(value, message ?? 'expected value to be defined').toBeDefined();
-  expect(value, message ?? 'expected value to be non-null').not.toBeNull();
+  expect(value, message ?? "expected value to be defined").toBeDefined();
+  expect(value, message ?? "expected value to be non-null").not.toBeNull();
   return value as T;
 }

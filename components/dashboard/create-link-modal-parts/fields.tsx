@@ -10,8 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { stripProtocol } from "@/models/links";
-import { TagBadge, TagPicker } from "../shared-link-components";
 import type { Folder, Tag } from "@/models/types";
+import { TagBadge, TagPicker } from "../shared-link-components";
 
 const INPUT_CLS =
   "rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary";

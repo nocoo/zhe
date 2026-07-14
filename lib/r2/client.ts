@@ -11,21 +11,21 @@
  */
 
 import {
-  S3Client,
-  PutObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import * as localBackend from './local-fs-backend';
+import * as localBackend from "./local-fs-backend";
 
 /** Presigned URL expiration in seconds (5 minutes). */
 const PRESIGN_EXPIRES_IN = 300;
 
 function isLocalMode(): boolean {
-  return process.env.LOCAL_R2 === '1';
+  return process.env.LOCAL_R2 === "1";
 }
 
 function getR2Config() {
@@ -36,7 +36,7 @@ function getR2Config() {
 
   if (!accessKeyId || !secretAccessKey || !endpoint || !bucket) {
     throw new Error(
-      'Missing R2 configuration. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME',
+      "Missing R2 configuration. Required: R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME",
     );
   }
 
@@ -51,7 +51,7 @@ function getR2Client(): S3Client {
   const { accessKeyId, secretAccessKey, endpoint } = getR2Config();
 
   _client = new S3Client({
-    region: 'auto',
+    region: "auto",
     endpoint,
     credentials: {
       accessKeyId,
@@ -69,10 +69,7 @@ function getR2Client(): S3Client {
  * @param contentType - MIME type of the file
  * @returns presigned URL valid for 5 minutes
  */
-export async function createPresignedUploadUrl(
-  key: string,
-  contentType: string,
-): Promise<string> {
+export async function createPresignedUploadUrl(key: string, contentType: string): Promise<string> {
   if (isLocalMode()) {
     return localBackend.createPresignedUploadUrl(key, contentType);
   }
@@ -178,15 +175,13 @@ export async function listR2Objects(prefix?: string): Promise<R2Object[]> {
           objects.push({
             key: obj.Key,
             size: obj.Size,
-            lastModified: obj.LastModified?.toISOString() ?? '',
+            lastModified: obj.LastModified?.toISOString() ?? "",
           });
         }
       }
     }
 
-    continuationToken = response.IsTruncated
-      ? response.NextContinuationToken
-      : undefined;
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
   } while (continuationToken);
 
   return objects;

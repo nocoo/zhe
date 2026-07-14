@@ -22,11 +22,8 @@ export default function DashboardLoading() {
 
       {/* Content blocks */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl bg-secondary p-4 space-y-3"
-          >
+        {Array.from({ length: 6 }, (_, i) => `sk-${i}`).map((id) => (
+          <div key={id} className="rounded-xl bg-secondary p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="h-3 w-20 rounded bg-background" />
               <div className="h-4 w-4 rounded bg-background" />

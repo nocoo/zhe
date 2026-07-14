@@ -1,11 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
-import {
-  generateApiKey,
-  verifyApiKey,
-  parseScopes,
-  serializeScopes,
-} from "@/models/api-key";
+import { describe, expect, it } from "vitest";
+import { generateApiKey, parseScopes, serializeScopes, verifyApiKey } from "@/models/api-key";
 
 describe("api-key model", () => {
   describe("generateApiKey", () => {

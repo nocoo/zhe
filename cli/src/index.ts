@@ -21,27 +21,27 @@ import { updateCommand } from "./commands/update.js";
 import { CLI_VERSION } from "./version.js";
 
 const main = defineCommand({
-	meta: {
-		name: "zhe",
-		version: CLI_VERSION,
-		description: "CLI for managing zhe.to short links",
-	},
-	subCommands: {
-		login: loginCommand,
-		logout: logoutCommand,
-		list: listCommand,
-		inbox: inboxCommand,
-		folders: foldersCommand,
-		folder: folderCommand,
-		tags: tagsCommand,
-		tag: tagCommand,
-		idea: ideaCommand,
-		create: createCommand,
-		get: getCommand,
-		update: updateCommand,
-		delete: deleteCommand,
-		open: openCommand,
-	},
+  meta: {
+    name: "zhe",
+    version: CLI_VERSION,
+    description: "CLI for managing zhe.to short links",
+  },
+  subCommands: {
+    login: loginCommand,
+    logout: logoutCommand,
+    list: listCommand,
+    inbox: inboxCommand,
+    folders: foldersCommand,
+    folder: folderCommand,
+    tags: tagsCommand,
+    tag: tagCommand,
+    idea: ideaCommand,
+    create: createCommand,
+    get: getCommand,
+    update: updateCommand,
+    delete: deleteCommand,
+    open: openCommand,
+  },
 });
 
 runMain(main);

@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { deleteUpload as deleteUploadAction } from "@/actions/upload";
+import { getUploads as fetchUploads } from "@/actions/upload-read";
 import type { Upload } from "@/lib/db/schema";
-import type { UploadingFile } from "@/models/upload";
-import { formatFileSize, isImageType, DEFAULT_JPEG_QUALITY } from "@/models/upload";
-import {
-  getUploads as fetchUploads,
-} from "@/actions/upload-read";
-import {
-  deleteUpload as deleteUploadAction,
-} from "@/actions/upload";
 import { copyToClipboard } from "@/lib/utils";
+import type { UploadingFile } from "@/models/upload";
+import { DEFAULT_JPEG_QUALITY, formatFileSize, isImageType } from "@/models/upload";
 import { runUploadFlow } from "./uploads/runUploadFlow";
 import { usePersistedFlag, usePersistedNumber } from "./uploads/usePersistedSetting";
 
@@ -42,17 +38,15 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
       setLoading(false);
     }
     fetchData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initialUploads]);
 
   /** Upload a single file (see runUploadFlow for the multi-step flow). */
   const uploadFile = useCallback(
     async (file: File) => {
-      await runUploadFlow(
-        file,
-        { autoConvertPng, jpegQuality },
-        { setUploadingFiles, setUploads },
-      );
+      await runUploadFlow(file, { autoConvertPng, jpegQuality }, { setUploadingFiles, setUploads });
     },
     [autoConvertPng, jpegQuality],
   );
@@ -109,10 +103,7 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
 }
 
 /** ViewModel for a single upload item — manages copy and delete */
-export function useUploadItemViewModel(
-  upload: Upload,
-  onDelete: (id: number) => Promise<boolean>,
-) {
+export function useUploadItemViewModel(upload: Upload, onDelete: (id: number) => Promise<boolean>) {
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

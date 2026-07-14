@@ -25,9 +25,7 @@ export function MarkdownPreview({
 }: MarkdownPreviewProps) {
   if (!content.trim()) {
     return (
-      <div className={cn("text-muted-foreground/50 italic text-sm", className)}>
-        {placeholder}
-      </div>
+      <div className={cn("text-muted-foreground/50 italic text-sm", className)}>{placeholder}</div>
     );
   }
 

@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, cleanup } from '@testing-library/react';
-import { unwrap } from '../test-utils';
 
-describe('useIsMobile', () => {
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unwrap } from "../test-utils";
+
+describe("useIsMobile", () => {
   let addEventListenerSpy: ReturnType<typeof vi.fn>;
   let removeEventListenerSpy: ReturnType<typeof vi.fn>;
 
@@ -11,13 +12,13 @@ describe('useIsMobile', () => {
     addEventListenerSpy = vi.fn();
     removeEventListenerSpy = vi.fn();
 
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(window, "innerWidth", {
       writable: true,
       configurable: true,
       value: innerWidth,
     });
 
-    Object.defineProperty(window, 'matchMedia', {
+    Object.defineProperty(window, "matchMedia", {
       writable: true,
       configurable: true,
       value: vi.fn().mockReturnValue({
@@ -36,25 +37,25 @@ describe('useIsMobile', () => {
     cleanup();
   });
 
-  it('returns false (desktop) when innerWidth >= 768', async () => {
+  it("returns false (desktop) when innerWidth >= 768", async () => {
     mockMatchMedia(1024);
-    const { useIsMobile } = await import('@/hooks/use-mobile');
+    const { useIsMobile } = await import("@/hooks/use-mobile");
     const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(false);
   });
 
-  it('returns true (mobile) when innerWidth < 768', async () => {
+  it("returns true (mobile) when innerWidth < 768", async () => {
     mockMatchMedia(375);
-    const { useIsMobile } = await import('@/hooks/use-mobile');
+    const { useIsMobile } = await import("@/hooks/use-mobile");
     const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(true);
   });
 
-  it('initially returns false before effect runs (!!undefined === false)', async () => {
+  it("initially returns false before effect runs (!!undefined === false)", async () => {
     mockMatchMedia(375);
-    const { useIsMobile } = await import('@/hooks/use-mobile');
+    const { useIsMobile } = await import("@/hooks/use-mobile");
 
     // Capture the first synchronous render value
     let initialValue: boolean | undefined;
@@ -68,19 +69,19 @@ describe('useIsMobile', () => {
     expect(initialValue).toBe(false);
   });
 
-  it('registers and cleans up matchMedia listener', async () => {
+  it("registers and cleans up matchMedia listener", async () => {
     mockMatchMedia(1024);
-    const { useIsMobile } = await import('@/hooks/use-mobile');
+    const { useIsMobile } = await import("@/hooks/use-mobile");
     const { unmount } = renderHook(() => useIsMobile());
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith('change', expect.any(Function));
+    expect(addEventListenerSpy).toHaveBeenCalledWith("change", expect.any(Function));
     unmount();
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('change', expect.any(Function));
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("change", expect.any(Function));
   });
 
-  it('responds to matchMedia change events', async () => {
+  it("responds to matchMedia change events", async () => {
     mockMatchMedia(1024);
-    const { useIsMobile } = await import('@/hooks/use-mobile');
+    const { useIsMobile } = await import("@/hooks/use-mobile");
     const { result } = renderHook(() => useIsMobile());
 
     expect(result.current).toBe(false);
@@ -88,7 +89,11 @@ describe('useIsMobile', () => {
     // Simulate resize to mobile
     const changeHandler = unwrap(addEventListenerSpy.mock.calls[0])[1];
     act(() => {
-      Object.defineProperty(window, 'innerWidth', { value: 500, writable: true, configurable: true });
+      Object.defineProperty(window, "innerWidth", {
+        value: 500,
+        writable: true,
+        configurable: true,
+      });
       changeHandler();
     });
 
