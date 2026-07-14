@@ -43,59 +43,60 @@ function GridScreenshot({
   | "onOpenPreviewDialog"
   | "onToggleEdit"
 >) {
+  const openOriginal = () => {
+    window.open(link.originalUrl, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    // Nested preview/edit controls are real <button>s — outer shell cannot be
-    // <button> (invalid HTML / hydration error). Keep role=button + keyboard.
-    // biome-ignore lint/a11y/useSemanticElements: shell with nested action buttons
-    <div
-      role="button"
-      tabIndex={0}
-      className="relative block w-full aspect-[4/3] bg-accent cursor-pointer p-0 border-0 text-left"
-      onClick={() => window.open(link.originalUrl, "_blank", "noopener,noreferrer")}
-      onKeyDown={(e) => {
-        // Only respond to keys fired directly on the wrapper, not bubbled from
-        // any child controls that may be added later.
-        if (e.currentTarget !== e.target) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          window.open(link.originalUrl, "_blank", "noopener,noreferrer");
-        }
-      }}
-      aria-label={`打开链接 ${link.originalUrl}`}
-    >
-      {screenshotUrl ? (
-        <Image src={screenshotUrl} alt="Screenshot" fill className="object-cover" unoptimized />
-      ) : faviconUrl ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Image
-            src={faviconUrl}
-            alt="Site favicon"
-            width={48}
-            height={48}
-            className="w-12 h-12 object-contain"
-            unoptimized
-          />
-        </div>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
-        </div>
-      )}
+    // Full-bleed open control + sibling action buttons (no nested interactives).
+    <div className="relative block w-full aspect-[4/3] bg-accent">
+      <button
+        type="button"
+        className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
+        onClick={openOriginal}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openOriginal();
+          }
+        }}
+        aria-label={`打开链接 ${link.originalUrl}`}
+      />
+
+      <div className="relative z-10 h-full w-full pointer-events-none">
+        {screenshotUrl ? (
+          <Image src={screenshotUrl} alt="Screenshot" fill className="object-cover" unoptimized />
+        ) : faviconUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Image
+              src={faviconUrl}
+              alt="Site favicon"
+              width={48}
+              height={48}
+              className="w-12 h-12 object-contain"
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ImageIcon className="w-5 h-5 text-muted-foreground/40" strokeWidth={1.5} />
+          </div>
+        )}
+      </div>
 
       {/* Action overlay.
           Desktop (hover): full dim overlay revealed on hover/focus-within.
           Touch (hover:none): a small top-right floating cluster that is
-          always visible so actions remain reachable without hover. */}
-      <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:top-1 [@media(hover:none)]:gap-0.5 [@media(hover:none)]:bg-transparent [@media(hover:none)]:opacity-100">
+          always visible so actions remain reachable without hover.
+          Container is pointer-events-none so open-button still receives
+          clicks; individual actions re-enable pointer events. */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:top-1 [@media(hover:none)]:gap-0.5 [@media(hover:none)]:bg-transparent [@media(hover:none)]:opacity-100">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenPreviewDialog();
-          }}
+          onClick={onOpenPreviewDialog}
           disabled={isFetchingPreview}
           aria-label="Refresh preview"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
           title="刷新预览图"
         >
           {isFetchingPreview ? (
@@ -106,12 +107,9 @@ function GridScreenshot({
         </button>
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleEdit();
-          }}
+          onClick={onToggleEdit}
           aria-label="Edit link"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
           title="Edit link"
         >
           <Pencil className="w-4 h-4" strokeWidth={1.5} />

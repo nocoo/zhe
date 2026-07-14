@@ -115,7 +115,8 @@ describe("IdeaCard", () => {
     it("calls onClick when card is clicked", () => {
       const onClick = vi.fn();
       render(<IdeaCard {...defaultProps} onClick={onClick} />);
-      fireEvent.click(screen.getByText("Test Idea"));
+      // Open control is a full-bleed sibling button (not the title text).
+      fireEvent.click(screen.getByRole("button", { name: /打开想法/ }));
       expect(onClick).toHaveBeenCalledWith(defaultProps.idea);
     });
 
@@ -236,7 +237,7 @@ describe("IdeaRow", () => {
     it("calls onClick when row is clicked", () => {
       const onClick = vi.fn();
       render(<IdeaRow {...defaultProps} onClick={onClick} />);
-      fireEvent.click(screen.getByText("Test Idea"));
+      fireEvent.click(screen.getByRole("button", { name: /打开想法/ }));
       expect(onClick).toHaveBeenCalledWith(defaultProps.idea);
     });
 
