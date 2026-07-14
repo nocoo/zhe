@@ -289,7 +289,7 @@ bun run test:coverage       # coverage report
 |---------|-------------|
 | `bun dev` | Dev server (port 7006) |
 | `bun run build` | Production build |
-| `bun run lint` | ESLint (zero-warning policy) |
+| `bun run lint` | Biome (zero-warning policy) |
 | `bun run test:run` | All unit/integration/component tests |
 | `bun run test:unit` | Unit tests only |
 | `bun run test:unit:coverage` | Unit tests + coverage gate |
@@ -334,7 +334,7 @@ zhe/
 ## Testing
 
 - **Coverage target**: statements >= 90%, functions >= 85%, branches >= 80%
-- **Zero-warning policy**: ESLint `--max-warnings=0`
+- **Zero-warning policy**: Biome `check --error-on-warnings`
 - **Git hooks** (husky):
   - **pre-commit**: L1 unit/integration tests + coverage gate + G1 typecheck/lint + G2 gitleaks
   - **pre-push**: L2 API E2E + G2 osv-scanner (all hard gates)
@@ -345,7 +345,7 @@ zhe/
 | L1 | Unit + Integration | Hard | pre-commit |
 | L2 | API E2E (real HTTP) | Hard | pre-push |
 | L3 | Playwright BDD E2E | Manual | on-demand |
-| G1 | TypeScript + ESLint | Hard | pre-commit |
+| G1 | TypeScript + Biome | Hard | pre-commit |
 | G2 | gitleaks + osv-scanner | Hard | pre-commit + pre-push |
 
 | Port | Purpose |

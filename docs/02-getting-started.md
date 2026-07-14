@@ -109,7 +109,7 @@ bun dev
 | `bun dev` | 启动开发服务器（端口 7006，Turbopack） |
 | `bun run build` | 生产构建 |
 | `bun run start` | 启动生产服务器 |
-| `bun run lint` | ESLint 检查（零警告策略） |
+| `bun run lint` | Biome 检查（零警告策略） |
 | `bun run test` | Watch 模式运行测试 |
 | `bun run test:run` | 运行全部测试（单次） |
 | `bun run test:unit` | 仅运行单元测试（排除 API E2E） |

@@ -621,7 +621,7 @@ Request (all fields optional):
 | L1 | Unit tests for ScopedDB, Server Actions, Components, CLI | pre-commit |
 | L2 | API E2E tests for `/api/v1/ideas` | pre-push |
 | L3 | Playwright E2E for `/dashboard/ideas` | on-demand |
-| G1 | TypeScript + ESLint strict | pre-commit |
+| G1 | TypeScript + Biome | pre-commit |
 | G2 | gitleaks + osv-scanner | pre-commit + pre-push |
 
 ---

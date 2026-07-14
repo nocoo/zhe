@@ -216,7 +216,7 @@ Layout under `.test-storage/` (gitignored):
 | L1 | Unit/Component + Integration | pre-commit | Hard |
 | L2 | API E2E (real HTTP) | pre-push | Hard |
 | L3 | System/E2E (Playwright) | on-demand | Hard |
-| G1 | Static Analysis (tsc + ESLint strict) | pre-commit | Hard |
+| G1 | Static Analysis (tsc + Biome) | pre-commit | Hard |
 | G2 | Security (gitleaks + osv-scanner) | pre-commit + pre-push | Hard |
 
 ### Commands

@@ -25,7 +25,7 @@
             │      Edge Worker 单元测试            │
         ┌───┴─────────────────────────────────────┴───┐
         │              G1 + G2 (静态分析 + 安全)         │  ← pre-commit + pre-push
-        │   TypeScript + ESLint + gitleaks + osv-scanner │
+        │   TypeScript + Biome + gitleaks + osv-scanner  │
         └─────────────────────────────────────────────────┘
 ```
 
@@ -36,7 +36,7 @@
 | **L1** | 单元 + 集成测试 | 纯函数、ViewModel、Hooks、Server Actions、组件 | pre-commit | Hard |
 | **L2** | API E2E | 真实 HTTP 请求到运行中的 Next.js 服务器 | pre-push | Hard |
 | **L3** | 系统 E2E | 真实用户端到端流程（Playwright 浏览器自动化） | on-demand | Hard |
-| **G1** | 静态分析 | 类型检查 (`tsc --noEmit`) + ESLint strict | pre-commit | Hard |
+| **G1** | 静态分析 | 类型检查 (`tsc --noEmit`) + Biome (`--error-on-warnings`) | pre-commit | Hard |
 | **G2** | 安全检查 | Secrets 泄露 (gitleaks) + 依赖漏洞 (osv-scanner) | pre-commit + pre-push | Hard |
 | **Worker** | Edge Worker | Cloudflare Worker 边缘逻辑 | on-demand | Hard |
 
@@ -276,7 +276,7 @@ bun run test:e2e:pw:ui   # Playwright UI 模式（调试）
 #### 设计目标
 
 - **类型安全**：`tsc --noEmit` 确保 TypeScript 类型正确
-- **代码质量**：ESLint strict 规则，零警告策略
+- **代码质量**：Biome 零警告策略（`biome check --error-on-warnings`）
 
 #### TypeScript 检查
 
@@ -418,7 +418,7 @@ cd worker && bun run test  # Worker 单元测试
 run_bg unit_cov   bun run test:unit:coverage   # L1 单元 + 覆盖率门槛
 run_bg integ      bun run test:integration      # L1 集成测试
 run_bg typecheck  bun run typecheck             # G1 tsc --noEmit
-run_bg lint       bunx lint-staged              # G1 ESLint（仅变更文件）
+run_bg lint       bunx lint-staged              # G1 Biome（仅变更文件）
 run_bg gitleaks   gitleaks protect --staged     # G2 secrets 扫描
 ```
 
@@ -500,7 +500,7 @@ worker/
 | `bun run test:e2e:pw:ui` | L3 | Playwright UI 模式（调试用） |
 | `bun run test:coverage` | — | 覆盖率报告 |
 | `bun run typecheck` | G1 | TypeScript 类型检查 |
-| `bun run lint` | G1 | ESLint strict（零警告） |
+| `bun run lint` | G1 | Biome check（零警告） |
 | `cd worker && bun run test` | Worker | Worker 单元测试 |
 
 ---

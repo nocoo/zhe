@@ -592,7 +592,7 @@ New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygi
 | C15 | `test(ui): add L1 component tests for todos page` | `tests/components/todos/*` |
 | C16 | `test(integration): add L2 tests for todo move guarded batch + cross-move race` | `tests/integration/todos.test.ts` (server-action harness) |
 
-Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is reviewable in isolation.
+Each commit passes pre-commit (Biome, Vitest unit, typecheck, gitleaks) and is reviewable in isolation.
 
 ---
 
@@ -604,7 +604,7 @@ Each commit passes pre-commit (ESLint, Vitest unit, typecheck, gitleaks) and is 
 | L1 | Component tests: tree keyboard, drag callback, right-pane switch, tag input | pre-commit |
 | L2 | Server-action invariants: create, guarded two-phase move + cross-move race, cascade delete | pre-push |
 | L3 | Playwright: create root → add child → drag reorder → check → delete | on-demand |
-| G1 | TypeScript + ESLint strict, react-arborist typing surface exercised | pre-commit |
+| G1 | TypeScript + Biome, react-arborist typing surface exercised | pre-commit |
 | G2 | gitleaks + osv-scanner (react-arborist advisory scan) | pre-commit + pre-push |
 
 ---
