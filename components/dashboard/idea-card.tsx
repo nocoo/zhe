@@ -95,8 +95,12 @@ export const IdeaCard = memo(function IdeaCard({
   };
 
   return (
-    <button
-      type="button"
+    // Outer element hosts nested edit/delete <Button>s — a real <button> wrapper
+    // is invalid HTML (button-in-button) and causes React hydration errors.
+    // biome-ignore lint/a11y/useSemanticElements: card shell with nested action buttons
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "group relative flex flex-col rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/80 cursor-pointer text-left w-full",
         className,
@@ -156,7 +160,7 @@ export const IdeaCard = memo(function IdeaCard({
           </Button>
         </div>
       </div>
-    </button>
+    </div>
   );
 });
 
@@ -211,8 +215,11 @@ export const IdeaRow = memo(function IdeaRow({
   };
 
   return (
-    <button
-      type="button"
+    // Same nested-action constraint as IdeaCard — keep a div role=button shell.
+    // biome-ignore lint/a11y/useSemanticElements: row shell with nested action buttons
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "group flex items-center gap-4 rounded-card border-0 bg-secondary shadow-none px-4 py-3 transition-colors hover:bg-secondary/80 cursor-pointer text-left w-full",
         className,
@@ -281,6 +288,6 @@ export const IdeaRow = memo(function IdeaRow({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-    </button>
+    </div>
   );
 });

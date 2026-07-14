@@ -44,8 +44,12 @@ function GridScreenshot({
   | "onToggleEdit"
 >) {
   return (
-    <button
-      type="button"
+    // Nested preview/edit controls are real <button>s — outer shell cannot be
+    // <button> (invalid HTML / hydration error). Keep role=button + keyboard.
+    // biome-ignore lint/a11y/useSemanticElements: shell with nested action buttons
+    <div
+      role="button"
+      tabIndex={0}
       className="relative block w-full aspect-[4/3] bg-accent cursor-pointer p-0 border-0 text-left"
       onClick={() => window.open(link.originalUrl, "_blank", "noopener,noreferrer")}
       onKeyDown={(e) => {
@@ -113,7 +117,7 @@ function GridScreenshot({
           <Pencil className="w-4 h-4" strokeWidth={1.5} />
         </button>
       </div>
-    </button>
+    </div>
   );
 }
 
