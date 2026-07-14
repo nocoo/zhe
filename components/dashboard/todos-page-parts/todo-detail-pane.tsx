@@ -247,14 +247,16 @@ function TodoDetailPaneBody({
             aria-label="Todo notes"
           />
         ) : (
-          <button
-            type="button"
+          // Markdown may render <a> / task-list <input>, so this cannot be a
+          // <button> (invalid nested interactives / hydration). Primary edit
+          // entry is the header toggle; double-click is a mouse convenience.
+          // biome-ignore lint/a11y/noStaticElementInteractions: double-click affordance only; header 编辑 is the accessible control
+          <div
             onDoubleClick={() => setContentMode("edit")}
-            className="min-h-[10rem] w-full rounded-sm border border-transparent p-2 text-left hover:border-border/60"
-            aria-label="Todo notes preview. Double-click to edit."
+            className="min-h-[10rem] w-full cursor-text rounded-sm border border-transparent p-2 text-left hover:border-border/60"
           >
             <MarkdownPreview content={contentDraft} placeholder="暂无备注，双击进入编辑。" />
-          </button>
+          </div>
         )}
       </div>
 
