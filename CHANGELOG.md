@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.21.0] - 2026-07-14
+
+### Added
+- Polish tree row and detail pane
+- Add lightweight emoji picker component
+- Add Radix ContextMenu primitive
+- Add optional emoji column to todos
+- Unify page shell with links/ideas conventions
+- Localize detail pane copy to Chinese
+- Localize tree row menu + Untitled placeholder
+- Localize delete-confirm dialog to Chinese
+- Localize due chip labels to Chinese
+
+### Changed
+- Align Ideas and Storage specs with a11y DOM changes
+- Replace remaining ESLint references with Biome
+- Record Biome/TS7 migration retrospective notes
+- Bump TypeScript to 7.0.2
+- Document Biome as the project linter
+- Replace ESLint with Biome
+- Bump @cloudflare/workers-types to 5.20260713.1
+- Bump lint/tooling devDeps
+- Bump aws-sdk to 3.1086.0 and url-metadata to 5.7.4
+- Bump postcss 8.5.17 → 8.5.18
+- Bump @eslint-react/eslint-plugin 5.14.5 → 5.14.6
+- Bump @cloudflare/workers-types 5.20260711.1 → 5.20260712.1 in worker
+- Bump nanoid 5.1.16 → 6.0.0
+- Bump @cloudflare/workers-types 5.20260710.1 → 5.20260711.1 in worker
+- Bump @eslint-react/eslint-plugin 5.14.1 → 5.14.5
+- Bump postcss 8.5.16 → 8.5.17
+- Bump @aws-sdk/client-s3 and s3-request-presigner 3.1084.0 → 3.1085.0
+- Bump @cloudflare/workers-types 5.20260708.1 → 5.20260710.1 in worker
+- Bump @eslint-react/eslint-plugin 5.13.2 → 5.14.1
+- Bump eslint 10.6.0 → 10.7.0
+
+### Fixed
+- Stop wrapping Markdown preview in a button
+- Include Node types under TypeScript 7
+- Use overlay open-buttons instead of nested interactive shells
+- Stop nesting buttons in idea and link cards
+- Pass stable selection prop to arborist Tree
+- Map /dashboard/todos to 待办 breadcrumb
+- Replace shadcn border-input with basalt border-border in todos-page-parts
+
 ## [v1.20.0] - 2026-07-10
 
 ### Added
