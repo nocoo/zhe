@@ -82,9 +82,9 @@ test.describe("Storage Management", () => {
   test("sort controls for R2 files are functional", async ({ page }) => {
     await goToStorage(page);
 
-    // Sort buttons (use columnheader role — buttons have role="columnheader")
-    const timeBtn = page.getByRole("columnheader", { name: /时间/ }).first();
-    const sizeBtn = page.getByRole("columnheader", { name: /大小/ }).first();
+    // Sort controls are ghost Buttons with aria-label "按{时间|大小}排序，当前…"
+    const timeBtn = page.getByRole("button", { name: /按时间排序/ }).first();
+    const sizeBtn = page.getByRole("button", { name: /按大小排序/ }).first();
 
     await expect(timeBtn).toBeVisible();
     await expect(sizeBtn).toBeVisible();

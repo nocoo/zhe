@@ -16,6 +16,34 @@ async function waitForIdeasPage(page: import("@playwright/test").Page): Promise<
   await expect(page.locator(".animate-pulse")).toHaveCount(0, { timeout: 30_000 });
 }
 
+/**
+ * IdeaCard uses a full-bleed open-button overlay; text nodes under it have
+ * pointer-events-none. Prefer the open control (and hover the card shell)
+ * instead of clicking/hovering the excerpt text.
+ */
+function ideaCard(page: import("@playwright/test").Page, content: string) {
+  return page.locator("div.group").filter({ hasText: content }).first();
+}
+
+async function openIdeaByContent(
+  page: import("@playwright/test").Page,
+  content: string,
+): Promise<void> {
+  const card = ideaCard(page, content);
+  await expect(card).toBeVisible({ timeout: 10_000 });
+  await card.getByRole("button", { name: /打开想法/ }).click();
+}
+
+async function hoverIdeaCard(
+  page: import("@playwright/test").Page,
+  content: string,
+): Promise<void> {
+  const card = ideaCard(page, content);
+  await expect(card).toBeVisible({ timeout: 10_000 });
+  // Hover the open control (receives pointer events) so group-hover reveals actions.
+  await card.getByRole("button", { name: /打开想法/ }).hover();
+}
+
 test.describe("Ideas", () => {
   // Clean up any existing ideas before tests
   test.beforeAll(async () => {
@@ -249,10 +277,9 @@ test.describe("Ideas", () => {
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
-      // Open context menu and click delete
-      // Hover over the idea card to show action buttons
-      await page.getByText("Idea to delete").hover();
-      await page.getByRole("button", { name: "删除" }).click();
+      // Open delete action (hover card shell so action buttons become visible)
+      await hoverIdeaCard(page, "Idea to delete");
+      await ideaCard(page, "Idea to delete").getByRole("button", { name: "删除想法" }).click();
 
       // Verify dialog
       await expect(page.getByRole("dialog")).toBeVisible();
@@ -269,8 +296,8 @@ test.describe("Ideas", () => {
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
-      await page.getByText("Idea to keep").hover();
-      await page.getByRole("button", { name: "删除" }).click();
+      await hoverIdeaCard(page, "Idea to keep");
+      await ideaCard(page, "Idea to keep").getByRole("button", { name: "删除想法" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       // Cancel
@@ -294,8 +321,8 @@ test.describe("Ideas", () => {
       await expect(page.getByText(content)).toBeVisible();
 
       // Delete
-      await page.getByText(content).hover();
-      await page.getByRole("button", { name: "删除" }).click();
+      await hoverIdeaCard(page, content);
+      await ideaCard(page, content).getByRole("button", { name: "删除想法" }).click();
       await page.getByRole("dialog").getByRole("button", { name: "删除" }).click();
 
       // Idea should be removed
@@ -325,8 +352,8 @@ test.describe("Ideas", () => {
       // Wait for idea to appear in list
       await expect(page.getByText("Idea to edit")).toBeVisible({ timeout: 10_000 });
 
-      // Click on the idea card
-      await page.getByText("Idea to edit").click();
+      // Click the full-bleed open control on the idea card
+      await openIdeaByContent(page, "Idea to edit");
 
       // Should navigate to editor page
       await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
@@ -346,7 +373,7 @@ test.describe("Ideas", () => {
 
       // Wait for idea to appear in list before clicking
       await expect(page.getByText("Idea for back button test")).toBeVisible({ timeout: 10_000 });
-      await page.getByText("Idea for back button test").click();
+      await openIdeaByContent(page, "Idea for back button test");
       await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
 
       // Wait for editor to load - must wait for back button to be visible
@@ -376,7 +403,7 @@ test.describe("Ideas", () => {
       await expect(page.getByText(originalContent)).toBeVisible({ timeout: 10_000 });
 
       // Navigate to editor
-      await page.getByText(originalContent).click();
+      await openIdeaByContent(page, originalContent);
       await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
 
       // Wait for editor to fully load with original content
@@ -408,7 +435,7 @@ test.describe("Ideas", () => {
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
-      await page.getByText("Content for dirty test").click();
+      await openIdeaByContent(page, "Content for dirty test");
       await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/);
 
       // Modify content
