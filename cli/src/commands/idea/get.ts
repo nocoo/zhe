@@ -1,4 +1,4 @@
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import { ApiClient, EXIT_INVALID_ARGS } from "../../api/client.js";
 import { parsePositiveInt } from "../../utils.js";
 import { buildTagMap, formatDate, formatTags, handleApiError, requireAuth } from "./helpers.js";

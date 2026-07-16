@@ -2,7 +2,7 @@
  * Name/UUID resolvers for folders and tags. Extracted from utils.ts.
  */
 
-import { pc } from "@nocoo/cli-base";
+import { pc } from "@nocoo/base-cli";
 import type { ApiClient } from "../api/client.js";
 import type { Folder, Tag } from "../api/types.js";
 

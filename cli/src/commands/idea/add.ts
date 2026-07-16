@@ -1,4 +1,4 @@
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import { ApiClient, EXIT_INVALID_ARGS } from "../../api/client.js";
 import type { CreateIdeaRequest } from "../../api/types.js";
 import { resolveTagName } from "../../utils.js";

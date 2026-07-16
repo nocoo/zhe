@@ -2,7 +2,7 @@
  * zhe inbox — List uncategorized links (no folder)
  */
 
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import {
   ApiClient,
   ApiClientError,

@@ -3,7 +3,7 @@
  */
 
 import * as readline from "node:readline";
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import { ApiClient, EXIT_AUTH_REQUIRED, EXIT_ERROR } from "../api/client.js";
 import { getApiKey, saveApiKey } from "../config.js";
 import { isValidApiKeyFormat, maskApiKey } from "../utils.js";

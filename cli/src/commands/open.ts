@@ -2,7 +2,7 @@
  * zhe open <slug> — Open short URL in browser
  */
 
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import { EXIT_INVALID_ARGS } from "../api/client.js";
 import { openInBrowser } from "../utils.js";
 

@@ -1,7 +1,7 @@
 /** Shared helpers for the `zhe idea` subcommands. */
 
 import * as readline from "node:readline";
-import { pc } from "@nocoo/cli-base";
+import { pc } from "@nocoo/base-cli";
 import {
   type ApiClient,
   ApiClientError,

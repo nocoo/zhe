@@ -6,7 +6,7 @@
  * `commands/idea.js`.
  */
 
-import { defineCommand } from "@nocoo/cli-base";
+import { defineCommand } from "@nocoo/base-cli";
 import { addSubcommand } from "./idea/add.js";
 import { deleteSubcommand } from "./idea/delete.js";
 import { getSubcommand } from "./idea/get.js";

@@ -3,7 +3,7 @@
  * zhe CLI — Manage zhe.to short links
  */
 
-import { defineCommand, runMain } from "@nocoo/cli-base";
+import { defineCommand, runMain } from "@nocoo/base-cli";
 import { createCommand } from "./commands/create.js";
 import { deleteCommand } from "./commands/delete.js";
 import { folderCommand } from "./commands/folder.js";

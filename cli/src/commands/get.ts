@@ -2,7 +2,7 @@
  * zhe get <id> — Get link details
  */
 
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import {
   ApiClient,
   ApiClientError,

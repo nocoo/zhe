@@ -11,7 +11,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { pc } from "@nocoo/cli-base";
+import { pc } from "@nocoo/base-cli";
 
 /** Mask an API key for display: zhe_abcd...wxyz */
 export function maskApiKey(apiKey: string): string {

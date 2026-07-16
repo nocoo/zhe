@@ -3,7 +3,7 @@
  */
 
 import { exec } from "node:child_process";
-import { defineCommand, pc } from "@nocoo/cli-base";
+import { defineCommand, pc } from "@nocoo/base-cli";
 import {
   ApiClient,
   ApiClientError,

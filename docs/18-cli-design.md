@@ -12,7 +12,7 @@
 ┌──────────────────────────────────────────────────────────┐
 │                        zhe CLI                            │
 ├──────────────────────────────────────────────────────────┤
-│  @nocoo/cli-base                                         │
+│  @nocoo/base-cli                                         │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌────────┐         │
 │  │ Config  │ │  Login  │ │ Update  │ │  Log   │         │
 │  └─────────┘ └─────────┘ └─────────┘ └────────┘         │
@@ -44,9 +44,9 @@
 |-------|------------|
 | Runtime | Bun |
 | Language | TypeScript (strict) |
-| CLI Framework | citty (via @nocoo/cli-base) |
-| Logging | consola (via @nocoo/cli-base) |
-| Config | ConfigManager (via @nocoo/cli-base) |
+| CLI Framework | citty (via @nocoo/base-cli) |
+| Logging | consola (via @nocoo/base-cli) |
+| Config | ConfigManager (via @nocoo/base-cli) |
 | Auth | Manual API Key entry (v1) |
 | HTTP | Native fetch |
 | Testing | Vitest (95%+ coverage) |
@@ -111,7 +111,7 @@ interface ZheConfig {
 ### Permissions
 
 - Config file created with `0600` (owner read/write only)
-- Handled by `ConfigManager` from `@nocoo/cli-base`
+- Handled by `ConfigManager` from `@nocoo/base-cli`
 
 ---
 
@@ -696,7 +696,7 @@ bun test:watch           # Watch mode
 
 ## Release Process
 
-Automated via `scripts/release.ts` (same pattern as cli-base):
+Automated via `scripts/release.ts` (same pattern as base-cli):
 
 1. Run tests + lint
 2. Bump version in package.json
@@ -799,4 +799,4 @@ zhe                      # Enter interactive REPL
 
 - [API v1 Documentation](03-features.md#api-v1推荐)
 - [D1 Worker Proxy Migration](17-d1-worker-proxy-migration.md) — security model
-- [@nocoo/cli-base README](https://github.com/nocoo/cli-base)
+- [@nocoo/base-cli README](https://github.com/nocoo/base-cli)
