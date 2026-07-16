@@ -190,21 +190,17 @@ describe("zhe-edge Worker — fetch handler", () => {
       expect(res.status).toBe(200);
     });
 
-    it.each([
-      ".png",
-      ".ico",
-      ".svg",
-      ".jpg",
-      ".jpeg",
-      ".webp",
-    ])("forwards static asset with extension %s to origin", async (ext) => {
-      const fetchMock = stubOriginFetch();
-      const env = makeEnv();
-      const res = await worker.fetch(makeRequest(`/image${ext}`), env, makeCtx());
+    it.each([".png", ".ico", ".svg", ".jpg", ".jpeg", ".webp"])(
+      "forwards static asset with extension %s to origin",
+      async (ext) => {
+        const fetchMock = stubOriginFetch();
+        const env = makeEnv();
+        const res = await worker.fetch(makeRequest(`/image${ext}`), env, makeCtx());
 
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(res.status).toBe(200);
-    });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(res.status).toBe(200);
+      },
+    );
 
     it("forwards multi-segment paths to origin (e.g. /slug/extra)", async () => {
       const fetchMock = stubOriginFetch();
