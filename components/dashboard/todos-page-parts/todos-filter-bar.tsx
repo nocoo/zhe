@@ -9,13 +9,18 @@
  * "Clear filters" affordance is only shown when at least one facet is
  * non-default so the toolbar stays quiet at rest.
  *
+ * Density: all controls use the compact (`sm`) tier — h-8 / text-xs /
+ * rounded-widget — matching the dashboard toolbar contract in globals.css.
+ *
  * aria-labels remain in English to keep the existing test contracts.
  */
 
 import { Search, X } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -71,16 +76,17 @@ export function TodosFilterBar({
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
+          size="sm"
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
           placeholder="搜索待办..."
-          className="pl-8 h-8 w-[160px] text-xs rounded-lg"
+          className="pl-8 w-[160px]"
           aria-label="Search todos"
         />
       </div>
 
       <Select value={dueFilter} onValueChange={(v) => onDueFilterChange(v as TodoDueFilterKind)}>
-        <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg" aria-label="Due date filter">
+        <SelectTrigger size="sm" className="w-[110px]" aria-label="Due date filter">
           <SelectValue placeholder="全部截止" />
         </SelectTrigger>
         <SelectContent>
@@ -96,7 +102,7 @@ export function TodosFilterBar({
         value={selectedTagName ?? "__any"}
         onValueChange={(v) => onSelectedTagNameChange(v === "__any" ? null : v)}
       >
-        <SelectTrigger className="w-[110px] h-8 text-xs rounded-lg" aria-label="Tag filter">
+        <SelectTrigger size="sm" className="w-[110px]" aria-label="Tag filter">
           <SelectValue placeholder="全部标签" />
         </SelectTrigger>
         <SelectContent>
@@ -109,24 +115,18 @@ export function TodosFilterBar({
         </SelectContent>
       </Select>
 
-      <label className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
-        <input
-          type="checkbox"
+      <Label className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground whitespace-nowrap">
+        <Checkbox
+          size="sm"
           checked={showDone}
-          onChange={(e) => onShowDoneChange(e.target.checked)}
-          className="h-3.5 w-3.5"
+          onCheckedChange={(checked) => onShowDoneChange(checked === true)}
+          aria-label="Show completed todos"
         />
         显示已完成
-      </label>
+      </Label>
 
       {isDirty ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClearFilters}
-          className="h-8 gap-1 text-xs"
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onClearFilters}>
           <X className="h-3.5 w-3.5" /> 清除
         </Button>
       ) : null}

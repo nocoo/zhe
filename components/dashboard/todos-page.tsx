@@ -187,12 +187,7 @@ export function TodosPage() {
             {narrow && (
               <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
-                    aria-label="筛选与搜索"
-                  >
+                  <Button variant="outline" size="sm" aria-label="筛选与搜索">
                     <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>筛选</span>
                     {activeFilterCount > 0 && (
@@ -210,12 +205,7 @@ export function TodosPage() {
               </Popover>
             )}
 
-            <Button
-              size="sm"
-              className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
-              onClick={onCreateRoot}
-              disabled={vm.isSaving}
-            >
+            <Button size="sm" onClick={onCreateRoot} disabled={vm.isSaving}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
               <span>新建待办</span>
             </Button>

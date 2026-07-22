@@ -40,8 +40,21 @@ describe("TodosFilterBar", () => {
   it("toggles showDone via the checkbox", () => {
     const onShowDoneChange = vi.fn();
     render(<TodosFilterBar {...baseProps} showDone onShowDoneChange={onShowDoneChange} />);
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show completed todos" }));
     expect(onShowDoneChange).toHaveBeenCalledWith(false);
+  });
+
+  it("uses compact control density on search and filter triggers", () => {
+    render(<TodosFilterBar {...baseProps} />);
+    const search = screen.getByLabelText("Search todos");
+    expect(search.className).toMatch(/\bh-8\b/);
+    expect(search.className).toMatch(/\brounded-widget\b/);
+    const due = screen.getByLabelText("Due date filter");
+    expect(due.className).toMatch(/\bh-8\b/);
+    expect(due.className).toMatch(/\brounded-widget\b/);
+    // No ad-hoc rounded-lg — control radius is the widget token only.
+    expect(search.className).not.toMatch(/\brounded-lg\b/);
+    expect(due.className).not.toMatch(/\brounded-lg\b/);
   });
 
   it("Clear button routes to onClearFilters", () => {
