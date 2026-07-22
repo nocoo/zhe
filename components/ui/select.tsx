@@ -12,21 +12,33 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
+type SelectTriggerSize = "default" | "sm";
+
+const selectTriggerSizeClass: Record<SelectTriggerSize, string> = {
+  default: "h-10 rounded-md px-3 py-2 text-sm",
+  sm: "h-8 rounded-widget px-2.5 py-1 text-xs",
+};
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    /** Density: default (form) or sm (toolbar / panel). */
+    size?: SelectTriggerSize;
+  }
+>(({ className, children, size = "default", ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    data-size={size}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-md border border-border hover:border-foreground/20 bg-secondary px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-hidden data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-transparent disabled:hover:border-transparent disabled:text-muted-foreground/38 [&>span]:line-clamp-1",
+      "flex w-full items-center justify-between border border-border hover:border-foreground/20 bg-secondary shadow-xs transition-[color,box-shadow] outline-hidden data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-transparent disabled:hover:border-transparent disabled:text-muted-foreground/38 [&>span]:line-clamp-1",
+      selectTriggerSizeClass[size],
       className,
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      <ChevronDown className={cn("opacity-50", size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4")} />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
