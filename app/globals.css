@@ -89,6 +89,10 @@
   --radius-card: var(--radius-card);
   --radius-widget: var(--radius-widget);
 
+  /* Control density heights — see :root comments for the density contract. */
+  --spacing-control: var(--control-h);
+  --spacing-control-sm: var(--control-h-sm);
+
   --animate-accordion-down: accordion-down var(--motion-fast) ease-out;
   --animate-accordion-up: accordion-up var(--motion-fast) ease-out;
   --animate-fade-up: fade-up var(--motion-slow) ease-out both;
@@ -180,8 +184,27 @@
    * Tailwind's default `rounded-md` resolves to the same 10px via
    * calc(--radius - 2px). The two are interchangeable on purpose;
    * prefer `rounded-widget` for intentional small controls so the
-   * design intent is searchable. */
+   * design intent is searchable.
+   *
+   * Radius ladder (do not invent ad-hoc rounded-lg/sm on controls):
+   *   island 20px → page / AppShell content panel
+   *   card   14px → list cards, two-pane sections
+   *   widget 10px → Button / Input / Select / emoji trigger
+   *   chip   full → Tag / Due chips only (pill)
+   */
   --radius-widget: 10px;
+
+  /* Control density — two tiers. Primitives expose size="default"|"sm".
+   * Dashboard toolbars, filter bars, and detail-pane inline fields use
+   * compact (sm). Forms / modals / settings use default.
+   *
+   *   default: 40px (h-10) + text-sm  — form controls
+   *   sm:      32px (h-8)  + text-xs  — toolbar / panel inline
+   *
+   * Icon-only toolbar buttons share the same 32px box (h-8 w-8).
+   * Do not re-introduce h-7 / h-9 patches at call sites. */
+  --control-h: 2.5rem;
+  --control-h-sm: 2rem;
 
   /* Motion duration tokens — three tiers + a stagger constant.
    * Values include the `ms` suffix so they compose into shorthand
