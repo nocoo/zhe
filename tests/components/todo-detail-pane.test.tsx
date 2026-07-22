@@ -27,6 +27,28 @@ function makeDetail(overrides: Partial<TodoDetail> = {}): TodoDetail {
   };
 }
 
+describe("TodoDetailPane — control density", () => {
+  it("aligns emoji trigger and title input on a shared h-8 baseline", () => {
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={vi.fn()} />);
+    const title = screen.getByLabelText("Todo title");
+    const emoji = screen.getByRole("button", { name: "选择 emoji" });
+    expect(title.className).toMatch(/\bh-8\b/);
+    expect(emoji.className).toMatch(/\bh-8\b/);
+    expect(emoji.className).toMatch(/\bw-8\b/);
+    // Title row uses items-center so the two controls share a baseline.
+    const row = document.querySelector("[data-detail-title-row]");
+    expect(row?.className).toMatch(/\bitems-center\b/);
+  });
+
+  it("tag composer uses control radius (not a larger pill than other inputs)", () => {
+    render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={vi.fn()} />);
+    const addTag = screen.getByLabelText("Add tag");
+    expect(addTag.className).toMatch(/\brounded-widget\b/);
+    expect(addTag.className).not.toMatch(/\brounded-full\b/);
+    expect(addTag.className).not.toMatch(/\brounded-lg\b/);
+  });
+});
+
 describe("TodoDetailPane — title editing", () => {
   it("bounces the title state back to server truth when the user clears it", () => {
     // Regression for Reviewer round-1 blocker #2. Clearing the title and

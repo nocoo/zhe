@@ -207,7 +207,9 @@ export function TodoEmojiPicker({
       type="button"
       aria-label={triggerLabel}
       className={cn(
-        "inline-flex h-7 w-7 items-center justify-center rounded-widget border border-border/60 bg-background text-base leading-none transition-colors hover:bg-accent",
+        // h-8 matches the compact control row (title Input size="sm") so
+        // emoji + title share one baseline in the detail pane header.
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-widget border border-border bg-secondary text-base leading-none shadow-xs transition-colors hover:bg-accent hover:border-foreground/20",
         value === null && "text-muted-foreground",
         className,
       )}
@@ -230,10 +232,10 @@ export function TodoEmojiPicker({
       >
         <div className="flex items-center gap-2 pb-2">
           <Input
+            size="sm"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索 emoji..."
-            className="h-7 text-xs"
             aria-label="搜索 emoji"
           />
           {value !== null && (
@@ -241,7 +243,6 @@ export function TodoEmojiPicker({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
               onClick={() => commit(null)}
               aria-label="清除 emoji"
             >
@@ -292,7 +293,7 @@ function EmojiGrid({
           type="button"
           onClick={() => onPick(e.char)}
           aria-label={e.keywords[0] ?? e.char}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-lg transition-colors hover:bg-accent"
+          className="flex h-8 w-8 items-center justify-center rounded-widget text-lg transition-colors hover:bg-accent"
         >
           {e.char}
         </button>

@@ -9,6 +9,9 @@
  *
  * Every mutation goes through the composition VM's `handleUpdateTodo`,
  * so optimistic UX and rollback come for free.
+ *
+ * Density: inline fields use compact (`sm`) controls; the title row is a
+ * single h-8 baseline so the emoji trigger and title input share one line.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { TodoDetail } from "@/lib/db/scoped";
+import { cn } from "@/lib/utils";
 import { TodoEmojiPicker } from "./todo-emoji-picker";
 
 /** Loose input shape matching the server action's UpdateTodoActionInput. */
@@ -161,14 +165,15 @@ function TodoDetailPaneBody({
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2" data-detail-title-row>
         <TodoEmojiPicker
           value={detail.emoji}
           onChange={(next) => {
             void onUpdate(detail.id, { emoji: next });
           }}
         />
-        <input
+        <Input
+          size="sm"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={commitTitle}
@@ -179,24 +184,27 @@ function TodoDetailPaneBody({
             }
           }}
           aria-label="Todo title"
-          className="w-full rounded-sm border border-transparent bg-transparent px-1 py-1 text-lg font-medium focus:border-border focus:outline-hidden focus:ring-2 focus:ring-ring"
+          className={cn(
+            "h-8 flex-1 border-transparent bg-transparent px-1 text-base font-medium shadow-none",
+            "hover:border-border/60 focus-visible:border-ring focus-visible:bg-secondary focus-visible:shadow-xs",
+          )}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs" data-detail-due-row>
         <span className="text-muted-foreground">截止</span>
         <Input
           type="date"
+          size="sm"
           value={dueInputValue}
           onChange={(e) => setDueInputValue(e.target.value)}
           onBlur={() => commitDue(dueInputValue)}
-          className="h-8 w-40 text-xs"
+          className="w-40"
           aria-label="Due date"
         />
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 text-xs"
           onClick={clearDue}
           disabled={detail.dueAt === null && dueInputValue === ""}
         >
@@ -209,7 +217,8 @@ function TodoDetailPaneBody({
         {tagNames.map((name) => (
           <TodoTagChip key={name} name={name} onRemove={() => removeTag(name)} />
         ))}
-        <input
+        <Input
+          size="sm"
           value={tagDraft}
           onChange={(e) => setTagDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -220,7 +229,7 @@ function TodoDetailPaneBody({
           }}
           placeholder="添加标签…"
           aria-label="Add tag"
-          className="h-6 min-w-[6rem] rounded-full border border-border bg-background px-2 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-ring"
+          className="h-6 min-w-[6rem] w-auto px-2"
         />
       </div>
 
@@ -231,7 +240,6 @@ function TodoDetailPaneBody({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-6 text-xs"
             onClick={() => setContentMode((m) => (m === "view" ? "edit" : "view"))}
           >
             {contentMode === "view" ? "编辑" : "预览"}
@@ -243,7 +251,7 @@ function TodoDetailPaneBody({
             onChange={(e) => setContentDraft(e.target.value)}
             onBlur={commitContent}
             placeholder="支持 Markdown 备注…"
-            className="min-h-[10rem] text-sm"
+            className="min-h-[10rem] rounded-widget text-sm"
             aria-label="Todo notes"
           />
         ) : (
@@ -253,14 +261,14 @@ function TodoDetailPaneBody({
           // biome-ignore lint/a11y/noStaticElementInteractions: double-click affordance only; header 编辑 is the accessible control
           <div
             onDoubleClick={() => setContentMode("edit")}
-            className="min-h-[10rem] w-full cursor-text rounded-sm border border-transparent p-2 text-left hover:border-border/60"
+            className="min-h-[10rem] w-full cursor-text rounded-widget border border-transparent p-2 text-left hover:border-border/60"
           >
             <MarkdownPreview content={contentDraft} placeholder="暂无备注，双击进入编辑。" />
           </div>
         )}
       </div>
 
-      <p className="text-[11px] text-muted-foreground">{meta}</p>
+      <p className="text-xs text-muted-foreground">{meta}</p>
     </div>
   );
 }
