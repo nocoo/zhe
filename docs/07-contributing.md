@@ -98,6 +98,7 @@ docs/
 ├── 09-e2e-coverage-analysis.md — E2E 覆盖率分析
 ├── 10-backy.md        — Backy 远程备份
 └── 11-four-layer-test-plan.md — 四层测试计划
+└── 22-design-tokens.md — Design Token / 控件密度契约
 ```
 
 ### 文档更新时机
@@ -112,6 +113,13 @@ docs/
 | 测试策略变更 | `05-testing.md` |
 | 开发流程变更 | `07-contributing.md` |
 | 备份功能变更 | `10-backy.md` |
+| UI / Design Token / 控件密度 | `22-design-tokens.md`、`CLAUDE.md`（摘要）、`app/globals.css` |
+
+## UI 控件约定（摘要）
+
+Dashboard 工具栏与 Panel 内联字段 **必须** 使用 `components/ui` 的 `size="sm"`（32px / `text-xs` / `rounded-widget`），禁止在 call site 堆 `h-8 text-xs rounded-lg` 或原生 checkbox。
+
+完整契约：[22-design-tokens.md](22-design-tokens.md) · Agent 硬规则见根目录 `CLAUDE.md` → **Design Tokens & UI Controls**。
 
 ## 技术栈
 

@@ -369,6 +369,7 @@ zhe/
 | [E2E Coverage Analysis](docs/09-e2e-coverage-analysis.md) | E2E test coverage matrix, gap analysis |
 | [Backy Integration](docs/10-backy.md) | Remote backup via Backy (push/pull) |
 | [Four-Layer Test Plan](docs/11-four-layer-test-plan.md) | Test architecture improvement plan & status |
+| [Design Tokens & UI Controls](docs/22-design-tokens.md) | Surface/radius/density contract; reuse `components/ui` sizes |
 
 ## License
 
