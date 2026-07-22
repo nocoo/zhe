@@ -439,6 +439,22 @@ export function todoTagColor(name: string): { bg: string; fg: string; border: st
 
 ## UI Design
 
+### Control density contract (dashboard)
+
+Todos ship against the site-wide compact control tier (see `app/globals.css`):
+
+| Tier | Height | Type | Use |
+|------|--------|------|-----|
+| `default` | 40px (`h-10`) | `text-sm` | Forms / modals |
+| `sm` | 32px (`h-8`) | `text-xs` | Filter bar, detail pane inline fields, tree rename |
+
+Rules applied in this module:
+
+- Prefer primitive `size="sm"` on `Button` / `Input` / `SelectTrigger` / `Checkbox` — do **not** re-stack `h-8 text-xs rounded-lg` at call sites.
+- Control radius is **`rounded-widget` only** (chips stay pill / `rounded-full`).
+- Detail title row: emoji trigger + title `Input` share `h-8` with `items-center`.
+- Done toggles use `@/components/ui/checkbox`, never raw `<input type="checkbox">`.
+
 ### Two-pane layout
 
 ```
