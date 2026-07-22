@@ -130,7 +130,7 @@ export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
         )}
 
         <Button
-          size="sm"
+          size="xs"
           className="rounded-widget h-7 w-7 p-0"
           onClick={() => vm.setIsCreateModalOpen(true)}
           aria-label="新想法"

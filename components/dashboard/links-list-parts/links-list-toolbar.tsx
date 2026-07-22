@@ -80,7 +80,7 @@ function FilterControls(props: FilterControlsProps) {
       </div>
       <Button
         variant="outline"
-        size="sm"
+        size="xs"
         className="rounded-widget h-7 w-7 p-0"
         onClick={onRefresh}
         disabled={isRefreshing}
@@ -133,7 +133,7 @@ export function LinksListToolbar(props: ToolbarProps) {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                size="sm"
+                size="xs"
                 className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
                 aria-label="筛选与视图"
               >

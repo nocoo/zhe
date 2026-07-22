@@ -187,7 +187,7 @@ export function TodosPage() {
             {narrow && (
               <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" aria-label="筛选与搜索">
+                  <Button variant="outline" size="xs" aria-label="筛选与搜索">
                     <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>筛选</span>
                     {activeFilterCount > 0 && (
@@ -205,7 +205,7 @@ export function TodosPage() {
               </Popover>
             )}
 
-            <Button size="sm" onClick={onCreateRoot} disabled={vm.isSaving}>
+            <Button size="xs" onClick={onCreateRoot} disabled={vm.isSaving}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
               <span>新建待办</span>
             </Button>
@@ -220,7 +220,7 @@ export function TodosPage() {
         >
           {vm.error ?? createError}
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             className="ml-2 h-6 text-xs"
             onClick={() => {
@@ -321,7 +321,7 @@ function EmptyState({ onCreateRoot }: { onCreateRoot: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
       <p>暂无待办，从一个根任务开始吧。</p>
-      <Button size="sm" variant="secondary" onClick={onCreateRoot}>
+      <Button size="xs" variant="secondary" onClick={onCreateRoot}>
         <Plus className="mr-1 h-3.5 w-3.5" /> 新建根任务
       </Button>
     </div>

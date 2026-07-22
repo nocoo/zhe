@@ -176,35 +176,41 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 Do **not** put `rounded-lg` / `rounded-sm` / arbitrary `rounded-[Npx]` on controls.
 
-### Control density (two tiers only)
+### Control density (Button `sm` ≠ compact)
 
-| Tier | Height | Type | Use |
-|------|--------|------|-----|
-| `default` | 40px (`h-10`) | `text-sm` | Forms, modals, settings |
-| **`sm`** | **32px (`h-8`)** | **`text-xs`** | Toolbars, filter bars, panel inline fields |
+| Tier | Height | Type | Button | Input / Select / Checkbox | Use |
+|------|--------|------|--------|---------------------------|-----|
+| default | 40px (`h-10`) | `text-sm` | `default` | `default` | Forms / modals primary |
+| form small | 36px (`h-9`) | `text-sm` | **`sm`** | — | Settings, API Keys, Backy, config forms |
+| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`xs`** | **`sm`** | Toolbars, filter bars, panel inline fields |
 
 ```tsx
-// ✅ reuse primitives
-<Button size="sm">新建</Button>
+// ✅ form / settings secondary actions
+<Button size="sm">保存</Button>
+
+// ✅ toolbar / filter / panel inline
+<Button size="xs">新建待办</Button>
 <Input size="sm" />
 <SelectTrigger size="sm" />
 <Checkbox size="sm" />
 <Button size="icon-sm" aria-label="menu" />
 
-// ❌ never re-stack density at call sites
+// ❌ never redefine Button sm as compact, or patch heights at call sites
 className="h-8 text-xs rounded-lg"
-className="h-7 …" / "h-9 …"
 <input type="checkbox" />   // use @/components/ui/checkbox
 ```
 
+> Do **not** change `Button size="sm"` to h-8 — it collides with form call sites. Compact is **`xs`**.
+
 ### Hard rules for agents
 
-1. **PageHeader actions / filter bars** → all interactive controls `size="sm"` (or `icon-sm`).
-2. **Same row → same height**; use `items-center`. Prefer one density per toolbar.
-3. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.
-4. **Inline “text-looking” editors** still use `Input size="sm"` + surface overrides (`border-transparent` etc.), not a bare `<input>` with a custom focus ring.
-5. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
-6. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`.
+1. **PageHeader actions / filter bars** → Button `size="xs"` (or `icon-sm`); fields `size="sm"`.
+2. **Settings / form pages** → Button `size="sm"` (h-9) or `default` (h-10); not `xs` unless the control is in a true toolbar row.
+3. **Same row → same height**; use `items-center`. Prefer one density per toolbar.
+4. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.
+5. **Inline “text-looking” editors** still use `Input size="sm"` + surface overrides (`border-transparent` etc.), not a bare `<input>` with a custom focus ring.
+6. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
+7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`.
 
 ### Surface hierarchy (L0–L3)
 
@@ -245,7 +251,7 @@ className="h-7 …" / "h-9 …"
 - **L3 spec drift only surfaces in CI** — automate L3 as a release preflight: pre-commit covers L1+G1+G2, pre-push covers L2, but Playwright (L3) only fires on GitHub Actions. That means a P0/P1 change touching user-visible labels, redirects, or toast copy can pass every local gate, get tagged, and only then fail CI. Always grep `tests/playwright/` (in addition to `tests/components/` and `tests/api/`) when changing routes, breadcrumbs, page titles, or globally-visible toast text. The release script (`scripts/release.ts` Phase 0.5) now runs `bun run test:e2e:pw` as a hard gate **before** the version bump so spec drift aborts the release instead of becoming a follow-up patch commit. (2026-06-09: v1.18.3 CI failed on `auth-guard.spec.ts` waiting `**/dashboard` after the redirect moved to `/dashboard/overview`, and `data-management.spec.ts` `getByText('导入完成')` exploded on strict mode after a sonner toast was added next to the existing inline result block.)
 - **Sonner toast text duplicates inline copy → Playwright strict mode breaks**: When introducing a toast on a page that already has an inline result/status message containing similar phrasing, `page.getByText('共同子串')` resolves to **two** elements (toast DOM + inline DOM both render concurrently for ~4s) and Playwright's strict mode fails. Either (a) make the toast and inline copy textually distinct, or (b) pin the assertion with `.first()` — either surfacing is enough proof the action landed. Audit existing specs whenever a viewmodel gains its first toast on a page that already shows an inline `importResult` / `lastSyncResult` / similar state block. (2026-06-09: `getByText('导入完成')` and `getByText(/跳过\s+\d+\s+条/)` in `data-management.spec.ts` both needed `.first()` after `useSettingsViewModel` started toasting on import.)
 - **github.com:443 — default to direct, fall back to Clash proxy only on failure**: Direct HTTPS to `github.com:443` usually works in this environment. Run `git push` / `gh` / `wrangler` / `curl` without any proxy first. Only if the connection fails (timeout, TLS handshake error, `Could not resolve host`) should you retry with the Clash proxy at `127.0.0.1:7890` — and only if it is actually running (`nc -z 127.0.0.1 7890 2>/dev/null`). Examples for the fallback: `git -c http.proxy=http://127.0.0.1:7890 push ...`, `HTTPS_PROXY=http://127.0.0.1:7890 gh release create ...`. The `gh-personal` SSH host (ssh.github.com:443) is another fallback if HTTPS keeps failing. Never set the proxy unconditionally — it slows down healthy paths and pollutes telemetry. (2026-06-09 retro originally said "always use the proxy" because of a transient outage; corrected 2026-06-10 after multiple sessions confirmed direct works.)
-- **Dashboard controls: reuse density primitives, never restyle ad hoc**: Toolbars and panel inline fields must use `size="sm"` / `icon-sm` on `Button`/`Input`/`SelectTrigger`/`Checkbox` (`h-8`, `text-xs`, `rounded-widget`). Do not reintroduce `h-7`/`h-9`/`rounded-lg` className patches or raw `<input type="checkbox">`. Full contract: `docs/22-design-tokens.md` and the **Design Tokens & UI Controls** section above. (2026-07-23: Todo module polish; contract locked with `tests/unit/ui/control-density.test.tsx`.)
+- **Dashboard controls: reuse density primitives, never restyle ad hoc**: Toolbar compact = `Button size="xs"` + field `size="sm"` (32px). Form secondary = `Button size="sm"` (36px) — **do not** redefine Button `sm` as compact (breaks API Keys / Backy / settings). No `h-7`/`rounded-lg` patches or raw checkboxes. Full contract: `docs/22-design-tokens.md`. (2026-07-23: Todo polish; 2026-07-23: restored Button sm, added xs.)
 
 ## Testing
 

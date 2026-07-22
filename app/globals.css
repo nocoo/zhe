@@ -92,6 +92,7 @@
   /* Control density heights — see :root comments for the density contract. */
   --spacing-control: var(--control-h);
   --spacing-control-sm: var(--control-h-sm);
+  --spacing-control-xs: var(--control-h-xs);
 
   --animate-accordion-down: accordion-down var(--motion-fast) ease-out;
   --animate-accordion-up: accordion-up var(--motion-fast) ease-out;
@@ -194,17 +195,17 @@
    */
   --radius-widget: 10px;
 
-  /* Control density — two tiers. Primitives expose size="default"|"sm".
-   * Dashboard toolbars, filter bars, and detail-pane inline fields use
-   * compact (sm). Forms / modals / settings use default.
+  /* Control density — see docs/22-design-tokens.md.
    *
-   *   default: 40px (h-10) + text-sm  — form controls
-   *   sm:      32px (h-8)  + text-xs  — toolbar / panel inline
+   *   default:           40px (h-10) + text-sm  — form primary
+   *   Button sm:         36px (h-9)  + text-sm  — form secondary (settings)
+   *   toolbar compact:   32px (h-8)  + text-xs  — Button xs / Input|Select|Checkbox sm
    *
-   * Icon-only toolbar buttons share the same 32px box (h-8 w-8).
-   * Do not re-introduce h-7 / h-9 patches at call sites. */
+   * Button sm must stay form-scale; do not redefine it as toolbar compact.
+   * Icon-only toolbar buttons use icon-sm (h-8 w-8). */
   --control-h: 2.5rem;
-  --control-h-sm: 2rem;
+  --control-h-sm: 2.25rem; /* form small (Button sm) */
+  --control-h-xs: 2rem; /* toolbar compact */
 
   /* Motion duration tokens — three tiers + a stagger constant.
    * Values include the `ms` suffix so they compose into shorthand

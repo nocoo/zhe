@@ -2,11 +2,12 @@
 
 /**
  * Locks the dashboard control-density contract:
- *   default → h-10 form scale
- *   sm      → h-8 toolbar / panel compact scale
+ *   default     → h-10 form scale
+ *   Button sm   → h-9 form secondary (settings / API keys / Backy)
+ *   Button xs   → h-8 toolbar compact
+ *   Input/Select/Checkbox sm → h-8 compact fields
  *
- * Call sites (TodosFilterBar, detail pane, etc.) must prefer these size
- * props over one-off h-8 / text-xs / rounded-lg patches.
+ * See docs/22-design-tokens.md and CLAUDE.md.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -44,8 +45,17 @@ describe("control density — Input", () => {
 });
 
 describe("control density — Button", () => {
-  it("sm is compact (h-8, text-xs, rounded-widget)", () => {
-    render(<Button size="sm">新建</Button>);
+  it("sm is form secondary (h-9, text-sm) — not toolbar compact", () => {
+    render(<Button size="sm">保存</Button>);
+    const el = screen.getByRole("button", { name: "保存" });
+    expect(el.className).toMatch(/\bh-9\b/);
+    expect(el.className).not.toMatch(/\bh-8\b/);
+    // base cva sets text-sm; xs is the only compact text-xs tier
+    expect(el.className).not.toMatch(/\btext-xs\b/);
+  });
+
+  it("xs is toolbar compact (h-8, text-xs, rounded-widget)", () => {
+    render(<Button size="xs">新建</Button>);
     const el = screen.getByRole("button", { name: "新建" });
     expect(el.className).toMatch(/\bh-8\b/);
     expect(el.className).toMatch(/\btext-xs\b/);

@@ -73,7 +73,7 @@ function InboxHeader({
       actions={
         <Button
           variant="outline"
-          size="sm"
+          size="xs"
           className="rounded-widget"
           onClick={onRefresh}
           disabled={isRefreshing}

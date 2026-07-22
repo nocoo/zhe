@@ -126,7 +126,7 @@ export function TodosFilterBar({
       </Label>
 
       {isDirty ? (
-        <Button type="button" variant="ghost" size="sm" onClick={onClearFilters}>
+        <Button type="button" variant="ghost" size="xs" onClick={onClearFilters}>
           <X className="h-3.5 w-3.5" /> 清除
         </Button>
       ) : null}

@@ -107,7 +107,7 @@ export function CreateLinkModal({
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="rounded-widget h-7 w-7 p-0" aria-label="新建链接">
+        <Button size="icon-sm" aria-label="新建链接">
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>

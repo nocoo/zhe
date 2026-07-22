@@ -45,12 +45,15 @@
 
 ---
 
-## 3. 控件密度（Control density）— 两档
+## 3. 控件密度（Control density）
 
-| 档位 | 高度 | 字号 | 何时用 |
-|------|------|------|--------|
-| **default** | 40px (`h-10`) | `text-sm` | 表单、Modal、设置页长表 |
-| **sm** | **32px (`h-8`)** | **`text-xs`** | Dashboard 工具栏、FilterBar、Panel 内联字段、表格/树行内编辑 |
+### 三档（Button 与字段原语的 `sm` 含义不同 — 刻意）
+
+| 档位 | 高度 | 字号 | Button | Input / Select / Checkbox | 何时用 |
+|------|------|------|--------|---------------------------|--------|
+| **default** | 40px (`h-10`) | `text-sm` | `size="default"` | `size="default"` | 表单主操作、Modal 主按钮 |
+| **form small** | 36px (`h-9`) | `text-sm` | **`size="sm"`** | （字段用 default 或 sm 按行高） | 设置页、API Keys、Backy、Xray 配置等 **表单次要按钮** |
+| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`size="xs"`** | **`size="sm"`** | PageHeader 工具栏、FilterBar、Panel 内联字段、树行编辑 |
 
 图标按钮：
 
@@ -59,38 +62,45 @@
 | `icon` | 40×40 |
 | **`icon-sm`** | **32×32**（工具栏 / 行菜单） |
 
+> **为何 Button 不用 `sm` 表示 compact？**  
+> 全站大量设置页已把 `size="sm"` 当作「表单略小按钮」(h-9)。把 `sm` 全局改成 h-8/text-xs 会误伤 API Keys / Backy 等。工具栏 compact 使用独立的 **`xs`**。
+
 ### 硬规则
 
 ```tsx
-// ✅ 正确 — 复用原语 size
-<Button size="sm">新建</Button>
+// ✅ 表单 / 设置
+<Button size="sm">保存</Button>
+<Button size="sm" variant="outline">取消</Button>
+
+// ✅ 工具栏 / FilterBar / Panel 内联
+<Button size="xs">新建待办</Button>
 <Input size="sm" />
 <SelectTrigger size="sm">…</SelectTrigger>
 <Checkbox size="sm" />
 <Button size="icon-sm" aria-label="…">…</Button>
 
-// ❌ 错误 — 在 call site 重新发明密度
+// ❌ 错误 — 用 sm 冒充工具栏密度，或 call site 补丁
 <Button size="sm" className="h-8 gap-1.5 px-2.5 text-xs rounded-lg">
 <Input className="h-8 text-xs rounded-lg" />
 <input type="checkbox" className="h-3.5 w-3.5" />
 ```
 
-- **禁止** 再引入 `h-7` / `h-9` 作为工具栏高度补丁。
-- 同排控件必须同高（默认整排 `sm`）。
+- **禁止** 再引入 `h-7` 作为工具栏高度补丁；`h-9` 只应通过 `Button size="sm"` 出现，不要 className 手写。
+- 同排工具栏控件必须同高（Button `xs` + Input/Select `sm` 都是 32px）。
 - 需要「伪文本」编辑（如 Todo 标题）时：静止可透明边，但 **仍用 `Input size="sm"`**，用 `className` 覆盖表面，不要裸 `<input>` 另起一套 focus ring。
 
 ---
 
 ## 4. 原语对照表
 
-| 组件 | default | sm | 备注 |
-|------|---------|-----|------|
-| `Button` | `h-10 text-sm` | `h-8 text-xs rounded-widget` | `icon` / `icon-sm` |
-| `Input` | `h-10` | `h-8 rounded-widget text-xs` | 无 HTML `size` 属性；用 prop `size` |
-| `SelectTrigger` | `h-10` | `h-8` + `data-size="sm"` | |
-| `Checkbox` | `h-4` | `h-3.5` + `data-size` | **禁止** 原生 `<input type="checkbox">` |
-| `Textarea` | form 默认 | 用 `className` 补 `rounded-widget` 至迁移完成 | 长文编辑可保持 default 高度 |
-| `PageHeader` | — | actions 槽位内控件一律 `sm` | |
+| 组件 | default | form small | toolbar compact | 备注 |
+|------|---------|------------|-----------------|------|
+| `Button` | `h-10 text-sm` | **`sm` → h-9 text-sm** | **`xs` → h-8 text-xs rounded-widget** | `icon` / `icon-sm` |
+| `Input` | `h-10` | — | **`sm` → h-8 rounded-widget text-xs** | 无 HTML `size` 属性；用 prop `size` |
+| `SelectTrigger` | `h-10` | — | **`sm` → h-8** + `data-size="sm"` | |
+| `Checkbox` | `h-4` | — | **`sm` → h-3.5** | **禁止** 原生 `<input type="checkbox">` |
+| `Textarea` | form 默认 | — | 用 `className` 补 `rounded-widget` 至迁移完成 | 长文编辑可保持 default 高度 |
+| `PageHeader` | — | — | actions 槽位：Button `xs` / 字段 `sm` | |
 
 路径：一律 `@/components/ui/...`。
 
@@ -115,7 +125,7 @@ L3 可编辑控件默认：`bg-secondary` + `border-border` + `shadow-xs`。
 | 页头标题 | `text-lg font-semibold` | `PageHeader` |
 | Panel 主标题 / 行内 title | `text-base font-medium` | 勿用 `text-lg` 与页头抢层级 |
 | 正文 / 备注 | `text-sm` | |
-| 工具栏 / meta / 表单标签 | `text-xs` | 与 `size="sm"` 一致 |
+| 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `xs` / 字段 `sm` 一致 |
 | Chip 内文 | `text-[11px]` 或 `text-xs` | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
 
 ---
@@ -124,12 +134,13 @@ L3 可编辑控件默认：`bg-secondary` + `border-border` + `shadow-xs`。
 
 做 Dashboard UI 前自检：
 
-1. [ ] 工具栏 / 筛选条控件是否全部 `size="sm"`？
-2. [ ] 有无 `rounded-lg` / `h-7` / `h-9` / 原生 checkbox？
-3. [ ] 同行控件高度是否一致、`items-center`？
-4. [ ] 是否复用 `PageHeader` 而不是手写一套 header？
-5. [ ] Checkbox / 日期 / 搜索是否来自 `components/ui`？
-6. [ ] 若改了 primitive 默认 size，是否更新了 `tests/unit/ui/control-density.test.tsx`？
+1. [ ] 工具栏 / 筛选条：Button 是否 `size="xs"`（或 `icon-sm`），字段是否 `size="sm"`？
+2. [ ] 设置/表单页次要按钮是否仍用 `Button size="sm"`（h-9），而不是被当成工具栏？
+3. [ ] 有无 `rounded-lg` / 手写 `h-7` / 原生 checkbox？
+4. [ ] 同行控件高度是否一致、`items-center`？
+5. [ ] 是否复用 `PageHeader` 而不是手写一套 header？
+6. [ ] Checkbox / 日期 / 搜索是否来自 `components/ui`？
+7. [ ] 若改了 primitive 默认 size，是否更新了 `tests/unit/ui/control-density.test.tsx`？
 
 ---
 
