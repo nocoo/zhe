@@ -44,6 +44,7 @@ import type { NodeApi, NodeRendererProps } from "react-arborist";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -58,6 +59,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TodoForestNode } from "@/models/todos";
 
@@ -164,7 +166,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
             node.toggle();
           }}
           aria-label={node.isOpen ? "Collapse" : "Expand"}
-          className="p-1 rounded-md hover:bg-accent/60 focus:outline-hidden focus:ring-1 focus:ring-ring"
+          className="p-1 rounded-widget hover:bg-accent/60 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           {node.isOpen ? (
             <ChevronDown className="h-4 w-4" aria-hidden />
@@ -176,14 +178,13 @@ export const TodoTreeRow = memo(function TodoTreeRow({
         <span className="w-6" aria-hidden />
       )}
 
-      <input
-        type="checkbox"
+      <Checkbox
         checked={todo.done}
         data-todo-row-guard
         onClick={(e) => e.stopPropagation()}
-        onChange={(e) => onToggleDone(todo.id, e.target.checked)}
+        onCheckedChange={(checked) => onToggleDone(todo.id, checked === true)}
         aria-label={`Mark ${todo.title} ${todo.done ? "not done" : "done"}`}
-        className="h-4 w-4 cursor-pointer"
+        className="cursor-pointer"
       />
 
       {todo.emoji ? (
@@ -302,8 +303,9 @@ function TitleEditor({
     if (el) el.focus();
   }, []);
   return (
-    <input
+    <Input
       ref={inputRef}
+      size="sm"
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => onSubmit(value)}
@@ -317,7 +319,7 @@ function TitleEditor({
         }
       }}
       onClick={(e) => e.stopPropagation()}
-      className="min-w-0 flex-1 rounded-sm border border-border bg-background px-1 py-0.5 text-sm focus:outline-hidden focus:ring-2 focus:ring-ring"
+      className="min-w-0 flex-1"
       data-todo-row-guard
     />
   );
@@ -394,9 +396,9 @@ function RowMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={(e) => e.stopPropagation()}
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           aria-label={`Row menu for ${todo.title}`}
           data-todo-row-guard
         >

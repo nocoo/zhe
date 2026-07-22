@@ -202,14 +202,9 @@ describe("TodoTreeRow — interactions", () => {
         onEditEmoji={vi.fn()}
       />,
     );
-    // The <input> gets focus on mount via the imperative ref. Change +
-    // Enter must commit the trimmed value; the row calls node.reset().
-    // The row also has a checkbox `<input>` earlier in the DOM — pick
-    // the text editor by type= attribute.
-    const inputs = Array.from(
-      document.querySelectorAll<HTMLInputElement>("input[data-todo-row-guard]"),
-    );
-    const input = inputs.find((el) => el.type !== "checkbox");
+    // The title editor is a compact Input (done toggle is a Radix
+    // checkbox button, not an <input type=checkbox>).
+    const input = document.querySelector<HTMLInputElement>("input[data-todo-row-guard]");
     if (!input) throw new Error("expected inline title editor");
     fireEvent.change(input, { target: { value: "renamed" } });
     fireEvent.keyDown(input, { key: "Enter" });
