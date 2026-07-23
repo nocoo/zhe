@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.21.1] - 2026-07-23
+
+### Added
+- Add compact size to form controls
+
+### Changed
+- Add design token contract to core docs
+- Record todos control density contract
+- Document control density tokens
+- Bump biome.json schema to 2.5.5
+- Pin sharp>=0.35.0 override in root and worker
+- Bump wrangler to 4.113.0 and @cloudflare/workers-types to 5.20260721.1
+- Bump @biomejs/biome to 2.5.5
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1092.0
+- Bump postcss to 8.5.21
+- Bump react and react-dom to 19.2.8
+- Bump next to 16.2.11
+- Bump @testing-library/jest-dom to 7.0.0
+- Bump url-metadata to 5.8.0
+- Bump recharts to 3.10.0
+- Bump react-arborist to 3.15.0
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1091.0
+- Bump @auth/core to 0.41.3
+- Bump @cloudflare/workers-types to 5.20260719.1
+- Bump postcss to 8.5.20
+- Bump react-arborist to 3.14.0
+- Bump @radix-ui/* to latest patch/minor
+- Bump lint-staged to 17.1.0
+- Bump happy-dom to 20.11.0
+- Bump @cloudflare/workers-types to 5.20260718.1
+- Bump wrangler to 4.112.0
+- Bump @cloudflare/workers-types to 5.20260717.1
+- Bump lucide-react to 1.25.0
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1090.0
+- Bump @cloudflare/workers-types to 5.20260716.1
+- Bump vite to 8.1.5
+- Bump url-metadata to 5.7.5
+- Bump tailwindcss + @tailwindcss/postcss to 4.3.3
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1089.0
+- Migrate @nocoo/cli-base → @nocoo/base-cli ^0.3.0
+- Bump wrangler to 4.111.0
+- Bump @cloudflare/workers-types to 5.20260715.1
+- Bump @biomejs/biome to 2.5.4
+- Bump aws-sdk to 3.1088.0
+
+### Fixed
+- Align editor skeleton with icon-sm size
+- Use icon-sm instead of xs+h-7 patches
+- Restore Button sm, add xs for toolbar
+- Use ui checkbox in todo tree rows
+- Align todo detail pane control density
+- Unify todos filter bar compact controls
+
 ## [v1.21.0] - 2026-07-14
 
 ### Added
