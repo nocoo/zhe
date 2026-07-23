@@ -55,7 +55,6 @@ function renderRow(
     onAddChild: vi.fn(),
     onAddSibling: vi.fn(),
     onConfirmDelete: vi.fn(),
-    onEditEmoji: vi.fn(),
   };
   const rendered = render(
     <TodoTreeRow
@@ -199,7 +198,6 @@ describe("TodoTreeRow — interactions", () => {
         onAddChild={vi.fn()}
         onAddSibling={vi.fn()}
         onConfirmDelete={vi.fn()}
-        onEditEmoji={vi.fn()}
       />,
     );
     // The title editor is a compact Input (done toggle is a Radix

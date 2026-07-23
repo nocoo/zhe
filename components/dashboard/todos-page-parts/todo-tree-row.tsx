@@ -13,8 +13,8 @@
  *     wired via `node.isEditing`; we commit through the VM on submit)
  *   - the tag chips (via TodoTagChip primitive)
  *   - the due chip (via TodoDueChip primitive)
- *   - a hover 3-dot menu with Add child / Add sibling / Change emoji /
- *     Delete…, plus the same options via right-click context menu
+ *   - a hover 3-dot menu with Add child / Add sibling / Delete…, plus the
+ *     same options via right-click context menu
  *   - keyboard shortcuts: Enter (edit title), Space (toggle done),
  *     Delete/Backspace (open delete-confirm), Cmd/Ctrl+N (add sibling)
  *
@@ -23,15 +23,7 @@
  * shell wrapper, not the row.
  */
 
-import {
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  MoreHorizontal,
-  Plus,
-  Smile,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import {
   type ComponentType,
   type KeyboardEvent,
@@ -75,8 +67,6 @@ export interface TodoTreeRowProps extends NodeRendererProps<TodoForestNode> {
   onAddChild: (parentId: number) => void;
   onAddSibling: (siblingId: number, parentId: number | null) => void;
   onConfirmDelete: (node: TodoForestNode) => void;
-  /** Pop the detail pane's emoji picker for this row. */
-  onEditEmoji: (id: number) => void;
 }
 
 export const TodoTreeRow = memo(function TodoTreeRow({
@@ -90,7 +80,6 @@ export const TodoTreeRow = memo(function TodoTreeRow({
   onAddChild,
   onAddSibling,
   onConfirmDelete,
-  onEditEmoji,
 }: TodoTreeRowProps) {
   const todo = node.data;
   const isSelected = selectedId === todo.id;
@@ -255,7 +244,6 @@ export const TodoTreeRow = memo(function TodoTreeRow({
           node={node}
           onAddChild={onAddChild}
           onAddSibling={onAddSibling}
-          onEditEmoji={onEditEmoji}
           onConfirmDelete={onConfirmDelete}
         />
       </span>
@@ -275,7 +263,6 @@ export const TodoTreeRow = memo(function TodoTreeRow({
           todo={todo}
           onAddChild={onAddChild}
           onAddSibling={onAddSibling}
-          onEditEmoji={onEditEmoji}
           onConfirmDelete={onConfirmDelete}
           Item={ContextMenuItem}
           Separator={ContextMenuSeparator}
@@ -329,7 +316,6 @@ interface RowMenuItemsProps {
   todo: TodoForestNode;
   onAddChild: (parentId: number) => void;
   onAddSibling: (siblingId: number, parentId: number | null) => void;
-  onEditEmoji: (id: number) => void;
   onConfirmDelete: (node: TodoForestNode) => void;
   /** Menu-item component: DropdownMenuItem or ContextMenuItem. */
   Item: ComponentType<{
@@ -345,12 +331,12 @@ interface RowMenuItemsProps {
  * Shared menu-item block rendered under either DropdownMenu or ContextMenu.
  * Kept in one place so the 3-dot dropdown and right-click menu never drift
  * apart. Both wrapper components accept the same Radix `onSelect` signature.
+ * Emoji editing lives only on the detail-pane picker — not in this menu.
  */
 function RowMenuItems({
   todo,
   onAddChild,
   onAddSibling,
-  onEditEmoji,
   onConfirmDelete,
   Item,
   Separator,
@@ -362,9 +348,6 @@ function RowMenuItems({
       </Item>
       <Item onSelect={() => onAddSibling(todo.id, todo.parentId)}>
         <Plus className="mr-2 h-3.5 w-3.5" /> 添加同级
-      </Item>
-      <Item onSelect={() => onEditEmoji(todo.id)}>
-        <Smile className="mr-2 h-3.5 w-3.5" /> 修改 emoji
       </Item>
       <Separator />
       <Item
@@ -381,13 +364,11 @@ function RowMenu({
   node,
   onAddChild,
   onAddSibling,
-  onEditEmoji,
   onConfirmDelete,
 }: {
   node: NodeApi<TodoForestNode>;
   onAddChild: (parentId: number) => void;
   onAddSibling: (siblingId: number, parentId: number | null) => void;
-  onEditEmoji: (id: number) => void;
   onConfirmDelete: (node: TodoForestNode) => void;
 }) {
   const todo = node.data;
@@ -410,7 +391,6 @@ function RowMenu({
           todo={todo}
           onAddChild={onAddChild}
           onAddSibling={onAddSibling}
-          onEditEmoji={onEditEmoji}
           onConfirmDelete={onConfirmDelete}
           Item={DropdownMenuItem}
           Separator={DropdownMenuSeparator}

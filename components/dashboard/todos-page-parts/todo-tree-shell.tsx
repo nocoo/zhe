@@ -30,8 +30,6 @@ export interface TodoTreeShellProps {
   onAddChild: (parentId: number) => void;
   onAddSibling: (siblingId: number, parentId: number | null) => void;
   onConfirmDelete: (node: TodoForestNode) => void;
-  /** Selects the row so the detail-pane emoji picker becomes visible. */
-  onEditEmoji: (id: number) => void;
   /**
    * When true, arborist's drag-and-drop is disabled entirely — used on
    * touch pointers per docs/21-todos-feature.md so nesting/reorder gestures
@@ -53,7 +51,6 @@ export function TodoTreeShell({
   onAddChild,
   onAddSibling,
   onConfirmDelete,
-  onEditEmoji,
   disableDrag = false,
   height = 640,
 }: TodoTreeShellProps) {
@@ -72,19 +69,9 @@ export function TodoTreeShell({
         onAddChild={onAddChild}
         onAddSibling={onAddSibling}
         onConfirmDelete={onConfirmDelete}
-        onEditEmoji={onEditEmoji}
       />
     ),
-    [
-      selectedId,
-      onSelect,
-      onToggleDone,
-      onRename,
-      onAddChild,
-      onAddSibling,
-      onConfirmDelete,
-      onEditEmoji,
-    ],
+    [selectedId, onSelect, onToggleDone, onRename, onAddChild, onAddSibling, onConfirmDelete],
   );
 
   return (

@@ -62,7 +62,6 @@ describe("TodoTreeRow — row menu", () => {
         onAddChild={onAddChild}
         onAddSibling={vi.fn()}
         onConfirmDelete={vi.fn()}
-        onEditEmoji={vi.fn()}
       />,
     );
 
@@ -96,7 +95,6 @@ describe("TodoTreeRow — row menu", () => {
         onAddChild={vi.fn()}
         onAddSibling={vi.fn()}
         onConfirmDelete={onConfirmDelete}
-        onEditEmoji={vi.fn()}
       />,
     );
 
@@ -123,7 +121,6 @@ describe("TodoTreeRow — row menu", () => {
         onAddChild={vi.fn()}
         onAddSibling={vi.fn()}
         onConfirmDelete={onConfirmDelete}
-        onEditEmoji={vi.fn()}
       />,
     );
 
@@ -133,10 +130,10 @@ describe("TodoTreeRow — row menu", () => {
     // Radix ContextMenu opens on a native "contextmenu" event with button=2.
     fireEvent.contextMenu(row, { button: 2 });
 
-    // The four menu items from RowMenuItems must all render under the
-    // context menu just like the dropdown menu.
-    for (const label of [/添加子项/, /添加同级/, /修改 emoji/, /删除…/]) {
+    // Same items as the dropdown (emoji is edited only in the detail pane).
+    for (const label of [/添加子项/, /添加同级/, /删除…/]) {
       expect(await screen.findByText(label)).toBeTruthy();
     }
+    expect(screen.queryByText(/修改 emoji/)).toBeNull();
   });
 });

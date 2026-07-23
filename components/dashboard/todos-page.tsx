@@ -129,16 +129,6 @@ export function TodosPage() {
     [vm],
   );
 
-  // "修改 emoji" in the row menu simply selects the row — the emoji picker
-  // lives at the top of the detail pane, so bringing that pane forward for
-  // the target todo is the shortest path to editing.
-  const onEditEmoji = useCallback(
-    (id: number) => {
-      vm.setSelectedId(id);
-    },
-    [vm],
-  );
-
   const descendantCount = useMemo(
     () => (vm.todoToDelete ? countDescendants(vm.todos, vm.todoToDelete.id) : 0),
     [vm.todoToDelete, vm.todos],
@@ -255,7 +245,6 @@ export function TodosPage() {
               onAddChild={onAddChild}
               onAddSibling={onAddSibling}
               onConfirmDelete={vm.confirmDelete}
-              onEditEmoji={onEditEmoji}
               disableDrag={coarsePointer}
             />
           )}
