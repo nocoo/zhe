@@ -3,7 +3,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { TodoTreeNode } from "@/lib/db/scoped";
+import type { TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
 
 const mockCreateTodo = vi.fn();
 const mockUpdateTodo = vi.fn();
@@ -40,11 +40,32 @@ function node(overrides: Partial<TodoTreeNode> & { id: number }): TodoTreeNode {
 }
 
 /** Compose the mutations hook with a real useState so we can observe the
- *  optimistic write and the rollback. */
-function useTodosMutationsWithState(initial: TodoTreeNode[]) {
+ *  optimistic write and the rollback. Optionally seeds the right-pane
+ *  detail cache so update paths can assert cross-pane sync. */
+function useTodosMutationsWithState(
+  initial: TodoTreeNode[],
+  initialDetail: TodoDetail | null = null,
+) {
   const [todos, setTodos] = useState<TodoTreeNode[]>(initial);
-  const mutations = useTodosMutations(setTodos);
-  return { todos, ...mutations };
+  const [detail, setDetail] = useState<TodoDetail | null>(initialDetail);
+  // Mirror the viewmodel's detailSync: get() reads latest state via a
+  // stable setter + live getter closed over the latest detail.
+  const detailRef = { current: detail };
+  detailRef.current = detail;
+  const mutations = useTodosMutations(setTodos, {
+    get: () => detailRef.current,
+    set: setDetail,
+  });
+  return { todos, detail, ...mutations };
+}
+
+function detailFromNode(n: TodoTreeNode, extras: Partial<TodoDetail> = {}): TodoDetail {
+  return {
+    ...n,
+    content: extras.content ?? null,
+    doneAt: extras.doneAt ?? null,
+    ...extras,
+  };
 }
 
 beforeEach(() => {
@@ -187,6 +208,111 @@ describe("useTodosMutations", () => {
     if (!only) throw new Error("expected todo");
     expect(only.title).toBe("orig"); // rolled back
     expect(result.current.error).toBe("boom");
+  });
+
+  it("optimistically syncs emoji onto the selected detail pane cache", async () => {
+    // Regression: left tree updated immediately, right pane kept stale emoji
+    // because handleUpdateTodo only patched `todos`, not `detail`.
+    const row = node({ id: 1, emoji: "📝" });
+    const seed = detailFromNode(row);
+    const { result } = renderHook(() => useTodosMutationsWithState([row], seed));
+
+    mockUpdateTodo.mockResolvedValueOnce({
+      success: true,
+      data: { ...seed, emoji: "🎯", updatedAt: new Date(999) },
+    });
+
+    // Fire without awaiting so we can observe the optimistic detail tick.
+    let settle: Promise<unknown> | undefined;
+    act(() => {
+      settle = result.current.handleUpdateTodo(1, { emoji: "🎯" });
+    });
+    expect(result.current.todos[0]?.emoji).toBe("🎯");
+    expect(result.current.detail?.emoji).toBe("🎯");
+
+    await act(async () => {
+      await settle;
+    });
+    expect(result.current.detail?.emoji).toBe("🎯");
+    expect(result.current.detail?.updatedAt.getTime()).toBe(999);
+  });
+
+  it("optimistically clears emoji on the detail pane and rolls back on failure", async () => {
+    const row = node({ id: 1, emoji: "📝" });
+    const seed = detailFromNode(row);
+    const { result } = renderHook(() => useTodosMutationsWithState([row], seed));
+
+    mockUpdateTodo.mockResolvedValueOnce({ success: false, error: "denied" });
+
+    await act(async () => {
+      await result.current.handleUpdateTodo(1, { emoji: null });
+    });
+
+    expect(result.current.todos[0]?.emoji).toBe("📝");
+    expect(result.current.detail?.emoji).toBe("📝");
+    expect(result.current.error).toBe("denied");
+  });
+
+  it("does not overwrite detail when a different row is updated", async () => {
+    const row1 = node({ id: 1, emoji: "📝" });
+    const row2 = node({ id: 2, emoji: "🔥" });
+    const seed = detailFromNode(row1);
+    const { result } = renderHook(() => useTodosMutationsWithState([row1, row2], seed));
+
+    mockUpdateTodo.mockResolvedValueOnce({
+      success: true,
+      data: detailFromNode(row2, { emoji: "⭐" }),
+    });
+
+    await act(async () => {
+      await result.current.handleUpdateTodo(2, { emoji: "⭐" });
+    });
+
+    // Selected detail is still row 1.
+    expect(result.current.detail?.id).toBe(1);
+    expect(result.current.detail?.emoji).toBe("📝");
+    expect(result.current.todos.find((n) => n.id === 2)?.emoji).toBe("⭐");
+  });
+
+  it("rolls back detail emoji when updateTodo throws", async () => {
+    const row = node({ id: 1, emoji: "📝" });
+    const seed = detailFromNode(row);
+    const { result } = renderHook(() => useTodosMutationsWithState([row], seed));
+
+    mockUpdateTodo.mockRejectedValueOnce(new Error("network"));
+
+    await act(async () => {
+      await result.current.handleUpdateTodo(1, { emoji: null });
+    });
+
+    expect(result.current.todos[0]?.emoji).toBe("📝");
+    expect(result.current.detail?.emoji).toBe("📝");
+    expect(result.current.error).toBe("Failed to update todo");
+  });
+
+  it("optimistically patches detail content + tags and reconciles on success", async () => {
+    const row = node({ id: 1, tagNames: ["a"], hasContent: false });
+    const seed = detailFromNode(row, { content: null });
+    const { result } = renderHook(() => useTodosMutationsWithState([row], seed));
+
+    mockUpdateTodo.mockResolvedValueOnce({
+      success: true,
+      data: detailFromNode(row, {
+        content: "hello",
+        hasContent: true,
+        tagNames: ["a", "b"],
+        updatedAt: new Date(50),
+      }),
+    });
+
+    await act(async () => {
+      await result.current.handleUpdateTodo(1, { content: "hello", tagNames: ["a", "b"] });
+    });
+
+    expect(result.current.detail?.content).toBe("hello");
+    expect(result.current.detail?.hasContent).toBe(true);
+    expect(result.current.detail?.tagNames).toEqual(["a", "b"]);
+    expect(result.current.todos[0]?.hasContent).toBe(true);
   });
 
   it("optimistic delete removes the row + descendants, then rolls back on failure", async () => {

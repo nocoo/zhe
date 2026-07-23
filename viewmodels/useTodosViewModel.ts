@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getTodo, getTodos } from "@/actions/todos";
 import type { TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
 import { type TodoForestNode, todoForestFromFlat } from "@/models/todos";
@@ -120,9 +120,20 @@ function useSelection() {
  */
 export function useTodosViewModel() {
   const { todos, setTodos, loading, refreshTodos } = useTodosData();
-  const mutations = useTodosMutations(setTodos);
-  const filters = useTodosFilters(todos);
+  // Selection before mutations so handleUpdateTodo can patch the right-pane
+  // detail cache in the same optimistic tick as the left tree.
   const selection = useSelection();
+  const detailRef = useRef(selection.detail);
+  detailRef.current = selection.detail;
+  const detailSync = useMemo(
+    () => ({
+      get: () => detailRef.current,
+      set: selection.setDetail,
+    }),
+    [selection.setDetail],
+  );
+  const mutations = useTodosMutations(setTodos, detailSync);
+  const filters = useTodosFilters(todos);
   const dnd = useTodosDnd({ handleMoveTodo: mutations.handleMoveTodo });
   const deleteConfirm = useDeleteConfirm();
 

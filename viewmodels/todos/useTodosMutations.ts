@@ -19,7 +19,45 @@ import type { MoveTodoResult, TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
  * the tree must snap back to the pre-drag state instead of freezing in a
  * half-applied position.
  */
-export function useTodosMutations(setTodos: Dispatch<SetStateAction<TodoTreeNode[]>>) {
+/**
+ * Apply a wire update payload onto a TodoDetail.
+ * Shared by the list optimistic path and the right-pane detail cache so
+ * emoji/tags/title stay in lockstep across both surfaces.
+ */
+export function applyUpdateInputToDetail(
+  detail: TodoDetail,
+  input: Parameters<typeof updateTodo>[1],
+): TodoDetail {
+  const patched: TodoDetail = { ...detail };
+  if (input.title !== undefined) patched.title = input.title;
+  if (input.done !== undefined) patched.done = input.done;
+  if (input.tagNames !== undefined) patched.tagNames = input.tagNames;
+  if (input.dueAtMs !== undefined) {
+    patched.dueAt = input.dueAtMs === null ? null : new Date(input.dueAtMs);
+  }
+  if (input.emoji !== undefined) patched.emoji = input.emoji;
+  if (input.content !== undefined) {
+    patched.content = input.content;
+    patched.hasContent = input.content !== null && input.content !== "";
+  }
+  return patched;
+}
+
+/** Optional right-pane detail cache sync (see handleUpdateTodo). */
+export interface TodosDetailSync {
+  get: () => TodoDetail | null;
+  set: Dispatch<SetStateAction<TodoDetail | null>>;
+}
+
+export function useTodosMutations(
+  setTodos: Dispatch<SetStateAction<TodoTreeNode[]>>,
+  /**
+   * Right-pane detail cache. When the updated row is currently selected,
+   * we patch this optimistically too — otherwise the left tree updates
+   * while the detail pane keeps showing stale emoji/tags/etc.
+   */
+  detailSync?: TodosDetailSync,
+) {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,28 +128,47 @@ export function useTodosMutations(setTodos: Dispatch<SetStateAction<TodoTreeNode
         });
       });
 
+      // Keep the right pane's detail cache in sync with the left tree.
+      // Capture via get() (not inside a setState updater) so the rollback
+      // snapshot is stable even if React re-runs the updater.
+      const detailSnapshot = detailSync?.get() ?? null;
+      const patchSelectedDetail = detailSnapshot !== null && detailSnapshot.id === id;
+      if (patchSelectedDetail && detailSync) {
+        detailSync.set(applyUpdateInputToDetail(detailSnapshot, input));
+      }
+
       setIsSaving(true);
       setError(null);
       try {
         const result = await updateTodo(id, input);
         if (result.success && result.data) {
-          const projected = projectDetail(result.data);
+          const serverDetail = result.data;
+          const projected = projectDetail(serverDetail);
           setTodos((prev) => prev.map((n) => (n.id === id ? projected : n)));
-          return result.data;
+          if (detailSync) {
+            detailSync.set((prev) => (prev && prev.id === id ? serverDetail : prev));
+          }
+          return serverDetail;
         }
         setTodos(snapshot);
+        if (patchSelectedDetail && detailSync) {
+          detailSync.set((prev) => (prev?.id === id ? detailSnapshot : prev));
+        }
         setError(result.error ?? "Failed to update todo");
         return null;
       } catch (err) {
         console.error("Failed to update todo:", err);
         setTodos(snapshot);
+        if (patchSelectedDetail && detailSync) {
+          detailSync.set((prev) => (prev?.id === id ? detailSnapshot : prev));
+        }
         setError("Failed to update todo");
         return null;
       } finally {
         setIsSaving(false);
       }
     },
-    [projectDetail, setTodos],
+    [projectDetail, setTodos, detailSync],
   );
 
   const handleDeleteTodo = useCallback(
