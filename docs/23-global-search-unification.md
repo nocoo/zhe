@@ -191,9 +191,33 @@ type ResourceLoadState =
 | API | 行为 |
 |-----|------|
 | `ensureIdeasLoaded` / `ensureTodosLoaded` | 当前状态为 **`error` 时允许再次请求**（不得因「曾经尝试过」永久卡死）；`success` 时仍跳过；`loading` 时 no-op |
-| links 初始失败 | 提供 `retryLinksLoad`（或 `refreshLinks` 已返回 error 时由 dialog/sidebar 触发）把状态从 error → loading → success/error |
+| **links / dashboard core 初始失败** | **禁止** 复用现有 `refreshLinks` 作为唯一重试路径（见下） |
 
-U4 必须锁定：**error 后第二次 ensure\* 会重新请求并可达 success**。
+**为何不能 `refreshLinks` 顶替初始失败重试（Codex 三轮 P1）**
+
+- 初始加载走 `getDashboardData()`，一次拿 **links + tags + linkTags**（`actions/dashboard.ts`）。  
+- 现有 `refreshLinks` **只** 调 `getLinks()`（`useDashboardCore.ts`），不刷新 tags/linkTags。  
+- 若 mount 时 `getDashboardData` 失败，仅 `retry` 成 `refreshLinks` → 链接列表可能回来，但 **标签关联仍空** → 全局搜索「按 tag 名搜链接」永久失效。  
+
+**锁定 API 名与语义**
+
+```ts
+// DashboardActions（命名可微调，语义锁定）
+retryDashboardData(): Promise<void>
+// 行为：
+// 1. 仅在 linksLoadState 为 error（或整体 core 未 success）时由 UI 调用；也可无条件强制重拉
+// 2. set linksLoadState = loading
+// 3. 再次调用 getDashboardData()
+// 4. success → 写入 links + tags + linkTags，linksLoadState = success
+// 5. failure → linksLoadState = error（tags/linkTags 保持失败前快照或清空，二选一写死：失败不清成功数据；首次从未成功则保持 []）
+```
+
+`refreshLinks` **保留** 给「已成功加载后的用户手动刷新链接列表」；**不得** 作为 search dialog「加载失败 · 重试」的实现。
+
+U4 必须锁定：
+
+1. ideas/todos：error → ensure\* 再请求 → success  
+2. **links：error → `retryDashboardData` → links+tags+linkTags 均有数据且 tag 搜索可用**
 
 #### 2.5.4 Dialog 展示规则
 
@@ -250,9 +274,9 @@ Sidebar / Cmd+K
 |------|------|
 | `useIdeasSlice.ts` | `ideasLoadState`；`ensureIdeasLoaded`：`success:false` → error；**error 可重试** |
 | `useTodosSlice.ts` | 同上 |
-| **`useDashboardCore.ts`** | **`linksLoadState`**：mount 时 loading；`getDashboardData` success → success + 写数据；`success:false` / throw → **error**（禁止静默空数组）；可选 `retryLinksLoad` |
-| `dashboard-service.tsx` | 三类 load state 全部透出 |
-| 测试 | U4：ideas/todos/links 各自 loading→success、success:false→error、error→retry→success |
+| **`useDashboardCore.ts`** | **`linksLoadState`**：mount loading；`getDashboardData` success → success + 写 **links+tags+linkTags**；`success:false`/throw → **error**（禁止静默空数组）；**新增 `retryDashboardData`**（再走 `getDashboardData`，**不是** `refreshLinks`） |
+| `dashboard-service.tsx` | 三类 load state + `retryDashboardData` 透出 |
+| 测试 | U4：ideas/todos ensure 重试；**links `retryDashboardData` 后 tag 关联恢复** |
 
 ### 3.3 模型层 — 统一「自身命中」谓词
 
@@ -319,14 +343,15 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 | U1b | **Dialog 级**：query 仅命中 tag 或仅命中 emoji 时，结果列表仍含该 todo（防二次 filter 回归） |
 | U2 | `filterLinks`：folder 名命中 |
 | U3 | `takeSearchHits` 截断 |
-| U4 | **ideas + todos + links**：loading→success；success:false→error；**error 后 ensure\*/retry 再成功** |
+| U4 | **ideas + todos**：loading→success；success:false→error；error→ensure\*→success |
+| U4b | **links core**：success:false→error（非空数组伪装）；error→**`retryDashboardData`**→success 且 **tags/linkTags 非空可搜**（mock getDashboardData 第二次返回完整 payload） |
 | U5 | Dialog：任一类型 loading 时不 CommandEmpty |
 | U6 | Dialog：error 组文案 + 重试触发 ensure\* |
 | U7 | 三类分组 + 计数 |
 | U8 | idea → `/dashboard/ideas/id` |
 | U9 | todo → `/dashboard/todos?id=` |
 | U10 | link **路由** → `/dashboard?highlight=`（dialog 层） |
-| U10b | **LinksList 组件**：有本地 tag/folder 过滤时，`highlight` 仍使目标卡可见 + ring/scroll（§3.4） |
+| U10b | **LinksList 组件**（强制行为断言，禁止只查 data-attribute）：① 预设 folder/tag 过滤使目标卡被滤掉；② 注入 `?highlight={id}`；③ 断言本地过滤已清、目标卡 **在 DOM 可见**；④ **mock/spy `scrollIntoView` 被调用**（或等价 arborist API）；⑤ 高亮 class / data-state 存在（如 `data-highlighted` 或 ring class） |
 | U11 | open → ensureIdeas + ensureTodos |
 | U12 | 命中隐藏 tag → 行上可见该 chip |
 | U13 | Todo deep-link：openParents + scroll |
@@ -354,7 +379,7 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 | Step | Commit message | 内容 | 测试 |
 |------|----------------|------|------|
 | A1 | `feat: expose ideas/todos load error state` | ideas/todos slice + retry | U4（ideas/todos） |
-| A1b | `feat: track links load error in dashboard core` | **`useDashboardCore` linksLoadState**；禁止 success:false→空数组 | U4（links） |
+| A1b | `feat: track links load error and retryDashboardData` | **linksLoadState**；禁止 success:false→空数组；**`retryDashboardData` = 再拉 getDashboardData（含 tags/linkTags）**；dialog 失败重试不得走 `refreshLinks` | **U4b** |
 | A2 | `feat: extract todoMatchesQuery for search fields` | models/todos 全字段谓词 | U1 |
 | A3 | `feat: match folder name in filterLinks` | models/links + folders ctx | U2 |
 | A4 | `feat: add search group limit helper` | models/search.ts | U3 |
@@ -362,7 +387,7 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 | B2 | `feat: use todoMatchesQuery in search dialog` | 替换 title/excerpt 二次 filter | **U1b** |
 | B3 | `feat: cap rendered search hits per group` | dialog | U3 |
 | B4 | `feat: navigate link search hits via highlight query` | link item | U10 |
-| B5 | `feat: clear filters and scroll to highlighted link` | filters + list ring/scroll | **U10b** |
+| B5 | `feat: clear filters and scroll to highlighted link` | filters clear + **scrollIntoView spy + ring 状态** | **U10b**（完整行为断言） |
 | B6 | `feat: expand ancestors on todo deep link` | shell + page | U13 |
 | B7 | `fix: show match evidence on search results` | result items | U12 |
 | C1 | `fix: update sidebar search copy for multi-type` | sidebar | E1 |
@@ -379,7 +404,8 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 
 - [ ] ideas / todos / **links** 均有 load success/error  
 - [ ] links：`success:false` 不再静默空数组  
-- [ ] ensure* / retry 在 error 后可重试（U4）  
+- [ ] links 失败重试 = **`retryDashboardData`**（完整 getDashboardData），**不是** `refreshLinks`（U4b）  
+- [ ] ensure* 在 error 后可重试（U4）  
 - [ ] Dialog 不在任一类 loading 时 empty  
 
 ### 匹配与展示
@@ -465,4 +491,5 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 | 2026-07-24 | 初稿 |
 | 2026-07-24 | Codex 一轮评审修订（入口/导航/deep-link/folder/命中证据/渲染保护） |
 | 2026-07-24 | **Codex 二轮复核修订**：linksLoadState 纳入 A1b 与 U4；`todoMatchesQuery` 防二次 filter（U1b）；highlight 必须清本地筛选 + U10b 组件测；error→retry 契约 |
+| 2026-07-24 | **Codex 三轮复核修订**：links 重试锁定为 **`retryDashboardData`（getDashboardData 全量）**，禁止用 `refreshLinks` 顶替；U10b 强制 scrollIntoView + 高亮状态断言 |
 | — | 待：`su-go` 按 §5 实施 |
