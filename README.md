@@ -370,6 +370,7 @@ zhe/
 | [Backy Integration](docs/10-backy.md) | Remote backup via Backy (push/pull) |
 | [Four-Layer Test Plan](docs/11-four-layer-test-plan.md) | Test architecture improvement plan & status |
 | [Design Tokens & UI Controls](docs/22-design-tokens.md) | Surface/radius/density contract; reuse `components/ui` sizes |
+| [Global Search Unification](docs/23-global-search-unification.md) | Cmd+K multi-type search plan (links/ideas/todos), nav + tests |
 
 ## License
 
