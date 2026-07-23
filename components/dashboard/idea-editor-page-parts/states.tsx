@@ -8,13 +8,14 @@ export function EditorSkeleton() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 animate-pulse">
-          <div className="h-7 w-7 rounded-md bg-background" />
-          <div className="h-8 w-48 rounded-lg bg-background" />
+          {/* Match EditorToolbar: icon-sm (32×32) + Input size=sm (h-8). */}
+          <div className="h-8 w-8 rounded-widget bg-background" />
+          <div className="h-8 w-48 rounded-widget bg-background" />
         </div>
         <div className="flex items-center gap-2 animate-pulse">
           <div className="h-5 w-12 rounded bg-background hidden sm:block" />
           <div className="h-5 w-12 rounded bg-background hidden sm:block" />
-          <div className="h-7 w-7 rounded-md bg-background" />
+          <div className="h-8 w-8 rounded-widget bg-background" />
         </div>
       </div>
       <div
