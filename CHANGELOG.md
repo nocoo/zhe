@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v1.21.2] - 2026-07-23
+
+### Fixed
+- Sync todo detail emoji on update
+
 ## [v1.21.1] - 2026-07-23
 
 ### Added
