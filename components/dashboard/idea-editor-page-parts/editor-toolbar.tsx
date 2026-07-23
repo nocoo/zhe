@@ -66,31 +66,26 @@ export function EditorToolbar({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Button
           variant="outline"
-          size="xs"
-          className="rounded-widget h-7 w-7 p-0 shrink-0"
+          size="icon-sm"
+          className="shrink-0"
           onClick={onBack}
           aria-label="返回想法列表"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Input
+          size="sm"
           placeholder="标题 (可选)"
           value={title ?? ""}
           onChange={(e) => setTitle(e.target.value || null)}
-          className="flex-1 max-w-md h-8 text-sm rounded-lg"
+          className="flex-1 max-w-md"
         />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
         <TagBadges tags={tags} selectedTagIds={selectedTagIds} onToggle={toggleTag} />
         {dirty && <span className="text-xs text-muted-foreground">未保存</span>}
-        <Button
-          size="xs"
-          className="rounded-widget h-7 w-7 p-0"
-          onClick={onSave}
-          disabled={!dirty || isSaving}
-          aria-label="保存"
-        >
+        <Button size="icon-sm" onClick={onSave} disabled={!dirty || isSaving} aria-label="保存">
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

@@ -78,7 +78,7 @@ function SortSelect({ vm }: { vm: IdeasViewModel }) {
 
 function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
   const cls = (active: boolean) =>
-    `flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+    `flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
       active ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
     }`;
   return (
@@ -129,12 +129,7 @@ export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
           </button>
         )}
 
-        <Button
-          size="xs"
-          className="rounded-widget h-7 w-7 p-0"
-          onClick={() => vm.setIsCreateModalOpen(true)}
-          aria-label="新想法"
-        >
+        <Button size="icon-sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </div>

@@ -57,7 +57,7 @@ function FilterControls(props: FilterControlsProps) {
           type="button"
           onClick={() => onViewModeChange("list")}
           aria-label="List view"
-          className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+          className={`flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
             viewMode === "list"
               ? "bg-accent text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -69,7 +69,7 @@ function FilterControls(props: FilterControlsProps) {
           type="button"
           onClick={() => onViewModeChange("grid")}
           aria-label="Grid view"
-          className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+          className={`flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
             viewMode === "grid"
               ? "bg-accent text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -80,8 +80,7 @@ function FilterControls(props: FilterControlsProps) {
       </div>
       <Button
         variant="outline"
-        size="xs"
-        className="rounded-widget h-7 w-7 p-0"
+        size="icon-sm"
         onClick={onRefresh}
         disabled={isRefreshing}
         aria-label="刷新链接"
@@ -131,12 +130,7 @@ export function LinksListToolbar(props: ToolbarProps) {
         {isMobile && (
           <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="xs"
-                className="rounded-widget h-8 gap-1.5 px-2.5 text-xs"
-                aria-label="筛选与视图"
-              >
+              <Button variant="outline" size="xs" aria-label="筛选与视图">
                 <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
                 <span>筛选</span>
                 {activeFilterCount > 0 && (
