@@ -166,37 +166,50 @@ L3 不得只断言 URL 或 detail 文案。
 - action `success: false` 通常不 throw → **无 error 通道**  
 - 首次打开 dialog 时三类可能短暂显示「没有找到匹配的结果」  
 
-#### 2.5.2 目标状态模型
+#### 2.5.2 目标状态模型（三类资源对称）
 
-对 **ideas** 与 **todos** 各维护：
+对 **links / ideas / todos** 使用同一语义：
 
 ```ts
 type ResourceLoadState =
   | { status: "idle" }           // 从未请求
   | { status: "loading" }
-  | { status: "success" }      // 已成功至少一次（数组可为空）
+  | { status: "success" }        // 已成功至少一次（数组可为空）
   | { status: "error"; message: string };
 ```
 
-暴露给 UI（命名可微调，语义锁定）：
+| 资源 | 现状缺口 | v1 必做 |
+|------|----------|---------|
+| **ideas** | 仅 `ideasLoading`；内部 `ideasLoaded` 未暴露 | 暴露 `ideasLoadState`（或 loaded+error+loading） |
+| **todos** | 同上 | 同上 |
+| **links** | `useDashboardCore`：`getDashboardData` 的 `success:false` **静默当空数组**（`useDashboardCore.ts` ~L21–25）；仅 `loading` 布尔 | 补 **`linksLoadState`**：mount fetch 进入 loading → success / error；`success:false` **必须** 进 error，不得伪装 empty |
 
-| 字段 | 含义 |
-|------|------|
-| `ideasLoadState` / `todosLoadState` | 上表 |
-| 或 `ideasLoaded` + `ideasError` + 既有 `ideasLoading` | 等价三元组 |
+暴露字段命名可微调，但 Dialog 必须能对 **三类** 分别问：是否仍 loading、是否 error、是否已 success。
 
-**links**：通常随 dashboard 初始加载。若 `loading === true` 且 `links.length === 0`，资源组整体视为 links 仍 loading；links 失败需在 core fetch 中写入 error（若现有仅 console，本轮补 `linksError` 或复用全局 error——**最低要求**：links 未完成前不得对「链接」组下 empty 结论）。
+#### 2.5.3 重试契约
 
-#### 2.5.3 Dialog 展示规则
+| API | 行为 |
+|-----|------|
+| `ensureIdeasLoaded` / `ensureTodosLoaded` | 当前状态为 **`error` 时允许再次请求**（不得因「曾经尝试过」永久卡死）；`success` 时仍跳过；`loading` 时 no-op |
+| links 初始失败 | 提供 `retryLinksLoad`（或 `refreshLinks` 已返回 error 时由 dialog/sidebar 触发）把状态从 error → loading → success/error |
+
+U4 必须锁定：**error 后第二次 ensure\* 会重新请求并可达 success**。
+
+#### 2.5.4 Dialog 展示规则
 
 | 条件 | UI |
 |------|----|
-| 有 query 且该类型 `idle`/`loading` | 该组位置显示一行 **「加载中…」**（或骨架），**不** 计入「全空」 |
-| 该类型 `error` | 该组 **「加载失败」** 弱文案；其它类型正常 |
-| 全部相关类型均为 `success`（或无需加载的类型已就绪），且命中数为 0，且页面/动作也无命中 | `CommandEmpty`：没有找到匹配的结果 |
-| 无 query | 现有 hint + 页面/动作；不触发 empty |
+| 有 query 且该类型 `idle`/`loading` | 该组 **「加载中…」**，**不** 计入「全空」 |
+| 该类型 `error` | 该组 **「加载失败」**（可点「重试」调用 ensure\*/retry）；其它类型正常 |
+| **links + ideas + todos 均为 `success`**，且三类命中为 0，且页面/动作无命中 | `CommandEmpty` |
+| 任一类型仍非 success | **禁止** 因「当前可见命中为 0」下 empty 结论 |
+| 无 query | 现有 hint + 页面/动作 |
 
-`ensureIdeasLoaded` / `ensureTodosLoaded`：在 `success:false` 或 throw 时写入 `error` 状态。
+#### 2.5.5 「20 条上限」语义
+
+- **是**：渲染保护（限制 DOM）  
+- **不是**：过滤/网络性能方案  
+- **软上限**：合计 &lt; 5k 条/用户
 
 #### 2.5.4 「20 条上限」语义
 
@@ -237,44 +250,66 @@ Sidebar / Cmd+K
 
 无新搜索 API。
 
-### 3.2 DashboardService 状态（必做，可独立 commit）
+### 3.2 DashboardService 状态（必做 — ideas **和** todos **和** links）
 
 | 文件 | 变更 |
 |------|------|
-| `useIdeasSlice.ts` | 暴露 load state；`ensureIdeasLoaded` 处理 `success:false` |
+| `useIdeasSlice.ts` | `ideasLoadState`；`ensureIdeasLoaded`：`success:false` → error；**error 可重试** |
 | `useTodosSlice.ts` | 同上 |
-| `dashboard-service.tsx` | `DashboardState` 增加字段；context value 透出 |
-| 测试 | slice 单测或 dialog 测试 mock 新字段 |
+| **`useDashboardCore.ts`** | **`linksLoadState`**：mount 时 loading；`getDashboardData` success → success + 写数据；`success:false` / throw → **error**（禁止静默空数组）；可选 `retryLinksLoad` |
+| `dashboard-service.tsx` | 三类 load state 全部透出 |
+| 测试 | U4：ideas/todos/links 各自 loading→success、success:false→error、error→retry→success |
 
-### 3.3 模型层
+### 3.3 模型层 — 统一「自身命中」谓词
 
 | 文件 | 变更 |
 |------|------|
-| `models/todos.ts` | query 匹配 title \| excerpt \| tagNames \| emoji |
-| `models/links.ts` | **必做** folder 名：`FilterContext` 增加 `folders`；`filterLinks` 使用之 |
-| `models/search.ts`（新，可选） | `SEARCH_GROUP_LIMIT`、`normalizeSearchQuery`、`takeSearchHits` |
+| `models/todos.ts` | **抽出并导出** `todoMatchesQuery(node, needle): boolean`，字段 = §2.2 全量：`title` \| `excerpt` \| `tagNames[]` \| `emoji` |
+| `filterTodos` | 文本轴调用 `todoMatchesQuery`（祖先链逻辑不变） |
+| `search-command-dialog.tsx` | **禁止** 手写 `title/excerpt` 二次 filter；改为：`filterTodos(...).filter((t) => todoMatchesQuery(t, needle))`（或 filterTodos 增加 `selfOnly: true` 选项，内部同一谓词） |
+| `models/links.ts` | folder 名匹配（`FilterContext.folders` **必传**） |
+| `models/search.ts` | `SEARCH_GROUP_LIMIT`、`takeSearchHits` |
 
-全局 dialog 对 todos：在 `filterTodos` 后仍 **只保留自身命中行**（与现逻辑一致）。
+> Codex P1：若 dialog 仍用旧的 title/excerpt 二次判断，A2 扩展 tag/emoji 后命中行仍会被滤掉。
 
-### 3.4 UI 层
+### 3.4 链接 highlight 与列表筛选交互（必做）
+
+**问题**：`/dashboard?highlight=N` 清掉 URL `folder` 后，`useLinksListFilters` 的 **本地** `filterFolderId` / `filterTagIds` 仍可能把该链接滤出列表，导致无法滚动高亮。
+
+**契约（锁定）**
+
+当 `searchParams.highlight` 为合法 link id 时：
+
+1. **清除** 本地 folder/tag 筛选（`setFilterFolderId(null)`、`setFilterTagIds(empty)`）  
+2. **忽略** URL `folder` 对该次定位的约束（或路由只带 `highlight`、不带 `folder`——搜索导航已保证）  
+3. 在 **全量 `links`** 中找 id → `scrollIntoView` + ring  
+4. 若 id 不存在：静默忽略  
+
+实现落点：`useLinksListFilters` 增加 `useEffect` 监听 `highlight`，或 `LinksList` 在读到 highlight 时调用 `clearFilters()` + 滚动。
+
+**测试**：B4 必须有 **组件测试**（非仅 U10 路由断言）：
+
+- 先设 tag/folder 过滤使目标不可见  
+- 注入 `?highlight={id}`  
+- 断言：过滤被清、卡片在 DOM 中可见、scroll/ring 被调用或 data-attribute 存在  
+
+### 3.5 UI 层
 
 | 文件 | 变更 |
 |------|------|
 | `sidebar-*.tsx` | 文案 / aria |
-| `search-command-dialog.tsx` | load state 门闩；cap；filterLinks 传 folders |
-| `link-result-item.tsx` | 主 select → `onNavigateToDashboard(linkId)`；原站保留行内 |
+| `search-command-dialog.tsx` | 三类 load 门闩；`todoMatchesQuery`；cap；folders ctx；error 重试 |
+| `link-result-item.tsx` | 主 select → `/dashboard?highlight=` |
 | `todo-result-item.tsx` | emoji；命中 tag 露出 |
-| `todos-page.tsx` + `todo-tree-shell.tsx` | deep-link：openParents + scrollIntoView |
-| `links-list.tsx`（或 page） | `?highlight=` 滚动高亮 |
+| `todos-page` + `todo-tree-shell` | openParents + scrollIntoView |
+| `links-list` + `useLinksListFilters` | highlight 清筛选 + 滚动高亮 |
 
-**不** 删除 `todos-filter-bar` 搜索框。
+**不** 删除 Todo / Ideas 页内搜索。
 
-### 3.5 常量
+### 3.6 常量
 
 ```ts
-// models/search.ts 或 lib/constants.ts
 export const SEARCH_GROUP_LIMIT = 20;
-/** Soft ceiling for client-side multi-type search; above this, plan v2. */
 export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 ```
 
@@ -286,19 +321,21 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 
 | ID | 内容 |
 |----|------|
-| U1 | `filterTodos`：title / excerpt / tag / emoji |
-| U2 | `filterLinks`：folder 名命中（folders in ctx） |
-| U3 | `takeSearchHits` 截断与 more 计数 |
-| U4 | Slice：loading → success / error；success:false → error |
-| U5 | Dialog：loading 时不渲染「没有找到」 |
-| U6 | Dialog：error 组文案 |
-| U7 | Dialog：三类分组 + 计数 |
-| U8 | 导航：idea → `/dashboard/ideas/id` |
-| U9 | 导航：todo → `/dashboard/todos?id=` |
-| U10 | 导航：link → `/dashboard?highlight=` |
-| U11 | 打开 dialog 调用 ensure* |
-| U12 | 命中隐藏 tag 时结果行可见该 tag |
-| U13 | Todos deep-link：mock tree openParents / scroll（组件或 shell 测） |
+| U1 | `todoMatchesQuery` / `filterTodos`：title / excerpt / **tag** / **emoji** |
+| U1b | **Dialog 级**：query 仅命中 tag 或仅命中 emoji 时，结果列表仍含该 todo（防二次 filter 回归） |
+| U2 | `filterLinks`：folder 名命中 |
+| U3 | `takeSearchHits` 截断 |
+| U4 | **ideas + todos + links**：loading→success；success:false→error；**error 后 ensure\*/retry 再成功** |
+| U5 | Dialog：任一类型 loading 时不 CommandEmpty |
+| U6 | Dialog：error 组文案 + 重试触发 ensure\* |
+| U7 | 三类分组 + 计数 |
+| U8 | idea → `/dashboard/ideas/id` |
+| U9 | todo → `/dashboard/todos?id=` |
+| U10 | link **路由** → `/dashboard?highlight=`（dialog 层） |
+| U10b | **LinksList 组件**：有本地 tag/folder 过滤时，`highlight` 仍使目标卡可见 + ring/scroll（§3.4） |
+| U11 | open → ensureIdeas + ensureTodos |
+| U12 | 命中隐藏 tag → 行上可见该 chip |
+| U13 | Todo deep-link：openParents + scroll |
 
 ### 4.2 L2
 
@@ -322,23 +359,23 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 
 | Step | Commit message | 内容 | 测试 |
 |------|----------------|------|------|
-| A1 | `feat: expose ideas/todos load error state` | slice + DashboardState | U4 |
-| A2 | `feat: match todo tags and emoji in filterTodos` | models/todos | U1 |
-| A3 | `feat: match folder name in filterLinks` | models/links + ctx | U2 |
+| A1 | `feat: expose ideas/todos load error state` | ideas/todos slice + retry | U4（ideas/todos） |
+| A1b | `feat: track links load error in dashboard core` | **`useDashboardCore` linksLoadState**；禁止 success:false→空数组 | U4（links） |
+| A2 | `feat: extract todoMatchesQuery for search fields` | models/todos 全字段谓词 | U1 |
+| A3 | `feat: match folder name in filterLinks` | models/links + folders ctx | U2 |
 | A4 | `feat: add search group limit helper` | models/search.ts | U3 |
-| B1 | `feat: gate search empty state on load status` | dialog | U5/U6 |
-| B2 | `feat: cap rendered search hits per group` | dialog + helper | U3/U10 |
-| B3 | `feat: navigate link search hits via highlight query` | link item + handlers | U10 |
-| B4 | `feat: scroll and ring link from highlight param` | links list | U10 |
-| B5 | `feat: expand ancestors on todo deep link` | todos-page + shell | U13 |
-| B6 | `fix: show match evidence on search results` | result items | U12 |
+| B1 | `feat: gate search empty state on load status` | dialog 三类 load + 重试 | U5/U6 |
+| B2 | `feat: use todoMatchesQuery in search dialog` | 替换 title/excerpt 二次 filter | **U1b** |
+| B3 | `feat: cap rendered search hits per group` | dialog | U3 |
+| B4 | `feat: navigate link search hits via highlight query` | link item | U10 |
+| B5 | `feat: clear filters and scroll to highlighted link` | filters + list ring/scroll | **U10b** |
+| B6 | `feat: expand ancestors on todo deep link` | shell + page | U13 |
+| B7 | `fix: show match evidence on search results` | result items | U12 |
 | C1 | `fix: update sidebar search copy for multi-type` | sidebar | E1 |
-| C2 | `docs: lock global search contracts after review` | 21 节 + 本文件状态 | — |
-| D1 | `test: multi-type search and deep links in playwright` | search.spec | E2–E6 |
+| C2 | `docs: lock global search contracts after review` | 本文件 + 21 交叉引用 | — |
+| D1 | `test: multi-type search and deep links in playwright` | E2–E6 | L3 |
 
-预计 **10–13** 个原子 commit。  
-
-**已取消**：`refactor: remove todos page local search box`（与评审结论冲突）。
+预计 **12–15** 个原子 commit。
 
 ---
 
@@ -346,27 +383,30 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 
 ### 状态
 
-- [ ] ideas/todos 暴露 loaded + error（或统一 loadState）  
-- [ ] ensure* 在 success:false 时 set error  
-- [ ] Dialog 不在 loading 时 empty  
+- [ ] ideas / todos / **links** 均有 load success/error  
+- [ ] links：`success:false` 不再静默空数组  
+- [ ] ensure* / retry 在 error 后可重试（U4）  
+- [ ] Dialog 不在任一类 loading 时 empty  
 
 ### 匹配与展示
 
-- [ ] §2.2 字段全覆盖（含 folder、tag、emoji）  
+- [ ] `todoMatchesQuery` 覆盖 §2.2；dialog **只用** 该谓词做自身过滤  
+- [ ] folder 匹配 v1  
 - [ ] §2.6 命中证据  
 - [ ] 每组 cap 20（渲染保护）  
 
 ### 导航
 
 - [ ] 链接 `/dashboard?highlight={id}`  
-- [ ] 想法 `/dashboard/ideas/{id}`  
-- [ ] 待办 deep-link 五项验收  
+- [ ] highlight **清除** 本地 folder/tag 过滤后高亮（U10b）  
+- [ ] 想法 / 待办 deep-link 完整验收  
 - [ ] 页面内 Todo/Ideas 筛选仍在  
 
 ### 测试
 
-- [ ] L1 + L3 按 §4  
-- [ ] placeholder 常量单点维护  
+- [ ] L1 含 U1b、U4 links、U10b  
+- [ ] L3 E2–E6  
+- [ ] placeholder 单点维护  
 
 ---
 
@@ -374,10 +414,11 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 
 | 风险 | 缓解 |
 |------|------|
-| 客户端 O(n) filter | 软上限 5k 条/用户；超则 v2；20 条仅限渲染 |
-| deep-link 与 arborist API 不熟 | B5 单测 + E4 嵌套 fixture |
-| highlight 与 folder 路由冲突 | `highlight` 与 `folder` 可并存；列表在当前 folder 视图内找不到则仍尝试全局列表或提示（v1：仅 all-links 视图可靠高亮） |
-| 暴露 error 文案过糙 | 通用「加载失败」即可，不暴露服务端细节 |
+| 客户端 O(n) filter | 软上限 5k；20 条仅渲染 |
+| deep-link / arborist | B6 + E4 嵌套 fixture |
+| highlight 被本地筛选挡住 | §3.4 强制 clear filters；U10b |
+| dialog 二次 filter 丢掉 tag/emoji | 共享 `todoMatchesQuery`；U1b |
+| links 静默失败 | A1b + U4 |
 
 **已锁定决策（原 §7 待拍板项）**
 
@@ -428,5 +469,6 @@ export const SEARCH_CLIENT_SOFT_MAX_ITEMS = 5000;
 | 日期 | 事件 |
 |------|------|
 | 2026-07-24 | 初稿 |
-| 2026-07-24 | **Codex 文档评审修订**：状态模型 idle/loading/success/error；唯一跨资源入口 + 保留页内筛选；锁定链接 `?highlight=`；Todo deep-link 完整验收；20 条改为渲染保护；folder 匹配 v1 必做；命中证据规则；取消移除 Todo 搜索的 commit |
+| 2026-07-24 | Codex 一轮评审修订（入口/导航/deep-link/folder/命中证据/渲染保护） |
+| 2026-07-24 | **Codex 二轮复核修订**：linksLoadState 纳入 A1b 与 U4；`todoMatchesQuery` 防二次 filter（U1b）；highlight 必须清本地筛选 + U10b 组件测；error→retry 契约 |
 | — | 待：`su-go` 按 §5 实施 |
