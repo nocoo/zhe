@@ -64,7 +64,7 @@
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
-    "url-metadata": "5.8.0",
+    "url-metadata": "5.8.2",
     "vite": "8.1.5",
     "yaml": "^2.9.0"
   },
