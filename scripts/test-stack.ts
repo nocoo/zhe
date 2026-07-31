@@ -201,12 +201,30 @@ export interface LocalStack {
 
 const STDERR_TAIL_LINES = 80;
 
+/**
+ * Decide whether the wrangler exit should be reported and produce the
+ * message lines to emit. Any exit that wasn't triggered by
+ * stopLocalStack() is unexpected — code=0 with no signal is just as
+ * lethal as a crash, because tests still lose the D1 proxy.
+ */
+export function formatWorkerExitReport(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  intentionalShutdown: boolean,
+  stderrTail: readonly string[],
+  logTag = "[wrangler]",
+): string[] | null {
+  if (intentionalShutdown) return null;
+  const header = `${logTag} exited unexpectedly (code=${code}, signal=${signal}). Last ${stderrTail.length} stderr line(s):`;
+  return [header, ...stderrTail.map((line) => `${logTag}   ${line}`)];
+}
+
 async function waitForWorkerProxy(worker: ChildProcess): Promise<void> {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (worker.exitCode !== null || worker.signalCode !== null) {
       throw new Error(
-        `wrangler dev exited during startup (code=${worker.exitCode}, signal=${worker.signalCode}). See [wrangler] log above.`,
+        `wrangler dev exited during startup (code=${worker.exitCode}, signal=${worker.signalCode}). See [wrangler] output above.`,
       );
     }
     try {
@@ -298,13 +316,19 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     }
   });
   worker.once("exit", (code, signal) => {
+    const lines = formatWorkerExitReport(
+      code,
+      signal,
+      stack.intentionalShutdown === true,
+      stderrTail,
+      logTag,
+    );
+    if (!lines) return;
+    for (const line of lines) console.error(line);
+  });
+  worker.once("error", (err) => {
     if (stack.intentionalShutdown) return;
-    if ((code !== 0 && code !== null) || signal) {
-      console.error(
-        `${logTag} exited unexpectedly (code=${code}, signal=${signal}). Last ${stderrTail.length} stderr line(s):`,
-      );
-      for (const line of stderrTail) console.error(`${logTag}   ${line}`);
-    }
+    console.error(`${logTag} spawn error:`, err);
   });
 
   try {
