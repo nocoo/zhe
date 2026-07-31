@@ -195,11 +195,20 @@ function applySchemaFixups(): void {
 export interface LocalStack {
   worker: ChildProcess;
   r2: LocalR2Server;
+  /** Set by stopLocalStack() before SIGTERM so the exit handler stays quiet. */
+  intentionalShutdown?: boolean;
 }
 
-async function waitForWorkerProxy(): Promise<void> {
+const STDERR_TAIL_LINES = 80;
+
+async function waitForWorkerProxy(worker: ChildProcess): Promise<void> {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
   while (Date.now() < deadline) {
+    if (worker.exitCode !== null || worker.signalCode !== null) {
+      throw new Error(
+        `wrangler dev exited during startup (code=${worker.exitCode}, signal=${worker.signalCode}). See [wrangler] log above.`,
+      );
+    }
     try {
       const res = await fetch(`${WORKER_URL}/api/d1-query`, {
         method: "POST",
@@ -272,30 +281,47 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
   );
 
   const logTag = "[wrangler]";
+  const stderrTail: string[] = [];
+  const stack: LocalStack = { worker, r2 };
   worker.stdout?.on("data", (chunk: Buffer) => {
     if (opts.verbose) console.log(`${logTag} ${chunk.toString().trimEnd()}`);
   });
   worker.stderr?.on("data", (chunk: Buffer) => {
     const text = chunk.toString().trimEnd();
-    if (text && (opts.verbose || /error|warn/i.test(text))) {
+    if (!text) return;
+    for (const line of text.split("\n")) {
+      stderrTail.push(line);
+      if (stderrTail.length > STDERR_TAIL_LINES) stderrTail.shift();
+    }
+    if (opts.verbose || /error|warn/i.test(text)) {
       console.log(`${logTag} ${text}`);
+    }
+  });
+  worker.once("exit", (code, signal) => {
+    if (stack.intentionalShutdown) return;
+    if ((code !== 0 && code !== null) || signal) {
+      console.error(
+        `${logTag} exited unexpectedly (code=${code}, signal=${signal}). Last ${stderrTail.length} stderr line(s):`,
+      );
+      for (const line of stderrTail) console.error(`${logTag}   ${line}`);
     }
   });
 
   try {
-    await waitForWorkerProxy();
+    await waitForWorkerProxy(worker);
   } catch (err) {
-    await stopLocalStack({ worker, r2 });
+    await stopLocalStack(stack);
     throw err;
   }
 
   console.log("[test-stack] Local stack ready.");
-  return { worker, r2 };
+  return stack;
 }
 
 export async function stopLocalStack(stack: LocalStack | null): Promise<void> {
   if (!stack) return;
   console.log("[test-stack] Stopping local stack...");
+  stack.intentionalShutdown = true;
   try {
     await stopLocalR2Server(stack.r2);
   } catch (err) {
