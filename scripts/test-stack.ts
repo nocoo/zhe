@@ -14,7 +14,13 @@
  */
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { promises as fs, readdirSync, readFileSync } from "node:fs";
+import {
+  createWriteStream,
+  promises as fs,
+  readdirSync,
+  readFileSync,
+  type WriteStream,
+} from "node:fs";
 import { resolve as pathResolve } from "node:path";
 
 import { type LocalR2Server, startLocalR2Server, stopLocalR2Server } from "./local-r2-server";
@@ -27,6 +33,7 @@ export const PROJECT_ROOT = process.cwd();
 export const STACK_DIR = pathResolve(PROJECT_ROOT, ".test-storage");
 export const WRANGLER_PERSIST_DIR = pathResolve(STACK_DIR, "wrangler");
 export const R2_DIR = pathResolve(STACK_DIR, "r2");
+export const WRANGLER_LOG_PATH = pathResolve(STACK_DIR, "wrangler-dev.log");
 export const WORKER_CONFIG = pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml");
 export const MIGRATIONS_DIR = pathResolve(PROJECT_ROOT, "drizzle/migrations");
 
@@ -197,9 +204,41 @@ export interface LocalStack {
   r2: LocalR2Server;
   /** Set by stopLocalStack() before SIGTERM so the exit handler stays quiet. */
   intentionalShutdown?: boolean;
+  /** Absolute path to the full wrangler-dev.log for this run. */
+  wranglerLogPath: string;
+  /** Underlying write stream for the wrangler log; closed by stopLocalStack(). */
+  wranglerLogStream?: WriteStream;
 }
 
 const STDERR_TAIL_LINES = 80;
+
+/**
+ * Called by the stack owner (Playwright globalSetup / run-api-e2e.ts) when the
+ * wrangler subprocess dies mid-run. Test harnesses register this to convert an
+ * otherwise silent "everything downstream ECONNREFUSEDs for 60s" into an
+ * immediate hard failure — no test result is trustworthy once the D1 proxy is
+ * gone. When left unset (e.g. CLI `bun run scripts/test-stack.ts`), the exit
+ * report is still printed but the process is not killed.
+ */
+let workerCrashHandler: ((message: string) => void) | null = null;
+
+export function setWorkerCrashHandler(handler: ((message: string) => void) | null): void {
+  workerCrashHandler = handler;
+}
+
+/**
+ * Default crash handler for CLI / test-runner processes: log a bright header
+ * and exit with a non-zero code. Test suites can substitute their own handler
+ * (see setWorkerCrashHandler) that throws or tears down a webServer first.
+ */
+export function defaultWorkerCrashHandler(message: string): void {
+  console.error("");
+  console.error("━━━ FATAL: wrangler dev subprocess died — aborting test run ━━━");
+  console.error(message);
+  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
+  process.exit(1);
+}
 
 /**
  * Decide whether the wrangler exit should be reported and produce the
@@ -281,6 +320,11 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
 
   // 4. Start wrangler dev
   console.log(`[test-stack] Starting wrangler dev on ${WORKER_URL}...`);
+  console.log(`[test-stack] Full wrangler log → ${WRANGLER_LOG_PATH}`);
+  const wranglerLogStream = createWriteStream(WRANGLER_LOG_PATH, { flags: "w" });
+  wranglerLogStream.write(
+    `# wrangler-dev.log — ${new Date().toISOString()}\n# WORKER_URL=${WORKER_URL}\n\n`,
+  );
   const worker = spawn(
     "wrangler",
     [
@@ -300,19 +344,23 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
 
   const logTag = "[wrangler]";
   const stderrTail: string[] = [];
-  const stack: LocalStack = { worker, r2 };
+  const stack: LocalStack = { worker, r2, wranglerLogPath: WRANGLER_LOG_PATH, wranglerLogStream };
   worker.stdout?.on("data", (chunk: Buffer) => {
-    if (opts.verbose) console.log(`${logTag} ${chunk.toString().trimEnd()}`);
+    const text = chunk.toString();
+    wranglerLogStream.write(text);
+    if (opts.verbose) console.log(`${logTag} ${text.trimEnd()}`);
   });
   worker.stderr?.on("data", (chunk: Buffer) => {
-    const text = chunk.toString().trimEnd();
-    if (!text) return;
-    for (const line of text.split("\n")) {
+    const text = chunk.toString();
+    wranglerLogStream.write(text);
+    const trimmed = text.trimEnd();
+    if (!trimmed) return;
+    for (const line of trimmed.split("\n")) {
       stderrTail.push(line);
       if (stderrTail.length > STDERR_TAIL_LINES) stderrTail.shift();
     }
-    if (opts.verbose || /error|warn/i.test(text)) {
-      console.log(`${logTag} ${text}`);
+    if (opts.verbose || /error|warn/i.test(trimmed)) {
+      console.log(`${logTag} ${trimmed}`);
     }
   });
   worker.once("exit", (code, signal) => {
@@ -325,6 +373,17 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     );
     if (!lines) return;
     for (const line of lines) console.error(line);
+    // Fail fast: without the wrangler subprocess the D1 proxy is dead and every
+    // downstream test now records ECONNREFUSED garbage. Kill the run instead
+    // of letting Playwright / vitest keep going for the next 60s.
+    const message = lines.join("\n");
+    if (workerCrashHandler) {
+      try {
+        workerCrashHandler(message);
+      } catch (err) {
+        console.error(`${logTag} crash handler threw:`, err);
+      }
+    }
   });
   worker.once("error", (err) => {
     if (stack.intentionalShutdown) return;
@@ -363,6 +422,13 @@ export async function stopLocalStack(stack: LocalStack | null): Promise<void> {
         resolve();
       });
     });
+  }
+  if (stack.wranglerLogStream) {
+    const stream = stack.wranglerLogStream;
+    await new Promise<void>((resolve) => {
+      stream.end(() => resolve());
+    });
+    delete stack.wranglerLogStream;
   }
 }
 
@@ -414,6 +480,7 @@ function runningAsScript(): boolean {
 
 if (runningAsScript()) {
   loadEnvFile(pathResolve(PROJECT_ROOT, ".env.local"));
+  setWorkerCrashHandler(defaultWorkerCrashHandler);
   startLocalStack({ verbose: true })
     .then(() => {
       applyLocalStackEnv();

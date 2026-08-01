@@ -13,9 +13,11 @@ import {
   D1_PROXY_SECRET,
   type LocalStack,
   loadEnvFile,
+  setWorkerCrashHandler,
   startLocalStack,
   stopLocalStack,
   WORKER_URL,
+  WRANGLER_LOG_PATH,
 } from "./test-stack";
 
 const PROJECT_ROOT = process.cwd();
@@ -153,6 +155,18 @@ async function main(): Promise<void> {
   let stack: LocalStack | null = null;
   let server: ChildProcess | null = null;
   let exitCode = 1;
+  // Fail fast: if wrangler dies mid-suite the D1 proxy is gone and every
+  // downstream vitest test will ECONNREFUSED for the remaining timeout. Kill
+  // the run immediately with a clear header + log pointer.
+  setWorkerCrashHandler((message) => {
+    console.error("");
+    console.error("━━━ FATAL: wrangler dev crashed during L2 API E2E ━━━");
+    console.error(message);
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
+    if (server) killServer(server);
+    process.exit(1);
+  });
   try {
     stack = await startLocalStack();
     applyLocalStackEnv();

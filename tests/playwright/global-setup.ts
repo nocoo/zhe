@@ -10,7 +10,9 @@ import {
   applyLocalStackEnv,
   type LocalStack,
   loadEnvFile,
+  setWorkerCrashHandler,
   startLocalStack,
+  WRANGLER_LOG_PATH,
 } from "../../scripts/test-stack";
 import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 
@@ -20,6 +22,18 @@ declare global {
 
 export default async function globalSetup(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), ".env.local"));
+
+  // Fail fast: if wrangler dies mid-suite the D1 proxy is gone and every
+  // remaining Playwright spec will ECONNREFUSED for the rest of its timeout.
+  // Exit with a bright header + log pointer so CI shows the real cause.
+  setWorkerCrashHandler((message) => {
+    console.error("");
+    console.error("━━━ FATAL: wrangler dev crashed during L3 Playwright ━━━");
+    console.error(message);
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
+    process.exit(1);
+  });
 
   console.log("[pw:global-setup] Starting local stack (wrangler dev + R2 shim)...");
   const stack = await startLocalStack();
