@@ -95,6 +95,7 @@ export async function testBackyConnection(): Promise<{
     const res = await fetch(config.webhookUrl, {
       method: "HEAD",
       headers: { Authorization: `Bearer ${config.apiKey}` },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
@@ -121,9 +122,16 @@ export async function fetchBackyHistory(): Promise<{
     const config = await db.getBackySettings();
     if (!config) return { success: false, error: "Backy 未配置" };
 
+    // 5s hard timeout — an unbounded outbound fetch keeps the SSR request open
+    // and backs up the D1 proxy connection pool, which surfaced as the
+    // "Failed to fetch Backy history: TypeError: fetch failed" spam in the L3
+    // stack right before the miniflare "Network connection lost" crash
+    // (STU-2287). Matches the 5s ceiling already applied to the sibling
+    // implementation in app/api/backy/pull/helpers.ts.
     const res = await fetch(config.webhookUrl, {
       method: "GET",
       headers: { Authorization: `Bearer ${config.apiKey}` },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
@@ -217,6 +225,9 @@ export async function pushBackup(): Promise<{
       method: "POST",
       headers: { Authorization: `Bearer ${config.apiKey}` },
       body: form,
+      // 30s ceiling: uploads can be a few MB but must never hang forever and
+      // stall the SSR request that owns this D1 proxy connection (STU-2287).
+      signal: AbortSignal.timeout(30_000),
     });
 
     const durationMs = Date.now() - start;

@@ -262,11 +262,13 @@ describe("Backy backup integration (E2E)", () => {
       const result = await testBackyConnection();
       expect(result.success).toBe(true);
 
-      // Verify fetch was called with HEAD + Bearer token
-      expect(fetchSpy).toHaveBeenCalledWith("https://backy.test/wh", {
-        method: "HEAD",
-        headers: { Authorization: "Bearer test-key-12345678" },
-      });
+      // Verify fetch was called with HEAD + Bearer token + timeout signal
+      expect(fetchSpy).toHaveBeenCalledOnce();
+      const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://backy.test/wh");
+      expect(init.method).toBe("HEAD");
+      expect(init.headers).toEqual({ Authorization: "Bearer test-key-12345678" });
+      expect(init.signal).toBeInstanceOf(AbortSignal);
     });
 
     it("returns error when no config saved", async () => {
