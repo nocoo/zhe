@@ -32,11 +32,18 @@ jobs:
   #
   # No remote Cloudflare resources — scripts/test-stack.ts spins up
   # `wrangler dev --local` (Miniflare D1 + KV) and a local R2 fs shim.
+  #
+  # Matrix: pin exact wrangler versions so 4.116 vs 4.118 A/B against the
+  # STU-2287 crash is captured in every run's artifact.
   # ─────────────────────────────────────────────────────
   api-e2e:
-    name: "L2 API E2E"
+    name: "L2 API E2E (wrangler ${{ matrix.wrangler }})"
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        wrangler: ["4.116.0", "4.118.0"]
     env:
       # Only AUTH_SECRET / WORKER_SECRET remain — everything Cloudflare-shaped
       # is provided by the local Miniflare stack at runtime.
@@ -51,21 +58,61 @@ jobs:
 
       - run: bun install --frozen-lockfile --ignore-scripts
 
-      # test-stack.ts shells out to `wrangler` for migrations + dev server
-      - name: Install wrangler globally
-        run: bun install -g wrangler@4 --ignore-scripts
+      # test-stack.ts shells out to `wrangler` for migrations + dev server.
+      # Pinned via the matrix so a regression can be attributed to a specific
+      # upstream version.
+      - name: "Install wrangler ${{ matrix.wrangler }}"
+        run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
+
+      - name: "Record wrangler version"
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
 
       - name: "L2: API E2E tests"
         run: bun run test:api
 
+      - name: "Upload wrangler-dev tee log"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-dev-log-l2-${{ matrix.wrangler }}
+          path: .test-storage/wrangler-dev.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: "Upload wrangler internal logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-internal-logs-l2-${{ matrix.wrangler }}
+          path: .test-storage/wrangler-internal-logs/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: "Upload wrangler version marker"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-version-l2-${{ matrix.wrangler }}
+          path: artifacts/wrangler-version.txt
+          if-no-files-found: error
+          retention-days: 7
+
   # ─────────────────────────────────────────────────────
   # L3: Browser E2E (Playwright against the same local stack)
   # Runs in PARALLEL with quality for faster CI.
+  #
+  # Matrix mirrors L2 — same 4.116 vs 4.118 comparison under the L3 load.
   # ─────────────────────────────────────────────────────
   browser-e2e:
-    name: "L3 Browser E2E"
+    name: "L3 Browser E2E (wrangler ${{ matrix.wrangler }})"
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        wrangler: ["4.116.0", "4.118.0"]
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
     steps:
@@ -80,11 +127,52 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
 
-      - name: Install wrangler globally
-        run: bun install -g wrangler@4 --ignore-scripts
+      - name: "Install wrangler ${{ matrix.wrangler }}"
+        run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
+
+      - name: "Record wrangler version"
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
 
       - name: "L3: Playwright E2E tests"
         run: bun run test:e2e:pw
+
+      - name: "Upload wrangler-dev tee log"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-dev-log-l3-${{ matrix.wrangler }}
+          path: .test-storage/wrangler-dev.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: "Upload wrangler internal logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-internal-logs-l3-${{ matrix.wrangler }}
+          path: .test-storage/wrangler-internal-logs/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: "Upload wrangler version marker"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-version-l3-${{ matrix.wrangler }}
+          path: artifacts/wrangler-version.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: "Upload Playwright report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.wrangler }}
+          path: playwright-report/
+          if-no-files-found: error
+          retention-days: 7
 
   # ─────────────────────────────────────────────────────
   # Worker: Edge Worker unit tests

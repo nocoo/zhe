@@ -95,6 +95,7 @@ export async function testBackyConnection(): Promise<{
     const res = await fetch(config.webhookUrl, {
       method: "HEAD",
       headers: { Authorization: `Bearer ${config.apiKey}` },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
@@ -121,9 +122,17 @@ export async function fetchBackyHistory(): Promise<{
     const config = await db.getBackySettings();
     if (!config) return { success: false, error: "Backy 未配置" };
 
+    // 5s hard timeout — hardening only. An unbounded outbound fetch would keep
+    // the SSR request open indefinitely, so this puts a ceiling on it. Was
+    // originally added under the STU-2287 miniflare "Network connection lost"
+    // hypothesis, but subsequent CI runs showed wrangler still crashes even
+    // when this call fails within milliseconds on DNS. Do not treat this as
+    // the fix for STU-2287; it matches the 5s ceiling already applied to the
+    // sibling implementation in app/api/backy/pull/helpers.ts.
     const res = await fetch(config.webhookUrl, {
       method: "GET",
       headers: { Authorization: `Bearer ${config.apiKey}` },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
@@ -217,6 +226,10 @@ export async function pushBackup(): Promise<{
       method: "POST",
       headers: { Authorization: `Bearer ${config.apiKey}` },
       body: form,
+      // 30s ceiling: uploads can be a few MB but must never hang forever. This
+      // is defensive hardening only — not a claimed root cause fix for any
+      // outstanding incident.
+      signal: AbortSignal.timeout(30_000),
     });
 
     const durationMs = Date.now() - start;

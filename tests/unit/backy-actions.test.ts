@@ -228,10 +228,12 @@ describe("backy actions", () => {
 
       const result = await testBackyConnection();
       expect(result.success).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith("https://backy.example.com/webhook", {
-        method: "HEAD",
-        headers: { Authorization: "Bearer sk-1234567890abcdef" },
-      });
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://backy.example.com/webhook");
+      expect(init.method).toBe("HEAD");
+      expect(init.headers).toEqual({ Authorization: "Bearer sk-1234567890abcdef" });
+      expect(init.signal).toBeInstanceOf(AbortSignal);
     });
 
     it("returns error when HEAD request fails", async () => {
@@ -338,6 +340,23 @@ describe("backy actions", () => {
       const result = await fetchBackyHistory();
       expect(result.success).toBe(false);
       expect(result.error).toBe("Unauthorized");
+    });
+
+    it("passes an AbortSignal to fetch so a hung Backy never stalls SSR", async () => {
+      // Hardening: every remote fetch in this module carries a hard timeout
+      // signal so an unresponsive Backy cannot leave the SSR request open
+      // indefinitely. This is not the STU-2287 fix — subsequent CI showed
+      // wrangler still crashes even when the fetch fails within milliseconds.
+      mockGetBackySettings.mockResolvedValue({
+        webhookUrl: "https://backy.example.com/webhook",
+        apiKey: "sk-1234567890abcdef",
+      });
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(mockHistory) });
+
+      await fetchBackyHistory();
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(init.signal).toBeInstanceOf(AbortSignal);
     });
   });
 

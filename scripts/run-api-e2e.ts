@@ -8,14 +8,17 @@
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { resolve as pathResolve } from "node:path";
+import { shutdownL2, terminateChild } from "./lib/crash-shutdown";
 import {
   applyLocalStackEnv,
   D1_PROXY_SECRET,
   type LocalStack,
   loadEnvFile,
+  setWorkerCrashHandler,
   startLocalStack,
   stopLocalStack,
   WORKER_URL,
+  WRANGLER_LOG_PATH,
 } from "./test-stack";
 
 const PROJECT_ROOT = process.cwd();
@@ -28,6 +31,10 @@ const HEALTH_POLL_MS = 100;
 // Generic child process runner
 // ---------------------------------------------------------------------------
 
+// Track the vitest subprocess so a wrangler crash can kill it instead of
+// letting it run to its ECONNREFUSED-driven timeout.
+let vitestChild: ChildProcess | null = null;
+
 function runCommand(args: string[], env?: Record<string, string>): Promise<number> {
   return new Promise((done) => {
     const child = spawn("bun", args, {
@@ -35,7 +42,9 @@ function runCommand(args: string[], env?: Record<string, string>): Promise<numbe
       stdio: "inherit",
       cwd: PROJECT_ROOT,
     });
+    vitestChild = child;
     child.on("close", (code: number | null) => {
+      vitestChild = null;
       done(code ?? 1);
     });
   });
@@ -105,16 +114,10 @@ async function waitForHealth(): Promise<boolean> {
   return false;
 }
 
-function killServer(child: ChildProcess): void {
-  if (child.exitCode === null) {
-    console.log("[api-e2e] Shutting down dev server...");
-    child.kill("SIGTERM");
-    setTimeout(() => {
-      if (child.exitCode === null) {
-        child.kill("SIGKILL");
-      }
-    }, 5_000);
-  }
+function killServer(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return Promise.resolve();
+  console.log("[api-e2e] Shutting down dev server...");
+  return terminateChild(child, 5_000);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +156,28 @@ async function main(): Promise<void> {
   let stack: LocalStack | null = null;
   let server: ChildProcess | null = null;
   let exitCode = 1;
+  // Fail fast: if wrangler dies mid-suite the D1 proxy is gone and every
+  // downstream vitest test will ECONNREFUSED for the remaining timeout. Kill
+  // vitest + the Next dev webServer first, THEN flush the wrangler log stream
+  // to disk, THEN process.exit(1). Doing exit(1) synchronously from `exit`
+  // truncated the tail (verified with a 20 MB pipe reproducer).
+  setWorkerCrashHandler(async (message) => {
+    console.error("");
+    console.error("━━━ FATAL: wrangler dev crashed during L2 API E2E ━━━");
+    console.error(message);
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
+    // Ordered shutdown — see scripts/lib/crash-shutdown.ts. `startLocalStack`
+    // itself now flushes the tee log inside the two-stage listener, so this
+    // is defence in depth; the shutdown helper is fully covered by
+    // fault-injection tests (tests/unit/lib/test-stack-crash-*).
+    await shutdownL2({
+      vitestChild,
+      server,
+      wranglerLogStream: stack?.wranglerLogStream,
+    });
+    process.exit(1);
+  });
   try {
     stack = await startLocalStack();
     applyLocalStackEnv();
@@ -177,7 +202,7 @@ async function main(): Promise<void> {
     console.error(`❌ [api-e2e] ${err instanceof Error ? err.message : String(err)}`);
     exitCode = 1;
   } finally {
-    if (server) killServer(server);
+    if (server) await killServer(server);
     if (stack) await stopLocalStack(stack);
   }
 

@@ -1,0 +1,181 @@
+name: L3 Stress Reproduction
+
+# Fixed-count L3 reproduction. Manually dispatched.
+#
+# The dispatch inputs (`runs_per_version`, `wrangler_versions`) build the real
+# matrix — earlier drafts declared inputs but hard-coded 2×5 in the matrix,
+# which silently ignored the caller's choice. Every cell is a real L3 run:
+# no `continue-on-error`, so a crashed cell stays failing. `fail-fast: false`
+# + `if: always()` on the upload steps still preserves every cell's tee log,
+# internal logs, and Playwright report regardless of pass/fail.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs_per_version:
+        description: "How many L3 runs to fire per wrangler version"
+        required: true
+        default: "5"
+      wrangler_versions:
+        description: "Comma-separated wrangler versions to sweep"
+        required: true
+        default: "4.116.0,4.118.0"
+
+jobs:
+  # Turn the two string inputs into the JSON matrix the fan-out job needs.
+  # Kept as its own job so the JSON is auditable in the workflow log.
+  plan:
+    name: "Plan matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+    steps:
+      - name: "Build matrix from inputs"
+        id: build
+        env:
+          RUNS: ${{ inputs.runs_per_version }}
+          VERSIONS: ${{ inputs.wrangler_versions }}
+        run: |
+          set -euo pipefail
+          # Validate runs_per_version — reject non-positive integers so a
+          # typo in the dispatch UI does not silently produce zero cells.
+          if ! [[ "$RUNS" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::runs_per_version must be a positive integer, got: $RUNS" >&2
+            exit 1
+          fi
+          if [ -z "$VERSIONS" ]; then
+            echo "::error::wrangler_versions must not be empty" >&2
+            exit 1
+          fi
+          # Build JSON arrays: wrangler=[…] × run_index=[1..RUNS].
+          wrangler_json=$(
+            IFS=',' read -ra parts <<<"$VERSIONS"
+            printf '['
+            for i in "${!parts[@]}"; do
+              v=$(echo "${parts[$i]}" | xargs)
+              [ "$i" -gt 0 ] && printf ','
+              printf '"%s"' "$v"
+            done
+            printf ']'
+          )
+          index_json=$(
+            printf '['
+            for ((i=1; i<=RUNS; i++)); do
+              [ "$i" -gt 1 ] && printf ','
+              printf '%d' "$i"
+            done
+            printf ']'
+          )
+          matrix="{\"wrangler\":${wrangler_json},\"run_index\":${index_json}}"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "Planned matrix: $matrix"
+
+  # Fan out into (version × run_index) cells. Cells fail INDEPENDENTLY —
+  # `fail-fast: false` keeps siblings running, but no `continue-on-error`, so
+  # a failed cell shows as failed in the checks list and the workflow run.
+  # `if: always()` on every upload preserves artifacts regardless of outcome.
+  matrix:
+    name: "L3 stress · ${{ matrix.wrangler }} · run ${{ matrix.run_index }}"
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: "Install wrangler ${{ matrix.wrangler }}"
+        run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
+
+      - name: "Record wrangler version"
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
+
+      - name: "L3 run ${{ matrix.run_index }}"
+        id: l3
+        run: bun run test:e2e:pw
+
+      - name: "Record cell outcome"
+        if: always()
+        run: |
+          # steps.l3.outcome reflects success/failure/skipped regardless of
+          # this outer step's own `if: always()`; captured for the summary.
+          echo "run_index=${{ matrix.run_index }}" >> artifacts/outcome.txt
+          echo "wrangler=${{ matrix.wrangler }}" >> artifacts/outcome.txt
+          echo "conclusion=${{ steps.l3.outcome }}" >> artifacts/outcome.txt
+
+      - name: "Upload wrangler-dev tee log"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-tee-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: .test-storage/wrangler-dev.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: "Upload wrangler internal logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-internal-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: .test-storage/wrangler-internal-logs/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: "Upload Playwright report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-report-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: "Upload outcome + version marker"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-outcome-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Roll up the (version × run_index) outcomes into a single readable summary
+  # so the workflow run page shows pass/fail per version without needing to
+  # click into every cell.
+  summarise:
+    name: "Stress summary"
+    runs-on: ubuntu-latest
+    needs: matrix
+    if: always()
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stress-outcome-*
+          path: outcomes
+
+      - name: "Aggregate outcomes"
+        run: |
+          echo "## L3 stress reproduction — outcome distribution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| wrangler | run | conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----|------------|" >> $GITHUB_STEP_SUMMARY
+          for f in outcomes/*/outcome.txt; do
+            wr=$(grep '^wrangler=' "$f" | cut -d= -f2)
+            ri=$(grep '^run_index=' "$f" | cut -d= -f2)
+            co=$(grep '^conclusion=' "$f" | cut -d= -f2)
+            echo "| $wr | $ri | $co |" >> $GITHUB_STEP_SUMMARY
+          done
