@@ -449,15 +449,34 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
       console.log(`${logTag} ${trimmed}`);
     }
   });
-  // Two-stage crash pipeline (see attachWorkerCrashListeners).
+  // Two-stage crash pipeline (see attachWorkerCrashListeners). The startup
+  // function OWNS the log stream lifecycle: even if wrangler dies before
+  // `startLocalStack` returns (so callers have no `stack` handle to reach the
+  // stream from their own crash handler), the listener below still flushes
+  // the tee log before delegating to the caller-registered handler. This
+  // guarantees CI artifacts capture the tail regardless of when the crash
+  // fires.
   attachWorkerCrashListeners({
     worker,
     stderrTail,
     isIntentionalShutdown: () => stack.intentionalShutdown === true,
     logTag,
-    onCrash: (message) => {
+    onCrash: async (message) => {
+      // Always flush our tee log first — the caller handler may or may not
+      // still have access to `stack`.
+      if (stack.wranglerLogStream) {
+        const stream = stack.wranglerLogStream;
+        // Remove the reference so stopLocalStack() does not try to double-end
+        // the stream during teardown.
+        delete stack.wranglerLogStream;
+        try {
+          await flushLogStream(stream);
+        } catch (err) {
+          console.error(`${logTag} log flush error:`, err);
+        }
+      }
       if (!workerCrashHandler) return;
-      return workerCrashHandler(message);
+      await workerCrashHandler(message);
     },
   });
   worker.once("error", (err) => {
