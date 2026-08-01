@@ -33,7 +33,15 @@ export const PROJECT_ROOT = process.cwd();
 export const STACK_DIR = pathResolve(PROJECT_ROOT, ".test-storage");
 export const WRANGLER_PERSIST_DIR = pathResolve(STACK_DIR, "wrangler");
 export const R2_DIR = pathResolve(STACK_DIR, "r2");
+/** Our own tee of wrangler stdout/stderr — captured by piping from the child. */
 export const WRANGLER_LOG_PATH = pathResolve(STACK_DIR, "wrangler-dev.log");
+/**
+ * Directory we hand to wrangler via the `WRANGLER_LOG_PATH` env var so its
+ * internal timestamped logs land under `.test-storage/` instead of the runner
+ * home dir (`~/.config/.wrangler/logs`). CI can then upload this directory as
+ * an artifact. The env-var name here is Wrangler's, NOT our tee path constant.
+ */
+export const WRANGLER_INTERNAL_LOGS_DIR = pathResolve(STACK_DIR, "wrangler-internal-logs");
 export const WORKER_CONFIG = pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml");
 export const MIGRATIONS_DIR = pathResolve(PROJECT_ROOT, "drizzle/migrations");
 
@@ -214,15 +222,20 @@ const STDERR_TAIL_LINES = 80;
 
 /**
  * Called by the stack owner (Playwright globalSetup / run-api-e2e.ts) when the
- * wrangler subprocess dies mid-run. Test harnesses register this to convert an
- * otherwise silent "everything downstream ECONNREFUSEDs for 60s" into an
- * immediate hard failure — no test result is trustworthy once the D1 proxy is
- * gone. When left unset (e.g. CLI `bun run scripts/test-stack.ts`), the exit
- * report is still printed but the process is not killed.
+ * wrangler subprocess dies mid-run. The stack owner installs an async handler
+ * that MUST await the returned promise before calling process.exit() so the
+ * wrangler-dev.log write stream, playwright report, and downstream
+ * subprocesses have time to flush / be killed. Synchronous handlers work but
+ * are treated as fire-and-forget.
+ *
+ * When left unset (e.g. CLI `bun run scripts/test-stack.ts`), the exit report
+ * is still printed but the process is not killed.
  */
-let workerCrashHandler: ((message: string) => void) | null = null;
+let workerCrashHandler: ((message: string) => void | Promise<void>) | null = null;
 
-export function setWorkerCrashHandler(handler: ((message: string) => void) | null): void {
+export function setWorkerCrashHandler(
+  handler: ((message: string) => void | Promise<void>) | null,
+): void {
   workerCrashHandler = handler;
 }
 
@@ -238,6 +251,69 @@ export function defaultWorkerCrashHandler(message: string): void {
   console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
   process.exit(1);
+}
+
+/**
+ * Wire the two-stage crash pipeline described below onto a spawned child +
+ * write stream. Exported so tests can exercise the exact same code path
+ * against a real subprocess without booting the whole test-stack.
+ *
+ *   1. `exit` fires FIRST, before stdio drains. We only capture the exit
+ *      code/signal here — invoking the crash handler now would truncate
+ *      the last stderr line (a ~20 MB pipe experiment showed tail loss on
+ *      close-before-drain). Do not exit yet.
+ *   2. `close` fires AFTER stdout+stderr have fully closed. That is when we
+ *      have the complete crash tail on disk (via the write stream), so run
+ *      the handler and let it perform an ordered shutdown.
+ *
+ * The handler is expected to await `flushLogStream(logStream)` before its
+ * own `process.exit(1)`. Errors from the handler are logged so a buggy
+ * handler cannot silence the crash.
+ */
+export function attachWorkerCrashListeners(opts: {
+  worker: ChildProcess;
+  stderrTail: readonly string[];
+  isIntentionalShutdown: () => boolean;
+  logTag?: string;
+  onCrash: (message: string) => void | Promise<void>;
+}): void {
+  const { worker, stderrTail, isIntentionalShutdown, onCrash } = opts;
+  const logTag = opts.logTag ?? "[wrangler]";
+  let capturedExit: { code: number | null; signal: NodeJS.Signals | null } | null = null;
+  worker.once("exit", (code, signal) => {
+    capturedExit = { code, signal };
+  });
+  worker.once("close", () => {
+    const exit = capturedExit ?? { code: null, signal: null };
+    const lines = formatWorkerExitReport(
+      exit.code,
+      exit.signal,
+      isIntentionalShutdown(),
+      stderrTail,
+      logTag,
+    );
+    if (!lines) return;
+    for (const line of lines) console.error(line);
+    const message = lines.join("\n");
+    Promise.resolve()
+      .then(() => onCrash(message))
+      .catch((err) => {
+        console.error(`${logTag} crash handler threw:`, err);
+      });
+  });
+}
+
+/**
+ * Wait for a log stream to finish flushing to disk. Callers use this before
+ * process.exit() to guarantee the tail lines the crash handler prints are
+ * durable on disk, not just in Node's write buffer.
+ */
+export async function flushLogStream(stream: WriteStream | undefined): Promise<void> {
+  if (!stream) return;
+  await new Promise<void>((resolve) => {
+    // Node's WriteStream.end(cb) fires after the FS finishes flushing.
+    stream.end(() => resolve());
+  });
 }
 
 /**
@@ -299,6 +375,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
   await fs.rm(STACK_DIR, { recursive: true, force: true });
   await fs.mkdir(WRANGLER_PERSIST_DIR, { recursive: true });
   await fs.mkdir(R2_DIR, { recursive: true });
+  await fs.mkdir(WRANGLER_INTERNAL_LOGS_DIR, { recursive: true });
 
   // 2. Apply migrations
   const migrations = listMigrations();
@@ -338,7 +415,16 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     {
       cwd: PROJECT_ROOT,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      // WRANGLER_LOG_PATH points wrangler at a project-owned directory so its
+      // timestamped internal logs (default ~/.config/.wrangler/logs/) land
+      // under .test-storage/ and can be uploaded as a CI artifact.
+      // WRANGLER_LOG=debug maximises what the internal log captures for
+      // post-mortem — it does not affect our warn-level stdout tee.
+      env: {
+        ...process.env,
+        WRANGLER_LOG_PATH: WRANGLER_INTERNAL_LOGS_DIR,
+        WRANGLER_LOG: "debug",
+      },
     },
   );
 
@@ -363,27 +449,16 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
       console.log(`${logTag} ${trimmed}`);
     }
   });
-  worker.once("exit", (code, signal) => {
-    const lines = formatWorkerExitReport(
-      code,
-      signal,
-      stack.intentionalShutdown === true,
-      stderrTail,
-      logTag,
-    );
-    if (!lines) return;
-    for (const line of lines) console.error(line);
-    // Fail fast: without the wrangler subprocess the D1 proxy is dead and every
-    // downstream test now records ECONNREFUSED garbage. Kill the run instead
-    // of letting Playwright / vitest keep going for the next 60s.
-    const message = lines.join("\n");
-    if (workerCrashHandler) {
-      try {
-        workerCrashHandler(message);
-      } catch (err) {
-        console.error(`${logTag} crash handler threw:`, err);
-      }
-    }
+  // Two-stage crash pipeline (see attachWorkerCrashListeners).
+  attachWorkerCrashListeners({
+    worker,
+    stderrTail,
+    isIntentionalShutdown: () => stack.intentionalShutdown === true,
+    logTag,
+    onCrash: (message) => {
+      if (!workerCrashHandler) return;
+      return workerCrashHandler(message);
+    },
   });
   worker.once("error", (err) => {
     if (stack.intentionalShutdown) return;
@@ -425,9 +500,7 @@ export async function stopLocalStack(stack: LocalStack | null): Promise<void> {
   }
   if (stack.wranglerLogStream) {
     const stream = stack.wranglerLogStream;
-    await new Promise<void>((resolve) => {
-      stream.end(() => resolve());
-    });
+    await flushLogStream(stream);
     delete stack.wranglerLogStream;
   }
 }
