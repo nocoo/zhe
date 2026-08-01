@@ -65,7 +65,9 @@ jobs:
         run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
 
       - name: "Record wrangler version"
-        run: wrangler --version | tee .test-storage-wrangler-version.txt || true
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
 
       - name: "L2: API E2E tests"
         run: bun run test:api
@@ -76,7 +78,7 @@ jobs:
         with:
           name: wrangler-dev-log-l2-${{ matrix.wrangler }}
           path: .test-storage/wrangler-dev.log
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: "Upload wrangler internal logs"
@@ -85,7 +87,7 @@ jobs:
         with:
           name: wrangler-internal-logs-l2-${{ matrix.wrangler }}
           path: .test-storage/wrangler-internal-logs/
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: "Upload wrangler version marker"
@@ -93,8 +95,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wrangler-version-l2-${{ matrix.wrangler }}
-          path: .test-storage-wrangler-version.txt
-          if-no-files-found: ignore
+          path: artifacts/wrangler-version.txt
+          if-no-files-found: error
           retention-days: 7
 
   # ─────────────────────────────────────────────────────
@@ -129,7 +131,9 @@ jobs:
         run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
 
       - name: "Record wrangler version"
-        run: wrangler --version | tee .test-storage-wrangler-version.txt || true
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
 
       - name: "L3: Playwright E2E tests"
         run: bun run test:e2e:pw
@@ -140,7 +144,7 @@ jobs:
         with:
           name: wrangler-dev-log-l3-${{ matrix.wrangler }}
           path: .test-storage/wrangler-dev.log
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: "Upload wrangler internal logs"
@@ -149,7 +153,7 @@ jobs:
         with:
           name: wrangler-internal-logs-l3-${{ matrix.wrangler }}
           path: .test-storage/wrangler-internal-logs/
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: "Upload wrangler version marker"
@@ -157,8 +161,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wrangler-version-l3-${{ matrix.wrangler }}
-          path: .test-storage-wrangler-version.txt
-          if-no-files-found: ignore
+          path: artifacts/wrangler-version.txt
+          if-no-files-found: error
           retention-days: 7
 
       - name: "Upload Playwright report"
@@ -167,7 +171,7 @@ jobs:
         with:
           name: playwright-report-${{ matrix.wrangler }}
           path: playwright-report/
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
   # ─────────────────────────────────────────────────────
