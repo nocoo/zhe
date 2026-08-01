@@ -1,0 +1,138 @@
+name: L3 Stress Reproduction
+
+# Fixed-count L3 reproduction for STU-2287. Manually dispatched.
+#
+# Fires N parallel L3 runs (default 5) per wrangler version, `continue-on-error`
+# for each so all N complete regardless of individual failure. Every run
+# uploads its wrangler tee log, internal logs, Playwright report, and version
+# marker — labelled by (version, index) — so pass/fail distribution can be
+# read directly off the artifact list.
+#
+# This is NOT retry-until-pass: each run's outcome is preserved. The workflow
+# summary lists the count that passed vs failed per version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs_per_version:
+        description: "How many L3 runs to fire per wrangler version"
+        required: true
+        default: "5"
+      wrangler_versions:
+        description: "Comma-separated wrangler versions to sweep"
+        required: true
+        default: "4.116.0,4.118.0"
+
+jobs:
+  # Fan out into (version × run_index) cells. Every cell uploads its
+  # artifacts regardless of pass/fail. Cells fail INDEPENDENTLY — one crashed
+  # run does not cancel its siblings.
+  matrix:
+    name: "L3 stress · ${{ matrix.wrangler }} · run ${{ matrix.run_index }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        wrangler: ["4.116.0", "4.118.0"]
+        run_index: [1, 2, 3, 4, 5]
+    env:
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: "Install wrangler ${{ matrix.wrangler }}"
+        run: bun install -g wrangler@${{ matrix.wrangler }} --ignore-scripts
+
+      - name: "Record wrangler version"
+        run: |
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
+
+      # continue-on-error keeps the loop moving regardless of this cell's
+      # outcome; the following `outcome` step preserves pass/fail for the
+      # summary. This is expected fault-injection behaviour, not
+      # retry-until-pass — every result is recorded.
+      - name: "L3 run ${{ matrix.run_index }}"
+        id: l3
+        continue-on-error: true
+        run: bun run test:e2e:pw
+
+      - name: "Record cell outcome"
+        if: always()
+        run: |
+          echo "run_index=${{ matrix.run_index }}" >> artifacts/outcome.txt
+          echo "wrangler=${{ matrix.wrangler }}" >> artifacts/outcome.txt
+          echo "conclusion=${{ steps.l3.outcome }}" >> artifacts/outcome.txt
+
+      - name: "Upload wrangler-dev tee log"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-tee-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: .test-storage/wrangler-dev.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: "Upload wrangler internal logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-internal-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: .test-storage/wrangler-internal-logs/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: "Upload Playwright report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-report-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: "Upload outcome + version marker"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-outcome-${{ matrix.wrangler }}-run${{ matrix.run_index }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Roll up the (version × run_index) outcomes into a single readable summary
+  # so the workflow run page shows pass/fail per version without needing to
+  # click into every cell.
+  summarise:
+    name: "Stress summary"
+    runs-on: ubuntu-latest
+    needs: matrix
+    if: always()
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stress-outcome-*
+          path: outcomes
+
+      - name: "Aggregate outcomes"
+        run: |
+          echo "## L3 stress reproduction — outcome distribution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| wrangler | run | conclusion |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----|------------|" >> $GITHUB_STEP_SUMMARY
+          for f in outcomes/*/outcome.txt; do
+            wr=$(grep '^wrangler=' "$f" | cut -d= -f2)
+            ri=$(grep '^run_index=' "$f" | cut -d= -f2)
+            co=$(grep '^conclusion=' "$f" | cut -d= -f2)
+            echo "| $wr | $ri | $co |" >> $GITHUB_STEP_SUMMARY
+          done
