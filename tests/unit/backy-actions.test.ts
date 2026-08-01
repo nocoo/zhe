@@ -343,10 +343,10 @@ describe("backy actions", () => {
     });
 
     it("passes an AbortSignal to fetch so a hung Backy never stalls SSR", async () => {
-      // STU-2287 regression: an unbounded fetch to config.webhookUrl kept the
-      // SSR request open, backed up the D1 proxy pool, and crashed miniflare
-      // with "Network connection lost". Every remote fetch in this module now
-      // carries a hard timeout signal.
+      // Hardening: every remote fetch in this module carries a hard timeout
+      // signal so an unresponsive Backy cannot leave the SSR request open
+      // indefinitely. This is not the STU-2287 fix — subsequent CI showed
+      // wrangler still crashes even when the fetch fails within milliseconds.
       mockGetBackySettings.mockResolvedValue({
         webhookUrl: "https://backy.example.com/webhook",
         apiKey: "sk-1234567890abcdef",
