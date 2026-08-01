@@ -11,6 +11,7 @@ import { resolve as pathResolve } from "node:path";
 import {
   applyLocalStackEnv,
   D1_PROXY_SECRET,
+  flushLogStream,
   type LocalStack,
   loadEnvFile,
   setWorkerCrashHandler,
@@ -30,6 +31,10 @@ const HEALTH_POLL_MS = 100;
 // Generic child process runner
 // ---------------------------------------------------------------------------
 
+// Track the vitest subprocess so a wrangler crash can kill it instead of
+// letting it run to its ECONNREFUSED-driven timeout.
+let vitestChild: ChildProcess | null = null;
+
 function runCommand(args: string[], env?: Record<string, string>): Promise<number> {
   return new Promise((done) => {
     const child = spawn("bun", args, {
@@ -37,7 +42,9 @@ function runCommand(args: string[], env?: Record<string, string>): Promise<numbe
       stdio: "inherit",
       cwd: PROJECT_ROOT,
     });
+    vitestChild = child;
     child.on("close", (code: number | null) => {
+      vitestChild = null;
       done(code ?? 1);
     });
   });
@@ -107,16 +114,22 @@ async function waitForHealth(): Promise<boolean> {
   return false;
 }
 
-function killServer(child: ChildProcess): void {
-  if (child.exitCode === null) {
-    console.log("[api-e2e] Shutting down dev server...");
-    child.kill("SIGTERM");
-    setTimeout(() => {
-      if (child.exitCode === null) {
-        child.kill("SIGKILL");
-      }
+function killServer(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null) return Promise.resolve();
+  console.log("[api-e2e] Shutting down dev server...");
+  return new Promise<void>((resolve) => {
+    const done = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      if (child.exitCode === null) child.kill("SIGKILL");
+      // give SIGKILL a moment to actually reap; do not hang the run forever
+      setTimeout(resolve, 500);
     }, 5_000);
-  }
+    child.once("close", done);
+    child.kill("SIGTERM");
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -157,14 +170,37 @@ async function main(): Promise<void> {
   let exitCode = 1;
   // Fail fast: if wrangler dies mid-suite the D1 proxy is gone and every
   // downstream vitest test will ECONNREFUSED for the remaining timeout. Kill
-  // the run immediately with a clear header + log pointer.
-  setWorkerCrashHandler((message) => {
+  // vitest + the Next dev webServer first, THEN flush the wrangler log stream
+  // to disk, THEN process.exit(1). Doing exit(1) synchronously from `exit`
+  // truncated the tail (verified with a 20 MB pipe reproducer).
+  setWorkerCrashHandler(async (message) => {
     console.error("");
     console.error("━━━ FATAL: wrangler dev crashed during L2 API E2E ━━━");
     console.error(message);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
-    if (server) killServer(server);
+    // Kill downstream children so they stop generating noise, then wait for
+    // the wrangler log stream + child close events before exiting.
+    const shutdowns: Array<Promise<unknown>> = [];
+    const vitest = vitestChild;
+    if (vitest && vitest.exitCode === null) {
+      vitest.kill("SIGTERM");
+      shutdowns.push(
+        new Promise<void>((resolve) => {
+          const timer = setTimeout(() => {
+            if (vitest.exitCode === null) vitest.kill("SIGKILL");
+            resolve();
+          }, 3_000);
+          vitest.once("close", () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        }),
+      );
+    }
+    if (server) shutdowns.push(killServer(server));
+    if (stack?.wranglerLogStream) shutdowns.push(flushLogStream(stack.wranglerLogStream));
+    await Promise.allSettled(shutdowns);
     process.exit(1);
   });
   try {
@@ -191,7 +227,7 @@ async function main(): Promise<void> {
     console.error(`❌ [api-e2e] ${err instanceof Error ? err.message : String(err)}`);
     exitCode = 1;
   } finally {
-    if (server) killServer(server);
+    if (server) await killServer(server);
     if (stack) await stopLocalStack(stack);
   }
 
