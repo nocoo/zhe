@@ -122,12 +122,13 @@ export async function fetchBackyHistory(): Promise<{
     const config = await db.getBackySettings();
     if (!config) return { success: false, error: "Backy 未配置" };
 
-    // 5s hard timeout — an unbounded outbound fetch keeps the SSR request open
-    // and backs up the D1 proxy connection pool, which surfaced as the
-    // "Failed to fetch Backy history: TypeError: fetch failed" spam in the L3
-    // stack right before the miniflare "Network connection lost" crash
-    // (STU-2287). Matches the 5s ceiling already applied to the sibling
-    // implementation in app/api/backy/pull/helpers.ts.
+    // 5s hard timeout — hardening only. An unbounded outbound fetch would keep
+    // the SSR request open indefinitely, so this puts a ceiling on it. Was
+    // originally added under the STU-2287 miniflare "Network connection lost"
+    // hypothesis, but subsequent CI runs showed wrangler still crashes even
+    // when this call fails within milliseconds on DNS. Do not treat this as
+    // the fix for STU-2287; it matches the 5s ceiling already applied to the
+    // sibling implementation in app/api/backy/pull/helpers.ts.
     const res = await fetch(config.webhookUrl, {
       method: "GET",
       headers: { Authorization: `Bearer ${config.apiKey}` },
@@ -225,8 +226,9 @@ export async function pushBackup(): Promise<{
       method: "POST",
       headers: { Authorization: `Bearer ${config.apiKey}` },
       body: form,
-      // 30s ceiling: uploads can be a few MB but must never hang forever and
-      // stall the SSR request that owns this D1 proxy connection (STU-2287).
+      // 30s ceiling: uploads can be a few MB but must never hang forever. This
+      // is defensive hardening only — not a claimed root cause fix for any
+      // outstanding incident.
       signal: AbortSignal.timeout(30_000),
     });
 
