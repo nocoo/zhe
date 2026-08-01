@@ -6,9 +6,9 @@
  * (same Node process) stops them.
  */
 import { resolve } from "node:path";
+import { shutdownL3 } from "../../scripts/lib/crash-shutdown";
 import {
   applyLocalStackEnv,
-  flushLogStream,
   type LocalStack,
   loadEnvFile,
   setWorkerCrashHandler,
@@ -24,29 +24,25 @@ declare global {
 export default async function globalSetup(): Promise<void> {
   loadEnvFile(resolve(process.cwd(), ".env.local"));
 
-  // Fail fast on wrangler crash. Ordered shutdown:
-  //   1. Print the report so CI has it in stdout even if artifact upload
-  //      races with process teardown.
-  //   2. Await flushLogStream so `.test-storage/wrangler-dev.log` is fully on
-  //      disk before the process exits — the CI `if: always()` artifact step
-  //      would otherwise upload a truncated file.
-  //   3. Send SIGINT to ourselves so Playwright's own signal handler runs
-  //      globalTeardown, writes the HTML report, and kills its webServer.
-  //      SIGINT (not process.exit) is what preserves the playwright-report
-  //      artifact — a hard exit(1) here loses it.
-  //   4. Set process.exitCode so the eventual exit is non-zero.
+  // Fail fast on wrangler crash — delegates the ordered shutdown to the
+  // covered helper in scripts/lib/crash-shutdown.ts (see shutdownL3). The
+  // helper flushes the tee log, sets process.exitCode = 1, and sends SIGINT
+  // so Playwright's own signal handler runs globalTeardown + writes the HTML
+  // report. Hard process.exit(1) here would lose the report artifact
+  // (observed on run 30684740290).
   setWorkerCrashHandler(async (message) => {
     console.error("");
     console.error("━━━ FATAL: wrangler dev crashed during L3 Playwright ━━━");
     console.error(message);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
-    const stack = globalThis.__LOCAL_STACK__;
-    await flushLogStream(stack?.wranglerLogStream);
-    process.exitCode = 1;
-    // Playwright installs a SIGINT handler — this triggers its orderly
-    // shutdown (write HTML report, run globalTeardown, kill webServer).
-    process.kill(process.pid, "SIGINT");
+    await shutdownL3({
+      wranglerLogStream: globalThis.__LOCAL_STACK__?.wranglerLogStream,
+      setExitCode: (code) => {
+        process.exitCode = code;
+      },
+      signalPlaywright: () => process.kill(process.pid, "SIGINT"),
+    });
   });
 
   console.log("[pw:global-setup] Starting local stack (wrangler dev + R2 shim)...");

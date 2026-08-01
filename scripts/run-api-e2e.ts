@@ -8,10 +8,10 @@
  */
 import { type ChildProcess, spawn } from "node:child_process";
 import { resolve as pathResolve } from "node:path";
+import { shutdownL2, terminateChild } from "./lib/crash-shutdown";
 import {
   applyLocalStackEnv,
   D1_PROXY_SECRET,
-  flushLogStream,
   type LocalStack,
   loadEnvFile,
   setWorkerCrashHandler,
@@ -117,19 +117,7 @@ async function waitForHealth(): Promise<boolean> {
 function killServer(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null) return Promise.resolve();
   console.log("[api-e2e] Shutting down dev server...");
-  return new Promise<void>((resolve) => {
-    const done = (): void => {
-      clearTimeout(timer);
-      resolve();
-    };
-    const timer = setTimeout(() => {
-      if (child.exitCode === null) child.kill("SIGKILL");
-      // give SIGKILL a moment to actually reap; do not hang the run forever
-      setTimeout(resolve, 500);
-    }, 5_000);
-    child.once("close", done);
-    child.kill("SIGTERM");
-  });
+  return terminateChild(child, 5_000);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,28 +167,15 @@ async function main(): Promise<void> {
     console.error(message);
     console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.error(`Full wrangler log: ${WRANGLER_LOG_PATH}`);
-    // Kill downstream children so they stop generating noise, then wait for
-    // the wrangler log stream + child close events before exiting.
-    const shutdowns: Array<Promise<unknown>> = [];
-    const vitest = vitestChild;
-    if (vitest && vitest.exitCode === null) {
-      vitest.kill("SIGTERM");
-      shutdowns.push(
-        new Promise<void>((resolve) => {
-          const timer = setTimeout(() => {
-            if (vitest.exitCode === null) vitest.kill("SIGKILL");
-            resolve();
-          }, 3_000);
-          vitest.once("close", () => {
-            clearTimeout(timer);
-            resolve();
-          });
-        }),
-      );
-    }
-    if (server) shutdowns.push(killServer(server));
-    if (stack?.wranglerLogStream) shutdowns.push(flushLogStream(stack.wranglerLogStream));
-    await Promise.allSettled(shutdowns);
+    // Ordered shutdown — see scripts/lib/crash-shutdown.ts. `startLocalStack`
+    // itself now flushes the tee log inside the two-stage listener, so this
+    // is defence in depth; the shutdown helper is fully covered by
+    // fault-injection tests (tests/unit/lib/test-stack-crash-*).
+    await shutdownL2({
+      vitestChild,
+      server,
+      wranglerLogStream: stack?.wranglerLogStream,
+    });
     process.exit(1);
   });
   try {
