@@ -103,16 +103,28 @@ jobs:
   # L3: Browser E2E (Playwright against the same local stack)
   # Runs in PARALLEL with quality for faster CI.
   #
-  # Matrix mirrors L2 — same 4.116 vs 4.118 comparison under the L3 load.
+  # wrangler 4.114–4.118 contain an upstream Miniflare/workerd regression that
+  # intermittently drops the dev-proxy connection under L3 load:
+  # https://github.com/cloudflare/workers-sdk/issues/15002
+  #
+  # Gate on the last known-good release (4.113.0), while retaining 4.116 and
+  # 4.118 as non-blocking probes so the regression evidence remains visible.
   # ─────────────────────────────────────────────────────
   browser-e2e:
     name: "L3 Browser E2E (wrangler ${{ matrix.wrangler }})"
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        wrangler: ["4.116.0", "4.118.0"]
+        include:
+          - wrangler: "4.113.0"
+            experimental: false
+          - wrangler: "4.116.0"
+            experimental: true
+          - wrangler: "4.118.0"
+            experimental: true
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
     steps:
