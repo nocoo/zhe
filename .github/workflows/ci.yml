@@ -33,17 +33,25 @@ jobs:
   # No remote Cloudflare resources — scripts/test-stack.ts spins up
   # `wrangler dev --local` (Miniflare D1 + KV) and a local R2 fs shim.
   #
-  # Matrix: pin exact wrangler versions so 4.116 vs 4.118 A/B against the
-  # STU-2287 crash is captured in every run's artifact.
+  # Gate on 4.113.0, the last release before the upstream dev-proxy regression
+  # documented below in the L3 job. Keep 4.116 and 4.118 as non-blocking probes
+  # so the regression evidence remains visible in every run's artifacts.
   # ─────────────────────────────────────────────────────
   api-e2e:
     name: "L2 API E2E (wrangler ${{ matrix.wrangler }})"
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        wrangler: ["4.116.0", "4.118.0"]
+        include:
+          - wrangler: "4.113.0"
+            experimental: false
+          - wrangler: "4.116.0"
+            experimental: true
+          - wrangler: "4.118.0"
+            experimental: true
     env:
       # Only AUTH_SECRET / WORKER_SECRET remain — everything Cloudflare-shaped
       # is provided by the local Miniflare stack at runtime.
