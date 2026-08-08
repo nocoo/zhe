@@ -156,6 +156,7 @@ jobs:
           wrangler --version | tee artifacts/wrangler-version.txt
 
       - name: "L3: Playwright E2E tests"
+        continue-on-error: ${{ matrix.experimental }}
         run: bun run test:e2e:pw
 
       - name: "Upload wrangler-dev tee log"
