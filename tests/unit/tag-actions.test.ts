@@ -148,6 +148,7 @@ describe("actions/tags", () => {
 
     it("creates tag with name and specified color", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
       mockCreateTag.mockResolvedValue(FAKE_TAG);
       const result = await createTag({ name: "work", color: "sky" });
       expect(result).toEqual({ success: true, data: FAKE_TAG });
@@ -156,6 +157,7 @@ describe("actions/tags", () => {
 
     it("creates tag with deterministic color when color is omitted", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
       mockCreateTag.mockResolvedValue(FAKE_TAG);
       const result = await createTag({ name: "work" });
       expect(result.success).toBe(true);
@@ -167,13 +169,23 @@ describe("actions/tags", () => {
 
     it("trims whitespace from name", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
       mockCreateTag.mockResolvedValue(FAKE_TAG);
       await createTag({ name: "  work  ", color: "red" });
       expect(mockCreateTag).toHaveBeenCalledWith({ name: "work", color: "red" });
     });
 
+    it("returns error when name already exists", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
+      const result = await createTag({ name: "Work", color: "red" });
+      expect(result).toEqual({ success: false, error: "Tag name already exists" });
+      expect(mockCreateTag).not.toHaveBeenCalled();
+    });
+
     it("returns error when db.createTag throws", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
       mockCreateTag.mockRejectedValue(new Error("DB error"));
       const result = await createTag({ name: "work", color: "red" });
       expect(result).toEqual({ success: false, error: "Failed to create tag" });
@@ -213,6 +225,7 @@ describe("actions/tags", () => {
 
     it("returns not found when db.updateTag returns null", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
       mockUpdateTag.mockResolvedValue(null);
       const result = await updateTag("nonexistent", { name: "test" });
       expect(result).toEqual({ success: false, error: "Tag not found or access denied" });
@@ -220,11 +233,20 @@ describe("actions/tags", () => {
 
     it("updates tag name on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
       const updated = { ...FAKE_TAG, name: "personal" };
       mockUpdateTag.mockResolvedValue(updated);
       const result = await updateTag("tag-uuid-1", { name: "personal" });
       expect(result).toEqual({ success: true, data: updated });
       expect(mockUpdateTag).toHaveBeenCalledWith("tag-uuid-1", { name: "personal" });
+    });
+
+    it("returns error when renamed to an existing name", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG, { ...FAKE_TAG, id: "tag-2", name: "personal" }]);
+      const result = await updateTag("tag-uuid-1", { name: "Personal" });
+      expect(result).toEqual({ success: false, error: "Tag name already exists" });
+      expect(mockUpdateTag).not.toHaveBeenCalled();
     });
 
     it("updates tag color on success", async () => {
@@ -238,6 +260,7 @@ describe("actions/tags", () => {
 
     it("updates both name and color on success", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
       const updated = { ...FAKE_TAG, name: "new", color: "green" };
       mockUpdateTag.mockResolvedValue(updated);
       const result = await updateTag("tag-uuid-1", { name: "new", color: "green" });
@@ -247,6 +270,7 @@ describe("actions/tags", () => {
 
     it("trims whitespace from name", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
       mockUpdateTag.mockResolvedValue(FAKE_TAG);
       await updateTag("tag-uuid-1", { name: "  trimmed  " });
       expect(mockUpdateTag).toHaveBeenCalledWith("tag-uuid-1", { name: "trimmed" });

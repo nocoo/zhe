@@ -3,7 +3,12 @@
 import type { ActionResult } from "@/actions/links/types";
 import { getScopedDB } from "@/lib/auth-context";
 import type { LinkTag, Tag } from "@/lib/db/schema";
-import { isValidTagColor, tagColorFromName, validateTagName } from "@/models/tags";
+import {
+  isDuplicateTagName,
+  isValidTagColor,
+  tagColorFromName,
+  validateTagName,
+} from "@/models/tags";
 
 export interface CreateTagInput {
   name: string;
@@ -53,6 +58,11 @@ export async function createTag(input: CreateTagInput): Promise<ActionResult<Tag
       return { success: false, error: "Invalid tag color" };
     }
 
+    const existing = await db.getTags();
+    if (isDuplicateTagName(validName, existing)) {
+      return { success: false, error: "Tag name already exists" };
+    }
+
     const tag = await db.createTag({ name: validName, color });
     return { success: true, data: tag };
   } catch (error) {
@@ -86,6 +96,13 @@ export async function updateTag(id: string, input: UpdateTagInput): Promise<Acti
         return { success: false, error: "Invalid tag color" };
       }
       updateData.color = input.color;
+    }
+
+    if (updateData.name) {
+      const existing = await db.getTags();
+      if (isDuplicateTagName(updateData.name, existing, id)) {
+        return { success: false, error: "Tag name already exists" };
+      }
     }
 
     const tag = await db.updateTag(id, updateData);
