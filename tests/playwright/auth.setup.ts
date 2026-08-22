@@ -43,6 +43,7 @@ setup("authenticate", async ({ page, context }) => {
     "/dashboard/ideas",
     "/dashboard/backy",
     "/dashboard/api-keys",
+    "/dashboard/tags",
     "/dashboard/data-management",
     "/dashboard/webhook",
   ];

@@ -27,6 +27,7 @@ const ENGLISH_ALIAS: Record<string, string> = {
   想法: "ideas",
   全部链接: "all links",
   文件上传: "file upload uploads",
+  标签: "tags labels",
   存储管理: "storage",
   数据管理: "data management import export",
 };

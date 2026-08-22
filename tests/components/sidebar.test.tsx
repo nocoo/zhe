@@ -180,9 +180,9 @@ describe("Sidebar", () => {
     it("renders all nav items as links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (3 概览 section + 2 folder nav + 7 static) are now <Link> (rendered as <a>)
+      // All items (3 概览 section + 2 folder nav + 8 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(12);
+      expect(navLinks.length).toBe(13);
     });
 
     it("does not show version badge in collapsed mode", () => {
@@ -498,9 +498,9 @@ describe("Sidebar", () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 7 static = 14
+      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 8 static = 15
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(14);
+      expect(navLinks.length).toBe(15);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -645,6 +645,23 @@ describe("Sidebar", () => {
       expect(screen.getByText("设置")).toBeInTheDocument();
     });
 
+    it('renders "标签" link in expanded mode', () => {
+      renderSidebar({ collapsed: false });
+
+      const tagsLink = screen.getByRole("link", { name: "标签" });
+      expect(tagsLink).toBeInTheDocument();
+      expect(tagsLink.getAttribute("href")).toBe("/dashboard/tags");
+    });
+
+    it('highlights "标签" when on tags page', () => {
+      mockPathname = "/dashboard/tags";
+      renderSidebar({ collapsed: false });
+
+      const tagsLink = screen.getByRole("link", { name: "标签" });
+      expect(tagsLink.className).toContain("bg-primary/10");
+      expect(tagsLink.className).toContain("text-primary");
+    });
+
     it('renders "数据管理" link in expanded mode', () => {
       renderSidebar({ collapsed: false });
 
@@ -697,9 +714,9 @@ describe("Sidebar", () => {
     it("renders all nav links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 2 设置 (storage+data-management) = 12
+      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 3 设置 (tags+storage+data-management) = 13
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(12);
+      expect(navLinks.length).toBe(13);
     });
   });
 

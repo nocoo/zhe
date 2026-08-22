@@ -39,6 +39,7 @@ test.describe("Dashboard navigation", () => {
       const routes = [
         "/dashboard/overview",
         "/dashboard/data-management",
+        "/dashboard/tags",
         "/dashboard/webhook",
         "/dashboard/uploads",
         "/dashboard/backy",
@@ -75,6 +76,7 @@ test.describe("Dashboard navigation", () => {
     await expect(sidebar.locator('a:has-text("文件上传")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Backy")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Xray")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("标签")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("数据管理")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Webhook")')).toBeVisible();
   });
@@ -104,6 +106,17 @@ test.describe("Dashboard navigation", () => {
     // from a transitional render of another component.
     await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
       "概览",
+    );
+  });
+
+  test("navigate to Tags page", async ({ page }) => {
+    await page.goto("/dashboard");
+
+    await page.locator('a:has-text("标签")').click();
+    await page.waitForURL("**/dashboard/tags");
+
+    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
+      "标签",
     );
   });
 
