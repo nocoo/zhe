@@ -326,7 +326,7 @@ describe("InboxTriage (interactions)", () => {
       const { createTag } = await import("@/actions/tags");
       (createTag as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: true,
-        data: makeTag({ id: "t-new", name: "NewTag", color: "gray" }),
+        data: makeTag({ id: "t-new", name: "NewTag", color: "lime" }),
       });
 
       const { addTagToLink } = await import("@/actions/tags");

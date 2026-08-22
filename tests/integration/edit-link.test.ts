@@ -165,11 +165,11 @@ describe("Edit-Link E2E — full lifecycle", () => {
       expect(unwrap(noteResult.data).note).toBe("Important bookmark");
 
       // Step 4: Create two tags
-      const tag1Result = await createTag({ name: "work", color: "cobalt" });
+      const tag1Result = await createTag({ name: "work", color: "sky" });
       expect(tag1Result.success).toBe(true);
       const tag1 = unwrap(tag1Result.data);
       expect(tag1.name).toBe("work");
-      expect(tag1.color).toBe("cobalt");
+      expect(tag1.color).toBe("sky");
 
       const tag2Result = await createTag({ name: "reference", color: "green" });
       expect(tag2Result.success).toBe(true);
@@ -294,7 +294,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
 
       // Create a link and a tag, then associate
       const link = await seedLink("https://link-delete-test.com");
-      const tagResult = await createTag({ name: "permanent", color: "indigo" });
+      const tagResult = await createTag({ name: "permanent", color: "teal" });
       const tag = unwrap(tagResult.data);
       await addTagToLink(link.id, tag.id);
 
@@ -333,7 +333,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
 
       // User B creates tags
       authenticatedAs(USER_B);
-      const tagB = await createTag({ name: "user-b-tag", color: "cobalt" });
+      const tagB = await createTag({ name: "user-b-tag", color: "sky" });
       expect(tagB.success).toBe(true);
 
       // User B can only see their own tags
@@ -371,7 +371,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
       // User B creates a link + tag + association
       authenticatedAs(USER_B);
       const linkB = await seedLink("https://user-b.com");
-      const tagB = await createTag({ name: "b-private", color: "purple" });
+      const tagB = await createTag({ name: "b-private", color: "rose" });
       await addTagToLink(linkB.id, unwrap(tagB.data).id);
 
       // User B can only see their own link-tags
@@ -473,7 +473,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
     it("rejects invalid color on update", async () => {
       const { createTag, updateTag } = await import("@/actions/tags");
 
-      const tag = await createTag({ name: "test", color: "cobalt" });
+      const tag = await createTag({ name: "test", color: "sky" });
       const result = await updateTag(unwrap(tag.data).id, { color: "rainbow" });
 
       expect(result.success).toBe(false);
@@ -537,7 +537,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
       const link = await seedLink("https://multi-tag.com");
 
       const tags: Tag[] = [];
-      const colors = ["red", "cobalt", "green", "orange", "purple"];
+      const colors = ["red", "sky", "green", "orange", "rose"];
       for (const color of colors) {
         const result = await createTag({ name: `tag-${color}`, color });
         tags.push(unwrap(result.data));
@@ -598,7 +598,7 @@ describe("Edit-Link E2E — full lifecycle", () => {
     it("rejects adding tag to non-existent link", async () => {
       const { createTag, addTagToLink } = await import("@/actions/tags");
 
-      const tag = await createTag({ name: "orphan", color: "gray" });
+      const tag = await createTag({ name: "orphan", color: "lime" });
       const result = await addTagToLink(99999, unwrap(tag.data).id);
 
       expect(result.success).toBe(false);

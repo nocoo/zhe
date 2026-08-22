@@ -2,8 +2,10 @@
 import { describe, expect, it } from "vitest";
 import {
   getTagStyles,
+  isDuplicateTagName,
   isValidTagColor,
   randomTagColor,
+  resolveTagColor,
   TAG_PALETTE,
   tagColorFromName,
   tagColorToken,
@@ -12,16 +14,22 @@ import {
 
 describe("models/tags", () => {
   describe("TAG_PALETTE", () => {
-    it("contains 24 colors", () => {
-      expect(TAG_PALETTE).toHaveLength(24);
+    it("contains 12 colors matching defined --chart-N tokens", () => {
+      expect(TAG_PALETTE).toHaveLength(12);
     });
 
     it("includes expected semantic color names", () => {
       expect(TAG_PALETTE).toContain("primary");
       expect(TAG_PALETTE).toContain("red");
       expect(TAG_PALETTE).toContain("green");
-      expect(TAG_PALETTE).toContain("purple");
-      expect(TAG_PALETTE).toContain("gray");
+      expect(TAG_PALETTE).toContain("sky");
+      expect(TAG_PALETTE).toContain("magenta");
+    });
+
+    it("does not include retired names that mapped to missing CSS vars", () => {
+      expect(TAG_PALETTE).not.toContain("gray");
+      expect(TAG_PALETTE).not.toContain("cobalt");
+      expect(TAG_PALETTE).not.toContain("orchid");
     });
 
     it("contains only lowercase alphabetic strings", () => {
@@ -39,8 +47,8 @@ describe("models/tags", () => {
     it("returns true for valid palette colors", () => {
       expect(isValidTagColor("primary")).toBe(true);
       expect(isValidTagColor("red")).toBe(true);
-      expect(isValidTagColor("purple")).toBe(true);
-      expect(isValidTagColor("gray")).toBe(true);
+      expect(isValidTagColor("magenta")).toBe(true);
+      expect(isValidTagColor("sky")).toBe(true);
     });
 
     it("returns false for unknown colors", () => {
@@ -118,7 +126,7 @@ describe("models/tags", () => {
         "运动",
       ];
       const colors = new Set(names.map(tagColorFromName));
-      // With 24 diverse names across 24 slots, we should see good distribution
+      // With 24 diverse names across 12 slots, we should see good distribution
       expect(colors.size).toBeGreaterThanOrEqual(8);
     });
 
@@ -139,14 +147,39 @@ describe("models/tags", () => {
       expect(token).toMatch(/^chart-\d+$/);
     });
 
-    it("returns token in range chart-1 to chart-24", () => {
-      const names = ["work", "personal", "工作", "🚀", "x"];
+    it("returns token in range chart-1 to chart-12", () => {
+      const names = ["work", "personal", "工作", "🚀", "x", "orchid", "gray", "cobalt"];
       for (const name of names) {
         const token = tagColorToken(name);
         const num = parseInt(token.replace("chart-", ""), 10);
         expect(num).toBeGreaterThanOrEqual(1);
-        expect(num).toBeLessThanOrEqual(24);
+        expect(num).toBeLessThanOrEqual(12);
       }
+    });
+
+    it("never emits an undefined chart token for any hashed name", () => {
+      for (let i = 0; i < 200; i++) {
+        const token = tagColorToken(`probe-${i}`);
+        const num = Number.parseInt(token.replace("chart-", ""), 10);
+        expect(num).toBeGreaterThanOrEqual(1);
+        expect(num).toBeLessThanOrEqual(12);
+      }
+    });
+
+    it("uses stored palette color instead of the name hash", () => {
+      const hashed = tagColorToken("work");
+      const stored = tagColorToken("work", "red");
+      expect(stored).toBe("chart-10");
+      expect(tagColorToken("anything", "red")).toBe("chart-10");
+      // stored color can differ from the name-derived default
+      if (hashed !== "chart-10") {
+        expect(stored).not.toBe(hashed);
+      }
+    });
+
+    it("falls back to the name hash when stored color is invalid", () => {
+      expect(tagColorToken("work", "cobalt")).toBe(tagColorToken("work"));
+      expect(tagColorToken("work", "#ffffff")).toBe(tagColorToken("work"));
     });
 
     it("is deterministic — same name always gives same token", () => {
@@ -216,6 +249,50 @@ describe("models/tags", () => {
       expect(styles.badge.backgroundColor).toContain("/ 0.12");
       // Dot is solid color — no alpha
       expect(styles.dot.backgroundColor).not.toContain("/");
+    });
+
+    it("honours a stored palette color", () => {
+      const styles = getTagStyles("work", "red");
+      expect(styles.badge.color).toBe("hsl(var(--chart-10))");
+    });
+
+    it("ignores retired / hex stored colors so badges stay on defined tokens", () => {
+      const fallback = getTagStyles("work");
+      expect(getTagStyles("work", "gray")).toEqual(fallback);
+      expect(getTagStyles("work", "#ffffff")).toEqual(fallback);
+    });
+  });
+
+  describe("resolveTagColor", () => {
+    it("returns the stored color when it is in the palette", () => {
+      expect(resolveTagColor("work", "amber")).toBe("amber");
+    });
+
+    it("falls back to the name hash for missing or invalid color", () => {
+      expect(resolveTagColor("work")).toBe(tagColorFromName("work"));
+      expect(resolveTagColor("work", "cobalt")).toBe(tagColorFromName("work"));
+      expect(resolveTagColor("work", null)).toBe(tagColorFromName("work"));
+    });
+  });
+
+  describe("isDuplicateTagName", () => {
+    const tags = [
+      { id: "1", name: "Work" },
+      { id: "2", name: "home" },
+    ];
+
+    it("detects case-insensitive duplicates", () => {
+      expect(isDuplicateTagName("work", tags)).toBe(true);
+      expect(isDuplicateTagName("  HOME  ", tags)).toBe(true);
+    });
+
+    it("allows a rename that keeps its own name", () => {
+      expect(isDuplicateTagName("Work", tags, "1")).toBe(false);
+    });
+
+    it("returns false for a new unique name or empty input", () => {
+      expect(isDuplicateTagName("personal", tags)).toBe(false);
+      expect(isDuplicateTagName("   ", tags)).toBe(false);
     });
   });
 });

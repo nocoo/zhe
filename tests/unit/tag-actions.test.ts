@@ -65,7 +65,7 @@ const FAKE_TAG = {
   id: "tag-uuid-1",
   userId: FAKE_USER_ID,
   name: "work",
-  color: "cobalt",
+  color: "sky",
   createdAt: new Date(),
 };
 
@@ -149,9 +149,9 @@ describe("actions/tags", () => {
     it("creates tag with name and specified color", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockCreateTag.mockResolvedValue(FAKE_TAG);
-      const result = await createTag({ name: "work", color: "cobalt" });
+      const result = await createTag({ name: "work", color: "sky" });
       expect(result).toEqual({ success: true, data: FAKE_TAG });
-      expect(mockCreateTag).toHaveBeenCalledWith({ name: "work", color: "cobalt" });
+      expect(mockCreateTag).toHaveBeenCalledWith({ name: "work", color: "sky" });
     });
 
     it("creates tag with deterministic color when color is omitted", async () => {

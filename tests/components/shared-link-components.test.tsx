@@ -16,7 +16,7 @@ vi.mock("@/models/tags", () => ({
 const sampleTags: Tag[] = [
   { id: "t1", userId: "u1", name: "Work", color: "blue", createdAt: new Date() },
   { id: "t2", userId: "u1", name: "Personal", color: "green", createdAt: new Date() },
-  { id: "t3", userId: "u1", name: "Design", color: "purple", createdAt: new Date() },
+  { id: "t3", userId: "u1", name: "Design", color: "rose", createdAt: new Date() },
 ];
 
 describe("shared-link-components", () => {

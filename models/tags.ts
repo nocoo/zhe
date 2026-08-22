@@ -1,11 +1,12 @@
 // Pure business logic for tag operations — no React, no DOM.
 
 /**
- * 24 semantic color names matching the basalt chart palette (--chart-1 … --chart-24).
- * Order must stay in sync with CSS custom properties in basalt/src/index.css.
+ * 12 semantic color names matching `--chart-1` … `--chart-12` in app/globals.css.
+ * Hashing or storing a name outside this set used to emit `--chart-13+`,
+ * which is undefined CSS and renders as a near-white / invisible badge.
  */
 export const TAG_PALETTE = [
-  "primary", // --chart-1   217 91% 60%   brand blue
+  "primary", // --chart-1   262 83% 58%   brand purple
   "sky", // --chart-2   200 90% 55%
   "teal", // --chart-3   186 80% 45%
   "jade", // --chart-4   166 72% 44%
@@ -16,25 +17,13 @@ export const TAG_PALETTE = [
   "vermilion", // --chart-9   15 85% 52%
   "red", // --chart-10  0 72% 51%
   "rose", // --chart-11  340 82% 55%
-  "magenta", // --chart-12  320 70% 55%
-  "orchid", // --chart-13  290 65% 55%
-  "purple", // --chart-14  270 70% 60%
-  "indigo", // --chart-15  250 65% 58%
-  "cobalt", // --chart-16  230 70% 56%
-  "steel", // --chart-17  210 55% 50%
-  "cadet", // --chart-18  195 45% 55%
-  "seafoam", // --chart-19  160 50% 50%
-  "olive", // --chart-20  100 50% 48%
-  "gold", // --chart-21  60 65% 45%
-  "tangerine", // --chart-22  22 80% 50%
-  "crimson", // --chart-23  350 65% 50%
-  "gray", // --chart-24  0 0% 25%
+  "magenta", // --chart-12  290 65% 55%
 ] as const;
 
 export type TagPaletteColor = (typeof TAG_PALETTE)[number];
 
 const MAX_TAG_NAME_LENGTH = 30;
-const PALETTE_SIZE = TAG_PALETTE.length; // 24
+const PALETTE_SIZE = TAG_PALETTE.length;
 
 /** Check if a string is a valid palette color name */
 export function isValidTagColor(color: string): color is TagPaletteColor {
@@ -73,11 +62,20 @@ export function tagColorFromName(name: string): TagPaletteColor {
 }
 
 /**
- * Get the CSS variable token for a palette color (1-indexed).
+ * Prefer a stored palette color; fall back to a name hash when missing/invalid.
+ * Invalid leftovers (old 24-color names, hex) never emit an undefined CSS var.
+ */
+export function resolveTagColor(name: string, color?: string | null): TagPaletteColor {
+  if (color && isValidTagColor(color)) return color;
+  return tagColorFromName(name);
+}
+
+/**
+ * Get the CSS variable token for a tag (1-indexed, always chart-1 … chart-12).
  * e.g. "primary" → "chart-1", "sky" → "chart-2"
  */
-export function tagColorToken(name: string): string {
-  const idx = TAG_PALETTE.indexOf(tagColorFromName(name));
+export function tagColorToken(name: string, color?: string | null): string {
+  const idx = TAG_PALETTE.indexOf(resolveTagColor(name, color));
   return `chart-${idx + 1}`;
 }
 
@@ -102,13 +100,12 @@ export interface TagColorStyles {
 }
 
 /**
- * Get inline style objects for a tag, derived deterministically from its name.
- * Uses basalt --chart-N CSS variables so colors auto-adapt to light/dark theme.
- *
- * This is the primary API — use this everywhere tags are rendered.
+ * Get inline style objects for a tag.
+ * Uses stored `color` when it is a defined palette name; otherwise hashes `name`.
+ * Tokens always resolve to `--chart-1` … `--chart-12`.
  */
-export function getTagStyles(name: string): TagColorStyles {
-  const token = tagColorToken(name);
+export function getTagStyles(name: string, color?: string | null): TagColorStyles {
+  const token = tagColorToken(name, color);
   return {
     badge: {
       backgroundColor: `hsl(var(--${token}) / 0.12)`,
@@ -118,6 +115,17 @@ export function getTagStyles(name: string): TagColorStyles {
       backgroundColor: `hsl(var(--${token}))`,
     },
   };
+}
+
+/** Case-insensitive duplicate check. `excludeId` lets a rename keep its own name. */
+export function isDuplicateTagName(
+  name: string,
+  tags: ReadonlyArray<{ id: string; name: string }>,
+  excludeId?: string,
+): boolean {
+  const needle = name.trim().toLowerCase();
+  if (!needle) return false;
+  return tags.some((tag) => tag.id !== excludeId && tag.name.trim().toLowerCase() === needle);
 }
 
 // ── Backward-compat aliases (deprecated — migrate to getTagStyles) ──

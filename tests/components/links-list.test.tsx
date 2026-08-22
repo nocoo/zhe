@@ -155,7 +155,7 @@ const mockTags: Tag[] = [
     id: "t1",
     userId: "u1",
     name: "dev",
-    color: "cobalt",
+    color: "sky",
     createdAt: new Date("2026-01-01"),
   }),
   makeTag({
