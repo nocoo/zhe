@@ -52,7 +52,10 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
         {vm.tagFilterOptions.map((tag) => (
           <SelectItem key={tag.id} value={tag.id}>
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full" style={getTagStyles(tag.name).dot} />
+              <span
+                className="h-2 w-2 rounded-full"
+                style={getTagStyles(tag.name, tag.color).dot}
+              />
               {tag.name}
             </div>
           </SelectItem>

@@ -63,7 +63,7 @@ export function LinkFilterBar({
 
       {/* Active tag badges */}
       {selectedTags.map((tag) => {
-        const styles = getTagStyles(tag.name);
+        const styles = getTagStyles(tag.name, tag.color);
         return (
           <span
             key={tag.id}
@@ -229,7 +229,7 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
             </CommandEmpty>
             <CommandGroup>
               {filteredTags.map((tag) => {
-                const styles = getTagStyles(tag.name);
+                const styles = getTagStyles(tag.name, tag.color);
                 const isSelected = selectedTagIds.has(tag.id);
                 return (
                   <CommandItem

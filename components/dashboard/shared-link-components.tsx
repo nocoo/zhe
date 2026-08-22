@@ -71,7 +71,7 @@ interface TagBadgeProps {
 
 /** A single tag badge with optional remove button */
 export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
-  const styles = getTagStyles(tag.name);
+  const styles = getTagStyles(tag.name, tag.color);
 
   if (size === "sm") {
     return (
@@ -175,7 +175,7 @@ export function TagPicker({
               {unassignedTags
                 .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
                 .map((tag) => {
-                  const styles = getTagStyles(tag.name);
+                  const styles = getTagStyles(tag.name, tag.color);
                   return (
                     <CommandItem
                       key={tag.id}

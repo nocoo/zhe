@@ -21,7 +21,7 @@ function TagBadges({
     <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
       {tags.map((tag) => {
         const isSelected = selectedTagIds.includes(tag.id);
-        const styles = getTagStyles(tag.name);
+        const styles = getTagStyles(tag.name, tag.color);
         return (
           <Badge
             key={tag.id}

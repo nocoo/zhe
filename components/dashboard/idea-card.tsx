@@ -107,7 +107,7 @@ export const IdeaCard = memo(function IdeaCard({
         {ideaTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {ideaTags.slice(0, 3).map((tag) => {
-              const styles = getTagStyles(tag.name);
+              const styles = getTagStyles(tag.name, tag.color);
               return (
                 <Badge key={tag.id} variant="secondary" className="text-xs" style={styles.badge}>
                   {tag.name}
@@ -211,7 +211,7 @@ export const IdeaRow = memo(function IdeaRow({
           {ideaTags.length > 0 && (
             <div className="hidden sm:flex items-center gap-1">
               {ideaTags.slice(0, 2).map((tag) => {
-                const styles = getTagStyles(tag.name);
+                const styles = getTagStyles(tag.name, tag.color);
                 return (
                   <span
                     key={tag.id}

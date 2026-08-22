@@ -413,7 +413,7 @@ describe("SearchCommandDialog (search & ideas)", () => {
       expect(screen.getByText("Frontend")).toBeInTheDocument();
     });
 
-    it("passes tag.name (not tag.color) to getTagStyles for ideas (#10.1 regression)", async () => {
+    it("passes tag.name and stored color to getTagStyles for ideas", async () => {
       mockGetTagStyles.mockClear();
       mockState.tags = [
         { id: "t1", userId: "user-1", name: "MyTag", color: "#abcdef", createdAt: new Date() },
@@ -423,8 +423,8 @@ describe("SearchCommandDialog (search & ideas)", () => {
       const input = screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作...");
       fireEvent.change(input, { target: { value: "react" } });
 
-      // getTagStyles should be called with tag.name, not tag.color
-      expect(mockGetTagStyles).toHaveBeenCalledWith("MyTag");
+      // name is the identity; stored color is the optional style override
+      expect(mockGetTagStyles).toHaveBeenCalledWith("MyTag", "#abcdef");
       expect(mockGetTagStyles).not.toHaveBeenCalledWith("#abcdef");
     });
   });

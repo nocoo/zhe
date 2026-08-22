@@ -9,7 +9,7 @@ export function TagBadges({ tags, max = 3 }: { tags: Tag[]; max?: number }) {
   return (
     <>
       {tags.slice(0, max).map((tag) => {
-        const styles = getTagStyles(tag.name);
+        const styles = getTagStyles(tag.name, tag.color);
         return (
           <span
             key={tag.id}

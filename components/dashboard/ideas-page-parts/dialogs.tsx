@@ -73,7 +73,7 @@ export function CreateIdeaModal({
               <div className="flex flex-wrap gap-2 mt-2">
                 {vm.tags.map((tag) => {
                   const isSelected = newTagIds.includes(tag.id);
-                  const styles = getTagStyles(tag.name);
+                  const styles = getTagStyles(tag.name, tag.color);
                   return (
                     <Badge
                       key={tag.id}
