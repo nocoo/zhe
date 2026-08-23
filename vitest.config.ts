@@ -77,10 +77,6 @@ export default defineConfig({
         "components/markdown-preview.tsx",
         // Editor viewmodel — tested via E2E
         "viewmodels/useIdeaEditorViewModel.ts",
-        "viewmodels/useSuggestLinkOrgViewModel.ts",
-        "lib/ai/run-task.ts",
-        "lib/ai/tasks/**",
-        "lib/db/scoped/settings.ts",
       ],
       thresholds: {
         lines: 95,

@@ -20,7 +20,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { loadHasAiKey, useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 const callbacks = {
   onLinkUpdated: vi.fn(),
@@ -183,5 +183,27 @@ describe("useSuggestLinkOrgViewModel", () => {
     });
     expect(mockToastError).toHaveBeenCalledWith("Folder not found");
     expect(result.current.open).toBe(true);
+  });
+
+  it("records a network error when suggest fetch throws", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(async () => {
+      await result.current.openForLink(1);
+    });
+    expect(result.current.error).toBe("网络错误");
+  });
+
+  it("loads hasApiKey without caching a failed fetch", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("offline")));
+    expect(await loadHasAiKey()).toBe(false);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ hasApiKey: true }),
+      }),
+    );
+    expect(await loadHasAiKey()).toBe(true);
   });
 });

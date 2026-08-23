@@ -35,6 +35,14 @@ describe("runAiTask", () => {
     expect(result).toMatchObject({ ok: false, reason: "no_ai_config" });
   });
 
+  it("returns no_ai_config without a provider", async () => {
+    const result = await runAiTask(
+      { ...settings, provider: null },
+      { prompt: "x", parse: () => 1 },
+    );
+    expect(result).toMatchObject({ ok: false, reason: "no_ai_config" });
+  });
+
   it("returns parsed success", async () => {
     mockGenerateText.mockResolvedValue({ text: '{"ok":true}' });
     const result = await runAiTask(settings, {
@@ -60,5 +68,33 @@ describe("runAiTask", () => {
         },
       }),
     ).toMatchObject({ reason: "parse_error" });
+
+    mockGenerateText.mockResolvedValueOnce({ text: "{" });
+    expect(
+      await runAiTask(settings, {
+        prompt: "x",
+        parse: (text) => JSON.parse(text) as unknown,
+      }),
+    ).toMatchObject({ reason: "parse_error" });
+  });
+
+  it("maps abort, generic, and unknown failures", async () => {
+    const abort = Object.assign(new Error("aborted"), { name: "AbortError" });
+    mockGenerateText.mockRejectedValueOnce(abort);
+    expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
+      reason: "timeout",
+    });
+
+    mockGenerateText.mockRejectedValueOnce(new Error("upstream"));
+    expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
+      reason: "ai_error",
+      message: "upstream",
+    });
+
+    mockGenerateText.mockRejectedValueOnce("boom");
+    expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
+      reason: "ai_error",
+      message: "Unknown AI error",
+    });
   });
 });
