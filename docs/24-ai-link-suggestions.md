@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1.4) · Codex round-4 findings folded in  
+> **Status**: Design (v1.5) · Codex round-5 findings folded in  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
@@ -204,13 +204,14 @@ Custom provider turns the origin into an outbound HTTP client. **Re-run this che
 
 1. Parse as absolute URL. Reject credentials in the URL (`user:pass@`).
 2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
-3. Hostname must not be `localhost`, `*.local`, or an IP in loopback / link-local / private / CGNAT / metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`, `fe80::/10`).
-4. `assertSafeAiBaseUrl` is **async**: resolve DNS and reject if **any** A/AAAA is in those ranges. Re-run on persist and on every Test/suggest.
+3. Hostname must not be `localhost` or `*.local`. After DNS, **every** A/AAAA must be globally routable unicast. Reject after canonicalizing IPv4-mapped IPv6 (`::ffff:x.x.x.x` → IPv4). Reject at least: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4`, `240.0.0.0/4`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`.
+4. `assertSafeAiBaseUrl` is **async**. Re-run on persist and on every Test/suggest.
 5. `@nocoo/next-ai@0.4.0` `createAiModel` does **not** expose a custom `fetch`. **Single factory** `lib/ai/create-model.ts` `createUserAiModel(settings)`:
    - builtin → `resolveAiConfig` + `createAiModel`
    - custom → after §3.4, `createOpenAI` / `createAnthropic` from **direct** deps `@ai-sdk/openai` / `@ai-sdk/anthropic`, with `fetch: (url, init) => fetch(url, { ...init, redirect: "error" })`
-   - `authType === "bearer"` → `headers: { Authorization: \`Bearer ${apiKey}\` }`; `authType === "apiKey"` → SDK default key header only
-   Both `POST /api/settings/ai/test` and `runAiTask` **must** call this factory. L1: custom fetch is invoked with `redirect: "error"`.
+   - OpenAI custom: `authType === "bearer"` → `headers: { Authorization: \`Bearer ${apiKey}\` }`; `apiKey` mode → SDK `apiKey` only
+   - Anthropic custom: `authType === "bearer"` → `createAnthropic({ authToken: apiKey, fetch })` (must **not** set `apiKey`, so no `x-api-key`); `apiKey` mode → `createAnthropic({ apiKey, fetch })`
+   Both `POST /api/settings/ai/test` and `runAiTask` **must** call this factory. L1: custom fetch uses `redirect: "error"`; Anthropic bearer omits `x-api-key`; blocklist includes `100.64.0.1` and `::ffff:127.0.0.1`.
 
 Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): Promise<void>`. L1 table of blocked destinations.
 
