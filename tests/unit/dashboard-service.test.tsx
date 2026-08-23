@@ -407,6 +407,7 @@ describe("DashboardService", () => {
       const tag = makeTag({ id: "t-new" });
       act(() => {
         result.current.handleTagCreated(tag);
+        result.current.handleTagCreated(tag);
       });
       expect(result.current.tags).toHaveLength(1);
       expect(unwrap(result.current.tags[0])).toEqual(tag);
@@ -480,6 +481,7 @@ describe("DashboardService", () => {
       const { result } = await renderService();
       const lt = makeLinkTag({ linkId: 5, tagId: "t3" });
       act(() => {
+        result.current.handleLinkTagAdded(lt);
         result.current.handleLinkTagAdded(lt);
       });
       expect(result.current.linkTags).toHaveLength(1);

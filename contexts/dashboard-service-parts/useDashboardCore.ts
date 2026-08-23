@@ -94,7 +94,7 @@ export function useDashboardCore(initialFolders: Folder[]) {
 
   // ── Tags handlers (with cascade onto link-tags) ──
   const handleTagCreated = useCallback((tag: Tag) => {
-    setTags((prev) => [...prev, tag]);
+    setTags((prev) => (prev.some((item) => item.id === tag.id) ? prev : [...prev, tag]));
   }, []);
   const handleTagDeleted = useCallback((id: string) => {
     setTags((prev) => prev.filter((t) => t.id !== id));
@@ -106,7 +106,11 @@ export function useDashboardCore(initialFolders: Folder[]) {
 
   // ── Link-Tags handlers ──
   const handleLinkTagAdded = useCallback((linkTag: LinkTag) => {
-    setLinkTags((prev) => [...prev, linkTag]);
+    setLinkTags((prev) =>
+      prev.some((item) => item.linkId === linkTag.linkId && item.tagId === linkTag.tagId)
+        ? prev
+        : [...prev, linkTag],
+    );
   }, []);
   const handleLinkTagRemoved = useCallback((linkId: number, tagId: string) => {
     setLinkTags((prev) => prev.filter((lt) => !(lt.linkId === linkId && lt.tagId === tagId)));
