@@ -50,6 +50,7 @@ describe("runAiTask", () => {
       parse: () => ({ folders: [], tags: [] }),
     });
     expect(result.ok).toBe(true);
+    if (result.ok) expect(result.rawText).toBe('{"ok":true}');
   });
 
   it("maps timeout and parse errors", async () => {
@@ -67,7 +68,7 @@ describe("runAiTask", () => {
           throw new SuggestParseError("bad");
         },
       }),
-    ).toMatchObject({ reason: "parse_error" });
+    ).toMatchObject({ reason: "parse_error", rawText: "nope" });
 
     mockGenerateText.mockResolvedValueOnce({ text: "{" });
     expect(
@@ -75,12 +76,13 @@ describe("runAiTask", () => {
         prompt: "x",
         parse: (text) => JSON.parse(text) as unknown,
       }),
-    ).toMatchObject({ reason: "parse_error", message: "模型返回不是有效 JSON" });
+    ).toMatchObject({ reason: "parse_error", message: "模型返回不是有效 JSON", rawText: "{" });
 
     mockGenerateText.mockResolvedValueOnce({ text: "   " });
     expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
       reason: "parse_error",
       message: "模型没有返回内容",
+      rawText: "   ",
     });
   });
 
