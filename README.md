@@ -371,6 +371,7 @@ zhe/
 | [Four-Layer Test Plan](docs/11-four-layer-test-plan.md) | Test architecture improvement plan & status |
 | [Design Tokens & UI Controls](docs/22-design-tokens.md) | Surface/radius/density contract; reuse `components/ui` sizes |
 | [Global Search Unification](docs/23-global-search-unification.md) | Cmd+K multi-type search plan (links/ideas/todos), nav + tests |
+| [AI Link Suggestions](docs/24-ai-link-suggestions.md) | next-ai settings + templated folder/tag suggestions |
 
 ## License
 
