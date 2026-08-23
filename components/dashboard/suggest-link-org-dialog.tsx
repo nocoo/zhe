@@ -83,11 +83,10 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
         )}
 
         <DialogFooter>
-          <Button size="sm" variant="ghost" onClick={vm.close}>
+          <Button variant="ghost" onClick={vm.close}>
             取消
           </Button>
           <Button
-            size="sm"
             onClick={() => void vm.apply()}
             disabled={vm.loading || vm.applying || Boolean(vm.error)}
             data-testid="suggest-apply"

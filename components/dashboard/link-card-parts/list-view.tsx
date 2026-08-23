@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { Description, TitleRow } from "./shared-rows";
@@ -201,16 +203,24 @@ function ListActions({
         )}
       </button>
       {onSuggest && (
-        <button
-          type="button"
-          onClick={onSuggest}
-          disabled={suggestDisabled}
-          aria-label="AI 建议"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
-          title={suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}
-        >
-          <Sparkles className="w-4 h-4" strokeWidth={1.5} />
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                onClick={onSuggest}
+                disabled={suggestDisabled}
+                aria-label="AI 建议"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Sparkles strokeWidth={1.5} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       <button
         type="button"
