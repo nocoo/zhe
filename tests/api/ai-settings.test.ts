@@ -2,18 +2,31 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { apiGet, apiGetAuth, apiPost, apiPostAuth, apiPutAuth, jsonResponse } from "./helpers/http";
 import { executeD1, seedLink } from "./helpers/seed";
 
+const SESSION_USER_ID = "e2e-test-user-id";
 const OTHER_USER_ID = "api-ai-other-user";
 
 describe("AI settings and suggest routes", () => {
+  let ownedLinkId: number;
+
   beforeAll(async () => {
+    await executeD1(
+      "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
+      [SESSION_USER_ID, "E2E Test User", "e2e@test.local"],
+    );
     await executeD1(
       "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
       [OTHER_USER_ID, "Other AI User", "other-ai@test.local"],
     );
+    const owned = await seedLink({
+      userId: SESSION_USER_ID,
+      originalUrl: "https://example.com/owned-ai",
+    });
+    ownedLinkId = owned.id;
   });
 
   afterAll(async () => {
-    await executeD1("DELETE FROM links WHERE user_id = ?", [OTHER_USER_ID]);
+    await executeD1("DELETE FROM links WHERE user_id IN (?, ?)", [SESSION_USER_ID, OTHER_USER_ID]);
+    await executeD1("DELETE FROM user_settings WHERE user_id = ?", [SESSION_USER_ID]);
     await executeD1("DELETE FROM users WHERE id = ?", [OTHER_USER_ID]);
   });
 
@@ -56,7 +69,7 @@ describe("AI settings and suggest routes", () => {
 
   it("suggest without a stored key returns no_ai_config", async () => {
     await apiPutAuth("/api/settings/ai", { apiKey: null });
-    const res = await apiPostAuth("/api/ai/suggest-link-org", { linkId: 1 });
+    const res = await apiPostAuth("/api/ai/suggest-link-org", { linkId: ownedLinkId });
     const { status, body } = await jsonResponse<{ reason: string }>(res);
     expect(status).toBe(400);
     expect(body.reason).toBe("no_ai_config");
