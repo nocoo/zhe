@@ -33,6 +33,10 @@ describe("isMaskedApiKeyPlaceholder", () => {
   it("allows a real key", () => {
     expect(isMaskedApiKeyPlaceholder("sk-test-key-1234", "1234")).toBe(false);
   });
+
+  it("rejects a star prefix plus last4 that is not all alphanumeric", () => {
+    expect(isMaskedApiKeyPlaceholder("****ab-c", "ab-c")).toBe(true);
+  });
 });
 
 describe("toPublicAiSettings", () => {

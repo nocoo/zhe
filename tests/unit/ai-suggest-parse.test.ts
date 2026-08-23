@@ -96,6 +96,40 @@ describe("parseSuggestLinkOrg", () => {
   it("treats a null root as a parse error", () => {
     expect(() => parseSuggestLinkOrg("null", catalogs)).toThrow("object");
   });
+
+  it("caps folders at 3 and tags at 5 and skips junk items", () => {
+    const result = parseSuggestLinkOrg(
+      JSON.stringify({
+        folders: [
+          null,
+          { folderId: null },
+          { folderId: null, name: "Inbox", reason: "one" },
+          { folderId: "f1", name: "工作", reason: "two" },
+          { folderId: "f2", name: "学习", reason: "three" },
+          { folderId: null, name: "Inbox", reason: "four" },
+        ],
+        tags: [
+          "nope",
+          { tagId: 1, name: "x", reason: "r" },
+          { tagId: null, name: "", reason: "r" },
+          { tagId: null, name: "a", reason: "1" },
+          { tagId: null, name: "b", reason: "2" },
+          { tagId: null, name: "c", reason: "3" },
+          { tagId: null, name: "d", reason: "4" },
+          { tagId: null, name: "e", reason: "5" },
+          { tagId: null, name: "f", reason: "6" },
+        ],
+      }),
+      { folders: [...catalogs.folders, { id: "f2", name: "学习" }], tags: catalogs.tags },
+    );
+    expect(result.folders).toHaveLength(3);
+    expect(result.tags).toHaveLength(5);
+    expect(result.tags.map((t) => t.name)).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("rejects a JSON array root", () => {
+    expect(() => parseSuggestLinkOrg("[]", catalogs)).toThrow("object");
+  });
 });
 
 describe("buildSuggestLinkOrgPrompt", () => {

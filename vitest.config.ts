@@ -27,6 +27,7 @@ export default defineConfig({
         "lib/**/*.ts",
         "models/links.ts",
         "models/backy.ts",
+        "models/ai-*.ts",
         "actions/**/*.ts",
         "proxy.ts",
         "viewmodels/**/*.ts",
