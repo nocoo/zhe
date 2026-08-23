@@ -206,17 +206,19 @@ function ListActions({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="ghost"
-                onClick={onSuggest}
-                disabled={suggestDisabled}
-                aria-label="AI 建议"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Sparkles strokeWidth={1.5} />
-              </Button>
+              <span className="inline-flex">
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={onSuggest}
+                  disabled={suggestDisabled}
+                  aria-label="AI 建议"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Sparkles strokeWidth={1.5} />
+                </Button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}</TooltipContent>
           </Tooltip>
