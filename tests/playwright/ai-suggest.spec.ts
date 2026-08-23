@@ -56,6 +56,8 @@ test.describe("AI link suggestions", () => {
           model: "claude-sonnet-4-5",
           provider: "anthropic",
           durationMs: 12,
+          prompt: "url: https://example.com/e2e-ai-suggest",
+          rawText: '{"folders":[],"tags":[]}',
         }),
       });
     });
@@ -67,6 +69,10 @@ test.describe("AI link suggestions", () => {
       await expect(suggest).toBeVisible();
       await suggest.click();
       await expect(page.getByTestId("suggest-link-org-dialog")).toBeVisible();
+      await expect(page.getByTestId("suggest-step-ready")).toHaveAttribute("data-state", "done");
+      await expect(page.getByTestId("suggest-prompt-body")).toHaveCount(0);
+      await page.getByTestId("suggest-prompt-toggle").click();
+      await expect(page.getByTestId("suggest-prompt-body")).toContainText("e2e-ai-suggest");
       await page.getByTestId("suggest-apply").click();
       await expect(page.getByText("已应用建议").first()).toBeVisible();
       await expect(page.getByText("部分标签未能应用")).toHaveCount(0);
