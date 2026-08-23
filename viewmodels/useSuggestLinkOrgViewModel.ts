@@ -12,17 +12,12 @@ export interface SuggestTagDraft extends SuggestTagOption {
   draftName: string;
 }
 
-let cachedHasAiKey: boolean | null = null;
-
 export async function loadHasAiKey(): Promise<boolean> {
-  if (cachedHasAiKey !== null) return cachedHasAiKey;
   try {
     const res = await fetch("/api/settings/ai");
     const data = (await res.json()) as { hasApiKey?: boolean };
-    cachedHasAiKey = Boolean(data.hasApiKey);
-    return cachedHasAiKey;
+    return Boolean(data.hasApiKey);
   } catch {
-    cachedHasAiKey = false;
     return false;
   }
 }
@@ -36,7 +31,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
   const [folders, setFolders] = useState<SuggestFolderOption[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [tags, setTags] = useState<SuggestTagDraft[]>([]);
-  const [hasAiKey, setHasAiKey] = useState(cachedHasAiKey === true);
+  const [hasAiKey, setHasAiKey] = useState(false);
 
   const refreshHasAiKey = useCallback(async () => {
     const value = await loadHasAiKey();
@@ -109,16 +104,30 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
       }
       callbacks.onLinkUpdated(folderResult.data);
 
-      for (const tag of tags.filter((item) => item.checked)) {
+      let tagFailed = false;
+      const remaining: SuggestTagDraft[] = [];
+      for (const tag of tags) {
+        if (!tag.checked) {
+          remaining.push(tag);
+          continue;
+        }
         const result = await ensureTagOnLink(linkId, tag.draftName);
         if (!result.success || !result.data) {
           toast.error(result.error || "部分标签未能应用");
+          tagFailed = true;
+          remaining.push(tag);
           continue;
         }
-        callbacks.onTagCreated(result.data.tag);
+        if (result.data.created) {
+          callbacks.onTagCreated(result.data.tag);
+        }
         if (result.data.attached) {
           callbacks.onLinkTagAdded({ linkId, tagId: result.data.tag.id });
         }
+      }
+      if (tagFailed) {
+        setTags(remaining);
+        return;
       }
       toast.success("已应用建议");
       setOpen(false);
