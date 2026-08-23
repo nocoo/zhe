@@ -2,13 +2,19 @@
  * E2E: AI suggestion dialog — intercepts the suggest API.
  */
 import { expect, test } from "./fixtures";
-import { executeD1, TEST_USER } from "./helpers/d1";
+import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 
 test.describe("AI link suggestions", () => {
   test.describe.configure({ timeout: 60_000, retries: 1 });
 
   test("applies an intercepted folder and tag suggestion", async ({ page }) => {
     const tagName = `e2e-ai-tag-${Date.now()}`;
+    const folderId = `e2e-ai-folder-${Date.now()}`;
+    const folderName = `AI Folder ${Date.now()}`;
+    await executeD1(
+      "INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)",
+      [folderId, TEST_USER.id, folderName, "folder", Math.floor(Date.now() / 1000)],
+    );
     await page.route("**/api/settings/ai", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
@@ -34,7 +40,7 @@ test.describe("AI link suggestions", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          folders: [{ folderId: null, name: "Inbox", reason: "先放这里" }],
+          folders: [{ folderId, name: folderName, reason: "归入此文件夹" }],
           tags: [{ tagId: null, name: tagName, reason: "测试标签" }],
           model: "claude-sonnet-4-5",
           provider: "anthropic",
@@ -57,6 +63,17 @@ test.describe("AI link suggestions", () => {
     await expect(
       page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
     ).toBeVisible();
+    const assigned = await queryD1<{ folder_id: string | null }>(
+      `SELECT folder_id FROM links
+       WHERE user_id = ? AND id IN (
+         SELECT link_id FROM link_tags
+         WHERE tag_id IN (SELECT id FROM tags WHERE user_id = ? AND name = ?)
+       )
+       LIMIT 1`,
+      [TEST_USER.id, TEST_USER.id, tagName],
+    );
+    expect(assigned[0]?.folder_id).toBe(folderId);
     await executeD1("DELETE FROM tags WHERE user_id = ? AND name = ?", [TEST_USER.id, tagName]);
+    await executeD1("DELETE FROM folders WHERE id = ?", [folderId]);
   });
 });
