@@ -1,4 +1,4 @@
-import { isValidProvider } from "@nocoo/next-ai";
+import { BUILTIN_PROVIDERS, type BuiltinProvider, isValidProvider } from "@nocoo/next-ai";
 import { NextResponse } from "next/server";
 import { aiErrorResponse } from "@/lib/ai/errors";
 import { getScopedDB } from "@/lib/auth-context";
@@ -29,82 +29,130 @@ export async function GET(): Promise<Response> {
   return NextResponse.json(toPublicAiSettings(stored));
 }
 
-interface PutBody {
-  provider?: string;
-  apiKey?: string | null;
-  model?: string;
-  baseURL?: string;
-  sdkType?: string;
-  authType?: string;
+const STRING_FIELDS = ["provider", "model", "baseURL", "sdkType", "authType"] as const;
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function asOptionalString(value: unknown): string | undefined {
+function readString(rec: Record<string, unknown>, key: string): string | undefined {
+  const value = rec[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function fieldTypeError(raw: Record<string, unknown>): string | null {
+  for (const key of STRING_FIELDS) {
+    if (key in raw && raw[key] !== undefined && typeof raw[key] !== "string") {
+      return `Invalid ${key}`;
+    }
+  }
+  if (
+    "apiKey" in raw &&
+    raw.apiKey !== undefined &&
+    raw.apiKey !== null &&
+    typeof raw.apiKey !== "string"
+  ) {
+    return "Invalid API key";
+  }
+  return null;
+}
+
+function enumError(raw: Record<string, unknown>): string | null {
+  const provider = readString(raw, "provider");
+  if (provider !== undefined && provider !== "" && !isValidProvider(provider)) {
+    return `Invalid provider: ${provider}`;
+  }
+  const sdkType = readString(raw, "sdkType");
+  if (sdkType !== undefined && !isValidSdkType(sdkType)) {
+    return `Invalid SDK type: ${sdkType}`;
+  }
+  const authType = readString(raw, "authType");
+  if (authType !== undefined && !isValidAuthType(authType)) {
+    return `Invalid auth type: ${authType}`;
+  }
+  return null;
+}
+
+function mergeAiSettings(
+  stored: AiSettingsData,
+  raw: Record<string, unknown>,
+): { ok: true; data: AiSettingsData } | { ok: false; error: string } {
+  const next: AiSettingsData = { ...stored };
+  if ("provider" in raw) next.provider = readString(raw, "provider") || null;
+  if ("model" in raw) next.model = readString(raw, "model") || null;
+  if ("baseURL" in raw) next.baseURL = readString(raw, "baseURL") || null;
+  if ("sdkType" in raw) next.sdkType = readString(raw, "sdkType") || null;
+  if ("authType" in raw) next.authType = readString(raw, "authType") || null;
+
+  if (raw.apiKey === null) {
+    next.apiKey = null;
+  } else if (typeof raw.apiKey === "string") {
+    if (isMaskedApiKeyPlaceholder(raw.apiKey, stored.apiKey?.slice(-4) ?? "")) {
+      return { ok: false, error: "refusing masked placeholder" };
+    }
+    next.apiKey = raw.apiKey;
+  }
+
+  if (next.provider && next.provider !== "custom" && !next.model) {
+    const info = BUILTIN_PROVIDERS[next.provider as BuiltinProvider];
+    if (!info?.defaultModel) {
+      return { ok: false, error: "Model is required" };
+    }
+    next.model = info.defaultModel;
+  }
+  return { ok: true, data: next };
+}
+
+async function validateMergedCustom(next: AiSettingsData): Promise<Response | null> {
+  if (next.provider !== "custom") {
+    next.baseURL = "";
+    next.sdkType = "";
+    next.authType = "";
+    return null;
+  }
+  if (!next.baseURL || !next.sdkType || !next.authType || !next.model) {
+    return aiErrorResponse(
+      "Custom provider requires baseURL, sdkType, authType, and model",
+      "validation",
+      400,
+    );
+  }
+  try {
+    await assertSafeAiBaseUrl(next.baseURL);
+    return null;
+  } catch (error) {
+    const message = error instanceof UnsafeAiBaseUrlError ? error.message : "Invalid base URL";
+    return aiErrorResponse(message, "validation", 400);
+  }
 }
 
 export async function PUT(request: Request): Promise<Response> {
   const auth = await requireDb();
   if ("error" in auth) return auth.error;
 
-  let body: PutBody;
+  let raw: unknown;
   try {
-    body = (await request.json()) as PutBody;
+    raw = await request.json();
   } catch {
     return aiErrorResponse("Invalid JSON body", "validation", 400);
   }
+  if (!isJsonRecord(raw)) {
+    return aiErrorResponse("Invalid JSON body", "validation", 400);
+  }
 
-  if (body.provider !== undefined && body.provider !== "" && !isValidProvider(body.provider)) {
-    return aiErrorResponse(`Invalid provider: ${body.provider}`, "validation", 400);
-  }
-  if (body.sdkType !== undefined && !isValidSdkType(body.sdkType)) {
-    return aiErrorResponse(`Invalid SDK type: ${body.sdkType}`, "validation", 400);
-  }
-  if (body.authType !== undefined && !isValidAuthType(body.authType)) {
-    return aiErrorResponse(`Invalid auth type: ${body.authType}`, "validation", 400);
-  }
-  if (body.apiKey !== undefined && body.apiKey !== null && typeof body.apiKey !== "string") {
-    return aiErrorResponse("Invalid API key", "validation", 400);
-  }
+  const typeError = fieldTypeError(raw);
+  if (typeError) return aiErrorResponse(typeError, "validation", 400);
+  const valueError = enumError(raw);
+  if (valueError) return aiErrorResponse(valueError, "validation", 400);
 
   const stored = await auth.db.getAiSettings();
-  const next: AiSettingsData = { ...stored };
+  const merged = mergeAiSettings(stored, raw);
+  if (!merged.ok) return aiErrorResponse(merged.error, "validation", 400);
 
-  if (body.provider !== undefined) next.provider = body.provider || null;
-  if (body.model !== undefined) next.model = asOptionalString(body.model) || null;
-  if (body.baseURL !== undefined) next.baseURL = asOptionalString(body.baseURL) || null;
-  if (body.sdkType !== undefined) next.sdkType = asOptionalString(body.sdkType) || null;
-  if (body.authType !== undefined) next.authType = asOptionalString(body.authType) || null;
+  const customError = await validateMergedCustom(merged.data);
+  if (customError) return customError;
 
-  if (body.apiKey === null) {
-    next.apiKey = null;
-  } else if (typeof body.apiKey === "string") {
-    if (isMaskedApiKeyPlaceholder(body.apiKey, stored.apiKey?.slice(-4) ?? "")) {
-      return aiErrorResponse("refusing masked placeholder", "validation", 400);
-    }
-    next.apiKey = body.apiKey;
-  }
-
-  if (next.provider !== "custom") {
-    next.baseURL = "";
-    next.sdkType = "";
-    next.authType = "";
-  } else {
-    if (!next.baseURL || !next.sdkType || !next.authType || !next.model) {
-      return aiErrorResponse(
-        "Custom provider requires baseURL, sdkType, authType, and model",
-        "validation",
-        400,
-      );
-    }
-    try {
-      await assertSafeAiBaseUrl(next.baseURL);
-    } catch (error) {
-      const message = error instanceof UnsafeAiBaseUrlError ? error.message : "Invalid base URL";
-      return aiErrorResponse(message, "validation", 400);
-    }
-  }
-
-  const saved = await auth.db.upsertAiSettings(next);
+  const saved = await auth.db.upsertAiSettings(merged.data);
   return NextResponse.json(
     toPublicAiSettings({
       provider: saved.aiProvider,

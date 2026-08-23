@@ -141,6 +141,43 @@ describe("PUT /api/settings/ai", () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ reason: "validation" });
   });
+
+  it("rejects a non-object JSON body", async () => {
+    const res = await PUT(
+      new Request("http://localhost/api/settings/ai", {
+        method: "PUT",
+        body: "null",
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ reason: "validation" });
+  });
+
+  it("rejects a non-string model field", async () => {
+    const res = await PUT(
+      new Request("http://localhost/api/settings/ai", {
+        method: "PUT",
+        body: JSON.stringify({ model: 12 }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ reason: "validation" });
+  });
+
+  it("fills the builtin default model when omitted", async () => {
+    const res = await PUT(
+      new Request("http://localhost/api/settings/ai", {
+        method: "PUT",
+        body: JSON.stringify({ provider: "anthropic" }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(mockUpsertAiSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "anthropic", model: expect.any(String) }),
+    );
+    const payload = mockUpsertAiSettings.mock.calls[0]?.[0] as { model: string };
+    expect(payload.model.length).toBeGreaterThan(0);
+  });
 });
 
 describe("POST /api/settings/ai/test", () => {
