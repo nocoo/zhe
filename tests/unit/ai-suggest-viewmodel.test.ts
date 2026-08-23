@@ -81,6 +81,7 @@ describe("useSuggestLinkOrgViewModel", () => {
     expect(mockUpdateLink).toHaveBeenCalledWith(1, { folderId: "f1" });
     expect(mockEnsureTagOnLink).toHaveBeenCalled();
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
+    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t1", name: "文档" });
     expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t2", name: "新标签" });
     expect(callbacks.onLinkTagAdded).toHaveBeenCalledTimes(2);
     expect(mockToastSuccess).toHaveBeenCalledWith("已应用建议");
@@ -117,6 +118,45 @@ describe("useSuggestLinkOrgViewModel", () => {
     expect(result.current.open).toBe(true);
     expect(result.current.tags).toHaveLength(1);
     expect(result.current.tags[0]?.draftName).toBe("新标签");
+  });
+
+  it("syncs a tag created on a previous failed attach retry", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => suggestion,
+      }),
+    );
+    mockUpdateLink.mockResolvedValue({
+      success: true,
+      data: { id: 1, folderId: "f1" },
+    });
+    mockEnsureTagOnLink
+      .mockResolvedValueOnce({ success: false, error: "Failed to add tag to link" })
+      .mockResolvedValueOnce({ success: false, error: "Failed to add tag to link" })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { tag: { id: "t2", name: "新标签" }, created: false, attached: true },
+      });
+
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(async () => {
+      await result.current.openForLink(1);
+    });
+    await act(async () => {
+      await result.current.apply();
+    });
+    expect(result.current.open).toBe(true);
+    await act(async () => {
+      await result.current.apply();
+    });
+    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t2", name: "新标签" });
+    expect(mockToastSuccess).toHaveBeenCalledWith("已应用建议");
   });
 
   it("is a no-op apply when nothing is selected after unchecking", async () => {

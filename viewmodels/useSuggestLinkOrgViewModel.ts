@@ -118,9 +118,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
           remaining.push(tag);
           continue;
         }
-        if (result.data.created) {
-          callbacks.onTagCreated(result.data.tag);
-        }
+        callbacks.onTagCreated(result.data.tag);
         if (result.data.attached) {
           callbacks.onLinkTagAdded({ linkId, tagId: result.data.tag.id });
         }
