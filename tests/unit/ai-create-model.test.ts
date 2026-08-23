@@ -112,8 +112,14 @@ describe("createUserAiModel", () => {
     );
     const arg = mockCreateAnthropic.mock.calls[0]?.[0] as { apiKey?: string; fetch: typeof fetch };
     expect(arg.apiKey).toBeUndefined();
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
     const init = { redirect: "follow" } as RequestInit;
-    arg.fetch("https://gateway.example.com/v1", init);
+    await arg.fetch("https://gateway.example.com/v1", init);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://gateway.example.com/v1",
+      expect.objectContaining({ redirect: "error" }),
+    );
+    fetchSpy.mockRestore();
   });
 
   it("builds a custom Anthropic apiKey model", async () => {
