@@ -188,6 +188,13 @@ export async function updateLink(
     }
 
     // Validate and sanitize slug if provided
+    if (data.folderId) {
+      const folder = await db.getFolderById(data.folderId);
+      if (!folder) {
+        return { success: false, error: "Folder not found" };
+      }
+    }
+
     const updateData: {
       originalUrl?: string;
       folderId?: string | null;

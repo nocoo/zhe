@@ -17,6 +17,10 @@ describe("expandTemplate", () => {
 });
 
 describe("parseSuggestLinkOrg", () => {
+  it("rejects non-array folders or tags", () => {
+    expect(() => parseSuggestLinkOrg('{"folders":{},"tags":[]}', catalogs)).toThrow("arrays");
+  });
+
   it("parses happy JSON and overwrites catalog names", () => {
     const result = parseSuggestLinkOrg(
       JSON.stringify({
@@ -63,6 +67,25 @@ describe("parseSuggestLinkOrg", () => {
       catalogs,
     );
     expect(result.tags[0]).toMatchObject({ tagId: null, name: "新的" });
+  });
+
+  it("dedupes folders and tags and caps reason length", () => {
+    const result = parseSuggestLinkOrg(
+      JSON.stringify({
+        folders: [
+          { folderId: "f1", name: "工作", reason: "a".repeat(120) },
+          { folderId: "f1", name: "工作", reason: "dup" },
+        ],
+        tags: [
+          { tagId: "t1", name: "文档", reason: "r" },
+          { tagId: null, name: "文档", reason: "dup name" },
+        ],
+      }),
+      catalogs,
+    );
+    expect(result.folders).toHaveLength(1);
+    expect(result.folders[0]?.reason).toHaveLength(80);
+    expect(result.tags).toHaveLength(1);
   });
 
   it("fails on fullwidth commas", () => {

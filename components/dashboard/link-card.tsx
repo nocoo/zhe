@@ -26,6 +26,8 @@ interface LinkCardProps {
   defaultEditing?: boolean;
   /** Callbacks for syncing edit mutations to the parent service. */
   editCallbacks?: EditLinkCallbacks;
+  onSuggest?: () => void;
+  suggestDisabled?: boolean;
 }
 
 /**
@@ -59,6 +61,8 @@ export const LinkCard = memo(function LinkCard({
   folders = [],
   defaultEditing = false,
   editCallbacks,
+  onSuggest,
+  suggestDisabled,
 }: LinkCardProps) {
   const vm = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
 
@@ -96,6 +100,8 @@ export const LinkCard = memo(function LinkCard({
     onOpenPreviewDialog: () => setPreviewDialogOpen(true),
     onToggleEdit: handleToggleEdit,
     onRefreshMetadata: vm.handleRefreshMetadata,
+    ...(onSuggest ? { onSuggest } : {}),
+    ...(suggestDisabled !== undefined ? { suggestDisabled } : {}),
   };
 
   const editArea =

@@ -206,6 +206,17 @@ describe("ScopedDB", () => {
       expect(unwrap(updated).screenshotUrl).toBe("https://img.example.com/shot.png");
     });
 
+    it("updateLink rejects a folder owned by another user", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      const folderB = await dbB.createFolder({ name: "Bob", icon: "folder" });
+      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "own" });
+
+      const updated = await dbA.updateLink(link.id, { folderId: folderB.id });
+      expect(updated).toBeNull();
+      expect((await dbA.getLinkById(link.id))?.folderId).toBeNull();
+    });
+
     it("updateLink clears screenshotUrl when set to null", async () => {
       const db = new ScopedDB(USER_A);
       const link = await db.createLink({ originalUrl: "https://example.com", slug: "ss2" });

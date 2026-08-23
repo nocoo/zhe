@@ -1,7 +1,7 @@
 "use client";
 
 import { Link2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,12 +10,14 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { Folder, Link, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
+import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 import { CreateLinkModal } from "./create-link-modal";
 import { InboxTriage } from "./inbox-triage";
 import { LinkCard } from "./link-card";
 import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 import { useLinksListFilters } from "./links-list-parts/useLinksListFilters";
 import { useViewMode, type ViewMode } from "./links-list-parts/useViewMode";
+import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   if (viewMode === "grid") {
@@ -51,6 +53,8 @@ interface LinksContentProps {
   handleLinkUpdated: (link: Link) => void;
   editCallbacks: EditLinkCallbacks;
   createButton: React.ReactNode;
+  onSuggest?: (linkId: number) => void;
+  suggestDisabled?: boolean;
 }
 
 function LinksContent(props: LinksContentProps) {
@@ -66,6 +70,8 @@ function LinksContent(props: LinksContentProps) {
     handleLinkUpdated,
     editCallbacks,
     createButton,
+    onSuggest,
+    suggestDisabled,
   } = props;
 
   if (filteredLinks.length === 0) {
@@ -99,6 +105,8 @@ function LinksContent(props: LinksContentProps) {
           linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
           folders={folders}
           editCallbacks={editCallbacks}
+          {...(onSuggest ? { onSuggest: () => onSuggest(link.id) } : {})}
+          {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
         />
       ))}
     </div>
@@ -131,6 +139,10 @@ export function LinksList() {
     }),
     [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
   );
+  const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
+  useEffect(() => {
+    void suggestVm.refreshHasAiKey();
+  }, [suggestVm.refreshHasAiKey]);
 
   // Batch-refresh metadata for links missing it (replaces per-card N+1 auto-fetch)
   useAutoRefreshMetadata(links, handleLinkUpdated);
@@ -207,7 +219,12 @@ export function LinksList() {
         handleLinkUpdated={handleLinkUpdated}
         editCallbacks={editCallbacks}
         createButton={createButton}
+        onSuggest={(id) => {
+          void suggestVm.openForLink(id);
+        }}
+        suggestDisabled={!suggestVm.hasAiKey}
       />
+      <SuggestLinkOrgDialog vm={suggestVm} />
     </div>
   );
 }

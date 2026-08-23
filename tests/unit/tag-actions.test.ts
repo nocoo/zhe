@@ -45,6 +45,7 @@ import {
   addTagToLink,
   createTag,
   deleteTag,
+  ensureTagOnLink,
   getLinkTags,
   getTags,
   removeTagFromLink,
@@ -412,6 +413,40 @@ describe("actions/tags", () => {
       mockRemoveTagFromLink.mockRejectedValue(new Error("DB error"));
       const result = await removeTagFromLink(1, "tag-uuid-1");
       expect(result).toEqual({ success: false, error: "Failed to remove tag from link" });
+    });
+  });
+
+  describe("ensureTagOnLink", () => {
+    it("returns Unauthorized when not authenticated", async () => {
+      mockAuth.mockResolvedValue(null);
+      const result = await ensureTagOnLink(1, "work");
+      expect(result).toEqual({ success: false, error: "Unauthorized" });
+    });
+
+    it("rejects an invalid name", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      const result = await ensureTagOnLink(1, "   ");
+      expect(result.success).toBe(false);
+    });
+
+    it("attaches an existing tag without creating", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
+      mockAddTagToLink.mockResolvedValue(true);
+      const result = await ensureTagOnLink(1, "WORK");
+      expect(result.success).toBe(true);
+      expect(unwrap(result.data).tag.id).toBe("tag-uuid-1");
+      expect(mockCreateTag).not.toHaveBeenCalled();
+    });
+
+    it("creates a missing tag then attaches it", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
+      mockCreateTag.mockResolvedValue(FAKE_TAG);
+      mockAddTagToLink.mockResolvedValue(true);
+      const result = await ensureTagOnLink(1, "work");
+      expect(result.success).toBe(true);
+      expect(mockCreateTag).toHaveBeenCalled();
     });
   });
 });

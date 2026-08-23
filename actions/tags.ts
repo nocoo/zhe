@@ -160,6 +160,44 @@ export async function getLinkTags(): Promise<ActionResult<LinkTag[]>> {
 /**
  * Add a tag to a link.
  */
+export async function ensureTagOnLink(
+  linkId: number,
+  name: string,
+): Promise<ActionResult<{ tag: Tag; attached: boolean }>> {
+  try {
+    const db = await getScopedDB();
+    if (!db) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const validName = validateTagName(name);
+    if (!validName) {
+      return { success: false, error: "Invalid tag name" };
+    }
+
+    const existing = await db.getTags();
+    let tag = existing.find((item) => item.name.trim().toLowerCase() === validName.toLowerCase());
+    if (!tag) {
+      const created = await createTag({ name: validName });
+      if (!created.success || !created.data) {
+        const again = await db.getTags();
+        tag = again.find((item) => item.name.trim().toLowerCase() === validName.toLowerCase());
+        if (!tag) {
+          return { success: false, error: created.error ?? "Failed to create tag" };
+        }
+      } else {
+        tag = created.data;
+      }
+    }
+
+    const attached = await db.addTagToLink(linkId, tag.id);
+    return { success: true, data: { tag, attached } };
+  } catch (error) {
+    console.error("Failed to ensure tag on link:", error);
+    return { success: false, error: "Failed to add tag to link" };
+  }
+}
+
 export async function addTagToLink(linkId: number, tagId: string): Promise<ActionResult> {
   try {
     const db = await getScopedDB();

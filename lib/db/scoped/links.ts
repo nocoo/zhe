@@ -5,6 +5,7 @@
 import { executeD1Query } from "../d1-client";
 import { rowToLink } from "../mappers";
 import type { Link, NewLink } from "../schema";
+import { getFolderById } from "./folders";
 import type { GetLinksOptions } from "./types";
 
 export function buildLinksQuery(
@@ -195,6 +196,10 @@ export async function updateLink(
   id: number,
   data: UpdateLinkData,
 ): Promise<Link | null> {
+  if (data.folderId) {
+    const folder = await getFolderById(userId, data.folderId);
+    if (!folder) return null;
+  }
   const { setClauses, params } = buildUpdateSet(data);
   if (setClauses.length === 0) return getLinkById(userId, id);
 

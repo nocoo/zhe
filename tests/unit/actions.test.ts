@@ -36,6 +36,7 @@ const mockGetLinksByIds = vi.fn();
 const mockUpdateLinkScreenshot = vi.fn();
 const mockUpdateLinkNote = vi.fn();
 const mockAddTagToLink = vi.fn();
+const mockGetFolderById = vi.fn();
 
 vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
@@ -51,6 +52,7 @@ vi.mock("@/lib/db/scoped", () => ({
       updateLinkScreenshot: mockUpdateLinkScreenshot,
       updateLinkNote: mockUpdateLinkNote,
       addTagToLink: mockAddTagToLink,
+      getFolderById: mockGetFolderById,
     };
   }),
 }));
@@ -513,6 +515,7 @@ describe("actions/links — uncovered paths", () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       const updatedLink = { ...FAKE_LINK, folderId: "folder-2" };
       mockUpdateLink.mockResolvedValue(updatedLink);
+      mockGetFolderById.mockResolvedValue({ id: "folder-2", name: "Work" });
 
       const result = await updateLink(1, { folderId: "folder-2" });
 
@@ -523,6 +526,17 @@ describe("actions/links — uncovered paths", () => {
           folderId: "folder-2",
         }),
       );
+    });
+
+    it("rejects a folder owned by another user", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetFolderById.mockResolvedValue(null);
+
+      const result = await updateLink(1, { folderId: "foreign-folder" });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Folder not found");
+      expect(mockUpdateLink).not.toHaveBeenCalled();
     });
 
     it("updates slug when provided with valid slug", async () => {

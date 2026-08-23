@@ -1,6 +1,16 @@
 "use client";
 
-import { BarChart3, Camera, Check, Copy, ImageIcon, Link2, Loader2, Pencil } from "lucide-react";
+import {
+  BarChart3,
+  Camera,
+  Check,
+  Copy,
+  ImageIcon,
+  Link2,
+  Loader2,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -25,6 +35,8 @@ interface GridViewProps {
   onOpenPreviewDialog: () => void;
   onToggleEdit: () => void;
   onRefreshMetadata: () => void;
+  onSuggest?: () => void;
+  suggestDisabled?: boolean;
 }
 
 function GridScreenshot({
@@ -34,6 +46,8 @@ function GridScreenshot({
   isFetchingPreview,
   onOpenPreviewDialog,
   onToggleEdit,
+  onSuggest,
+  suggestDisabled,
 }: Pick<
   GridViewProps,
   | "link"
@@ -42,6 +56,8 @@ function GridScreenshot({
   | "isFetchingPreview"
   | "onOpenPreviewDialog"
   | "onToggleEdit"
+  | "onSuggest"
+  | "suggestDisabled"
 >) {
   const openOriginal = () => {
     window.open(link.originalUrl, "_blank", "noopener,noreferrer");
@@ -105,6 +121,18 @@ function GridScreenshot({
             <Camera className="w-4 h-4" strokeWidth={1.5} />
           )}
         </button>
+        {onSuggest && (
+          <button
+            type="button"
+            onClick={onSuggest}
+            disabled={suggestDisabled}
+            aria-label="AI 建议"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white disabled:opacity-40 [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+            title={suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}
+          >
+            <Sparkles className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+        )}
         <button
           type="button"
           onClick={onToggleEdit}
@@ -190,6 +218,8 @@ export function GridView(props: GridViewProps) {
         isFetchingPreview={props.isFetchingPreview}
         onOpenPreviewDialog={props.onOpenPreviewDialog}
         onToggleEdit={props.onToggleEdit}
+        {...(props.onSuggest ? { onSuggest: props.onSuggest } : {})}
+        {...(props.suggestDisabled !== undefined ? { suggestDisabled: props.suggestDisabled } : {})}
       />
 
       <div className="p-3 space-y-1">

@@ -18,6 +18,26 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock actions to prevent next-auth import chain
+vi.mock("@/viewmodels/useSuggestLinkOrgViewModel", () => ({
+  useSuggestLinkOrgViewModel: () => ({
+    open: false,
+    loading: false,
+    applying: false,
+    error: "",
+    folders: [],
+    selectedFolderId: null,
+    setSelectedFolderId: vi.fn(),
+    tags: [],
+    hasAiKey: false,
+    refreshHasAiKey: vi.fn(),
+    openForLink: vi.fn(),
+    close: vi.fn(),
+    toggleTag: vi.fn(),
+    renameTag: vi.fn(),
+    apply: vi.fn(),
+  }),
+}));
+
 vi.mock("@/actions/links", () => ({
   getLinks: vi.fn(),
   createLink: vi.fn(),

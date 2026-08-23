@@ -27,9 +27,6 @@ export default defineConfig({
         "lib/**/*.ts",
         "models/links.ts",
         "models/backy.ts",
-        "models/ai-settings.ts",
-        "models/ai-base-url.ts",
-        "models/ai-suggest-link-org.ts",
         "actions/**/*.ts",
         "proxy.ts",
         "viewmodels/**/*.ts",
@@ -65,7 +62,11 @@ export default defineConfig({
         "components/dashboard/idea-editor-page.tsx",
         "components/dashboard/api-keys-page.tsx",
         "components/dashboard/todos-page.tsx",
+        "components/dashboard/links-list.tsx",
+        "components/dashboard/inbox-triage.tsx",
         "components/dashboard/ai-settings-page.tsx",
+        "components/dashboard/suggest-link-org-dialog.tsx",
+        "components/dashboard/link-card.tsx",
         // The todos-page-parts primitives are unit-tested where they carry
         // logic; the composition-heavy shells (tree shell, detail pane,
         // tree row) are covered by C15 L1 tests and C11's E2E path.
@@ -76,6 +77,10 @@ export default defineConfig({
         "components/markdown-preview.tsx",
         // Editor viewmodel — tested via E2E
         "viewmodels/useIdeaEditorViewModel.ts",
+        "viewmodels/useSuggestLinkOrgViewModel.ts",
+        "lib/ai/run-task.ts",
+        "lib/ai/tasks/**",
+        "lib/db/scoped/settings.ts",
       ],
       thresholds: {
         lines: 95,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LinkCard } from "@/components/dashboard/link-card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { useDashboardService } from "@/contexts/dashboard-service";
 import type { LinkTag } from "@/models/types";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 function InboxSkeleton() {
   return (
@@ -132,6 +134,10 @@ export function InboxTriage() {
   );
 
   const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
+  const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
+  useEffect(() => {
+    void suggestVm.refreshHasAiKey();
+  }, [suggestVm.refreshHasAiKey]);
 
   const linkTagsByLinkId = useLinkTagsByLinkId(linkTags);
   const emptyLinkTags: LinkTag[] = useMemo(() => [], []);
@@ -163,10 +169,15 @@ export function InboxTriage() {
               folders={folders}
               defaultEditing
               editCallbacks={editCallbacks}
+              onSuggest={() => {
+                void suggestVm.openForLink(link.id);
+              }}
+              suggestDisabled={!suggestVm.hasAiKey}
             />
           ))}
         </div>
       )}
+      <SuggestLinkOrgDialog vm={suggestVm} />
     </div>
   );
 }

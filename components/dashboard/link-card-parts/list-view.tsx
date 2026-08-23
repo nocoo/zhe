@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
@@ -40,6 +41,8 @@ interface ListViewProps {
   onToggleEdit: () => void;
   onToggleAnalytics: () => void;
   onRefreshMetadata: () => void;
+  onSuggest?: () => void;
+  suggestDisabled?: boolean;
 }
 
 function ListThumbnail({
@@ -155,6 +158,8 @@ function ListActions({
   onRefreshMetadata,
   onOpenPreviewDialog,
   onToggleEdit,
+  onSuggest,
+  suggestDisabled,
 }: {
   isEditing: boolean;
   isFetchingPreview: boolean;
@@ -162,6 +167,8 @@ function ListActions({
   onRefreshMetadata: () => void;
   onOpenPreviewDialog: () => void;
   onToggleEdit: () => void;
+  onSuggest?: () => void;
+  suggestDisabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -193,6 +200,18 @@ function ListActions({
           <Camera className="w-4 h-4" strokeWidth={1.5} />
         )}
       </button>
+      {onSuggest && (
+        <button
+          type="button"
+          onClick={onSuggest}
+          disabled={suggestDisabled}
+          aria-label="AI 建议"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
+          title={suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}
+        >
+          <Sparkles className="w-4 h-4" strokeWidth={1.5} />
+        </button>
+      )}
       <button
         type="button"
         onClick={onToggleEdit}
@@ -230,6 +249,8 @@ export function ListView(props: ListViewProps) {
     onToggleEdit,
     onToggleAnalytics,
     onRefreshMetadata,
+    onSuggest,
+    suggestDisabled,
   } = props;
 
   return (
@@ -274,6 +295,8 @@ export function ListView(props: ListViewProps) {
         onRefreshMetadata={onRefreshMetadata}
         onOpenPreviewDialog={onOpenPreviewDialog}
         onToggleEdit={onToggleEdit}
+        {...(onSuggest ? { onSuggest } : {})}
+        {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
       />
     </div>
   );
