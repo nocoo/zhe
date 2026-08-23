@@ -36,8 +36,7 @@ export async function POST(request: Request): Promise<Response> {
   ]);
   const assigned = new Set(linkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId));
   const currentTags = tags.filter((t) => assigned.has(t.id)).map((t) => t.name);
-  const currentFolder =
-    folders.find((f) => f.id === link.folderId)?.name ?? (link.folderId ? "Inbox" : "Inbox");
+  const currentFolder = folders.find((f) => f.id === link.folderId)?.name ?? "Inbox";
 
   const catalogs = {
     folders: folders.map((f) => ({ id: f.id, name: f.name })),
