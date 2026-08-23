@@ -12,6 +12,46 @@ export interface SuggestTagDraft extends SuggestTagOption {
   draftName: string;
 }
 
+export const SUGGEST_STEPS = [
+  { id: "prepare", label: "准备目录", hint: "读取链接、文件夹和标签" },
+  { id: "request", label: "调用模型", hint: "正在等待模型返回" },
+  { id: "parse", label: "解析结果", hint: "校验文件夹和标签 JSON" },
+  { id: "ready", label: "完成", hint: "可以核对并应用建议" },
+] as const;
+
+export type SuggestStepId = (typeof SUGGEST_STEPS)[number]["id"];
+export type SuggestStepState = "pending" | "current" | "done" | "error";
+
+export function failedSuggestStep(reason: string | undefined): SuggestStepId {
+  if (reason === "parse_error") return "parse";
+  if (reason === "no_ai_config" || reason === "not_found" || reason === "validation") {
+    return "prepare";
+  }
+  return "request";
+}
+
+export function suggestStepState(
+  id: SuggestStepId,
+  loading: boolean,
+  error: string,
+  failedStep: SuggestStepId | null,
+): SuggestStepState {
+  const order: SuggestStepId[] = ["prepare", "request", "parse", "ready"];
+  const index = order.indexOf(id);
+  if (error) {
+    const failedIndex = failedStep ? order.indexOf(failedStep) : order.indexOf("request");
+    if (index < failedIndex) return "done";
+    if (index === failedIndex) return "error";
+    return "pending";
+  }
+  if (loading) {
+    if (id === "prepare") return "done";
+    if (id === "request") return "current";
+    return "pending";
+  }
+  return "done";
+}
+
 export async function loadHasAiKey(): Promise<boolean> {
   try {
     const res = await fetch("/api/settings/ai");
@@ -32,6 +72,12 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [tags, setTags] = useState<SuggestTagDraft[]>([]);
   const [hasAiKey, setHasAiKey] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [rawText, setRawText] = useState("");
+  const [model, setModel] = useState("");
+  const [provider, setProvider] = useState("");
+  const [durationMs, setDurationMs] = useState<number | null>(null);
+  const [failedStep, setFailedStep] = useState<SuggestStepId | null>(null);
 
   const refreshHasAiKey = useCallback(async () => {
     const value = await loadHasAiKey();
@@ -46,6 +92,12 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     setError("");
     setFolders([]);
     setTags([]);
+    setPrompt("");
+    setRawText("");
+    setModel("");
+    setProvider("");
+    setDurationMs(null);
+    setFailedStep(null);
     try {
       const res = await fetch("/api/ai/suggest-link-org", {
         method: "POST",
@@ -56,9 +108,21 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
         folders?: SuggestFolderOption[];
         tags?: SuggestTagOption[];
         error?: string;
+        reason?: string;
+        prompt?: string;
+        rawText?: string;
+        model?: string;
+        provider?: string;
+        durationMs?: number;
       };
+      if (typeof data.prompt === "string") setPrompt(data.prompt);
+      if (typeof data.rawText === "string") setRawText(data.rawText);
+      if (typeof data.model === "string") setModel(data.model);
+      if (typeof data.provider === "string") setProvider(data.provider);
+      if (typeof data.durationMs === "number") setDurationMs(data.durationMs);
       if (!res.ok || !data.folders || !data.tags) {
         setError(data.error || "获取建议失败");
+        setFailedStep(failedSuggestStep(data.reason));
         return;
       }
       setFolders(data.folders);
@@ -72,6 +136,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
       );
     } catch {
       setError("网络错误");
+      setFailedStep("request");
     } finally {
       setLoading(false);
     }
@@ -143,6 +208,12 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     selectedFolderId,
     setSelectedFolderId,
     tags,
+    prompt,
+    rawText,
+    model,
+    provider,
+    durationMs,
+    failedStep,
     hasAiKey,
     refreshHasAiKey,
     openForLink,

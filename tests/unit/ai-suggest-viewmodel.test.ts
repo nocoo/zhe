@@ -20,7 +20,12 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { loadHasAiKey, useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import {
+  failedSuggestStep,
+  loadHasAiKey,
+  suggestStepState,
+  useSuggestLinkOrgViewModel,
+} from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 const callbacks = {
   onLinkUpdated: vi.fn(),
@@ -35,6 +40,11 @@ const suggestion = {
     { tagId: "t1", name: "文档", reason: "已有标签" },
     { tagId: null, name: "新标签", reason: "新建" },
   ],
+  prompt: "url: https://example.com",
+  rawText: '{"folders":[],"tags":[]}',
+  model: "claude-sonnet-4-5",
+  provider: "anthropic",
+  durationMs: 1600,
 };
 
 describe("useSuggestLinkOrgViewModel", () => {
@@ -74,6 +84,9 @@ describe("useSuggestLinkOrgViewModel", () => {
     });
     expect(result.current.folders).toHaveLength(1);
     expect(result.current.tags[0]?.checked).toBe(true);
+    expect(result.current.prompt).toContain("example.com");
+    expect(result.current.rawText).toContain("folders");
+    expect(result.current.failedStep).toBeNull();
 
     await act(async () => {
       await result.current.apply();
@@ -190,7 +203,11 @@ describe("useSuggestLinkOrgViewModel", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
-        json: async () => ({ error: "尚未配置 AI", reason: "no_ai_config" }),
+        json: async () => ({
+          error: "尚未配置 AI",
+          reason: "no_ai_config",
+          prompt: "url: https://example.com",
+        }),
       }),
     );
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
@@ -198,6 +215,8 @@ describe("useSuggestLinkOrgViewModel", () => {
       await result.current.openForLink(7);
     });
     expect(result.current.error).toContain("尚未配置 AI");
+    expect(result.current.failedStep).toBe("prepare");
+    expect(result.current.prompt).toContain("example.com");
     act(() => {
       result.current.renameTag(0, "ignored");
       result.current.close();
@@ -232,6 +251,40 @@ describe("useSuggestLinkOrgViewModel", () => {
       await result.current.openForLink(1);
     });
     expect(result.current.error).toBe("网络错误");
+    expect(result.current.failedStep).toBe("request");
+  });
+
+  it("maps parse_error onto the parse step", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: "模型返回不是有效 JSON",
+          reason: "parse_error",
+          prompt: "sent",
+          rawText: "{",
+        }),
+      }),
+    );
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(async () => {
+      await result.current.openForLink(1);
+    });
+    expect(result.current.failedStep).toBe("parse");
+    expect(result.current.rawText).toBe("{");
+  });
+
+  it("derives step states for loading, success, and failure", () => {
+    expect(failedSuggestStep("parse_error")).toBe("parse");
+    expect(failedSuggestStep("timeout")).toBe("request");
+    expect(suggestStepState("request", true, "", null)).toBe("current");
+    expect(suggestStepState("prepare", true, "", null)).toBe("done");
+    expect(suggestStepState("parse", true, "", null)).toBe("pending");
+    expect(suggestStepState("ready", false, "", null)).toBe("done");
+    expect(suggestStepState("parse", false, "坏了", "parse")).toBe("error");
+    expect(suggestStepState("request", false, "坏了", "parse")).toBe("done");
+    expect(suggestStepState("ready", false, "坏了", "parse")).toBe("pending");
   });
 
   it("loads hasApiKey without caching a failed fetch", async () => {
