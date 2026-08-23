@@ -19,6 +19,7 @@ const mockDeleteTag = vi.fn();
 const mockGetLinkTags = vi.fn();
 const mockAddTagToLink = vi.fn();
 const mockRemoveTagFromLink = vi.fn();
+const mockGetLinkById = vi.fn();
 
 vi.mock("@/lib/db/scoped", () => ({
   ScopedDB: vi.fn().mockImplementation(function () {
@@ -30,6 +31,7 @@ vi.mock("@/lib/db/scoped", () => ({
       getLinkTags: mockGetLinkTags,
       addTagToLink: mockAddTagToLink,
       removeTagFromLink: mockRemoveTagFromLink,
+      getLinkById: mockGetLinkById,
     };
   }),
 }));
@@ -417,6 +419,11 @@ describe("actions/tags", () => {
   });
 
   describe("ensureTagOnLink", () => {
+    beforeEach(() => {
+      mockGetLinkById.mockResolvedValue({ id: 1 });
+      mockGetLinkTags.mockResolvedValue([]);
+    });
+
     it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
       const result = await ensureTagOnLink(1, "work");
@@ -429,13 +436,25 @@ describe("actions/tags", () => {
       expect(result.success).toBe(false);
     });
 
+    it("fails before creating when the link is missing", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetLinkById.mockResolvedValue(null);
+      const result = await ensureTagOnLink(1, "work");
+      expect(result).toEqual({ success: false, error: "Link not found" });
+      expect(mockCreateTag).not.toHaveBeenCalled();
+    });
+
     it("attaches an existing tag without creating", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetTags.mockResolvedValue([FAKE_TAG]);
       mockAddTagToLink.mockResolvedValue(true);
       const result = await ensureTagOnLink(1, "WORK");
       expect(result.success).toBe(true);
-      expect(unwrap(result.data).tag.id).toBe("tag-uuid-1");
+      expect(unwrap(result.data)).toMatchObject({
+        tag: { id: "tag-uuid-1" },
+        created: false,
+        attached: true,
+      });
       expect(mockCreateTag).not.toHaveBeenCalled();
     });
 
@@ -446,7 +465,16 @@ describe("actions/tags", () => {
       mockAddTagToLink.mockResolvedValue(true);
       const result = await ensureTagOnLink(1, "work");
       expect(result.success).toBe(true);
+      expect(unwrap(result.data)).toMatchObject({ created: true, attached: true });
       expect(mockCreateTag).toHaveBeenCalled();
+    });
+
+    it("fails when attachment is rejected", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
+      mockAddTagToLink.mockResolvedValue(false);
+      const result = await ensureTagOnLink(1, "work");
+      expect(result).toEqual({ success: false, error: "Failed to add tag to link" });
     });
   });
 });

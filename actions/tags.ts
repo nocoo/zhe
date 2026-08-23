@@ -163,7 +163,7 @@ export async function getLinkTags(): Promise<ActionResult<LinkTag[]>> {
 export async function ensureTagOnLink(
   linkId: number,
   name: string,
-): Promise<ActionResult<{ tag: Tag; attached: boolean }>> {
+): Promise<ActionResult<{ tag: Tag; created: boolean; attached: boolean }>> {
   try {
     const db = await getScopedDB();
     if (!db) {
@@ -175,23 +175,37 @@ export async function ensureTagOnLink(
       return { success: false, error: "Invalid tag name" };
     }
 
+    const link = await db.getLinkById(linkId);
+    if (!link) {
+      return { success: false, error: "Link not found" };
+    }
+
     const existing = await db.getTags();
     let tag = existing.find((item) => item.name.trim().toLowerCase() === validName.toLowerCase());
+    let created = false;
     if (!tag) {
-      const created = await createTag({ name: validName });
-      if (!created.success || !created.data) {
+      const createdResult = await createTag({ name: validName });
+      if (!createdResult.success || !createdResult.data) {
         const again = await db.getTags();
         tag = again.find((item) => item.name.trim().toLowerCase() === validName.toLowerCase());
         if (!tag) {
-          return { success: false, error: created.error ?? "Failed to create tag" };
+          return { success: false, error: createdResult.error ?? "Failed to create tag" };
         }
       } else {
-        tag = created.data;
+        tag = createdResult.data;
+        created = true;
       }
     }
 
+    const linkTags = await db.getLinkTags();
+    const alreadyAttached = linkTags.some(
+      (item) => item.linkId === linkId && item.tagId === tag.id,
+    );
     const attached = await db.addTagToLink(linkId, tag.id);
-    return { success: true, data: { tag, attached } };
+    if (!attached) {
+      return { success: false, error: "Failed to add tag to link" };
+    }
+    return { success: true, data: { tag, created, attached: !alreadyAttached } };
   } catch (error) {
     console.error("Failed to ensure tag on link:", error);
     return { success: false, error: "Failed to add tag to link" };
