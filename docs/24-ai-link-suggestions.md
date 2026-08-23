@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1) · awaiting Codex review  
+> **Status**: Design (v1.1) · Codex round-1 findings folded in  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
@@ -131,7 +131,11 @@ ALTER TABLE user_settings ADD COLUMN ai_auth_type TEXT;
 | `ai_sdk_type` | `anthropic` \| `openai`; required when custom |
 | `ai_auth_type` | `apiKey` \| `bearer`; custom only |
 
+**At-rest encryption (P2 accepted risk):** `ai_api_key` is stored plaintext, same as `backy_api_key` / `xray_api_token`. v1 does **not** add AEAD. Rotation = user pastes a new key. Revisit only if we encrypt *all* third-party secrets on this row together.
+
 **Why not KV rows?** Zhe already has a wide `user_settings` row and `ScopedDB` helpers per feature. Prompt overrides are out of v1, so we do not need gecko's `ai.prompt.sectionN` keys yet.
+
+**UPSERT must not clobber siblings:** `upsertAiSettings` updates **only** `ai_*` columns on conflict (mirror `upsertBackySettings`). L1 must prove: existing Backy/Xray/preview values survive an AI upsert, and existing `ai_*` values survive a Backy/Xray/preview upsert — both on a fresh row and on a row that already has the other feature set.
 
 **INSERT hygiene**: any `INSERT INTO user_settings (...)` that lists columns must either omit the new ones (they default NULL) or include them. Grep every INSERT on this table when adding the migration (project retro: mock INSERT must read params).
 
@@ -153,11 +157,11 @@ Returns:
   sdkType: string;
   authType: string;
   hasApiKey: boolean;
-  apiKey: string; // masked: "*".repeat(n-4) + last4, or ""
+  apiKeyLast4: string; // last 4 of stored key, or ""
 }
 ```
 
-Never return the raw key.
+There is **no** `apiKey` field. The settings input starts empty. A filled key is shown only as “已保存 ···xxxx”.
 
 #### `PUT /api/settings/ai`
 
@@ -166,7 +170,7 @@ Body (partial):
 ```ts
 {
   provider?: string;
-  apiKey?: string;      // omit = keep existing
+  apiKey?: string | null; // omit = keep; string = replace; null = clear
   model?: string;
   baseURL?: string;
   sdkType?: string;
@@ -180,19 +184,33 @@ Validation:
 - `sdkType` ∈ `{ "", "openai", "anthropic" }`
 - `authType` ∈ `{ "", "apiKey", "bearer" }`
 - Switching **off** custom: persist empty `baseURL` / `sdkType` / `authType` so stale custom rows cannot leak into `resolveAiConfig` (gecko lesson)
+- `apiKey` string that looks like a mask (`/^\*+[A-Za-z0-9]{0,4}$/` or equals previous `*+last4`) → `400` “refusing masked placeholder”
+- Custom `baseURL` must pass §3.4
 
-Response: same shape as GET (masked).
+Response: same shape as GET.
 
 #### `POST /api/settings/ai/test`
 
 Reads **stored** settings (caller must PUT first — UI does save-then-test, same as gecko).
 
-- Missing provider or key → `400`
+- Missing provider or key → `400` with envelope §4.5
 - `resolveAiConfig` + `createAiModel` + `generateText({ prompt: "Reply with exactly: OK", maxOutputTokens: 10 })`
 - Success → `{ success: true, response, model, provider }`
 - Upstream HTTP errors: forward `statusCode` when present, else `502`; lift inner `error.message` from `responseBody` when JSON
 
-### 3.4 Settings UI
+### 3.4 Custom `baseURL` (SSRF)
+
+Custom provider turns the origin into an outbound HTTP client. Before persist **and** before Test/suggest:
+
+1. Parse as absolute URL. Reject credentials in the URL (`user:pass@`).
+2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
+3. Hostname must not be `localhost`, `*.local`, or an IP in loopback / link-local / private / CGNAT / metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`, `fe80::/10`).
+4. Resolve DNS and reject if **any** A/AAAA is in those ranges (rebind).
+5. Do not follow redirects to a host that would fail 1–4.
+
+Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): void`. L1 table of blocked destinations.
+
+### 3.5 Settings UI
 
 | Item | Choice |
 |------|--------|
@@ -209,7 +227,7 @@ Page header: `PageHeader title="AI"` + short description.
 
 Auth-guard / Playwright warmup: add the route next to `data-management` (same list as `tests/playwright/auth.setup.ts` and `navigation.spec.ts`).
 
-### 3.5 “Test 通” definition
+### 3.6 “Test 通” definition
 
 A connection is **green** when:
 
@@ -242,10 +260,12 @@ Footer:
 
 | Field | Write |
 |-------|-------|
-| Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an existing folder id **or** explicit Inbox. |
-| Tags | For each checked option: if `tagId` exists → `addTagToLink`; if new name → `createTag({ name })` then `addTagToLink`. Skip names that fail `validateTagName`. Skip duplicates already on the link. |
+| Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox. |
+| Tags | For each checked option: **get-or-create then attach**. Resolve `name` case-insensitively against the user’s tags (`isDuplicateTagName`). If a tag exists → `addTagToLink` (already-on-link is a no-op). If new → `createTag({ name })` then `addTagToLink`. Skip names that fail `validateTagName`. **Existing tags on the link are never removed** by Apply. |
 
-Apply is **not** a D1 transaction (D1 batch `last_insert_rowid` pitfall). Sequence: folder first, then tags. Partial tag failure surfaces a toast and leaves successful writes; VM refreshes from `handleLinkUpdated` / `handleTagCreated` / `handleLinkTagAdded`.
+**Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
+
+Apply is **not** a D1 transaction (D1 batch `last_insert_rowid` pitfall). Sequence: folder first, then tags. Partial tag failure surfaces a toast and leaves successful writes; retry is safe because attach is idempotent and create is get-or-create. VM refreshes from `handleLinkUpdated` / `handleTagCreated` / `handleLinkTagAdded`.
 
 ### 4.2 JSON contract (the template)
 
@@ -258,9 +278,9 @@ interface SuggestLinkOrgResult {
 }
 
 interface SuggestFolderOption {
-  folderId: string | null; // must match an id from the prompt catalog, or null = Inbox
+  folderId: string | null; // existing folder id, or null = Inbox. Never the string "inbox".
   name: string;            // display; server overwrites from catalog when folderId set
-  reason: string;          // one short Chinese sentence
+  reason: string;          // one short Chinese sentence, max 80 chars
 }
 
 interface SuggestTagOption {
@@ -274,13 +294,14 @@ interface SuggestTagOption {
 
 1. Strip optional ` ```json ` fence (same as gecko `parseAiResponse`).
 2. `JSON.parse`. Structural punctuation must be ASCII (prompt forbids fullwidth commas).
-3. `folders` / `tags` must be arrays.
-4. Drop folder options whose `folderId` is non-null and **not** in the user’s folder catalog.
-5. Coerce Inbox: `folderId === null` or `folderId === ""` → Inbox (`null`).
-6. Drop tag options with empty / >30 char names after `validateTagName`.
-7. If `tagId` is set but unknown, treat as new tag (`tagId = null`) and keep `name`.
-8. Cap folders at 3, tags at 5, preserving order.
-9. If **both** arrays are empty after filtering → `parse_error` (do not show an empty dialog).
+3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`.
+4. Each option: `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
+5. Drop folder options whose `folderId` is a non-null string and **not** in the user’s folder catalog. The literal `"inbox"` is **not** an id — coerce only `null` / `""` / missing to Inbox.
+6. Deduplicate folders by `folderId` (Inbox once). Deduplicate tags by lowercased `name`.
+7. Drop tag options with empty / >30 char names after `validateTagName`.
+8. If `tagId` is set but unknown, treat as new tag (`tagId = null`) and keep `name`.
+9. Cap folders at 3, tags at 5, preserving order.
+10. If either array is empty after filtering → `parse_error` (do not show an empty dialog).
 
 No `confidence` field in v1 (extra surface, unused by apply).
 
@@ -333,6 +354,12 @@ Timeout 30s is enough for a short JSON object; gecko used 120s because of huge d
 
 `POST /api/ai/suggest-link-org`
 
+Stable error envelope for **all** AI routes (settings + suggest):
+
+```ts
+{ error: string; reason: "no_ai_config" | "not_found" | "validation" | "ai_error" | "parse_error" | "timeout" }
+```
+
 ```ts
 // body
 { linkId: number }
@@ -340,12 +367,15 @@ Timeout 30s is enough for a short JSON object; gecko used 120s because of huge d
 // 200
 { folders: SuggestFolderOption[]; tags: SuggestTagOption[]; model: string; provider: string; durationMs: number }
 
-// 400 no_ai_config | unknown link
-// 502 ai_error | parse_error
-// 504 timeout
+// 400 reason=no_ai_config | validation
+// 404 reason=not_found          // unknown or other-user linkId
+// 502 reason=ai_error | parse_error
+// 504 reason=timeout            // AbortSignal.timeout / TimeoutError only
 ```
 
-Server loads the link via `ScopedDB` (404-equivalent if not owned), builds catalogs from `getFolders()` + `getTags()` + assigned tags, runs the task. **Does not write** folder/tags.
+`runAiTask` must emit `reason: "timeout"` separately from `ai_error` so the route can map 504 without string-matching `"timed out"`.
+
+Server loads the link via `ScopedDB` (`404` if not owned), builds catalogs from `getFolders()` + `getTags()` + assigned tags, runs the task. **Does not write** folder/tags.
 
 ### 4.6 Client apply path
 
@@ -382,7 +412,8 @@ Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from 
 | `lib/db/schema.ts` | `userSettings` fields |
 | `lib/db/scoped/settings.ts` | `getAiSettings` / `upsertAiSettings` (mask at route, not repo) |
 | `lib/db/mappers.ts` | map new columns if `rowToUserSettings` lists fields |
-| `models/ai-settings.ts` | mask helper, provider unions |
+| `models/ai-settings.ts` | last4 helper, provider unions |
+| `models/ai-base-url.ts` | `assertSafeAiBaseUrl` |
 | `models/ai-suggest-link-org.ts` | parse + filter against catalogs |
 | `lib/ai/expand-template.ts` | `{{var}}` expander |
 | `lib/ai/run-task.ts` | generateText wrapper |
@@ -432,12 +463,15 @@ Prod: apply `0023` on `zhe-db` before the release that includes #2.
 | `maskApiKey` | empty, short (<4), normal |
 | `expandTemplate` | known key, dotted key, unknown key left intact |
 | `parseSuggestLinkOrg` | happy JSON; fenced JSON; fullwidth-comma fails; unknown folderId dropped; empty after filter → throw; tag name 31 chars dropped; unknown tagId → new tag |
-| Settings GET | masks key, `hasApiKey` |
-| Settings PUT | rejects bad provider / sdkType; omits key keeps previous |
+| Settings GET | no raw/masked `apiKey` field; `hasApiKey` + `apiKeyLast4` |
+| Settings PUT | rejects bad provider / sdkType; omits key keeps previous; rejects `***xxxx` placeholder; `null` clears |
+| `assertSafeAiBaseUrl` | https ok; http / localhost / 10.x / 169.254 rejected |
+| Settings UPSERT isolation | AI write keeps Backy/Xray; Backy write keeps `ai_*` (fresh + existing rows) |
 | Test route | 400 without key; mocked `generateText` success; upstream 401 mapped |
-| Suggest route | 400 no config; 400 unknown link; parse_error → 502 |
+| Suggest route | 400 no config; **404** unknown / other-user link; parse_error → 502; timeout → 504 |
 | `useAiSettingsViewModel` | load, save, test success/error |
-| `useSuggestLinkOrgViewModel` | open, toggle, apply folder+new tag, apply no-op when nothing selected |
+| `useSuggestLinkOrgViewModel` | open, toggle, apply folder+new tag, apply no-op when nothing selected; retry after partial tag success is idempotent |
+| `updateLink` folder ownership | foreign folder id rejected |
 | Dialog / settings page | render, disable without key, apply button |
 
 Mock `generateText` and `@nocoo/next-ai/server` in unit tests. Do **not** hit a live vendor in L1.
@@ -449,8 +483,8 @@ Mock `generateText` and `@nocoo/next-ai/server` in unit tests. Do **not** hit a 
 | `GET /api/settings/ai` unauth → 401 | |
 | `PUT` then `GET` round-trip (masked) | |
 | `POST /api/settings/ai/test` without key → 400 | |
-| `POST /api/ai/suggest-link-org` without key → 400 | |
-| `POST` with other user’s `linkId` → 400/404 | |
+| `POST /api/ai/suggest-link-org` without key → 400 `no_ai_config` | |
+| `POST` with other user’s `linkId` → **404** `not_found` | |
 
 Live LLM test is **not** an L2 gate.
 
@@ -483,6 +517,8 @@ No reserved-path change. No Worker deploy.
 | Risk | Mitigation |
 |------|------------|
 | Custom OpenAI-compatible proxy needs a trailing `/v1` | Document in the settings description; Test button is the oracle |
+| Custom URL SSRF | §3.4 blocklist + DNS check before persist/test/suggest |
+| Masked key written back | GET never returns `apiKey`; PUT rejects mask-shaped strings |
 | Model returns Chinese punctuation as JSON separators | Prompt forbids it; parse fails closed → 502 + toast, user retries |
 | Catalog too large for the prompt | Folders + tags are small personal sets; if >200 tags, send names only and drop ids for overflow (v2). v1 sends all. |
 | `user_settings` INSERT lists omit new columns | Grep + mapper tests that round-trip `ai_provider` |
