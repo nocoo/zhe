@@ -85,5 +85,36 @@ describe("POST /api/ai/suggest-link-org", () => {
       }),
     );
     expect(timeoutRes.status).toBe(504);
+    expect(await parseRes.json()).toMatchObject({
+      reason: "parse_error",
+      prompt: expect.stringContaining("https://example.com"),
+    });
+  });
+
+  it("returns prompt and raw text with suggestions", async () => {
+    mockGetScopedDB.mockResolvedValue(db());
+    mockRunAiTask.mockResolvedValue({
+      ok: true,
+      result: {
+        folders: [{ folderId: "f1", name: "工作", reason: "适合" }],
+        tags: [{ tagId: "t1", name: "文档", reason: "文档" }],
+      },
+      model: "claude-sonnet-4-5",
+      provider: "anthropic",
+      durationMs: 12,
+      rawText: '{"folders":[],"tags":[]}',
+    });
+    const res = await POST(
+      new Request("http://localhost/api/ai/suggest-link-org", {
+        method: "POST",
+        body: JSON.stringify({ linkId: 1 }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      prompt: expect.stringContaining("https://example.com"),
+      rawText: '{"folders":[],"tags":[]}',
+      model: "claude-sonnet-4-5",
+    });
   });
 });

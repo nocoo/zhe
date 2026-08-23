@@ -68,7 +68,15 @@ export async function POST(request: Request): Promise<Response> {
   if (!outcome.ok) {
     const status =
       outcome.reason === "no_ai_config" ? 400 : outcome.reason === "timeout" ? 504 : 502;
-    return aiErrorResponse(outcome.message, outcome.reason, status);
+    return NextResponse.json(
+      {
+        error: outcome.message,
+        reason: outcome.reason,
+        prompt,
+        rawText: outcome.rawText ?? "",
+      },
+      { status },
+    );
   }
 
   return NextResponse.json({
@@ -77,5 +85,7 @@ export async function POST(request: Request): Promise<Response> {
     model: outcome.model,
     provider: outcome.provider,
     durationMs: outcome.durationMs,
+    prompt,
+    rawText: outcome.rawText,
   });
 }
