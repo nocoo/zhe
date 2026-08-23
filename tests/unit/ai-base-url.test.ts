@@ -28,6 +28,7 @@ describe("isBlockedAiAddress", () => {
     "2001:db8::1",
     "64:ff9b::1",
     "2002::1",
+    "3fff::1",
     "fc00::1",
     "fe80::1",
     "ff02::1",
@@ -39,6 +40,10 @@ describe("isBlockedAiAddress", () => {
     expect(isBlockedAiAddress("1.1.1.1")).toBe(false);
     expect(isBlockedAiAddress("8.8.8.8")).toBe(false);
     expect(isBlockedAiAddress("2606:4700:4700::1111")).toBe(false);
+  });
+
+  it("blocks a non-IP hostname string", () => {
+    expect(isBlockedAiAddress("not-an-ip")).toBe(true);
   });
 });
 
@@ -76,5 +81,17 @@ describe("assertSafeAiBaseUrl", () => {
     await expect(assertSafeAiBaseUrl("https://rebind.example.com")).rejects.toThrow(
       "publicly routable",
     );
+  });
+
+  it("rejects an unparseable URL and empty DNS", async () => {
+    await expect(assertSafeAiBaseUrl("not a url")).rejects.toThrow("Invalid URL");
+    lookup.mockResolvedValue([]);
+    await expect(assertSafeAiBaseUrl("https://empty.example.com")).rejects.toThrow(
+      "did not resolve",
+    );
+  });
+
+  it("accepts a public literal IPv4", async () => {
+    await expect(assertSafeAiBaseUrl("https://1.1.1.1/v1")).resolves.toBeUndefined();
   });
 });

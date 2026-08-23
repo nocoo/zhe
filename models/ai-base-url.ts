@@ -23,6 +23,7 @@ const ipv6Special = new BlockList();
 ipv6Special.addSubnet("2001::", 23, "ipv6");
 ipv6Special.addSubnet("2001:db8::", 32, "ipv6");
 ipv6Special.addSubnet("2002::", 16, "ipv6");
+ipv6Special.addSubnet("3fff::", 20, "ipv6");
 
 const IPV4_MAPPED = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i;
 const IPV4_MAPPED_HEX = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i;
