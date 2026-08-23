@@ -20,12 +20,8 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import {
-  failedSuggestStep,
-  loadHasAiKey,
-  suggestStepState,
-  useSuggestLinkOrgViewModel,
-} from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { failedSuggestStep, suggestStepState } from "@/models/ai-suggest-progress";
+import { loadHasAiKey, useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 const callbacks = {
   onLinkUpdated: vi.fn(),
