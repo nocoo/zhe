@@ -91,15 +91,21 @@ function parseTags(rawItems: unknown[], tagById: Map<string, string>): SuggestTa
 }
 
 export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): SuggestLinkOrgResult {
-  const parsed = JSON.parse(stripFence(text)) as Record<string, unknown>;
-  if (!Array.isArray(parsed.folders) || !Array.isArray(parsed.tags)) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripFence(text));
+  } catch (error) {
+    throw new SuggestParseError(error instanceof Error ? error.message : "invalid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new SuggestParseError("response must be an object");
+  }
+  const root = parsed as Record<string, unknown>;
+  if (!Array.isArray(root.folders) || !Array.isArray(root.tags)) {
     throw new SuggestParseError("folders and tags must be arrays");
   }
-  const folders = parseFolders(
-    parsed.folders,
-    new Map(catalogs.folders.map((f) => [f.id, f.name])),
-  );
-  const tags = parseTags(parsed.tags, new Map(catalogs.tags.map((t) => [t.id, t.name])));
+  const folders = parseFolders(root.folders, new Map(catalogs.folders.map((f) => [f.id, f.name])));
+  const tags = parseTags(root.tags, new Map(catalogs.tags.map((t) => [t.id, t.name])));
   if (folders.length === 0 || tags.length === 0) {
     throw new SuggestParseError("folders and tags must both be non-empty");
   }

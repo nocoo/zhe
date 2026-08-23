@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { expandTemplate } from "@/lib/ai/expand-template";
+import { buildSuggestLinkOrgPrompt } from "@/lib/ai/tasks/suggest-link-org";
 import { parseSuggestLinkOrg } from "@/models/ai-suggest-link-org";
 
 const catalogs = {
@@ -90,5 +91,27 @@ describe("parseSuggestLinkOrg", () => {
 
   it("fails on fullwidth commas", () => {
     expect(() => parseSuggestLinkOrg('{"folders":[]，"tags":[]}', catalogs)).toThrow();
+  });
+
+  it("treats a null root as a parse error", () => {
+    expect(() => parseSuggestLinkOrg("null", catalogs)).toThrow("object");
+  });
+});
+
+describe("buildSuggestLinkOrgPrompt", () => {
+  it("injects Inbox and empty tag catalog", () => {
+    const prompt = buildSuggestLinkOrgPrompt({
+      url: "https://example.com",
+      title: "Example",
+      description: "",
+      note: "",
+      currentFolder: "Inbox",
+      currentTags: "（无）",
+      catalogs: { folders: [{ id: "f1", name: "工作" }], tags: [] },
+    });
+    expect(prompt).toContain("folderId=null name=Inbox");
+    expect(prompt).toContain("folderId=f1 name=工作");
+    expect(prompt).toContain("tagCatalog:\n（无）");
+    expect(prompt).toContain("https://example.com");
   });
 });
