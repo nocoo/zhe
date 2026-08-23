@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1.2) · Codex round-2 findings folded in  
+> **Status**: Design (v1.3) · Codex round-3 findings folded in  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
@@ -205,8 +205,8 @@ Custom provider turns the origin into an outbound HTTP client. **Re-run this che
 1. Parse as absolute URL. Reject credentials in the URL (`user:pass@`).
 2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
 3. Hostname must not be `localhost`, `*.local`, or an IP in loopback / link-local / private / CGNAT / metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`, `fe80::/10`).
-4. `assertSafeAiBaseUrl` is **async**: resolve DNS and reject if **any** A/AAAA is in those ranges.
-5. Outbound `generateText` / test fetch uses `redirect: "error"` (no follow). Residual DNS TOCTOU after resolve-but-before-connect is accepted for v1; do not add a custom pinned-IP Agent unless a later incident requires it.
+4. `assertSafeAiBaseUrl` is **async**: resolve DNS and reject if **any** A/AAAA is in those ranges. Re-run on persist and on every Test/suggest.
+5. `@nocoo/next-ai@0.4.0` `createAiModel` does **not** expose a custom `fetch`. **Built-in** providers use `createAiModel` (registry URLs). **Custom** provider: construct `createOpenAI` / `createAnthropic` locally with `fetch: (url, init) => fetch(url, { ...init, redirect: "error" })` after §3.4. Residual DNS TOCTOU on builtin providers is accepted.
 
 Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): Promise<void>`. L1 table of blocked destinations.
 
@@ -261,7 +261,7 @@ Footer:
 | Field | Write |
 |-------|-------|
 | Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox. |
-| Tags | Call new action `ensureTagOnLink(linkId, name)` (not raw `createTag` + `addTagToLink`). That action: `validateTagName` → case-insensitive lookup → if found, `addTagToLink` (no-op if already attached) → if missing, `createTag` then attach. On a duplicate-name race, re-lookup and attach. **Existing tags on the link are never removed** by Apply. Do not claim a SQL unique index in v1. |
+| Tags | Call new action `ensureTagOnLink(linkId, name)`. Lookup is case-insensitive; attach is idempotent; create-then-attach if missing. **Guarantee is best-effort:** no unique index in v1, so a concurrent create can yield two case-variant names. On `createTag` failure with “already exists”, re-lookup and attach. **Existing tags on the link are never removed** by Apply. |
 
 **Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
 
@@ -295,8 +295,8 @@ interface SuggestTagOption {
 1. Strip optional ` ```json ` fence (same as gecko `parseAiResponse`).
 2. `JSON.parse`. Structural punctuation must be ASCII (prompt forbids fullwidth commas).
 3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`.
-4. Each option: `folderId` / `tagId` must be `string | null` (reject numbers / objects). `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
-5. Inbox is **only** `folderId: null`. Drop options whose `folderId` is `"inbox"` or any other non-catalog string. Missing / `""` → treat as Inbox (`null`).
+4. **Normalize first:** missing / `""` `folderId` → `null` (Inbox). Then require `folderId` / `tagId` to be `string | null` (reject numbers / objects). `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
+5. Inbox is **only** `folderId: null`. Drop options whose `folderId` is `"inbox"` or any other non-catalog string.
 6. When `folderId` / `tagId` matches the catalog, **overwrite `name` from the catalog** before dedupe (model display names are not trusted).
 7. Deduplicate folders by `folderId` (Inbox once). Deduplicate tags by lowercased catalog/`name`.
 8. Drop tag options with empty / >30 char names after `validateTagName`.
@@ -383,8 +383,8 @@ Server loads the link via `ScopedDB` (`404` if not owned), builds catalogs from 
 `useSuggestLinkOrgViewModel`:
 
 - `open(linkId)` → POST suggest → store options + selection
-- `apply()` → existing actions only (no new write API)
-- Dashboard handlers already exist: `handleLinkUpdated`, `handleTagCreated`, `handleLinkTagAdded`
+- `apply()` → `updateLink` (folder) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
+- No other write APIs.
 
 Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from `link-card` (list + grid) via a `Button size="icon-sm"` with `aria-label="AI 建议"`.
 
@@ -422,6 +422,8 @@ Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from 
 | `app/api/settings/ai/route.ts` | GET / PUT |
 | `app/api/settings/ai/test/route.ts` | POST test |
 | `app/api/ai/suggest-link-org/route.ts` | POST suggest |
+| `actions/tags.ts` | `ensureTagOnLink` |
+| `lib/db/scoped/links.ts` | folder ownership check in `updateLink` |
 | `app/(dashboard)/dashboard/settings/ai/page.tsx` | route |
 | `components/dashboard/ai-settings-page.tsx` | settings view |
 | `components/dashboard/suggest-link-org-dialog.tsx` | dialog view |
