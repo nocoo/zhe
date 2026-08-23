@@ -12,6 +12,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/uploads": "文件上传",
   "/dashboard/backy": "Backy",
   "/dashboard/xray": "Xray",
+  "/dashboard/settings/ai": "AI",
   "/dashboard/tags": "标签",
   "/dashboard/storage": "存储管理",
   "/dashboard/data-management": "数据管理",

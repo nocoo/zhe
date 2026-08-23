@@ -64,6 +64,7 @@ export default defineConfig({
         "components/dashboard/idea-editor-page.tsx",
         "components/dashboard/api-keys-page.tsx",
         "components/dashboard/todos-page.tsx",
+        "components/dashboard/ai-settings-page.tsx",
         // The todos-page-parts primitives are unit-tested where they carry
         // logic; the composition-heavy shells (tree shell, detail pane,
         // tree row) are covered by C15 L1 tests and C11's E2E path.

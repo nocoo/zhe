@@ -12,6 +12,7 @@ import {
   Link2,
   ListTodo,
   Radar,
+  Sparkles,
   Tags,
   Webhook,
 } from "lucide-react";
@@ -81,6 +82,7 @@ export const OTHER_NAV_GROUPS: NavGroup[] = [
   {
     label: "设置",
     items: [
+      { title: "AI", icon: Sparkles, href: "/dashboard/settings/ai" },
       { title: "标签", icon: Tags, href: "/dashboard/tags" },
       { title: "存储管理", icon: HardDrive, href: "/dashboard/storage" },
       { title: "数据管理", icon: Database, href: "/dashboard/data-management" },

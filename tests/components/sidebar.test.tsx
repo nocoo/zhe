@@ -180,9 +180,9 @@ describe("Sidebar", () => {
     it("renders all nav items as links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (3 概览 section + 2 folder nav + 8 static) are now <Link> (rendered as <a>)
+      // All items (3 概览 section + 2 folder nav + 9 static) are now <Link> (rendered as <a>)
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(13);
+      expect(navLinks.length).toBe(14);
     });
 
     it("does not show version badge in collapsed mode", () => {
@@ -498,9 +498,9 @@ describe("Sidebar", () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 8 static = 15
+      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 9 static = 16
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(15);
+      expect(navLinks.length).toBe(16);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -714,9 +714,9 @@ describe("Sidebar", () => {
     it("renders all nav links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 3 设置 (tags+storage+data-management) = 13
+      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 4 设置 (ai+tags+storage+data-management) = 14
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(13);
+      expect(navLinks.length).toBe(14);
     });
   });
 

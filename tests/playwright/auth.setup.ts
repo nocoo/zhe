@@ -45,6 +45,7 @@ setup("authenticate", async ({ page, context }) => {
     "/dashboard/api-keys",
     "/dashboard/tags",
     "/dashboard/data-management",
+    "/dashboard/settings/ai",
     "/dashboard/webhook",
   ];
   for (const route of warmupRoutes) {

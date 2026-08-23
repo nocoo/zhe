@@ -29,6 +29,14 @@ test.describe("Auth guard (unauthenticated)", () => {
     expect(url.searchParams.get("callbackUrl")).toBe("/dashboard/data-management");
   });
 
+  test("redirects /dashboard/settings/ai to landing", async ({ page }) => {
+    await page.goto("/dashboard/settings/ai");
+    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
+
+    const url = new URL(page.url());
+    expect(url.searchParams.get("callbackUrl")).toBe("/dashboard/settings/ai");
+  });
+
   test("redirects /dashboard/overview to landing", async ({ page }) => {
     await page.goto("/dashboard/overview");
     await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
