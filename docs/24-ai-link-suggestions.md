@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1.3) · Codex round-3 findings folded in  
+> **Status**: Design (v1.4) · Codex round-4 findings folded in  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
@@ -100,7 +100,7 @@ Ship two stacked capabilities. Capability 1 is a hard prerequisite for Capabilit
 
 ```bash
 # install with a temporary allowed registry (see rules/tool-npm.md)
-BUN_CONFIG_REGISTRY=https://mirrors.tencent.com/npm/ bun add @nocoo/next-ai ai
+BUN_CONFIG_REGISTRY=https://mirrors.tencent.com/npm/ bun add @nocoo/next-ai ai @ai-sdk/openai @ai-sdk/anthropic
 ```
 
 - Import server helpers from `@nocoo/next-ai/server` (not `/server-next`). Zhe is Next.js, but gecko already hit `server-only` / SSR false-positives; `/server` is the verified path.
@@ -194,7 +194,7 @@ Response: same shape as GET.
 Reads **stored** settings (caller must PUT first — UI does save-then-test, same as gecko).
 
 - Missing provider or key → `400` with envelope §4.5
-- `resolveAiConfig` + `createAiModel` + `generateText({ prompt: "Reply with exactly: OK", maxOutputTokens: 10 })`
+- `createUserAiModel(stored)` + `generateText({ prompt: "Reply with exactly: OK", maxOutputTokens: 10 })`
 - Success → `{ success: true, response, model, provider }`
 - Upstream HTTP errors: forward `statusCode` when present, else `502`; lift inner `error.message` from `responseBody` when JSON
 
@@ -206,7 +206,11 @@ Custom provider turns the origin into an outbound HTTP client. **Re-run this che
 2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
 3. Hostname must not be `localhost`, `*.local`, or an IP in loopback / link-local / private / CGNAT / metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`, `fe80::/10`).
 4. `assertSafeAiBaseUrl` is **async**: resolve DNS and reject if **any** A/AAAA is in those ranges. Re-run on persist and on every Test/suggest.
-5. `@nocoo/next-ai@0.4.0` `createAiModel` does **not** expose a custom `fetch`. **Built-in** providers use `createAiModel` (registry URLs). **Custom** provider: construct `createOpenAI` / `createAnthropic` locally with `fetch: (url, init) => fetch(url, { ...init, redirect: "error" })` after §3.4. Residual DNS TOCTOU on builtin providers is accepted.
+5. `@nocoo/next-ai@0.4.0` `createAiModel` does **not** expose a custom `fetch`. **Single factory** `lib/ai/create-model.ts` `createUserAiModel(settings)`:
+   - builtin → `resolveAiConfig` + `createAiModel`
+   - custom → after §3.4, `createOpenAI` / `createAnthropic` from **direct** deps `@ai-sdk/openai` / `@ai-sdk/anthropic`, with `fetch: (url, init) => fetch(url, { ...init, redirect: "error" })`
+   - `authType === "bearer"` → `headers: { Authorization: \`Bearer ${apiKey}\` }`; `authType === "apiKey"` → SDK default key header only
+   Both `POST /api/settings/ai/test` and `runAiTask` **must** call this factory. L1: custom fetch is invoked with `redirect: "error"`.
 
 Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): Promise<void>`. L1 table of blocked destinations.
 
@@ -344,7 +348,7 @@ runAiTask(userId, { prompt, parse }): Promise<
 ```
 
 - Load `ai_*` from `user_settings`. Missing provider/key → `no_ai_config`.
-- `resolveAiConfig` / `createAiModel`.
+- `createUserAiModel(settings)` (§3.4).
 - `generateText({ prompt, maxOutputTokens: 1024, abortSignal: AbortSignal.timeout(30_000) })`.
 - `parse(text)`.
 - Never throws for expected failures (gecko `AnalysisOutcome` pattern).
@@ -417,7 +421,8 @@ Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from 
 | `models/ai-base-url.ts` | `assertSafeAiBaseUrl` |
 | `models/ai-suggest-link-org.ts` | parse + filter against catalogs |
 | `lib/ai/expand-template.ts` | `{{var}}` expander |
-| `lib/ai/run-task.ts` | generateText wrapper |
+| `lib/ai/create-model.ts` | `createUserAiModel` (builtin vs custom fetch) |
+| `lib/ai/run-task.ts` | generateText wrapper (uses `createUserAiModel` only) |
 | `lib/ai/tasks/suggest-link-org.ts` | prompt builder |
 | `app/api/settings/ai/route.ts` | GET / PUT |
 | `app/api/settings/ai/test/route.ts` | POST test |
