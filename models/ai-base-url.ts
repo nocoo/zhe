@@ -16,11 +16,13 @@ blocked.addSubnet("198.51.100.0", 24, "ipv4");
 blocked.addSubnet("203.0.113.0", 24, "ipv4");
 blocked.addSubnet("224.0.0.0", 4, "ipv4");
 blocked.addSubnet("240.0.0.0", 4, "ipv4");
-blocked.addAddress("::", "ipv6");
-blocked.addAddress("::1", "ipv6");
-blocked.addSubnet("fc00::", 7, "ipv6");
-blocked.addSubnet("fe80::", 10, "ipv6");
-blocked.addSubnet("ff00::", 8, "ipv6");
+const ipv6GlobalUnicast = new BlockList();
+ipv6GlobalUnicast.addSubnet("2000::", 3, "ipv6");
+
+const ipv6Special = new BlockList();
+ipv6Special.addSubnet("2001::", 23, "ipv6");
+ipv6Special.addSubnet("2001:db8::", 32, "ipv6");
+ipv6Special.addSubnet("2002::", 16, "ipv6");
 
 const IPV4_MAPPED = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i;
 const IPV4_MAPPED_HEX = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i;
@@ -45,7 +47,9 @@ function mappedIpv4(hostname: string): string | null {
 export function isBlockedAiAddress(address: string): boolean {
   const ipv4 = isIPv4(address) ? address : mappedIpv4(address);
   if (ipv4) return blocked.check(ipv4, "ipv4");
-  if (isIP(address) === 6) return blocked.check(address, "ipv6");
+  if (isIP(address) === 6) {
+    return !ipv6GlobalUnicast.check(address, "ipv6") || ipv6Special.check(address, "ipv6");
+  }
   return true;
 }
 

@@ -24,6 +24,13 @@ describe("isBlockedAiAddress", () => {
     "::1",
     "::ffff:127.0.0.1",
     "::ffff:7f00:1",
+    "fec0::1",
+    "2001:db8::1",
+    "64:ff9b::1",
+    "2002::1",
+    "fc00::1",
+    "fe80::1",
+    "ff02::1",
   ])("blocks %s", (ip) => {
     expect(isBlockedAiAddress(ip)).toBe(true);
   });
@@ -31,6 +38,7 @@ describe("isBlockedAiAddress", () => {
   it("allows a public unicast address", () => {
     expect(isBlockedAiAddress("1.1.1.1")).toBe(false);
     expect(isBlockedAiAddress("8.8.8.8")).toBe(false);
+    expect(isBlockedAiAddress("2606:4700:4700::1111")).toBe(false);
   });
 });
 
