@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1.1) · Codex round-1 findings folded in  
+> **Status**: Design (v1.2) · Codex round-2 findings folded in  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
@@ -185,7 +185,7 @@ Validation:
 - `authType` ∈ `{ "", "apiKey", "bearer" }`
 - Switching **off** custom: persist empty `baseURL` / `sdkType` / `authType` so stale custom rows cannot leak into `resolveAiConfig` (gecko lesson)
 - `apiKey` string that looks like a mask (`/^\*+[A-Za-z0-9]{0,4}$/` or equals previous `*+last4`) → `400` “refusing masked placeholder”
-- Custom `baseURL` must pass §3.4
+- **Merge-then-validate:** load stored row, apply the patch, then validate the **merged** object. If merged `provider === "custom"`, require non-empty `baseURL`, `sdkType`, `authType`, and `model`, and run §3.4 on `baseURL`. A PUT that only sends `{ provider: "custom" }` without the other custom fields → `400 validation`.
 
 Response: same shape as GET.
 
@@ -200,15 +200,15 @@ Reads **stored** settings (caller must PUT first — UI does save-then-test, sam
 
 ### 3.4 Custom `baseURL` (SSRF)
 
-Custom provider turns the origin into an outbound HTTP client. Before persist **and** before Test/suggest:
+Custom provider turns the origin into an outbound HTTP client. **Re-run this check on persist and on every Test/suggest call** (not persist-only — DNS can change).
 
 1. Parse as absolute URL. Reject credentials in the URL (`user:pass@`).
 2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
 3. Hostname must not be `localhost`, `*.local`, or an IP in loopback / link-local / private / CGNAT / metadata ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`, `fe80::/10`).
-4. Resolve DNS and reject if **any** A/AAAA is in those ranges (rebind).
-5. Do not follow redirects to a host that would fail 1–4.
+4. `assertSafeAiBaseUrl` is **async**: resolve DNS and reject if **any** A/AAAA is in those ranges.
+5. Outbound `generateText` / test fetch uses `redirect: "error"` (no follow). Residual DNS TOCTOU after resolve-but-before-connect is accepted for v1; do not add a custom pinned-IP Agent unless a later incident requires it.
 
-Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): void`. L1 table of blocked destinations.
+Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): Promise<void>`. L1 table of blocked destinations.
 
 ### 3.5 Settings UI
 
@@ -261,7 +261,7 @@ Footer:
 | Field | Write |
 |-------|-------|
 | Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox. |
-| Tags | For each checked option: **get-or-create then attach**. Resolve `name` case-insensitively against the user’s tags (`isDuplicateTagName`). If a tag exists → `addTagToLink` (already-on-link is a no-op). If new → `createTag({ name })` then `addTagToLink`. Skip names that fail `validateTagName`. **Existing tags on the link are never removed** by Apply. |
+| Tags | Call new action `ensureTagOnLink(linkId, name)` (not raw `createTag` + `addTagToLink`). That action: `validateTagName` → case-insensitive lookup → if found, `addTagToLink` (no-op if already attached) → if missing, `createTag` then attach. On a duplicate-name race, re-lookup and attach. **Existing tags on the link are never removed** by Apply. Do not claim a SQL unique index in v1. |
 
 **Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
 
@@ -295,13 +295,14 @@ interface SuggestTagOption {
 1. Strip optional ` ```json ` fence (same as gecko `parseAiResponse`).
 2. `JSON.parse`. Structural punctuation must be ASCII (prompt forbids fullwidth commas).
 3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`.
-4. Each option: `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
-5. Drop folder options whose `folderId` is a non-null string and **not** in the user’s folder catalog. The literal `"inbox"` is **not** an id — coerce only `null` / `""` / missing to Inbox.
-6. Deduplicate folders by `folderId` (Inbox once). Deduplicate tags by lowercased `name`.
-7. Drop tag options with empty / >30 char names after `validateTagName`.
-8. If `tagId` is set but unknown, treat as new tag (`tagId = null`) and keep `name`.
-9. Cap folders at 3, tags at 5, preserving order.
-10. If either array is empty after filtering → `parse_error` (do not show an empty dialog).
+4. Each option: `folderId` / `tagId` must be `string | null` (reject numbers / objects). `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
+5. Inbox is **only** `folderId: null`. Drop options whose `folderId` is `"inbox"` or any other non-catalog string. Missing / `""` → treat as Inbox (`null`).
+6. When `folderId` / `tagId` matches the catalog, **overwrite `name` from the catalog** before dedupe (model display names are not trusted).
+7. Deduplicate folders by `folderId` (Inbox once). Deduplicate tags by lowercased catalog/`name`.
+8. Drop tag options with empty / >30 char names after `validateTagName`.
+9. If `tagId` is set but unknown, treat as new tag (`tagId = null`) and keep `name`.
+10. Cap folders at 3, tags at 5, preserving order.
+11. If either array is empty after filtering → `parse_error` (do not show an empty dialog).
 
 No `confidence` field in v1 (extra surface, unused by apply).
 
@@ -326,7 +327,7 @@ File: `lib/ai/tasks/suggest-link-org.ts`. Four concatenated sections (gecko shap
 | `note` | `link.note` or `""` |
 | `currentFolder` | folder name or `Inbox` |
 | `currentTags` | comma-separated assigned tag names, or `（无）` |
-| `folderCatalog` | multiline `- id={id} name={name}` for every folder + `- id=inbox name=Inbox` |
+| `folderCatalog` | multiline `- folderId=null name=Inbox` then `- folderId={id} name={name}` for every folder. Never emit `id=inbox`. |
 | `tagCatalog` | multiline `- id={id} name={name}` for every user tag |
 
 Catalogs are the allow-list. The model is instructed not to emit folder ids outside it.
@@ -338,7 +339,7 @@ Catalogs are the allow-list. The model is instructed not to emit folder ids outs
 ```ts
 runAiTask(userId, { prompt, parse }): Promise<
   | { ok: true; result: T; model: string; provider: string; durationMs: number }
-  | { ok: false; reason: "no_ai_config" | "ai_error" | "parse_error"; message: string }
+  | { ok: false; reason: "no_ai_config" | "ai_error" | "parse_error" | "timeout"; message: string }
 >
 ```
 
@@ -447,7 +448,7 @@ Each commit independently typechecks / tests. Do **not** bundle infra + model + 
 | 3 | `feat: add AI settings API` | GET/PUT/test routes + unit tests |
 | 4 | `feat: add AI settings page` | page, VM, nav, breadcrumbs, Cmd+K |
 | 5 | `feat: add link org suggestion runner` | templates, parse, `run-task`, POST route |
-| 6 | `feat: add suggest-link-org dialog` | VM + dialog + link-card trigger + apply |
+| 6 | `feat: add suggest-link-org dialog` | VM + dialog + `ensureTagOnLink` + folder ownership check + apply |
 | 7 | `test: cover AI settings and suggestions` | remaining L1/L2/L3 |
 
 Prod: apply `0023` on `zhe-db` before the release that includes #2.
