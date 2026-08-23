@@ -2082,6 +2082,64 @@ describe("ScopedDB", () => {
     });
   });
 
+  describe("ai settings", () => {
+    const aiData = {
+      provider: "anthropic",
+      apiKey: "sk-test-key-1234",
+      model: "claude-sonnet-4-5",
+      baseURL: null,
+      sdkType: null,
+      authType: null,
+    };
+
+    it("getAiSettings returns empty fields when none exist", async () => {
+      const db = new ScopedDB(USER_A);
+      expect(await db.getAiSettings()).toEqual({
+        provider: null,
+        apiKey: null,
+        model: null,
+        baseURL: null,
+        sdkType: null,
+        authType: null,
+      });
+    });
+
+    it("upsertAiSettings saves and retrieves AI config", async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertAiSettings(aiData);
+      expect(await db.getAiSettings()).toEqual(aiData);
+    });
+
+    it("AI upsert keeps Backy and Xray on a fresh and existing row", async () => {
+      const db = new ScopedDB(USER_A);
+      await db.upsertBackySettings({
+        webhookUrl: "https://backy.example.com/hook",
+        apiKey: "backy-key",
+      });
+      await db.upsertXraySettings({
+        apiUrl: "https://xray.example.com/api",
+        apiToken: "xray-token",
+      });
+      await db.upsertAiSettings(aiData);
+
+      expect(await db.getBackySettings()).toEqual({
+        webhookUrl: "https://backy.example.com/hook",
+        apiKey: "backy-key",
+      });
+      expect(await db.getXraySettings()).toEqual({
+        apiUrl: "https://xray.example.com/api",
+        apiToken: "xray-token",
+      });
+      expect(await db.getAiSettings()).toEqual(aiData);
+
+      await db.upsertBackySettings({
+        webhookUrl: "https://backy.example.com/hook-2",
+        apiKey: "backy-key-2",
+      });
+      expect(await db.getAiSettings()).toEqual(aiData);
+    });
+  });
+
   // ---- Backy Pull Webhook -------------------------------------
 
   describe("backy pull webhook", () => {

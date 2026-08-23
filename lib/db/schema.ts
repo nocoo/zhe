@@ -158,6 +158,12 @@ export const userSettings = sqliteTable("user_settings", {
   xrayApiUrl: text("xray_api_url"),
   xrayApiToken: text("xray_api_token"),
   backyPullKey: text("backy_pull_key"),
+  aiProvider: text("ai_provider"),
+  aiApiKey: text("ai_api_key"),
+  aiModel: text("ai_model"),
+  aiBaseUrl: text("ai_base_url"),
+  aiSdkType: text("ai_sdk_type"),
+  aiAuthType: text("ai_auth_type"),
 });
 
 export const tweetCache = sqliteTable("tweet_cache", {

@@ -37,6 +37,12 @@ export interface MockUserSettings {
   backy_pull_key?: string | null;
   xray_api_url?: string | null;
   xray_api_token?: string | null;
+  ai_provider?: string | null;
+  ai_api_key?: string | null;
+  ai_model?: string | null;
+  ai_base_url?: string | null;
+  ai_sdk_type?: string | null;
+  ai_auth_type?: string | null;
 }
 
 // ApiKey raw row shape (matches D1 column names)

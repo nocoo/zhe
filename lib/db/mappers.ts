@@ -112,6 +112,12 @@ export function rowToUserSettings(row: Record<string, unknown>): UserSettings {
     xrayApiUrl: (row.xray_api_url as string) ?? null,
     xrayApiToken: (row.xray_api_token as string) ?? null,
     backyPullKey: (row.backy_pull_key as string) ?? null,
+    aiProvider: (row.ai_provider as string) ?? null,
+    aiApiKey: (row.ai_api_key as string) ?? null,
+    aiModel: (row.ai_model as string) ?? null,
+    aiBaseUrl: (row.ai_base_url as string) ?? null,
+    aiSdkType: (row.ai_sdk_type as string) ?? null,
+    aiAuthType: (row.ai_auth_type as string) ?? null,
   };
 }
 

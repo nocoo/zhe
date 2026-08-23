@@ -100,6 +100,52 @@ export async function upsertBackyPullWebhook(
   return rowToUserSettings(row);
 }
 
+export interface AiSettingsData {
+  provider: string | null;
+  apiKey: string | null;
+  model: string | null;
+  baseURL: string | null;
+  sdkType: string | null;
+  authType: string | null;
+}
+
+export async function getAiSettings(userId: string): Promise<AiSettingsData> {
+  const settings = await getUserSettings(userId);
+  return {
+    provider: settings?.aiProvider ?? null,
+    apiKey: settings?.aiApiKey ?? null,
+    model: settings?.aiModel ?? null,
+    baseURL: settings?.aiBaseUrl ?? null,
+    sdkType: settings?.aiSdkType ?? null,
+    authType: settings?.aiAuthType ?? null,
+  };
+}
+
+export async function upsertAiSettings(
+  userId: string,
+  data: AiSettingsData,
+): Promise<UserSettings> {
+  const rows = await executeD1Query<Record<string, unknown>>(
+    `INSERT INTO user_settings (
+       user_id, preview_style,
+       ai_provider, ai_api_key, ai_model, ai_base_url, ai_sdk_type, ai_auth_type
+     )
+     VALUES (?, 'favicon', ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (user_id) DO UPDATE SET
+       ai_provider = excluded.ai_provider,
+       ai_api_key = excluded.ai_api_key,
+       ai_model = excluded.ai_model,
+       ai_base_url = excluded.ai_base_url,
+       ai_sdk_type = excluded.ai_sdk_type,
+       ai_auth_type = excluded.ai_auth_type
+     RETURNING *`,
+    [userId, data.provider, data.apiKey, data.model, data.baseURL, data.sdkType, data.authType],
+  );
+  const row = rows[0];
+  if (!row) throw new Error("UPSERT RETURNING * returned no rows");
+  return rowToUserSettings(row);
+}
+
 export async function deleteBackyPullWebhook(userId: string): Promise<UserSettings | null> {
   const rows = await executeD1Query<Record<string, unknown>>(
     `UPDATE user_settings SET backy_pull_key = NULL WHERE user_id = ? RETURNING *`,

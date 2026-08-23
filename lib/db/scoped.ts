@@ -273,6 +273,12 @@ export class ScopedDB {
   deleteBackyPullWebhook(): Promise<UserSettings | null> {
     return settingsOps.deleteBackyPullWebhook(this.userId);
   }
+  getAiSettings(): Promise<settingsOps.AiSettingsData> {
+    return settingsOps.getAiSettings(this.userId);
+  }
+  upsertAiSettings(data: settingsOps.AiSettingsData): Promise<UserSettings> {
+    return settingsOps.upsertAiSettings(this.userId, data);
+  }
 
   // ---- API Keys ---------------------------------------------
 

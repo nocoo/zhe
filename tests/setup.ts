@@ -1571,6 +1571,12 @@ vi.mock("@/lib/db/d1-client", async () => {
           backy_pull_key: pullKey as string | null,
           xray_api_url: existing?.xray_api_url ?? null,
           xray_api_token: existing?.xray_api_token ?? null,
+          ai_provider: existing?.ai_provider ?? null,
+          ai_api_key: existing?.ai_api_key ?? null,
+          ai_model: existing?.ai_model ?? null,
+          ai_base_url: existing?.ai_base_url ?? null,
+          ai_sdk_type: existing?.ai_sdk_type ?? null,
+          ai_auth_type: existing?.ai_auth_type ?? null,
         };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];
@@ -1588,6 +1594,12 @@ vi.mock("@/lib/db/d1-client", async () => {
           backy_pull_key: existing?.backy_pull_key ?? null,
           xray_api_url: apiUrl as string | null,
           xray_api_token: apiToken as string | null,
+          ai_provider: existing?.ai_provider ?? null,
+          ai_api_key: existing?.ai_api_key ?? null,
+          ai_model: existing?.ai_model ?? null,
+          ai_base_url: existing?.ai_base_url ?? null,
+          ai_sdk_type: existing?.ai_sdk_type ?? null,
+          ai_auth_type: existing?.ai_auth_type ?? null,
         };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];
@@ -1605,6 +1617,34 @@ vi.mock("@/lib/db/d1-client", async () => {
           backy_pull_key: existing?.backy_pull_key ?? null,
           xray_api_url: existing?.xray_api_url ?? null,
           xray_api_token: existing?.xray_api_token ?? null,
+          ai_provider: existing?.ai_provider ?? null,
+          ai_api_key: existing?.ai_api_key ?? null,
+          ai_model: existing?.ai_model ?? null,
+          ai_base_url: existing?.ai_base_url ?? null,
+          ai_sdk_type: existing?.ai_sdk_type ?? null,
+          ai_auth_type: existing?.ai_auth_type ?? null,
+        };
+        mockSettings.set(userId as string, settings);
+        return [settings] as T[];
+      }
+      // AI settings upsert: (user_id, preview_style, ai_provider, ai_api_key, ai_model, ai_base_url, ai_sdk_type, ai_auth_type)
+      if (sqlLower.includes("ai_provider")) {
+        const [userId, provider, apiKey, model, baseURL, sdkType, authType] = params;
+        const existing = mockSettings.get(userId as string);
+        const settings = {
+          user_id: userId as string,
+          preview_style: existing?.preview_style ?? "favicon",
+          backy_webhook_url: existing?.backy_webhook_url ?? null,
+          backy_api_key: existing?.backy_api_key ?? null,
+          backy_pull_key: existing?.backy_pull_key ?? null,
+          xray_api_url: existing?.xray_api_url ?? null,
+          xray_api_token: existing?.xray_api_token ?? null,
+          ai_provider: provider as string | null,
+          ai_api_key: apiKey as string | null,
+          ai_model: model as string | null,
+          ai_base_url: baseURL as string | null,
+          ai_sdk_type: sdkType as string | null,
+          ai_auth_type: authType as string | null,
         };
         mockSettings.set(userId as string, settings);
         return [settings] as T[];
@@ -1620,6 +1660,12 @@ vi.mock("@/lib/db/d1-client", async () => {
         backy_pull_key: existing?.backy_pull_key ?? null,
         xray_api_url: existing?.xray_api_url ?? null,
         xray_api_token: existing?.xray_api_token ?? null,
+        ai_provider: existing?.ai_provider ?? null,
+        ai_api_key: existing?.ai_api_key ?? null,
+        ai_model: existing?.ai_model ?? null,
+        ai_base_url: existing?.ai_base_url ?? null,
+        ai_sdk_type: existing?.ai_sdk_type ?? null,
+        ai_auth_type: existing?.ai_auth_type ?? null,
       };
       mockSettings.set(userId as string, settings);
       return [settings] as T[];
