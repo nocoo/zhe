@@ -1,6 +1,6 @@
 # AI Integration and Link Organization Suggestions
 
-> **Status**: Design (v1.5) · Codex round-5 findings folded in  
+> **Status**: Design (v1.5) · Codex Sign Off (round 6)  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
 > **Agent entry**: `CLAUDE.md`
