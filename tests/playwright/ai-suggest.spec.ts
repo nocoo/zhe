@@ -11,10 +11,21 @@ test.describe("AI link suggestions", () => {
     const tagName = `e2e-ai-tag-${Date.now()}`;
     const folderId = `e2e-ai-folder-${Date.now()}`;
     const folderName = `AI Folder ${Date.now()}`;
+    const slug = `e2e-ai-${Date.now()}`;
     await executeD1(
       "INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)",
       [folderId, TEST_USER.id, folderName, "folder", Math.floor(Date.now() / 1000)],
     );
+    await executeD1(
+      "INSERT INTO links (user_id, original_url, slug, is_custom, clicks, created_at) VALUES (?, ?, ?, 1, 0, ?)",
+      [TEST_USER.id, "https://example.com/e2e-ai-suggest", slug, Date.now()],
+    );
+    const seeded = await queryD1<{ id: number }>(
+      "SELECT id FROM links WHERE user_id = ? AND slug = ?",
+      [TEST_USER.id, slug],
+    );
+    const linkId = seeded[0]?.id;
+    expect(linkId).toBeDefined();
     await page.route("**/api/settings/ai", async (route) => {
       if (route.request().method() === "GET") {
         await route.fulfill({
@@ -49,31 +60,32 @@ test.describe("AI link suggestions", () => {
       });
     });
 
-    await page.goto("/dashboard");
-    const suggest = page.getByRole("button", { name: "AI 建议" }).first();
-    await expect(suggest).toBeVisible();
-    await suggest.click();
-    await expect(page.getByTestId("suggest-link-org-dialog")).toBeVisible();
-    await page.getByTestId("suggest-apply").click();
-    await expect(page.getByText("已应用建议").first()).toBeVisible();
-    await expect(page.getByText("部分标签未能应用")).toHaveCount(0);
-    const badge = page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`);
-    await expect(badge).toBeVisible();
-    await page.reload();
-    await expect(
-      page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-    ).toBeVisible();
-    const assigned = await queryD1<{ folder_id: string | null }>(
-      `SELECT folder_id FROM links
-       WHERE user_id = ? AND id IN (
-         SELECT link_id FROM link_tags
-         WHERE tag_id IN (SELECT id FROM tags WHERE user_id = ? AND name = ?)
-       )
-       LIMIT 1`,
-      [TEST_USER.id, TEST_USER.id, tagName],
-    );
-    expect(assigned[0]?.folder_id).toBe(folderId);
-    await executeD1("DELETE FROM tags WHERE user_id = ? AND name = ?", [TEST_USER.id, tagName]);
-    await executeD1("DELETE FROM folders WHERE id = ?", [folderId]);
+    try {
+      await page.goto("/dashboard");
+      const card = page.locator('[data-testid="link-card"]').filter({ hasText: slug });
+      const suggest = card.getByRole("button", { name: "AI 建议" });
+      await expect(suggest).toBeVisible();
+      await suggest.click();
+      await expect(page.getByTestId("suggest-link-org-dialog")).toBeVisible();
+      await page.getByTestId("suggest-apply").click();
+      await expect(page.getByText("已应用建议").first()).toBeVisible();
+      await expect(page.getByText("部分标签未能应用")).toHaveCount(0);
+      const badge = page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`);
+      await expect(badge).toBeVisible();
+      await page.reload();
+      await expect(
+        page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
+      ).toBeVisible();
+      const assigned = await queryD1<{ folder_id: string | null }>(
+        "SELECT folder_id FROM links WHERE id = ? AND user_id = ?",
+        [linkId, TEST_USER.id],
+      );
+      expect(assigned[0]?.folder_id).toBe(folderId);
+    } finally {
+      await executeD1("DELETE FROM link_tags WHERE link_id = ?", [linkId]);
+      await executeD1("DELETE FROM tags WHERE user_id = ? AND name = ?", [TEST_USER.id, tagName]);
+      await executeD1("DELETE FROM links WHERE id = ?", [linkId]);
+      await executeD1("DELETE FROM folders WHERE id = ?", [folderId]);
+    }
   });
 });
