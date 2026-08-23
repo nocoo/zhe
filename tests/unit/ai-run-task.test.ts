@@ -94,7 +94,7 @@ describe("runAiTask", () => {
     mockGenerateText.mockRejectedValueOnce("boom");
     expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
       reason: "ai_error",
-      message: "Unknown AI error",
+      message: "AI 请求失败",
     });
   });
 });

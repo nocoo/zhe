@@ -60,35 +60,27 @@ describe("assertSafeAiBaseUrl", () => {
   it("rejects http, credentials, and localhost", async () => {
     await expect(assertSafeAiBaseUrl("http://api.example.com")).rejects.toThrow("https");
     await expect(assertSafeAiBaseUrl("https://user:pass@api.example.com")).rejects.toThrow(
-      "credentials",
+      "账号密码",
     );
-    await expect(assertSafeAiBaseUrl("https://localhost/v1")).rejects.toThrow("publicly routable");
-    await expect(assertSafeAiBaseUrl("https://foo.local/v1")).rejects.toThrow("publicly routable");
+    await expect(assertSafeAiBaseUrl("https://localhost/v1")).rejects.toThrow("公网地址");
+    await expect(assertSafeAiBaseUrl("https://foo.local/v1")).rejects.toThrow("公网地址");
   });
 
   it("rejects literal private and mapped loopback IPs", async () => {
-    await expect(assertSafeAiBaseUrl("https://10.0.0.1/v1")).rejects.toThrow("publicly routable");
-    await expect(assertSafeAiBaseUrl("https://169.254.1.1/v1")).rejects.toThrow(
-      "publicly routable",
-    );
-    await expect(assertSafeAiBaseUrl("https://[::ffff:127.0.0.1]/v1")).rejects.toThrow(
-      "publicly routable",
-    );
+    await expect(assertSafeAiBaseUrl("https://10.0.0.1/v1")).rejects.toThrow("公网地址");
+    await expect(assertSafeAiBaseUrl("https://169.254.1.1/v1")).rejects.toThrow("公网地址");
+    await expect(assertSafeAiBaseUrl("https://[::ffff:127.0.0.1]/v1")).rejects.toThrow("公网地址");
   });
 
   it("rejects when DNS returns a blocked address", async () => {
     lookup.mockResolvedValue([{ address: "100.64.0.1", family: 4 }]);
-    await expect(assertSafeAiBaseUrl("https://rebind.example.com")).rejects.toThrow(
-      "publicly routable",
-    );
+    await expect(assertSafeAiBaseUrl("https://rebind.example.com")).rejects.toThrow("公网地址");
   });
 
   it("rejects an unparseable URL and empty DNS", async () => {
-    await expect(assertSafeAiBaseUrl("not a url")).rejects.toThrow("Invalid URL");
+    await expect(assertSafeAiBaseUrl("not a url")).rejects.toThrow("接口地址无效");
     lookup.mockResolvedValue([]);
-    await expect(assertSafeAiBaseUrl("https://empty.example.com")).rejects.toThrow(
-      "did not resolve",
-    );
+    await expect(assertSafeAiBaseUrl("https://empty.example.com")).rejects.toThrow("无法解析");
   });
 
   it("accepts a public literal IPv4", async () => {

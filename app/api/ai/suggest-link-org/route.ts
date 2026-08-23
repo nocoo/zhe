@@ -17,15 +17,15 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = (await request.json()) as { linkId?: unknown };
   } catch {
-    return aiErrorResponse("Invalid JSON body", "validation", 400);
+    return aiErrorResponse("请求体不是有效 JSON", "validation", 400);
   }
   if (typeof body.linkId !== "number" || !Number.isInteger(body.linkId)) {
-    return aiErrorResponse("linkId must be an integer", "validation", 400);
+    return aiErrorResponse("链接 ID 必须是整数", "validation", 400);
   }
 
   const link = await db.getLinkById(body.linkId);
   if (!link) {
-    return aiErrorResponse("Link not found", "not_found", 404);
+    return aiErrorResponse("链接不存在", "not_found", 404);
   }
 
   const [folders, tags, linkTags, settings] = await Promise.all([

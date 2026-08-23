@@ -19,7 +19,7 @@ describe("expandTemplate", () => {
 
 describe("parseSuggestLinkOrg", () => {
   it("rejects non-array folders or tags", () => {
-    expect(() => parseSuggestLinkOrg('{"folders":{},"tags":[]}', catalogs)).toThrow("arrays");
+    expect(() => parseSuggestLinkOrg('{"folders":{},"tags":[]}', catalogs)).toThrow("列表");
   });
 
   it("parses happy JSON and overwrites catalog names", () => {
@@ -56,7 +56,7 @@ describe("parseSuggestLinkOrg", () => {
         }),
         catalogs,
       ),
-    ).toThrow("non-empty");
+    ).toThrow("未得到可用");
   });
 
   it("treats unknown tagId as a new tag", () => {
@@ -94,7 +94,7 @@ describe("parseSuggestLinkOrg", () => {
   });
 
   it("treats a null root as a parse error", () => {
-    expect(() => parseSuggestLinkOrg("null", catalogs)).toThrow("object");
+    expect(() => parseSuggestLinkOrg("null", catalogs)).toThrow("返回格式无效");
   });
 
   it("caps folders at 3 and tags at 5 and skips junk items", () => {
@@ -128,7 +128,7 @@ describe("parseSuggestLinkOrg", () => {
   });
 
   it("rejects a JSON array root", () => {
-    expect(() => parseSuggestLinkOrg("[]", catalogs)).toThrow("object");
+    expect(() => parseSuggestLinkOrg("[]", catalogs)).toThrow("返回格式无效");
   });
 });
 

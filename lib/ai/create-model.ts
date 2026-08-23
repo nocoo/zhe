@@ -11,7 +11,7 @@ function noRedirectFetch(url: RequestInfo | URL, init?: RequestInit): Promise<Re
 
 export async function createUserAiModel(settings: AiSettingsStored): Promise<LanguageModel> {
   if (!settings.provider || !settings.apiKey || !settings.model) {
-    throw new Error("AI provider, model, and API key are required");
+    throw new Error("请先配置供应商、模型和密钥");
   }
 
   if (settings.provider !== "custom") {
@@ -38,7 +38,7 @@ export async function createUserAiModel(settings: AiSettingsStored): Promise<Lan
   }
 
   if (!settings.baseURL || !settings.sdkType || !settings.authType) {
-    throw new Error("Custom provider requires baseURL, sdkType, and authType");
+    throw new Error("自定义供应商需要填写接口地址、协议和鉴权");
   }
   await assertSafeAiBaseUrl(settings.baseURL);
 

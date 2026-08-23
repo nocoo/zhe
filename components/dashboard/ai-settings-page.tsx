@@ -28,7 +28,7 @@ export function AiSettingsPage() {
       ) : (
         <div className="max-w-xl space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="ai-provider">Provider</Label>
+            <Label htmlFor="ai-provider">供应商</Label>
             <Select
               {...(vm.settings.provider ? { value: vm.settings.provider } : {})}
               onValueChange={vm.handleProviderChange}
@@ -48,7 +48,7 @@ export function AiSettingsPage() {
 
           {vm.isCustomProvider ? (
             <div className="space-y-1">
-              <Label htmlFor="ai-model">Model</Label>
+              <Label htmlFor="ai-model">模型</Label>
               <Input
                 id="ai-model"
                 data-testid="ai-model"
@@ -59,7 +59,7 @@ export function AiSettingsPage() {
             </div>
           ) : (
             <div className="space-y-1">
-              <Label htmlFor="ai-model">Model</Label>
+              <Label htmlFor="ai-model">模型</Label>
               {vm.presetModels.length > 0 && !vm.isCustomModel ? (
                 <Select
                   value={
@@ -78,7 +78,7 @@ export function AiSettingsPage() {
                         {model}
                       </SelectItem>
                     ))}
-                    <SelectItem value={CUSTOM_MODEL_VALUE}>Custom model…</SelectItem>
+                    <SelectItem value={CUSTOM_MODEL_VALUE}>自定义模型…</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
@@ -116,7 +116,7 @@ export function AiSettingsPage() {
           {vm.isCustomProvider && (
             <>
               <div className="space-y-1">
-                <Label htmlFor="ai-base-url">Base URL</Label>
+                <Label htmlFor="ai-base-url">接口地址</Label>
                 <Input
                   id="ai-base-url"
                   data-testid="ai-base-url"
@@ -125,18 +125,18 @@ export function AiSettingsPage() {
                   placeholder="https://api.example.com/v1"
                 />
                 <p className="text-xs text-muted-foreground">
-                  OpenAI 兼容网关通常需要以 /v1 结尾。Test 按钮是最终校验。
+                  OpenAI 兼容网关通常需要以 /v1 结尾。点「测试连接」做最终校验。
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="ai-sdk-type">SDK</Label>
+                  <Label htmlFor="ai-sdk-type">协议</Label>
                   <Select
                     {...(vm.settings.sdkType ? { value: vm.settings.sdkType } : {})}
                     onValueChange={(value) => vm.setSettings((s) => ({ ...s, sdkType: value }))}
                   >
                     <SelectTrigger id="ai-sdk-type" data-testid="ai-sdk-type">
-                      <SelectValue placeholder="SDK" />
+                      <SelectValue placeholder="选择协议" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="openai">OpenAI</SelectItem>
@@ -145,17 +145,17 @@ export function AiSettingsPage() {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ai-auth-type">Auth</Label>
+                  <Label htmlFor="ai-auth-type">鉴权</Label>
                   <Select
                     {...(vm.settings.authType ? { value: vm.settings.authType } : {})}
                     onValueChange={(value) => vm.setSettings((s) => ({ ...s, authType: value }))}
                   >
                     <SelectTrigger id="ai-auth-type" data-testid="ai-auth-type">
-                      <SelectValue placeholder="Auth" />
+                      <SelectValue placeholder="选择鉴权" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="apiKey">API Key</SelectItem>
-                      <SelectItem value="bearer">Bearer</SelectItem>
+                      <SelectItem value="apiKey">密钥</SelectItem>
+                      <SelectItem value="bearer">Bearer 令牌</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -164,7 +164,7 @@ export function AiSettingsPage() {
           )}
 
           <div className="space-y-1">
-            <Label htmlFor="ai-api-key">API Key</Label>
+            <Label htmlFor="ai-api-key">密钥</Label>
             <Input
               id="ai-api-key"
               data-testid="ai-api-key"
@@ -172,7 +172,7 @@ export function AiSettingsPage() {
               value={vm.apiKeyInput}
               onChange={(e) => vm.setApiKeyInput(e.target.value)}
               placeholder={
-                vm.settings.hasApiKey ? `已保存 ···${vm.settings.apiKeyLast4}` : "输入 API Key"
+                vm.settings.hasApiKey ? `已保存 ···${vm.settings.apiKeyLast4}` : "输入密钥"
               }
             />
           </div>
@@ -208,7 +208,7 @@ export function AiSettingsPage() {
             >
               {vm.testStatus === "testing" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Plug className="mr-2 h-4 w-4" />
-              Test
+              测试连接
             </Button>
           </div>
         </div>

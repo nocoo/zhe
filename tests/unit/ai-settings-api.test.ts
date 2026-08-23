@@ -103,7 +103,7 @@ describe("PUT /api/settings/ai", () => {
       }),
     );
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ error: "refusing masked placeholder" });
+    expect(await res.json()).toMatchObject({ error: "请输入完整密钥，不要提交掩码" });
   });
 
   it("omitting apiKey keeps the stored key", async () => {

@@ -26,7 +26,7 @@ const mockVm = {
   presetModels: [] as string[],
   providerOptions: [
     { id: "anthropic", label: "Anthropic" },
-    { id: "custom", label: "Custom" },
+    { id: "custom", label: "自定义" },
   ],
   loaded: true,
   saving: false,

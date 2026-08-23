@@ -190,14 +190,14 @@ describe("useSuggestLinkOrgViewModel", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: false,
-        json: async () => ({ error: "AI is not configured", reason: "no_ai_config" }),
+        json: async () => ({ error: "尚未配置 AI", reason: "no_ai_config" }),
       }),
     );
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
     await act(async () => {
       await result.current.openForLink(7);
     });
-    expect(result.current.error).toContain("AI is not configured");
+    expect(result.current.error).toContain("尚未配置 AI");
     act(() => {
       result.current.renameTag(0, "ignored");
       result.current.close();

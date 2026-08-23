@@ -17,7 +17,7 @@ export async function runAiTask<T>(
   opts: { prompt: string; parse: (text: string) => T },
 ): Promise<RunAiTaskResult<T>> {
   if (!settings.provider || !settings.apiKey) {
-    return { ok: false, reason: "no_ai_config", message: "AI is not configured" };
+    return { ok: false, reason: "no_ai_config", message: "尚未配置 AI" };
   }
 
   const started = Date.now();
@@ -39,7 +39,7 @@ export async function runAiTask<T>(
     };
   } catch (err) {
     if (isTimeout(err)) {
-      return { ok: false, reason: "timeout", message: "AI request timed out" };
+      return { ok: false, reason: "timeout", message: "AI 请求超时" };
     }
     if (err instanceof SyntaxError || (err instanceof Error && err.name === "SuggestParseError")) {
       return { ok: false, reason: "parse_error", message: err.message };
@@ -47,7 +47,7 @@ export async function runAiTask<T>(
     return {
       ok: false,
       reason: "ai_error",
-      message: err instanceof Error ? err.message : "Unknown AI error",
+      message: err instanceof Error ? err.message : "AI 请求失败",
     };
   }
 }

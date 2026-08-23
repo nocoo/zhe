@@ -44,7 +44,7 @@ describe("createUserAiModel", () => {
         sdkType: null,
         authType: null,
       }),
-    ).rejects.toThrow("required");
+    ).rejects.toThrow("请先配置");
   });
 
   it("throws when custom fields are incomplete", async () => {
@@ -57,7 +57,7 @@ describe("createUserAiModel", () => {
         sdkType: null,
         authType: null,
       }),
-    ).rejects.toThrow("Custom provider");
+    ).rejects.toThrow("自定义供应商");
   });
 
   it("uses next-ai for builtin providers", async () => {

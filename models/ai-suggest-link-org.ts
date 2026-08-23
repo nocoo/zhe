@@ -95,19 +95,19 @@ export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): Su
   try {
     parsed = JSON.parse(stripFence(text));
   } catch (error) {
-    throw new SuggestParseError(error instanceof Error ? error.message : "invalid JSON");
+    throw new SuggestParseError(error instanceof Error ? error.message : "返回不是有效 JSON");
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new SuggestParseError("response must be an object");
+    throw new SuggestParseError("返回格式无效");
   }
   const root = parsed as Record<string, unknown>;
   if (!Array.isArray(root.folders) || !Array.isArray(root.tags)) {
-    throw new SuggestParseError("folders and tags must be arrays");
+    throw new SuggestParseError("返回必须包含文件夹和标签列表");
   }
   const folders = parseFolders(root.folders, new Map(catalogs.folders.map((f) => [f.id, f.name])));
   const tags = parseTags(root.tags, new Map(catalogs.tags.map((t) => [t.id, t.name])));
   if (folders.length === 0 || tags.length === 0) {
-    throw new SuggestParseError("folders and tags must both be non-empty");
+    throw new SuggestParseError("未得到可用的文件夹或标签建议");
   }
   return { folders, tags };
 }

@@ -14,7 +14,7 @@ export async function POST(): Promise<Response> {
 
   const stored = await db.getAiSettings();
   if (!stored.provider || !stored.apiKey) {
-    return aiErrorResponse("AI provider and API key must be configured first", "no_ai_config", 400);
+    return aiErrorResponse("请先配置供应商和密钥", "no_ai_config", 400);
   }
 
   try {
@@ -34,7 +34,7 @@ export async function POST(): Promise<Response> {
     type UpstreamError = Error & { statusCode?: number; responseBody?: string; url?: string };
     const e = err as UpstreamError;
     const statusCode = typeof e.statusCode === "number" ? e.statusCode : 502;
-    let detail = e.message ?? "Unknown error";
+    let detail = e.message ?? "未知错误";
     if (e.responseBody) {
       try {
         const parsed = JSON.parse(e.responseBody) as {
@@ -50,10 +50,6 @@ export async function POST(): Promise<Response> {
         // keep base message
       }
     }
-    return aiErrorResponse(
-      e.url ? `${detail} (upstream: ${e.url})` : detail,
-      "ai_error",
-      statusCode,
-    );
+    return aiErrorResponse(e.url ? `${detail}（上游：${e.url}）` : detail, "ai_error", statusCode);
   }
 }

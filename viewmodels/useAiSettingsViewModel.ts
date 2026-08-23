@@ -1,6 +1,6 @@
 "use client";
 
-import { BUILTIN_PROVIDERS, type BuiltinProvider, CUSTOM_PROVIDER_INFO } from "@nocoo/next-ai";
+import { BUILTIN_PROVIDERS, type BuiltinProvider } from "@nocoo/next-ai";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { AiSettingsPublic } from "@/models/ai-settings";
@@ -178,10 +178,7 @@ export function useAiSettingsViewModel() {
     () =>
       ALL_PROVIDER_IDS.map((id) => ({
         id,
-        label:
-          id === "custom"
-            ? CUSTOM_PROVIDER_INFO.label
-            : BUILTIN_PROVIDERS[id as BuiltinProvider].label,
+        label: id === "custom" ? "自定义" : BUILTIN_PROVIDERS[id as BuiltinProvider].label,
       })),
     [],
   );

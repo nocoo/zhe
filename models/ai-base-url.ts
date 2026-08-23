@@ -59,35 +59,35 @@ export async function assertSafeAiBaseUrl(raw: string): Promise<void> {
   try {
     parsed = new URL(raw);
   } catch {
-    throw new UnsafeAiBaseUrlError("Invalid URL");
+    throw new UnsafeAiBaseUrlError("接口地址无效");
   }
 
   if (parsed.username || parsed.password) {
-    throw new UnsafeAiBaseUrlError("URL must not include credentials");
+    throw new UnsafeAiBaseUrlError("接口地址不能包含账号密码");
   }
   if (parsed.protocol !== "https:") {
-    throw new UnsafeAiBaseUrlError("URL must use https");
+    throw new UnsafeAiBaseUrlError("接口地址必须使用 https");
   }
 
   const hostname = parsed.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (hostname === "localhost" || hostname.endsWith(".local")) {
-    throw new UnsafeAiBaseUrlError("Hostname is not publicly routable");
+    throw new UnsafeAiBaseUrlError("主机名不是公网地址");
   }
 
   if (isIP(hostname)) {
     if (isBlockedAiAddress(hostname)) {
-      throw new UnsafeAiBaseUrlError("Address is not publicly routable");
+      throw new UnsafeAiBaseUrlError("地址不是公网地址");
     }
     return;
   }
 
   const records = await dns.lookup(hostname, { all: true, verbatim: true });
   if (records.length === 0) {
-    throw new UnsafeAiBaseUrlError("Hostname did not resolve");
+    throw new UnsafeAiBaseUrlError("主机名无法解析");
   }
   for (const record of records) {
     if (isBlockedAiAddress(record.address)) {
-      throw new UnsafeAiBaseUrlError("Resolved address is not publicly routable");
+      throw new UnsafeAiBaseUrlError("解析到的地址不是公网地址");
     }
   }
 }

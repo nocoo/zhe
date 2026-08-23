@@ -43,7 +43,7 @@ function readString(rec: Record<string, unknown>, key: string): string | undefin
 function fieldTypeError(raw: Record<string, unknown>): string | null {
   for (const key of STRING_FIELDS) {
     if (key in raw && raw[key] !== undefined && typeof raw[key] !== "string") {
-      return `Invalid ${key}`;
+      return `字段 ${key} 格式无效`;
     }
   }
   if (
@@ -52,7 +52,7 @@ function fieldTypeError(raw: Record<string, unknown>): string | null {
     raw.apiKey !== null &&
     typeof raw.apiKey !== "string"
   ) {
-    return "Invalid API key";
+    return "密钥格式无效";
   }
   return null;
 }
@@ -60,15 +60,15 @@ function fieldTypeError(raw: Record<string, unknown>): string | null {
 function enumError(raw: Record<string, unknown>): string | null {
   const provider = readString(raw, "provider");
   if (provider !== undefined && provider !== "" && !isValidProvider(provider)) {
-    return `Invalid provider: ${provider}`;
+    return `不支持的供应商：${provider}`;
   }
   const sdkType = readString(raw, "sdkType");
   if (sdkType !== undefined && !isValidSdkType(sdkType)) {
-    return `Invalid SDK type: ${sdkType}`;
+    return `协议类型无效：${sdkType}`;
   }
   const authType = readString(raw, "authType");
   if (authType !== undefined && !isValidAuthType(authType)) {
-    return `Invalid auth type: ${authType}`;
+    return `鉴权类型无效：${authType}`;
   }
   return null;
 }
@@ -88,7 +88,7 @@ function mergeAiSettings(
     next.apiKey = null;
   } else if (typeof raw.apiKey === "string") {
     if (isMaskedApiKeyPlaceholder(raw.apiKey, stored.apiKey?.slice(-4) ?? "")) {
-      return { ok: false, error: "refusing masked placeholder" };
+      return { ok: false, error: "请输入完整密钥，不要提交掩码" };
     }
     next.apiKey = raw.apiKey;
   }
@@ -96,7 +96,7 @@ function mergeAiSettings(
   if (next.provider && next.provider !== "custom" && !next.model) {
     const info = BUILTIN_PROVIDERS[next.provider as BuiltinProvider];
     if (!info?.defaultModel) {
-      return { ok: false, error: "Model is required" };
+      return { ok: false, error: "请选择模型" };
     }
     next.model = info.defaultModel;
   }
@@ -111,17 +111,13 @@ async function validateMergedCustom(next: AiSettingsData): Promise<Response | nu
     return null;
   }
   if (!next.baseURL || !next.sdkType || !next.authType || !next.model) {
-    return aiErrorResponse(
-      "Custom provider requires baseURL, sdkType, authType, and model",
-      "validation",
-      400,
-    );
+    return aiErrorResponse("自定义供应商需要填写接口地址、协议、鉴权和模型", "validation", 400);
   }
   try {
     await assertSafeAiBaseUrl(next.baseURL);
     return null;
   } catch (error) {
-    const message = error instanceof UnsafeAiBaseUrlError ? error.message : "Invalid base URL";
+    const message = error instanceof UnsafeAiBaseUrlError ? error.message : "接口地址无效";
     return aiErrorResponse(message, "validation", 400);
   }
 }
@@ -134,10 +130,10 @@ export async function PUT(request: Request): Promise<Response> {
   try {
     raw = await request.json();
   } catch {
-    return aiErrorResponse("Invalid JSON body", "validation", 400);
+    return aiErrorResponse("请求体不是有效 JSON", "validation", 400);
   }
   if (!isJsonRecord(raw)) {
-    return aiErrorResponse("Invalid JSON body", "validation", 400);
+    return aiErrorResponse("请求体不是有效 JSON", "validation", 400);
   }
 
   const typeError = fieldTypeError(raw);
