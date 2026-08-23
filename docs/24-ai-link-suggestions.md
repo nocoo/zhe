@@ -250,10 +250,12 @@ L1 covers the route with a mocked `generateText`. L3 covers the UI state machine
 
 Trigger: a **Sparkles** control on the link card (view + edit) labelled **「AI 建议」**. Disabled with tooltip if `hasApiKey === false` (read a lightweight flag from dashboard bootstrap or a `GET /api/settings/ai` cache on the VM).
 
-Dialog title: **「整理建议」**. Two sections:
+Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). Four sections:
 
-1. **文件夹** — radio list, 1–3 options. Includes current folder as a non-AI row only if we need a “keep” escape; default selection = top AI option.
-2. **标签** — checkbox list, 1–5 options. Pre-check the top N (N = `min(3, options.length)`). User can uncheck / check / rename a **new** tag option before apply.
+0. **进度** — `准备目录 → 调用模型 → 解析结果 → 完成`. Current step is highlighted; failures mark the failing step. Waiting caption shows elapsed seconds.
+1. **发送的提示 / 模型回复** — both collapsed by default. Expand to a scrollable `pre` (`whitespace-pre-wrap`, mono, `max-h-72`). JSON replies are pretty-printed when the whole payload parses. Available on success **and** parse/model errors so the user can inspect the exchange.
+2. **文件夹** — radio list, 1–3 options. Includes current folder as a non-AI row only if we need a “keep” escape; default selection = top AI option.
+3. **标签** — checkbox list, 1–5 options. Pre-check the top N (N = `min(3, options.length)`). User can uncheck / check / rename a **new** tag option before apply.
 
 Footer:
 
@@ -343,8 +345,8 @@ Catalogs are the allow-list. The model is instructed not to emit folder ids outs
 
 ```ts
 runAiTask(userId, { prompt, parse }): Promise<
-  | { ok: true; result: T; model: string; provider: string; durationMs: number }
-  | { ok: false; reason: "no_ai_config" | "ai_error" | "parse_error" | "timeout"; message: string }
+  | { ok: true; result: T; model: string; provider: string; durationMs: number; rawText: string }
+  | { ok: false; reason: "no_ai_config" | "ai_error" | "parse_error" | "timeout"; message: string; rawText?: string }
 >
 ```
 
@@ -371,8 +373,17 @@ Stable error envelope for **all** AI routes (settings + suggest):
 { linkId: number }
 
 // 200
-{ folders: SuggestFolderOption[]; tags: SuggestTagOption[]; model: string; provider: string; durationMs: number }
+{
+  folders: SuggestFolderOption[];
+  tags: SuggestTagOption[];
+  model: string;
+  provider: string;
+  durationMs: number;
+  prompt: string;
+  rawText: string;
+}
 
+// 400/502/504 after the prompt was built also include prompt + rawText
 // 400 reason=no_ai_config | validation
 // 404 reason=not_found          // unknown or other-user linkId
 // 502 reason=ai_error | parse_error
@@ -387,7 +398,7 @@ Server loads the link via `ScopedDB` (`404` if not owned), builds catalogs from 
 
 `useSuggestLinkOrgViewModel`:
 
-- `open(linkId)` → POST suggest → store options + selection
+- `open(linkId)` → POST suggest → store options + selection + `prompt` / `rawText` / failed step
 - `apply()` → `updateLink` (folder) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
 - No other write APIs.
 
