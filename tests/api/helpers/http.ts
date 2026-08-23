@@ -21,6 +21,23 @@ export async function apiGet(path: string, headers?: Record<string, string>): Pr
   });
 }
 
+/** PUT request to an API path with optional JSON body. */
+export async function apiPut(
+  path: string,
+  body: unknown,
+  headers?: Record<string, string>,
+): Promise<Response> {
+  const hasBody = body !== null && body !== undefined;
+  return fetch(url(path), {
+    method: "PUT",
+    headers: {
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...headers,
+    },
+    ...(hasBody && { body: JSON.stringify(body) }),
+  });
+}
+
 /** POST request to an API path with optional JSON body. */
 export async function apiPost(
   path: string,
@@ -124,6 +141,12 @@ export async function apiGetAuth(path: string): Promise<Response> {
 export async function apiPostAuth(path: string, body: unknown): Promise<Response> {
   const cookie = await getSessionCookie();
   return apiPost(path, body, { Cookie: cookie });
+}
+
+/** PUT request with session authentication. */
+export async function apiPutAuth(path: string, body: unknown): Promise<Response> {
+  const cookie = await getSessionCookie();
+  return apiPut(path, body, { Cookie: cookie });
 }
 
 // ---------------------------------------------------------------------------
