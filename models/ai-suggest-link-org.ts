@@ -37,6 +37,14 @@ function stripFence(text: string): string {
   return cleaned;
 }
 
+function extractJsonObject(text: string): string {
+  const cleaned = stripFence(text);
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end <= start) return cleaned;
+  return cleaned.slice(start, end + 1);
+}
+
 function asReason(value: unknown): string {
   return String(value).trim().slice(0, 80);
 }
@@ -91,11 +99,15 @@ function parseTags(rawItems: unknown[], tagById: Map<string, string>): SuggestTa
 }
 
 export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): SuggestLinkOrgResult {
+  const payload = extractJsonObject(text);
+  if (!payload.trim()) {
+    throw new SuggestParseError("模型没有返回内容");
+  }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(stripFence(text));
-  } catch (error) {
-    throw new SuggestParseError(error instanceof Error ? error.message : "返回不是有效 JSON");
+    parsed = JSON.parse(payload);
+  } catch {
+    throw new SuggestParseError("模型返回不是有效 JSON");
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new SuggestParseError("返回格式无效");

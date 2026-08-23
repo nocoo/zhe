@@ -130,6 +130,27 @@ describe("parseSuggestLinkOrg", () => {
   it("rejects a JSON array root", () => {
     expect(() => parseSuggestLinkOrg("[]", catalogs)).toThrow("返回格式无效");
   });
+
+  it("rejects empty or whitespace-only output in Chinese", () => {
+    expect(() => parseSuggestLinkOrg("", catalogs)).toThrow("模型没有返回内容");
+    expect(() => parseSuggestLinkOrg("   \n", catalogs)).toThrow("模型没有返回内容");
+    expect(() => parseSuggestLinkOrg("```json\n\n```", catalogs)).toThrow("模型没有返回内容");
+  });
+
+  it("extracts a JSON object from surrounding prose", () => {
+    const result = parseSuggestLinkOrg(
+      'Sure.\n{"folders":[{"folderId":"f1","name":"工作","reason":"适合"}],"tags":[{"tagId":"t1","name":"文档","reason":"文档"}]}\nDone.',
+      catalogs,
+    );
+    expect(result.folders[0]).toMatchObject({ folderId: "f1", name: "工作" });
+    expect(result.tags[0]).toMatchObject({ tagId: "t1", name: "文档" });
+  });
+
+  it("does not leak JSON.parse SyntaxError messages", () => {
+    expect(() => parseSuggestLinkOrg("{", catalogs)).toThrow("模型返回不是有效 JSON");
+    expect(() => parseSuggestLinkOrg("{", catalogs)).not.toThrow(/Unexpected end of JSON input/);
+    expect(() => parseSuggestLinkOrg("not json", catalogs)).toThrow("模型返回不是有效 JSON");
+  });
 });
 
 describe("buildSuggestLinkOrgPrompt", () => {

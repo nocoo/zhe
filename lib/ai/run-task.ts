@@ -29,6 +29,9 @@ export async function runAiTask<T>(
       maxOutputTokens: 1024,
       abortSignal: AbortSignal.timeout(30_000),
     });
+    if (typeof text !== "string" || !text.trim()) {
+      return { ok: false, reason: "parse_error", message: "模型没有返回内容" };
+    }
     const result = opts.parse(text);
     return {
       ok: true,
@@ -41,7 +44,10 @@ export async function runAiTask<T>(
     if (isTimeout(err)) {
       return { ok: false, reason: "timeout", message: "AI 请求超时" };
     }
-    if (err instanceof SyntaxError || (err instanceof Error && err.name === "SuggestParseError")) {
+    if (err instanceof SyntaxError) {
+      return { ok: false, reason: "parse_error", message: "模型返回不是有效 JSON" };
+    }
+    if (err instanceof Error && err.name === "SuggestParseError") {
       return { ok: false, reason: "parse_error", message: err.message };
     }
     return {

@@ -75,7 +75,13 @@ describe("runAiTask", () => {
         prompt: "x",
         parse: (text) => JSON.parse(text) as unknown,
       }),
-    ).toMatchObject({ reason: "parse_error" });
+    ).toMatchObject({ reason: "parse_error", message: "模型返回不是有效 JSON" });
+
+    mockGenerateText.mockResolvedValueOnce({ text: "   " });
+    expect(await runAiTask(settings, { prompt: "x", parse: () => 1 })).toMatchObject({
+      reason: "parse_error",
+      message: "模型没有返回内容",
+    });
   });
 
   it("maps abort, generic, and unknown failures", async () => {
