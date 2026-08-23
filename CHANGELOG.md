@@ -10,6 +10,166 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.21.3] - 2026-08-23
+
+### Added
+- Add tags settings management page
+- Add tags management viewmodel
+
+### Changed
+- Align biome.json schema to 2.5.10
+- Bump @biomejs/biome to 2.5.10
+- Bump next to 16.3.2
+- Bump @cloudflare/workers-types to 5.20260822.1
+- Bump aws-sdk s3 packages to 3.1116.0
+- Bump @aws-sdk/client-s3 to 3.1115.0
+- Bump vite to 8.2.2
+- Bump wrangler to 4.125.0
+- Bump @cloudflare/workers-types to 5.20260821.1
+- Bump @vitejs/plugin-react to 6.1.0
+- Bump @aws-sdk/s3-request-presigner to 3.1115.0
+- Bump lucide-react to 1.33.0
+- Bump happy-dom to 20.11.6
+- Bump @aws-sdk/client-s3 to 3.1114.0
+- Bump s3-request-presigner to 3.1114.0
+- Bump @cloudflare/workers-types to 5.20260819.1
+- Bump wrangler to 4.124.0 (#632)
+- Bump @aws-sdk/s3-request-presigner to 3.1113.0 (#634)
+- Bump @aws-sdk/client-s3 to 3.1113.0 (#631)
+- Bump @vitest/coverage-v8 to 4.1.11
+- Bump vitest to 4.1.11
+- Bump user-event to 14.6.5
+- Bump lucide-react to 1.32.0
+- Sync main after #617; keep aws-sdk s3 packages at 3.1112.0
+- Align biome.json schema to 2.5.9
+- Bump @biomejs/biome to 2.5.9
+- Bump @aws-sdk/s3-request-presigner to 3.1112.0
+- Bump @aws-sdk/client-s3 to 3.1112.0
+- Bump @cloudflare/workers-types to 5.20260818.1 (#616)
+- Bump wrangler to 4.123.0
+- Bump next to 16.3.1
+- Bump @aws-sdk/s3-request-presigner to 3.1110.0
+- Bump @aws-sdk/client-s3 to 3.1110.0 (#604)
+- Bump workers types to 5.20260814.1
+- Bump @aws-sdk/client-s3 to 3.1109.0
+- Bump @aws-sdk/s3-request-presigner to 3.1109.0
+- Bump workers types to 5.20260813.1
+- Bump wrangler to 4.122.0
+- Sync config schema to 2.5.8
+- Bump wrangler to 4.121.0
+- Bump workers types to 5.20260812.1
+- Bump @testing-library/user-event to 14.6.4
+- Bump @biomejs/biome to 2.5.8
+- Bump @aws-sdk/s3-request-presigner to 3.1108.0
+- Bump @aws-sdk/client-s3 to 3.1108.0
+- Bump @aws-sdk/client-s3 to 3.1107.0
+- Bump @aws-sdk/s3-request-presigner to 3.1107.0
+- Bump workers types to 5.20260811.1
+- Bump wrangler to 4.120.1
+- Bump lucide-react to 1.31.0
+- Bump @testing-library/jest-dom to 7.0.1
+- Bump sonner to 2.0.8
+- Bump workers types to 5.20260810.1
+- Document node-based docker build stages
+- Lock retryDashboardData for links load failure
+- Dedupe search plan section 2.5.5
+- Address second-pass codex search plan gaps
+- Revise global search plan after codex review
+- Plan global search unification for cmd-k
+- Bump workers types to 5.20260809.1
+- Honor experimental L3 probe failures
+- Sync main and resolve AWS SDK dependency conflict
+- Bump @aws-sdk/client-s3 to 3.1106.0
+- Bump workers types to 5.20260808.1
+- Bump s3 request presigner to 3.1106.0
+- Bump @types/node to 26.2.0
+- Bump happy-dom to 20.11.2
+- Bump lucide-react to 1.30.0
+- Bump wrangler to 4.120.0
+- Sync main and resolve dependency conflict
+- Bump @aws-sdk/client-s3 to 3.1105.0
+- Bump s3 request presigner to 3.1105.0
+- Bump postcss to 8.5.26
+- Bump vite to 8.2.1
+- Bump lucide-react to 1.29.0
+- Bump @aws-sdk/client-s3 to 3.1104.0
+- Bump s3 request presigner to 3.1104.0
+- Bump wrangler to 4.119.0
+- Quarantine flaky wrangler L2 probes
+- Quarantine flaky wrangler L3 probes
+- Bump biome to 2.5.7
+- Sync config schema to 2.5.7
+- Accept generated agent rules
+- Bump testing library user event to 14.6.3
+- Bump nanoid to 6.0.1
+- Bump next to 16.3.0
+- Require postcss 8.5.23 or newer
+- Bump s3 client to 3.1103.0
+- Bump s3 request presigner to 3.1103.0
+- Bump workers types to 5.20260804.1
+- Require undici 7.29.0 or newer
+- Bump @cloudflare/workers-types to 5.20260801.1 (#515)
+- Bump @aws-sdk/s3-request-presigner to 3.1101.0
+- Add smoke test locking undici override at >=8.9.0
+- Bump undici override to >=8.9.0
+- Bump url-metadata to 5.10.0
+- Add L3 stress reproduction workflow (fixed-count, not retry-until-pass)
+- Promote wrangler artifacts to required, fix hidden-file version marker
+- Fault-inject L2/L3 shutdown paths against real subprocesses
+- StartLocalStack owns the tee-log flush on unexpected exit
+- Matrix wrangler 4.116 vs 4.118 + upload internal logs & report
+- Fail-fast preserves logs + downstream processes (STU-2287)
+- Wait for pipes to close + flush log before firing crash handler
+- Upload wrangler-dev log and playwright report as artifacts
+- Persist full wrangler-dev log + fail-fast on unexpected exit
+- Bump @cloudflare/workers-types to 5.20260731.1 in worker/
+- Bump wrangler to 4.118.0 in worker/
+- Bump url-metadata to 5.9.0
+- Bump lint-staged to 17.3.0
+- Bump @aws-sdk/client-s3 to 3.1101.0
+- Report every unexpected wrangler exit + cover with unit tests
+- Surface wrangler dev crash instead of ECONNREFUSED avalanche
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1099.0
+- Bump @playwright/test to 1.62.1
+- Bump @types/react to 19.2.18
+- Bump @types/react-dom to 19.2.4
+- Bump @vitejs/plugin-react to 6.0.5
+- Bump lucide-react to 1.28.0
+- Bump vite to 8.2.0
+- Bump wrangler to 4.116.0
+- Bump url-metadata to 5.8.2
+- Bump recharts to 3.10.1
+- Bump react-arborist to 3.16.0
+- Bump lucide-react to 1.27.0
+- Bump lint-staged to 17.2.0
+- Bump @types/node to 26.1.2
+- Bump @playwright/test to 1.62.0
+- Bump biome.json schema to 2.5.6
+- Bump @biomejs/biome to 2.5.6
+- Bump wrangler to 4.115.0 and @cloudflare/workers-types
+- Bump @aws-sdk/{client-s3,s3-request-presigner} to 3.1098.0
+- Bump @radix-ui/* patch batch
+- Bump next to 16.2.12
+- Bump postcss to 8.5.25
+- Bump next-auth to 5.0.0-beta.32
+
+### Fixed
+- Render tag badges from stored color
+- Keep tag palette on defined chart colors
+- Restore atomic bun.lock for s3-request-presigner bump
+- Enforce nanoid >=3.3.18 for GHSA-2v37-7h3g-55p8
+- Build next with node on railway
+- Remove broken edit-emoji row menu item
+- Enforce safe nanoid in cli
+- Downgrade STU-2287 causal claim to hardening
+- Bound outbound fetches with AbortSignal timeout
+
+### Removed
+- Remove unused autoresearch files
+- Make l3-stress inputs actually drive the matrix and drop continue-on-error
+- Drop STU-2287 causal claim in AbortSignal assertion
+- Drop unused brace-expansion dependency
+
 ## [v1.21.2] - 2026-07-23
 
 ### Fixed
