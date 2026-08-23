@@ -100,6 +100,11 @@ describe("useAiSettingsViewModel", () => {
     });
     expect(result.current.isCustomProvider).toBe(true);
     expect(result.current.settings.sdkType).toBe("openai");
+    expect(result.current.settings.authType).toBe("apiKey");
+    act(() => {
+      result.current.handleSdkTypeChange("anthropic");
+    });
+    expect(result.current.settings.authType).toBe("bearer");
 
     act(() => {
       result.current.handleProviderChange("");

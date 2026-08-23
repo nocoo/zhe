@@ -133,7 +133,7 @@ export function AiSettingsPage() {
                   <Label htmlFor="ai-sdk-type">协议</Label>
                   <Select
                     {...(vm.settings.sdkType ? { value: vm.settings.sdkType } : {})}
-                    onValueChange={(value) => vm.setSettings((s) => ({ ...s, sdkType: value }))}
+                    onValueChange={vm.handleSdkTypeChange}
                   >
                     <SelectTrigger id="ai-sdk-type" data-testid="ai-sdk-type">
                       <SelectValue placeholder="选择协议" />
@@ -154,10 +154,13 @@ export function AiSettingsPage() {
                       <SelectValue placeholder="选择鉴权" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="apiKey">密钥</SelectItem>
-                      <SelectItem value="bearer">Bearer 令牌</SelectItem>
+                      <SelectItem value="apiKey">默认（x-api-key）</SelectItem>
+                      <SelectItem value="bearer">强制 Bearer</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Manifest 等网关只认 Authorization: Bearer，Anthropic 协议请选强制 Bearer。
+                  </p>
                 </div>
               </div>
             </>

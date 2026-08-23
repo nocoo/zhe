@@ -43,18 +43,18 @@ export async function createUserAiModel(settings: AiSettingsStored): Promise<Lan
   await assertSafeAiBaseUrl(settings.baseURL);
 
   if (settings.sdkType === "anthropic") {
-    const anthropic =
-      settings.authType === "bearer"
-        ? createAnthropic({
-            baseURL: settings.baseURL,
-            authToken: settings.apiKey,
-            fetch: noRedirectFetch,
-          })
-        : createAnthropic({
-            baseURL: settings.baseURL,
-            apiKey: settings.apiKey,
-            fetch: noRedirectFetch,
-          });
+    const useBearer = settings.authType === "bearer" || settings.apiKey.startsWith("mnfst_");
+    const anthropic = useBearer
+      ? createAnthropic({
+          baseURL: settings.baseURL,
+          authToken: settings.apiKey,
+          fetch: noRedirectFetch,
+        })
+      : createAnthropic({
+          baseURL: settings.baseURL,
+          apiKey: settings.apiKey,
+          fetch: noRedirectFetch,
+        });
     return anthropic(settings.model);
   }
 

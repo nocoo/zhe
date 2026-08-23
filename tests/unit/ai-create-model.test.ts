@@ -122,6 +122,22 @@ describe("createUserAiModel", () => {
     fetchSpy.mockRestore();
   });
 
+  it("uses bearer auth for Manifest keys even when authType is apiKey", async () => {
+    const factory = vi.fn().mockReturnValue("manifest-anthropic");
+    mockCreateAnthropic.mockReturnValue(factory);
+    await createUserAiModel({
+      provider: "custom",
+      apiKey: "mnfst_test_key",
+      model: "claude-sonnet-4-5",
+      baseURL: "https://manifest.nocoo.cloud/v1",
+      sdkType: "anthropic",
+      authType: "apiKey",
+    });
+    const arg = mockCreateAnthropic.mock.calls[0]?.[0] as { apiKey?: string; authToken?: string };
+    expect(arg.authToken).toBe("mnfst_test_key");
+    expect(arg.apiKey).toBeUndefined();
+  });
+
   it("builds a custom Anthropic apiKey model", async () => {
     const factory = vi.fn().mockReturnValue("custom-anthropic-key");
     mockCreateAnthropic.mockReturnValue(factory);

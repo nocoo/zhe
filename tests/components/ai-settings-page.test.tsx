@@ -34,6 +34,7 @@ const mockVm = {
   testError: "",
   canSubmit: false,
   handleProviderChange: vi.fn(),
+  handleSdkTypeChange: vi.fn(),
   handleModelSelect: vi.fn(),
   handleSave: vi.fn(),
   handleTest: vi.fn(),

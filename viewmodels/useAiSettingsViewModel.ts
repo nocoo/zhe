@@ -81,13 +81,16 @@ export function useAiSettingsViewModel() {
       return;
     }
     if (value === "custom") {
-      setSettings((s) => ({
-        ...s,
-        provider: "custom",
-        model: "",
-        sdkType: s.sdkType || "openai",
-        authType: s.authType || "apiKey",
-      }));
+      setSettings((s) => {
+        const sdkType = s.sdkType || "openai";
+        return {
+          ...s,
+          provider: "custom",
+          model: "",
+          sdkType,
+          authType: s.authType || (sdkType === "anthropic" ? "bearer" : "apiKey"),
+        };
+      });
       return;
     }
     const info = BUILTIN_PROVIDERS[value as BuiltinProvider];
@@ -96,6 +99,14 @@ export function useAiSettingsViewModel() {
       provider: value,
       model: info?.defaultModel ?? "",
       authType: "",
+    }));
+  }, []);
+
+  const handleSdkTypeChange = useCallback((value: string) => {
+    setSettings((s) => ({
+      ...s,
+      sdkType: value,
+      authType: value === "anthropic" ? "bearer" : "apiKey",
     }));
   }, []);
 
@@ -205,6 +216,7 @@ export function useAiSettingsViewModel() {
     testError,
     canSubmit,
     handleProviderChange,
+    handleSdkTypeChange,
     handleModelSelect,
     handleSave,
     handleTest,
