@@ -10,6 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.22.0] - 2026-08-24
+
+### Added
+- Show suggest steps and transcripts
+- Track suggest steps and transcripts
+- Return suggest prompt and raw text
+- Return raw text from ai task
+- Add suggest-link-org dialog
+- Add link org suggestion runner
+- Add AI settings page
+- Add AI settings API
+- Add user_settings AI columns
+
+### Changed
+- Document suggest dialog transcripts
+- Extract suggest step helpers
+- Seed owned link for AI apply
+- Assert persisted folder on apply
+- Include AI models in coverage
+- Seed session user for L2 AI
+- Add authenticated L2 AI contracts
+- Assert suggest apply persists
+- Await custom fetch redirect error
+- Restore coverage for AI core
+- Add next-ai and ai sdk deps
+- Mark AI spec Codex sign-off
+- Tighten AI SSRF and Anthropic auth
+- Unify AI model factory in spec
+- Close Codex round-3 AI spec gaps
+- Close Codex round-2 AI spec gaps
+- Fold Codex P1-P3 into AI spec
+- Add AI link suggestion design
+
+### Fixed
+- Parse suggest json without leaking
+- Send bearer auth for manifest keys
+- Use chinese copy for AI ui
+- Wrap disabled AI tooltip trigger
+- Always sync applied tags to client
+- Block ipv6 documentation prefix
+- Drop dead current-folder fallback
+- Use token primitives on AI controls
+- Treat null AI JSON as parse error
+- Validate AI settings PUT schema
+- Keep dialog open on tag apply fail
+- Dedupe dashboard tag apply state
+- Verify link before ensuring tags
+- Deny non-global unicast AI URLs
+
 ## [v1.21.3] - 2026-08-23
 
 ### Added
