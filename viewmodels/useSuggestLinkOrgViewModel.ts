@@ -2,15 +2,33 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { updateLink } from "@/actions/links";
+import { updateLink, updateLinkNote } from "@/actions/links";
 import { ensureTagOnLink } from "@/actions/tags";
-import type { SuggestFolderOption, SuggestTagOption } from "@/models/ai-suggest-link-org";
+import {
+  remainingFolderOptions,
+  remainingTagOptions,
+  type SuggestCatalogs,
+  type SuggestFolderOption,
+  type SuggestTagOption,
+} from "@/models/ai-suggest-link-org";
 import { failedSuggestStep, type SuggestStepId } from "@/models/ai-suggest-progress";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
+
+export type SuggestOptionSource = "ai" | "catalog";
+
+export type SuggestFolderDraft = SuggestFolderOption & { source: SuggestOptionSource };
 
 export interface SuggestTagDraft extends SuggestTagOption {
   checked: boolean;
   draftName: string;
+  source: SuggestOptionSource;
+}
+
+function asCatalogs(value: SuggestCatalogs | undefined): SuggestCatalogs {
+  return {
+    folders: value?.folders ?? [],
+    tags: value?.tags ?? [],
+  };
 }
 
 export async function loadHasAiKey(): Promise<boolean> {
@@ -29,9 +47,10 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
-  const [folders, setFolders] = useState<SuggestFolderOption[]>([]);
+  const [folders, setFolders] = useState<SuggestFolderDraft[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [tags, setTags] = useState<SuggestTagDraft[]>([]);
+  const [draftNote, setDraftNote] = useState("");
   const [hasAiKey, setHasAiKey] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [rawText, setRawText] = useState("");
@@ -53,6 +72,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     setError("");
     setFolders([]);
     setTags([]);
+    setDraftNote("");
     setPrompt("");
     setRawText("");
     setModel("");
@@ -68,6 +88,8 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
       const data = (await res.json()) as {
         folders?: SuggestFolderOption[];
         tags?: SuggestTagOption[];
+        note?: string;
+        catalogs?: SuggestCatalogs;
         error?: string;
         reason?: string;
         prompt?: string;
@@ -86,15 +108,30 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
         setFailedStep(failedSuggestStep(data.reason));
         return;
       }
-      setFolders(data.folders);
+      const catalogs = asCatalogs(data.catalogs);
+      setFolders([
+        ...data.folders.map((folder) => ({ ...folder, source: "ai" as const })),
+        ...remainingFolderOptions(data.folders, catalogs).map((folder) => ({
+          ...folder,
+          source: "catalog" as const,
+        })),
+      ]);
       setSelectedFolderId(data.folders[0]?.folderId ?? null);
-      setTags(
-        data.tags.map((tag, index) => ({
+      setTags([
+        ...data.tags.map((tag, index) => ({
           ...tag,
           checked: index < Math.min(3, data.tags?.length ?? 0),
           draftName: tag.name,
+          source: "ai" as const,
         })),
-      );
+        ...remainingTagOptions(data.tags, catalogs).map((tag) => ({
+          ...tag,
+          checked: false,
+          draftName: tag.name,
+          source: "catalog" as const,
+        })),
+      ]);
+      setDraftNote(data.note ?? "");
     } catch {
       setError("网络错误");
       setFailedStep("request");
@@ -130,6 +167,13 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
       }
       callbacks.onLinkUpdated(folderResult.data);
 
+      const noteResult = await updateLinkNote(linkId, draftNote.trim() || null);
+      if (!noteResult.success || !noteResult.data) {
+        toast.error(noteResult.error || "应用备注失败");
+        return;
+      }
+      callbacks.onLinkUpdated(noteResult.data);
+
       let tagFailed = false;
       const remaining: SuggestTagDraft[] = [];
       for (const tag of tags) {
@@ -158,7 +202,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     } finally {
       setApplying(false);
     }
-  }, [linkId, selectedFolderId, tags, callbacks]);
+  }, [linkId, selectedFolderId, draftNote, tags, callbacks]);
 
   return {
     open,
@@ -169,6 +213,8 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     selectedFolderId,
     setSelectedFolderId,
     tags,
+    draftNote,
+    setDraftNote,
     prompt,
     rawText,
     model,

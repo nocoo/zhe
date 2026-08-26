@@ -4,9 +4,11 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUpdateLink = vi.fn();
+const mockUpdateLinkNote = vi.fn();
 const mockEnsureTagOnLink = vi.fn();
 vi.mock("@/actions/links", () => ({
   updateLink: (...args: unknown[]) => mockUpdateLink(...args),
+  updateLinkNote: (...args: unknown[]) => mockUpdateLinkNote(...args),
 }));
 vi.mock("@/actions/tags", () => ({
   ensureTagOnLink: (...args: unknown[]) => mockEnsureTagOnLink(...args),
@@ -20,7 +22,11 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import { failedSuggestStep, suggestStepState } from "@/models/ai-suggest-progress";
+import {
+  failedSuggestStep,
+  suggestStepProgress,
+  suggestStepState,
+} from "@/models/ai-suggest-progress";
 import { loadHasAiKey, useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 const callbacks = {
@@ -36,6 +42,17 @@ const suggestion = {
     { tagId: "t1", name: "文档", reason: "已有标签" },
     { tagId: null, name: "新标签", reason: "新建" },
   ],
+  note: "工作文档入口",
+  catalogs: {
+    folders: [
+      { id: "f1", name: "工作" },
+      { id: "f2", name: "学习" },
+    ],
+    tags: [
+      { id: "t1", name: "文档" },
+      { id: "t3", name: "阅读" },
+    ],
+  },
   prompt: "url: https://example.com",
   rawText: '{"folders":[],"tags":[]}',
   model: "claude-sonnet-4-5",
@@ -46,6 +63,10 @@ const suggestion = {
 describe("useSuggestLinkOrgViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpdateLinkNote.mockResolvedValue({
+      success: true,
+      data: { id: 1, folderId: "f1", note: "工作文档入口" },
+    });
   });
 
   afterEach(() => {
@@ -78,8 +99,11 @@ describe("useSuggestLinkOrgViewModel", () => {
     await act(async () => {
       await result.current.openForLink(1);
     });
-    expect(result.current.folders).toHaveLength(1);
+    expect(result.current.folders.map((f) => f.folderId)).toEqual(["f1", null, "f2"]);
+    expect(result.current.tags.map((t) => t.draftName)).toEqual(["文档", "新标签", "阅读"]);
     expect(result.current.tags[0]?.checked).toBe(true);
+    expect(result.current.tags[2]?.checked).toBe(false);
+    expect(result.current.draftNote).toBe("工作文档入口");
     expect(result.current.prompt).toContain("example.com");
     expect(result.current.rawText).toContain("folders");
     expect(result.current.failedStep).toBeNull();
@@ -88,6 +112,7 @@ describe("useSuggestLinkOrgViewModel", () => {
       await result.current.apply();
     });
     expect(mockUpdateLink).toHaveBeenCalledWith(1, { folderId: "f1" });
+    expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, "工作文档入口");
     expect(mockEnsureTagOnLink).toHaveBeenCalled();
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
     expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t1", name: "文档" });
@@ -125,8 +150,7 @@ describe("useSuggestLinkOrgViewModel", () => {
     expect(mockToastSuccess).not.toHaveBeenCalled();
     expect(mockToastError).toHaveBeenCalledWith("Invalid tag name");
     expect(result.current.open).toBe(true);
-    expect(result.current.tags).toHaveLength(1);
-    expect(result.current.tags[0]?.draftName).toBe("新标签");
+    expect(result.current.tags.map((tag) => tag.draftName)).toEqual(["新标签", "阅读"]);
   });
 
   it("syncs a tag created on a previous failed attach retry", async () => {
@@ -238,6 +262,51 @@ describe("useSuggestLinkOrgViewModel", () => {
     });
     expect(mockToastError).toHaveBeenCalledWith("Folder not found");
     expect(result.current.open).toBe(true);
+    expect(mockUpdateLinkNote).not.toHaveBeenCalled();
+  });
+
+  it("applies the edited note and toasts when note write fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => suggestion,
+      }),
+    );
+    mockUpdateLink.mockResolvedValue({
+      success: true,
+      data: { id: 1, folderId: "f1" },
+    });
+    mockEnsureTagOnLink.mockResolvedValue({
+      success: true,
+      data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
+    });
+    mockUpdateLinkNote.mockResolvedValueOnce({ success: false, error: "Note too long" });
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(async () => {
+      await result.current.openForLink(1);
+    });
+    act(() => {
+      result.current.setDraftNote("  用户改过的备注  ");
+    });
+    await act(async () => {
+      await result.current.apply();
+    });
+    expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, "用户改过的备注");
+    expect(mockToastError).toHaveBeenCalledWith("Note too long");
+    expect(mockEnsureTagOnLink).not.toHaveBeenCalled();
+
+    mockUpdateLinkNote.mockResolvedValueOnce({
+      success: true,
+      data: { id: 1, folderId: "f1", note: null },
+    });
+    act(() => {
+      result.current.setDraftNote("   ");
+    });
+    await act(async () => {
+      await result.current.apply();
+    });
+    expect(mockUpdateLinkNote).toHaveBeenLastCalledWith(1, null);
   });
 
   it("records a network error when suggest fetch throws", async () => {
@@ -281,6 +350,9 @@ describe("useSuggestLinkOrgViewModel", () => {
     expect(suggestStepState("parse", false, "坏了", "parse")).toBe("error");
     expect(suggestStepState("request", false, "坏了", "parse")).toBe("done");
     expect(suggestStepState("ready", false, "坏了", "parse")).toBe("pending");
+    expect(suggestStepProgress(true, "", null)).toBe(38);
+    expect(suggestStepProgress(false, "", null)).toBe(100);
+    expect(suggestStepProgress(false, "坏了", "parse")).toBe(50);
   });
 
   it("loads hasApiKey without caching a failed fetch", async () => {
