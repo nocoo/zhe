@@ -252,10 +252,11 @@ Trigger: a **Sparkles** control on the link card (view + edit) labelled **「AI 
 
 Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). Four sections:
 
-0. **进度** — `准备目录 → 调用模型 → 解析结果 → 完成`. Current step is highlighted; failures mark the failing step. Waiting caption shows elapsed seconds.
+0. **进度** — `准备目录 → 调用模型 → 解析结果 → 完成`. Horizontal progress track plus arrowed step pills. Current step is highlighted; failures mark the failing step. Waiting caption shows elapsed seconds.
 1. **发送的提示 / 模型回复** — both collapsed by default. Expand to a scrollable `pre` (`whitespace-pre-wrap`, mono, `max-h-72`). JSON replies are pretty-printed when the whole payload parses. Available on success **and** parse/model errors so the user can inspect the exchange.
-2. **文件夹** — radio list, 1–3 options. Includes current folder as a non-AI row only if we need a “keep” escape; default selection = top AI option.
-3. **标签** — checkbox list, 1–5 options. Pre-check the top N (N = `min(3, options.length)`). User can uncheck / check / rename a **new** tag option before apply.
+2. **文件夹** — radio list. **推荐** shows the 1–3 AI options with reasons; **其他** lists every remaining catalog folder plus Inbox. Default selection = top AI option. User can reject the AI pick and choose any other folder.
+3. **标签** — checkbox list. **推荐** shows the 1–5 AI options (pre-check the top N, N = `min(3, options.length)`); **其他** lists remaining catalog tags, unchecked. User can uncheck / check / rename a **new** tag option before apply.
+4. **备注** — one Chinese sentence from the model, shown in an `Input size="sm"`. User can edit. Apply writes the **edited** value (`trim` empty → `null`).
 
 Footer:
 
@@ -268,6 +269,7 @@ Footer:
 | Field | Write |
 |-------|-------|
 | Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox. |
+| Note | `updateLinkNote(id, draftNote.trim() \|\| null)`. Always writes the user’s current input, not the raw model sentence. |
 | Tags | Call new action `ensureTagOnLink(linkId, name)`. Lookup is case-insensitive; attach is idempotent; create-then-attach if missing. **Guarantee is best-effort:** no unique index in v1, so a concurrent create can yield two case-variant names. On `createTag` failure with “already exists”, re-lookup and attach. **Existing tags on the link are never removed** by Apply. |
 
 **Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
@@ -282,6 +284,7 @@ The model must return **only** this JSON (no markdown fence required; parser str
 interface SuggestLinkOrgResult {
   folders: SuggestFolderOption[]; // 1–3 after parse
   tags: SuggestTagOption[];       // 1–5 after parse
+  note: string;                   // one Chinese sentence, 1–120 chars after trim
 }
 
 interface SuggestFolderOption {
@@ -301,7 +304,7 @@ interface SuggestTagOption {
 
 1. Strip optional ` ```json ` fence (same as gecko `parseAiResponse`).
 2. `JSON.parse`. Structural punctuation must be ASCII (prompt forbids fullwidth commas).
-3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`.
+3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`. `note` must be a non-empty string after trim (cap 120) or → `parse_error`.
 4. **Normalize first:** missing / `""` `folderId` → `null` (Inbox). Then require `folderId` / `tagId` to be `string | null` (reject numbers / objects). `name` and `reason` must be strings; `reason` trimmed to 80 chars. Drop options that fail this.
 5. Inbox is **only** `folderId: null`. Drop options whose `folderId` is `"inbox"` or any other non-catalog string.
 6. When `folderId` / `tagId` matches the catalog, **overwrite `name` from the catalog** before dedupe (model display names are not trusted).
@@ -321,7 +324,7 @@ File: `lib/ai/tasks/suggest-link-org.ts`. Four concatenated sections (gecko shap
 |---------|---------|
 | Role | You are organizing one bookmark for this user. Suggest only. Do not invent folders. |
 | Data | Injected via `{{var}}` — see table below |
-| Rules | Folder must be an id from the catalog or Inbox. Prefer existing tags. New tags only when no existing tag fits. Chinese `reason`. 1–3 folders, 1–5 tags. |
+| Rules | Folder must be an id from the catalog or Inbox. Prefer existing tags. New tags only when no existing tag fits. Chinese `reason`. Chinese `note` (one sentence, max 120). 1–3 folders, 1–5 tags. |
 | Format | Exact JSON schema above. ASCII punctuation outside strings. No trailing commas. No markdown wrapper. |
 
 **Variables** (`expandTemplate` — copy gecko’s `{{word}}` / `{{a.b}}` regex; unknown keys stay literal):
@@ -376,6 +379,8 @@ Stable error envelope for **all** AI routes (settings + suggest):
 {
   folders: SuggestFolderOption[];
   tags: SuggestTagOption[];
+  note: string;
+  catalogs: SuggestCatalogs;
   model: string;
   provider: string;
   durationMs: number;
@@ -399,7 +404,7 @@ Server loads the link via `ScopedDB` (`404` if not owned), builds catalogs from 
 `useSuggestLinkOrgViewModel`:
 
 - `open(linkId)` → POST suggest → store options + selection + `prompt` / `rawText` / failed step
-- `apply()` → `updateLink` (folder) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
+- `apply()` → `updateLink` (folder) then `updateLinkNote` (edited draft) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
 - No other write APIs.
 
 Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from `link-card` (list + grid) via a `Button size="icon-sm"` with `aria-label="AI 建议"`.
