@@ -82,6 +82,8 @@ export async function POST(request: Request): Promise<Response> {
   return NextResponse.json({
     folders: outcome.result.folders,
     tags: outcome.result.tags,
+    note: outcome.result.note,
+    catalogs,
     model: outcome.model,
     provider: outcome.provider,
     durationMs: outcome.durationMs,

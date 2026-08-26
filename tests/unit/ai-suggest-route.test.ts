@@ -98,6 +98,7 @@ describe("POST /api/ai/suggest-link-org", () => {
       result: {
         folders: [{ folderId: "f1", name: "工作", reason: "适合" }],
         tags: [{ tagId: "t1", name: "文档", reason: "文档" }],
+        note: "示例站点",
       },
       model: "claude-sonnet-4-5",
       provider: "anthropic",
@@ -115,6 +116,11 @@ describe("POST /api/ai/suggest-link-org", () => {
       prompt: expect.stringContaining("https://example.com"),
       rawText: '{"folders":[],"tags":[]}',
       model: "claude-sonnet-4-5",
+      note: "示例站点",
+      catalogs: {
+        folders: [{ id: "f1", name: "工作" }],
+        tags: [{ id: "t1", name: "文档" }],
+      },
     });
   });
 });
