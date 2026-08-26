@@ -250,7 +250,7 @@ L1 covers the route with a mocked `generateText`. L3 covers the UI state machine
 
 Trigger: a **Sparkles** control on the link card (view + edit) labelled **「AI 建议」**. Disabled with tooltip if `hasApiKey === false` (read a lightweight flag from dashboard bootstrap or a `GET /api/settings/ai` cache on the VM).
 
-Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). Four sections:
+Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). Five sections:
 
 0. **进度** — `准备目录 → 调用模型 → 解析结果 → 完成`. Horizontal progress track plus arrowed step pills. Current step is highlighted; failures mark the failing step. Waiting caption shows elapsed seconds.
 1. **发送的提示 / 模型回复** — both collapsed by default. Expand to a scrollable `pre` (`whitespace-pre-wrap`, mono, `max-h-72`). JSON replies are pretty-printed when the whole payload parses. Available on success **and** parse/model errors so the user can inspect the exchange.
@@ -260,7 +260,7 @@ Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). 
 
 Footer:
 
-- **应用** — writes the selected folder + selected tags
+- **应用** — writes the selected folder + edited note + selected tags
 - **取消** — no writes
 - Inline edit: folder is pick-only (existing folders). Tag *name* of a “new tag” option is an `Input size="sm"`; existing tags are not renamed here.
 
@@ -274,7 +274,7 @@ Footer:
 
 **Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
 
-Apply is **not** a D1 transaction (D1 batch `last_insert_rowid` pitfall). Sequence: folder first, then tags. Partial tag failure surfaces a toast and leaves successful writes; retry is safe because attach is idempotent and create is get-or-create. VM refreshes from `handleLinkUpdated` / `handleTagCreated` / `handleLinkTagAdded`.
+Apply is **not** a D1 transaction (D1 batch `last_insert_rowid` pitfall). Sequence: folder first, then note, then tags. Partial tag failure surfaces a toast and leaves successful writes; retry is safe because attach is idempotent and create is get-or-create. VM refreshes from `handleLinkUpdated` / `handleTagCreated` / `handleLinkTagAdded`.
 
 ### 4.2 JSON contract (the template)
 
