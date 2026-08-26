@@ -53,6 +53,8 @@ test.describe("AI link suggestions", () => {
         body: JSON.stringify({
           folders: [{ folderId, name: folderName, reason: "归入此文件夹" }],
           tags: [{ tagId: null, name: tagName, reason: "测试标签" }],
+          note: "e2e 备注总结",
+          catalogs: { folders: [{ id: folderId, name: folderName }], tags: [] },
           model: "claude-sonnet-4-5",
           provider: "anthropic",
           durationMs: 12,
@@ -73,6 +75,8 @@ test.describe("AI link suggestions", () => {
       await expect(page.getByTestId("suggest-prompt-body")).toHaveCount(0);
       await page.getByTestId("suggest-prompt-toggle").click();
       await expect(page.getByTestId("suggest-prompt-body")).toContainText("e2e-ai-suggest");
+      await expect(page.getByTestId("suggest-note")).toHaveValue("e2e 备注总结");
+      await page.getByTestId("suggest-note").fill("用户改过的备注");
       await page.getByTestId("suggest-apply").click();
       await expect(page.getByText("已应用建议").first()).toBeVisible();
       await expect(page.getByText("部分标签未能应用")).toHaveCount(0);
@@ -82,11 +86,12 @@ test.describe("AI link suggestions", () => {
       await expect(
         page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
       ).toBeVisible();
-      const assigned = await queryD1<{ folder_id: string | null }>(
-        "SELECT folder_id FROM links WHERE id = ? AND user_id = ?",
+      const assigned = await queryD1<{ folder_id: string | null; note: string | null }>(
+        "SELECT folder_id, note FROM links WHERE id = ? AND user_id = ?",
         [linkId, TEST_USER.id],
       );
       expect(assigned[0]?.folder_id).toBe(folderId);
+      expect(assigned[0]?.note).toBe("用户改过的备注");
     } finally {
       await executeD1("DELETE FROM link_tags WHERE link_id = ?", [linkId]);
       await executeD1("DELETE FROM tags WHERE user_id = ? AND name = ?", [TEST_USER.id, tagName]);
