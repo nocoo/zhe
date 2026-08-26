@@ -16,10 +16,21 @@ function makeVm(overrides: Partial<SuggestLinkOrgViewModel> = {}): SuggestLinkOr
     loading: false,
     applying: false,
     error: "",
-    folders: [{ folderId: "f1", name: "工作", reason: "适合工作" }],
+    folders: [{ folderId: "f1", name: "工作", reason: "适合工作", source: "ai" }],
     selectedFolderId: "f1",
     setSelectedFolderId: vi.fn(),
-    tags: [{ tagId: "t1", name: "文档", reason: "已有标签", checked: true, draftName: "文档" }],
+    tags: [
+      {
+        tagId: "t1",
+        name: "文档",
+        reason: "已有标签",
+        checked: true,
+        draftName: "文档",
+        source: "ai",
+      },
+    ],
+    draftNote: "工作文档入口",
+    setDraftNote: vi.fn(),
     hasAiKey: true,
     refreshHasAiKey: vi.fn(),
     openForLink: vi.fn(),
@@ -43,6 +54,7 @@ describe("SuggestLinkOrgDialog", () => {
     const dialog = screen.getByTestId("suggest-link-org-dialog");
     expect(dialog.className).toContain("max-w-3xl");
     expect(screen.getByTestId("suggest-step-request")).toHaveAttribute("data-state", "current");
+    expect(screen.getByTestId("suggest-step-progress")).toHaveStyle({ width: "38%" });
     expect(screen.getByTestId("suggest-step-caption")).toHaveTextContent("正在调用模型");
   });
 
@@ -74,5 +86,46 @@ describe("SuggestLinkOrgDialog", () => {
     expect(screen.getByTestId("suggest-error")).toHaveTextContent("模型返回不是有效 JSON");
     fireEvent.click(screen.getByTestId("suggest-raw-toggle"));
     expect(screen.getByTestId("suggest-raw-body")).toHaveTextContent("{");
+  });
+
+  it("lets the user pick a catalog folder and edit the note", () => {
+    const setSelectedFolderId = vi.fn();
+    const setDraftNote = vi.fn();
+    render(
+      <SuggestLinkOrgDialog
+        vm={makeVm({
+          folders: [
+            { folderId: "f1", name: "工作", reason: "适合工作", source: "ai" },
+            { folderId: "f2", name: "学习", reason: "", source: "catalog" },
+          ],
+          tags: [
+            {
+              tagId: "t1",
+              name: "文档",
+              reason: "已有标签",
+              checked: true,
+              draftName: "文档",
+              source: "ai",
+            },
+            {
+              tagId: "t2",
+              name: "阅读",
+              reason: "",
+              checked: false,
+              draftName: "阅读",
+              source: "catalog",
+            },
+          ],
+          setSelectedFolderId,
+          setDraftNote,
+        })}
+      />,
+    );
+    expect(screen.getAllByText("推荐")).toHaveLength(2);
+    expect(screen.getAllByText("其他")).toHaveLength(2);
+    fireEvent.click(screen.getByText("学习"));
+    expect(setSelectedFolderId).toHaveBeenCalledWith("f2");
+    fireEvent.change(screen.getByTestId("suggest-note"), { target: { value: "改过的备注" } });
+    expect(setDraftNote).toHaveBeenCalledWith("改过的备注");
   });
 });

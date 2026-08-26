@@ -15,8 +15,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { SUGGEST_STEPS, type SuggestStepId, suggestStepState } from "@/models/ai-suggest-progress";
-import type { SuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { SUGGEST_NOTE_MAX } from "@/models/ai-suggest-link-org";
+import {
+  SUGGEST_STEPS,
+  type SuggestStepId,
+  suggestStepProgress,
+  suggestStepState,
+} from "@/models/ai-suggest-progress";
+import type {
+  SuggestFolderDraft,
+  SuggestLinkOrgViewModel,
+  SuggestOptionSource,
+  SuggestTagDraft,
+} from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(1)} 秒`;
@@ -110,28 +121,136 @@ function StepList({
   error: string;
   failedStep: SuggestStepId | null;
 }) {
+  const progress = suggestStepProgress(loading, error, failedStep);
   return (
-    <ol className="grid grid-cols-4 gap-2" data-testid="suggest-steps">
-      {SUGGEST_STEPS.map((step) => {
-        const state = suggestStepState(step.id, loading, error, failedStep);
+    <div className="space-y-2" data-testid="suggest-steps">
+      <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+        <div
+          data-testid="suggest-step-progress"
+          className="h-full rounded-full bg-primary transition-[width]"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <ol className="flex items-center">
+        {SUGGEST_STEPS.map((step, index) => {
+          const state = suggestStepState(step.id, loading, error, failedStep);
+          return (
+            <li key={step.id} className="flex min-w-0 flex-1 items-center">
+              <div
+                data-testid={`suggest-step-${step.id}`}
+                data-state={state}
+                className={cn(
+                  "min-w-0 flex-1 rounded-widget px-2 py-1.5 text-center text-xs font-medium",
+                  state === "current" && "bg-secondary shadow-xs",
+                  state === "done" && "bg-primary/10 text-foreground",
+                  state === "error" && "bg-destructive/10 text-destructive",
+                  state === "pending" && "text-muted-foreground",
+                )}
+              >
+                {step.label}
+              </div>
+              {index < SUGGEST_STEPS.length - 1 && (
+                <ChevronRight
+                  aria-hidden
+                  className={cn(
+                    "mx-0.5 h-4 w-4 shrink-0",
+                    state === "done" || state === "current"
+                      ? "text-primary"
+                      : "text-muted-foreground",
+                  )}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function FolderGroup({
+  title,
+  folders,
+  selectedFolderId,
+  onSelect,
+}: {
+  title: string;
+  folders: SuggestFolderDraft[];
+  selectedFolderId: string | null;
+  onSelect: (folderId: string | null) => void;
+}) {
+  if (folders.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs text-muted-foreground">{title}</h4>
+      {folders.map((folder) => {
+        const value = folder.folderId ?? "inbox";
         return (
-          <li
-            key={step.id}
-            data-testid={`suggest-step-${step.id}`}
-            data-state={state}
-            className={cn(
-              "rounded-card px-2 py-2 text-center",
-              state === "current" && "bg-secondary shadow-xs",
-              state === "done" && "text-foreground",
-              state === "error" && "bg-destructive/10 text-destructive",
-              state === "pending" && "text-muted-foreground",
-            )}
-          >
-            <p className="text-xs font-medium">{step.label}</p>
-          </li>
+          <label key={value} className="flex items-start gap-2 text-sm">
+            <input
+              type="radio"
+              name="suggest-folder"
+              className="mt-1"
+              checked={(selectedFolderId ?? "inbox") === value}
+              onChange={() => onSelect(folder.folderId)}
+            />
+            <span>
+              <span className="font-medium">{folder.name}</span>
+              {folder.reason ? (
+                <span className="block text-xs text-muted-foreground">{folder.reason}</span>
+              ) : null}
+            </span>
+          </label>
         );
       })}
-    </ol>
+    </div>
+  );
+}
+
+function TagGroup({
+  title,
+  tags,
+  source,
+  onToggle,
+  onRename,
+}: {
+  title: string;
+  tags: SuggestTagDraft[];
+  source: SuggestOptionSource;
+  onToggle: (index: number) => void;
+  onRename: (index: number, name: string) => void;
+}) {
+  const items = tags
+    .map((tag, index) => ({ tag, index }))
+    .filter((item) => item.tag.source === source);
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs text-muted-foreground">{title}</h4>
+      {items.map(({ tag, index }) => (
+        <div key={`${tag.tagId ?? "new"}-${tag.name}-${index}`} className="flex items-start gap-2">
+          <Checkbox
+            size="sm"
+            checked={tag.checked}
+            onCheckedChange={() => onToggle(index)}
+            aria-label={`选择标签 ${tag.draftName}`}
+          />
+          <div className="min-w-0 flex-1">
+            {tag.tagId ? (
+              <p className="text-sm font-medium">{tag.name}</p>
+            ) : (
+              <Input
+                size="sm"
+                value={tag.draftName}
+                onChange={(event) => onRename(index, event.target.value)}
+                aria-label="新标签名"
+              />
+            )}
+            {tag.reason ? <p className="text-xs text-muted-foreground">{tag.reason}</p> : null}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -179,53 +298,50 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </p>
           ) : (
             <div className="space-y-5">
-              <section className="space-y-2">
+              <section className="space-y-3">
                 <h3 className="text-sm font-medium">文件夹</h3>
-                {vm.folders.map((folder) => {
-                  const value = folder.folderId ?? "inbox";
-                  return (
-                    <label key={value} className="flex items-start gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="suggest-folder"
-                        className="mt-1"
-                        checked={(vm.selectedFolderId ?? "inbox") === value}
-                        onChange={() => vm.setSelectedFolderId(folder.folderId)}
-                      />
-                      <span>
-                        <span className="font-medium">{folder.name}</span>
-                        <span className="block text-xs text-muted-foreground">{folder.reason}</span>
-                      </span>
-                    </label>
-                  );
-                })}
+                <FolderGroup
+                  title="推荐"
+                  folders={vm.folders.filter((folder) => folder.source === "ai")}
+                  selectedFolderId={vm.selectedFolderId}
+                  onSelect={vm.setSelectedFolderId}
+                />
+                <FolderGroup
+                  title="其他"
+                  folders={vm.folders.filter((folder) => folder.source === "catalog")}
+                  selectedFolderId={vm.selectedFolderId}
+                  onSelect={vm.setSelectedFolderId}
+                />
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-medium">标签</h3>
+                <TagGroup
+                  title="推荐"
+                  tags={vm.tags}
+                  source="ai"
+                  onToggle={vm.toggleTag}
+                  onRename={vm.renameTag}
+                />
+                <TagGroup
+                  title="其他"
+                  tags={vm.tags}
+                  source="catalog"
+                  onToggle={vm.toggleTag}
+                  onRename={vm.renameTag}
+                />
               </section>
 
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">标签</h3>
-                {vm.tags.map((tag, index) => (
-                  <div key={`${tag.tagId ?? "new"}-${tag.name}`} className="flex items-start gap-2">
-                    <Checkbox
-                      size="sm"
-                      checked={tag.checked}
-                      onCheckedChange={() => vm.toggleTag(index)}
-                      aria-label={`选择标签 ${tag.draftName}`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      {tag.tagId ? (
-                        <p className="text-sm font-medium">{tag.name}</p>
-                      ) : (
-                        <Input
-                          size="sm"
-                          value={tag.draftName}
-                          onChange={(e) => vm.renameTag(index, e.target.value)}
-                          aria-label="新标签名"
-                        />
-                      )}
-                      <p className="text-xs text-muted-foreground">{tag.reason}</p>
-                    </div>
-                  </div>
-                ))}
+                <h3 className="text-sm font-medium">备注</h3>
+                <Input
+                  size="sm"
+                  value={vm.draftNote}
+                  maxLength={SUGGEST_NOTE_MAX}
+                  onChange={(event) => vm.setDraftNote(event.target.value)}
+                  aria-label="备注总结"
+                  data-testid="suggest-note"
+                />
               </section>
             </div>
           )}
