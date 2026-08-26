@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.22.1] - 2026-08-26
+
+### Added
+- Restyle suggest steps and catalog picks
+- Apply note and extra catalog options
+- Return catalogs from suggest route
+- Parse note in link org suggest
+
+### Changed
+- Align suggest apply sequence in spec
+- Update ai suggest note and catalog picks
+- Cover edited note in suggest e2e
+- Bump wrangler to 4.126.0
+- Bump workers-types to 5.20260826.1
+- Bump cli vitest to 4.1.11
+- Bump ai to 7.0.82
+- Bump s3-request-presigner to 3.1119.0
+- Bump @aws-sdk/client-s3 to 3.1119.0
+- Bump @ai-sdk/openai to 4.0.49
+- Bump @ai-sdk/anthropic to 4.0.44
+- Bump next to 16.3.3
+- Bump @types/node 26.2.0 -> 26.3.0
+- Bump @aws-sdk/s3-request-presigner 3.1116.0 -> 3.1117.0
+- Bump @aws-sdk/client-s3 3.1116.0 -> 3.1117.0
+- Bump lucide-react to 1.34.0
+- Bump picomatch to 4.0.7
+- Upgrade ai 7.0.77 → 7.0.78
+- Upgrade @types/react-dom to 19.2.5
+
 ## [v1.22.0] - 2026-08-24
 
 ### Added
