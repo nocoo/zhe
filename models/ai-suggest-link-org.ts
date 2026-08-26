@@ -1,5 +1,7 @@
 import { validateTagName } from "@/models/tags";
 
+export const SUGGEST_NOTE_MAX = 120;
+
 export interface SuggestFolderOption {
   folderId: string | null;
   name: string;
@@ -15,6 +17,7 @@ export interface SuggestTagOption {
 export interface SuggestLinkOrgResult {
   folders: SuggestFolderOption[];
   tags: SuggestTagOption[];
+  note: string;
 }
 
 export interface SuggestCatalogs {
@@ -121,5 +124,48 @@ export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): Su
   if (folders.length === 0 || tags.length === 0) {
     throw new SuggestParseError("未得到可用的文件夹或标签建议");
   }
-  return { folders, tags };
+  if (typeof root.note !== "string") {
+    throw new SuggestParseError("返回必须包含备注总结");
+  }
+  const note = root.note.trim().slice(0, SUGGEST_NOTE_MAX);
+  if (!note) {
+    throw new SuggestParseError("未得到可用的备注总结");
+  }
+  return { folders, tags, note };
+}
+
+function folderKey(folderId: string | null): string {
+  return folderId ?? "inbox";
+}
+
+export function remainingFolderOptions(
+  suggested: SuggestFolderOption[],
+  catalogs: SuggestCatalogs,
+): SuggestFolderOption[] {
+  const seen = new Set(suggested.map((item) => folderKey(item.folderId)));
+  const extras: SuggestFolderOption[] = [];
+  if (!seen.has("inbox")) {
+    extras.push({ folderId: null, name: "Inbox", reason: "" });
+  }
+  for (const folder of catalogs.folders) {
+    if (seen.has(folder.id)) continue;
+    extras.push({ folderId: folder.id, name: folder.name, reason: "" });
+  }
+  return extras;
+}
+
+export function remainingTagOptions(
+  suggested: SuggestTagOption[],
+  catalogs: SuggestCatalogs,
+): SuggestTagOption[] {
+  const seenIds = new Set(
+    suggested.map((item) => item.tagId).filter((id): id is string => Boolean(id)),
+  );
+  const seenNames = new Set(suggested.map((item) => item.name.trim().toLowerCase()));
+  const extras: SuggestTagOption[] = [];
+  for (const tag of catalogs.tags) {
+    if (seenIds.has(tag.id) || seenNames.has(tag.name.trim().toLowerCase())) continue;
+    extras.push({ tagId: tag.id, name: tag.name, reason: "" });
+  }
+  return extras;
 }

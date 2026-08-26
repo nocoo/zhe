@@ -3,10 +3,10 @@ import type { SuggestCatalogs } from "@/models/ai-suggest-link-org";
 
 const ROLE = `You are organizing one bookmark for this user. Suggest only. Do not invent folders.`;
 
-const RULES = `Folder must be an id from the catalog or Inbox (folderId=null). Prefer existing tags. New tags only when no existing tag fits. Chinese reason. 1–3 folders, 1–5 tags.`;
+const RULES = `Folder must be an id from the catalog or Inbox (folderId=null). Prefer existing tags. New tags only when no existing tag fits. Chinese reason. Chinese note: one sentence summary for the bookmark note, max 120 chars. 1–3 folders, 1–5 tags.`;
 
 const FORMAT = `Return only JSON with this shape:
-{"folders":[{"folderId":null,"name":"Inbox","reason":"..."}],"tags":[{"tagId":null,"name":"...","reason":"..."}]}
+{"folders":[{"folderId":null,"name":"Inbox","reason":"..."}],"tags":[{"tagId":null,"name":"...","reason":"..."}],"note":"..."}
 ASCII punctuation outside strings. No trailing commas. No markdown wrapper.`;
 
 export function buildSuggestLinkOrgPrompt(vars: {

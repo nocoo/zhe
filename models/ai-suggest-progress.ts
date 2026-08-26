@@ -37,3 +37,17 @@ export function suggestStepState(
   }
   return "done";
 }
+
+export function suggestStepProgress(
+  loading: boolean,
+  error: string,
+  failedStep: SuggestStepId | null,
+): number {
+  const completed = SUGGEST_STEPS.filter(
+    (step) => suggestStepState(step.id, loading, error, failedStep) === "done",
+  ).length;
+  const hasCurrent = SUGGEST_STEPS.some(
+    (step) => suggestStepState(step.id, loading, error, failedStep) === "current",
+  );
+  return Math.round(((completed + (hasCurrent ? 0.5 : 0)) / SUGGEST_STEPS.length) * 100);
+}
