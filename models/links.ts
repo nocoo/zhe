@@ -21,6 +21,13 @@ export function extractHostname(url: string): string {
   }
 }
 
+/** True when the link has never been filled with scraped title, description, or favicon. */
+export function linkMissingMetadata(
+  link: Pick<Link, "metaTitle" | "metaDescription" | "metaFavicon">,
+): boolean {
+  return !(link.metaTitle || link.metaDescription || link.metaFavicon);
+}
+
 /** Check if a link has expired */
 export function isLinkExpired(link: Link): boolean {
   if (!link.expiresAt) return false;

@@ -13,6 +13,7 @@ import {
   isGitHubRepoUrl,
   isLinkExpired,
   isTwitterUrl,
+  linkMissingMetadata,
   sortLinksByDate,
   stripProtocol,
   topBreakdownEntries,
@@ -76,6 +77,21 @@ describe("models/links", () => {
 
     it("returns raw URL for empty string", () => {
       expect(extractHostname("")).toBe("");
+    });
+  });
+
+  describe("linkMissingMetadata", () => {
+    it("is true when title, description, and favicon are all empty", () => {
+      expect(linkMissingMetadata(makeLink())).toBe(true);
+      expect(linkMissingMetadata(makeLink({ note: "用户备注" }))).toBe(true);
+    });
+
+    it("is false when any metadata field is set", () => {
+      expect(linkMissingMetadata(makeLink({ metaTitle: "Whoiz" }))).toBe(false);
+      expect(linkMissingMetadata(makeLink({ metaDescription: "开源项目" }))).toBe(false);
+      expect(
+        linkMissingMetadata(makeLink({ metaFavicon: "https://example.com/favicon.ico" })),
+      ).toBe(false);
     });
   });
 
