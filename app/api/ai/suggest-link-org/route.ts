@@ -1,17 +1,37 @@
 import { NextResponse } from "next/server";
+import { refreshLinkEnrichment } from "@/actions/enrichment";
 import { aiErrorResponse } from "@/lib/ai/errors";
 import { runAiTask } from "@/lib/ai/run-task";
 import { buildSuggestLinkOrgPrompt } from "@/lib/ai/tasks/suggest-link-org";
-import { getScopedDB } from "@/lib/auth-context";
+import { getAuthContext } from "@/lib/auth-context";
+import type { Link } from "@/lib/db/schema";
+import type { ScopedDB } from "@/lib/db/scoped";
 import { parseSuggestLinkOrg } from "@/models/ai-suggest-link-org";
+import { linkMissingMetadata } from "@/models/links";
 
 export const dynamic = "force-dynamic";
 
+async function resolveLinkForSuggest(
+  db: ScopedDB,
+  userId: string,
+  link: Link,
+  canCallAi: boolean,
+): Promise<Link> {
+  if (!canCallAi || !linkMissingMetadata(link)) return link;
+  try {
+    await refreshLinkEnrichment(link.originalUrl, link.id, userId);
+  } catch (err) {
+    console.error("suggest-link-org: metadata refresh failed", err);
+  }
+  return (await db.getLinkById(link.id)) ?? link;
+}
+
 export async function POST(request: Request): Promise<Response> {
-  const db = await getScopedDB();
-  if (!db) {
+  const ctx = await getAuthContext();
+  if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { db, userId } = ctx;
 
   let body: { linkId?: unknown };
   try {
@@ -34,9 +54,15 @@ export async function POST(request: Request): Promise<Response> {
     db.getLinkTags(),
     db.getAiSettings(),
   ]);
+  const resolved = await resolveLinkForSuggest(
+    db,
+    userId,
+    link,
+    Boolean(settings.provider && settings.apiKey),
+  );
   const assigned = new Set(linkTags.filter((lt) => lt.linkId === link.id).map((lt) => lt.tagId));
   const currentTags = tags.filter((t) => assigned.has(t.id)).map((t) => t.name);
-  const currentFolder = folders.find((f) => f.id === link.folderId)?.name ?? "Inbox";
+  const currentFolder = folders.find((f) => f.id === resolved.folderId)?.name ?? "Inbox";
 
   const catalogs = {
     folders: folders.map((f) => ({ id: f.id, name: f.name })),
@@ -44,18 +70,18 @@ export async function POST(request: Request): Promise<Response> {
   };
   const hostname = (() => {
     try {
-      return new URL(link.originalUrl).hostname;
+      return new URL(resolved.originalUrl).hostname;
     } catch {
-      return link.originalUrl;
+      return resolved.originalUrl;
     }
   })();
 
   const prompt = buildSuggestLinkOrgPrompt({
-    url: link.originalUrl,
-    title: link.metaTitle || hostname,
-    description: link.metaDescription || "",
-    note: link.note || "",
-    currentFolder: link.folderId ? currentFolder : "Inbox",
+    url: resolved.originalUrl,
+    title: resolved.metaTitle || hostname,
+    description: resolved.metaDescription || "",
+    note: resolved.note || "",
+    currentFolder: resolved.folderId ? currentFolder : "Inbox",
     currentTags: currentTags.length > 0 ? currentTags.join(", ") : "（无）",
     catalogs,
   });
