@@ -397,7 +397,7 @@ Stable error envelope for **all** AI routes (settings + suggest):
 
 `runAiTask` must emit `reason: "timeout"` separately from `ai_error` so the route can map 504 without string-matching `"timed out"`.
 
-Server loads the link via `ScopedDB` (`404` if not owned), builds catalogs from `getFolders()` + `getTags()` + assigned tags, runs the task. **Does not write** folder/tags.
+Server loads the link via `ScopedDB` (`404` if not owned). If title / description / favicon are all empty **and** AI is configured, it runs the same enrichment refresh as the card button, then rebuilds the prompt from the updated row so the model is not judging a bare URL. Refresh failure is logged and suggest continues. Then it builds catalogs from `getFolders()` + `getTags()` + assigned tags and runs the task. **Does not write** folder/tags.
 
 ### 4.6 Client apply path
 
