@@ -127,5 +127,6 @@ describe("SuggestLinkOrgDialog", () => {
     expect(setSelectedFolderId).toHaveBeenCalledWith("f2");
     fireEvent.change(screen.getByTestId("suggest-note"), { target: { value: "改过的备注" } });
     expect(setDraftNote).toHaveBeenCalledWith("改过的备注");
+    expect(screen.getByTestId("suggest-note").closest(".overflow-y-auto")).toHaveClass("p-1");
   });
 });

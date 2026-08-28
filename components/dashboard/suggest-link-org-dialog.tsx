@@ -271,7 +271,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
 
         <StepList loading={vm.loading} error={vm.error} failedStep={vm.failedStep} />
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1">
           <TranscriptPanel
             key={`prompt-${String(vm.open)}`}
             title="发送的提示"
