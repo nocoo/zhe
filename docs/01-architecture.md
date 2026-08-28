@@ -205,7 +205,7 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 | `revokeWebhookToken()` | 撤销 token |
 | `updateWebhookRateLimit(value)` | 更新限流阈值（1-10） |
 
-### Enrichment（`actions/enrichment.ts`）
+### Enrichment（`lib/enrichment.ts`）
 
 | Action | 功能 |
 |--------|------|

@@ -60,7 +60,7 @@ Dashboard 链接列表支持多维筛选：
 
 ### 富集策略
 
-元数据富集采用策略模式（`actions/enrichment.ts`）：
+元数据富集采用策略模式（`lib/enrichment.ts`）：
 
 - **Twitter 策略** — 当 URL 包含 `twitter.com` 或 `x.com` 时，通过 Xray API 获取推文数据并缓存
 - **默认策略** — 使用 `url-metadata` 抓取 HTML meta 标签

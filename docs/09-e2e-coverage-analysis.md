@@ -300,7 +300,7 @@
 
 | 流程 | 涉及代码 | 现有测试 |
 |------|---------|---------|
-| **链接元数据自动抓取** | `actions/enrichment.ts` | 仅单元测试 |
+| **链接元数据自动抓取** | `lib/enrichment.ts` | 仅单元测试 |
 | **截图捕获** | `actions/links.ts` (`fetchAndSaveScreenshot`) | 无任何 E2E 覆盖 |
 
 ### 2.3 UI 与体验
