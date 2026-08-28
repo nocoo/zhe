@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.22.2] - 2026-08-28
+
+### Added
+- Refresh metadata before ai suggest
+- Detect links missing scraped metadata
+
+### Changed
+- Note metadata refresh in suggest flow
+
+### Fixed
+- Keep suggest note focus ring visible
+
 ## [v1.22.1] - 2026-08-26
 
 ### Added
