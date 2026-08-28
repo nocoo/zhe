@@ -1,5 +1,3 @@
-"use server";
-
 import type { ActionResult } from "@/actions/links/types";
 import { ScopedDB } from "@/lib/db/scoped";
 import { fetchMetadata } from "@/lib/metadata";
@@ -105,7 +103,7 @@ function resolveStrategy(url: string): LinkEnrichmentStrategy {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — called by actions/links.ts
+// Public API
 // ---------------------------------------------------------------------------
 
 /**

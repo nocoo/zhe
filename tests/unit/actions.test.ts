@@ -59,7 +59,7 @@ vi.mock("@/lib/db/scoped", () => ({
 
 const mockEnrichLink = vi.fn();
 const mockRefreshLinkEnrichment = vi.fn();
-vi.mock("@/actions/enrichment", () => ({
+vi.mock("@/lib/enrichment", () => ({
   enrichLink: (...args: unknown[]) => mockEnrichLink(...args),
   refreshLinkEnrichment: (...args: unknown[]) => mockRefreshLinkEnrichment(...args),
 }));

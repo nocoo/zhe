@@ -13,7 +13,7 @@ vi.mock("@/lib/ai/run-task", () => ({
   runAiTask: (...args: unknown[]) => mockRunAiTask(...args),
 }));
 
-vi.mock("@/actions/enrichment", () => ({
+vi.mock("@/lib/enrichment", () => ({
   refreshLinkEnrichment: (...args: unknown[]) => mockRefreshLinkEnrichment(...args),
 }));
 

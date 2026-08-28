@@ -21,7 +21,7 @@ export async function refreshLinkMetadata(linkId: number): Promise<ActionResult<
       return { success: false, error: "Link not found or access denied" };
     }
 
-    const { refreshLinkEnrichment } = await import("@/actions/enrichment");
+    const { refreshLinkEnrichment } = await import("@/lib/enrichment");
     const result = await refreshLinkEnrichment(link.originalUrl, linkId, userId);
     if (!result.success) {
       return { success: false, error: result.error ?? "Failed to refresh metadata" };
@@ -81,7 +81,7 @@ export async function batchRefreshLinkMetadata(linkIds: number[]): Promise<Actio
     }
 
     // Enrich each link using the strategy registry with concurrency limit
-    const { refreshLinkEnrichment } = await import("@/actions/enrichment");
+    const { refreshLinkEnrichment } = await import("@/lib/enrichment");
     const queue = [...links];
     const settled: number[] = [];
 

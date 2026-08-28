@@ -33,7 +33,7 @@ vi.spyOn(console, "error").mockImplementation(() => {});
 // Import the module under test AFTER mocks are set up
 // ---------------------------------------------------------------------------
 
-import { enrichLink, refreshLinkEnrichment } from "@/actions/enrichment";
+import { enrichLink, refreshLinkEnrichment } from "@/lib/enrichment";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,7 +45,7 @@ const FAKE_USER_ID = "user-abc-123";
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("actions/enrichment", () => {
+describe("lib/enrichment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

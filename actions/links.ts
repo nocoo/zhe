@@ -84,7 +84,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     // Metadata failure must never block link creation.
     void (async () => {
       try {
-        const { enrichLink } = await import("@/actions/enrichment");
+        const { enrichLink } = await import("@/lib/enrichment");
         await enrichLink(input.originalUrl, link.id, userId);
       } catch (err) {
         // Metadata is best-effort — log for observability but never block

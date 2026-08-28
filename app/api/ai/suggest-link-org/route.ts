@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
-import { refreshLinkEnrichment } from "@/actions/enrichment";
 import { aiErrorResponse } from "@/lib/ai/errors";
 import { runAiTask } from "@/lib/ai/run-task";
 import { buildSuggestLinkOrgPrompt } from "@/lib/ai/tasks/suggest-link-org";
 import { getAuthContext } from "@/lib/auth-context";
 import type { Link } from "@/lib/db/schema";
 import type { ScopedDB } from "@/lib/db/scoped";
+import { refreshLinkEnrichment } from "@/lib/enrichment";
 import { parseSuggestLinkOrg } from "@/models/ai-suggest-link-org";
 import { linkMissingMetadata } from "@/models/links";
 
 export const dynamic = "force-dynamic";
+
+const METADATA_BUDGET_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
+}
 
 async function resolveLinkForSuggest(
   db: ScopedDB,
@@ -19,7 +31,11 @@ async function resolveLinkForSuggest(
 ): Promise<Link> {
   if (!canCallAi || !linkMissingMetadata(link)) return link;
   try {
-    await refreshLinkEnrichment(link.originalUrl, link.id, userId);
+    await withTimeout(
+      refreshLinkEnrichment(link.originalUrl, link.id, userId),
+      METADATA_BUDGET_MS,
+      "metadata refresh timed out",
+    );
   } catch (err) {
     console.error("suggest-link-org: metadata refresh failed", err);
   }
