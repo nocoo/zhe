@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.22.3] - 2026-08-28
+
+### Changed
+- Point enrichment registry at lib
+
+### Fixed
+- Run suggest metadata refresh from lib
+
 ## [v1.22.2] - 2026-08-28
 
 ### Added
