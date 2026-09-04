@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { spawn } from "node:child_process";
+import { EventEmitter } from "node:events";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Folder, Link, Tag } from "../src/api/types.js";
 import {
   formatDate,
@@ -10,12 +12,36 @@ import {
   formatTagsTable,
   isValidApiKeyFormat,
   maskApiKey,
+  openInBrowser,
   parseLinkId,
   resolveFolderName,
   resolveTagName,
   resolveTagRef,
   truncate,
 } from "../src/utils.js";
+
+vi.mock("node:child_process", () => ({
+  spawn: vi.fn(),
+}));
+
+const spawnMock = vi.mocked(spawn);
+const processPlatformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+
+function setPlatform(platform: NodeJS.Platform): void {
+  Object.defineProperty(process, "platform", { value: platform });
+}
+
+function createChildProcess(): EventEmitter {
+  return new EventEmitter();
+}
+
+afterEach(() => {
+  spawnMock.mockReset();
+  vi.restoreAllMocks();
+  if (processPlatformDescriptor) {
+    Object.defineProperty(process, "platform", processPlatformDescriptor);
+  }
+});
 
 describe("maskApiKey", () => {
   it("masks API key preserving prefix and suffix", () => {
@@ -875,5 +901,108 @@ describe("resolveTagRef", () => {
     };
     const result = await resolveTagRef(duplicateClient as never, "same");
     expect(result).toEqual({ kind: "ambiguous" });
+  });
+});
+
+describe("openInBrowser", () => {
+  const url = "https://zhe.to/example";
+
+  it.each([
+    ["darwin", "open", [url]],
+    ["linux", "xdg-open", [url]],
+    ["win32", "cmd", ["/c", "start", "", url]],
+  ] as const)("uses the native browser command on %s", (platform, command, args) => {
+    const child = createChildProcess();
+    setPlatform(platform);
+    spawnMock.mockReturnValue(child as never);
+
+    openInBrowser(url);
+
+    expect(spawnMock).toHaveBeenCalledWith(command, args, { stdio: "ignore" });
+  });
+
+  it("reports unsupported platforms without spawning a process", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    setPlatform("freebsd");
+
+    openInBrowser(url);
+
+    expect(spawnMock).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it("reports a process error once even if the process subsequently closes", () => {
+    const child = createChildProcess();
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    setPlatform("darwin");
+    spawnMock.mockReturnValue(child as never);
+
+    openInBrowser(url);
+    child.emit("error", new Error("open failed"));
+    child.emit("close", 1);
+
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it("reports a non-zero process exit", () => {
+    const child = createChildProcess();
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    setPlatform("linux");
+    spawnMock.mockReturnValue(child as never);
+
+    openInBrowser(url);
+    child.emit("close", 1);
+
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it("does not report a successful process exit", () => {
+    const child = createChildProcess();
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    setPlatform("linux");
+    spawnMock.mockReturnValue(child as never);
+
+    openInBrowser(url);
+    child.emit("close", 0);
+
+    expect(log).not.toHaveBeenCalled();
+  });
+});
+
+describe("formatLinksTable option combinations", () => {
+  const linkWithoutTags: Link = {
+    id: 1,
+    slug: "inbox-link",
+    originalUrl: "https://example.com/inbox",
+    shortUrl: "https://zhe.to/inbox-link",
+    isCustom: false,
+    clicks: 0,
+    folderId: "folder-12345678",
+    note: null,
+    metaTitle: null,
+    metaDescription: null,
+    screenshotUrl: null,
+    expiresAt: null,
+    createdAt: "2026-04-01T00:00:00.000Z",
+    updatedAt: "2026-04-01T00:00:00.000Z",
+    tags: [],
+  };
+
+  it("renders folder and empty tag columns in compact and wide tables", () => {
+    const compact = formatLinksTable([linkWithoutTags], { showTags: true });
+    const wide = formatLinksTable([linkWithoutTags], { showTags: true, wide: true });
+
+    expect(compact).toContain("FOLDER");
+    expect(compact).toContain("TAGS");
+    expect(compact).toContain("folder-1");
+    expect(wide).toContain("FOLDER");
+    expect(wide).toContain("TAGS");
+    expect(wide).toContain("folder-1");
+  });
+});
+
+describe("parseLinkId", () => {
+  it("rejects integers outside JavaScript's safe range", () => {
+    expect(parseLinkId("9007199254740992")).toBeNull();
   });
 });
