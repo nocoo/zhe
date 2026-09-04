@@ -7,9 +7,6 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      // experimentalAstAwareRemapping reduces variance and slightly improves
-      // wall-clock by avoiding the legacy source-map-based remap path.
-      experimentalAstAwareRemapping: true,
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
       exclude: [
