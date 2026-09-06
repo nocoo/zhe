@@ -1,0 +1,37 @@
+{
+  "study": "zhe/2026-09-07-01",
+  "finishing": "01",
+  "method": "retained-original",
+  "generationCalls": 0,
+  "nativeDimensions": [2048, 2048],
+  "original": {
+    "path": "source/original.png",
+    "sha256": "a0c8b924026189661b2e5eb11d876775f5a3fd506c91b32e61992f53a811a046",
+    "width": 2048,
+    "height": 2048,
+    "bytes": 3100798,
+    "repository": "https://github.com/nocoo/zhe",
+    "repositoryRevision": "120a01207c1b978a081413e785099d3580890d80",
+    "sourcePath": "logo.png",
+    "sourceUrl": "https://github.com/nocoo/zhe/blob/120a01207c1b978a081413e785099d3580890d80/logo.png"
+  },
+  "masters": {
+    "logo.png": {
+      "sha256": "a0c8b924026189661b2e5eb11d876775f5a3fd506c91b32e61992f53a811a046",
+      "width": 2048,
+      "height": 2048
+    },
+    "assets/brand/icon.png": {
+      "sha256": "396762b02a10c8497b4bb423ea4c09ab1d81dd0b0615a5d85efdc60b70fe2964",
+      "width": 2048,
+      "height": 2048
+    },
+    "assets/brand/icon-rounded.png": {
+      "sha256": "3d71c1ed7f1570f18255aee2ed2a8c890e65da6529cc5e6064a595f941621404",
+      "width": 2048,
+      "height": 2048
+    }
+  },
+  "review": "https://hexly.ai/logos/zhe",
+  "archive": "https://github.com/nocoo/hexly.ai/tree/main/artwork/logo-family/zhe/2026-09-07-01"
+}

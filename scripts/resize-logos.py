@@ -2,7 +2,8 @@
 """
 Resize logo.png (transparent background) for different use cases.
 
-Single-source pattern: ONE master logo.png at project root generates ALL derived assets.
+Small app and browser marks use root logo.png. Large and platform presentations
+use the separate selected masters in assets/brand/.
 
 Outputs:
   public/          — Only assets referenced by <img src="..."> in components
@@ -11,7 +12,7 @@ Outputs:
 
   app/             — Next.js file-based metadata convention (auto-generates <link>/<meta> tags)
     icon.png         32x32 favicon
-    apple-icon.png   180x180 Apple touch icon
+    apple-icon.png   180x180 square presentation for Apple's masking
     favicon.ico      Multi-size ICO (16+32)
     opengraph-image.png  1200x630 OG image (RGB, brand background)
 
@@ -43,8 +44,9 @@ def main():
     app = root / "app"  # zhe has no src/ — app is at root
     public.mkdir(exist_ok=True)
 
-    # Load single source image (transparent background)
     logo = Image.open(root / "logo.png").convert("RGBA")
+    presentation = Image.open(root / "assets/brand/icon.png").convert("RGBA")
+    rounded = Image.open(root / "assets/brand/icon-rounded.png").convert("RGBA")
     print(f"Source logo: {logo.size}")
 
     # === public/ — Only <img> referenced assets ===
@@ -67,17 +69,14 @@ def main():
     print(f"  app/icon.png: {icon.size}")
 
     # apple-icon.png (180x180) — auto-generates <link rel="apple-touch-icon">
-    apple = resize_square(logo, 180)
+    apple = resize_square(presentation, 180)
     apple.save(app / "apple-icon.png")
     print(f"  app/apple-icon.png: {apple.size}")
 
     # favicon.ico (multi-size: 16+32) — broad browser compat
-    favicon_16 = resize_square(logo, 16)
-    favicon_32 = resize_square(logo, 32)
-    favicon_32.save(
+    logo.save(
         app / "favicon.ico",
         format="ICO",
-        append_images=[favicon_16],
         sizes=[(16, 16), (32, 32)],
     )
     print(f"  app/favicon.ico: 16x16 + 32x32")
@@ -92,7 +91,7 @@ def main():
 
     # Center logo at ~40% canvas height
     logo_size = min(og_width, og_height) * 55 // 100  # ~55% of shorter dimension
-    logo_resized = resize_square(logo, logo_size)
+    logo_resized = resize_square(rounded, logo_size)
 
     # Convert RGBA logo to paste with alpha mask
     x = (og_width - logo_size) // 2
@@ -102,7 +101,7 @@ def main():
     og.save(app / "opengraph-image.png")
     print(f"  app/opengraph-image.png: {og.size}")
 
-    print("\nDone! All assets generated from single source.")
+    print("\nDone! Transparent app marks and presentation assets generated.")
 
 
 if __name__ == "__main__":
