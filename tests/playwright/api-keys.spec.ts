@@ -54,8 +54,14 @@ test.describe("API Keys", () => {
 
       await page.locator('[data-testid="show-create-form-btn"]').click();
 
-      await expect(page.locator('[data-testid="create-form"]')).toBeVisible();
-      await expect(page.locator('[data-testid="key-name-input"]')).toBeVisible();
+      const form = page.locator('[data-testid="create-form"]');
+      await expect(form).toBeVisible();
+      await expect(form).toHaveAttribute("data-basalt-surface", "");
+      const nameInput = page.locator('[data-testid="key-name-input"]');
+      await expect(nameInput).toBeVisible();
+      await expect
+        .poll(async () => nameInput.evaluate((el) => getComputedStyle(el).backgroundColor))
+        .toBe(await form.evaluate((el) => getComputedStyle(el).backgroundColor));
     });
 
     test("create button is disabled when name is empty", async ({ page }) => {

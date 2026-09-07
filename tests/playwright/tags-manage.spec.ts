@@ -14,13 +14,20 @@ test.describe("Tags management", () => {
     await expect(page.locator('[data-testid="tags-page"]')).toBeVisible();
 
     await page.locator('[data-testid="tag-create-btn"]').click();
-    await expect(page.locator('[data-testid="tag-create-form"]')).toBeVisible();
-    await page.getByLabel("新标签名").fill(name);
+    const createForm = page.locator('[data-testid="tag-create-form"]');
+    await expect(createForm).toBeVisible();
+    await expect(createForm).toHaveAttribute("data-basalt-surface", "");
+    const createInput = page.getByLabel("新标签名");
+    await expect
+      .poll(async () => createInput.evaluate((el) => getComputedStyle(el).backgroundColor))
+      .toBe(await createForm.evaluate((el) => getComputedStyle(el).backgroundColor));
+    await createInput.fill(name);
     await page.locator('[data-testid="tag-color-red"]').click();
     await page.locator('[data-testid="tag-create-submit"]').click();
 
     const created = page.locator(`[data-testid="tag-manage-row"]:has([data-tag-name="${name}"])`);
     await expect(created).toBeVisible({ timeout: 15_000 });
+    await expect(created).toHaveAttribute("data-basalt-surface", "");
     const tagId = await created.getAttribute("data-tag-id");
     expect(tagId).toBeTruthy();
     const row = page.locator(`[data-testid="tag-manage-row"][data-tag-id="${tagId}"]`);

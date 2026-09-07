@@ -52,6 +52,7 @@ export function TagsPage() {
 
       {vm.creating && (
         <div
+          data-basalt-surface=""
           className="mb-4 flex flex-col gap-3 rounded-card bg-secondary p-3 md:flex-row md:items-center"
           data-testid="tag-create-form"
         >
