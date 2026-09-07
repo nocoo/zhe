@@ -1,6 +1,3 @@
-"use client";
-
-import { PageHeader as BasaltPageHeader } from "@nocoo/basalt/components/page-header";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -13,13 +10,17 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, filters, className }: PageHeaderProps) {
   return (
-    <div className={cn("mb-6", className)}>
-      <BasaltPageHeader
-        title={title}
-        description={description}
-        actions={actions}
-        filters={filters}
-      />
-    </div>
+    <header className={cn("mb-6 space-y-4", className)}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
+          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>
+        ) : null}
+      </div>
+      {filters ? <div className="flex flex-wrap items-center gap-2">{filters}</div> : null}
+    </header>
   );
 }

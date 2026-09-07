@@ -12,4 +12,17 @@ describe("PageHeader wrapper", () => {
     expect(screen.getByRole("heading", { name: "想法" })).toBeInTheDocument();
     expect(container.firstElementChild?.className).toMatch(/\bmb-6\b/);
   });
+
+  it("aligns title and actions on one row at dashboard density", () => {
+    const { container } = render(
+      <PageHeader
+        title="想法"
+        description="共 3 条想法"
+        actions={<button type="button">新想法</button>}
+      />,
+    );
+    const row = container.querySelector("header > div");
+    expect(row?.className).toMatch(/\bmd:items-center\b/);
+    expect(screen.getByRole("heading", { name: "想法" }).className).toMatch(/\btext-lg\b/);
+  });
 });
