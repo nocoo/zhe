@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
-import Script from "next/script";
 import { BasaltProviders } from "@/components/basalt-providers";
 import { Toaster } from "@/components/ui/sonner";
 import { THEME_INIT_SCRIPT } from "@/lib/theme-init";
@@ -36,10 +35,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static theme IIFE, no user input
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
+      </head>
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {THEME_INIT_SCRIPT}
-        </Script>
         <BasaltProviders>
           {children}
           <Toaster />

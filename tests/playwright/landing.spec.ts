@@ -32,6 +32,15 @@ test.describe("Landing page", () => {
     await expect(githubLink).toHaveAttribute("href", "https://github.com/nocoo/zhe");
   });
 
+  test("applies stored dark theme on first paint", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("theme", "dark");
+    });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
+  });
+
   test("/login redirects to landing page", async ({ page }) => {
     await page.goto("/login");
     await page.waitForURL("/");
