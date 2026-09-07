@@ -105,15 +105,13 @@ test.describe("Dashboard navigation", () => {
     await page.locator('nav a:has-text("概览")').click();
     await page.waitForURL("**/dashboard/overview");
 
-    // Scope to the Breadcrumb nav so we don't match a stale aria-current
-    // from a transitional render of another component.
     await expect(appTitle(page, "概览")).toBeVisible();
   });
 
   test("navigate to AI settings page", async ({ page }) => {
     await page.goto("/dashboard");
 
-    await page.locator('a:has-text("AI")').click();
+    await page.getByRole("link", { name: "AI", exact: true }).click();
     await page.waitForURL("**/dashboard/settings/ai");
 
     await expect(appTitle(page, "AI")).toBeVisible();
