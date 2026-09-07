@@ -26,7 +26,7 @@ interface CreateLinkModalProps {
 }
 
 const INPUT_CLS =
-  "rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
+  "rounded-widget border-border text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
 
 function LabelledInput({
   id,
@@ -111,7 +111,7 @@ export function CreateLinkModal({
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] rounded-card border-0 bg-background">
+      <DialogContent className="sm:max-w-[425px] rounded-card border-0">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">创建短链接</DialogTitle>
         </DialogHeader>

@@ -14,7 +14,7 @@ import type { Folder, Tag } from "@/models/types";
 import { TagBadge, TagPicker } from "../shared-link-components";
 
 const INPUT_CLS =
-  "rounded-widget border-border bg-secondary text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
+  "rounded-widget border-border text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
 
 interface ModeTabsProps {
   mode: "simple" | "custom";
@@ -97,7 +97,7 @@ export function FolderSelect({
       >
         <SelectTrigger
           id="folder"
-          className="h-9 w-full rounded-widget border-border bg-secondary text-sm focus:ring-1 focus:ring-primary"
+          className="h-9 w-full rounded-widget border-border text-sm focus:ring-1 focus:ring-primary"
         >
           <SelectValue />
         </SelectTrigger>

@@ -20,7 +20,7 @@ import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 
-const FIELD_INPUT_CLS = "h-8 rounded-widget border-border bg-background text-xs";
+const FIELD_INPUT_CLS = "h-8 rounded-widget border-border text-xs";
 
 function LabelledField({
   id,
@@ -93,7 +93,7 @@ function FolderNoteRow({ link, folders, vm }: { link: Link; folders: Folder[]; v
         >
           <SelectTrigger
             id={`edit-folder-${link.id}`}
-            className="h-8 w-40 rounded-widget border-border bg-background text-xs"
+            className="h-8 w-40 rounded-widget border-border text-xs"
           >
             <SelectValue />
           </SelectTrigger>

@@ -98,7 +98,7 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      "rounded-md bg-secondary px-4 py-2 text-sm font-medium text-foreground",
+      "rounded-md bg-basalt-control px-4 py-2 text-sm font-medium text-foreground",
       className,
     )}
     {...props}
