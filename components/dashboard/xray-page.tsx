@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { useXrayViewModel, type XrayInitialData } from "@/viewmodels/useXrayViewModel";
 import { BookmarksSection } from "./xray-page-parts/bookmarks-section";
 import { ConfigSection } from "./xray-page-parts/config-section";
@@ -10,6 +11,7 @@ export function XrayPage({ initialData }: { initialData?: XrayInitialData }) {
 
   return (
     <div className="space-y-6">
+      <PageHeader title="Xray" description="配置接口并收录 Twitter 书签。" />
       {/* ── API 配置 + 接口测试（并排） ──────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ConfigSection vm={vm} />

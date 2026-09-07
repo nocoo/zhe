@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
@@ -75,13 +76,19 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   const { data, loading, selectedKeys, cleaning, showConfirm, setShowConfirm } = sp;
 
   if (loading && !data) {
-    return <StorageSkeleton />;
+    return (
+      <div>
+        <PageHeader title="存储管理" description="查看 R2 与 D1 用量，清理孤儿文件。" />
+        <StorageSkeleton />
+      </div>
+    );
   }
 
   if (!data) return null;
 
   return (
     <div className="space-y-6">
+      <PageHeader title="存储管理" description="查看 R2 与 D1 用量，清理孤儿文件。" />
       <SummaryGrid data={data} SummaryCard={SummaryCard} />
 
       <div className="flex items-center gap-2">

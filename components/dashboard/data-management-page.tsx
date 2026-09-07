@@ -4,6 +4,7 @@ import { CheckCircle, Download, Upload } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 
 export function DataManagementPage() {
@@ -25,6 +26,7 @@ export function DataManagementPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader title="数据管理" description="导入、导出链接数据。" />
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">

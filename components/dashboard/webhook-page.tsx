@@ -1,9 +1,9 @@
 "use client";
 
-import { Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
 import { DeprecationWarning } from "./webhook-page-parts/deprecation-warning";
@@ -108,18 +108,9 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
 
   return (
     <div className="space-y-6">
+      <PageHeader title="Webhook" description="通过令牌让外部系统创建短链接（已废弃）。" />
       <Card>
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Webhook className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            Webhook
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
-            通过 Webhook 令牌，外部系统可以调用 API 创建短链接，无需登录认证。
-          </p>
-
+        <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (
             <p className="text-sm text-muted-foreground">加载中...</p>
           ) : vm.token && vm.webhookUrl ? (

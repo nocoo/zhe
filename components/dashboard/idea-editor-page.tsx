@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
 import { EditorSplit, ErrorToast } from "./idea-editor-page-parts/editor-split";
 import { EditorToolbar } from "./idea-editor-page-parts/editor-toolbar";
@@ -41,6 +42,7 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
 
   return (
     <div>
+      <PageHeader title="编辑想法" description="编写内容、标题与标签。" />
       <EditorToolbar
         title={vm.title}
         setTitle={vm.setTitle}

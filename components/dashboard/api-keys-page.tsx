@@ -1,9 +1,10 @@
 "use client";
 
-import { Key, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import type { ApiScope } from "@/models/api-key";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";
@@ -35,18 +36,9 @@ export function ApiKeysPage() {
 
   return (
     <div className="space-y-6">
+      <PageHeader title="API Keys" description="管理外部应用访问数据的密钥。" />
       <Card>
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Key className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-            API Keys
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
-            管理 API 密钥，用于外部应用程序访问您的数据。
-          </p>
-
+        <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.newlyCreatedKey && (
             <NewKeyBanner newKey={vm.newlyCreatedKey} onDismiss={vm.clearNewKey} />
           )}
