@@ -71,7 +71,14 @@ describe("AiSettingsPage", () => {
   it("renders the page header", () => {
     render(<AiSettingsPage />);
     expect(screen.getByTestId("ai-settings-page")).toBeInTheDocument();
-    expect(screen.getByText("AI")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "AI" })).toBeInTheDocument();
+    expect(screen.getByText("配置大模型供应商，用于链接整理建议。")).toBeInTheDocument();
+  });
+
+  it("puts the form in a full-width card", () => {
+    const { container } = render(<AiSettingsPage />);
+    expect(container.querySelector(".max-w-xl")).toBeNull();
+    expect(screen.getByTestId("ai-provider").closest("[data-basalt-surface]")).not.toBeNull();
   });
 
   it("disables save and test without a provider", () => {
