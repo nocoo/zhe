@@ -22,8 +22,8 @@ test.describe("Tags management", () => {
       .poll(async () => createInput.evaluate((el) => getComputedStyle(el).backgroundColor))
       .toBe(await createForm.evaluate((el) => getComputedStyle(el).backgroundColor));
     await createInput.fill(name);
-    await page.locator('[data-testid="tag-color-red"]').click();
-    await page.locator('[data-testid="tag-create-submit"]').click();
+    await createForm.getByTestId("tag-color-red").click();
+    await createForm.getByTestId("tag-create-submit").click();
 
     const created = page.locator(`[data-testid="tag-manage-row"]:has([data-tag-name="${name}"])`);
     await expect(created).toBeVisible({ timeout: 15_000 });
