@@ -42,7 +42,7 @@ export function SidebarCollapsed({
   setSearchOpen,
 }: SidebarCollapsedProps) {
   return (
-    <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center bg-background transition-all duration-[var(--motion-base)] ease-in-out overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden">
       <div className="flex h-14 w-full items-center justify-start pl-6 pr-3">
         <img src="/logo-24.png" alt="Zhe" width={24} height={24} className="shrink-0" />
       </div>
@@ -130,6 +130,6 @@ export function SidebarCollapsed({
         </Tooltip>
       </div>
       <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
-    </aside>
+    </div>
   );
 }

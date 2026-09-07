@@ -23,6 +23,22 @@ const ROUTE_LABELS: Record<string, string> = {
 /** Match /dashboard/ideas/:id (numeric id) */
 const IDEA_EDIT_PATTERN = /^\/dashboard\/ideas\/\d+$/;
 
+export function getAppHeaderTrail(pathname: string): {
+  breadcrumbs: { href: string; label: string }[];
+  title: string;
+} {
+  if (pathname === "/dashboard") {
+    return { breadcrumbs: [], title: "链接管理" };
+  }
+  if (IDEA_EDIT_PATTERN.test(pathname)) {
+    return { breadcrumbs: [{ href: "/dashboard/ideas", label: "想法" }], title: "编辑想法" };
+  }
+  return {
+    breadcrumbs: [{ href: "/dashboard", label: "仪表盘" }],
+    title: ROUTE_LABELS[pathname] ?? "链接管理",
+  };
+}
+
 export function Breadcrumbs() {
   const pathname = usePathname();
 

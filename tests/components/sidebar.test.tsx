@@ -172,7 +172,7 @@ describe("Sidebar", () => {
       // Should render the narrow aside (68px)
       const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain("w-[68px]");
+      expect(aside?.hasAttribute("data-collapsed")).toBe(true);
 
       // "全部链接" and "Inbox" should not be visible as text
       expect(screen.queryByText("全部链接")).not.toBeInTheDocument();
@@ -200,7 +200,7 @@ describe("Sidebar", () => {
       // Should render the wide aside (260px)
       const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain("w-[260px]");
+      expect(aside?.getAttribute("data-collapsed")).toBeNull();
 
       // Should display nav item text labels
       expect(screen.getByText("全部链接")).toBeInTheDocument();

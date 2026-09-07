@@ -42,13 +42,14 @@ export default async function Home() {
   const dateStr = todayDateStr();
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-basalt-background p-4">
       <TopRightControls />
       <RadialGlow />
 
       <div className="flex flex-col items-center">
         <div
-          className="relative aspect-[54/86] w-72 overflow-hidden rounded-2xl bg-card flex flex-col ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
+          data-basalt-surface-root=""
+          className="relative flex aspect-[54/86] w-72 flex-col overflow-hidden rounded-2xl bg-basalt-card ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
           style={{ boxShadow: BADGE_SHADOW }}
         >
           <BadgeHeader dateStr={dateStr} />

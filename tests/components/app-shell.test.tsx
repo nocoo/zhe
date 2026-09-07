@@ -180,26 +180,23 @@ describe("AppShell", () => {
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
   });
 
-  it("renders breadcrumbs instead of h1 title", async () => {
+  it("renders the current page title in the header", async () => {
     await renderShell();
-    const breadcrumbNav = screen.getByLabelText("Breadcrumb");
-    expect(breadcrumbNav).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "链接管理" })).toBeInTheDocument();
   });
 
-  it("renders breadcrumbs with 链接管理 on dashboard root", async () => {
+  it("renders 链接管理 as the header title on dashboard root", async () => {
     await renderShell();
-    const breadcrumbNav = screen.getByLabelText("Breadcrumb");
-    expect(breadcrumbNav.textContent).toContain("链接管理");
+    expect(screen.getByRole("heading", { name: "链接管理" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
   });
 
-  it("renders breadcrumbs with page label on sub-pages", async () => {
+  it("renders ancestor crumbs and page title on sub-pages", async () => {
     mockPathname = "/dashboard/uploads";
     await renderShell();
     const breadcrumbNav = screen.getByLabelText("Breadcrumb");
-    expect(breadcrumbNav).toBeInTheDocument();
-    // Breadcrumb should contain the page label and parent link
-    expect(breadcrumbNav.textContent).toContain("文件上传");
     expect(breadcrumbNav.textContent).toContain("仪表盘");
+    expect(screen.getByRole("heading", { name: "文件上传" })).toBeInTheDocument();
   });
 
   it("renders ThemeToggle in header", async () => {
@@ -222,7 +219,7 @@ describe("AppShell", () => {
 
       const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain("w-[260px]");
+      expect(aside?.getAttribute("data-collapsed")).toBeNull();
     });
 
     it("renders collapsed sidebar", async () => {
@@ -232,7 +229,7 @@ describe("AppShell", () => {
 
       const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
-      expect(aside?.className).toContain("w-[68px]");
+      expect(aside?.hasAttribute("data-collapsed")).toBe(true);
     });
 
     it("does not show mobile menu button on desktop", async () => {

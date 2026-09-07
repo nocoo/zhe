@@ -1,5 +1,6 @@
 "use client";
 
+import { Sidebar as BasaltSidebar } from "@nocoo/basalt";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSidebar } from "@/components/sidebar-context";
@@ -58,35 +59,35 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
 
-  if (collapsed) {
-    return (
-      <SidebarCollapsed
-        pathname={pathname}
-        currentFolder={currentFolder}
-        user={user}
-        folders={foldersVm.folders}
-        onToggle={toggle}
-        searchOpen={searchOpen}
-        setSearchOpen={setSearchOpen}
-      />
-    );
-  }
-
   return (
-    <SidebarExpanded
-      pathname={pathname}
-      currentFolder={currentFolder}
-      user={user}
-      signOutAction={signOutAction}
-      folders={foldersVm.folders}
-      foldersVm={foldersVm}
-      linkCounts={linkCounts}
-      groupOpen={groupOpen}
-      toggleGroup={toggleGroup}
-      onToggle={toggle}
-      searchOpen={searchOpen}
-      setSearchOpen={setSearchOpen}
-      openSearch={openSearch}
-    />
+    <BasaltSidebar collapsed={collapsed}>
+      {collapsed ? (
+        <SidebarCollapsed
+          pathname={pathname}
+          currentFolder={currentFolder}
+          user={user}
+          folders={foldersVm.folders}
+          onToggle={toggle}
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
+        />
+      ) : (
+        <SidebarExpanded
+          pathname={pathname}
+          currentFolder={currentFolder}
+          user={user}
+          signOutAction={signOutAction}
+          folders={foldersVm.folders}
+          foldersVm={foldersVm}
+          linkCounts={linkCounts}
+          groupOpen={groupOpen}
+          toggleGroup={toggleGroup}
+          onToggle={toggle}
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
+          openSearch={openSearch}
+        />
+      )}
+    </BasaltSidebar>
   );
 }

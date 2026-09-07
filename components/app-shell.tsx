@@ -1,16 +1,22 @@
 "use client";
 
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { Button, ContentIsland, Sheet, SheetContent, SheetTitle } from "@nocoo/basalt";
+import { AppHeader } from "@nocoo/basalt/components/app-header";
+import {
+  AppMain,
+  AppSkipLink,
+  AppShell as BasaltAppShell,
+} from "@nocoo/basalt/components/app-shell";
 import { Menu } from "lucide-react";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { GithubIcon } from "@/components/github-icon";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
-import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
 
 export interface AppShellProps {
@@ -38,7 +44,6 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
   );
 }
 
-/** Inner shell that can consume useSidebar() context */
 function AppShellInner({
   children,
   user,
@@ -49,59 +54,70 @@ function AppShellInner({
   signOutAction: () => Promise<void>;
 }) {
   const { isMobile, mobileOpen, setMobileOpen, toggle } = useSidebar();
+  const pathname = usePathname();
+  const { breadcrumbs, title } = getAppHeaderTrail(pathname);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  const sidebar = <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />;
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      {/* Desktop sidebar */}
-      {!isMobile && <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />}
-
-      {/* Mobile sidebar — Sheet drawer with slide animation */}
-      {isMobile && (
+    <BasaltAppShell>
+      <AppSkipLink>Skip to main content</AppSkipLink>
+      {!isMobile ? sidebar : null}
+      {isMobile ? (
         <Sheet open={mobileOpen} onOpenChange={(open) => !open && setMobileOpen(false)}>
-          <SheetContent side="left" className="w-[260px] p-0 border-0 [&>button:last-child]:hidden">
-            <VisuallyHidden.Root>
-              <SheetTitle>Navigation</SheetTitle>
-            </VisuallyHidden.Root>
-            <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />
+          <SheetContent
+            side="left"
+            className="w-[260px] max-w-[260px] border-0 bg-basalt-background p-0"
+          >
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            {sidebar}
           </SheetContent>
         </Sheet>
-      )}
-
-      <main className="flex-1 flex flex-col min-h-screen min-w-0">
-        {/* Header */}
-        <header className="flex h-14 items-center justify-between px-4 md:px-6 shrink-0">
-          <div className="flex items-center gap-3">
-            {isMobile && (
-              <button
+      ) : null}
+      <AppMain>
+        <AppHeader
+          leading={
+            isMobile ? (
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={toggle}
                 aria-label="Open menu"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               >
-                <Menu className="h-5 w-5" strokeWidth={1.5} />
-              </button>
-            )}
-            <Breadcrumbs />
-          </div>
-          <div className="flex items-center gap-1">
-            <a
-              href="https://github.com/nocoo/zhe"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              title="GitHub"
-            >
-              <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-            </a>
-            <ThemeToggle />
-          </div>
-        </header>
-
-        {/* Content panel — Basalt B-2 rounded panel */}
-        <div className={cn("flex-1 px-2 pb-2 md:px-3 md:pb-3")}>
-          <div className="h-full rounded-island bg-card p-3 md:p-5 overflow-y-auto">{children}</div>
+                <Menu className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+            ) : null
+          }
+          breadcrumbs={breadcrumbs}
+          title={title}
+          actions={
+            <>
+              <a
+                href="https://github.com/nocoo/zhe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                title="GitHub"
+              >
+                <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+              </a>
+              <ThemeToggle />
+            </>
+          }
+        />
+        <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 md:px-3 md:pb-3">
+          <ContentIsland className="rounded-island">{children}</ContentIsland>
         </div>
-      </main>
-    </div>
+      </AppMain>
+    </BasaltAppShell>
   );
 }

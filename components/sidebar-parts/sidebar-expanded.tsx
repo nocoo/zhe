@@ -263,7 +263,7 @@ export function SidebarExpanded({
   openSearch,
 }: SidebarExpandedProps) {
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-background transition-all duration-[var(--motion-base)] ease-in-out overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <SidebarHeader onToggle={onToggle} />
       <SidebarSearchButton onClick={openSearch} />
       <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
@@ -300,6 +300,6 @@ export function SidebarExpanded({
       </nav>
 
       <SidebarUserFooter user={user} signOutAction={signOutAction} />
-    </aside>
+    </div>
   );
 }
