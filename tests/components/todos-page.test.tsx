@@ -115,6 +115,8 @@ describe("TodosPage", () => {
     mockUseTodosViewModel.mockReturnValue(baseVm);
     render(<TodosPage />);
     expect(screen.getByText(/暂无待办/)).toBeTruthy();
+    expect(screen.getByLabelText("Todos tree")).toHaveAttribute("data-basalt-surface");
+    expect(screen.getByLabelText("Selected todo detail")).toHaveAttribute("data-basalt-surface");
     // Empty-state CTA fires the composition's createTodo.
     fireEvent.click(screen.getByRole("button", { name: /新建根任务/ }));
     expect(baseVm.handleCreateTodo).toHaveBeenCalled();

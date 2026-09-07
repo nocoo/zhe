@@ -8,7 +8,7 @@
  * The header follows the shared PageHeader convention (title + count on
  * the left). Short filters sit in the right cluster, immediately before
  * create, and collapse into a Popover on narrow viewports. Tree and
- * detail sit on the island surface instead of nested gray wells.
+ * detail are L2 cards on the island.
  *
  * The composition mounts `useTodosViewModel` once and passes callbacks
  * down; every mutation flows through the VM's optimistic / rollback
@@ -19,6 +19,7 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -221,7 +222,11 @@ export function TodosPage() {
       ) : null}
 
       <div className="flex flex-1 min-h-0 gap-3">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Todos tree">
+        <Card
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          role="region"
+          aria-label="Todos tree"
+        >
           {vm.loading ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               加载中…
@@ -242,11 +247,12 @@ export function TodosPage() {
               disableDrag={coarsePointer}
             />
           )}
-        </section>
+        </Card>
 
         {narrow ? null : (
-          <section
-            className="flex min-h-0 min-w-0 basis-2/5 flex-col border-l border-border pl-3"
+          <Card
+            className="flex min-h-0 min-w-0 basis-2/5 flex-col overflow-hidden"
+            role="region"
             aria-label="Selected todo detail"
           >
             <TodoDetailPane
@@ -255,7 +261,7 @@ export function TodosPage() {
               detailLoading={vm.detailLoading}
               onUpdate={vm.handleUpdateTodo}
             />
-          </section>
+          </Card>
         )}
       </div>
 
