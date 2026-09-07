@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { unwrap, withTheme } from "../test-utils";
@@ -193,12 +193,21 @@ describe("AppShell", () => {
     expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
   });
 
-  it("renders ancestor crumbs and page title on sub-pages", async () => {
+  it("does not invent a dashboard ancestor on top-level pages", async () => {
     mockPathname = "/dashboard/uploads";
     await renderShell();
-    const breadcrumbNav = screen.getByLabelText("Breadcrumb");
-    expect(breadcrumbNav.textContent).toContain("仪表盘");
+    expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "文件上传" })).toBeInTheDocument();
+  });
+
+  it("links the ideas ancestor on the editor route", async () => {
+    mockPathname = "/dashboard/ideas/3";
+    await renderShell();
+    const crumbNav = screen.getByLabelText("Breadcrumb");
+    const crumb = within(crumbNav).getByRole("link", { name: "想法" });
+    expect(crumb).toHaveAttribute("href", "/dashboard/ideas");
+    expect(screen.getByRole("heading", { name: "编辑想法" })).toBeInTheDocument();
+    expect(within(crumbNav).queryByRole("link", { name: "编辑想法" })).not.toBeInTheDocument();
   });
 
   it("renders ThemeToggle in header", async () => {

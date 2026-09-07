@@ -1,10 +1,4 @@
-"use client";
-
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-/** Route-to-label mapping for breadcrumbs */
+/** Route-to-label mapping for the AppHeader current-page title. */
 const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/overview": "概览",
   "/dashboard/ideas": "想法",
@@ -27,84 +21,14 @@ export function getAppHeaderTrail(pathname: string): {
   breadcrumbs: { href: string; label: string }[];
   title: string;
 } {
-  if (pathname === "/dashboard") {
-    return { breadcrumbs: [], title: "链接管理" };
-  }
   if (IDEA_EDIT_PATTERN.test(pathname)) {
     return { breadcrumbs: [{ href: "/dashboard/ideas", label: "想法" }], title: "编辑想法" };
   }
+  if (pathname === "/dashboard") {
+    return { breadcrumbs: [], title: "链接管理" };
+  }
   return {
-    breadcrumbs: [{ href: "/dashboard", label: "仪表盘" }],
+    breadcrumbs: [],
     title: ROUTE_LABELS[pathname] ?? "链接管理",
   };
-}
-
-export function Breadcrumbs() {
-  const pathname = usePathname();
-
-  // Root dashboard page — just show the title
-  if (pathname === "/dashboard") {
-    return (
-      <nav aria-label="Breadcrumb">
-        <ol className="flex items-center gap-1.5">
-          <li>
-            <span className="text-foreground font-medium" aria-current="page">
-              链接管理
-            </span>
-          </li>
-        </ol>
-      </nav>
-    );
-  }
-
-  // Dynamic route: /dashboard/ideas/:id → "想法 > 编辑想法"
-  if (IDEA_EDIT_PATTERN.test(pathname)) {
-    return (
-      <nav aria-label="Breadcrumb">
-        <ol className="flex items-center gap-1.5">
-          <li>
-            <Link
-              href="/dashboard/ideas"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              想法
-            </Link>
-          </li>
-          <li>
-            <ChevronRight className="h-3 w-3 text-muted-foreground" />
-          </li>
-          <li>
-            <span className="text-foreground font-medium" aria-current="page">
-              编辑想法
-            </span>
-          </li>
-        </ol>
-      </nav>
-    );
-  }
-
-  const pageLabel = ROUTE_LABELS[pathname] ?? "链接管理";
-
-  return (
-    <nav aria-label="Breadcrumb">
-      <ol className="flex items-center gap-1.5">
-        <li>
-          <Link
-            href="/dashboard"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            仪表盘
-          </Link>
-        </li>
-        <li>
-          <ChevronRight className="h-3 w-3 text-muted-foreground" />
-        </li>
-        <li>
-          <span className="text-foreground font-medium" aria-current="page">
-            {pageLabel}
-          </span>
-        </li>
-      </ol>
-    </nav>
-  );
 }
