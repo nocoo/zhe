@@ -2,41 +2,38 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 
 export function EditorSkeleton() {
   return (
-    <div>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="编辑想法" description="编写内容、标题与标签。" />
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3 animate-pulse">
-          {/* Match EditorToolbar: icon-sm (32×32) + Input size=sm (h-8). */}
-          <div className="h-8 w-8 rounded-widget bg-background" />
-          <div className="h-8 w-48 rounded-widget bg-background" />
+          <div className="h-8 w-8 rounded-widget bg-secondary" />
+          <div className="h-8 w-48 rounded-widget bg-secondary" />
         </div>
         <div className="flex items-center gap-2 animate-pulse">
-          <div className="h-5 w-12 rounded bg-background hidden sm:block" />
-          <div className="h-5 w-12 rounded bg-background hidden sm:block" />
-          <div className="h-8 w-8 rounded-widget bg-background" />
+          <div className="hidden h-5 w-12 rounded bg-secondary sm:block" />
+          <div className="hidden h-5 w-12 rounded bg-secondary sm:block" />
+          <div className="h-8 w-8 rounded-widget bg-secondary" />
         </div>
       </div>
-      <div
-        className="-mx-3 md:-mx-5 -mb-3 md:-mb-5 grid grid-cols-1 md:grid-cols-2 border-t"
-        style={{ height: "calc(100vh - 12rem)" }}
-      >
-        <div className="p-6 animate-pulse space-y-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
+        <Card className="min-h-[12rem] flex-1 space-y-3 p-6 animate-pulse">
           <div className="h-4 w-3/4 rounded bg-background" />
           <div className="h-4 w-full rounded bg-background" />
           <div className="h-4 w-5/6 rounded bg-background" />
           <div className="h-4 w-2/3 rounded bg-background" />
           <div className="h-4 w-1/2 rounded bg-background" />
-        </div>
-        <div className="p-6 border-t md:border-t-0 md:border-l animate-pulse space-y-3">
+        </Card>
+        <Card className="min-h-[12rem] flex-1 space-y-3 p-6 animate-pulse">
           <div className="h-4 w-3/4 rounded bg-background" />
           <div className="h-4 w-1/2 rounded bg-background" />
           <div className="h-4 w-2/3 rounded bg-background" />
           <div className="h-4 w-1/3 rounded bg-background" />
-        </div>
+        </Card>
       </div>
     </div>
   );
