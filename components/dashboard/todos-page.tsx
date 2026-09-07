@@ -225,6 +225,7 @@ export function TodosPage() {
 
       <div className="flex flex-1 min-h-0 gap-3">
         <section
+          data-basalt-surface=""
           className="flex min-w-0 flex-1 flex-col rounded-card bg-secondary"
           aria-label="Todos tree"
         >
@@ -252,6 +253,7 @@ export function TodosPage() {
 
         {narrow ? null : (
           <section
+            data-basalt-surface=""
             className="flex min-w-0 basis-2/5 flex-col rounded-card bg-secondary"
             aria-label="Selected todo detail"
           >

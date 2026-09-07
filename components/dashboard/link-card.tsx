@@ -135,6 +135,7 @@ export const LinkCard = memo(function LinkCard({
     return (
       <div
         data-testid="link-card"
+        data-basalt-surface=""
         className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
       >
         <GridView {...sharedViewProps} />
@@ -147,6 +148,7 @@ export const LinkCard = memo(function LinkCard({
   return (
     <div
       data-testid="link-card"
+      data-basalt-surface=""
       className="group rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
     >
       <ListView
