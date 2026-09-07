@@ -98,6 +98,7 @@ let mockSidebarCtx = {
   isMobile: false,
   mobileOpen: false,
   setMobileOpen: vi.fn(),
+  closeMobileSidebar: vi.fn(),
 };
 
 vi.mock("@/components/sidebar-context", () => ({
@@ -156,6 +157,7 @@ describe("Sidebar", () => {
       isMobile: false,
       mobileOpen: false,
       setMobileOpen: vi.fn(),
+      closeMobileSidebar: vi.fn(),
     };
     resetMockFoldersVm();
     vi.clearAllMocks();
@@ -237,6 +239,15 @@ describe("Sidebar", () => {
 
     it("marks the current page on the matching expanded nav link", () => {
       mockPathname = "/dashboard/ideas";
+      renderSidebar({ collapsed: false });
+
+      const current = screen.getByRole("link", { current: "page" });
+      expect(current).toHaveTextContent("想法");
+      expect(current.getAttribute("href")).toBe("/dashboard/ideas");
+    });
+
+    it("marks the parent nav item on nested editor routes", () => {
+      mockPathname = "/dashboard/ideas/3";
       renderSidebar({ collapsed: false });
 
       const current = screen.getByRole("link", { current: "page" });

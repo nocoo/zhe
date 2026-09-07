@@ -8,7 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
-import { FOLDER_NAV_ITEMS, OTHER_NAV_GROUPS, PRE_LINK_NAV_GROUPS } from "./nav-config";
+import {
+  FOLDER_NAV_ITEMS,
+  isStaticNavActive,
+  OTHER_NAV_GROUPS,
+  PRE_LINK_NAV_GROUPS,
+} from "./nav-config";
 
 interface SidebarCollapsedProps {
   pathname: string;
@@ -62,8 +67,8 @@ export function SidebarCollapsed({
             <TooltipTrigger asChild>
               <Link
                 href={item.href}
-                className={iconLinkCls(pathname === item.href)}
-                aria-current={pathname === item.href ? "page" : undefined}
+                className={iconLinkCls(isStaticNavActive(pathname, item.href))}
+                aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -115,8 +120,8 @@ export function SidebarCollapsed({
             <TooltipTrigger asChild>
               <Link
                 href={item.href}
-                className={iconLinkCls(pathname === item.href)}
-                aria-current={pathname === item.href ? "page" : undefined}
+                className={iconLinkCls(isStaticNavActive(pathname, item.href))}
+                aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>

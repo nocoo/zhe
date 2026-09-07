@@ -40,6 +40,11 @@ export interface NavGroup {
   items: StaticNavItem[];
 }
 
+/** Static hrefs match themselves and nested editor routes (`/ideas/3`). */
+export function isStaticNavActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export const FOLDER_NAV_ITEMS: FolderNavItem[] = [
   { title: "全部链接", icon: Link2, href: "/dashboard", folderParam: null },
   {

@@ -16,6 +16,7 @@ import type { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { CollapsibleNavGroup } from "./collapsible-nav-group";
 import {
   FOLDER_NAV_ITEMS,
+  isStaticNavActive,
   type NavGroup,
   OTHER_NAV_GROUPS,
   PRE_LINK_NAV_GROUPS,
@@ -74,8 +75,8 @@ function StaticNavGroupBlock({
           <Link
             key={item.href}
             href={item.href}
-            className={rowLinkCls(pathname === item.href)}
-            aria-current={pathname === item.href ? "page" : undefined}
+            className={rowLinkCls(isStaticNavActive(pathname, item.href))}
+            aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
           >
             <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="flex-1 text-left">{item.title}</span>

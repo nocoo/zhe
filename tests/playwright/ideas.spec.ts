@@ -406,6 +406,7 @@ test.describe("Ideas", () => {
       // Navigate to editor
       await openIdeaByContent(page, originalContent);
       await expect(page).toHaveURL(/\/dashboard\/ideas\/\d+/, { timeout: 15_000 });
+      await expect(page.locator('nav a[aria-current="page"]')).toHaveText("想法");
 
       // Wait for editor to fully load with original content
       await expect(page.getByText("编辑", { exact: true })).toBeVisible({ timeout: 15_000 });
