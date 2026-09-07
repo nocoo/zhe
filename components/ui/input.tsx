@@ -10,12 +10,18 @@ export type InputProps = Omit<React.ComponentProps<"input">, "size"> & {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ size, className, type, ...props }, ref) => {
-    const basaltSize = size === "sm" ? "sm" : "lg";
+    const basaltSize = size === "sm" ? "sm" : size === "lg" ? "lg" : "default";
     return (
       <BasaltInput
         ref={ref}
         size={basaltSize}
-        className={size === "sm" ? cn("rounded-widget", className) : className}
+        className={
+          size === "sm"
+            ? cn("rounded-widget", className)
+            : size === "lg"
+              ? className
+              : cn("h-10", className)
+        }
         {...(type === undefined ? {} : { type })}
         {...props}
       />

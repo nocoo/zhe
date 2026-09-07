@@ -24,7 +24,9 @@ describe("control density — Input", () => {
     render(<Input aria-label="default-input" />);
     const el = screen.getByLabelText("default-input");
     expect(el.className).toMatch(/\bh-10\b/);
+    expect(el.className).toMatch(/\btext-sm\b/);
     expect(el.className).not.toMatch(/\bh-8\b/);
+    expect(el.className).not.toMatch(/\btext-base\b/);
   });
 
   it("sm size is compact toolbar scale (h-8, text-xs, rounded-widget)", () => {
