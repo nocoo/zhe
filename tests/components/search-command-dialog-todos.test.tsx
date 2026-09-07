@@ -46,9 +46,10 @@ vi.mock("@/models/tags", () => ({
 }));
 
 import { SearchCommandDialog } from "@/components/search-command-dialog";
+import { withTheme } from "../test-utils";
 
 function renderDialog(open = true) {
-  return render(<SearchCommandDialog open={open} onOpenChange={vi.fn()} />);
+  return render(withTheme(<SearchCommandDialog open={open} onOpenChange={vi.fn()} />));
 }
 
 beforeEach(() => {

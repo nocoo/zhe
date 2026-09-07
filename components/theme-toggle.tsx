@@ -1,11 +1,11 @@
 "use client";
 
+import { useTheme } from "@nocoo/basalt/providers/theme";
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function ThemeToggle() {
     >
       {theme === "system" ? (
         <Monitor className="h-4 w-4" strokeWidth={1.5} />
-      ) : resolvedTheme === "dark" ? (
+      ) : theme === "dark" ? (
         <Moon className="h-4 w-4" strokeWidth={1.5} />
       ) : (
         <Sun className="h-4 w-4" strokeWidth={1.5} />

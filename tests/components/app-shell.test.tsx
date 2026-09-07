@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
-import { unwrap } from "../test-utils";
+import { unwrap, withTheme } from "../test-utils";
 
 let mockFoldersVm: FoldersViewModel = {
   folders: [],
@@ -128,10 +128,6 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ theme: "system", setTheme: vi.fn(), resolvedTheme: "light" }),
-}));
-
 import { AppShell } from "@/components/app-shell";
 
 async function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}) {
@@ -144,7 +140,7 @@ async function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}) 
   };
   let result: ReturnType<typeof render> | undefined;
   await act(async () => {
-    result = render(<AppShell {...defaultProps} />);
+    result = render(withTheme(<AppShell {...defaultProps} />));
   });
   return unwrap(result);
 }

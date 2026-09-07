@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Link } from "@/models/types";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { makeLink } from "../fixtures";
-import { unwrap } from "../test-utils";
+import { unwrap, withTheme } from "../test-utils";
 
 let mockPathname = "/dashboard";
 let mockSearchParamsFolder: string | null = null;
@@ -136,9 +136,11 @@ function renderSidebar(
     ...sidebarProps,
   };
   return render(
-    <TooltipProvider>
-      <Sidebar {...defaultProps} />
-    </TooltipProvider>,
+    withTheme(
+      <TooltipProvider>
+        <Sidebar {...defaultProps} />
+      </TooltipProvider>,
+    ),
   );
 }
 

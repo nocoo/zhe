@@ -3,6 +3,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { redirect } from "next/navigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { withTheme } from "../test-utils";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
@@ -19,10 +20,6 @@ vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     return <img {...props} />;
   },
-}));
-
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ theme: "system", setTheme: vi.fn(), resolvedTheme: "light" }),
 }));
 
 describe("Home Page", () => {
@@ -61,7 +58,7 @@ describe("Home Page", () => {
 
     const { default: Home } = await import("@/app/page");
     const jsx = await Home();
-    render(jsx);
+    render(withTheme(jsx));
 
     expect(screen.getByText("Continue with Google")).toBeInTheDocument();
   });
@@ -71,7 +68,7 @@ describe("Home Page", () => {
 
     const { default: Home } = await import("@/app/page");
     const jsx = await Home();
-    render(jsx);
+    render(withTheme(jsx));
 
     expect(screen.getByText("就是这")).toBeInTheDocument();
   });
@@ -81,7 +78,7 @@ describe("Home Page", () => {
 
     const { default: Home } = await import("@/app/page");
     const jsx = await Home();
-    render(jsx);
+    render(withTheme(jsx));
 
     expect(screen.getByText("点击登录即表示您同意服务条款")).toBeInTheDocument();
   });
@@ -91,7 +88,7 @@ describe("Home Page", () => {
 
     const { default: Home } = await import("@/app/page");
     const jsx = await Home();
-    render(jsx);
+    render(withTheme(jsx));
 
     const link = screen.getByTitle("GitHub");
     expect(link).toBeInTheDocument();
@@ -103,7 +100,7 @@ describe("Home Page", () => {
 
     const { default: Home } = await import("@/app/page");
     const jsx = await Home();
-    render(jsx);
+    render(withTheme(jsx));
 
     expect(screen.getByTitle("Theme: system")).toBeInTheDocument();
   });

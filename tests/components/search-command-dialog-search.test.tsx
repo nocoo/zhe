@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeIdea, makeLink } from "../fixtures";
-import { unwrap } from "../test-utils";
+import { unwrap, withTheme } from "../test-utils";
 
 // ── Mocks ──
 
@@ -87,7 +87,12 @@ function expectNoItem(slug: string) {
 
 function renderDialog(props: { open?: boolean; onOpenChange?: () => void } = {}) {
   return render(
-    <SearchCommandDialog open={props.open ?? true} onOpenChange={props.onOpenChange ?? vi.fn()} />,
+    withTheme(
+      <SearchCommandDialog
+        open={props.open ?? true}
+        onOpenChange={props.onOpenChange ?? vi.fn()}
+      />,
+    ),
   );
 }
 

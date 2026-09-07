@@ -1,8 +1,8 @@
 "use client";
 
+import { useTheme } from "@nocoo/basalt/providers/theme";
 import { Monitor, Moon, Search, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CommandDialog,
@@ -134,7 +134,7 @@ function useSearchHandlers(onOpenChange: (open: boolean) => void, siteUrl: strin
   };
 }
 
-/** Default action set wired to next-themes + the dialog open state. */
+/** Default action set wired to Basalt theme + the dialog open state. */
 function useDefaultActions(onOpenChange: (open: boolean) => void): LauncherAction[] {
   const { setTheme } = useTheme();
   return useMemo(

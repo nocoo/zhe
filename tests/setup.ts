@@ -1,4 +1,5 @@
 import { beforeEach, vi } from "vitest";
+import { getBasaltThemeState } from "./basalt-theme-mock";
 
 // Only load jest-dom matchers in DOM environments (happy-dom). Skipping the
 // import in node-environment files (~50 of 98) shaves measurable setup time.
@@ -25,6 +26,9 @@ const localStorageMock = {
 
 // Apply localStorage mock before each test to ensure it survives vi.unstubAllGlobals()
 beforeEach(() => {
+  const themeState = getBasaltThemeState();
+  themeState.theme = "system";
+  themeState.setTheme.mockReset();
   if (
     typeof globalThis.localStorage === "undefined" ||
     typeof globalThis.localStorage.getItem !== "function"

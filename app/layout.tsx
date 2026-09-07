@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
+import Script from "next/script";
+import { BasaltProviders } from "@/components/basalt-providers";
 import { Toaster } from "@/components/ui/sonner";
+import { THEME_INIT_SCRIPT } from "@/lib/theme-init";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,15 +37,13 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
+        <BasaltProviders>
           {children}
           <Toaster />
-        </ThemeProvider>
+        </BasaltProviders>
       </body>
     </html>
   );

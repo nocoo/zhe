@@ -13,7 +13,7 @@ export default defineConfig({
     globals: true,
     pool: "vmThreads",
     isolate: true,
-    setupFiles: ["./tests/setup.ts"],
+    setupFiles: ["./tests/basalt-theme-mock.ts", "./tests/setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["tests/playwright/**", "node_modules/**"],
     // Increase default timeout for L2 API E2E tests which hit real HTTP endpoints

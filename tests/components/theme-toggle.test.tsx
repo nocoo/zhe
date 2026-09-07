@@ -3,24 +3,15 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockSetTheme = vi.fn();
-let mockThemeValues: { theme: string; setTheme: typeof mockSetTheme; resolvedTheme: string } = {
-  theme: "system",
-  setTheme: mockSetTheme,
-  resolvedTheme: "light",
-};
-
-vi.mock("next-themes", () => ({
-  useTheme: () => mockThemeValues,
-}));
-
-// Import after mock is hoisted
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getBasaltThemeState } from "../basalt-theme-mock";
 
 describe("ThemeToggle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockThemeValues = { theme: "system", setTheme: mockSetTheme, resolvedTheme: "light" };
+    const themeState = getBasaltThemeState();
+    themeState.theme = "system";
+    themeState.setTheme.mockReset();
   });
 
   afterEach(() => {
@@ -43,7 +34,7 @@ describe("ThemeToggle", () => {
   });
 
   it("shows Monitor icon when theme is system", () => {
-    mockThemeValues = { theme: "system", setTheme: mockSetTheme, resolvedTheme: "light" };
+    getBasaltThemeState().theme = "system";
     render(<ThemeToggle />);
 
     const button = screen.getByTitle("Theme: system");
@@ -51,7 +42,7 @@ describe("ThemeToggle", () => {
   });
 
   it("shows Moon icon when theme is dark", () => {
-    mockThemeValues = { theme: "dark", setTheme: mockSetTheme, resolvedTheme: "dark" };
+    getBasaltThemeState().theme = "dark";
     render(<ThemeToggle />);
 
     const button = screen.getByTitle("Theme: dark");
@@ -59,7 +50,7 @@ describe("ThemeToggle", () => {
   });
 
   it("shows Sun icon when theme is light", () => {
-    mockThemeValues = { theme: "light", setTheme: mockSetTheme, resolvedTheme: "light" };
+    getBasaltThemeState().theme = "light";
     render(<ThemeToggle />);
 
     const button = screen.getByTitle("Theme: light");
@@ -67,30 +58,22 @@ describe("ThemeToggle", () => {
   });
 
   it("cycles theme: system -> light -> dark -> system", () => {
-    let currentTheme = "system";
-    const setThemeFn = vi.fn((t: string) => {
-      currentTheme = t;
-    });
-    mockThemeValues = { theme: currentTheme, setTheme: setThemeFn, resolvedTheme: "light" };
-
     const { rerender } = render(<ThemeToggle />);
 
-    // system -> light
+    const themeState = getBasaltThemeState();
     fireEvent.click(screen.getByTitle("Theme: system"));
-    expect(setThemeFn).toHaveBeenCalledWith("light");
+    expect(themeState.setTheme).toHaveBeenCalledWith("light");
 
-    mockThemeValues = { theme: "light", setTheme: setThemeFn, resolvedTheme: "light" };
+    themeState.theme = "light";
     rerender(<ThemeToggle />);
 
-    // light -> dark
     fireEvent.click(screen.getByTitle("Theme: light"));
-    expect(setThemeFn).toHaveBeenCalledWith("dark");
+    expect(themeState.setTheme).toHaveBeenCalledWith("dark");
 
-    mockThemeValues = { theme: "dark", setTheme: setThemeFn, resolvedTheme: "dark" };
+    themeState.theme = "dark";
     rerender(<ThemeToggle />);
 
-    // dark -> system
     fireEvent.click(screen.getByTitle("Theme: dark"));
-    expect(setThemeFn).toHaveBeenCalledWith("system");
+    expect(themeState.setTheme).toHaveBeenCalledWith("system");
   });
 });
