@@ -197,6 +197,20 @@ describe("Sidebar", () => {
       expect(current.getAttribute("href")).toBe("/dashboard/overview");
     });
 
+    it("gives collapsed icon links accessible names", () => {
+      renderSidebar({ collapsed: true });
+
+      expect(screen.getByRole("link", { name: "想法" })).toHaveAttribute(
+        "href",
+        "/dashboard/ideas",
+      );
+      expect(screen.getByRole("link", { name: "全部链接" })).toHaveAttribute("href", "/dashboard");
+      expect(screen.getByRole("link", { name: "AI" })).toHaveAttribute(
+        "href",
+        "/dashboard/settings/ai",
+      );
+    });
+
     it("does not show version badge in collapsed mode", () => {
       renderSidebar({ collapsed: true });
       expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument();

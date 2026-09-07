@@ -69,6 +69,7 @@ export function SidebarCollapsed({
                 href={item.href}
                 className={iconLinkCls(isStaticNavActive(pathname, item.href))}
                 aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
+                aria-label={item.title}
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -88,6 +89,7 @@ export function SidebarCollapsed({
                 aria-current={
                   isFolderNavActive(currentFolder, item.folderParam) ? "page" : undefined
                 }
+                aria-label={item.title}
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -105,6 +107,7 @@ export function SidebarCollapsed({
                 href={`/dashboard?folder=${folder.id}`}
                 className={iconLinkCls(currentFolder === folder.id)}
                 aria-current={currentFolder === folder.id ? "page" : undefined}
+                aria-label={folder.name}
               >
                 <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -122,6 +125,7 @@ export function SidebarCollapsed({
                 href={item.href}
                 className={iconLinkCls(isStaticNavActive(pathname, item.href))}
                 aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
+                aria-label={item.title}
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
