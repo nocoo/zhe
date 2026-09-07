@@ -6,9 +6,9 @@
  *   right = detail pane for the selected todo
  *
  * The header follows the shared PageHeader convention (title + count on
- * the left, create on the right). Dense filters sit on their own row
- * and collapse into a Popover on narrow viewports. Tree and detail sit
- * on the island surface instead of nested gray wells.
+ * the left). Short filters sit in the right cluster, immediately before
+ * create, and collapse into a Popover on narrow viewports. Tree and
+ * detail sit on the island surface instead of nested gray wells.
  *
  * The composition mounts `useTodosViewModel` once and passes callbacks
  * down; every mutation flows through the VM's optimistic / rollback
@@ -188,7 +188,9 @@ export function TodosPage() {
                   </div>
                 </PopoverContent>
               </Popover>
-            ) : null}
+            ) : (
+              <TodosFilterBar {...filterProps} />
+            )}
 
             <Button size="xs" onClick={onCreateRoot} disabled={vm.isSaving}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -196,7 +198,6 @@ export function TodosPage() {
             </Button>
           </>
         }
-        filters={narrow ? undefined : <TodosFilterBar {...filterProps} />}
       />
 
       {vm.error || createError ? (

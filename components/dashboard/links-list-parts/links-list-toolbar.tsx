@@ -147,11 +147,10 @@ export function LinksListToolbar(props: ToolbarProps) {
       }
       actions={
         <>
-          {isMobile ? filterTrigger : null}
+          {isMobile ? filterTrigger : <FilterControls {...controls} />}
           {createButton}
         </>
       }
-      filters={isMobile ? undefined : <FilterControls {...controls} />}
     />
   );
 }
