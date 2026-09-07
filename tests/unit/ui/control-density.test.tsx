@@ -90,6 +90,8 @@ describe("control density — SelectTrigger", () => {
     expect(el.className).toMatch(/\bh-8\b/);
     expect(el.className).toMatch(/\brounded-widget\b/);
     expect(el.className).toMatch(/\btext-xs\b/);
+    expect(el.className).toMatch(/\bbg-basalt-control\b/);
+    expect(el.className).not.toMatch(/\bbg-secondary\b/);
   });
 });
 

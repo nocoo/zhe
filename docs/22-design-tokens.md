@@ -20,10 +20,12 @@
 | L0 body | `--background` / `bg-background` | 整页底、Sidebar 底 |
 | L1 panel | `--card` / `bg-card` | AppShell 内容大面板 |
 | L2 card | `--secondary` / `bg-secondary` | 列表区、双栏 section、内嵌卡片 |
-| L3 control | `bg-secondary` + `border-border` + `shadow-xs` | Button outline / Input / Select |
+| L3 control | `bg-basalt-control` (`--basalt-control-fill`) + `border-border` + `shadow-xs` | Button outline / Input / Select / Textarea |
 
 - shadcn 的 `--card` 在本项目语义上是 **L1 面板**，不是 `<Card>` 默认底。
 - `<Card>` 故意用 `bg-secondary`（L2），以便嵌在 L1 面板内浮起。
+- 控件填充跟当前表面走 `bg-basalt-control`，不要写死 `bg-secondary` / `bg-card`。
+- Dialog / AlertDialog 作为 overlay 自己开 L1：`data-basalt-surface-root`，不要 `bg-background`。
 
 ---
 

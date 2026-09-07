@@ -30,7 +30,7 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     data-size={size}
     className={cn(
-      "flex w-full items-center justify-between border border-border hover:border-foreground/20 bg-secondary shadow-xs transition-[color,box-shadow] outline-hidden data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-transparent disabled:hover:border-transparent disabled:text-muted-foreground/38 [&>span]:line-clamp-1",
+      "flex w-full items-center justify-between border border-border hover:border-foreground/20 bg-basalt-control shadow-xs transition-[color,box-shadow] outline-hidden data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-transparent disabled:hover:border-transparent disabled:text-muted-foreground/38 [&>span]:line-clamp-1",
       selectTriggerSizeClass[size],
       className,
     )}
