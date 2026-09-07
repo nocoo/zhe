@@ -60,7 +60,11 @@ export function SidebarCollapsed({
         {PRE_LINK_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
           <Tooltip key={item.href} delayDuration={0}>
             <TooltipTrigger asChild>
-              <Link href={item.href} className={iconLinkCls(pathname === item.href)}>
+              <Link
+                href={item.href}
+                className={iconLinkCls(pathname === item.href)}
+                aria-current={pathname === item.href ? "page" : undefined}
+              >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>
@@ -76,6 +80,9 @@ export function SidebarCollapsed({
               <Link
                 href={item.href}
                 className={iconLinkCls(isFolderNavActive(currentFolder, item.folderParam))}
+                aria-current={
+                  isFolderNavActive(currentFolder, item.folderParam) ? "page" : undefined
+                }
               >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -92,6 +99,7 @@ export function SidebarCollapsed({
               <Link
                 href={`/dashboard?folder=${folder.id}`}
                 className={iconLinkCls(currentFolder === folder.id)}
+                aria-current={currentFolder === folder.id ? "page" : undefined}
               >
                 <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
               </Link>
@@ -105,7 +113,11 @@ export function SidebarCollapsed({
         {OTHER_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
           <Tooltip key={item.href} delayDuration={0}>
             <TooltipTrigger asChild>
-              <Link href={item.href} className={iconLinkCls(pathname === item.href)}>
+              <Link
+                href={item.href}
+                className={iconLinkCls(pathname === item.href)}
+                aria-current={pathname === item.href ? "page" : undefined}
+              >
                 <item.icon className="h-4 w-4" strokeWidth={1.5} />
               </Link>
             </TooltipTrigger>

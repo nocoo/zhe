@@ -71,7 +71,12 @@ function StaticNavGroupBlock({
     >
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => (
-          <Link key={item.href} href={item.href} className={rowLinkCls(pathname === item.href)}>
+          <Link
+            key={item.href}
+            href={item.href}
+            className={rowLinkCls(pathname === item.href)}
+            aria-current={pathname === item.href ? "page" : undefined}
+          >
             <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="flex-1 text-left">{item.title}</span>
             {item.badge && (
@@ -174,6 +179,7 @@ function LinkManagementGroup({
             key={item.title}
             href={item.href}
             className={rowLinkCls(isFolderNavActive(currentFolder, item.folderParam))}
+            aria-current={isFolderNavActive(currentFolder, item.folderParam) ? "page" : undefined}
           >
             <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="flex-1 text-left">{item.title}</span>

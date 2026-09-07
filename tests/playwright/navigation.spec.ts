@@ -106,6 +106,7 @@ test.describe("Dashboard navigation", () => {
     await page.waitForURL("**/dashboard/overview");
 
     await expect(appTitle(page, "概览")).toBeVisible();
+    await expect(page.locator('nav a[aria-current="page"]')).toHaveText("概览");
   });
 
   test("navigate to AI settings page", async ({ page }) => {

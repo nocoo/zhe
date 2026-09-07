@@ -79,6 +79,14 @@ describe("SidebarFolderItem", () => {
       const link = screen.getByText("工作").closest("a");
       expect(link?.className).toContain("bg-primary/10");
       expect(link?.className).toContain("text-primary");
+      expect(link?.getAttribute("aria-current")).toBe("page");
+    });
+
+    it("does not mark unselected folders as the current page", () => {
+      renderItem({ isSelected: false });
+
+      const link = screen.getByText("工作").closest("a");
+      expect(link?.hasAttribute("aria-current")).toBe(false);
     });
 
     it("applies muted style when not selected", () => {

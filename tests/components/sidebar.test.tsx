@@ -187,6 +187,14 @@ describe("Sidebar", () => {
       expect(navLinks.length).toBe(14);
     });
 
+    it("marks the current page on the matching collapsed nav link", () => {
+      mockPathname = "/dashboard/overview";
+      renderSidebar({ collapsed: true });
+
+      const current = screen.getByRole("link", { current: "page" });
+      expect(current.getAttribute("href")).toBe("/dashboard/overview");
+    });
+
     it("does not show version badge in collapsed mode", () => {
       renderSidebar({ collapsed: true });
       expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument();
@@ -225,6 +233,22 @@ describe("Sidebar", () => {
     it("displays ⌘K keyboard shortcut hint in search button", () => {
       renderSidebar({ collapsed: false });
       expect(screen.getByText("K")).toBeInTheDocument();
+    });
+
+    it("marks the current page on the matching expanded nav link", () => {
+      mockPathname = "/dashboard/ideas";
+      renderSidebar({ collapsed: false });
+
+      const current = screen.getByRole("link", { current: "page" });
+      expect(current).toHaveTextContent("想法");
+      expect(current.getAttribute("href")).toBe("/dashboard/ideas");
+    });
+
+    it("marks 全部链接 as current when no folder is selected", () => {
+      renderSidebar({ collapsed: false });
+
+      const current = screen.getByRole("link", { current: "page" });
+      expect(current).toHaveTextContent("全部链接");
     });
   });
 

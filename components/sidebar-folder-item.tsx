@@ -132,6 +132,7 @@ export function SidebarFolderItem({
     <div className="group relative">
       <Link
         href={`/dashboard?folder=${folder.id}`}
+        aria-current={isSelected ? "page" : undefined}
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
           isSelected
