@@ -32,7 +32,7 @@ wait_stage() {
 run_bg unit_cov   bun run test:unit:coverage
 run_bg integ      bun run test:integration
 run_bg typecheck  bun run typecheck
-run_bg lint       bunx lint-staged
+run_bg lint       bunx lint-staged --no-stash
 run_bg gitleaks   gitleaks protect --staged --no-banner
 
 # Wait in declaration order so logs print deterministically.
