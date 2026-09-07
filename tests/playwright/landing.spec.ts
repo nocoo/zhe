@@ -42,6 +42,32 @@ test.describe("Landing page", () => {
     await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   });
 
+  test("applies stored dark theme before external scripts run", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.addInitScript(() => {
+      localStorage.setItem("theme", "dark");
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/*", async (route) => {
+      if (route.request().resourceType() === "script") {
+        await gate;
+      }
+      await route.continue().catch(() => {});
+    });
+    try {
+      await page.goto("/", { waitUntil: "commit" });
+      await page.getByRole("button", { name: "Continue with Google", exact: true }).waitFor();
+      await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
+      await expect(page.locator("html")).toHaveClass(/dark/);
+      await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+    } finally {
+      release();
+    }
+  });
+
   test("/login redirects to landing page", async ({ page }) => {
     await page.goto("/login");
     await page.waitForURL("/");
