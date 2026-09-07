@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
+import { staggerStyle } from "@/lib/motion";
 import type { IdeasViewMode, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
 function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
@@ -49,15 +50,16 @@ export function IdeasContent({
   if (vm.viewMode === "grid") {
     return (
       <div className={CARD_GRID_CLASS} data-testid="card-grid">
-        {vm.ideas.map((idea) => (
-          <IdeaCard
-            key={idea.id}
-            idea={idea}
-            tags={vm.tags}
-            onEdit={onNavigateToIdea}
-            onDelete={vm.confirmDelete}
-            onClick={onNavigateToIdea}
-          />
+        {vm.ideas.map((idea, i) => (
+          <div key={idea.id} className="animate-fade-up" style={staggerStyle(i)}>
+            <IdeaCard
+              idea={idea}
+              tags={vm.tags}
+              onEdit={onNavigateToIdea}
+              onDelete={vm.confirmDelete}
+              onClick={onNavigateToIdea}
+            />
+          </div>
         ))}
       </div>
     );
@@ -65,15 +67,16 @@ export function IdeasContent({
 
   return (
     <div className="space-y-2" data-testid="card-list">
-      {vm.ideas.map((idea) => (
-        <IdeaRow
-          key={idea.id}
-          idea={idea}
-          tags={vm.tags}
-          onEdit={onNavigateToIdea}
-          onDelete={vm.confirmDelete}
-          onClick={onNavigateToIdea}
-        />
+      {vm.ideas.map((idea, i) => (
+        <div key={idea.id} className="animate-fade-up" style={staggerStyle(i)}>
+          <IdeaRow
+            idea={idea}
+            tags={vm.tags}
+            onEdit={onNavigateToIdea}
+            onDelete={vm.confirmDelete}
+            onClick={onNavigateToIdea}
+          />
+        </div>
       ))}
     </div>
   );

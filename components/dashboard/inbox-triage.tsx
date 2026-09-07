@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { useDashboardService } from "@/contexts/dashboard-service";
+import { staggerStyle } from "@/lib/motion";
 import type { LinkTag } from "@/models/types";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
@@ -155,25 +156,26 @@ export function InboxTriage() {
       {vm.inboxLinks.length === 0 ? (
         <InboxEmpty />
       ) : (
-        <div className="space-y-2">
-          {vm.inboxLinks.map((link) => (
-            <LinkCard
-              key={link.id}
-              link={link}
-              siteUrl={siteUrl}
-              onDelete={handleLinkDeleted}
-              onUpdate={handleLinkUpdated}
-              viewMode="list"
-              tags={tags}
-              linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
-              folders={folders}
-              defaultEditing
-              editCallbacks={editCallbacks}
-              onSuggest={() => {
-                void suggestVm.openForLink(link.id);
-              }}
-              suggestDisabled={!suggestVm.hasAiKey}
-            />
+        <div className="space-y-2" data-testid="card-list">
+          {vm.inboxLinks.map((link, i) => (
+            <div key={link.id} className="animate-fade-up" style={staggerStyle(i)}>
+              <LinkCard
+                link={link}
+                siteUrl={siteUrl}
+                onDelete={handleLinkDeleted}
+                onUpdate={handleLinkUpdated}
+                viewMode="list"
+                tags={tags}
+                linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
+                folders={folders}
+                defaultEditing
+                editCallbacks={editCallbacks}
+                onSuggest={() => {
+                  void suggestVm.openForLink(link.id);
+                }}
+                suggestDisabled={!suggestVm.hasAiKey}
+              />
+            </div>
           ))}
         </div>
       )}

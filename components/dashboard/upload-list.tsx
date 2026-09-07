@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { staggerStyle } from "@/lib/motion";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
 import { UploadItem, UploadingItem } from "./upload-item";
 import { UploadZone } from "./upload-zone";
@@ -136,8 +137,10 @@ export function UploadList({
       {/* Uploading files (in-progress / errors) */}
       {uploadingFiles.length > 0 && (
         <div className="space-y-2 mb-4">
-          {uploadingFiles.map((file) => (
-            <UploadingItem key={file.id} file={file} onDismiss={dismissUploadingFile} />
+          {uploadingFiles.map((file, i) => (
+            <div key={file.id} className="animate-fade-up" style={staggerStyle(i)}>
+              <UploadingItem file={file} onDismiss={dismissUploadingFile} />
+            </div>
           ))}
         </div>
       )}
@@ -151,9 +154,11 @@ export function UploadList({
           data-testid="upload-empty-state"
         />
       ) : (
-        <div className="space-y-2">
-          {uploads.map((upload) => (
-            <UploadItem key={upload.id} upload={upload} onDelete={handleDelete} />
+        <div className="space-y-2" data-testid="card-list">
+          {uploads.map((upload, i) => (
+            <div key={upload.id} className="animate-fade-up" style={staggerStyle(i)}>
+              <UploadItem upload={upload} onDelete={handleDelete} />
+            </div>
           ))}
         </div>
       )}

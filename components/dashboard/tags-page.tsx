@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
 import { useTagsViewModel } from "@/viewmodels/useTagsViewModel";
 import { TagColorPicker } from "./tags-page-parts/tag-color-picker";
@@ -110,15 +111,16 @@ export function TagsPage() {
         </div>
       ) : (
         <div className="space-y-2" data-testid="tags-list">
-          {vm.rows.map((row) => (
-            <TagManageRow
-              key={row.id}
-              row={row}
-              disabled={vm.savingId === row.id}
-              onRename={vm.handleRename}
-              onRecolor={vm.handleRecolor}
-              onDelete={vm.handleDelete}
-            />
+          {vm.rows.map((row, i) => (
+            <div key={row.id} className="animate-fade-up" style={staggerStyle(i)}>
+              <TagManageRow
+                row={row}
+                disabled={vm.savingId === row.id}
+                onRename={vm.handleRename}
+                onRecolor={vm.handleRecolor}
+                onDelete={vm.handleDelete}
+              />
+            </div>
           ))}
         </div>
       )}

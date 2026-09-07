@@ -7,6 +7,7 @@ import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/component
 import { EmptyState } from "@/components/ui/empty-state";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { staggerStyle } from "@/lib/motion";
 import type { Folder, Link, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
@@ -90,21 +91,22 @@ function LinksContent(props: LinksContentProps) {
       className={viewMode === "grid" ? CARD_GRID_CLASS : "space-y-2"}
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
-      {filteredLinks.map((link) => (
-        <LinkCard
-          key={link.id}
-          link={link}
-          siteUrl={siteUrl}
-          onDelete={handleLinkDeleted}
-          onUpdate={handleLinkUpdated}
-          viewMode={viewMode}
-          tags={tags}
-          linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
-          folders={folders}
-          editCallbacks={editCallbacks}
-          {...(onSuggest ? { onSuggest: () => onSuggest(link.id) } : {})}
-          {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
-        />
+      {filteredLinks.map((link, i) => (
+        <div key={link.id} className="animate-fade-up" style={staggerStyle(i)}>
+          <LinkCard
+            link={link}
+            siteUrl={siteUrl}
+            onDelete={handleLinkDeleted}
+            onUpdate={handleLinkUpdated}
+            viewMode={viewMode}
+            tags={tags}
+            linkTags={linkTagsByLinkId.get(link.id) ?? emptyLinkTags}
+            folders={folders}
+            editCallbacks={editCallbacks}
+            {...(onSuggest ? { onSuggest: () => onSuggest(link.id) } : {})}
+            {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
+          />
+        </div>
       ))}
     </div>
   );

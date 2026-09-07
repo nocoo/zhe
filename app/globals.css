@@ -131,6 +131,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-stagger: 0ms;
+  }
+}
+
 :root {
   /* Surfaces alias Basalt L0–L3 so existing bg-background / bg-card
    * utilities paint the same stack as bg-basalt-*. Semantic primary
