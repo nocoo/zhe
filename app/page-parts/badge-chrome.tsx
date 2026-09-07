@@ -18,13 +18,13 @@ export function BadgeHeader({ dateStr }: { dateStr: string }) {
           <Zap className="h-4 w-4 text-basalt-primary-foreground" strokeWidth={1.5} />
           <span className="text-sm font-semibold text-basalt-primary-foreground">zhe.</span>
         </div>
-        <span className="text-[10px] font-medium uppercase tracking-widest text-basalt-primary-foreground/60">
+        <span className="text-[10px] font-medium uppercase tracking-widest text-basalt-primary-foreground/80">
           Visitor
         </span>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-[9px] font-mono tracking-wider text-basalt-primary-foreground/40">
+        <span className="text-[9px] font-mono tracking-wider text-basalt-primary-foreground/70">
           ID {dateStr}
         </span>
         <div className="h-6">

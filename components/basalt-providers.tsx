@@ -37,7 +37,12 @@ function AppLink({
 export function BasaltProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider defaultTheme="system">
-      <AccentProvider defaultAccent="primary" persist={false} paletteOverrides={ZHE_ACCENT}>
+      <AccentProvider
+        defaultAccent="primary"
+        persist={false}
+        applyToDocument={false}
+        paletteOverrides={ZHE_ACCENT}
+      >
         <LinkProvider render={AppLink}>
           <TooltipProvider>{children}</TooltipProvider>
         </LinkProvider>

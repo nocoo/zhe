@@ -264,10 +264,13 @@
 }
 
 .dark {
-  /* Semantic primary from AccentProvider on the raw 262 83% 63% swatch. */
-  --basalt-primary: 262 83% 71%;
-  --basalt-primary-foreground: 0 0% 10%;
-  --basalt-ring: 262 83% 71%;
+  /* Lifted purple fill + near-black ink. 74% keeps --primary usable as
+   * text on L0–L3 dark surfaces; 4% ink on that fill is ~7:1 (AAA) for
+   * small button/badge type. AccentProvider is applyToDocument=false so
+   * these CSS values are the runtime source of truth. */
+  --basalt-primary: 262 83% 74%;
+  --basalt-primary-foreground: 0 0% 4%;
+  --basalt-ring: 262 83% 74%;
 
   --success: 142 65% 38%;
   --success-foreground: 142 60% 90%;
