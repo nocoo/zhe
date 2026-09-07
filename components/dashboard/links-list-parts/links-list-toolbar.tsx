@@ -2,6 +2,7 @@
 
 import { LayoutGrid, LayoutList, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { LinkFilterBar } from "../link-filter-bar";
@@ -117,39 +118,40 @@ export function LinksListToolbar(props: ToolbarProps) {
     ...controls
   } = props;
 
+  const filterTrigger = (
+    <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="xs" aria-label="筛选与视图">
+          <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <span>筛选</span>
+          {activeFilterCount > 0 && (
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterControls {...controls} />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+
   return (
-    <div className="flex items-center justify-between mb-6 gap-4">
-      <h2 className="text-lg font-semibold text-foreground shrink-0">{headerTitle}</h2>
-      <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
-        <p className="text-sm text-muted-foreground whitespace-nowrap">
-          {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
-        </p>
-
-        {!isMobile && <FilterControls {...controls} />}
-
-        {isMobile && (
-          <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="xs" aria-label="筛选与视图">
-                <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
-                <span>筛选</span>
-                {activeFilterCount > 0 && (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <FilterControls {...controls} />
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
-
-        {createButton}
-      </div>
-    </div>
+    <PageHeader
+      title={headerTitle}
+      description={
+        hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`
+      }
+      actions={
+        <>
+          {isMobile ? filterTrigger : null}
+          {createButton}
+        </>
+      }
+      filters={isMobile ? undefined : <FilterControls {...controls} />}
+    />
   );
 }

@@ -3,6 +3,7 @@
 import { Filter, LayoutGrid, List, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -18,10 +19,11 @@ function SearchBox({ vm }: { vm: IdeasViewModel }) {
     <div className="relative">
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
       <Input
+        size="sm"
         placeholder="搜索想法..."
         value={vm.searchQuery}
         onChange={(e) => vm.setSearchQuery(e.target.value)}
-        className="pl-8 pr-7 h-8 w-[160px] text-xs rounded-lg"
+        className="pl-8 pr-7 w-[160px]"
       />
       {vm.searchQuery && (
         <button
@@ -43,7 +45,7 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
       value={vm.selectedTagId ?? "all"}
       onValueChange={(v) => vm.setSelectedTagId(v === "all" ? null : v)}
     >
-      <SelectTrigger className="w-[120px] h-8 text-xs rounded-lg">
+      <SelectTrigger size="sm" className="w-[120px]">
         <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
         <SelectValue placeholder="All tags" />
       </SelectTrigger>
@@ -68,7 +70,7 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
 function SortSelect({ vm }: { vm: IdeasViewModel }) {
   return (
     <Select value={vm.sortBy} onValueChange={(v) => vm.setSortBy(v as IdeasSortBy)}>
-      <SelectTrigger className="w-[120px] h-8 text-xs rounded-lg">
+      <SelectTrigger size="sm" className="w-[120px]">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -107,35 +109,34 @@ function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
 }
 
 export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
+  const filtered = Boolean(vm.searchQuery || vm.selectedTagId);
   return (
-    <div className="flex items-center justify-between mb-6 gap-4">
-      <h2 className="text-lg font-semibold text-foreground shrink-0">想法</h2>
-      <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
-        <p className="text-sm text-muted-foreground whitespace-nowrap">
-          {vm.searchQuery || vm.selectedTagId
-            ? `${vm.ideas.length} / ${vm.allIdeas.length} 条想法`
-            : `共 ${vm.allIdeas.length} 条想法`}
-        </p>
-
-        <SearchBox vm={vm} />
-        <TagFilter vm={vm} />
-        <SortSelect vm={vm} />
-        <ViewModeToggle vm={vm} />
-
-        {(vm.searchQuery || vm.selectedTagId) && (
-          <button
-            type="button"
-            onClick={vm.clearFilters}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            清除
-          </button>
-        )}
-
-        <Button size="icon-sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
-          <Plus className="w-4 h-4" strokeWidth={1.5} />
+    <PageHeader
+      title="想法"
+      description={
+        filtered
+          ? `${vm.ideas.length} / ${vm.allIdeas.length} 条想法`
+          : `共 ${vm.allIdeas.length} 条想法`
+      }
+      actions={
+        <Button size="xs" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
+          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+          新想法
         </Button>
-      </div>
-    </div>
+      }
+      filters={
+        <>
+          <SearchBox vm={vm} />
+          <TagFilter vm={vm} />
+          <SortSelect vm={vm} />
+          <ViewModeToggle vm={vm} />
+          {filtered ? (
+            <Button type="button" variant="ghost" size="xs" onClick={vm.clearFilters}>
+              清除
+            </Button>
+          ) : null}
+        </>
+      }
+    />
   );
 }
