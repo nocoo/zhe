@@ -11,6 +11,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { islandHeading } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 const UPLOADS_URL = "/dashboard/uploads";
@@ -56,7 +57,7 @@ test.describe
       await goToUploads(page);
 
       // Header
-      await expect(page.getByRole("heading", { name: "文件上传" })).toBeVisible();
+      await expect(islandHeading(page, "文件上传")).toBeVisible();
       await expect(page.locator('[data-testid="upload-file-count"]').first()).toContainText("共");
 
       // Upload zone — use .first() to be resilient to brief double-mount during

@@ -5,6 +5,7 @@
  * the dashboard, and authenticated users can access it.
  */
 import { expect, test } from "./fixtures";
+import { appTitle } from "./helpers/chrome";
 
 test.describe("Auth guard (unauthenticated)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -53,13 +54,13 @@ test.describe("Auth guard (authenticated)", () => {
     await page.goto("/dashboard");
 
     // Should stay on dashboard — header shows correct title
-    await expect(page.locator('[aria-current="page"]')).toContainText("链接管理");
+    await expect(appTitle(page, "链接管理")).toBeVisible();
   });
 
   test("authenticated user visiting / is redirected to dashboard overview", async ({ page }) => {
     await page.goto("/");
     await page.waitForURL("**/dashboard/overview");
 
-    await expect(page.locator('[aria-current="page"]')).toContainText("概览");
+    await expect(appTitle(page, "概览")).toBeVisible();
   });
 });

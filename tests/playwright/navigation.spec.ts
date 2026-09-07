@@ -7,6 +7,7 @@
 
 import { request as playwrightRequest } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { appTitle, islandHeading } from "./helpers/chrome";
 
 test.describe("Dashboard navigation", () => {
   // Turbopack first-compile of each dashboard route can briefly exceed the
@@ -106,9 +107,7 @@ test.describe("Dashboard navigation", () => {
 
     // Scope to the Breadcrumb nav so we don't match a stale aria-current
     // from a transitional render of another component.
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "概览",
-    );
+    await expect(appTitle(page, "概览")).toBeVisible();
   });
 
   test("navigate to AI settings page", async ({ page }) => {
@@ -117,9 +116,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("AI")').click();
     await page.waitForURL("**/dashboard/settings/ai");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "AI",
-    );
+    await expect(appTitle(page, "AI")).toBeVisible();
   });
 
   test("navigate to Tags page", async ({ page }) => {
@@ -128,9 +125,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("标签")').click();
     await page.waitForURL("**/dashboard/tags");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "标签",
-    );
+    await expect(appTitle(page, "标签")).toBeVisible();
   });
 
   test("navigate to Data Management page", async ({ page }) => {
@@ -139,9 +134,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("数据管理")').click();
     await page.waitForURL("**/dashboard/data-management");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "数据管理",
-    );
+    await expect(appTitle(page, "数据管理")).toBeVisible();
   });
 
   test("navigate to Webhook page", async ({ page }) => {
@@ -150,9 +143,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("Webhook")').click();
     await page.waitForURL("**/dashboard/webhook");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "Webhook",
-    );
+    await expect(appTitle(page, "Webhook")).toBeVisible();
   });
 
   test("navigate to Uploads page", async ({ page }) => {
@@ -170,10 +161,8 @@ test.describe("Dashboard navigation", () => {
     await page.waitForURL("**/dashboard/uploads", { waitUntil: "commit" });
 
     await expect(page.locator('[data-testid="upload-zone"]').first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "文件上传" })).toBeVisible();
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "文件上传",
-    );
+    await expect(islandHeading(page, "文件上传")).toBeVisible();
+    await expect(appTitle(page, "文件上传")).toBeVisible();
   });
 
   test("navigate to Backy page", async ({ page }) => {
@@ -182,9 +171,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("Backy")').click();
     await page.waitForURL("**/dashboard/backy");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "Backy",
-    );
+    await expect(appTitle(page, "Backy")).toBeVisible();
   });
 
   test("navigate to Xray page", async ({ page }) => {
@@ -193,9 +180,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("Xray")').click();
     await page.waitForURL("**/dashboard/xray");
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "Xray",
-    );
+    await expect(appTitle(page, "Xray")).toBeVisible();
   });
 
   test("navigate back to Links page", async ({ page }) => {
@@ -206,9 +191,7 @@ test.describe("Dashboard navigation", () => {
       (url) => url.pathname === "/dashboard" && !url.searchParams.has("folder"),
     );
 
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "链接管理",
-    );
+    await expect(appTitle(page, "链接管理")).toBeVisible();
   });
 
   test("navigate to Inbox", async ({ page }) => {
@@ -218,9 +201,7 @@ test.describe("Dashboard navigation", () => {
     await page.waitForURL("**/dashboard?folder=uncategorized");
 
     // Should show Inbox content
-    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toHaveText(
-      "链接管理",
-    );
+    await expect(appTitle(page, "链接管理")).toBeVisible();
   });
 
   test("collapse and expand sidebar", async ({ page }) => {

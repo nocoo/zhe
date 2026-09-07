@@ -6,12 +6,13 @@
  * cleans up via beforeAll to avoid cross-spec pollution.
  */
 import { expect, test } from "./fixtures";
+import { islandHeading } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 /** Helper: wait for Ideas page to finish loading. */
 async function waitForIdeasPage(page: import("@playwright/test").Page): Promise<void> {
   // Wait for the page header "想法" to be visible
-  await page.getByRole("heading", { name: "想法" }).waitFor({ timeout: 30_000 });
+  await islandHeading(page, "想法").waitFor({ timeout: 30_000 });
   // Wait for skeleton to disappear (loading complete)
   await expect(page.locator(".animate-pulse")).toHaveCount(0, { timeout: 30_000 });
 }

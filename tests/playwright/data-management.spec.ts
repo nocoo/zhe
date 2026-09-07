@@ -10,6 +10,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { appTitle } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 const DATA_MGMT_URL = "/dashboard/data-management";
@@ -46,7 +47,7 @@ test.describe
       await goToDataManagement(page);
 
       // Page heading
-      await expect(page.locator('[aria-current="page"]')).toContainText("数据管理");
+      await expect(appTitle(page, "数据管理")).toBeVisible();
 
       // Export card
       await expect(page.getByRole("heading", { name: "数据导出" })).toBeVisible();
