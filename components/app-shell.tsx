@@ -57,7 +57,7 @@ function AppShellInner({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const locationKey = `${pathname}?${searchParams.toString()}`;
-  const { breadcrumbs, title } = getAppHeaderTrail(pathname);
+  const { breadcrumbs, title } = getAppHeaderTrail(pathname, searchParams.get("folder"));
 
   useEffect(() => {
     if (locationKey) closeMobileSidebar();

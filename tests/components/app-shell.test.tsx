@@ -193,19 +193,27 @@ describe("AppShell", () => {
     expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
   });
 
-  it("does not invent a dashboard ancestor on top-level pages", async () => {
+  it("nests tool pages under a non-clickable group label", async () => {
     mockPathname = "/dashboard/uploads";
     await renderShell();
-    expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
+    const crumbNav = screen.getByLabelText("Breadcrumb");
+    expect(crumbNav).toHaveTextContent("工具");
+    expect(within(crumbNav).queryByRole("link", { name: "工具" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "文件上传" })).toBeInTheDocument();
   });
 
-  it("links the ideas ancestor on the editor route", async () => {
+  it("nests the idea editor under clickable ancestors", async () => {
     mockPathname = "/dashboard/ideas/3";
     await renderShell();
     const crumbNav = screen.getByLabelText("Breadcrumb");
-    const crumb = within(crumbNav).getByRole("link", { name: "想法" });
-    expect(crumb).toHaveAttribute("href", "/dashboard/ideas");
+    expect(within(crumbNav).getByRole("link", { name: "概览" })).toHaveAttribute(
+      "href",
+      "/dashboard/overview",
+    );
+    expect(within(crumbNav).getByRole("link", { name: "想法" })).toHaveAttribute(
+      "href",
+      "/dashboard/ideas",
+    );
     expect(screen.getByRole("heading", { name: "编辑想法" })).toBeInTheDocument();
     expect(within(crumbNav).queryByRole("link", { name: "编辑想法" })).not.toBeInTheDocument();
   });
