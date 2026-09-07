@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
  * lists/grids.
  */
 
+/** Shared card-grid track — max 6 columns so tiles stay compact. */
+export const CARD_GRID_CLASS =
+  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3";
+
 interface CardListSkeletonProps {
   /** Number of placeholder rows (default 6). */
   rows?: number;
@@ -23,7 +27,7 @@ export function CardListSkeleton({
   className,
 }: CardListSkeletonProps) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-2", className)} data-testid="card-list">
       {Array.from({ length: rows }, (_, i) => `sk-row-${i}`).map((id) => (
         <div key={id} className={cn("rounded-card bg-secondary animate-pulse", rowHeightClass)} />
       ))}
@@ -32,7 +36,7 @@ export function CardListSkeleton({
 }
 
 interface CardGridSkeletonProps {
-  /** Number of placeholder cards (default 8). */
+  /** Number of placeholder cards (default 12 = two rows of six). */
   count?: number;
   /** Tailwind aspect-ratio class for each placeholder card. */
   aspectClass?: string;
@@ -41,16 +45,14 @@ interface CardGridSkeletonProps {
   className?: string;
 }
 
-const DEFAULT_GRID_CLASS = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
-
 export function CardGridSkeleton({
-  count = 8,
+  count = 12,
   aspectClass = "aspect-[5/4]",
-  gridClass = DEFAULT_GRID_CLASS,
+  gridClass = CARD_GRID_CLASS,
   className,
 }: CardGridSkeletonProps) {
   return (
-    <div className={cn(gridClass, className)}>
+    <div className={cn(gridClass, className)} data-testid="card-grid">
       {Array.from({ length: count }, (_, i) => `sk-card-${i}`).map((id) => (
         <div key={id} className={cn("rounded-card bg-secondary animate-pulse", aspectClass)} />
       ))}

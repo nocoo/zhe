@@ -358,15 +358,16 @@ describe("LinksList", () => {
 
     fireEvent.click(screen.getByLabelText("Grid view"));
 
-    const gridContainer = container.querySelector(".grid");
+    const gridContainer = container.querySelector("[data-testid=card-grid]");
     expect(gridContainer).toBeInTheDocument();
+    expect(gridContainer?.className).toContain("xl:grid-cols-6");
   });
 
   it("uses list layout container when in list mode", () => {
     localStorage.removeItem("zhe_links_view_mode");
     const { container } = render(<LinksList />);
 
-    const listContainer = container.querySelector(".space-y-2");
+    const listContainer = container.querySelector("[data-testid=card-list]");
     expect(listContainer).toBeInTheDocument();
   });
 
@@ -375,8 +376,9 @@ describe("LinksList", () => {
     setupService([], [], true);
     const { container } = render(<LinksList />);
 
-    const gridSkeleton = container.querySelector(".grid");
+    const gridSkeleton = container.querySelector("[data-testid=card-grid]");
     expect(gridSkeleton).toBeInTheDocument();
+    expect(gridSkeleton?.className).toContain("xl:grid-cols-6");
   });
 
   it("renders list skeleton when loading in list mode", () => {
@@ -384,7 +386,7 @@ describe("LinksList", () => {
     setupService([], [], true);
     const { container } = render(<LinksList />);
 
-    const listSkeleton = container.querySelector(".space-y-2");
+    const listSkeleton = container.querySelector("[data-testid=card-list]");
     expect(listSkeleton).toBeInTheDocument();
   });
 

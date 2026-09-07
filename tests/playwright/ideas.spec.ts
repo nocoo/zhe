@@ -188,8 +188,7 @@ test.describe("Ideas", () => {
 
       await page.getByRole("button", { name: "Grid view" }).click();
 
-      // In grid view, ideas are displayed in a grid with 4 columns at xl breakpoint
-      await expect(page.locator(".grid.grid-cols-1")).toBeVisible();
+      await expect(page.getByTestId("card-grid")).toBeVisible();
     });
 
     test("can switch to list view", async ({ page }) => {
@@ -198,8 +197,7 @@ test.describe("Ideas", () => {
 
       await page.getByRole("button", { name: "List view" }).click();
 
-      // In list view, ideas are displayed in a vertical list with space-y-2
-      await expect(page.locator("main .space-y-2")).toBeVisible();
+      await expect(page.getByTestId("card-list")).toBeVisible();
     });
   });
 

@@ -3,19 +3,14 @@
 import { Lightbulb, Plus } from "lucide-react";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
 import { Button } from "@/components/ui/button";
-import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
+import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import type { IdeasViewMode, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
 function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
   if (viewMode === "grid") {
-    return (
-      <CardGridSkeleton
-        aspectClass="aspect-square"
-        gridClass="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-      />
-    );
+    return <CardGridSkeleton aspectClass="aspect-square" />;
   }
   return <CardListSkeleton />;
 }
@@ -53,7 +48,7 @@ export function IdeasContent({
 
   if (vm.viewMode === "grid") {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className={CARD_GRID_CLASS} data-testid="card-grid">
         {vm.ideas.map((idea) => (
           <IdeaCard
             key={idea.id}
@@ -69,7 +64,7 @@ export function IdeasContent({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="card-list">
       {vm.ideas.map((idea) => (
         <IdeaRow
           key={idea.id}

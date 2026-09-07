@@ -3,7 +3,7 @@
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
+import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -87,11 +87,8 @@ function LinksContent(props: LinksContentProps) {
 
   return (
     <div
-      className={
-        viewMode === "grid"
-          ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-          : "space-y-2"
-      }
+      className={viewMode === "grid" ? CARD_GRID_CLASS : "space-y-2"}
+      data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
       {filteredLinks.map((link) => (
         <LinkCard
