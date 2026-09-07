@@ -1,64 +1,38 @@
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-import * as React from "react";
+"use client";
 
+import type { ButtonProps as BasaltButtonProps } from "@nocoo/basalt/components/button";
+import { Button as BasaltButton } from "@nocoo/basalt/components/button";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/**
- * Button sizes (see docs/22-design-tokens.md):
- *
- *   default  — form / modal primary (h-10, text-sm)
- *   sm       — form secondary (h-9, text-sm) — settings, API keys, Backy, etc.
- *   xs       — dashboard toolbar compact (h-8, text-xs, rounded-widget)
- *   icon     — 40×40
- *   icon-sm  — 32×32 toolbar / row menus
- *
- * Do **not** redefine `sm` as toolbar density — that collides with form
- * call sites. Prefer `xs` in PageHeader action clusters and filter bars.
- */
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-border bg-secondary shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        xs: "h-8 gap-1.5 rounded-widget px-2.5 text-xs [&_svg]:size-3.5",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-        "icon-sm": "h-8 w-8 rounded-widget [&_svg]:size-3.5",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+type ZheSize = BasaltButtonProps["size"] | "xs" | "icon-sm";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+export interface ButtonProps extends Omit<BasaltButtonProps, "size"> {
+  size?: ZheSize;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp className={cn(buttonVariants({ variant, size }), className)} ref={ref} {...props} />
-    );
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ size, className, ...props }, ref) => {
+    if (size === "xs") {
+      return (
+        <BasaltButton ref={ref} size="sm" className={cn("rounded-widget", className)} {...props} />
+      );
+    }
+    if (size === "icon-sm") {
+      return <BasaltButton ref={ref} size="icon" className={cn("h-8 w-8", className)} {...props} />;
+    }
+    if (size === "sm") {
+      return <BasaltButton ref={ref} size="default" className={className} {...props} />;
+    }
+    if (size === "default" || size == null) {
+      return <BasaltButton ref={ref} size="lg" className={className} {...props} />;
+    }
+    if (size === "icon") {
+      return (
+        <BasaltButton ref={ref} size="icon" className={cn("h-10 w-10", className)} {...props} />
+      );
+    }
+    return <BasaltButton ref={ref} size={size} className={className} {...props} />;
   },
 );
 Button.displayName = "Button";
-
-export { Button, buttonVariants };
