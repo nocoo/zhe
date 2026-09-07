@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 interface CollapsibleNavGroupProps {
@@ -29,7 +29,10 @@ export function CollapsibleNavGroup({
         </CollapsibleTrigger>
         <div className="flex items-center gap-1">
           {trailing}
-          <CollapsibleTrigger className="flex items-center">
+          <CollapsibleTrigger
+            className="flex items-center"
+            aria-label={open ? `Collapse ${label}` : `Expand ${label}`}
+          >
             <ChevronUp
               className={cn(
                 "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[var(--motion-fast)]",
@@ -40,15 +43,7 @@ export function CollapsibleNavGroup({
           </CollapsibleTrigger>
         </div>
       </div>
-      <div
-        className="grid overflow-hidden"
-        style={{
-          gridTemplateRows: open ? "1fr" : "0fr",
-          transition: "grid-template-rows var(--motion-base) ease-out",
-        }}
-      >
-        <div className="min-h-0 overflow-hidden">{children}</div>
-      </div>
+      <CollapsibleContent className="overflow-hidden">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
