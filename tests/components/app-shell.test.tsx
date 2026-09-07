@@ -96,6 +96,7 @@ let mockSidebarCtx = {
   isMobile: false,
   mobileOpen: false,
   setMobileOpen: vi.fn(),
+  closeMobileSidebar: vi.fn(),
 };
 
 vi.mock("@/components/sidebar-context", () => ({
@@ -155,6 +156,7 @@ describe("AppShell", () => {
       isMobile: false,
       mobileOpen: false,
       setMobileOpen: vi.fn(),
+      closeMobileSidebar: vi.fn(),
     };
     mockFoldersVm = {
       folders: [],
@@ -300,6 +302,42 @@ describe("AppShell", () => {
       // Sheet overlay is rendered via Radix portal with role="dialog"
       const dialog = document.querySelector('[role="dialog"]');
       expect(dialog).toBeInTheDocument();
+    });
+
+    it("keeps the mobile sheet sidebar expanded after a desktop collapse", async () => {
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = true;
+      mockSidebarCtx.collapsed = true;
+      await renderShell();
+
+      const aside = document.querySelector("aside");
+      expect(aside).toBeInTheDocument();
+      expect(aside?.hasAttribute("data-collapsed")).toBe(false);
+      expect(screen.getByText("全部链接")).toBeInTheDocument();
+    });
+
+    it("closes the mobile drawer when the route changes", async () => {
+      mockSidebarCtx.isMobile = true;
+      mockSidebarCtx.mobileOpen = true;
+      const view = await renderShell();
+      mockSidebarCtx.closeMobileSidebar.mockClear();
+
+      mockPathname = "/dashboard/settings/ai";
+      const { act } = await import("@testing-library/react");
+      await act(async () => {
+        view.rerender(
+          withTheme(
+            <AppShell
+              user={{ name: "Test User", email: "test@example.com", image: null }}
+              signOutAction={vi.fn(async () => {})}
+            >
+              <div data-testid="child-content">Dashboard Content</div>
+            </AppShell>,
+          ),
+        );
+      });
+
+      expect(mockSidebarCtx.closeMobileSidebar).toHaveBeenCalled();
     });
   });
 

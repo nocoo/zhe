@@ -20,7 +20,8 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ user, signOutAction }: SidebarProps) {
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed: desktopCollapsed, toggle, isMobile } = useSidebar();
+  const collapsed = isMobile ? false : desktopCollapsed;
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentFolder =

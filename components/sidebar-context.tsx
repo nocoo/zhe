@@ -10,6 +10,7 @@ interface SidebarContextValue {
   isMobile: boolean;
   mobileOpen: boolean;
   setMobileOpen: (v: boolean) => void;
+  closeMobileSidebar: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -26,6 +27,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         },
         isMobile: vm.isMobile,
         mobileOpen: vm.mobileOpen,
+        closeMobileSidebar: vm.closeMobileSidebar,
         setMobileOpen: (open: boolean) => {
           if (!open) vm.closeMobileSidebar();
           else vm.toggleSidebar();

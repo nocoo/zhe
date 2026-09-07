@@ -8,7 +8,7 @@ import {
   AppShell as BasaltAppShell,
 } from "@nocoo/basalt/components/app-shell";
 import { Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { GithubIcon } from "@/components/github-icon";
@@ -53,9 +53,15 @@ function AppShellInner({
   user?: AppShellProps["user"];
   signOutAction: () => Promise<void>;
 }) {
-  const { isMobile, mobileOpen, setMobileOpen, toggle } = useSidebar();
+  const { isMobile, mobileOpen, setMobileOpen, toggle, closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const locationKey = `${pathname}?${searchParams.toString()}`;
   const { breadcrumbs, title } = getAppHeaderTrail(pathname);
+
+  useEffect(() => {
+    if (locationKey) closeMobileSidebar();
+  }, [locationKey, closeMobileSidebar]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
