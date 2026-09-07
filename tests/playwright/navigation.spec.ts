@@ -224,6 +224,7 @@ test.describe("Dashboard navigation", () => {
 
   test("Cmd+K opens search dialog", async ({ page }) => {
     await page.goto("/dashboard");
+    await expect(page.getByTitle(/Theme:/)).toBeVisible();
 
     // Press Cmd+K on macOS, Ctrl+K on other platforms
     const modifier = process.platform === "darwin" ? "Meta" : "Control";
