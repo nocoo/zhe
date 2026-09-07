@@ -6,12 +6,9 @@
  *   right = detail pane for the selected todo
  *
  * The header follows the shared PageHeader convention (title + count on
- * the left, action cluster on the right) so the page reads consistently
- * with links / ideas / uploads. Filters live in the top toolbar and
- * collapse into a Popover on narrow viewports — never at the bottom of
- * the tree pane. Panel colouring uses the app-wide `bg-secondary` step
- * over the app-shell's `bg-card`, keeping the same layering as every
- * other list surface.
+ * the left, create on the right). Dense filters sit on their own row
+ * and collapse into a Popover on narrow viewports. Tree and detail sit
+ * on the island surface instead of nested gray wells.
  *
  * The composition mounts `useTodosViewModel` once and passes callbacks
  * down; every mutation flows through the VM's optimistic / rollback
@@ -172,9 +169,7 @@ export function TodosPage() {
         description={vm.loading ? "加载中…" : countLabel}
         actions={
           <>
-            {!narrow && <TodosFilterBar {...filterProps} />}
-
-            {narrow && (
+            {narrow ? (
               <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="xs" aria-label="筛选与搜索">
@@ -193,7 +188,7 @@ export function TodosPage() {
                   </div>
                 </PopoverContent>
               </Popover>
-            )}
+            ) : null}
 
             <Button size="xs" onClick={onCreateRoot} disabled={vm.isSaving}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -201,6 +196,7 @@ export function TodosPage() {
             </Button>
           </>
         }
+        filters={narrow ? undefined : <TodosFilterBar {...filterProps} />}
       />
 
       {vm.error || createError ? (
@@ -224,11 +220,7 @@ export function TodosPage() {
       ) : null}
 
       <div className="flex flex-1 min-h-0 gap-3">
-        <section
-          data-basalt-surface=""
-          className="flex min-w-0 flex-1 flex-col rounded-card bg-secondary"
-          aria-label="Todos tree"
-        >
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Todos tree">
           {vm.loading ? (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               加载中…
@@ -253,8 +245,7 @@ export function TodosPage() {
 
         {narrow ? null : (
           <section
-            data-basalt-surface=""
-            className="flex min-w-0 basis-2/5 flex-col rounded-card bg-secondary"
+            className="flex min-h-0 min-w-0 basis-2/5 flex-col border-l border-border pl-3"
             aria-label="Selected todo detail"
           >
             <TodoDetailPane
