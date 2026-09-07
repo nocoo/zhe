@@ -1,11 +1,14 @@
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
 import type { OverviewStats, WorkerHealthStatus } from "@/models/overview";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { ChartSkeleton, StatSkeleton } from "./overview-page-parts/charts";
 import { KVCacheSection } from "./overview-page-parts/kv-cache-section";
 import { LinksSection } from "./overview-page-parts/links-section";
 import { UploadsSection } from "./overview-page-parts/uploads-section";
+
+const OVERVIEW_DESCRIPTION = "链接点击、图床用量与 KV 缓存状态。";
 
 export function OverviewPage({
   initialData,
@@ -17,16 +20,19 @@ export function OverviewPage({
 
   if (loading) {
     return (
-      <div className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
-            <StatSkeleton key={id} />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-          <ChartSkeleton />
-          <ChartSkeleton />
-          <ChartSkeleton />
+      <div>
+        <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
+        <div className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
+              <StatSkeleton key={id} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+            <ChartSkeleton />
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
         </div>
       </div>
     );
@@ -61,10 +67,13 @@ function OverviewContent({
   workerHealthLoading: boolean;
 }) {
   return (
-    <div className="space-y-8 md:space-y-10">
-      <LinksSection stats={stats} />
-      <KVCacheSection health={workerHealth} loading={workerHealthLoading} />
-      <UploadsSection stats={stats} />
+    <div>
+      <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
+      <div className="space-y-8 md:space-y-10">
+        <LinksSection stats={stats} />
+        <KVCacheSection health={workerHealth} loading={workerHealthLoading} />
+        <UploadsSection stats={stats} />
+      </div>
     </div>
   );
 }

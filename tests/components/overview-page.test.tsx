@@ -141,6 +141,9 @@ describe("OverviewPage", () => {
 
     render(<OverviewPage />);
 
+    expect(screen.getByRole("heading", { name: "概览" })).toBeInTheDocument();
+    expect(screen.getByText("链接点击、图床用量与 KV 缓存状态。")).toBeInTheDocument();
+
     // Section headers
     expect(screen.getByText("链接统计")).toBeInTheDocument();
     expect(screen.getByText("图床统计")).toBeInTheDocument();

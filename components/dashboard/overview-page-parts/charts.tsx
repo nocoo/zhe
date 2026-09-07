@@ -65,26 +65,28 @@ export function Sparkline({ data }: { data: number[] }) {
 
 export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: StatCardProps) {
   return (
-    <div
-      className="animate-fade-up rounded-xl bg-secondary p-4 md:p-5"
+    <Card
+      className="animate-fade-up"
       style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
       data-testid="stat-card"
       data-stat-label={label}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-      </div>
-      <div className="mt-2 flex items-center gap-3">
-        <p
-          className="text-xl md:text-2xl font-semibold font-display tabular-nums tracking-tight"
-          data-testid="stat-value"
-        >
-          {value}
-        </p>
-        {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}
-      </div>
-    </div>
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+        </div>
+        <div className="mt-2 flex items-center gap-3">
+          <p
+            className="text-xl md:text-2xl font-semibold font-display tabular-nums tracking-tight"
+            data-testid="stat-value"
+          >
+            {value}
+          </p>
+          {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -92,13 +94,15 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
 
 export function StatSkeleton() {
   return (
-    <div className="rounded-xl bg-secondary p-4 md:p-5 animate-pulse" data-testid="stat-skeleton">
-      <div className="flex items-center justify-between">
-        <div className="h-3 w-16 rounded bg-background" />
-        <div className="h-4 w-4 rounded bg-background" />
-      </div>
-      <div className="mt-3 h-7 w-20 rounded bg-background" />
-    </div>
+    <Card className="animate-pulse" data-testid="stat-skeleton">
+      <CardContent className="p-4 md:p-5">
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-16 rounded bg-background" />
+          <div className="h-4 w-4 rounded bg-background" />
+        </div>
+        <div className="mt-3 h-7 w-20 rounded bg-background" />
+      </CardContent>
+    </Card>
   );
 }
 

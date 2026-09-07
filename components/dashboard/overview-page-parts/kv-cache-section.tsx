@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionRule } from "@nocoo/basalt/components/section-rule";
 import { Clock, Database } from "lucide-react";
 import type { WorkerHealthStatus } from "@/models/overview";
 import { formatRelativeTime } from "@/models/overview";
@@ -14,30 +15,27 @@ export function KVCacheSection({
 }) {
   if (isLoading) {
     return (
-      <section data-testid="section-kv">
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
+      <SectionRule title="KV 缓存" data-testid="section-kv">
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <StatSkeleton />
           <StatSkeleton />
         </div>
-      </section>
+      </SectionRule>
     );
   }
 
   if (!health) {
     return (
-      <section data-testid="section-kv">
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
+      <SectionRule title="KV 缓存" data-testid="section-kv">
         <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
           无法加载 KV 缓存状态
         </div>
-      </section>
+      </SectionRule>
     );
   }
 
   return (
-    <section data-testid="section-kv">
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">KV 缓存</h2>
+    <SectionRule title="KV 缓存" data-testid="section-kv">
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <StatCard
           label="最近同步"
@@ -52,6 +50,6 @@ export function KVCacheSection({
           index={1}
         />
       </div>
-    </section>
+    </SectionRule>
   );
 }

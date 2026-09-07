@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionRule } from "@nocoo/basalt/components/section-rule";
 import { FileType, HardDrive, ImageIcon, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverviewStats } from "@/models/overview";
@@ -8,8 +9,7 @@ import { BreakdownDonut, StatCard, UploadTrendChart } from "./charts";
 
 export function UploadsSection({ stats }: { stats: OverviewStats }) {
   return (
-    <section data-testid="section-uploads">
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">图床统计</h2>
+    <SectionRule title="图床统计" data-testid="section-uploads">
       <div className="space-y-4 md:space-y-6">
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <StatCard
@@ -49,6 +49,6 @@ export function UploadsSection({ stats }: { stats: OverviewStats }) {
           </Card>
         </div>
       </div>
-    </section>
+    </SectionRule>
   );
 }

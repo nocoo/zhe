@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionRule } from "@nocoo/basalt/components/section-rule";
 import { Crown, Globe, Link2, Monitor, MousePointerClick, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OverviewStats } from "@/models/overview";
@@ -8,8 +9,7 @@ import { BreakdownDonut, ClickTrendChart, StatCard, TopLinksList } from "./chart
 
 export function LinksSection({ stats }: { stats: OverviewStats }) {
   return (
-    <section data-testid="section-links">
-      <h2 className="mb-4 text-sm font-medium text-muted-foreground">链接统计</h2>
+    <SectionRule title="链接统计" data-testid="section-links">
       <div className="space-y-4 md:space-y-6">
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <StatCard
@@ -81,6 +81,6 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
           </Card>
         </div>
       </div>
-    </section>
+    </SectionRule>
   );
 }
