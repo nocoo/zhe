@@ -2,7 +2,7 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
 
 afterEach(() => cleanup());
 
@@ -24,5 +24,12 @@ describe("PageHeader wrapper", () => {
     const row = container.querySelector("header > div");
     expect(row?.className).toMatch(/\bmd:items-center\b/);
     expect(screen.getByRole("heading", { name: "想法" }).className).toMatch(/\btext-lg\b/);
+  });
+
+  it("matches header density with a pulse placeholder", () => {
+    const { container } = render(<PageHeaderSkeleton />);
+    expect(container.firstElementChild?.className).toMatch(/\bmb-6\b/);
+    expect(screen.getByTestId("page-header-skeleton").querySelector(".h-7")).toBeTruthy();
+    expect(screen.getByTestId("page-header-skeleton").querySelector(".h-8")).toBeTruthy();
   });
 });

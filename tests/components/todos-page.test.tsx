@@ -109,6 +109,7 @@ describe("TodosPage", () => {
     // pane while data is loading — asserting on both is what tells us the
     // header is wired to the VM's loading state.
     expect(screen.getAllByText(/加载中…/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("todos-tree-skeleton")).toBeInTheDocument();
   });
 
   it("renders the empty state when there are no todos", () => {

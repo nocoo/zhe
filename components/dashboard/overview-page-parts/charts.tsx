@@ -106,9 +106,9 @@ export function StatSkeleton() {
   );
 }
 
-export function ChartSkeleton() {
+export function ChartSkeleton({ className }: { className?: string }) {
   return (
-    <Card data-testid="stat-skeleton">
+    <Card className={className} data-testid="stat-skeleton">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <div className="h-4 w-24 rounded bg-background animate-pulse" />
       </CardHeader>

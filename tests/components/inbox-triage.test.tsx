@@ -233,11 +233,11 @@ describe("InboxTriage", () => {
       expect(skeletons.length).toBeGreaterThan(0);
     });
 
-    it("does not show header or links while loading", () => {
+    it("keeps the Inbox header and hides links while loading", () => {
       setupService({ loading: true });
       render(<InboxTriage />);
 
-      expect(screen.queryByRole("heading", { name: "Inbox" })).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
       expect(screen.queryByText("Inbox Link 1")).not.toBeInTheDocument();
     });
   });

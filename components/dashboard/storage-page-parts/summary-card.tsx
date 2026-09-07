@@ -22,7 +22,7 @@ export function SummaryCard({
   return (
     <div
       className={cn(
-        "animate-fade-up rounded-xl p-4",
+        "animate-fade-up rounded-card p-4",
         variant === "warning" && "bg-warning/5",
         variant === "success" && "bg-success/5",
         variant === "default" && "bg-secondary",

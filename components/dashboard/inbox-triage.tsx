@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LinkCard } from "@/components/dashboard/link-card";
 import { Button } from "@/components/ui/button";
+import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -18,25 +19,8 @@ import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 function InboxSkeleton() {
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="animate-pulse">
-          <div className="h-6 w-24 rounded bg-background" />
-          <div className="h-4 w-16 rounded bg-background mt-1.5" />
-        </div>
-      </div>
-      <div className="animate-pulse space-y-3">
-        {Array.from({ length: 3 }, (_, i) => `sk-${i}`).map((id) => (
-          <div key={id} className="rounded-card bg-secondary p-4 space-y-3">
-            <div className="h-4 w-3/4 rounded bg-background" />
-            <div className="h-3 w-1/2 rounded bg-background" />
-            <div className="flex gap-3">
-              <div className="h-8 w-40 rounded bg-background" />
-              <div className="h-8 flex-1 rounded bg-background" />
-              <div className="h-8 w-16 rounded bg-background" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <PageHeader title="Inbox" description="加载中…" />
+      <CardListSkeleton rows={3} />
     </div>
   );
 }

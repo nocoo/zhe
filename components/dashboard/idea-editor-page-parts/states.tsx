@@ -2,10 +2,12 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 
 export function EditorSkeleton() {
   return (
     <div>
+      <PageHeader title="编辑想法" description="编写内容、标题与标签。" />
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 animate-pulse">
           {/* Match EditorToolbar: icon-sm (32×32) + Input size=sm (h-8). */}

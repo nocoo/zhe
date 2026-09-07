@@ -228,8 +228,10 @@ export function TodosPage() {
           aria-label="Todos tree"
         >
           {vm.loading ? (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              加载中…
+            <div className="space-y-2 p-3" data-testid="todos-tree-skeleton">
+              {Array.from({ length: 8 }, (_, i) => `todo-sk-${i}`).map((id) => (
+                <div key={id} className="h-8 rounded-widget bg-secondary animate-pulse" />
+              ))}
             </div>
           ) : vm.todos.length === 0 ? (
             <EmptyState onCreateRoot={onCreateRoot} />

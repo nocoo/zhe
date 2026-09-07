@@ -1,5 +1,6 @@
 "use client";
 
+import { SectionRule } from "@nocoo/basalt/components/section-rule";
 import { PageHeader } from "@/components/ui/page-header";
 import type { OverviewStats, WorkerHealthStatus } from "@/models/overview";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
@@ -10,6 +11,51 @@ import { UploadsSection } from "./overview-page-parts/uploads-section";
 
 const OVERVIEW_DESCRIPTION = "链接点击、图床用量与 KV 缓存状态。";
 
+function OverviewSkeleton() {
+  return (
+    <div>
+      <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
+      <div className="space-y-8 md:space-y-10">
+        <SectionRule title="链接统计">
+          <div className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <StatSkeleton />
+              <StatSkeleton />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+              <ChartSkeleton className="lg:col-span-2" />
+              <ChartSkeleton />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              <ChartSkeleton />
+              <ChartSkeleton />
+              <ChartSkeleton />
+            </div>
+          </div>
+        </SectionRule>
+        <SectionRule title="KV 缓存">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <StatSkeleton />
+            <StatSkeleton />
+          </div>
+        </SectionRule>
+        <SectionRule title="图床统计">
+          <div className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <StatSkeleton />
+              <StatSkeleton />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+              <ChartSkeleton className="lg:col-span-2" />
+              <ChartSkeleton />
+            </div>
+          </div>
+        </SectionRule>
+      </div>
+    </div>
+  );
+}
+
 export function OverviewPage({
   initialData,
 }: {
@@ -19,23 +65,7 @@ export function OverviewPage({
     useOverviewViewModel(initialData);
 
   if (loading) {
-    return (
-      <div>
-        <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
-        <div className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
-              <StatSkeleton key={id} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <ChartSkeleton />
-            <ChartSkeleton />
-            <ChartSkeleton />
-          </div>
-        </div>
-      </div>
-    );
+    return <OverviewSkeleton />;
   }
 
   if (error) {

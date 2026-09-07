@@ -1,6 +1,7 @@
 "use client";
 
 import { Upload as UploadIcon } from "lucide-react";
+import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,33 +14,15 @@ import { UploadZone } from "./upload-zone";
 
 function UploadListSkeleton() {
   return (
-    <div className="animate-pulse">
-      {/* Header skeleton */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="h-6 w-16 rounded bg-background" />
-          <div className="h-4 w-20 rounded bg-background mt-1.5" />
-        </div>
+    <div>
+      <PageHeader title="文件上传" description="加载中…" />
+      <div className="mb-6 flex items-center gap-4">
+        <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse" />
       </div>
-
-      {/* Upload zone skeleton */}
       <div className="mb-6">
-        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary" />
+        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary animate-pulse" />
       </div>
-
-      {/* Upload item skeletons */}
-      <div className="space-y-2">
-        {Array.from({ length: 4 }, (_, i) => `sk-${i}`).map((id) => (
-          <div key={id} className="rounded-card bg-secondary p-4 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-background shrink-0" />
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="h-4 w-40 rounded bg-background" />
-              <div className="h-3 w-24 rounded bg-background" />
-            </div>
-            <div className="h-8 w-16 rounded bg-background shrink-0" />
-          </div>
-        ))}
-      </div>
+      <CardListSkeleton rows={4} />
     </div>
   );
 }

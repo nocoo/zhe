@@ -441,7 +441,7 @@ describe("UploadList", () => {
 
     const skeleton = document.querySelector(".animate-pulse");
     expect(skeleton).toBeInTheDocument();
-    expect(screen.queryByText("文件上传")).not.toBeInTheDocument();
+    expect(screen.getByText("文件上传")).toBeInTheDocument();
   });
 
   it("renders PNG auto-convert switch", () => {
