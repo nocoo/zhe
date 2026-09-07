@@ -133,8 +133,8 @@
 
 :root {
   /* Surfaces alias Basalt L0–L3 so existing bg-background / bg-card
-   * utilities paint the same stack as bg-basalt-*. Brand purple is the
-   * default primary (also applied by AccentProvider). */
+   * utilities paint the same stack as bg-basalt-*. Semantic primary
+   * matches AccentProvider on the raw 262 83% 58% swatch. */
   --basalt-primary: 262 83% 58%;
   --basalt-primary-foreground: 0 0% 100%;
   --basalt-ring: 262 83% 58%;
@@ -255,9 +255,10 @@
 }
 
 .dark {
-  --basalt-primary: 262 83% 63%;
-  --basalt-primary-foreground: 0 0% 100%;
-  --basalt-ring: 262 83% 63%;
+  /* Semantic primary from AccentProvider on the raw 262 83% 63% swatch. */
+  --basalt-primary: 262 83% 71%;
+  --basalt-primary-foreground: 0 0% 10%;
+  --basalt-ring: 262 83% 71%;
 
   --success: 142 65% 38%;
   --success-foreground: 142 60% 90%;
@@ -310,6 +311,15 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
+  }
+  html,
+  html.light,
+  html[data-mode="light"] {
+    color-scheme: light;
+  }
+  html.dark,
+  html[data-mode="dark"] {
+    color-scheme: dark;
   }
   html,
   body {

@@ -39,6 +39,7 @@ test.describe("Landing page", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveClass(/dark/);
     await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   });
 
   test("/login redirects to landing page", async ({ page }) => {
