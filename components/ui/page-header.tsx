@@ -13,7 +13,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, filters, className }: PageHeaderProps) {
   return (
-    <div className={cn(className)}>
+    <div className={cn("mb-6", className)}>
       <BasaltPageHeader
         title={title}
         description={description}
