@@ -1,14 +1,11 @@
+import { LayerCard } from "@nocoo/basalt";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("bg-secondary rounded-card text-card-foreground", className)}
-      {...props}
-    />
+    <LayerCard ref={ref} className={cn("rounded-card", className)} {...props} />
   ),
 );
 Card.displayName = "Card";
