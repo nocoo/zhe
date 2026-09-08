@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.23.2] - 2026-09-08
+
+### Changed
+- Bump basalt to 2.1.2
+
 ## [v1.23.1] - 2026-09-08
 
 ### Changed
