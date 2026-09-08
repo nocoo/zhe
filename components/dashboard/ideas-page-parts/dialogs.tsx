@@ -50,6 +50,7 @@ export function CreateIdeaModal({
             <Label htmlFor="new-title">标题 (可选)</Label>
             <Input
               id="new-title"
+              size="lg"
               placeholder="为您的想法添加标题..."
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
@@ -91,10 +92,10 @@ export function CreateIdeaModal({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => vm.setIsCreateModalOpen(false)}>
+          <Button variant="outline" size="lg" onClick={() => vm.setIsCreateModalOpen(false)}>
             取消
           </Button>
-          <Button onClick={onCreate} disabled={!newContent.trim() || vm.isSaving}>
+          <Button size="lg" onClick={onCreate} disabled={!newContent.trim() || vm.isSaving}>
             {vm.isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             创建
           </Button>
@@ -113,10 +114,15 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
           <DialogDescription>确定要删除这个想法吗？此操作无法撤销。</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={vm.cancelDelete}>
+          <Button variant="outline" size="lg" onClick={vm.cancelDelete}>
             取消
           </Button>
-          <Button variant="destructive" onClick={vm.executeDelete} disabled={vm.isDeleting}>
+          <Button
+            variant="destructive"
+            size="lg"
+            onClick={vm.executeDelete}
+            disabled={vm.isDeleting}
+          >
             {vm.isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             删除
           </Button>

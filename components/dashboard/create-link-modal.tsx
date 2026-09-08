@@ -52,6 +52,7 @@ function LabelledInput({
       </Label>
       <Input
         id={id}
+        size="lg"
         type={type}
         placeholder={placeholder}
         value={value}
@@ -65,11 +66,7 @@ function LabelledInput({
 
 function SubmitButton({ isLoading }: { isLoading: boolean }) {
   return (
-    <button
-      type="submit"
-      className="flex w-full items-center justify-center gap-2 rounded-widget bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-      disabled={isLoading}
-    >
+    <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
       {isLoading ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
@@ -78,7 +75,7 @@ function SubmitButton({ isLoading }: { isLoading: boolean }) {
       ) : (
         "创建链接"
       )}
-    </button>
+    </Button>
   );
 }
 

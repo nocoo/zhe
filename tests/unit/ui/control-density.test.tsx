@@ -19,6 +19,14 @@ import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 afterEach(() => cleanup());
 
 describe("control density — Input", () => {
+  it("lg size is form primary (h-10)", () => {
+    render(<Input size="lg" aria-label="lg-input" />);
+    const el = screen.getByLabelText("lg-input");
+    expect(el.className).toMatch(/\bh-10\b/);
+    expect(el.className).not.toMatch(/\bh-9\b/);
+    expect(el.className).not.toMatch(/\bh-8\b/);
+  });
+
   it("default size is form scale (h-9)", () => {
     render(<Input aria-label="default-input" />);
     const el = screen.getByLabelText("default-input");
@@ -44,6 +52,13 @@ describe("control density — Input", () => {
 });
 
 describe("control density — Button", () => {
+  it("lg is form primary (h-10)", () => {
+    render(<Button size="lg">创建</Button>);
+    const el = screen.getByRole("button", { name: "创建" });
+    expect(el.className).toMatch(/\bh-10\b/);
+    expect(el.className).not.toMatch(/\bh-9\b/);
+  });
+
   it("default is form secondary (h-9)", () => {
     render(<Button size="default">保存</Button>);
     const el = screen.getByRole("button", { name: "保存" });
