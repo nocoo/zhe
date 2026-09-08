@@ -92,11 +92,6 @@
   --radius-card: var(--radius-card);
   --radius-widget: var(--radius-widget);
 
-  /* Control density heights — see :root comments for the density contract. */
-  --spacing-control: var(--control-h);
-  --spacing-control-sm: var(--control-h-sm);
-  --spacing-control-xs: var(--control-h-xs);
-
   --animate-accordion-down: accordion-down var(--motion-fast) ease-out;
   --animate-accordion-up: accordion-up var(--motion-fast) ease-out;
   --animate-fade-up: fade-up var(--motion-slow) ease-out both;
@@ -192,9 +187,6 @@
    *   sm:                32px (h-8)  + text-xs  — toolbar compact
    *
    * Do not invent xs / icon-sm. Icon-only buttons use size="icon" (h-9 w-9). */
-  --control-h: 2.5rem;
-  --control-h-sm: 2.25rem; /* form small (Button sm) */
-  --control-h-xs: 2rem; /* toolbar compact */
 
   /* Motion duration tokens — three tiers + a stagger constant.
    * Values include the `ms` suffix so they compose into shorthand
