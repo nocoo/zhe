@@ -1,6 +1,7 @@
 // Auth setup: Playwright authenticates via the Credentials provider
 // (activated by PLAYWRIGHT=1) and saves the session cookie for reuse.
 import { expect, test as setup } from "@playwright/test";
+import { islandHeading } from "./helpers/chrome";
 import { TEST_USER } from "./helpers/d1";
 
 const authFile = "tests/playwright/.auth/user.json";
@@ -30,7 +31,7 @@ setup("authenticate", async ({ page, context }) => {
   // Step 3: Navigate to dashboard — the session cookie should be set
   // from the POST response above
   await page.goto("/dashboard");
-  await expect(page.locator("h2")).toContainText("全部链接", { timeout: 15_000 });
+  await expect(islandHeading(page, "全部链接")).toBeVisible({ timeout: 15_000 });
 
   // Save signed-in state
   await context.storageState({ path: authFile });
