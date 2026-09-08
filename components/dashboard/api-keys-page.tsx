@@ -1,10 +1,10 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import type { ApiScope } from "@/models/api-key";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";

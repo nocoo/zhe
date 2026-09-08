@@ -6,6 +6,7 @@
 
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { RefreshCw } from "lucide-react";
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";

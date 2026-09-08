@@ -1,6 +1,6 @@
 "use client";
 
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { useXrayViewModel, type XrayInitialData } from "@/viewmodels/useXrayViewModel";
 import { BookmarksSection } from "./xray-page-parts/bookmarks-section";
 import { ConfigSection } from "./xray-page-parts/config-section";

@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Filter, LayoutGrid, List, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,

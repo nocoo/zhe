@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
 import { DeprecationWarning } from "./webhook-page-parts/deprecation-warning";

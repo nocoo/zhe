@@ -1,10 +1,10 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Plus, Tags } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
 import { useTagsViewModel } from "@/viewmodels/useTagsViewModel";

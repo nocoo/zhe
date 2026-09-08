@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/ui/page-header";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
 import { EditorSplit, ErrorToast } from "./idea-editor-page-parts/editor-split";
 import { EditorToolbar } from "./idea-editor-page-parts/editor-toolbar";

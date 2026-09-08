@@ -124,7 +124,7 @@ L3 可编辑控件默认：`bg-secondary` + `border-border` + `shadow-xs`。
 
 | 角色 | 类 | 说明 |
 |------|-----|------|
-| 页头标题 | `text-lg font-semibold` | `PageHeader` |
+| 页头标题 | `text-2xl font-semibold` | Basalt `PageHeader` |
 | Panel 主标题 / 行内 title | `text-base font-medium` | 勿用 `text-lg` 与页头抢层级 |
 | 正文 / 备注 | `text-sm` | |
 | 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `xs` / 字段 `sm` 一致 |
