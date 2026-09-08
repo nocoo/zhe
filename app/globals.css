@@ -187,12 +187,11 @@
 
   /* Control density — see docs/22-design-tokens.md.
    *
-   *   default:           40px (h-10) + text-sm  — form primary
-   *   Button sm:         36px (h-9)  + text-sm  — form secondary (settings)
-   *   toolbar compact:   32px (h-8)  + text-xs  — Button xs / Input|Select|Checkbox sm
+   *   lg:                40px (h-10) + text-sm  — form primary / modal actions
+   *   default:           36px (h-9)  + text-sm  — form secondary (settings)
+   *   sm:                32px (h-8)  + text-xs  — toolbar compact
    *
-   * Button sm must stay form-scale; do not redefine it as toolbar compact.
-   * Icon-only toolbar buttons use icon-sm (h-8 w-8). */
+   * Do not invent xs / icon-sm. Icon-only buttons use size="icon" (h-9 w-9). */
   --control-h: 2.5rem;
   --control-h-sm: 2.25rem; /* form small (Button sm) */
   --control-h-xs: 2rem; /* toolbar compact */

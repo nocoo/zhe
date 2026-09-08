@@ -42,7 +42,7 @@ Ship two stacked capabilities. Capability 1 is a hard prerequisite for Capabilit
 | Existing assign path | `updateLink` + `addTagToLink` / `createTag` (`actions/links.ts`, `actions/tags.ts`) |
 | Link edit surface | `link-card-parts/inline-edit-area.tsx` + `TagPicker` |
 | Settings nav group | `components/sidebar-parts/nav-config.ts` — 标签 / 存储 / 数据管理 |
-| Design tokens | toolbar `Button xs`; settings form `Button sm`; fields `Input size="sm"` in toolbars |
+| Design tokens | toolbar `Button sm`; settings form `Button default`; fields `Input size="sm"` in toolbars |
 | Gecko reference | custom `AiSettingsSection` + `@nocoo/next-ai/server` `resolveAiConfig` / `createAiModel`; key masked on GET; test route uses stored key |
 
 ---

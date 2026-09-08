@@ -98,11 +98,11 @@
 
 | 体系 | 特征 | 适用 |
 |------|------|------|
-| 表单控件（Input / Select） | `border` + `shadow-xs` + `focus-visible:ring-[3px] ring-ring/50` | 默认可编辑字段 |
-| Button（当前） | `ring-2` + `ring-offset-2` | 按钮；后续可对齐，勿在业务层再发明第三套 |
+| 表单控件（Input / Select） | `border` + `shadow-xs` + Basalt focus ring | 默认可编辑字段 |
+| Button | Basalt `ring-2` + `ring-offset-2` | 按钮；勿在业务层再发明第三套 |
 | 裸 focus | 禁止 | 不要手写 `focus:ring-2` 的一次性 input |
 
-L3 可编辑控件默认：`bg-secondary` + `border-border` + `shadow-xs`。
+L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`。
 
 ---
 
@@ -113,7 +113,7 @@ L3 可编辑控件默认：`bg-secondary` + `border-border` + `shadow-xs`。
 | 页头标题 | `text-2xl font-semibold` | Basalt `PageHeader` |
 | Panel 主标题 / 行内 title | `text-base font-medium` | 勿用 `text-lg` 与页头抢层级 |
 | 正文 / 备注 | `text-sm` | |
-| 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `xs` / 字段 `sm` 一致 |
+| 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `sm` / 字段 `sm` 一致 |
 | Chip 内文 | `text-[11px]` 或 `text-xs` | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
 
 ---
