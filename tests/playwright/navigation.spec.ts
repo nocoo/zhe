@@ -199,8 +199,7 @@ test.describe("Dashboard navigation", () => {
     await page.locator('a:has-text("Inbox")').click();
     await page.waitForURL("**/dashboard?folder=uncategorized");
 
-    // Should show Inbox content
-    await expect(appTitle(page, "链接管理")).toBeVisible();
+    await expect(appTitle(page, "Inbox")).toBeVisible();
   });
 
   test("collapse and expand sidebar", async ({ page }) => {

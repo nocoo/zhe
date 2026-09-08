@@ -42,9 +42,9 @@ test.describe
       await goToWebhook(page);
 
       // Description text
-      await expect(
-        page.getByText("通过 Webhook 令牌，外部系统可以调用 API 创建短链接"),
-      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("通过令牌让外部系统创建短链接（已废弃）。")).toBeVisible({
+        timeout: 15_000,
+      });
 
       // Generate button visible (initial state)
       const generateBtn = page.locator('[data-testid="generate-token-btn"]');

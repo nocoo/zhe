@@ -106,7 +106,7 @@ test.describe("Ideas", () => {
       await page.getByRole("button", { name: "新想法" }).first().click();
 
       await expect(page.getByRole("dialog")).toBeVisible();
-      await expect(page.getByText("新想法", { exact: false })).toBeVisible();
+      await expect(page.getByRole("dialog").getByRole("heading", { name: "新想法" })).toBeVisible();
       await expect(page.locator("#new-content")).toBeVisible();
     });
 
