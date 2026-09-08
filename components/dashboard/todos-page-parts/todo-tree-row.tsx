@@ -41,14 +41,12 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -265,7 +263,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
           onAddSibling={onAddSibling}
           onConfirmDelete={onConfirmDelete}
           Item={ContextMenuItem}
-          Separator={ContextMenuSeparator}
+          Separator={MenuSeparator}
         />
       </ContextMenuContent>
     </ContextMenu>
@@ -325,6 +323,10 @@ interface RowMenuItemsProps {
   }>;
   /** Separator component matching Item. */
   Separator: ComponentType<Record<string, never>>;
+}
+
+function MenuSeparator() {
+  return <hr className="border-basalt-border my-1" />;
 }
 
 /**
@@ -393,7 +395,7 @@ function RowMenu({
           onAddSibling={onAddSibling}
           onConfirmDelete={onConfirmDelete}
           Item={DropdownMenuItem}
-          Separator={DropdownMenuSeparator}
+          Separator={MenuSeparator}
         />
       </DropdownMenuContent>
     </DropdownMenu>
