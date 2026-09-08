@@ -22,28 +22,35 @@ export function CollapsibleNavGroup({
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} className="px-3 mb-1">
       <div className="flex w-full items-center justify-between px-3 py-2.5">
-        <CollapsibleTrigger className="flex flex-1 items-center gap-1">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {label}
-          </span>
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex flex-1 items-center gap-1">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {label}
+            </span>
+          </button>
         </CollapsibleTrigger>
         <div className="flex items-center gap-1">
           {trailing}
-          <CollapsibleTrigger
-            className="flex items-center"
-            aria-label={open ? `Collapse ${label}` : `Expand ${label}`}
-          >
-            <ChevronUp
-              className={cn(
-                "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[var(--motion-fast)]",
-                !open && "rotate-180",
-              )}
-              strokeWidth={1.5}
-            />
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center"
+              aria-label={open ? `Collapse ${label}` : `Expand ${label}`}
+            >
+              <ChevronUp
+                className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[var(--motion-fast)]",
+                  !open && "rotate-180",
+                )}
+                strokeWidth={1.5}
+              />
+            </button>
           </CollapsibleTrigger>
         </div>
       </div>
-      <CollapsibleContent className="overflow-hidden">{children}</CollapsibleContent>
+      <CollapsibleContent unstyled className="overflow-hidden">
+        {children}
+      </CollapsibleContent>
     </Collapsible>
   );
 }

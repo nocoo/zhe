@@ -84,19 +84,22 @@ function TranscriptPanel({
   const display = text ? formatTranscript(text) : "";
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger
-        className="flex w-full items-center gap-2 rounded-widget px-1 py-1 text-left text-sm hover:bg-secondary"
-        data-testid={`${testId}-toggle`}
-      >
-        <ChevronRight
-          className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-90")}
-        />
-        <span className="font-medium">{title}</span>
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {text ? `${text.length} 字` : "暂无"}
-        </span>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-widget px-1 py-1 text-left text-sm hover:bg-secondary"
+          data-testid={`${testId}-toggle`}
+        >
+          <ChevronRight
+            className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-90")}
+          />
+          <span className="font-medium">{title}</span>
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {text ? `${text.length} 字` : "暂无"}
+          </span>
+        </button>
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      <CollapsibleContent unstyled>
         {display ? (
           <pre
             data-testid={`${testId}-body`}
