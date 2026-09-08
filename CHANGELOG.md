@@ -10,6 +10,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.23.0] - 2026-09-08
+
+### Added
+- Stagger fade-up on list and grid items
+- Densify card grids to six columns
+- Add title and subtitle to remaining pages
+- Add overview title and basalt sections
+- Migrate shell and login to basalt
+- Wire basalt theme and accent
+- Refine logo presentation
+
+### Changed
+- Read cli version from package.json
+- Align l3 specs with page header copy
+- Assert island heading after login setup
+- Put list filters on page header
+- Scope tag color picker to create form
+- Wait for hydration before cmd-k
+- Hold scripts in first-paint check
+- Scope app title and ai nav
+- Pin headings after basalt header
+- Wrap button and input with basalt
+- Wrap page header and cards
+- Stop lint-staged from stashing in hooks
+- Add @nocoo/basalt 2.1.0
+- Bump @cloudflare/workers-types to 5.20260906.1
+- Bump lint-staged to 17.5.0
+- Bump @cloudflare/workers-types to 5.20260905.1
+- Bump @ai-sdk/openai to 4.0.60
+- Resolve AWS SDK dependency conflict from main
+- Bump ai to 7.0.93
+- Upgrade Cloudflare workers types
+- Upgrade lucide-react to 1.41.0
+- Upgrade playwright to 1.63.0
+- Upgrade s3 request presigner to 3.1127.0
+- Upgrade ai sdk openai to 4.0.59
+- Bump aws s3 client to 3.1127.0
+- Bump wrangler to 4.129.0
+- Upgrade vitest to 5.0.0
+- Bump url-metadata to 5.12.0
+- Bump lucide-react to 1.40.0
+- Upgrade biome to 2.5.12
+- Upgrade happy-dom to 20.14.0
+- Update @types/react-dom to 19.2.7
+- Bump workers types to 5.20260903.1
+- Bump s3 request presigner
+- Bump client-s3 to 3.1126.0
+- Bump @types/node to 26.4.1
+- Bump user-event to 14.6.7 (#756)
+- Bump ai-sdk anthropic to 4.0.49
+- Upgrade postcss to 8.5.28
+- Bump client-s3 to 3.1123.0 (#724)
+- Bump @ai-sdk/openai to 4.0.53 (#723)
+- Upgrade ai to 7.0.87
+- Bump s3-request-presigner to 3.1123.0 (#725)
+- Bump lucide-react to 1.38.0 (#728)
+- Upgrade next to 16.3.4
+- Bump @ai-sdk/anthropic to 4.0.46
+- Bump @vitejs/plugin-react to 6.1.1 (#707)
+- Bump happy-dom to 20.12.0 (#713)
+- Upgrade wrangler to 4.127.1
+- Bump @cloudflare/workers-types to 5.20260831.1
+- Bump @types/node to 26.4.0
+- Upgrade lint-staged to 17.4.1
+- Bump @testing-library/react to 16.3.3
+- Upgrade biome to 2.5.11
+
+### Fixed
+- Frame storage tables as cards
+- Frame idea editor panes as cards
+- Raise dark-mode contrast on primary fill
+- Align loading skeletons with page layouts
+- Frame todo list and detail as cards
+- Fill ai settings in a full-width card
+- Nest app header breadcrumbs by nav group
+- Align page header with control density
+- Keep short filters beside create
+- Keep todo content on island surface
+- Drop fake dashboard breadcrumb
+- Mark tag and api key surfaces
+- Mark leftover surfaces as l1
+- Drop hardcoded control fills
+- Name collapsed sidebar icon links
+- Hide closed nav groups from tab order
+- Mark nested editor routes current
+- Align leftover control surfaces
+- Honor basalt mobile sidebar contract
+- Mark current sidebar page for a11y
+- Keep default input at form density
+- Restore page header content gap
+- Stop double padding on cards
+- Restore dark color-scheme and accent
+- Run theme init before first paint
+
 ## [v1.22.3] - 2026-08-28
 
 ### Changed
