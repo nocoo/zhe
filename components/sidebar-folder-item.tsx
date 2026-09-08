@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { FOLDER_ICONS } from "@/models/folders";
 import type { Folder } from "@/models/types";
@@ -55,15 +56,13 @@ function FolderItemEditor({ initialName, initialIcon, onSave, onCancel }: Folder
           className="h-4 w-4 shrink-0 text-muted-foreground"
           strokeWidth={1.5}
         />
-        <input
-          type="text"
+        <Input
+          size="sm"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 min-w-0 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 border-transparent bg-transparent shadow-none focus-visible:ring-0"
           placeholder="文件夹名称"
-          // Inline rename opened by explicit user action — focus is intentional UX.
-          // biome-ignore lint/a11y/noAutofocus: user-initiated inline rename
           autoFocus
         />
         <button

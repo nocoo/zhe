@@ -165,6 +165,7 @@ describe("SidebarFolderItem", () => {
       const input = screen.getByDisplayValue("工作");
       expect(input).toBeInTheDocument();
       expect(input.tagName).toBe("INPUT");
+      expect(input.className).toMatch(/\bh-8\b/);
     });
 
     it("shows confirm and cancel buttons", () => {
