@@ -19,4 +19,16 @@ describe("Dialog overlay surface", () => {
     expect(panel.hasAttribute("data-basalt-surface-root")).toBe(true);
     expect(panel.className).not.toMatch(/\bbg-background\b/);
   });
+
+  it("keeps header and body 16px apart via flex gap", () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>创建想法</DialogTitle>
+          <p>body</p>
+        </DialogContent>
+      </Dialog>,
+    );
+    expect(screen.getByRole("dialog").className).toMatch(/\bgap-4\b/);
+  });
 });
