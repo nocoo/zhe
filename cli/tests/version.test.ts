@@ -1,4 +1,11 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const pkg = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"),
+) as { version: string };
 
 afterEach(() => {
   vi.resetModules();
@@ -9,7 +16,7 @@ describe("CLI_VERSION", () => {
   it("reads the package version from the runtime path", async () => {
     const { CLI_VERSION } = await import("../src/version.js");
 
-    expect(CLI_VERSION).toBe("1.22.3");
+    expect(CLI_VERSION).toBe(pkg.version);
   });
 
   it("falls back to the development package path", async () => {
