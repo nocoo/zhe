@@ -17,7 +17,7 @@ vi.mock("@/actions/storage", () => ({
   cleanupOrphanFiles: (...args: unknown[]) => mockCleanupOrphanFiles(...args),
 }));
 
-vi.mock("sonner", () => ({
+vi.mock("@nocoo/basalt/components/toast", () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
@@ -271,7 +271,7 @@ describe("StoragePage", () => {
   });
 
   it("shows error toast when scan fails", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     mockScanStorage.mockResolvedValueOnce({ success: false, error: "权限不足" });
 
     render(<StoragePage />);
@@ -285,7 +285,7 @@ describe("StoragePage", () => {
   });
 
   it("shows fallback error toast when scan fails without error message", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     mockScanStorage.mockResolvedValueOnce({ success: false });
 
     render(<StoragePage />);
@@ -299,7 +299,7 @@ describe("StoragePage", () => {
   });
 
   it("shows error toast when scan throws", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     mockScanStorage.mockRejectedValueOnce(new Error("Network error"));
 
     render(<StoragePage />);
@@ -428,7 +428,7 @@ describe("StoragePage", () => {
   });
 
   it("performs cleanup when confirmed", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({
       success: true,
@@ -466,7 +466,7 @@ describe("StoragePage", () => {
   });
 
   it("shows skipped count in success message", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({
       success: true,
@@ -494,7 +494,7 @@ describe("StoragePage", () => {
   });
 
   it("shows error toast when cleanup fails", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({
       success: false,
@@ -522,7 +522,7 @@ describe("StoragePage", () => {
   });
 
   it("shows fallback error toast when cleanup fails without message", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     const data = makeTestData();
     mockCleanupOrphanFiles.mockResolvedValueOnce({ success: false });
 
@@ -547,7 +547,7 @@ describe("StoragePage", () => {
   });
 
   it("shows error toast when cleanup throws", async () => {
-    const { toast } = await import("sonner");
+    const { toast } = await import("@nocoo/basalt/components/toast");
     const data = makeTestData();
     mockCleanupOrphanFiles.mockRejectedValueOnce(new Error("Network"));
 

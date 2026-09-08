@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { createApiKeyAction, listApiKeys, revokeApiKeyAction } from "@/actions/api-keys";
 import type { ApiScope } from "@/models/api-key";
 import { API_SCOPES } from "@/models/api-key";

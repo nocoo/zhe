@@ -50,7 +50,7 @@ vi.mock("@/lib/utils", () => ({
   formatNumber: (n: number) => String(n),
 }));
 
-vi.mock("sonner", () => ({
+vi.mock("@nocoo/basalt/components/toast", () => ({
   toast: mockToast,
 }));
 

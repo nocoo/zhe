@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { deleteLink, getAnalyticsStats } from "@/actions/links";
 import { refreshLinkMetadata } from "@/actions/links/metadata";
 import { fetchAndSaveScreenshot } from "@/actions/links/screenshot";

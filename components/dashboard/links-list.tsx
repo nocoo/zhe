@@ -1,8 +1,8 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeaderSkeleton } from "@/components/ui/page-header";

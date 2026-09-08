@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useState } from "react";
-import { toast } from "sonner";
 import type { ImportResult } from "@/actions/settings";
 import { exportLinks, importLinks } from "@/actions/settings";
 

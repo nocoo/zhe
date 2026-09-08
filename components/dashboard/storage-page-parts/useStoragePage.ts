@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { cleanupOrphanFiles, scanStorage } from "@/actions/storage";
 import type { StorageScanResult } from "@/models/storage";
 import { computeSummary } from "@/models/storage";

@@ -1,8 +1,8 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { BUILTIN_PROVIDERS, type BuiltinProvider } from "@nocoo/next-ai";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import type { AiSettingsPublic } from "@/models/ai-settings";
 
 export const CUSTOM_MODEL_VALUE = "__custom__";

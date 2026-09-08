@@ -1,9 +1,9 @@
 "use client";
 
 import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { toast } from "@nocoo/basalt/components/toast";
 import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { LinkCard } from "@/components/dashboard/link-card";
 import { Button } from "@/components/ui/button";
 import { CardListSkeleton } from "@/components/ui/card-skeleton";

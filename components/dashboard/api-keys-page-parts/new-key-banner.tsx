@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { Copy } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "@/lib/utils";
 

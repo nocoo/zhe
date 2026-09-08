@@ -1,7 +1,7 @@
 "use client";
 
+import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { migrateFromWebhookAction } from "@/actions/api-keys";
 import {
   createWebhookToken,

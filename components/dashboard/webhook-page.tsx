@@ -1,7 +1,7 @@
 "use client";
 
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { toast } from "sonner";
+import { toast } from "@nocoo/basalt/components/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { copyToClipboard } from "@/lib/utils";
