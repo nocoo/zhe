@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, ContentIsland, Sheet, SheetContent, SheetTitle } from "@nocoo/basalt";
+import { Button, ContentIsland, Sheet, SheetContent, SheetTitle, ThemeToggle } from "@nocoo/basalt";
 import { AppHeader } from "@nocoo/basalt/components/app-header";
 import {
   AppMain,
@@ -14,7 +14,6 @@ import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { GithubIcon } from "@/components/github-icon";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import type { Folder } from "@/models/types";
@@ -107,16 +106,18 @@ function AppShellInner({
           title={title}
           actions={
             <>
-              <a
-                href="https://github.com/nocoo/zhe"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                title="GitHub"
-              >
-                <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-              </a>
-              <ThemeToggle />
+              <Button variant="ghost" size="icon" asChild>
+                <a
+                  href="https://github.com/nocoo/zhe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="GitHub"
+                  aria-label="GitHub"
+                >
+                  <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                </a>
+              </Button>
+              <ThemeToggle aria-label="切换主题" />
             </>
           }
         />

@@ -1,8 +1,8 @@
-import { ThemeProvider } from "@nocoo/basalt/providers/theme";
+import { ThemeProvider } from "@nocoo/basalt";
 import { createElement, type ReactNode } from "react";
 import { expect } from "vitest";
 
-/** Wrap UI in Basalt ThemeProvider so `useTheme()` does not throw in tests. */
+/** Wrap UI in the same ThemeProvider instance ThemeToggle uses. */
 export function withTheme(node: ReactNode) {
   return createElement(ThemeProvider, {
     persist: false,

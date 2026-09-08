@@ -1,20 +1,22 @@
+import { Button, ThemeToggle } from "@nocoo/basalt";
 import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopRightControls() {
   return (
     <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
-      <a
-        href="https://github.com/nocoo/zhe"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-basalt-muted-foreground transition-colors hover:bg-basalt-accent hover:text-basalt-foreground"
-        title="GitHub"
-      >
-        <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-      </a>
-      <ThemeToggle />
+      <Button variant="ghost" size="icon" asChild>
+        <a
+          href="https://github.com/nocoo/zhe"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="GitHub"
+          aria-label="GitHub"
+        >
+          <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+        </a>
+      </Button>
+      <ThemeToggle aria-label="切换主题" />
     </div>
   );
 }
@@ -44,13 +46,9 @@ export function BadgeContent({ signInAction }: { signInAction: () => Promise<voi
       <div className="flex-1" />
 
       <form action={signInAction}>
-        <button
-          type="submit"
-          className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-basalt-secondary px-4 py-3 text-sm font-medium text-basalt-foreground transition-colors hover:bg-basalt-accent"
-        >
-          <GoogleIcon className="h-4 w-4" />
+        <Button type="submit" variant="secondary" className="w-full" icon={<GoogleIcon />}>
           Continue with Google
-        </button>
+        </Button>
       </form>
 
       <p className="mt-3 text-center text-[10px] leading-relaxed text-basalt-muted-foreground/60">

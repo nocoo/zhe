@@ -102,6 +102,6 @@ describe("Home Page", () => {
     const jsx = await Home();
     render(withTheme(jsx));
 
-    expect(screen.getByTitle("Theme: system")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "切换主题" })).toBeInTheDocument();
   });
 });

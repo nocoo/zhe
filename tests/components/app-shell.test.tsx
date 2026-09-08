@@ -220,7 +220,7 @@ describe("AppShell", () => {
 
   it("renders ThemeToggle in header", async () => {
     await renderShell();
-    expect(screen.getByTitle("Theme: system")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "切换主题" })).toBeInTheDocument();
   });
 
   it("renders GitHub link in header", async () => {
@@ -257,9 +257,8 @@ describe("AppShell", () => {
 
       const header = container.querySelector("header");
       const headerButtons = header?.querySelectorAll("button");
-      // Only the ThemeToggle button should be in the header
       const nonThemeButtons = Array.from(headerButtons || []).filter(
-        (btn: Element) => !btn.getAttribute("title")?.includes("Theme"),
+        (btn: Element) => btn.getAttribute("aria-label") !== "切换主题",
       );
       expect(nonThemeButtons.length).toBe(0);
     });
@@ -277,14 +276,8 @@ describe("AppShell", () => {
 
     it("shows mobile menu button", async () => {
       mockSidebarCtx.isMobile = true;
-      const { container } = await renderShell();
-
-      const header = container.querySelector("header");
-      const headerButtons = header?.querySelectorAll("button");
-      const nonThemeButtons = Array.from(headerButtons || []).filter(
-        (btn: Element) => !btn.getAttribute("title")?.includes("Theme"),
-      );
-      expect(nonThemeButtons.length).toBe(1);
+      await renderShell();
+      expect(screen.getByRole("button", { name: "Open menu" })).toBeInTheDocument();
     });
 
     it("calls toggle when mobile menu button is clicked", async () => {

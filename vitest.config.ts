@@ -34,7 +34,6 @@ export default defineConfig({
         "hooks/**/*.tsx",
         "components/app-sidebar.tsx",
         "components/dashboard-shell.tsx",
-        "components/theme-toggle.tsx",
         "components/dashboard/**/*.tsx",
       ],
       exclude: [
