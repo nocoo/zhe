@@ -112,6 +112,7 @@ describe("CreateLinkModal", () => {
 
     expect(screen.getByLabelText("自定义 slug")).toBeInTheDocument();
     expect(screen.getByText("zhe.to/")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("my-custom-link").className).toMatch(/\bh-10\b/);
 
     // Test slug input onChange
     const slugInput = screen.getByPlaceholderText("my-custom-link");
