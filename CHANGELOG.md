@@ -10,6 +10,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.23.1] - 2026-09-08
+
+### Changed
+- Use input for folder rename
+- Use input for folder create
+- Align density comments with basalt
+- Reexport basalt command palette
+- Wrap basalt empty state
+- Use basalt toast
+- Reexport basalt menus
+- Use basalt button sizes
+- Reexport basalt input area
+- Reexport basalt badge
+- Reexport basalt collapsible
+- Reexport basalt overlay primitives
+- Reexport basalt form primitives
+- Use basalt page header
+- Use basalt theme toggle
+
+### Fixed
+- Use lg size for custom slug
+- Match skeleton header spacing
+- Use lg size for modal primaries
+- Restore dialog header body gap
+- Keep mobile todo close on screen
+- Wire toaster theme to document
+- Restore overlay close size and spacing
+
+### Removed
+- Drop unused control height tokens
+- Drop unused radix cva sonner
+
 ## [v1.23.0] - 2026-09-08
 
 ### Added
