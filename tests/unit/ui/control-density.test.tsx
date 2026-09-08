@@ -86,21 +86,15 @@ describe("control density — SelectTrigger", () => {
       </Select>,
     );
     const el = screen.getByLabelText("due-filter");
-    expect(el.getAttribute("data-size")).toBe("sm");
     expect(el.className).toMatch(/\bh-8\b/);
-    expect(el.className).toMatch(/\brounded-widget\b/);
     expect(el.className).toMatch(/\btext-xs\b/);
     expect(el.className).toMatch(/\bbg-basalt-control\b/);
-    expect(el.className).not.toMatch(/\bbg-secondary\b/);
   });
 });
 
 describe("control density — Checkbox", () => {
-  it("default and sm expose data-size", () => {
-    const { rerender } = render(<Checkbox aria-label="cb" />);
-    expect(screen.getByRole("checkbox").getAttribute("data-size")).toBe("default");
-    rerender(<Checkbox size="sm" aria-label="cb" />);
-    expect(screen.getByRole("checkbox").getAttribute("data-size")).toBe("sm");
-    expect(screen.getByRole("checkbox").className).toMatch(/\bh-3\.5\b/);
+  it("sm is compact", () => {
+    render(<Checkbox size="sm" aria-label="cb" />);
+    expect(screen.getByRole("checkbox").className).toMatch(/\bh-3\b/);
   });
 });

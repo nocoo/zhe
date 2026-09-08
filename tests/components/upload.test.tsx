@@ -490,7 +490,7 @@ describe("UploadList", () => {
     render(<UploadList />);
 
     expect(screen.getByText("质量")).toBeInTheDocument();
-    expect(screen.getByLabelText("JPG 质量")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "JPG 质量" })).toBeInTheDocument();
     expect(screen.getByText("90")).toBeInTheDocument();
   });
 

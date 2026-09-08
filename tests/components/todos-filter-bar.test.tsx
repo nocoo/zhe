@@ -51,7 +51,7 @@ describe("TodosFilterBar", () => {
     expect(search.className).toMatch(/\brounded-widget\b/);
     const due = screen.getByLabelText("Due date filter");
     expect(due.className).toMatch(/\bh-8\b/);
-    expect(due.className).toMatch(/\brounded-widget\b/);
+    expect(due.className).toMatch(/\brounded-basalt-md\b/);
     // No ad-hoc rounded-lg — control radius is the widget token only.
     expect(search.className).not.toMatch(/\brounded-lg\b/);
     expect(due.className).not.toMatch(/\brounded-lg\b/);

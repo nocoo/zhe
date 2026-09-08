@@ -211,7 +211,7 @@ test.describe
       // Turn on
       await pngSwitch.click();
       await expect(qualityLabel).toBeVisible({ timeout: 3_000 });
-      await expect(page.getByLabel("JPG 质量")).toBeVisible();
+      await expect(page.getByRole("slider", { name: "JPG 质量" })).toBeVisible();
 
       // Turn off
       await pngSwitch.click();
