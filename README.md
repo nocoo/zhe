@@ -1,378 +1,126 @@
 <p align="center">
-  <img src="assets/brand/icon-rounded.png" width="128" height="128" alt="Zhe logo">
+  <img src="assets/brand/icon-rounded.png" width="128" height="128" alt="Zhe" />
 </p>
 
 <h1 align="center">Zhe</h1>
 
-<p align="center">
-  <strong>Self-hosted URL shortener on the edge</strong><br>
-  Cloudflare D1 + KV + R2 + Workers &middot; Next.js 15 &middot; Railway
-</p>
+<p align="center">整理短链接、想法和待办，把零散信息放进可查找的个人工作台。</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
-  <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Cloudflare_D1-edge-orange" alt="Cloudflare D1">
-  <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
+  <a href="https://zhe.to">站点</a> ·
+  <a href="docs/README.en.md">English</a>
 </p>
 
-<p align="center">
-  <img src="https://s.zhe.to/dcd0e6e42358/20260305/71bebef9-8e23-4fcf-889c-246e70214054.jpg" alt="Zhe Dashboard Preview" width="720">
-</p>
+## 这是什么
 
----
+Zhe 是个人链接与信息管理应用。它可以收藏网页、生成短链接、记录 Markdown 想法、整理层级待办，并通过统一搜索找回内容。Web 管理台使用 Google 登录，短链接可直接分享给其他人。
 
-## Architecture
+仓库包含 Next.js 应用、处理跳转与数据库代理的 Cloudflare Worker，以及面向 zhe.to 的命令行客户端。数据按登录用户查询；自行部署需要配置身份认证和存储服务。
 
-Zhe uses four Cloudflare services as its data plane, with a Next.js application on Railway as the control plane. A Cloudflare Worker sits at the edge as a transparent proxy, resolving short links from KV in under 1ms before falling back to the origin.
+## 功能
 
-```
-                    ┌─────────────────────────────────────────┐
-                    │           Cloudflare Edge               │
-                    │                                         │
-  User Request      │   ┌──────────┐      ┌──────────────┐   │
- ─────────────────► │   │  Worker   │─────►│   KV Cache   │   │
-   zhe.to/abc       │   │ zhe-edge │      │  slug → URL  │   │
-                    │   └────┬─────┘      └──────────────┘   │
-                    │        │ KV miss / reserved path        │
-                    └────────┼────────────────────────────────┘
-                             │
-                             ▼
-                    ┌─────────────────────────────────────────┐
-                    │        Railway Origin (Next.js)          │
-                    │                                         │
-                    │   Middleware ──► LRU Cache ──► D1       │
-                    │   Server Actions ──► ScopedDB ──► D1   │
-                    │   Presigned URLs ──► R2 (S3 API)       │
-                    │   Fire-and-forget ──► KV sync          │
-                    └─────────────────────────────────────────┘
-```
+- 创建和编辑短链接，设置自定义 slug、过期时间、备注、文件夹与标签；在 Inbox 逐项整理未分类链接。
+- 查看点击记录与来源、地区等统计；边缘 Worker 优先读取 KV，未命中时查询源站并回填缓存。
+- 撰写和搜索 Markdown 想法，使用标签归类；通过 API 或 CLI 新建和更新想法。
+- 用层级列表管理待办，设置日期、标签、图标、完成状态，并移动或排序条目。
+- 使用 Cmd/Ctrl + K 搜索链接、想法和待办，直接进入对应内容。
+- 上传文件到 R2，生成公开文件地址或临时分享；管理存储、导入导出数据，并接入 Backy 备份。
+- 在 AI 设置中配置供应商、模型和密钥，为链接生成文件夹与标签建议，由用户确认后应用。
+- 创建带权限范围的 API Key，供 REST API 与 CLI 使用；保留既有 Webhook 集成入口。
 
-### Cloudflare Services
+## 使用
 
-| Service | Role | Access Method |
-|---------|------|---------------|
-| **D1** (SQLite) | Primary database — links, analytics, users, folders, tags, uploads | REST API from Railway |
-| **KV** | Edge cache — slug-to-URL mapping for sub-ms redirects | Worker binding (read) + REST API (write) |
-| **R2** (S3) | Object storage — file uploads, screenshots, temporary files | S3-compatible API via presigned URLs |
-| **Workers** | Edge proxy — KV redirect, geo header mapping, cron triggers | `zhe-edge` deployed via Wrangler |
+访问 [zhe.to](https://zhe.to)，使用获准的 Google 账号登录。创建链接时填写目标网址，可选择文件夹、标签、slug 和有效期；想法与待办在侧栏单独管理。
 
-### Short Link Click (Read Path)
-
-The read path is optimized for latency. Most clicks never leave the Cloudflare edge.
-
-```
-1. GET zhe.to/abc
-   │
-2. Worker checks: root? static? reserved? multi-segment?
-   │  → Yes: forward to origin
-   │  → No: continue
-   │
-3. KV.get("abc") → { id, originalUrl, expiresAt }
-   │
-   ├─ HIT (not expired)
-   │   → 307 redirect
-   │   → waitUntil: POST /api/record-click (source: "worker")
-   │
-   └─ MISS / expired / error
-       → Forward to origin
-       → Middleware: LRU cache check (1000 entries, 60s TTL)
-       → LRU miss: D1 query via REST API
-       → 307 redirect
-       → waitUntil: recordClick (source: "origin")
-```
-
-Click analytics are **always fire-and-forget** — the 307 redirect is returned immediately, and the analytics POST happens asynchronously via `waitUntil()`. Every click is tagged with its resolution source (`worker` or `origin`), which doubles as a KV cache hit rate metric on the dashboard.
-
-### Link Creation (Write Path)
-
-The write path goes through the Next.js origin and synchronizes to KV inline.
-
-```
-1. User submits URL in dashboard (or POST /api/link/create/{token})
-   │
-2. Server Action: auth check → ScopedDB(userId)
-   │
-3. Slug resolution: custom slug or auto-generate
-   │
-4. D1 INSERT INTO links ... RETURNING *
-   │
-5. Fire-and-forget (parallel, non-blocking):
-   ├── KV PUT slug → { id, originalUrl, expiresAt }
-   ├── Tag association (if provided)
-   └── Metadata enrichment (fetch title, favicon, description)
-   │
-6. Return link to client
-```
-
-KV is treated as a **disposable cache** — writes are fire-and-forget and never block the user action. On failure, the next click simply falls through to the D1 origin path. A full D1-to-KV sync runs on first dashboard visit after deploy as a consistency safety net.
-
-### Edge KV Acceleration
-
-The Worker resolves short links from KV at the edge without hitting the origin server. Each KV entry stores the minimum data needed for a redirect:
-
-```json
-{
-  "id": 42,
-  "originalUrl": "https://example.com/very-long-url",
-  "expiresAt": 1735689600000
-}
-```
-
-**Sync strategy:** Write-through on every mutation (create, update, delete), plus a full bulk sync on deploy. No cron-based sync — KV consistency is maintained inline.
-
-| Mutation | KV Action |
-|----------|-----------|
-| Create link | `PUT slug` |
-| Update link | `PUT newSlug` + `DELETE oldSlug` (if slug changed) |
-| Delete link | `DELETE slug` |
-
-The Worker also maps Cloudflare geo headers to Vercel-style headers so the origin's analytics code works identically regardless of whether traffic arrives via the Worker or directly:
-
-| Cloudflare | Mapped To | Used By |
-|------------|-----------|---------|
-| `CF-IPCountry` | `x-vercel-ip-country` | `extractClickMetadata()` |
-| `request.cf.city` | `x-vercel-ip-city` | `extractClickMetadata()` |
-
-### D1 + ScopedDB
-
-D1 is accessed via Cloudflare's REST API (the Next.js app runs on Railway, not on Workers, so there's no direct binding). All queries go through a single entry point with a 5-second timeout:
-
-```
-POST https://api.cloudflare.com/client/v4/accounts/{id}/d1/database/{id}/query
-```
-
-**ScopedDB** provides code-level row security. Constructing `new ScopedDB(userId)` binds the user ID once — every subsequent method automatically injects `WHERE user_id = ?`. This makes it structurally impossible to access another user's data:
-
-```ts
-const db = new ScopedDB(session.user.id)
-const links = await db.getLinks()        // WHERE user_id = ? is automatic
-const folders = await db.getFolders()     // same — no way to forget
-```
-
-Analytics are scoped through JOINs (`analytics JOIN links ON ... WHERE links.user_id = ?`). D1's ~100 parameter limit is handled with automatic chunking.
-
-### R2 Object Storage
-
-R2 stores user-uploaded files, screenshots, and temporary files. User uploads use **presigned URLs** so large files go directly from the browser to R2 without passing through Railway:
-
-```
-1. Client requests upload URL (Server Action)
-2. Server generates presigned PUT URL (5 min expiry)
-3. Client PUTs file directly to R2
-4. Client confirms upload (Server Action records metadata in D1)
-```
-
-**Key structure:**
-```
-{user-hash}/YYYYMMDD/{uuid}.{ext}     # permanent uploads
-tmp/{uuid}_{timestamp}.{ext}           # temporary files (auto-cleaned)
-```
-
-User folders are isolated with a salted SHA-256 hash of the userId (first 12 hex chars). Temporary files are cleaned up by a Worker cron that runs every 30 minutes, deleting anything in the `tmp/` prefix older than 1 hour.
-
-### Worker Cron
-
-The `zhe-edge` Worker runs a scheduled handler every 30 minutes:
-
-| Schedule | Action | Purpose |
-|----------|--------|---------|
-| `*/30 * * * *` | `POST /api/cron/cleanup` | Delete expired temporary files from R2 |
-
-KV sync is **not** cron-driven — it happens inline on every mutation and as a bulk safety net on deploy.
-
----
-
-## Features
-
-- **Short links** — custom or auto-generated slugs, expiration dates, notes, tags
-- **Click analytics** — real-time tracking with device, browser, OS, country, city, referer breakdown
-- **Edge redirects** — sub-millisecond resolution via Cloudflare KV at 300+ edge locations
-- **File uploads** — share files via R2 with generated short links
-- **Folders & tags** — organize links with nested folders and color-coded tags
-- **Inbox triage** — review and organize newly created links
-- **Storage management** — R2/D1 usage overview, orphan file detection, batch cleanup
-- **Overview dashboard** — stat cards, click trends, top links, device/browser/file-type charts
-- **Global search** — `Cmd+K` to search links and folders
-- **Auto metadata** — fetch title, description, favicon on link creation
-- **Webhook API** — create links programmatically with token auth
-- **Dark mode** — follows system theme
-- **Google OAuth** — only authorized users can manage links
-
-## Tech Stack
-
-| Layer | Choice |
-|-------|--------|
-| Runtime | [Bun](https://bun.sh) |
-| Framework | [Next.js 15](https://nextjs.org) (App Router) |
-| Language | TypeScript (strict mode) |
-| Database | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite at the edge) |
-| ORM | [Drizzle](https://orm.drizzle.team) (schema & types only — queries are raw SQL) |
-| Edge Cache | [Cloudflare KV](https://developers.cloudflare.com/kv/) |
-| Object Storage | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
-| Edge Proxy | [Cloudflare Workers](https://developers.cloudflare.com/workers/) |
-| UI | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) |
-| Auth | [Auth.js v5](https://authjs.dev) (Google OAuth) |
-| Testing | [Vitest](https://vitest.dev) + [React Testing Library](https://testing-library.com) + [Playwright](https://playwright.dev) |
-| Deployment | [Railway](https://railway.com) (origin) + [Cloudflare](https://cloudflare.com) (edge) |
-
-## Quick Start
-
-### 1. Install dependencies
+需要命令行操作时，先在管理台的 API Keys 页面生成具有所需权限的密钥：
 
 ```bash
-bun install
+npm install -g @nocoo/zhe
+zhe login
+zhe create https://example.com/article --slug reading
+zhe list
+zhe idea list
 ```
 
-### 2. Configure environment
+CLI 将密钥保存在 `~/.config/zhe/config.json`，当前 API 地址固定为 `https://zhe.to/api/v1`。登录验证需要链接读取权限；创建或修改内容还需要相应写入权限。更多命令见 [CLI README](cli/README.md) 和 `zhe --help`。
+
+## 开发
+
+需要 Bun、Node.js ≥ 22；运行本地端到端测试还需要 PATH 中的 Wrangler。根应用、Worker 和 CLI 各自维护依赖：
 
 ```bash
+git clone https://github.com/nocoo/zhe.git
+cd zhe
+bun install --frozen-lockfile
+bun install --cwd worker --frozen-lockfile
+bun install --cwd cli --frozen-lockfile
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with the required variables:
+先准备自己的 Google OAuth 应用及已初始化的 D1 数据库，按 [Worker 配置模板](worker/wrangler.toml.example)配置 D1、KV 和源站。Next.js 当前通过 Worker 代理访问 D1；仅填写 Cloudflare REST API 凭据不足以运行数据库查询。
 
-#### Required for development
+| 配置 | 用途 |
+| --- | --- |
+| `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` | Auth.js 与 Google 登录；本地回调为 `http://localhost:7006/api/auth/callback/google` |
+| `D1_PROXY_URL`、`D1_PROXY_SECRET` | Next.js 访问 Worker 的 D1 代理 |
+| `AUTH_ALLOWED_EMAILS` | 逗号分隔的登录邮箱名单；为空时允许任何完成 Google 登录的账号 |
+| `R2_*` | 文件上传所需的端点、bucket、凭据、公开域名与用户路径盐值 |
+| `CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_KV_NAMESPACE_ID` | 源站写入 KV；未配置时跳过这些缓存写入 |
+| `WORKER_SECRET` | 源站与 Worker 之间的统计、清理和缓存同步认证 |
+| `TRUSTED_ORIGINS`、`PUBLIC_ORIGIN` | 反向代理环境下的可信主机与公开地址 |
 
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `AUTH_SECRET` | NextAuth.js secret | `openssl rand -base64 32` |
-| `AUTH_GOOGLE_ID` | Google OAuth client ID | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) |
-| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | Google Cloud Console |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID | Cloudflare Dashboard → Overview |
-| `CLOUDFLARE_D1_DATABASE_ID` | Production D1 database UUID | `wrangler d1 list` |
-| `CLOUDFLARE_API_TOKEN` | API token with D1/KV/R2 permissions | Cloudflare Dashboard → API Tokens |
-
-#### Required for tests (L2/L3 E2E)
-
-These variables are **required** for running tests. The pre-push hook will fail without them.
-
-| Variable | Description | Source |
-|----------|-------------|--------|
-| `D1_TEST_DATABASE_ID` | Test D1 database UUID (must differ from prod) | `wrangler d1 list` (zhe-db-test) |
-| `D1_TEST_PROXY_URL` | Test Worker URL (must contain "-test") | `https://zhe-edge-test.xxx.workers.dev` |
-| `D1_TEST_PROXY_SECRET` | Test Worker D1 proxy secret | Same as test Worker's `D1_PROXY_SECRET` |
-| `R2_TEST_BUCKET_NAME` | Test R2 bucket name | `zhe-test` |
-| `R2_TEST_PUBLIC_DOMAIN` | Test R2 domain (placeholder OK) | `https://test-r2.zhe.to` |
-| `KV_TEST_NAMESPACE_ID` | Test KV namespace ID | `wrangler kv namespace list` |
-
-#### Optional (for D1 proxy acceleration)
-
-| Variable | Description |
-|----------|-------------|
-| `D1_PROXY_URL` | Production Worker URL for dev server |
-| `D1_PROXY_SECRET` | Production Worker D1 proxy secret |
-
-See [Getting Started](docs/02-getting-started.md) for detailed setup instructions.
-
-### 3. Start dev server
+Worker 使用 `DB`、`LINKS_KV` 绑定及 `ORIGIN_URL`、`WORKER_SECRET`、`D1_PROXY_SECRET`。它每半小时触发临时文件清理与有变更时的 KV 补偿同步。首次部署需核对[数据库 schema](lib/db/schema.ts)和[迁移文件](drizzle/migrations/)；历史迁移包含手工建表后的差异，本地测试初始化脚本会补齐这些差异，不应直接用作生产安装器。
 
 ```bash
-bun dev
+bun run dev
+bun run lint
+bun run typecheck
+bun run build
+bun run start
 ```
 
-Visit [http://localhost:7006](http://localhost:7006)
+开发与生产启动端口均为 `7006`。AI 和 Backy 在管理台单独配置；没有配置时仍可使用基础链接、想法和待办功能。
 
-### 4. Run tests
+## 测试
 
-```bash
-bun run test:run            # all unit/integration/component tests
-bun run test:api            # L2 API E2E (requires test env vars)
-bun run test:e2e:pw         # L3 Playwright E2E (requires test env vars)
-bun run test:coverage       # coverage report
-```
+| 测试层 | 从仓库根目录执行 |
+| --- | --- |
+| 单元与组件测试 | `bun run test:unit` |
+| 应用集成测试 | `bun run test:integration` |
+| API 端到端测试 | `bun run test:api` |
+| 浏览器端到端测试 | `bun run test:e2e:pw` |
+| Worker 单元测试 | `bun run --cwd worker test` |
+| CLI 单元测试 | `bun run --cwd cli test` |
 
-## Commands
+浏览器测试前执行 `bunx playwright install chromium`。API 与浏览器测试分别使用端口 `17006`、`27006`，并自动启动本地 D1 / KV Worker（`8788`）与 R2 文件服务（`18788`），数据保存在 `.test-storage/`。两组端到端测试共用这些本地资源，应分别运行；不需要远端 D1、KV、R2 测试账号或凭据。具体启动与清理逻辑见 [scripts/test-stack.ts](scripts/test-stack.ts)。
 
-| Command | Description |
-|---------|-------------|
-| `bun dev` | Dev server (port 7006) |
-| `bun run build` | Production build |
-| `bun run lint` | Biome (zero-warning policy) |
-| `bun run test:run` | All unit/integration/component tests |
-| `bun run test:unit` | Unit tests only |
-| `bun run test:unit:coverage` | Unit tests + coverage gate |
-| `bun run test:api` | API E2E tests (mock-level) |
-| `bun run test:e2e:pw` | Playwright BDD E2E (port 27006) |
-| `bun run test:e2e:pw:ui` | Playwright UI mode |
-| `bun run test:coverage` | Coverage report |
+浏览器测试仍需在环境或 `.env.local` 中提供非空 `AUTH_SECRET`；API runner 会在未配置时提供测试值。登录使用测试 Credentials provider，不会验证真实 Google OAuth。
 
-## Project Structure
+## 技术栈
 
-```
-zhe/
-├── actions/          # Server Actions ('use server')
-├── app/              # Next.js App Router pages
-│   ├── (dashboard)/  # Dashboard route group
-│   └── api/          # API routes (health, live, lookup, record-click, webhook, cron)
-├── components/       # React components
-│   ├── dashboard/    # Page-level components (links, overview, settings, storage, uploads, inbox)
-│   └── ui/           # shadcn/ui primitives (auto-generated, do not edit)
-├── contexts/         # React Context (DashboardService)
-├── hooks/            # Shared React hooks
-├── lib/              # Shared utilities
-│   ├── db/           # D1 client, ScopedDB, schema
-│   ├── kv/           # KV client, sync logic
-│   └── r2/           # R2 storage client (S3 API)
-├── models/           # Pure business logic (no React dependency)
-├── viewmodels/       # MVVM ViewModel hooks
-├── worker/           # Cloudflare Worker (zhe-edge) — standalone project
-│   ├── src/          # Worker source (fetch + scheduled handlers)
-│   └── test/         # Worker unit tests
-├── tests/
-│   ├── unit/         # Unit tests
-│   ├── integration/  # Integration tests
-│   ├── components/   # Component tests
-│   ├── api/          # Vitest API E2E tests (mock-level)
-│   └── playwright/   # Playwright browser E2E specs
-├── drizzle/          # Database migrations
-├── docs/             # Project documentation
-└── scripts/          # Build scripts
-```
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-149ECA?logo=react&logoColor=white)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?logo=cloudflare&logoColor=white)
+![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)
 
-## Testing
+| 部分 | 实现 |
+| --- | --- |
+| Web 与界面 | Next.js、React、TypeScript、Tailwind CSS、Basalt |
+| 登录与数据 | Auth.js / Google OAuth、Cloudflare D1、Drizzle schema |
+| 跳转与文件 | Cloudflare Workers、KV、R2、S3 API |
+| 可选 AI | Vercel AI SDK、@nocoo/next-ai |
+| CLI 与测试 | Bun、@nocoo/base-cli、Vitest、Testing Library、Playwright、Biome |
 
-- **Coverage target**: statements >= 90%, functions >= 85%, branches >= 80%
-- **Zero-warning policy**: Biome `check --error-on-warnings`
-- **Git hooks** (husky):
-  - **pre-commit**: L1 unit/integration tests + coverage gate + G1 typecheck/lint + G2 gitleaks
-  - **pre-push**: L2 API E2E + G2 osv-scanner (all hard gates)
-  - **on-demand**: L3 Playwright BDD E2E
+## 文档
 
-| Layer | Tests | Gate | Hook |
-|-------|-------|------|------|
-| L1 | Unit + Integration | Hard | pre-commit |
-| L2 | API E2E (real HTTP) | Hard | pre-push |
-| L3 | Playwright BDD E2E | Manual | on-demand |
-| G1 | TypeScript + Biome | Hard | pre-commit |
-| G2 | gitleaks + osv-scanner | Hard | pre-commit + pre-push |
+- [想法功能](docs/19-ideas-feature.md)
+- [待办功能](docs/21-todos-feature.md)
+- [统一搜索](docs/23-global-search-unification.md)
+- [AI 链接整理建议](docs/24-ai-link-suggestions.md)
+- [Backy 集成](docs/10-backy.md)
+- [CLI 使用](cli/README.md)
 
-| Port | Purpose |
-|------|---------|
-| 7006 | Development server |
-| 17006 | L2 API E2E server (auto-managed) |
-| 27006 | L3 Playwright BDD E2E (auto-managed) |
+## 许可证
 
-## Documentation
-
-| Doc | Content |
-|-----|---------|
-| [Architecture](docs/01-architecture.md) | Layered design, data flow, core patterns |
-| [Getting Started](docs/02-getting-started.md) | Dependencies, env vars, dev setup |
-| [Features](docs/03-features.md) | Short links, metadata, uploads, analytics |
-| [Database](docs/04-database.md) | Schema, ScopedDB, migrations |
-| [Testing](docs/05-testing.md) | Coverage targets, mock strategy, TDD |
-| [Deployment](docs/06-deployment.md) | Railway, D1, security headers, domains |
-| [Contributing](docs/07-contributing.md) | Commit conventions, code quality |
-| [Performance](docs/08-performance-optimization.md) | Caching, bundle optimization, runtime perf |
-| [E2E Coverage Analysis](docs/09-e2e-coverage-analysis.md) | E2E test coverage matrix, gap analysis |
-| [Backy Integration](docs/10-backy.md) | Remote backup via Backy (push/pull) |
-| [Four-Layer Test Plan](docs/11-four-layer-test-plan.md) | Test architecture improvement plan & status |
-| [Design Tokens & UI Controls](docs/22-design-tokens.md) | Surface/radius/density contract; reuse `components/ui` sizes |
-| [Global Search Unification](docs/23-global-search-unification.md) | Cmd+K multi-type search plan (links/ideas/todos), nav + tests |
-| [AI Link Suggestions](docs/24-ai-link-suggestions.md) | next-ai settings + templated folder/tag suggestions |
-
-## License
-
-[MIT](LICENSE) © 2026
+仓库当前未提供根目录许可证文件；CLI 的包元数据声明为 MIT。
