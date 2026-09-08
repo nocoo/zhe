@@ -179,6 +179,25 @@ describe("TodosPage — narrow viewport Sheet fallback", () => {
     expect(sheet?.textContent).toContain("root");
   });
 
+  it("keeps Close visible when the selected title has no spaces", () => {
+    installMatchMedia((q) => q.includes("max-width"));
+    const title = "A".repeat(80);
+    mockUseTodosViewModel.mockReturnValue({
+      ...baseVm,
+      selectedId: 1,
+      detail: { ...TREE[0], title, content: null, excerpt: null, doneAt: null },
+    });
+    const { container } = render(<TodosPage />);
+    const titleEl = container.ownerDocument.querySelector("[data-todos-detail-sheet] h2");
+    const closeBtn = container.ownerDocument.querySelector(
+      "[data-todos-detail-sheet] button[aria-label='Close']",
+    );
+    expect(titleEl?.className).toMatch(/\btruncate\b/);
+    expect(titleEl?.className).toMatch(/\bmin-w-0\b/);
+    expect(closeBtn).toBeTruthy();
+    expect(closeBtn?.className).toMatch(/\bshrink-0\b/);
+  });
+
   it("closing the Sheet clears selectedId back to null", () => {
     installMatchMedia((q) => q.includes("max-width"));
     const vm = {

@@ -276,13 +276,21 @@ export function TodosPage() {
         >
           <SheetContent
             side="right"
-            className="w-full sm:max-w-xl p-0 flex flex-col"
+            className="flex w-full min-w-0 flex-col overflow-hidden p-0 sm:max-w-xl"
             data-todos-detail-sheet
           >
-            <SheetHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
-              <SheetTitle className="text-sm">{vm.detail?.title ?? "待办详情"}</SheetTitle>
+            <SheetHeader className="flex min-w-0 flex-row items-center justify-between gap-2 space-y-0 px-4 pt-4 pb-2">
+              <SheetTitle className="min-w-0 flex-1 truncate text-sm">
+                {vm.detail?.title ?? "待办详情"}
+              </SheetTitle>
               <SheetClose asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label="Close">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  aria-label="Close"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </SheetClose>
