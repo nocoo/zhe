@@ -16,6 +16,8 @@ describe("PageHeader", () => {
 
   it("matches header density with a pulse placeholder", () => {
     render(<PageHeaderSkeleton />);
-    expect(screen.getByTestId("page-header-skeleton").querySelector(".h-8")).toBeTruthy();
+    const skeleton = screen.getByTestId("page-header-skeleton");
+    expect(skeleton.querySelector(".h-8")).toBeTruthy();
+    expect(skeleton.className).toMatch(/\bmb-6\b/);
   });
 });
