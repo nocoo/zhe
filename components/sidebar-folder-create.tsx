@@ -3,6 +3,7 @@
 import { Check, X } from "lucide-react";
 import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DEFAULT_FOLDER_ICON, FOLDER_ICONS } from "@/models/folders";
 
@@ -38,15 +39,13 @@ export function SidebarFolderCreate({ onCreate, onCancel }: SidebarFolderCreateP
           className="h-4 w-4 shrink-0 text-muted-foreground"
           strokeWidth={1.5}
         />
-        <input
-          type="text"
+        <Input
+          size="sm"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 min-w-0 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 border-transparent bg-transparent shadow-none focus-visible:ring-0"
           placeholder="文件夹名称"
-          // Inline form opened by explicit user action — focus is intentional UX.
-          // biome-ignore lint/a11y/noAutofocus: user-initiated inline form
           autoFocus
         />
         <button
