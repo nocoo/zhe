@@ -407,7 +407,7 @@ Server loads the link via `ScopedDB` (`404` if not owned). If title / descriptio
 - `apply()` → `updateLink` (folder) then `updateLinkNote` (edited draft) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
 - No other write APIs.
 
-Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from `link-card` (list + grid) via a `Button size="icon-sm"` with `aria-label="AI 建议"`.
+Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from `link-card` (list + grid) via a `Button size="icon"` with `aria-label="AI 建议"`.
 
 ---
 
@@ -548,7 +548,7 @@ No reserved-path change. No Worker deploy.
 | Catalog too large for the prompt | Folders + tags are small personal sets; if >200 tags, send names only and drop ids for overflow (v2). v1 sends all. |
 | `user_settings` INSERT lists omit new columns | Grep + mapper tests that round-trip `ai_provider` |
 | Mirror URL leaks into `bun.lock` | Install with temp `BUN_CONFIG_REGISTRY`; verify no `"https` registry hosts in lock |
-| Suggest button on every card increases density | `icon-sm` only; no extra label in the card toolbar |
+| Suggest button on every card increases density | `icon` only; no extra label in the card toolbar |
 
 ---
 

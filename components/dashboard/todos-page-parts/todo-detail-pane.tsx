@@ -204,7 +204,7 @@ function TodoDetailPaneBody({
         <Button
           type="button"
           variant="ghost"
-          size="xs"
+          size="sm"
           onClick={clearDue}
           disabled={detail.dueAt === null && dueInputValue === ""}
         >
@@ -239,7 +239,7 @@ function TodoDetailPaneBody({
           <Button
             type="button"
             variant="ghost"
-            size="xs"
+            size="sm"
             onClick={() => setContentMode((m) => (m === "view" ? "edit" : "view"))}
           >
             {contentMode === "view" ? "编辑" : "预览"}

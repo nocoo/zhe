@@ -32,7 +32,7 @@ function MigratedKeyDisplay({
         </code>
         <Button
           variant="ghost"
-          size="sm"
+          size="default"
           className="h-7 w-7 p-0 shrink-0"
           onClick={() => onCopy(apiKey)}
           aria-label="复制 API Key"
@@ -81,7 +81,7 @@ export function DeprecationWarning({
           ) : (
             <Button
               variant="outline"
-              size="sm"
+              size="default"
               className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
               onClick={onMigrate}
               disabled={isMigrating}

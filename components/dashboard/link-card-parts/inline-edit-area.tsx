@@ -194,7 +194,7 @@ function EditToolbar({
         isDeleting={isDeleting}
         onConfirm={onDelete}
       />
-      <Button size="xs" onClick={onSave} disabled={isSaving}>
+      <Button size="sm" onClick={onSave} disabled={isSaving}>
         {isSaving ? (
           <>
             <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />

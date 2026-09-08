@@ -39,7 +39,7 @@ export function DataManagementPage() {
           <p className="mb-4 text-sm text-muted-foreground">
             将所有链接数据导出为 JSON 文件，可用于备份或迁移。
           </p>
-          <Button onClick={handleExport} disabled={isExporting} variant="outline" size="sm">
+          <Button onClick={handleExport} disabled={isExporting} variant="outline" size="default">
             {isExporting ? "导出中..." : "导出链接"}
           </Button>
         </CardContent>
@@ -69,7 +69,7 @@ export function DataManagementPage() {
                   <strong>{importResult.skipped}</strong> 条
                 </span>
               </div>
-              <Button onClick={clearImportResult} variant="outline" size="sm">
+              <Button onClick={clearImportResult} variant="outline" size="default">
                 确定
               </Button>
             </div>

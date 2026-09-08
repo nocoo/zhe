@@ -209,7 +209,7 @@ function ListActions({
               <span className="inline-flex">
                 <Button
                   type="button"
-                  size="icon-sm"
+                  size="icon"
                   variant="ghost"
                   onClick={onSuggest}
                   disabled={suggestDisabled}

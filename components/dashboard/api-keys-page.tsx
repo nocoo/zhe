@@ -50,7 +50,7 @@ export function ApiKeysPage() {
               {!showCreateForm ? (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="default"
                   onClick={() => setShowCreateForm(true)}
                   data-testid="show-create-form-btn"
                 >

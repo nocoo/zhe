@@ -117,7 +117,7 @@ docs/
 
 ## UI 控件约定（摘要）
 
-Dashboard **工具栏** 用 `Button size="xs"` + 字段 `size="sm"`（32px compact）。**表单/设置** 次要按钮用 `Button size="sm"`（36px）——不要把 `sm` 当成工具栏密度。禁止 call site 堆 `h-8 text-xs rounded-lg` 或原生 checkbox。
+Dashboard **工具栏** 用 `Button size="sm"` + 字段 `size="sm"`（32px compact）。**表单/设置** 次要按钮用 `Button size="default"`（36px）。禁止 call site 堆 `h-8 text-xs rounded-lg` 或原生 checkbox。
 
 完整契约：[22-design-tokens.md](22-design-tokens.md) · Agent 硬规则见根目录 `CLAUDE.md` → **Design Tokens & UI Controls**。
 

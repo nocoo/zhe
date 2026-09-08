@@ -105,7 +105,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
         <AlertDialogTrigger asChild>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             disabled={disabled}
             aria-label={`删除 ${row.name}`}
             data-testid="tag-delete-btn"

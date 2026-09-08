@@ -242,7 +242,7 @@ export function TodoEmojiPicker({
             <Button
               type="button"
               variant="ghost"
-              size="xs"
+              size="sm"
               onClick={() => commit(null)}
               aria-label="清除 emoji"
             >

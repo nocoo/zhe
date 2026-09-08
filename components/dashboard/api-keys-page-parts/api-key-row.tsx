@@ -43,7 +43,7 @@ function RevokeButton({
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
+          size="default"
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
           data-testid={`revoke-key-${id}`}
         >

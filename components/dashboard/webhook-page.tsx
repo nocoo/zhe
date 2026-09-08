@@ -134,7 +134,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               onClick={vm.handleGenerate}
               disabled={vm.isGenerating}
               variant="outline"
-              size="sm"
+              size="default"
               data-testid="generate-token-btn"
             >
               {vm.isGenerating ? "生成中..." : "生成令牌"}

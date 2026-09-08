@@ -24,7 +24,7 @@ function IdeasEmpty({ vm, filtered }: { vm: IdeasViewModel; filtered: boolean })
       description={filtered ? "试试调整筛选条件" : "点击上方按钮记录您的第一个想法"}
       {...(!filtered && {
         action: (
-          <Button size="icon-sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
+          <Button size="icon" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
             <Plus className="w-4 h-4" strokeWidth={1.5} />
           </Button>
         ),

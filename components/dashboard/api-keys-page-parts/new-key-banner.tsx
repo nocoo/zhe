@@ -27,7 +27,7 @@ export function NewKeyBanner({ newKey, onDismiss }: { newKey: string; onDismiss:
         </code>
         <Button
           variant="outline"
-          size="sm"
+          size="default"
           className="shrink-0 gap-1"
           onClick={() => handleCopy(newKey)}
           data-testid="copy-new-key-btn"
@@ -35,7 +35,12 @@ export function NewKeyBanner({ newKey, onDismiss }: { newKey: string; onDismiss:
           <Copy className="h-3.5 w-3.5" />
           复制
         </Button>
-        <Button variant="ghost" size="sm" onClick={onDismiss} data-testid="dismiss-new-key-btn">
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={onDismiss}
+          data-testid="dismiss-new-key-btn"
+        >
           关闭
         </Button>
       </div>

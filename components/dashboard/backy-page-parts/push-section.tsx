@@ -63,7 +63,7 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
         </p>
       )}
       <div className="flex items-center gap-2">
-        <Button onClick={vm.handleSave} disabled={vm.isSaving} variant="outline" size="sm">
+        <Button onClick={vm.handleSave} disabled={vm.isSaving} variant="outline" size="default">
           {vm.isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -72,7 +72,7 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
           保存
         </Button>
         {vm.isEditing && (
-          <Button onClick={vm.cancelEditing} variant="ghost" size="sm">
+          <Button onClick={vm.cancelEditing} variant="ghost" size="default">
             取消
           </Button>
         )}
@@ -93,7 +93,7 @@ function ConfigDisplay({ vm }: { vm: BackyViewModel }) {
         <code className="rounded bg-accent px-2 py-0.5 text-xs">{vm.maskedApiKey}</code>
         <Button
           variant="ghost"
-          size="sm"
+          size="default"
           className="h-6 w-6 p-0"
           onClick={vm.startEditing}
           aria-label="编辑配置"
@@ -182,7 +182,7 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
         </div>
         <Button
           variant="ghost"
-          size="sm"
+          size="default"
           onClick={vm.handleLoadHistory}
           disabled={vm.isLoadingHistory}
           aria-label="刷新历史"
@@ -223,12 +223,12 @@ function ConfiguredView({ vm }: { vm: BackyViewModel }) {
     <div className="space-y-4">
       <ConfigDisplay vm={vm} />
       <div className="flex items-center gap-2">
-        <Button onClick={vm.handleTest} disabled={vm.isTesting} variant="outline" size="sm">
+        <Button onClick={vm.handleTest} disabled={vm.isTesting} variant="outline" size="default">
           {vm.isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Plug className="mr-2 h-4 w-4" />
           测试连接
         </Button>
-        <Button onClick={vm.handlePush} disabled={vm.isPushing} variant="outline" size="sm">
+        <Button onClick={vm.handlePush} disabled={vm.isPushing} variant="outline" size="default">
           {vm.isPushing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Send className="mr-2 h-4 w-4" />
           推送备份

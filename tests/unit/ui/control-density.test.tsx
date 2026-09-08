@@ -1,13 +1,12 @@
 // @vitest-environment happy-dom
 
 /**
- * Locks the dashboard control-density contract:
- *   default     → h-10 form scale
- *   Button sm   → h-9 form secondary (settings / API keys / Backy)
- *   Button xs   → h-8 toolbar compact
- *   Input/Select/Checkbox sm → h-8 compact fields
+ * Locks Basalt control-density:
+ *   Button/Input default → h-9
+ *   Button/Input sm      → h-8 toolbar compact
+ *   Button/Input lg      → h-10 form primary
  *
- * See docs/22-design-tokens.md and CLAUDE.md.
+ * See docs/22-design-tokens.md.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -20,21 +19,19 @@ import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 afterEach(() => cleanup());
 
 describe("control density — Input", () => {
-  it("default size is form scale (h-10)", () => {
+  it("default size is form scale (h-9)", () => {
     render(<Input aria-label="default-input" />);
     const el = screen.getByLabelText("default-input");
-    expect(el.className).toMatch(/\bh-10\b/);
+    expect(el.className).toMatch(/\bh-9\b/);
     expect(el.className).toMatch(/\btext-sm\b/);
     expect(el.className).not.toMatch(/\bh-8\b/);
-    expect(el.className).not.toMatch(/\btext-base\b/);
   });
 
-  it("sm size is compact toolbar scale (h-8, text-xs, rounded-widget)", () => {
+  it("sm size is compact toolbar scale (h-8, text-xs)", () => {
     render(<Input size="sm" aria-label="sm-input" />);
     const el = screen.getByLabelText("sm-input");
     expect(el.className).toMatch(/\bh-8\b/);
     expect(el.className).toMatch(/\btext-xs\b/);
-    expect(el.className).toMatch(/\brounded-widget\b/);
   });
 
   it("className overrides win over size defaults (title-style text-base)", () => {
@@ -47,32 +44,30 @@ describe("control density — Input", () => {
 });
 
 describe("control density — Button", () => {
-  it("sm is form secondary (h-9, text-sm) — not toolbar compact", () => {
-    render(<Button size="sm">保存</Button>);
+  it("default is form secondary (h-9)", () => {
+    render(<Button size="default">保存</Button>);
     const el = screen.getByRole("button", { name: "保存" });
     expect(el.className).toMatch(/\bh-9\b/);
     expect(el.className).not.toMatch(/\bh-8\b/);
-    // base cva sets text-sm; xs is the only compact text-xs tier
     expect(el.className).not.toMatch(/\btext-xs\b/);
   });
 
-  it("xs is toolbar compact (h-8, text-xs, rounded-widget)", () => {
-    render(<Button size="xs">新建</Button>);
+  it("sm is toolbar compact (h-8, text-xs)", () => {
+    render(<Button size="sm">新建</Button>);
     const el = screen.getByRole("button", { name: "新建" });
     expect(el.className).toMatch(/\bh-8\b/);
     expect(el.className).toMatch(/\btext-xs\b/);
-    expect(el.className).toMatch(/\brounded-widget\b/);
   });
 
-  it("icon-sm is a 32px square", () => {
+  it("icon is a square control", () => {
     render(
-      <Button size="icon-sm" aria-label="menu">
+      <Button size="icon" aria-label="menu">
         ·
       </Button>,
     );
     const el = screen.getByRole("button", { name: "menu" });
-    expect(el.className).toMatch(/\bh-8\b/);
-    expect(el.className).toMatch(/\bw-8\b/);
+    expect(el.className).toMatch(/\bh-9\b/);
+    expect(el.className).toMatch(/\bw-9\b/);
   });
 });
 

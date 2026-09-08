@@ -40,7 +40,7 @@ export function TagsPage() {
         description={`共 ${vm.rows.length} 个`}
         actions={
           <Button
-            size="xs"
+            size="sm"
             onClick={vm.startCreate}
             disabled={vm.creating}
             data-testid="tag-create-btn"
@@ -83,7 +83,7 @@ export function TagsPage() {
           />
           <div className="flex items-center gap-2 md:ml-auto">
             <Button
-              size="sm"
+              size="default"
               variant="outline"
               onClick={resetCreate}
               disabled={vm.savingId === "new"}
@@ -91,7 +91,7 @@ export function TagsPage() {
               取消
             </Button>
             <Button
-              size="sm"
+              size="default"
               onClick={() => void submitCreate()}
               disabled={vm.savingId === "new"}
               data-testid="tag-create-submit"

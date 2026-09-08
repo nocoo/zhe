@@ -63,11 +63,11 @@ export function CreateKeyForm({
       </div>
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onCancel} data-testid="cancel-create-btn">
+        <Button variant="outline" size="default" onClick={onCancel} data-testid="cancel-create-btn">
           取消
         </Button>
         <Button
-          size="sm"
+          size="default"
           onClick={onCreate}
           disabled={isCreating || !newKeyName.trim() || selectedScopes.length === 0}
           data-testid="create-key-btn"

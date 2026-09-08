@@ -27,7 +27,7 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
             onClick={vm.handleFetchBookmarks}
             disabled={!vm.isConfigured || vm.isFetchingBookmarks}
             variant="outline"
-            size="sm"
+            size="default"
           >
             {vm.isFetchingBookmarks ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -94,7 +94,7 @@ function BookmarkAddButton({
 }) {
   if (isAdded) {
     return (
-      <Button variant="ghost" size="sm" disabled className="text-success">
+      <Button variant="ghost" size="default" disabled className="text-success">
         <Check className="mr-1.5 h-4 w-4" />
         已收录
       </Button>
@@ -104,7 +104,7 @@ function BookmarkAddButton({
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="default"
       disabled={isAdding}
       onClick={() => onAdd(tweetUrl, tweetId)}
     >

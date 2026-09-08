@@ -81,7 +81,7 @@ function FilterControls(props: FilterControlsProps) {
       </div>
       <Button
         variant="outline"
-        size="icon-sm"
+        size="icon"
         onClick={onRefresh}
         disabled={isRefreshing}
         aria-label="刷新链接"
@@ -121,7 +121,7 @@ export function LinksListToolbar(props: ToolbarProps) {
   const filterTrigger = (
     <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="xs" aria-label="筛选与视图">
+        <Button variant="outline" size="sm" aria-label="筛选与视图">
           <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>筛选</span>
           {activeFilterCount > 0 && (

@@ -94,7 +94,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
-          size="sm"
+          size="default"
           onClick={sp.scan}
           disabled={loading}
           className="gap-1.5"

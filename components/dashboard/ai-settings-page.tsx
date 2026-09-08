@@ -101,7 +101,7 @@ export function AiSettingsPage() {
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="default"
                         aria-label="使用预设模型"
                         onClick={() => {
                           vm.setIsCustomModel(false);
@@ -197,7 +197,7 @@ export function AiSettingsPage() {
 
             <div className="flex items-center gap-2">
               <Button
-                size="sm"
+                size="default"
                 variant="outline"
                 onClick={() => void vm.handleSave()}
                 disabled={!vm.canSubmit || vm.saving}
@@ -208,7 +208,7 @@ export function AiSettingsPage() {
                 保存
               </Button>
               <Button
-                size="sm"
+                size="default"
                 onClick={() => void vm.handleTest()}
                 disabled={!vm.canSubmit || vm.saving || vm.testStatus === "testing"}
                 data-testid="ai-test"

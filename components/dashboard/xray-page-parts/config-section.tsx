@@ -21,7 +21,7 @@ function UrlModeSelector({ vm }: { vm: XrayViewModel }) {
           <Button
             key={mode.label}
             variant={vm.urlMode === mode.label ? "default" : "outline"}
-            size="sm"
+            size="default"
             className="h-7 text-xs"
             onClick={() => vm.handleUrlModeChange(mode.label)}
           >
@@ -72,13 +72,13 @@ function ConfigForm({ vm }: { vm: XrayViewModel }) {
       )}
 
       <div className="flex items-center gap-2">
-        <Button onClick={vm.handleSave} disabled={vm.isSaving} variant="outline" size="sm">
+        <Button onClick={vm.handleSave} disabled={vm.isSaving} variant="outline" size="default">
           {vm.isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />
           保存
         </Button>
         {vm.isEditing && (
-          <Button onClick={vm.cancelEditing} variant="ghost" size="sm">
+          <Button onClick={vm.cancelEditing} variant="ghost" size="default">
             取消
           </Button>
         )}
@@ -99,7 +99,7 @@ function ConfiguredView({ vm }: { vm: XrayViewModel }) {
         <code className="rounded bg-accent px-2 py-0.5 text-xs">{vm.maskedToken}</code>
         <Button
           variant="ghost"
-          size="sm"
+          size="default"
           className="h-6 w-6 p-0"
           onClick={vm.startEditing}
           aria-label="编辑配置"

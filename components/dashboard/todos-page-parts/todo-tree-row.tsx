@@ -377,7 +377,7 @@ function RowMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           onClick={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           aria-label={`Row menu for ${todo.title}`}

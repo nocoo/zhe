@@ -66,7 +66,7 @@ export function EditorToolbar({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           className="shrink-0"
           onClick={onBack}
           aria-label="返回想法列表"
@@ -85,7 +85,7 @@ export function EditorToolbar({
       <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
         <TagBadges tags={tags} selectedTagIds={selectedTagIds} onToggle={toggleTag} />
         {dirty && <span className="text-xs text-muted-foreground">未保存</span>}
-        <Button size="icon-sm" onClick={onSave} disabled={!dirty || isSaving} aria-label="保存">
+        <Button size="icon" onClick={onSave} disabled={!dirty || isSaving} aria-label="保存">
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

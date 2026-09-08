@@ -43,7 +43,7 @@ describe("TodoDetailPane — control density", () => {
   it("tag composer uses control radius (not a larger pill than other inputs)", () => {
     render(<TodoDetailPane detail={makeDetail()} detailLoading={false} onUpdate={vi.fn()} />);
     const addTag = screen.getByLabelText("Add tag");
-    expect(addTag.className).toMatch(/\brounded-widget\b/);
+    expect(addTag.className).toMatch(/\brounded-basalt-md\b/);
     expect(addTag.className).not.toMatch(/\brounded-full\b/);
     expect(addTag.className).not.toMatch(/\brounded-lg\b/);
   });

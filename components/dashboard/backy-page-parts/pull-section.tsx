@@ -21,7 +21,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="default"
       className="h-7 w-7 p-0"
       onClick={handleCopy}
       aria-label={label}
@@ -67,7 +67,7 @@ function CredentialsView({
           onClick={vm.handleGeneratePull}
           disabled={vm.isGeneratingPull}
           variant="outline"
-          size="sm"
+          size="default"
         >
           {vm.isGeneratingPull ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -80,7 +80,7 @@ function CredentialsView({
           onClick={vm.handleRevokePull}
           disabled={vm.isRevokingPull}
           variant="outline"
-          size="sm"
+          size="default"
         >
           {vm.isRevokingPull ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -110,7 +110,7 @@ function EmptyView({ vm }: { vm: BackyViewModel }) {
         onClick={vm.handleGeneratePull}
         disabled={vm.isGeneratingPull}
         variant="outline"
-        size="sm"
+        size="default"
       >
         {vm.isGeneratingPull ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

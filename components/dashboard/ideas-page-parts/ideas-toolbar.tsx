@@ -125,11 +125,11 @@ export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
           <SortSelect vm={vm} />
           <ViewModeToggle vm={vm} />
           {filtered ? (
-            <Button type="button" variant="ghost" size="xs" onClick={vm.clearFilters}>
+            <Button type="button" variant="ghost" size="sm" onClick={vm.clearFilters}>
               清除
             </Button>
           ) : null}
-          <Button size="xs" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
+          <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
             <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
             新想法
           </Button>
