@@ -1,8 +1,8 @@
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { LayoutGrid, LayoutList, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { LinkFilterBar } from "../link-filter-bar";

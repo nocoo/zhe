@@ -15,14 +15,14 @@
  * layer.
  */
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { Plus, SlidersHorizontal, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCoarsePointer, useNarrowViewport } from "@/hooks/use-media-query";
 import type { TodoForestNode } from "@/models/todos";
 import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
@@ -279,8 +279,13 @@ export function TodosPage() {
             className="w-full sm:max-w-xl p-0 flex flex-col"
             data-todos-detail-sheet
           >
-            <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-2">
               <SheetTitle className="text-sm">{vm.detail?.title ?? "待办详情"}</SheetTitle>
+              <SheetClose asChild>
+                <Button type="button" variant="ghost" size="icon" aria-label="Close">
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetClose>
             </SheetHeader>
             <div className="flex-1 min-h-0 overflow-hidden">
               <TodoDetailPane

@@ -2,7 +2,7 @@
 
 export {
   ContextMenu,
-  ContextMenuContent,
   ContextMenuItem,
+  ContextMenuPanel as ContextMenuContent,
   ContextMenuTrigger,
 } from "@nocoo/basalt/components/context-menu";

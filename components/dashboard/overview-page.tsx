@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { SectionRule } from "@nocoo/basalt/components/section-rule";
+import { PageHeader } from "@/components/ui/page-header";
 import type { OverviewStats, WorkerHealthStatus } from "@/models/overview";
 import { useOverviewViewModel } from "@/viewmodels/useOverviewViewModel";
 import { ChartSkeleton, StatSkeleton } from "./overview-page-parts/charts";

@@ -1,3 +1,14 @@
+import { PageHeader as BasaltPageHeader } from "@nocoo/basalt/components/page-header";
+import type { ComponentProps } from "react";
+
+export function PageHeader(props: ComponentProps<typeof BasaltPageHeader>) {
+  return (
+    <div className="mb-6">
+      <BasaltPageHeader {...props} />
+    </div>
+  );
+}
+
 /** Pulse stand-in matching Basalt PageHeader (text-2xl title + text-sm description). */
 export function PageHeaderSkeleton({ hasActions = true }: { hasActions?: boolean }) {
   return (

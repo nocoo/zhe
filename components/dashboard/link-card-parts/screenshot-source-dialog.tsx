@@ -25,7 +25,7 @@ export function ScreenshotSourceDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>选择截图来源</DialogTitle>
           <DialogDescription>选择一个服务来抓取网页预览截图</DialogDescription>

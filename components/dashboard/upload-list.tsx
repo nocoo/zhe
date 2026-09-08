@@ -1,10 +1,10 @@
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Upload as UploadIcon } from "lucide-react";
 import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { staggerStyle } from "@/lib/motion";

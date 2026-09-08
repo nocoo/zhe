@@ -1,6 +1,6 @@
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { type BackyInitialData, useBackyViewModel } from "@/viewmodels/useBackyViewModel";
 import { PullSection } from "./backy-page-parts/pull-section";
 import { PushSection } from "./backy-page-parts/push-section";

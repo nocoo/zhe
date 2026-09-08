@@ -40,7 +40,7 @@ export function CreateIdeaModal({
 }: CreateIdeaModalProps) {
   return (
     <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent size="xl">
         <DialogHeader>
           <DialogTitle>新想法</DialogTitle>
           <DialogDescription>记录新的想法，支持 Markdown 格式。</DialogDescription>

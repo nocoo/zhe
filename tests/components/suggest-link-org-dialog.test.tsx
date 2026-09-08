@@ -52,7 +52,7 @@ describe("SuggestLinkOrgDialog", () => {
   it("uses a wide dialog and marks the request step while loading", () => {
     render(<SuggestLinkOrgDialog vm={makeVm({ loading: true, folders: [], tags: [] })} />);
     const dialog = screen.getByTestId("suggest-link-org-dialog");
-    expect(dialog.className).toContain("max-w-3xl");
+    expect(dialog.className).toContain("sm:w-[48rem]");
     expect(screen.getByTestId("suggest-step-request")).toHaveAttribute("data-state", "current");
     expect(screen.getByTestId("suggest-step-progress")).toHaveStyle({ width: "38%" });
     expect(screen.getByTestId("suggest-step-caption")).toHaveTextContent("正在调用模型");

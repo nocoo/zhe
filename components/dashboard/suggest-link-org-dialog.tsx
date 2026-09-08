@@ -265,7 +265,8 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
     <Dialog open={vm.open} onOpenChange={(next) => !next && vm.close()}>
       <DialogContent
         data-testid="suggest-link-org-dialog"
-        className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden sm:max-w-3xl"
+        size="xl"
+        className="flex max-h-[85vh] flex-col overflow-hidden"
       >
         <DialogHeader>
           <DialogTitle>整理建议</DialogTitle>

@@ -189,17 +189,13 @@ describe("TodosPage — narrow viewport Sheet fallback", () => {
     mockUseTodosViewModel.mockReturnValue(vm);
     const { container } = render(<TodosPage />);
     const closeBtn = container.ownerDocument.querySelector(
-      "[data-todos-detail-sheet] button[aria-label='Close'], [data-todos-detail-sheet] button[data-state]",
+      "[data-todos-detail-sheet] button[aria-label='Close']",
     );
-    // Fallback: Radix's built-in close is an unlabelled button inside the
-    // header — trigger onOpenChange(false) via the Escape key.
+    expect(closeBtn).toBeTruthy();
     act(() => {
-      fireEvent.keyDown(container.ownerDocument.body, { key: "Escape" });
+      fireEvent.click(closeBtn as HTMLButtonElement);
     });
-    // Whether via close button or Escape, `setSelectedId(null)` must fire.
     expect(vm.setSelectedId).toHaveBeenCalledWith(null);
-    // silence unused variable when the close button lookup returns null
-    void closeBtn;
   });
 });
 
