@@ -33,7 +33,7 @@
     "@nocoo/basalt": "2.1.2",
     "@nocoo/next-ai": "^0.4.0",
     "@tailwindcss/typography": "0.5.20",
-    "ai": "7.0.93",
+    "ai": "7.0.94",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "drizzle-orm": "0.45.2",
