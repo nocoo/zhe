@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import type { TooltipProps } from "recharts";
 import {
   Area,
   AreaChart,
@@ -17,6 +18,22 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CHART_COLORS, chartAxis, withAlpha } from "@/lib/palette";
 import type { ClickTrendPoint, TopLinkEntry, UploadTrendPoint } from "@/models/overview";
 import { formatClickCount } from "@/models/overview";
+
+type TooltipFormatter = NonNullable<TooltipProps["formatter"]>;
+type TooltipLabelFormatter = NonNullable<TooltipProps["labelFormatter"]>;
+
+const formatTooltipLabel: TooltipLabelFormatter = (label) => String(label);
+
+const formatClickTooltip: TooltipFormatter = (value, name) => {
+  const labels: Record<string, string> = {
+    clicks: "总计",
+    worker: "Worker",
+    origin: "Origin",
+  };
+  return [String(value ?? 0), labels[String(name ?? "")] ?? String(name ?? "")];
+};
+
+const formatUploadTooltip: TooltipFormatter = (value) => [String(value ?? 0), "上传"];
 
 export interface StatCardProps {
   label: string;
@@ -173,15 +190,8 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            labelFormatter={(label) => String(label)}
-            formatter={(value, name) => {
-              const labels: Record<string, string> = {
-                clicks: "总计",
-                worker: "Worker",
-                origin: "Origin",
-              };
-              return [String(value ?? 0), labels[String(name ?? "")] ?? String(name ?? "")];
-            }}
+            labelFormatter={formatTooltipLabel}
+            formatter={formatClickTooltip}
           />
           <Area
             type="monotone"
@@ -259,8 +269,8 @@ export function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            labelFormatter={(label) => String(label)}
-            formatter={(value) => [String(value), "上传"]}
+            labelFormatter={formatTooltipLabel}
+            formatter={formatUploadTooltip}
           />
           <Area
             type="monotone"
