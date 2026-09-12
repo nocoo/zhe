@@ -16,6 +16,7 @@ jobs:
     with:
       runtime-version: "1.3.11"
       install-policy: "project"
+      coverage-path: "coverage"
       prepare-command: "bun run build"
       typecheck-command: "bun x tsc --noEmit"
       test-command: "bun run test:unit:coverage && bun run test:integration"
