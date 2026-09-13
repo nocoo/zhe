@@ -21,9 +21,11 @@
 1. 已实现并通过本地测试：内容规范化、共享 CLI 身份与独立 Connector scope（30 天期限、用户绑定、撤销），定期发现/租约/重试；纯文本帖子也能独立完成。
 2. 已实现并通过本地测试：现有 R2 的有界媒体传输、发布、附件引用、连锁删除及孤儿检查。
 3. 已实现并通过桌面/手机验证：Basalt X 卡片/详情、自动刷新、共享 CLI 配置与运行状态。
-4. 主体功能已通过本地门禁、独立只读审查和 main CI；`59e5736` 已部署 Railway。生产验收发现的长查询搜索修复已通过本地回归，待 CI 和生产复验。
-5. 真实 Google 登录、共享 CLI 登录、Webhook 去重及收藏迁移已完成。正常后台 Connector 在 196 秒内完成目标收藏；视频哈希、Range、自动刷新、实际播放、存储引用、网页/CLI 新建后补全及连锁删除均通过生产验证。
-6. Hexly 退役分支 CI 已通过，待发布；Snail D1、R2 和完整 Git 历史已备份。云端和本机资源尚未删除，npm 发布仍需账号二次认证。
+4. 主体功能至 `59e5736` 已通过独立只读审查。最终搜索修复 `e33b92e` 的 main CI `34734927336` 全部通过；Railway 部署 `668a8e31-cd5e-4dcb-ad1f-e06b142a3478` 已核对来自同一 SHA，生产搜索复验通过。
+5. 真实 Google 登录、共享 CLI 登录、Webhook 去重及收藏迁移已完成。正常后台 Connector 在 196 秒内完成目标收藏；视频哈希、Range、自动刷新、实际播放、存储引用、网页/CLI 新建后补全及连锁删除均通过生产验证。Snail 云资源删除后，原收藏、搜索、视频播放和 CLI 登录再次通过验证。
+6. Hexly `fcfd6c9` 已通过 main CI `34734970143` 和 Release `34735526675` 并发布；Snail 入口已移除，两个 301、74 项目录、历史品牌文件及哈希均通过生产验收。
+7. Snail 专属 Worker、D1、R2、两个 Access 应用、域名与 DNS 已清理。旧开发进程、Keychain 凭据、Caddy 映射及 nmem 端口登记已删除；GitHub Release workflow 已禁用，两个生产部署凭据引用已移除。最终备份核验后，本地 Snail 仓库已删除，远程 GitHub 仓库保留。
+8. 本机已全局安装验证过的 `@nocoo/zhe` 安装包，`ai.hexly.zhe.connector` 使用同一个 CLI 和登录配置随登录启动，每 20 秒轮询。npm 公开发布尚未完成：浏览器二次认证请求过期，返回 E404；本机安装和运行已完成验证。
 
 ## 证据
 
@@ -61,3 +63,11 @@
 - C53：再次核对 Snail 专属资源：2 个 Access app、1 个 Worker custom domain、1 个 D1、1 个 R2 bucket（2 对象，共 1,888,128 字节），无专属 Access service token。两个 R2 原对象已完整备份并校验，Git bundle 包含完整历史；Zhe 与 Hexly 共享资源明确排除。
 - C54 搜索 RED：真实生产查询完整 URL 返回 500，D1 明确报 `LIKE or GLOB pattern too complex`；官方限制为模式最多 50 字节。新增真实 SQLite 行为测试中，长查询及字面 `%`/`_` 两项失败。GREEN：共享链接查询改用参数化 `instr(lower(...), lower(?))`，保留用户范围和大小写行为，4 项真实 SQLite 及相关 ScopedDB/集成回归共 194 项通过。没有截断 URL 或查询内容。
 - C55：搜索修复后完整 unit-only 162 文件 / 3047 项通过，语句 95.43%、分支 88.58%、函数 93.06%、行 96.52%；真实本地 HTTP 27 文件 / 211 项通过，包含长 URL 和中文查询。搜索及 Connector 桌面/手机浏览器回归 11 项通过；类型、Biome、生产构建通过。原始日志位于 ignored `.artifacts/`，私人源数据、凭据和备份位于 ignored `.connector/`。
+- C58/C61：最终搜索修复的 main CI `34734927336` 全部成功，包括完整浏览器测试和三个 Wrangler 版本矩阵；Railway 精确 source SHA 为 `e33b92e69a7a8c828fca03f989f5eb950a455af8`。生产完整源 URL 和长中文查询返回 200，被删临时 URL 返回空结果；收藏标签、原视频、JSON 健康和未认证 Connector 401 均正常。
+- H22/H24/H25：Hexly `fcfd6c9c328b608abf14159cf378fa42d4a82d3c` 经 main CI 和 Release 成功发布。标准生产检查与专项退役检查通过：目录、sitemap、llms、状态列表没有 Snail，Zhe 保留，项目页和 logo 页 301 正确；Snail v1/v2 品牌文件及 manifest 哈希不变，review 页面可访问。
+- C62：停服后再次导出 Snail D1，恢复到内存 SQLite 后，完整性、外键和全部用户表逐行比对通过；仍为 1 个资产、1 个收藏、1 个 blob，原视频哈希匹配，无未完成传输。最终 SQL 权限 0600，导出大小 22,944 字节。验收脚本的任务字段修正为旧库实际的 `status` 列。
+- C63/C64：核对备份后删除 Snail 的 2 个 R2 对象及空 bucket，再按精确数据库 ID 删除 D1；两个 Access 应用通过正常 Cloudflare 管理页面删除并分别确认 404。Worker 删除同时移除了专属 custom domain 和 DNS；最终盘点均无残留。
+- C65：禁用 Snail Release workflow，删除其 production 环境的两个 Cloudflare 凭据引用，远程仓库读回正常。Caddy 配置先校验、仅删除两个 Snail 块，再成功 reload；旧开发进程退出，7051/17051/27051 无监听。Keychain 精确凭据删除后确认不存在，旧 device state 和 `snail-local-ports` nmem 记录已移除；Zhe LaunchAgent 仍运行。
+- C66：真实 Cloudflare API 确认 Snail Worker、D1、R2 均 404，Access、custom domain、DNS 无残留；Zhe/Hexly 的两个共享数据库和两个存储桶均 200，两个公开健康接口均返回正常 JSON。
+- C67：退役后原视频 Range 206、海报 200，浏览器从零实际播放超过 1 秒，720×1280、原生 controls、无媒体错误和横向溢出。已安装的全局 `zhe connector status` 正常认证；LaunchAgent 使用同一个全局 CLI，依赖与执行路径独立于 Snail checkout，共享配置权限为 0600、目录 0700。
+- C68：删除本地 Snail 前再次确认工作区干净、源提交 `6760c56f9ac982440f496f264740252416f128da` 已在有效 Git bundle 中，最终 D1 和原媒体备份哈希匹配，原验收归档含 1172 个条目。随后删除 `/Users/nocoo/workspace/personal/snail` 并确认路径不存在。备份与原始证据留在 Zhe ignored `.connector/migration/` 和 `.artifacts/`；没有提交私人内容。npm 认证过期与 registry 状态单独记录，不计为发布成功。

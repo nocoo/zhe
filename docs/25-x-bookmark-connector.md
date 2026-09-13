@@ -6,6 +6,8 @@ Zhe 先按原流程保存链接。网页、Webhook、REST API 和 CLI 创建的 
 
 需要 Node.js ≥ 22.16、FFmpeg / ffprobe，以及已连接 OpenCLI 扩展并登录 X 的浏览器。OpenCLI 作为固定版本依赖随 CLI 安装。
 
+当前机器已从验证过的安装包完成全局安装，可直接运行 `zhe connector status`。此次升级的 npm 公开发布尚待账号二次认证；发布完成前，下方 `npm install` 命令仍会取得旧版，不能用于安装本次 Connector 功能。最新验收与发布状态见 [GOAL.md](../GOAL.md)。
+
 ```sh
 npm install -g @nocoo/zhe
 zhe login
@@ -76,8 +78,12 @@ sequenceDiagram
 
 生产验收必须使用真实登录、真实本机 OpenCLI 读取和 R2：普通保存成功后由轮询领取、补全、流式上传，核对视频 SHA-256，验证 Range 和实际播放，再用独立验证链接检查删除与孤儿清理。本地合成数据通过不等同生产验证。当前完成情况和证据见 [GOAL.md](../GOAL.md)。
 
-## Snail 退役顺序
+## Snail 退役记录
 
-迁移用户已确认的收藏，保留来源与收藏标记，并核对媒体哈希；确认 Zhe 登录、后台 Connector、播放、存储管理和删除链路工作后，才移除 Hexly 的 Snail 项目入口。保留历史品牌档案。
+2026-09-13 已完成合并和生产验收。原收藏保留来源与收藏标签，归档视频与原文件哈希一致。真实 Webhook、网页和 CLI 保存后均由正常后台轮询自动补全；视频播放、存储引用、文件/书签删除及媒体连锁清理均已验证。
 
-最后按资源 ID 核对并删除 Snail 专属 Worker、D1 和 R2，清理其开发服务、域名代理、后台任务、设备凭据及端口登记，再删除本地 Snail checkout。Zhe、Hexly 的共享 R2 / D1 和其他项目资源不属于退役范围。GitHub 远程 Snail 仓库单独保留。
+Hexly 已移除 Snail 的项目、发现及监控入口，项目页跳转至 Zhe，logo 页跳转至保留的品牌档案；历史品牌文件和哈希保持完整。
+
+Snail 专属 Worker、D1、R2、Access 应用、custom domain 与 DNS 已删除，旧本机进程、Caddy 映射、Keychain 凭据和 nmem 端口登记已清理。GitHub Release workflow 已禁用，生产部署凭据引用已移除。Zhe、Hexly 的共享存储和健康接口在退役后验证正常。
+
+最终 D1、原媒体、完整 Git 历史及原验收资料保留于 Zhe 的 ignored 私有迁移目录，校验通过后已删除本地 Snail checkout。远程 `nocoo/snail` GitHub 仓库保留。Zhe 的全局 CLI、共享登录和后台 Connector 独立运行，退役后的原收藏与视频已再次通过真实检索和播放验证。
