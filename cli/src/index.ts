@@ -4,6 +4,7 @@
  */
 
 import { defineCommand, runMain } from "@nocoo/base-cli";
+import { connectorCommand } from "./commands/connector.js";
 import { createCommand } from "./commands/create.js";
 import { deleteCommand } from "./commands/delete.js";
 import { folderCommand } from "./commands/folder.js";
@@ -41,6 +42,7 @@ const main = defineCommand({
     update: updateCommand,
     delete: deleteCommand,
     open: openCommand,
+    connector: connectorCommand,
   },
 });
 

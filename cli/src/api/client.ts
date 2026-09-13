@@ -2,6 +2,8 @@
  * HTTP client for zhe.to API v1
  */
 
+import { openAsBlob } from "node:fs";
+import type { DownloadedMedia, MediaReservation, XJob } from "../connector/types.js";
 import { CLI_VERSION } from "../version.js";
 import type {
   ApiError,
@@ -32,15 +34,28 @@ export class ApiClient {
   private apiKey: string;
   private userAgent: string;
 
-  constructor(apiKey: string, version = CLI_VERSION) {
+  constructor(
+    apiKey: string,
+    version = CLI_VERSION,
+    private baseUrl = API_BASE,
+  ) {
     this.apiKey = apiKey;
     this.userAgent = `zhe-cli/${version}`;
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const url = `${API_BASE}${path}`;
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    headers: Record<string, string> = {},
+    signal?: AbortSignal,
+  ): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      body instanceof Blob ? 120_000 : TIMEOUT_MS,
+    );
 
     try {
       const response = await fetch(url, {
@@ -49,9 +64,11 @@ export class ApiClient {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
           "User-Agent": this.userAgent,
+          ...headers,
         },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-        signal: controller.signal,
+        ...(body ? { body: body instanceof Blob ? body : JSON.stringify(body) } : {}),
+        signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
+        redirect: "error",
       });
 
       // Handle rate limit warning
@@ -264,6 +281,44 @@ export class ApiClient {
    */
   async deleteIdea(id: number): Promise<void> {
     await this.request<Record<string, never>>("DELETE", `/ideas/${id}`);
+  }
+
+  connectorStatus(): Promise<{
+    states: { state: string; count: number }[];
+    keyPrefix: string;
+    expiresAt: number;
+  }> {
+    return this.request("GET", "/connector");
+  }
+
+  claimXJob(signal?: AbortSignal): Promise<{ job: XJob | null }> {
+    return this.request("POST", "/connector", {}, {}, signal);
+  }
+
+  connectorAction<T = { ok: boolean }>(job: XJob, body: unknown, signal?: AbortSignal): Promise<T> {
+    return this.request(
+      "POST",
+      `/connector/jobs/${job.linkId}`,
+      body,
+      { "X-Connector-Lease": job.leaseToken },
+      signal,
+    );
+  }
+
+  async uploadXMedia(
+    job: XJob,
+    asset: MediaReservation,
+    file: DownloadedMedia,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const body = await openAsBlob(file.path, { type: file.mime });
+    await this.request(
+      "PUT",
+      `/connector/jobs/${job.linkId}/media/${asset.id}`,
+      body,
+      { "X-Connector-Lease": job.leaseToken, "Content-Type": file.mime },
+      signal,
+    );
   }
 }
 
