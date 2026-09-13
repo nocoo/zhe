@@ -71,6 +71,11 @@ for (const viewport of [
     page.on("pageerror", (error) => errors.push(error.message));
     try {
       await page.setViewportSize(viewport);
+      if (viewport.width < 600) {
+        const touch = await context.newCDPSession(page);
+        await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+      }
+      await page.addInitScript(() => localStorage.setItem("zhe_links_view_mode", "grid"));
       await page.goto("/dashboard");
       await expect(islandHeading(page, "全部链接")).toBeVisible();
       await expect(appTitle(page, "链接管理")).toBeVisible();
@@ -87,14 +92,15 @@ for (const viewport of [
       await page.locator("#url").fill(`https://x.com/example/status/${postId}`);
       await page.getByRole("button", { name: "创建链接", exact: true }).click();
       await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });
-      const card = page.getByTestId("link-card");
-      await expect(card.getByText("等待补全")).toBeVisible();
+      await expect(page.getByTestId("link-card").getByText("等待补全")).toBeVisible();
+      const pendingBox = await page.getByTestId("link-card").boundingBox();
 
       const claim = await page.request.post("/api/v1/connector", { headers, data: {} });
       expect(claim.status()).toBe(200);
       const { job } = await claim.json();
       expect(job.postId).toBe(postId);
       linkId = job.linkId;
+      const card = page.locator(`[data-testid="link-card"][data-link-id="${linkId}"]`);
       const leased = { ...headers, "x-connector-lease": job.leaseToken };
       const endpoint = `/api/v1/connector/jobs/${linkId}`;
       const raw = {
@@ -210,27 +216,169 @@ for (const viewport of [
           await page.request.post(endpoint, { headers: leased, data: { action: "complete" } })
         ).status(),
       ).toBe(200);
-      // No navigation or manual refresh: the normal foreground poll replaces the card.
-      await expect(card.getByTestId("x-bookmark-content")).toBeVisible({ timeout: 20_000 });
-      await expect(card.getByRole("link", { name: "Example Author", exact: true })).toBeVisible();
-      await card.getByRole("button", { name: "展开全文" }).click();
-      await expect(card.getByRole("button", { name: "收起全文" })).toHaveAttribute(
+      // The foreground poll updates a fixed-size summary; full media is opened on demand.
+      await expect(card.getByText("已补全", { exact: true })).toBeVisible({ timeout: 20_000 });
+      await expect(card.locator("video")).toHaveCount(0);
+      const completedBox = await card.boundingBox();
+      assert(pendingBox && completedBox);
+      expect(Math.abs(completedBox.height - pendingBox.height)).toBeLessThan(1);
+      if (viewport.width < 600) {
+        const statusBox = await card.getByRole("status").boundingBox();
+        const editBox = await card
+          .getByRole("button", { name: "Edit link", exact: true })
+          .boundingBox();
+        assert(statusBox && editBox);
+        expect(statusBox.y).toBeGreaterThanOrEqual(editBox.y + editBox.height);
+      }
+      await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+      const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
+      await expect(post.getByTestId("x-bookmark-content")).toBeVisible();
+      await expect(post.getByRole("link", { name: "Example Author", exact: true })).toBeVisible();
+      await post.getByRole("button", { name: "展开全文" }).click();
+      await expect(post.getByRole("button", { name: "收起全文" })).toHaveAttribute(
         "aria-expanded",
         "true",
       );
-      await expect(card.getByText("Context from the quoted post")).toBeVisible();
-      const video = card.getByLabel("已归档的 X 视频");
+      await expect(post.getByText("Context from the quoted post")).toBeVisible();
+      const video = post.getByLabel("已归档的 X 视频");
       await video.evaluate((element) => (element as HTMLVideoElement).play());
       await expect
         .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
         .toBeGreaterThan(0.1);
-      await card.getByRole("button", { name: "查看图片 2" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      await post.getByRole("button", { name: "查看图片 2" }).click();
+      await expect(page.getByRole("dialog", { name: "图片预览", exact: true })).toBeVisible();
       await page.keyboard.press("Escape");
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
-      await page.screenshot({ path: `.artifacts/connector-${viewport.width}.png`, fullPage: true });
+      await page.screenshot({
+        path: `.artifacts/connector-${viewport.width}.png`,
+        animations: "disabled",
+      });
+      await page.keyboard.press("Escape");
+      await expect(post).toHaveCount(0);
+      await expect(card.locator("video")).toHaveCount(0);
+
+      const design = randomUUID();
+      const reading = randomUUID();
+      const createdAt = Math.floor(Date.now() / 1000);
+      for (const [id, name] of [
+        [design, "Design"],
+        [reading, "Reading"],
+      ])
+        await executeD1("INSERT INTO folders(id,user_id,name,created_at) VALUES(?,?,?,?)", [
+          id,
+          owner,
+          name,
+          createdAt,
+        ]);
+      await executeD1("UPDATE links SET folder_id=? WHERE id=? AND user_id=?", [
+        design,
+        linkId,
+        owner,
+      ]);
+      for (const [id, note, folder, body, url] of [
+        [
+          "2000000000000000004",
+          "Reading article",
+          reading,
+          "An article worth reading",
+          "https://example.org/article",
+        ],
+        ["2000000000000000005", "A plain note", null, "A short text-only post", null],
+        ["2000000000000000006", "Pending post", reading, null, null],
+      ] as const) {
+        const source = `https://x.com/example/status/${id}`;
+        const [saved] = await queryD1<{ id: number }>(
+          "INSERT INTO links(user_id,original_url,slug,note,folder_id,meta_title,created_at) VALUES(?,?,?,?,?,?,?) RETURNING id",
+          [owner, source, randomUUID().slice(0, 8), note, folder, note, createdAt],
+        );
+        assert(saved);
+        if (body) {
+          const extra = normalizeXPost(
+            {
+              ...raw,
+              rest_id: id,
+              legacy: {
+                ...raw.legacy,
+                full_text: body,
+                entities: { urls: url ? [{ expanded_url: url }] : [] },
+              },
+            },
+            id,
+          );
+          assert(extra);
+          await executeD1(
+            "INSERT INTO x_bookmarks(link_id,user_id,source_url,post_id,state,result_json,updated_at) VALUES(?,?,?,?,'complete',?,?)",
+            [saved.id, owner, source, id, JSON.stringify(extra), createdAt],
+          );
+        }
+      }
+      const [ordinary] = await queryD1<{ id: number }>(
+        "INSERT INTO links(user_id,original_url,slug,meta_title,meta_description,created_at) VALUES(?,?,?,?,?,?) RETURNING id",
+        [
+          owner,
+          "https://example.com",
+          randomUUID().slice(0, 8),
+          "Normal website",
+          "A normal bookmark next to enriched X posts",
+          createdAt,
+        ],
+      );
+      assert(ordinary);
+      await page.reload();
+      await expect(card.getByText("已补全", { exact: true })).toBeVisible();
+      const normalCard = page.locator(`[data-testid="link-card"][data-link-id="${ordinary.id}"]`);
+      const normalBox = await normalCard.boundingBox();
+      const xBox = await card.boundingBox();
+      assert(normalBox && xBox);
+      expect(Math.abs(normalBox.height - xBox.height)).toBeLessThan(1);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: `.artifacts/x-grid-${viewport.width}.png`,
+        animations: "disabled",
+      });
+
+      await page.goto("/dashboard/x");
+      await expect(islandHeading(page, "X 收藏")).toBeVisible();
+      const feed = page.getByTestId("x-feed");
+      await expect(feed.getByTestId("link-card")).toHaveCount(4);
+      await expect(feed.getByLabel("已归档的 X 视频")).toBeVisible();
+      await feed
+        .getByLabel("已归档的 X 视频")
+        .evaluate((element) => (element as HTMLVideoElement).play());
+      await expect
+        .poll(() =>
+          feed
+            .getByLabel("已归档的 X 视频")
+            .evaluate((element) => (element as HTMLVideoElement).currentTime),
+        )
+        .toBeGreaterThan(0.1);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: `.artifacts/x-library-${viewport.width}.png`,
+        animations: "disabled",
+      });
+      await page.getByRole("button", { name: "图片", exact: true }).click();
+      await expect(feed.getByTestId("link-card")).toHaveCount(1);
+      await page.getByRole("combobox", { name: "筛选分类" }).click();
+      await page.getByRole("option", { name: "Reading", exact: true }).click();
+      await expect(page.getByText("没有符合条件的 X 收藏")).toBeVisible();
+      await page.getByRole("button", { name: "文章", exact: true }).click();
+      await expect(feed.getByTestId("link-card")).toHaveCount(1);
+      await expect(feed.getByText("Reading article", { exact: true })).toBeVisible();
+      await page.getByRole("searchbox", { name: "搜索 X 收藏" }).fill("not present");
+      await expect(page.getByText("没有符合条件的 X 收藏")).toBeVisible();
+      await page.getByRole("button", { name: "清除筛选", exact: true }).first().click();
+      await page.getByRole("button", { name: "待补全", exact: true }).click();
+      await expect(feed.getByTestId("link-card")).toHaveCount(1);
+      await expect(feed.getByTestId("link-card")).toContainText("Pending post");
+      await page.goto("/dashboard");
+      await expect(card.getByText("已补全", { exact: true })).toBeVisible();
       if (viewport.width > 600) {
         const before = await page.locator('aside img[alt="Zhe"]').boundingBox();
         await page.getByRole("button", { name: "Collapse sidebar" }).click();
@@ -242,6 +390,8 @@ for (const viewport of [
         await expect(page.getByRole("dialog")).toBeVisible();
         await page.keyboard.press("Escape");
       }
+      await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+      await expect(video).toBeVisible();
       const uploads = await queryD1<{ id: number; file_type: string; public_url: string }>(
         "SELECT * FROM uploads WHERE user_id=?",
         [owner],
@@ -270,7 +420,8 @@ for (const viewport of [
         await queryD1("SELECT * FROM uploads WHERE user_id=? AND file_type='video/mp4'", [owner]),
       ).toEqual([]);
       // A shorter refreshed post must not inherit a clamp without an expand button.
-      await card.getByRole("button", { name: "收起全文" }).click();
+      await post.getByRole("button", { name: "展开全文" }).click();
+      await post.getByRole("button", { name: "收起全文" }).click();
       const shortText =
         viewport.width < 600 ? "移动端短帖子内容。".repeat(30) : "一\n二\n三\n四\n五\n六\n末行";
       await executeD1(
@@ -287,12 +438,12 @@ for (const viewport of [
         expect((await page.request.post(endpoint, { headers: nextLease, data })).status()).toBe(
           200,
         );
-      const text = card.getByTestId("x-bookmark-content").locator("p.whitespace-pre-wrap").first();
+      const text = post.getByTestId("x-bookmark-content").locator("p.whitespace-pre-wrap").first();
       await expect(text).toHaveText(shortText, { timeout: 20_000 });
       expect(await text.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(
         true,
       );
-      await expect(card.getByRole("button", { name: "展开全文" })).toHaveCount(0);
+      await expect(post.getByRole("button", { name: "展开全文" })).toHaveCount(0);
       expect(errors).toEqual([]);
     } finally {
       if (linkId) await page.request.delete(`/api/v1/links/${linkId}`, { headers });

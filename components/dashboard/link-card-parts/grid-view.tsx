@@ -9,14 +9,17 @@ import {
   Link2,
   Loader2,
   Pencil,
+  Play,
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
+import { XBookmarkStatus } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
@@ -39,6 +42,8 @@ interface GridViewProps {
   onRefreshMetadata: () => void;
   onSuggest?: () => void;
   suggestDisabled?: boolean;
+  xBookmark?: XBookmark | undefined;
+  onOpenDetails?: (() => void) | undefined;
 }
 
 function GridScreenshot({
@@ -50,6 +55,8 @@ function GridScreenshot({
   onToggleEdit,
   onSuggest,
   suggestDisabled,
+  xBookmark,
+  onOpenDetails,
 }: Pick<
   GridViewProps,
   | "link"
@@ -60,10 +67,14 @@ function GridScreenshot({
   | "onToggleEdit"
   | "onSuggest"
   | "suggestDisabled"
+  | "xBookmark"
+  | "onOpenDetails"
 >) {
   const openOriginal = () => {
     window.open(link.originalUrl, "_blank", "noopener,noreferrer");
   };
+  const open = onOpenDetails ?? openOriginal;
+  const media = xBookmark?.tweet?.media ?? [];
 
   return (
     // Full-bleed open control + sibling action buttons (no nested interactives).
@@ -71,19 +82,32 @@ function GridScreenshot({
       <button
         type="button"
         className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
-        onClick={openOriginal}
+        onClick={open}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            openOriginal();
+            open();
           }
         }}
-        aria-label={`打开链接 ${link.originalUrl}`}
+        aria-label={onOpenDetails ? "查看 X 帖子" : `打开链接 ${link.originalUrl}`}
       />
 
       <div className="relative z-10 h-full w-full pointer-events-none">
         {screenshotUrl ? (
-          <Image src={screenshotUrl} alt="Screenshot" fill className="object-cover" unoptimized />
+          <Image
+            src={screenshotUrl}
+            alt={onOpenDetails ? "X 帖子预览" : "Screenshot"}
+            fill
+            className="object-cover"
+            unoptimized
+          />
+        ) : onOpenDetails ? (
+          <span
+            className="absolute inset-0 flex items-center justify-center text-5xl font-semibold text-muted-foreground/30"
+            aria-hidden
+          >
+            X
+          </span>
         ) : faviconUrl ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
@@ -102,6 +126,31 @@ function GridScreenshot({
         )}
       </div>
 
+      {onOpenDetails && (
+        <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-background/90 px-2 py-0.5 text-xs font-semibold">
+          X
+        </span>
+      )}
+      {media[0] && media[0].type !== "PHOTO" && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-black/55 text-white">
+            <Play className="size-5 fill-current" aria-hidden />
+          </span>
+        </div>
+      )}
+      {onOpenDetails && (
+        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-center justify-between gap-2">
+          <span className="min-w-0 rounded-full bg-background/90 px-2 py-0.5">
+            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} compact />
+          </span>
+          {media.length > 1 && (
+            <span className="shrink-0 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+              {media.length} 个附件
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Action overlay.
           Desktop (hover): full dim overlay revealed on hover/focus-within.
           Touch (hover:none): a small top-right floating cluster that is
@@ -109,20 +158,22 @@ function GridScreenshot({
           Container is pointer-events-none so open-button still receives
           clicks; individual actions re-enable pointer events. */}
       <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:top-1 [@media(hover:none)]:gap-0.5 [@media(hover:none)]:bg-transparent [@media(hover:none)]:opacity-100">
-        <button
-          type="button"
-          onClick={onOpenPreviewDialog}
-          disabled={isFetchingPreview}
-          aria-label="Refresh preview"
-          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
-          title="刷新预览图"
-        >
-          {isFetchingPreview ? (
-            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-          ) : (
-            <Camera className="w-4 h-4" strokeWidth={1.5} />
-          )}
-        </button>
+        {!onOpenDetails && (
+          <button
+            type="button"
+            onClick={onOpenPreviewDialog}
+            disabled={isFetchingPreview}
+            aria-label="Refresh preview"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+            title="刷新预览图"
+          >
+            {isFetchingPreview ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <Camera className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
+        )}
         {onSuggest && (
           <TooltipProvider>
             <Tooltip>
@@ -171,8 +222,8 @@ function GridMetaRow({
   onCopy: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1">
+    <div className="flex h-4 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
+      <span className="flex shrink-0 items-center gap-1">
         <Link2 className="w-3 h-3" strokeWidth={1.5} />
         <a
           href={shortUrl}
@@ -196,11 +247,13 @@ function GridMetaRow({
           )}
         </button>
       </span>
-      <span className="flex items-center gap-1">
+      <span className="flex shrink-0 items-center gap-1">
         <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
         <span data-testid="click-count">{formatNumber(link.clicks ?? 0)}</span> 次点击
       </span>
-      <span>{formatDate(link.createdAt)}</span>
+      <span className="ml-auto truncate" title={formatDate(link.createdAt)}>
+        {formatDate(link.createdAt)}
+      </span>
     </div>
   );
 }
@@ -230,6 +283,8 @@ export function GridView(props: GridViewProps) {
         isFetchingPreview={props.isFetchingPreview}
         onOpenPreviewDialog={props.onOpenPreviewDialog}
         onToggleEdit={props.onToggleEdit}
+        xBookmark={props.xBookmark}
+        onOpenDetails={props.onOpenDetails}
         {...(props.onSuggest ? { onSuggest: props.onSuggest } : {})}
         {...(props.suggestDisabled !== undefined ? { suggestDisabled: props.suggestDisabled } : {})}
       />
@@ -244,6 +299,7 @@ export function GridView(props: GridViewProps) {
           onCopyOriginalUrl={onCopyOriginalUrl}
           variant="grid"
           stopPropagationOnCopy
+          onOpenDetails={props.onOpenDetails}
         />
         <Description
           description={link.metaDescription ?? null}
@@ -252,13 +308,22 @@ export function GridView(props: GridViewProps) {
           variant="grid"
         />
         <GridMetaRow link={link} shortUrl={shortUrl} copied={copied} onCopy={onCopy} />
-        {cardTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {cardTags.map((tag) => (
-              <TagBadge key={tag.id} tag={tag} size="sm" />
-            ))}
-          </div>
-        )}
+        <div className="flex h-5 min-w-0 items-center gap-1 overflow-hidden [&>span]:max-w-24 [&>span]:truncate">
+          {cardTags.slice(0, 2).map((tag) => (
+            <TagBadge key={tag.id} tag={tag} size="sm" />
+          ))}
+          {cardTags.length > 2 && (
+            <span
+              className="shrink-0 text-xs text-muted-foreground"
+              title={cardTags
+                .slice(2)
+                .map((tag) => tag.name)
+                .join("、")}
+            >
+              +{cardTags.length - 2}
+            </span>
+          )}
+        </div>
       </div>
     </>
   );

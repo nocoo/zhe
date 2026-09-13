@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { LayerCard } from "@nocoo/basalt";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { retryXBookmarkAction } from "@/actions/connector";
 import { normalizeXPost } from "@/cli/src/connector/core";
@@ -55,39 +56,62 @@ beforeEach(() => {
 });
 
 describe("X bookmark presentation", () => {
-  it("replaces the ordinary bookmark preview with enriched X content while preserving edit controls", () => {
-    const link: Link = {
-      id: 1,
-      userId: "owner",
-      originalUrl: "https://x.com/example/status/12345",
-      slug: "test",
-      isCustom: false,
-      clicks: 0,
-      createdAt: new Date(),
-      expiresAt: null,
-      folderId: null,
-      note: "Keep this saved note after enrichment",
-      screenshotUrl: null,
-      metaTitle: null,
-      metaDescription: null,
-      metaFavicon: null,
-    };
-    const card = (
-      <LinkCard link={link} siteUrl="https://zhe.to" onDelete={vi.fn()} onUpdate={vi.fn()} />
-    );
-    const { rerender } = render(
-      <XBookmarksContext.Provider value={new Map()}>{card}</XBookmarksContext.Provider>,
-    );
-    expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
-    rerender(
-      <XBookmarksContext.Provider value={new Map([[1, bookmark]])}>
-        {card}
-      </XBookmarksContext.Provider>,
-    );
-    expect(screen.getByTestId("x-bookmark-content")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
-    expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
-  });
+  it.each(["grid", "list"] as const)(
+    "keeps %s compact after enrichment and opens the full post on demand",
+    async (viewMode) => {
+      const link: Link = {
+        id: 1,
+        userId: "owner",
+        originalUrl: "https://x.com/example/status/12345",
+        slug: "test",
+        isCustom: false,
+        clicks: 0,
+        createdAt: new Date(),
+        expiresAt: null,
+        folderId: null,
+        note: "Keep this saved note after enrichment",
+        screenshotUrl: null,
+        metaTitle: null,
+        metaDescription: null,
+        metaFavicon: null,
+      };
+      const card = (
+        <LinkCard
+          link={link}
+          siteUrl="https://zhe.to"
+          onDelete={vi.fn()}
+          onUpdate={vi.fn()}
+          viewMode={viewMode}
+        />
+      );
+      const { rerender } = render(
+        <XBookmarksContext.Provider value={new Map()}>{card}</XBookmarksContext.Provider>,
+      );
+      expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
+      rerender(
+        <XBookmarksContext.Provider value={new Map([[1, bookmark]])}>
+          {card}
+        </XBookmarksContext.Provider>,
+      );
+      expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
+      expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
+      const trigger = screen.getByRole("button", { name: "查看 X 帖子" });
+      const user = userEvent.setup();
+      await user.click(trigger);
+      expect(await screen.findByRole("dialog", { name: "X 帖子" })).toBeInTheDocument();
+      expect(screen.getByTestId("x-bookmark-content")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "打开原帖" })).toHaveAttribute(
+        "href",
+        link.originalUrl,
+      );
+      await user.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument(),
+      );
+      expect(trigger).toHaveFocus();
+    },
+  );
   it("shows author, real date, metrics and expandable escaped text", () => {
     const { container } = render(
       <LayerCard>

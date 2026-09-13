@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Bookmark,
   CloudUpload,
   Database,
   FileUp,
@@ -63,6 +64,7 @@ export const PRE_LINK_NAV_GROUPS: NavGroup[] = [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
       { title: "想法", icon: Lightbulb, href: "/dashboard/ideas" },
       { title: "待办", icon: ListTodo, href: "/dashboard/todos" },
+      { title: "X 收藏", icon: Bookmark, href: "/dashboard/x" },
     ],
   },
 ];

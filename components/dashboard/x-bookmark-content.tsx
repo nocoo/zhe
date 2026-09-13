@@ -211,9 +211,11 @@ export function XBookmarkContent({ bookmark }: { bookmark: XBookmark }) {
 export function XBookmarkStatus({
   bookmark,
   linkId,
+  compact = false,
 }: {
   bookmark: XBookmark | undefined;
   linkId: number;
+  compact?: boolean;
 }) {
   const [retrying, setRetrying] = useState(false);
   const [feedback, setFeedback] = useState<{ version: string; success: boolean } | null>(null);
@@ -228,6 +230,17 @@ export function XBookmarkStatus({
     failed: "补全暂未完成",
     unavailable: "原帖暂不可访问",
   };
+  if (compact)
+    return (
+      <span
+        role="status"
+        title={labels[state]}
+        className="inline-flex min-w-0 max-w-full items-center gap-1 truncate text-xs"
+      >
+        {state === "running" && <RefreshCw className="size-3 shrink-0 animate-spin" aria-hidden />}
+        <span className="truncate">{state === "partial" ? "媒体待补全" : labels[state]}</span>
+      </span>
+    );
   const retry = async () => {
     setRetrying(true);
     try {

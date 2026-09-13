@@ -168,6 +168,18 @@ describe("Sidebar", () => {
   });
 
   describe("collapsed mode", () => {
+    it.each([false, true])(
+      "exposes the X library as the active destination (collapsed=%s)",
+      (collapsed) => {
+        mockPathname = "/dashboard/x";
+        renderSidebar({ collapsed });
+        expect(screen.getByRole("link", { name: "X 收藏", current: "page" })).toHaveAttribute(
+          "href",
+          "/dashboard/x",
+        );
+        expect(screen.getByRole("link", { name: /^全部链接/ })).not.toHaveAttribute("aria-current");
+      },
+    );
     it("renders narrow sidebar with icon-only navigation", () => {
       const { container } = renderSidebar({ collapsed: true });
 
@@ -184,9 +196,9 @@ describe("Sidebar", () => {
     it("renders all nav items as links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items (3 概览 section + 2 folder nav + 9 static) are now <Link> (rendered as <a>)
+      // Overview, ideas, todos and X library, plus folder and static navigation.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(14);
+      expect(navLinks.length).toBe(15);
     });
 
     it("marks the current page on the matching collapsed nav link", () => {
@@ -549,9 +561,9 @@ describe("Sidebar", () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // All items are links: 3 概览 section + 2 folder nav + 2 dynamic folders + 9 static = 16
+      // All static links plus the two dynamic folders.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(16);
+      expect(navLinks.length).toBe(17);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -765,9 +777,9 @@ describe("Sidebar", () => {
     it("renders all nav links in collapsed mode", () => {
       const { container } = renderSidebar({ collapsed: true });
 
-      // 3 概览 (overview+ideas+todos) + 2 folder nav (全部链接+Inbox) + 3 工具 (uploads+backy+xray) + 2 集成 (api-keys+webhook) + 4 设置 (ai+tags+storage+data-management) = 14
+      // Includes the X library alongside the existing sections.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(14);
+      expect(navLinks.length).toBe(15);
     });
   });
 

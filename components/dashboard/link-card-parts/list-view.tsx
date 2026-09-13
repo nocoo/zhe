@@ -45,16 +45,40 @@ interface ListViewProps {
   onRefreshMetadata: () => void;
   onSuggest?: () => void;
   suggestDisabled?: boolean;
+  onOpenDetails?: (() => void) | undefined;
 }
 
 function ListThumbnail({
   link,
   screenshotUrl,
   faviconUrl,
-}: Pick<ListViewProps, "link" | "screenshotUrl" | "faviconUrl">) {
+  onOpenDetails,
+}: Pick<ListViewProps, "link" | "screenshotUrl" | "faviconUrl" | "onOpenDetails">) {
   return (
     <div className="group/thumb relative shrink-0 hidden sm:flex w-[118px] h-[62px] rounded-md border border-border/50 bg-accent items-center justify-center overflow-hidden">
-      {screenshotUrl ? (
+      {onOpenDetails ? (
+        <button
+          type="button"
+          className="flex h-full w-full items-center justify-center"
+          onClick={onOpenDetails}
+          aria-label="查看 X 帖子"
+        >
+          {screenshotUrl ? (
+            <Image
+              src={screenshotUrl}
+              alt="X 帖子预览"
+              width={118}
+              height={62}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          ) : (
+            <span className="text-2xl font-semibold text-muted-foreground/40" aria-hidden>
+              X
+            </span>
+          )}
+        </button>
+      ) : screenshotUrl ? (
         <a
           href={link.originalUrl}
           target="_blank"
@@ -162,6 +186,7 @@ function ListActions({
   onToggleEdit,
   onSuggest,
   suggestDisabled,
+  onOpenDetails,
 }: {
   isEditing: boolean;
   isFetchingPreview: boolean;
@@ -171,37 +196,46 @@ function ListActions({
   onToggleEdit: () => void;
   onSuggest?: () => void;
   suggestDisabled?: boolean;
+  onOpenDetails?: (() => void) | undefined;
 }) {
   return (
     <div className="flex items-center gap-0.5">
-      <button
-        type="button"
-        onClick={onRefreshMetadata}
-        disabled={isRefreshingMetadata}
-        aria-label="Refresh metadata"
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        title="刷新元数据"
-      >
-        {isRefreshingMetadata ? (
-          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-        ) : (
-          <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
-        )}
-      </button>
-      <button
-        type="button"
-        onClick={onOpenPreviewDialog}
-        disabled={isFetchingPreview}
-        aria-label="Refresh preview"
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        title="刷新预览图"
-      >
-        {isFetchingPreview ? (
-          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-        ) : (
-          <Camera className="w-4 h-4" strokeWidth={1.5} />
-        )}
-      </button>
+      {onOpenDetails ? (
+        <Button type="button" variant="ghost" size="sm" onClick={onOpenDetails}>
+          阅读帖子
+        </Button>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onRefreshMetadata}
+            disabled={isRefreshingMetadata}
+            aria-label="Refresh metadata"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="刷新元数据"
+          >
+            {isRefreshingMetadata ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPreviewDialog}
+            disabled={isFetchingPreview}
+            aria-label="Refresh preview"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="刷新预览图"
+          >
+            {isFetchingPreview ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+            ) : (
+              <Camera className="w-4 h-4" strokeWidth={1.5} />
+            )}
+          </button>
+        </>
+      )}
       {onSuggest && (
         <TooltipProvider>
           <Tooltip>
@@ -271,6 +305,7 @@ export function ListView(props: ListViewProps) {
         link={link}
         screenshotUrl={props.screenshotUrl}
         faviconUrl={props.faviconUrl}
+        onOpenDetails={props.onOpenDetails}
       />
 
       <div className="flex-1 min-w-0">
@@ -282,6 +317,7 @@ export function ListView(props: ListViewProps) {
           onFaviconError={onFaviconError}
           onCopyOriginalUrl={onCopyOriginalUrl}
           variant="list"
+          onOpenDetails={props.onOpenDetails}
         />
         <Description
           description={link.metaDescription ?? null}
@@ -307,6 +343,7 @@ export function ListView(props: ListViewProps) {
         onRefreshMetadata={onRefreshMetadata}
         onOpenPreviewDialog={onOpenPreviewDialog}
         onToggleEdit={onToggleEdit}
+        onOpenDetails={props.onOpenDetails}
         {...(onSuggest ? { onSuggest } : {})}
         {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
       />
