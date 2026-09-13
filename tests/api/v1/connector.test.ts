@@ -95,71 +95,74 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
     expect((await client.claimXJob()).job).toBeNull();
   });
 
-  it("streams verified video and poster into shared storage, serves Range, and cascades file removal", async () => {
-    const saved = await client.createLink({ url: source });
-    const job = unwrap((await client.claimXJob()).job);
-    expect(job.linkId).toBe(saved.link.id);
-    const videoCapture = structuredClone(capture);
-    videoCapture.tweet.media = [
-      {
-        id: mediaId,
-        type: "VIDEO",
-        url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/1280x720/test.mp4`,
-        width: 1280,
-        height: 720,
-      },
-    ];
-    await client.connectorAction(job, { action: "capture", capture: videoCapture });
-    const bytes = new Uint8Array(64);
-    bytes.set([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
-    const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const file = { path: join(dir, "test.mp4"), mime: "video/mp4", size: bytes.length, sha256 };
-    await writeFile(file.path, bytes);
-    const { asset } = await client.connectorAction<{ asset: MediaReservation }>(job, {
-      action: "reserve",
-      media: { mediaId, kind: "video", ...file },
-    });
-    await client.uploadXMedia(job, asset, file);
-    expect(await queryD1("SELECT id FROM uploads WHERE user_id=?", [owner])).toEqual([]);
-    const repeated = await client.connectorAction<{ asset: MediaReservation }>(job, {
-      action: "reserve",
-      media: { mediaId, kind: "video", ...file },
-    });
-    expect(repeated.asset).toMatchObject({ id: asset.id, uploaded: true });
-    const jpg = new Uint8Array([255, 216, 255, 224, 0, 0, 0, 0]);
-    const posterFile = {
-      path: join(dir, "poster.jpg"),
-      mime: "image/jpeg",
-      size: jpg.length,
-      sha256: createHash("sha256").update(jpg).digest("hex"),
-    };
-    await writeFile(posterFile.path, jpg);
-    const poster = await client.connectorAction<{ asset: MediaReservation }>(job, {
-      action: "reserve",
-      media: { mediaId, kind: "poster", ...posterFile },
-    });
-    await client.uploadXMedia(job, poster.asset, posterFile);
-    await client.connectorAction(job, { action: "complete" });
-    const uploads = await queryD1<{ id: number; public_url: string; key: string }>(
-      "SELECT * FROM uploads WHERE user_id=?",
-      [owner],
-    );
-    expect(uploads).toHaveLength(2);
-    const video = unwrap(uploads.find((u) => u.key === asset.key));
-    const range = await fetch(video.public_url, { headers: { Range: "bytes=8-15" } });
-    expect(range.status).toBe(206);
-    expect(range.headers.get("content-type")).toBe("video/mp4");
-    expect(range.headers.get("content-range")).toBe("bytes 8-15/64");
-    expect(new Uint8Array(await range.arrayBuffer())).toEqual(bytes.slice(8, 16));
-    const deleted = await authenticatedFetch(`${getBaseUrl()}/api/v1/uploads/${video.id}`, key, {
-      method: "DELETE",
-    });
-    expect(deleted.status).toBe(200);
-    expect(await queryD1("SELECT * FROM x_media WHERE user_id=?", [owner])).toEqual([]);
-    expect(await queryD1("SELECT * FROM uploads WHERE user_id=?", [owner])).toEqual([]);
-    for (const upload of uploads) expect((await fetch(upload.public_url)).status).toBe(404);
-    expect((await client.getLink(job.linkId)).link.id).toBe(job.linkId);
-  });
+  it.each([64, 12 * 1024 * 1024])(
+    "streams a %i-byte video and poster, serves Range, and cascades file removal",
+    async (size) => {
+      const saved = await client.createLink({ url: source });
+      const job = unwrap((await client.claimXJob()).job);
+      expect(job.linkId).toBe(saved.link.id);
+      const videoCapture = structuredClone(capture);
+      videoCapture.tweet.media = [
+        {
+          id: mediaId,
+          type: "VIDEO",
+          url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/1280x720/test.mp4`,
+          width: 1280,
+          height: 720,
+        },
+      ];
+      await client.connectorAction(job, { action: "capture", capture: videoCapture });
+      const bytes = new Uint8Array(size);
+      bytes.set([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
+      const sha256 = createHash("sha256").update(bytes).digest("hex");
+      const file = { path: join(dir, "test.mp4"), mime: "video/mp4", size: bytes.length, sha256 };
+      await writeFile(file.path, bytes);
+      const { asset } = await client.connectorAction<{ asset: MediaReservation }>(job, {
+        action: "reserve",
+        media: { mediaId, kind: "video", ...file },
+      });
+      await client.uploadXMedia(job, asset, file);
+      expect(await queryD1("SELECT id FROM uploads WHERE user_id=?", [owner])).toEqual([]);
+      const repeated = await client.connectorAction<{ asset: MediaReservation }>(job, {
+        action: "reserve",
+        media: { mediaId, kind: "video", ...file },
+      });
+      expect(repeated.asset).toMatchObject({ id: asset.id, uploaded: true });
+      const jpg = new Uint8Array([255, 216, 255, 224, 0, 0, 0, 0]);
+      const posterFile = {
+        path: join(dir, "poster.jpg"),
+        mime: "image/jpeg",
+        size: jpg.length,
+        sha256: createHash("sha256").update(jpg).digest("hex"),
+      };
+      await writeFile(posterFile.path, jpg);
+      const poster = await client.connectorAction<{ asset: MediaReservation }>(job, {
+        action: "reserve",
+        media: { mediaId, kind: "poster", ...posterFile },
+      });
+      await client.uploadXMedia(job, poster.asset, posterFile);
+      await client.connectorAction(job, { action: "complete" });
+      const uploads = await queryD1<{ id: number; public_url: string; key: string }>(
+        "SELECT * FROM uploads WHERE user_id=?",
+        [owner],
+      );
+      expect(uploads).toHaveLength(2);
+      const video = unwrap(uploads.find((u) => u.key === asset.key));
+      const range = await fetch(video.public_url, { headers: { Range: "bytes=8-15" } });
+      expect(range.status).toBe(206);
+      expect(range.headers.get("content-type")).toBe("video/mp4");
+      expect(range.headers.get("content-range")).toBe(`bytes 8-15/${size}`);
+      expect(new Uint8Array(await range.arrayBuffer())).toEqual(bytes.slice(8, 16));
+      const deleted = await authenticatedFetch(`${getBaseUrl()}/api/v1/uploads/${video.id}`, key, {
+        method: "DELETE",
+      });
+      expect(deleted.status).toBe(200);
+      expect(await queryD1("SELECT * FROM x_media WHERE user_id=?", [owner])).toEqual([]);
+      expect(await queryD1("SELECT * FROM uploads WHERE user_id=?", [owner])).toEqual([]);
+      for (const upload of uploads) expect((await fetch(upload.public_url)).status).toBe(404);
+      expect((await client.getLink(job.linkId)).link.id).toBe(job.linkId);
+    },
+  );
 
   it("rejects invalid digests and late writes after a bookmark URL changes", async () => {
     await client.createLink({ url: source });

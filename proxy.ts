@@ -127,7 +127,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - Static assets (images, icons, etc.)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - Connector API (route-level bearer auth; preserve the unbuffered media stream)
      */
-    "/((?!_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.jpeg$|.*\\.webp$|sitemap.xml|robots.txt).*)",
+    "/((?!api/v1/connector(?:/|$)|_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.jpeg$|.*\\.webp$|sitemap.xml|robots.txt).*)",
   ],
 };

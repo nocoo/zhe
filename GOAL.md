@@ -49,5 +49,6 @@
 - C27：补充媒体失败重试、共享密钥到期/撤销及 R2 streaming 行为测试后，主应用 unit-only 覆盖率门禁通过：161 文件 / 3037 项，语句 95.43%、分支 88.55%、函数 93.12%、行 96.51%。Integration 193 项、CLI 223 项、真实本地 HTTP 209 项通过；类型、Biome、构建及 root/CLI OSV 扫描通过。
 - C28：最终完整 L3 共 159 项通过，包括桌面/手机正文可见性、自动补全刷新、实际视频播放、图片预览和连锁删除后 R2 404。独立 Worker 72 项及 `worker/wrangler.local.toml` dry-run 通过。
 - C30：已导出并在内存 SQLite 中成功恢复两份生产 D1 备份，文件权限 0600。Snail 共 1 个资产、1 个收藏、1 个 blob，无分类或标签；Zhe 备份含 219 条链接、12 个上传记录。生产 Connector 新表在备份时尚不存在。只记录数量，私人内容不进入文档。
+- C34 HTTP RED：独立 Codex 审查复现 Next.js 通用代理将 12 MiB 上传截成 10 MiB；新增真实 HTTP 大文件场景因 `digest_mismatch` 失败。GREEN：Connector API 由已有路由认证独立处理，避免通用代理复制/截断正文，完整 HTTP 210 项通过；未登录 401、错误权限 403 的检查仍通过。
 - 生产 Google 登录已从公开登录页完成并进入 Zhe Dashboard。尚未部署 Connector 或向生产 Zhe R2 写入。
 - 当前仅本地验证。尚未部署 Zhe 新能力、迁移生产收藏或删除 Snail。原始日志位于 ignored `.artifacts/`。
