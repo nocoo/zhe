@@ -188,6 +188,20 @@ describe("Connector capture trust boundary", () => {
     expect(result.tweet.entities.urls).toEqual(["https://example.com"]);
     expect(JSON.stringify(result)).not.toContain("synthetic-only");
   });
+  it("accepts GIF captures with the canonical tweet_video and thumbnail paths", () => {
+    const data = structuredClone(base);
+    data.tweet.media = [
+      {
+        id: mediaId,
+        type: "GIF",
+        url: "https://video.twimg.com/tweet_video/SyntheticGif_1.mp4",
+        thumbnail_url: "https://pbs.twimg.com/tweet_video_thumb/SyntheticGif_1.jpg",
+        width: 480,
+        height: 320,
+      },
+    ];
+    expect(validateCapture(data, postId).media).toEqual(data.tweet.media);
+  });
   it.each([null, [], {}, { tweet: { id: postId, url: base.tweet.url } }])(
     "rejects malformed captures",
     (raw) => {

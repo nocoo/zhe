@@ -55,6 +55,15 @@ describe("bounded local media capture", () => {
     expect(execute.mock.calls.map((c) => c[0])).toEqual(["ffprobe", "ffmpeg"]);
     expect(await readdir(dir)).toHaveLength(1);
   });
+  it("downloads and verifies a GIF's MP4 with the same video safety checks", async () => {
+    const file = await downloadMedia(
+      { ...media, type: "GIF", url: "https://video.twimg.com/tweet_video/SyntheticGif_1.mp4" },
+      dir,
+    );
+    expect(file).toMatchObject({ size: 64, mime: "video/mp4", duration: 7.2 });
+    expect(file.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(execute.mock.calls.map((c) => c[0])).toEqual(["ffprobe", "ffmpeg"]);
+  });
   it("treats photos as archives too", async () => {
     const photo = {
       ...media,

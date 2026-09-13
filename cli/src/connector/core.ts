@@ -120,10 +120,10 @@ export function mediaUrl(
         ? /^\/media\/[A-Za-z0-9_-]+(?:\.(?:jpg|jpeg|png|webp))?$/
         : kind === "poster"
           ? new RegExp(
-              `^/(?:amplify_video_thumb|ext_tw_video_thumb)/${mediaId}/(?:pu/)?img/[A-Za-z0-9_-]+(?:\\.(?:jpg|jpeg|png|webp))?$`,
+              `^/(?:(?:amplify_video_thumb|ext_tw_video_thumb)/${mediaId}/(?:pu/)?img|tweet_video_thumb)/[A-Za-z0-9_-]+(?:\\.(?:jpg|jpeg|png|webp))?$`,
             )
           : new RegExp(
-              `^/(?:amplify_video|ext_tw_video)/${mediaId}/(?:pu/)?vid/(?:avc1/)?[0-9]+x[0-9]+/[A-Za-z0-9_-]+\\.mp4$`,
+              `^/(?:(?:amplify_video|ext_tw_video)/${mediaId}/(?:pu/)?vid/(?:avc1/)?[0-9]+x[0-9]+|tweet_video)/[A-Za-z0-9_-]+\\.mp4$`,
             );
     const queryKeys = kind === "video" ? ["tag"] : ["format", "name"];
     if (

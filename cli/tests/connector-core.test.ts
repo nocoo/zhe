@@ -37,6 +37,57 @@ function post(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Zhe X bookmark source", () => {
+  it("preserves animated GIFs served from X's tweet_video CDN paths", () => {
+    const base = post();
+    const url = "https://video.twimg.com/tweet_video/SyntheticGif_1.mp4";
+    const thumbnail = "https://pbs.twimg.com/tweet_video_thumb/SyntheticGif_1.jpg";
+    const result = normalizeXPost(
+      {
+        ...base,
+        legacy: {
+          ...base.legacy,
+          extended_entities: {
+            media: [
+              {
+                id_str: mediaId,
+                type: "animated_gif",
+                media_url_https: thumbnail,
+                original_info: { width: 480, height: 320 },
+                video_info: { variants: [{ content_type: "video/mp4", url }] },
+              },
+            ],
+          },
+        },
+      },
+      postId,
+    );
+    expect(result?.media).toEqual([
+      {
+        id: mediaId,
+        type: "GIF",
+        url,
+        thumbnail_url: thumbnail,
+        width: 480,
+        height: 320,
+        duration: 0,
+      },
+    ]);
+    expect(result?.tweet.media).toEqual(result?.media);
+  });
+  it("keeps GIF source validation bounded to exact hosts and file paths", () => {
+    for (const url of [
+      "https://video.twimg.com.evil.invalid/tweet_video/test.mp4",
+      "https://pbs.twimg.com/tweet_video/test.mp4",
+      "https://video.twimg.com/tweet_video/nested/test.mp4",
+      "https://video.twimg.com/tweet_video/test.webm",
+      "https://video.twimg.com/tweet_video/test.mp4?redirect=evil",
+      "https://video.twimg.com/tweet_video/%2Ftest.mp4",
+    ])
+      expect(mediaUrl(url, mediaId, "video")).toBeNull();
+    expect(
+      mediaUrl("https://pbs.twimg.com/tweet_video_thumb/nested/test.jpg", mediaId, "poster"),
+    ).toBeNull();
+  });
   it("fails closed for malformed URLs, CDN paths and media identities", () => {
     expect(canonicalXPost("invalid URL")).toBeNull();
     for (const url of [
