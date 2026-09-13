@@ -14,3 +14,12 @@ README.md
 worker
 logo.png
 scripts
+.artifacts
+.connector
+.test-storage
+coverage
+playwright-report
+test-results
+cli/node_modules
+cli/dist
+cli/tests
