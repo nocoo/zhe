@@ -18,15 +18,15 @@ export function buildLinksQuery(
   const params: unknown[] = [userId];
 
   if (query) {
-    const searchPattern = `%${query}%`;
+    // D1 limits LIKE patterns to 50 bytes; INSTR also keeps URL punctuation literal.
     conditions.push(`(
-      l.slug LIKE ? OR
-      l.original_url LIKE ? OR
-      l.note LIKE ? OR
-      l.meta_title LIKE ? OR
-      l.meta_description LIKE ?
+      instr(lower(l.slug), lower(?)) > 0 OR
+      instr(lower(l.original_url), lower(?)) > 0 OR
+      instr(lower(l.note), lower(?)) > 0 OR
+      instr(lower(l.meta_title), lower(?)) > 0 OR
+      instr(lower(l.meta_description), lower(?)) > 0
     )`);
-    params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    params.push(query, query, query, query, query);
   }
 
   if (folderId === "inbox") {

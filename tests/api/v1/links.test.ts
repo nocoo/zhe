@@ -178,6 +178,34 @@ describe("/api/v1/links", () => {
       expect(body.total).toBeGreaterThanOrEqual(body.links.length);
     });
 
+    it("searches a complete long URL and a pasted Chinese note", async () => {
+      const url = `https://example.com/search/${"long-path-".repeat(16)}?source=bookmark`;
+      const note = "收藏长文章后可以使用完整的中文段落搜索已保存的链接内容";
+      const created = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, note }),
+      });
+      expect(created.status).toBe(201);
+      const { link } = await created.json();
+      try {
+        for (const query of [url, note]) {
+          const response = await authenticatedFetch(
+            `${API_URL}?q=${encodeURIComponent(query)}`,
+            apiKeyReadOnly,
+          );
+          expect(response.status).toBe(200);
+          const body = await response.json();
+          expect(body.total).toBe(1);
+          expect(body.links.map((item: { id: number }) => item.id)).toEqual([link.id]);
+        }
+      } finally {
+        await authenticatedFetch(`${API_URL}/${link.id}`, apiKeyWithReadWrite, {
+          method: "DELETE",
+        });
+      }
+    });
+
     it("supports sorting by clicks", async () => {
       const response = await authenticatedFetch(
         `${API_URL}?sort=clicks&order=desc`,

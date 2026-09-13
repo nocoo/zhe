@@ -332,7 +332,7 @@ vi.mock("@/lib/db/d1-client", async () => {
       const folderIsNull = sqlLower.includes("folder_id is null");
       let paramIndex = 1;
 
-      if (sqlLower.includes("like ?")) {
+      if (sqlLower.includes("instr(lower(l.slug)")) {
         queryPattern = params[paramIndex] as string;
         paramIndex += 5;
       }
@@ -349,7 +349,7 @@ vi.mock("@/lib/db/d1-client", async () => {
         const rawLink = link as unknown as Record<string, unknown>;
         if (rawLink.user_id !== userId) continue;
         if (queryPattern) {
-          const search = queryPattern.replace(/%/g, "").toLowerCase();
+          const search = queryPattern.toLowerCase();
           const matchesSearch =
             ((rawLink.slug as string) || "").toLowerCase().includes(search) ||
             ((rawLink.original_url as string) || "").toLowerCase().includes(search) ||
@@ -392,10 +392,10 @@ vi.mock("@/lib/db/d1-client", async () => {
 
       let paramIndex = 1; // Start after userId
 
-      // Check for LIKE patterns (keyword search)
-      if (sqlLower.includes("like ?")) {
+      // Check for literal keyword search across the five link fields.
+      if (sqlLower.includes("instr(lower(l.slug)")) {
         queryPattern = params[paramIndex] as string;
-        paramIndex += 5; // 5 LIKE params for search
+        paramIndex += 5;
       }
 
       // Check for folder_id = ? (not IS NULL)
@@ -417,7 +417,7 @@ vi.mock("@/lib/db/d1-client", async () => {
 
         // Keyword search filter
         if (queryPattern) {
-          const search = queryPattern.replace(/%/g, "").toLowerCase();
+          const search = queryPattern.toLowerCase();
           const matchesSearch =
             ((rawLink.slug as string) || "").toLowerCase().includes(search) ||
             ((rawLink.original_url as string) || "").toLowerCase().includes(search) ||
