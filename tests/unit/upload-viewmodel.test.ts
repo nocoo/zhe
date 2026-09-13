@@ -316,6 +316,21 @@ describe("useUploadsViewModel", () => {
   });
 
   describe("handleDelete", () => {
+    it("removes a video's cascaded poster while preserving unrelated uploads", async () => {
+      const video = makeUpload({ id: 1, fileType: "video/mp4" });
+      const poster = makeUpload({ id: 2, fileType: "image/jpeg" });
+      const unrelated = makeUpload({ id: 3 });
+      mockDeleteUploadAction.mockResolvedValue({ success: true });
+      mockFetchUploads.mockResolvedValue({ success: true, data: [unrelated] });
+      const { result } = renderHook(() => useUploadsViewModel([video, poster, unrelated]));
+
+      await act(async () => {
+        expect(await result.current.handleDelete(video.id)).toBe(true);
+      });
+
+      expect(result.current.uploads).toEqual([unrelated]);
+    });
+
     it("removes upload from list on success", async () => {
       const uploads = [makeUpload({ id: 1 }), makeUpload({ id: 2 })];
       mockFetchUploads.mockResolvedValue({ success: true, data: uploads });

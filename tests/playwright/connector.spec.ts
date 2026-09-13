@@ -248,9 +248,22 @@ for (const viewport of [
       );
       const archived = uploads.find((item) => item.file_type === "video/mp4");
       assert(archived);
-      expect(
-        (await page.request.delete(`/api/v1/uploads/${archived.id}`, { headers })).status(),
-      ).toBe(200);
+      const filesPage = await context.newPage();
+      try {
+        await filesPage.setViewportSize(viewport);
+        await filesPage.goto("/dashboard/uploads");
+        await expect(filesPage.getByTestId("upload-item")).toHaveCount(3);
+        const videoFile = filesPage
+          .getByTestId("upload-item")
+          .filter({ hasText: `${mediaId}.mp4` });
+        await videoFile.getByRole("button", { name: "Delete file" }).click();
+        await filesPage.getByTestId("upload-delete-confirm").click();
+        await expect(filesPage.getByTestId("upload-item")).toHaveCount(1);
+        await expect(filesPage.getByTestId("upload-file-name")).toHaveText(`${photoId}.jpg`);
+      } finally {
+        await filesPage.close();
+        await page.bringToFront();
+      }
       await expect(video).toHaveCount(0, { timeout: 20_000 });
       expect((await fetch(archived.public_url)).status).toBe(404);
       expect(

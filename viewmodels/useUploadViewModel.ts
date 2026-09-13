@@ -67,6 +67,11 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
     const result = await deleteUploadAction(uploadId);
     if (result.success) {
       setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+      // A video deletion also removes its poster on the server.
+      const refreshed = await fetchUploads().catch(() => null);
+      if (refreshed?.success && refreshed.data) {
+        setUploads(refreshed.data.filter((u) => u.id !== uploadId));
+      }
       return true;
     }
     return false;
