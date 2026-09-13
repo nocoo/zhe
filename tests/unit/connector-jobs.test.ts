@@ -19,7 +19,7 @@ import * as d1 from "@/lib/db/d1-client";
 import { deleteLink as scopedDeleteLink } from "@/lib/db/scoped/links";
 import { deleteUpload as scopedDeleteUpload } from "@/lib/db/scoped/uploads";
 import * as r2 from "@/lib/r2/client";
-import { drainR2Deletions } from "@/lib/r2/gc";
+import { drainR2Deletions, enqueueR2Deletion } from "@/lib/r2/gc";
 import { hashApiKey } from "@/models/api-key";
 
 vi.mock("@/lib/auth-context", () => ({ requireAuth: async () => "owner" }));
@@ -571,6 +571,93 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     failing.mockRestore();
     expect(await drainR2Deletions("other", now)).toBe(0);
     expect(await drainR2Deletions("owner", now)).toBe(1);
+  });
+
+  it.each(["video", "poster"])(
+    "honors a deletion racing a retry's %s reservation",
+    async (kind) => {
+      const { id, job, asset } = await prepare();
+      await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
+      const partialCapture = {
+        tweet: {
+          ...videoCapture.tweet,
+          media: [
+            ...videoCapture.tweet.media,
+            {
+              id: "2000000000000000003",
+              type: "PHOTO",
+              url: "https://pbs.twimg.com/media/test.jpg",
+            },
+          ],
+        },
+      };
+      await stageXCapture(identity, id, job.leaseToken, partialCapture, now);
+      await completeXBookmark(identity, id, job.leaseToken, now);
+      expect((await getXBookmarks("owner", [id]))[0]?.state).toBe("partial");
+      const retryAt = now + 300_001;
+      vi.spyOn(Date, "now").mockReturnValue(retryAt);
+      const retry = required(await claimXBookmark(identity, retryAt));
+      await stageXCapture(identity, id, retry.leaseToken, partialCapture, retryAt);
+      const original = d1.executeD1Query;
+      let deleted = false;
+      vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+        const result = await original(sql, params);
+        if (!deleted && sql.startsWith("SELECT post_id,draft_json,removed_media")) {
+          deleted = true;
+          db.prepare("DELETE FROM uploads WHERE key=?").run(asset.key);
+        }
+        return result;
+      });
+      const reservation = await reserveXMedia(
+        identity,
+        id,
+        retry.leaseToken,
+        { ...descriptor, kind, mime: kind === "video" ? "video/mp4" : "image/jpeg" },
+        retryAt,
+      );
+      expect(reservation).toEqual({ skipped: true });
+      expect(rows("x_media")).toEqual([]);
+      expect(rows("uploads")).toEqual([]);
+    },
+  );
+
+  it("cleans unreferenced objects even when 100 older queue entries still have screenshot references", async () => {
+    for (let i = 0; i < 100; i++) {
+      const key = `owner/referenced-${i}.jpg`;
+      const id = link(`https://example.com/${i}`);
+      db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(
+        `https://cdn.example.com/${key}`,
+        id,
+      );
+      await enqueueR2Deletion(key, "owner", now - 1);
+    }
+    const orphan = "owner/retired.jpg";
+    await r2.uploadBufferToR2(orphan, bytes, "image/jpeg");
+    await enqueueR2Deletion(orphan, "owner", now);
+
+    expect(await drainR2Deletions("owner", now)).toBe(1);
+    expect(rows("r2_deletions")).toHaveLength(100);
+    expect(await r2.listR2Objects()).toEqual([]);
+  });
+
+  it("retains cleanup re-enqueued while an earlier R2 deletion is in flight", async () => {
+    const key = "owner/late-upload.mp4";
+    await r2.uploadBufferToR2(key, bytes, "video/mp4");
+    await enqueueR2Deletion(key, "owner", now);
+    const original = r2.deleteR2Object;
+    vi.spyOn(r2, "deleteR2Object").mockImplementationOnce(async (target) => {
+      await original(target);
+      // The canceled upload finishes after R2 deletes, before DELETE responds.
+      await r2.uploadBufferToR2(target, bytes, "video/mp4");
+      await enqueueR2Deletion(target, "owner", now);
+    });
+
+    await drainR2Deletions("owner", now);
+    expect(rows("r2_deletions")).toHaveLength(1);
+    expect(await r2.listR2Objects()).toHaveLength(1);
+    expect(await drainR2Deletions("owner", now)).toBe(1);
+    expect(rows("r2_deletions")).toEqual([]);
+    expect(await r2.listR2Objects()).toEqual([]);
   });
 });
 

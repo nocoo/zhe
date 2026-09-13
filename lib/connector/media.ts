@@ -105,9 +105,14 @@ export async function reserveXMedia(
   if (!salt || !process.env.R2_PUBLIC_DOMAIN) throw new ConnectorError("storage_unavailable", 503);
   const assetId = randomUUID();
   const key = `${await hashUserId(auth.userId, salt)}/x/${job.post_id}/${id}/${assetId}.${extension}`;
+  const removalSql = "EXISTS(SELECT 1 FROM json_each(removed_media) WHERE value IN (?,?))";
+  const removalParams = [
+    `${source.id}:${raw.kind}`,
+    `${source.id}:${raw.kind === "poster" ? "video" : raw.kind}`,
+  ];
   const rows = await executeD1Query<MediaRow>(
     `INSERT INTO x_media(id,link_id,user_id,media_id,kind,r2_key,mime,size,sha256,lease_token,created_at)
-    SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL})
+    SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL} AND NOT ${removalSql})
     ON CONFLICT(link_id,media_id,kind) DO NOTHING RETURNING *`,
     [
       assetId,
@@ -122,9 +127,15 @@ export async function reserveXMedia(
       token,
       now,
       ...leaseParams(auth, id, token, now),
+      ...removalParams,
     ],
   );
-  return rows.length ? { id: assetId, key, uploaded: false } : null;
+  if (rows.length) return { id: assetId, key, uploaded: false };
+  const removedDuringReservation = await executeD1Query(
+    `SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL} AND ${removalSql}`,
+    [...leaseParams(auth, id, token, now), ...removalParams],
+  );
+  return removedDuringReservation.length ? { skipped: true } : null;
 }
 
 async function* verifiedBytes(

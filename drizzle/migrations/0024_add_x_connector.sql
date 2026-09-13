@@ -66,13 +66,15 @@ END;
 
 CREATE TRIGGER x_media_deleted AFTER DELETE ON x_media
 BEGIN
-  INSERT OR IGNORE INTO r2_deletions(key, user_id, created_at)
-    VALUES(OLD.r2_key, OLD.user_id, CAST(strftime('%s','now') AS INTEGER) * 1000);
+  INSERT INTO r2_deletions(key, user_id, created_at)
+    VALUES(OLD.r2_key, OLD.user_id, CAST(strftime('%s','now') AS INTEGER) * 1000)
+    ON CONFLICT(key) DO UPDATE SET created_at=MAX(r2_deletions.created_at+1,excluded.created_at);
   -- D1 does not run this trigger recursively for the poster cascade. Queue and
   -- remove its upload explicitly while the poster row still exists.
-  INSERT OR IGNORE INTO r2_deletions(key, user_id, created_at)
+  INSERT INTO r2_deletions(key, user_id, created_at)
     SELECT r2_key,user_id,CAST(strftime('%s','now') AS INTEGER) * 1000 FROM x_media
-    WHERE link_id=OLD.link_id AND media_id=OLD.media_id AND kind='poster' AND OLD.kind='video';
+    WHERE link_id=OLD.link_id AND media_id=OLD.media_id AND kind='poster' AND OLD.kind='video'
+    ON CONFLICT(key) DO UPDATE SET created_at=MAX(r2_deletions.created_at+1,excluded.created_at);
   DELETE FROM uploads WHERE user_id=OLD.user_id AND (id=OLD.upload_id OR id IN (
     SELECT upload_id FROM x_media WHERE link_id=OLD.link_id AND media_id=OLD.media_id
     AND kind='poster' AND OLD.kind='video'));
@@ -82,6 +84,7 @@ END;
 
 CREATE TRIGGER upload_object_deleted AFTER DELETE ON uploads
 BEGIN
-  INSERT OR IGNORE INTO r2_deletions(key, user_id, created_at)
-    VALUES(OLD.key, OLD.user_id, CAST(strftime('%s','now') AS INTEGER) * 1000);
+  INSERT INTO r2_deletions(key, user_id, created_at)
+    VALUES(OLD.key, OLD.user_id, CAST(strftime('%s','now') AS INTEGER) * 1000)
+    ON CONFLICT(key) DO UPDATE SET created_at=MAX(r2_deletions.created_at+1,excluded.created_at);
 END;
