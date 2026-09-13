@@ -730,13 +730,13 @@ describe("Sidebar", () => {
       expect(dataLink.className).toContain("text-primary");
     });
 
-    it('renders "Webhook" link in expanded mode with Legacy badge', () => {
+    it('renders "Webhook" as a supported integration', () => {
       renderSidebar({ collapsed: false });
 
       const webhookLink = screen.getByRole("link", { name: /Webhook/ });
       expect(webhookLink).toBeInTheDocument();
       expect(webhookLink.getAttribute("href")).toBe("/dashboard/webhook");
-      expect(webhookLink.textContent).toContain("Legacy");
+      expect(webhookLink.textContent).not.toContain("Legacy");
     });
 
     it('highlights "Webhook" when on webhook page', () => {

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
-import { DeprecationWarning } from "./webhook-page-parts/deprecation-warning";
+import { ApiKeyShortcut } from "./webhook-page-parts/api-key-shortcut";
 import {
   CredentialRow,
   RateLimitControl,
@@ -55,7 +55,7 @@ function ConfiguredView(props: ConfiguredViewProps) {
 
   return (
     <div className="space-y-4" data-testid="webhook-token-section">
-      <DeprecationWarning
+      <ApiKeyShortcut
         isMigrating={isMigrating}
         migratedApiKey={migratedApiKey}
         onMigrate={onMigrate}
@@ -108,7 +108,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Webhook" description="通过令牌让外部系统创建短链接（已废弃）。" />
+      <PageHeader title="Webhook" description="生成一个 URL，供外部系统直接收藏网页和 X 帖子。" />
       <Card>
         <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (

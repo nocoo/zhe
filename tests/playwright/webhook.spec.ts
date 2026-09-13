@@ -42,7 +42,7 @@ test.describe
       await goToWebhook(page);
 
       // Description text
-      await expect(page.getByText("通过令牌让外部系统创建短链接（已废弃）。")).toBeVisible({
+      await expect(page.getByText("生成一个 URL，供外部系统直接收藏网页和 X 帖子。")).toBeVisible({
         timeout: 15_000,
       });
 

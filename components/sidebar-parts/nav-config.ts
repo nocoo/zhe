@@ -81,7 +81,7 @@ export const OTHER_NAV_GROUPS: NavGroup[] = [
     label: "集成",
     items: [
       { title: "API Keys", icon: Key, href: "/dashboard/api-keys" },
-      { title: "Webhook", icon: Webhook, href: "/dashboard/webhook", badge: "Legacy" },
+      { title: "Webhook", icon: Webhook, href: "/dashboard/webhook" },
     ],
   },
   {

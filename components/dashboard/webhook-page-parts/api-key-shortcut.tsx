@@ -1,9 +1,9 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Check, Copy, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, LayerCard } from "@nocoo/basalt";
+import { ArrowRight, Check, Copy, KeyRound } from "lucide-react";
 
-interface DeprecationWarningProps {
+interface ApiKeyShortcutProps {
   isMigrating: boolean;
   migratedApiKey: string | null;
   onMigrate: () => void;
@@ -32,8 +32,8 @@ function MigratedKeyDisplay({
         </code>
         <Button
           variant="ghost"
-          size="default"
-          className="h-7 w-7 p-0 shrink-0"
+          size="icon"
+          className="shrink-0"
           onClick={() => onCopy(apiKey)}
           aria-label="复制 API Key"
           data-testid="copy-migrated-key-btn"
@@ -41,40 +41,36 @@ function MigratedKeyDisplay({
           <Copy className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <p className="text-xs text-amber-700 dark:text-amber-300">
+      <p className="text-xs text-muted-foreground">
         使用方式：
-        <code className="bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
+        <code className="bg-secondary px-1 rounded">
           Authorization: Bearer {apiKey.substring(0, 12)}...
         </code>
       </p>
-      <p className="text-xs text-amber-700 dark:text-amber-300">
-        <strong>下一步：</strong>
-        更新你的集成使用新 API Key，然后点击下方「撤销令牌」按钮停用旧 Webhook。
+      <p className="text-xs text-muted-foreground">
+        <strong>下一步：</strong>在 Zhe CLI 或其他应用中使用此 API Key；Webhook URL 可继续使用。
       </p>
     </div>
   );
 }
 
-export function DeprecationWarning({
+export function ApiKeyShortcut({
   isMigrating,
   migratedApiKey,
   onMigrate,
   onCopy,
-}: DeprecationWarningProps) {
+}: ApiKeyShortcutProps) {
   return (
-    <div
-      className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-3"
-      data-testid="webhook-deprecation-warning"
-    >
+    <LayerCard.Well data-testid="webhook-api-key-shortcut">
       <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
         <div className="space-y-2">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Webhook 令牌即将弃用</strong>
-            。请创建 API Key 并更新你的集成，然后撤销 Webhook 令牌。
+          <p className="text-sm text-foreground">
+            <strong>Webhook 持续可用</strong>
+            。直接调用生成的 URL 即可收藏链接，无需登录或额外鉴权头。
           </p>
-          <p className="text-xs text-amber-700 dark:text-amber-300">
-            弃用日期：2026-10-01。届时 Webhook API 将停止服务。
+          <p className="text-xs text-muted-foreground">
+            X 链接会先保存，再由已登录的 Zhe CLI Connector 自动补全。也可以创建 API Key 来使用更多
+            API 操作。
           </p>
           {migratedApiKey ? (
             <MigratedKeyDisplay apiKey={migratedApiKey} onCopy={onCopy} />
@@ -82,7 +78,7 @@ export function DeprecationWarning({
             <Button
               variant="outline"
               size="default"
-              className="gap-1.5 border-amber-500/50 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+              className="gap-1.5 "
               onClick={onMigrate}
               disabled={isMigrating}
               data-testid="migrate-to-apikey-btn"
@@ -94,6 +90,6 @@ export function DeprecationWarning({
           )}
         </div>
       </div>
-    </div>
+    </LayerCard.Well>
   );
 }
