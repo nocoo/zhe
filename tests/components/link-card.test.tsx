@@ -559,7 +559,7 @@ describe("LinkCard", () => {
   it("shows edit button in grid mode overlay", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
   });
 
   it("toggles inline edit area when edit button is clicked in grid mode", async () => {
@@ -567,7 +567,7 @@ describe("LinkCard", () => {
 
     expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit link" }));
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
@@ -624,7 +624,7 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
     expect(screen.getByLabelText("Refresh preview")).toBeInTheDocument();
-    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
   });
 
   it("displays tag badges in grid mode when tags are assigned", () => {

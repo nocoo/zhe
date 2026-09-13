@@ -2,6 +2,7 @@
 
 import { Check, Copy, Link2 } from "lucide-react";
 import Image from "next/image";
+import { XIcon } from "@/components/x-icon";
 import type { Link } from "@/models/types";
 
 /** Favicon image with fallback to placeholder square. */
@@ -61,7 +62,7 @@ function TitleAnchor({
     titleText
   );
   const className =
-    "min-w-0 truncate text-left text-sm font-medium text-foreground hover:underline";
+    "min-w-0 truncate text-left text-sm font-medium leading-5 text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   if (onOpenDetails)
     return (
       <button type="button" onClick={onOpenDetails} className={className}>
@@ -132,12 +133,16 @@ export function TitleRow({
   const rowCls = variant === "grid" ? "flex items-center gap-1.5" : "flex items-center gap-2 mb-1";
   return (
     <div className={rowCls}>
-      <Favicon
-        link={link}
-        show={showFaviconImage}
-        onError={onFaviconError}
-        size={variant === "grid" ? "sm" : "md"}
-      />
+      {onOpenDetails ? (
+        <XIcon className="size-3.5 shrink-0 text-foreground" />
+      ) : (
+        <Favicon
+          link={link}
+          show={showFaviconImage}
+          onError={onFaviconError}
+          size={variant === "grid" ? "sm" : "md"}
+        />
+      )}
       <TitleAnchor
         href={link.originalUrl}
         note={link.note}
@@ -168,11 +173,9 @@ export function Description({
   onRefresh: () => void;
   variant: "grid" | "list";
 }) {
-  const baseCls = variant === "grid" ? "line-clamp-2 h-8 leading-4" : "mt-0.5 truncate";
+  const baseCls = variant === "grid" ? "line-clamp-2 h-10 leading-5" : "mt-0.5 truncate";
   if (description) {
-    return (
-      <p className={`break-words text-xs text-muted-foreground/70 ${baseCls}`}>{description}</p>
-    );
+    return <p className={`break-words text-xs text-muted-foreground ${baseCls}`}>{description}</p>;
   }
   return (
     <p className={`text-xs text-muted-foreground/40 ${baseCls}`}>

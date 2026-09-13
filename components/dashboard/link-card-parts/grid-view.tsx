@@ -16,10 +16,12 @@ import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
-import { XBookmarkStatus } from "../x-bookmark-content";
+import { getXContentTypes } from "@/models/x-bookmarks";
+import { XBookmarkStatus, XSourceBadge } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
@@ -78,10 +80,10 @@ function GridScreenshot({
 
   return (
     // Full-bleed open control + sibling action buttons (no nested interactives).
-    <div className="relative block w-full aspect-[4/3] bg-accent">
+    <div className="relative block w-full aspect-[4/3] border-b border-border/50 bg-background/60">
       <button
         type="button"
-        className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0"
+        className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         onClick={open}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -102,12 +104,13 @@ function GridScreenshot({
             unoptimized
           />
         ) : onOpenDetails ? (
-          <span
-            className="absolute inset-0 flex items-center justify-center text-5xl font-semibold text-muted-foreground/30"
+          <div
+            className="absolute inset-0 flex items-center justify-center overflow-hidden"
             aria-hidden
           >
-            X
-          </span>
+            <XIcon className="absolute -bottom-4 -right-4 size-36 text-foreground/[0.035]" />
+            <XIcon className="size-12 text-foreground/60" />
+          </div>
         ) : faviconUrl ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Image
@@ -127,44 +130,41 @@ function GridScreenshot({
       </div>
 
       {onOpenDetails && (
-        <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-background/90 px-2 py-0.5 text-xs font-semibold">
-          X
+        <span className="pointer-events-none absolute left-3 top-3 z-10">
+          <XSourceBadge type={getXContentTypes(xBookmark?.tweet)[0] ?? "pending"} />
         </span>
       )}
       {media[0] && media[0].type !== "PHOTO" && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-black/55 text-white">
+          <span className="flex size-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-sm">
             <Play className="size-5 fill-current" aria-hidden />
           </span>
         </div>
       )}
       {onOpenDetails && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-center justify-between gap-2">
-          <span className="min-w-0 rounded-full bg-background/90 px-2 py-0.5">
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2">
+          <span className="min-w-0 rounded-full border border-border/40 bg-secondary/95 px-2 py-1 backdrop-blur-sm">
             <XBookmarkStatus bookmark={xBookmark} linkId={link.id} compact />
           </span>
           {media.length > 1 && (
-            <span className="shrink-0 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">
+            <span className="shrink-0 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
               {media.length} 个附件
             </span>
           )}
         </div>
       )}
 
-      {/* Action overlay.
-          Desktop (hover): full dim overlay revealed on hover/focus-within.
-          Touch (hover:none): a small top-right floating cluster that is
-          always visible so actions remain reachable without hover.
-          Container is pointer-events-none so open-button still receives
-          clicks; individual actions re-enable pointer events. */}
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center gap-1 bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:inset-auto [@media(hover:none)]:right-1 [@media(hover:none)]:top-1 [@media(hover:none)]:gap-0.5 [@media(hover:none)]:bg-transparent [@media(hover:none)]:opacity-100">
+      {/* Sibling actions stay clear of the preview and remain visible on touch. */}
+      <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
         {!onOpenDetails && (
-          <button
+          <Button
             type="button"
+            size="icon"
+            variant="ghost"
             onClick={onOpenPreviewDialog}
             disabled={isFetchingPreview}
             aria-label="Refresh preview"
-            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+            className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
             title="刷新预览图"
           >
             {isFetchingPreview ? (
@@ -172,7 +172,7 @@ function GridScreenshot({
             ) : (
               <Camera className="w-4 h-4" strokeWidth={1.5} />
             )}
-          </button>
+          </Button>
         )}
         {onSuggest && (
           <TooltipProvider>
@@ -186,7 +186,7 @@ function GridScreenshot({
                     onClick={onSuggest}
                     disabled={suggestDisabled}
                     aria-label="AI 建议"
-                    className="text-white/80 hover:bg-white/20 hover:text-white disabled:opacity-40 [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
+                    className="text-white/90 hover:bg-white/15 hover:text-white disabled:opacity-40"
                   >
                     <Sparkles strokeWidth={1.5} />
                   </Button>
@@ -196,15 +196,17 @@ function GridScreenshot({
             </Tooltip>
           </TooltipProvider>
         )}
-        <button
+        <Button
           type="button"
+          size="icon"
+          variant="ghost"
           onClick={onToggleEdit}
           aria-label="Edit link"
-          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/20 hover:text-white [@media(hover:none)]:bg-black/40 [@media(hover:none)]:backdrop-blur-xs"
-          title="Edit link"
+          className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
+          title="编辑收藏"
         >
           <Pencil className="w-4 h-4" strokeWidth={1.5} />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -222,14 +224,14 @@ function GridMetaRow({
   onCopy: () => void;
 }) {
   return (
-    <div className="flex h-4 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
-      <span className="flex shrink-0 items-center gap-1">
+    <div className="flex h-7 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap border-t border-border/60 pt-2 text-xs text-muted-foreground">
+      <span className="flex min-w-0 items-center gap-1">
         <Link2 className="w-3 h-3" strokeWidth={1.5} />
         <a
           href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-foreground transition-colors"
+          className="min-w-0 truncate transition-colors hover:text-foreground"
         >
           {link.slug}
         </a>
@@ -247,11 +249,15 @@ function GridMetaRow({
           )}
         </button>
       </span>
-      <span className="flex shrink-0 items-center gap-1">
+      <span
+        className="ml-auto flex shrink-0 items-center gap-1"
+        title={`${formatNumber(link.clicks ?? 0)} 次点击`}
+      >
         <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
-        <span data-testid="click-count">{formatNumber(link.clicks ?? 0)}</span> 次点击
+        <span data-testid="click-count">{formatNumber(link.clicks ?? 0)}</span>
+        <span className="sr-only"> 次点击</span>
       </span>
-      <span className="ml-auto truncate" title={formatDate(link.createdAt)}>
+      <span className="hidden shrink-0 @min-[16rem]:inline" title={formatDate(link.createdAt)}>
         {formatDate(link.createdAt)}
       </span>
     </div>
@@ -289,7 +295,7 @@ export function GridView(props: GridViewProps) {
         {...(props.suggestDisabled !== undefined ? { suggestDisabled: props.suggestDisabled } : {})}
       />
 
-      <div className="p-3 space-y-1">
+      <div className="space-y-2 p-4">
         <TitleRow
           link={link}
           titleText={titleText}

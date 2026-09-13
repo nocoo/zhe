@@ -8,14 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
   LayerCard,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@nocoo/basalt";
-import { BarChart3, Check, Copy, ExternalLink, Pencil, Sparkles } from "lucide-react";
+import { BarChart3, Check, Copy, ExternalLink, FolderOpen, Pencil, Sparkles } from "lucide-react";
 import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
-import { getXBookmarkForLink } from "@/models/x-bookmarks";
+import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
@@ -24,7 +28,7 @@ import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
 import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
 import { TagBadge } from "./shared-link-components";
-import { XBookmarkContent, XBookmarkStatus } from "./x-bookmark-content";
+import { XBookmarkContent, XBookmarkPending, XBookmarkStatus } from "./x-bookmark-content";
 
 type ViewMode = "list" | "grid" | "feed";
 
@@ -108,14 +112,21 @@ export const LinkCard = memo(function LinkCard({
   const tweet = xBookmark?.tweet;
   const firstMedia = tweet?.media[0];
   const cover = firstMedia?.type === "PHOTO" ? firstMedia.url : firstMedia?.thumbnail_url;
+  const presentation = tweet ? getXPostPresentation(tweet) : null;
+  const description = presentation
+    ? presentation.text ||
+      (presentation.links.some((item) => item.isXArticle)
+        ? "X 文章 · 点击阅读全文"
+        : presentation.links.map((item) => item.hostname).join(" · ") || "查看帖子与全部附件")
+    : link.metaDescription || (xPost ? "内容尚未补全 · 可先查看原帖" : null);
 
   // Bundle the common view props once — grid/list share most of them.
   const sharedViewProps = {
-    link: tweet ? { ...link, metaDescription: tweet.text } : link,
+    link: { ...link, metaDescription: description },
     titleText: tweet ? `${tweet.author.name} (@${tweet.author.username})` : titleText,
     showFaviconImage,
     shortUrl: vm.shortUrl,
-    screenshotUrl: cover ?? vm.screenshotUrl,
+    screenshotUrl: xPost ? (cover ?? null) : vm.screenshotUrl,
     faviconUrl: vm.faviconUrl,
     cardTags,
     copied: vm.copied,
@@ -175,21 +186,12 @@ export const LinkCard = memo(function LinkCard({
           <DialogDescription>查看正文与全部附件</DialogDescription>
         </DialogHeader>
         <LayerCard padding="none" className="min-w-0 rounded-none">
-          {link.note && (
-            <LayerCard.Header>
-              <p className="whitespace-pre-wrap break-words text-sm font-medium">{link.note}</p>
-            </LayerCard.Header>
-          )}
           {xBookmark?.tweet ? (
-            <XBookmarkContent bookmark={xBookmark} />
+            <XBookmarkContent bookmark={xBookmark} note={link.note} title={link.metaTitle} />
           ) : (
-            <LayerCard.Body>
-              <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}
-              </p>
-            </LayerCard.Body>
+            <XBookmarkPending link={link} />
           )}
-          <LayerCard.Footer className="flex-wrap gap-3">
+          <LayerCard.Footer className="flex-wrap gap-3 border-border/60 bg-background/40 px-5">
             <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
             <Button variant="outline" size="sm" className="ml-auto" asChild>
               <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
@@ -214,67 +216,28 @@ export const LinkCard = memo(function LinkCard({
     return (
       <LayerCard
         padding="none"
-        className="group overflow-hidden"
+        className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
         data-testid="link-card"
         data-link-id={link.id}
         data-view="feed"
       >
-        {link.note && (
-          <LayerCard.Header>
-            <p className="whitespace-pre-wrap break-words text-sm font-medium">{link.note}</p>
-          </LayerCard.Header>
-        )}
         {xBookmark?.tweet ? (
-          <XBookmarkContent bookmark={xBookmark} />
+          <XBookmarkContent bookmark={xBookmark} note={link.note} title={link.metaTitle} />
         ) : (
-          <LayerCard.Body className="space-y-2">
-            {!link.note && (
-              <p className="break-words text-sm font-medium">
-                {link.metaTitle || link.originalUrl}
-              </p>
-            )}
-            <p className="break-words text-sm text-muted-foreground">
-              {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}
-            </p>
-          </LayerCard.Body>
+          <XBookmarkPending link={link} />
         )}
-        <LayerCard.Footer className="flex-wrap gap-2">
-          <span className="max-w-full truncate text-xs text-muted-foreground">
-            {folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox"}
-          </span>
-          <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
-          <div className="ml-auto flex flex-wrap items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={vm.handleCopy} aria-label="Copy link">
-              {vm.copied ? <Check /> : <Copy />}
-              {link.slug}
-            </Button>
-            <Button size="icon" variant="ghost" asChild aria-label="打开原帖">
-              <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink />
-              </a>
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={vm.handleToggleAnalytics}
-              aria-label="查看点击统计"
-            >
-              <BarChart3 />
-            </Button>
-            {onSuggest && (
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={onSuggest}
-                disabled={suggestDisabled}
-                aria-label="AI 建议"
+        <LayerCard.Footer className="flex-col items-stretch gap-3 border-border/60 bg-background/40 px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
+              <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span
+                className="truncate"
+                title={folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox"}
               >
-                <Sparkles />
-              </Button>
-            )}
-            <Button size="icon" variant="ghost" onClick={handleToggleEdit} aria-label="Edit link">
-              <Pencil />
-            </Button>
+                {folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox"}
+              </span>
+            </span>
+            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
           </div>
           {cardTags.length > 0 && (
             <div className="flex w-full flex-wrap gap-1">
@@ -283,6 +246,77 @@ export const LinkCard = memo(function LinkCard({
               ))}
             </div>
           )}
+          <TooltipProvider>
+            <div className="-mx-2 flex items-center justify-between gap-2 text-muted-foreground">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={vm.handleCopy}
+                    aria-label="Copy link"
+                    className="text-muted-foreground"
+                  >
+                    {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
+                    {vm.copied ? "已复制" : "复制链接"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{vm.shortUrl}</TooltipContent>
+              </Tooltip>
+              <div className="flex items-center gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="ghost" asChild aria-label="打开原帖">
+                      <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink strokeWidth={1.5} />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>打开原帖</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={vm.handleToggleAnalytics}
+                      aria-label="查看点击统计"
+                      aria-expanded={vm.showAnalytics}
+                    >
+                      <BarChart3 strokeWidth={1.5} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>点击统计</TooltipContent>
+                </Tooltip>
+                {onSuggest && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={onSuggest}
+                    disabled={suggestDisabled}
+                    aria-label="AI 建议"
+                    title="AI 建议"
+                  >
+                    <Sparkles strokeWidth={1.5} />
+                  </Button>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleToggleEdit}
+                      aria-label="Edit link"
+                      aria-expanded={isEditing}
+                    >
+                      <Pencil strokeWidth={1.5} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>编辑收藏</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </TooltipProvider>
         </LayerCard.Footer>
         <AnalyticsPanel
           showAnalytics={vm.showAnalytics}
@@ -301,7 +335,7 @@ export const LinkCard = memo(function LinkCard({
           data-testid="link-card"
           data-link-id={link.id}
           data-view="grid"
-          className="group h-full overflow-hidden"
+          className="group @container h-full overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
         >
           <GridView {...sharedViewProps} />
           {editArea}
@@ -318,7 +352,7 @@ export const LinkCard = memo(function LinkCard({
         data-testid="link-card"
         data-link-id={link.id}
         data-view={viewMode}
-        className="group"
+        className="group rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
       >
         <ListView
           {...sharedViewProps}

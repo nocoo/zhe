@@ -56,6 +56,30 @@ beforeEach(() => {
 });
 
 describe("X bookmark presentation", () => {
+  it("uses the saved headline for a standalone article without repeating raw URLs", () => {
+    const url = "https://x.com/i/article/2037129045423341568";
+    render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              text: "https://t.co/KW3rQbdBJT",
+              entities: { ...tweet.entities, urls: [url] },
+            },
+          }}
+          note="I want to build an AI agent today"
+        />
+      </LayerCard>,
+    );
+    const preview = screen.getByTestId("x-link-preview");
+    expect(preview).toHaveAttribute("href", url);
+    expect(preview).toHaveTextContent("I want to build an AI agent today");
+    expect(preview).toHaveTextContent("阅读全文");
+    expect(screen.queryByText("https://t.co/KW3rQbdBJT")).not.toBeInTheDocument();
+    expect(screen.queryByText(url)).not.toBeInTheDocument();
+  });
   it.each(["grid", "list"] as const)(
     "keeps %s compact after enrichment and opens the full post on demand",
     async (viewMode) => {
@@ -147,39 +171,42 @@ describe("X bookmark presentation", () => {
       expect(paragraph).not.toHaveClass("line-clamp-6");
     },
   );
-  it("plays an archived video inline and opens photos with the public dialog", async () => {
-    const data = {
-      ...bookmark,
-      tweet: {
-        ...tweet,
-        media: [
-          {
-            id: "v",
-            type: "VIDEO" as const,
-            url: "https://cdn.example.com/video.mp4",
-            thumbnail_url: "https://cdn.example.com/poster.jpg",
-            width: 720,
-            height: 1280,
-          },
-          { id: "p", type: "PHOTO" as const, url: "https://cdn.example.com/photo.jpg" },
-        ],
-      },
-    };
-    const { container } = render(
-      <LayerCard>
-        <XBookmarkContent bookmark={data} />
-      </LayerCard>,
-    );
-    expect(container.querySelector("video")).toHaveAttribute("controls");
-    expect(container.querySelector("video")).toHaveAttribute("preload", "none");
-    expect(container.querySelector("video")).toHaveAttribute(
-      "src",
-      "https://cdn.example.com/video.mp4",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "查看图片 2" }));
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "图片预览" })).toBeInTheDocument();
-  });
+  it.each(["VIDEO", "GIF"] as const)(
+    "plays an archived %s inline and opens photos with the public dialog",
+    async (type) => {
+      const data = {
+        ...bookmark,
+        tweet: {
+          ...tweet,
+          media: [
+            {
+              id: "v",
+              type,
+              url: "https://cdn.example.com/video.mp4",
+              thumbnail_url: "https://cdn.example.com/poster.jpg",
+              width: 720,
+              height: 1280,
+            },
+            { id: "p", type: "PHOTO" as const, url: "https://cdn.example.com/photo.jpg" },
+          ],
+        },
+      };
+      const { container } = render(
+        <LayerCard>
+          <XBookmarkContent bookmark={data} />
+        </LayerCard>,
+      );
+      expect(container.querySelector("video")).toHaveAttribute("controls");
+      expect(container.querySelector("video")).toHaveAttribute("preload", "none");
+      expect(container.querySelector("video")).toHaveAttribute(
+        "src",
+        "https://cdn.example.com/video.mp4",
+      );
+      fireEvent.click(screen.getByRole("button", { name: "查看图片 2" }));
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "图片预览" })).toBeInTheDocument();
+    },
+  );
   it("renders quoted text without pretending the quote's media belongs to this post", () => {
     render(
       <LayerCard>
@@ -218,7 +245,9 @@ describe("X bookmark presentation", () => {
           ? screen.getByLabelText("已归档的 X 视频")
           : screen.getByAltText("帖子图片 1");
       fireEvent.error(media());
-      expect(screen.getByText("媒体暂时无法播放")).toBeInTheDocument();
+      expect(
+        screen.getByText(type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"),
+      ).toBeInTheDocument();
       expect(screen.getByText("Saved body remains readable")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "重试" }));
       expect(media()).toBeInTheDocument();

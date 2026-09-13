@@ -104,6 +104,8 @@
 
 L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`。
 
+内容卡片使用 `shadow-card` + `ring-1 ring-border/40`，由贴近边缘的小阴影和更柔和的外层阴影构成；明暗主题分别取值。可交互卡片用 `hover:shadow-card-hover` 轻微加强，不做位移。文章预览、引用与媒体框等卡片内部区域只用细边框，避免阴影层层叠加。不要用表单控件的 `shadow-xs` 代替内容卡片阴影。
+
 ---
 
 ## 6. 字号语义（Dashboard）

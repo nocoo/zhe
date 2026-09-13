@@ -80,7 +80,7 @@ export const IdeaCard = memo(function IdeaCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/80 text-left w-full",
+        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 p-4 transition-shadow hover:shadow-card-hover text-left w-full",
         className,
       )}
     >
@@ -184,7 +184,7 @@ export const IdeaRow = memo(function IdeaRow({
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-4 rounded-card border-0 bg-secondary shadow-none px-4 py-3 transition-colors hover:bg-secondary/80 text-left w-full",
+        "group relative flex items-center gap-4 rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 px-4 py-3 transition-shadow hover:shadow-card-hover text-left w-full",
         className,
       )}
     >

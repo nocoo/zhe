@@ -92,6 +92,9 @@
   --radius-card: var(--radius-card);
   --radius-widget: var(--radius-widget);
 
+  --shadow-card: var(--content-card-shadow);
+  --shadow-card-hover: var(--content-card-shadow-hover);
+
   --animate-accordion-down: accordion-down var(--motion-fast) ease-out;
   --animate-accordion-up: accordion-up var(--motion-fast) ease-out;
   --animate-fade-up: fade-up var(--motion-slow) ease-out both;
@@ -180,6 +183,10 @@
    */
   --radius-widget: 10px;
 
+  /* Quiet elevation for content cards; pair with a fine border, not a heavy outline. */
+  --content-card-shadow: 0 1px 3px rgb(0 0 0 / 0.03), 0 5px 16px -6px rgb(0 0 0 / 0.08);
+  --content-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.04), 0 8px 20px -6px rgb(0 0 0 / 0.1);
+
   /* Control density — see docs/22-design-tokens.md.
    *
    *   lg:                40px (h-10) + text-sm  — form primary / modal actions
@@ -255,6 +262,9 @@
 }
 
 .dark {
+  --content-card-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 5px 16px -6px rgb(0 0 0 / 0.2);
+  --content-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.16), 0 8px 20px -6px rgb(0 0 0 / 0.24);
+
   /* Lifted purple fill + near-black ink. 74% keeps --primary usable as
    * text on L0–L3 dark surfaces; 4% ink on that fill is ~7:1 (AAA) for
    * small button/badge type. AccentProvider is applyToDocument=false so

@@ -5,7 +5,12 @@ import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <LayerCard ref={ref} padding="none" className={cn("rounded-card", className)} {...props} />
+    <LayerCard
+      ref={ref}
+      padding="none"
+      className={cn("rounded-card shadow-card ring-1 ring-border/40", className)}
+      {...props}
+    />
   ),
 );
 Card.displayName = "Card";

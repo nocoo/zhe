@@ -160,6 +160,8 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 ## Design Tokens & UI Controls
 
+Content cards use the shared `shadow-card` / `hover:shadow-card-hover` elevation tokens with a fine `ring-border/40` edge; nested previews and media frames use borders only. Light/dark values live in `app/globals.css`.
+
 **权威全文**：[`docs/22-design-tokens.md`](docs/22-design-tokens.md)  
 **CSS 定义**：`app/globals.css` · **原语**：`components/ui/*` · **契约测试**：`tests/unit/ui/control-density.test.tsx`
 

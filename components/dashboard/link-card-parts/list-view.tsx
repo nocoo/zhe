@@ -18,6 +18,7 @@ import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { XIcon } from "@/components/x-icon";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { Description, TitleRow } from "./shared-rows";
@@ -73,9 +74,7 @@ function ListThumbnail({
               unoptimized
             />
           ) : (
-            <span className="text-2xl font-semibold text-muted-foreground/40" aria-hidden>
-              X
-            </span>
+            <XIcon className="size-7 text-foreground/60" />
           )}
         </button>
       ) : screenshotUrl ? (

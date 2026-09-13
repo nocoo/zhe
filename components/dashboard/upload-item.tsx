@@ -99,7 +99,11 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
   const isVideo = upload.fileType.startsWith("video/");
 
   return (
-    <LayerCard data-testid="upload-item" padding="none" className="p-4">
+    <LayerCard
+      data-testid="upload-item"
+      padding="none"
+      className="rounded-card p-4 shadow-card ring-1 ring-border/40"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
@@ -214,7 +218,11 @@ interface UploadingItemProps {
 
 export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
   return (
-    <LayerCard data-testid="uploading-item" padding="none" className="p-4">
+    <LayerCard
+      data-testid="uploading-item"
+      padding="none"
+      className="rounded-card p-4 shadow-card ring-1 ring-border/40"
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}

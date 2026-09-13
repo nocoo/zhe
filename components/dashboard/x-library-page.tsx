@@ -1,6 +1,16 @@
 "use client";
 
-import { Bookmark, Search } from "lucide-react";
+import {
+  AlignLeft,
+  Bookmark,
+  Clock3,
+  FileText,
+  Film,
+  ImageIcon,
+  LayoutGrid,
+  Play,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
@@ -28,6 +38,16 @@ import {
 } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { LinkCard } from "./link-card";
+
+const contentIcons = {
+  all: LayoutGrid,
+  video: Play,
+  image: ImageIcon,
+  gif: Film,
+  article: FileText,
+  text: AlignLeft,
+  pending: Clock3,
+};
 
 export function XLibraryPage() {
   const {
@@ -121,10 +141,10 @@ export function XLibraryPage() {
   return (
     <div>
       <PageHeader title="X 收藏" description={`汇集所有分类 · 共 ${entries.length} 条收藏`} />
-      <div className="mb-6 space-y-3">
+      <div className="mb-6 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row">
           <Select value={folderId} onValueChange={setFolderId}>
-            <SelectTrigger className="w-full sm:w-52" aria-label="筛选分类">
+            <SelectTrigger size="sm" className="w-full sm:w-52" aria-label="筛选分类">
               <SelectValue placeholder="全部分类" />
             </SelectTrigger>
             <SelectContent>
@@ -143,6 +163,7 @@ export function XLibraryPage() {
               aria-hidden
             />
             <Input
+              size="sm"
               type="search"
               aria-label="搜索 X 收藏"
               placeholder="搜索正文、作者或备注"
@@ -162,25 +183,41 @@ export function XLibraryPage() {
             </Button>
           )}
         </div>
-        <fieldset className="flex min-w-0 flex-wrap gap-1.5">
+        <fieldset className="flex min-w-0 flex-wrap gap-1 border-b border-border/60 pb-4">
           <legend className="sr-only">内容类型</legend>
-          {X_CONTENT_TYPES.map(({ value, label }) => (
-            <Button
-              key={value}
-              variant={contentType === value ? "secondary" : "ghost"}
-              size="sm"
-              aria-pressed={contentType === value}
-              onClick={() => setContentType(value)}
-              title={value === "article" ? "长文和带外部链接的帖子" : undefined}
-            >
-              {label}
-              <span aria-hidden className="ml-1 text-xs tabular-nums text-muted-foreground">
-                {value === "all"
-                  ? scoped.length
-                  : scoped.filter(({ types }) => types.includes(value)).length}
-              </span>
-            </Button>
-          ))}
+          {X_CONTENT_TYPES.map(({ value, label }) => {
+            const Icon = contentIcons[value];
+            return (
+              <Button
+                key={value}
+                variant="ghost"
+                size="sm"
+                className={
+                  contentType === value
+                    ? "bg-secondary text-foreground shadow-xs ring-1 ring-border/60"
+                    : "text-muted-foreground"
+                }
+                aria-pressed={contentType === value}
+                onClick={() => setContentType(value)}
+                title={value === "article" ? "长文和带外部链接的帖子" : undefined}
+              >
+                <Icon
+                  className={contentType === value ? "text-primary" : ""}
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+                {label}
+                <span
+                  aria-hidden
+                  className="min-w-4 rounded-full bg-background/70 px-1 text-[11px] tabular-nums text-muted-foreground"
+                >
+                  {value === "all"
+                    ? scoped.length
+                    : scoped.filter(({ types }) => types.includes(value)).length}
+                </span>
+              </Button>
+            );
+          })}
         </fieldset>
         <p role="status" className="text-xs text-muted-foreground">
           显示 {visible.length} 条收藏
@@ -209,9 +246,9 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <div className="columns-1 gap-4 md:columns-2 2xl:columns-3" data-testid="x-feed">
+        <div className="gap-5 [column-count:3] [column-width:22rem]" data-testid="x-feed">
           {visible.map(({ link }) => (
-            <div key={link.id} className="mb-4 break-inside-avoid">
+            <div key={link.id} className="mb-5 break-inside-avoid pt-px">
               <LinkCard
                 link={link}
                 siteUrl={siteUrl}

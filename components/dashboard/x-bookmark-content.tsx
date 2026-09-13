@@ -4,7 +4,6 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  Badge,
   Button,
   Dialog,
   DialogContent,
@@ -14,12 +13,51 @@ import {
   DialogTrigger,
   LayerCard,
 } from "@nocoo/basalt";
-import { BadgeCheck, Clock3, Eye, Heart, MessageCircle, RefreshCw, Repeat2 } from "lucide-react";
+import {
+  ArrowUpRight,
+  BadgeCheck,
+  Check,
+  CircleAlert,
+  Clock3,
+  Eye,
+  FileText,
+  Heart,
+  ImageOff,
+  Link2,
+  MessageCircle,
+  Quote as QuoteIcon,
+  RefreshCw,
+  Repeat2,
+} from "lucide-react";
 import { useState } from "react";
 import { retryXBookmarkAction } from "@/actions/connector";
 import type { XMedia, XPost } from "@/cli/src/connector/core";
+import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
+import { cn } from "@/lib/utils";
+import type { Link } from "@/models/types";
+import {
+  getXContentTypes,
+  getXPostPresentation,
+  X_CONTENT_TYPES,
+  type XContentType,
+} from "@/models/x-bookmarks";
 import { formatCount, formatTweetDate } from "@/models/xray";
+
+export function XSourceBadge({ type = "text" }: { type?: XContentType }) {
+  return (
+    <span
+      title="来源：X"
+      className="inline-flex shrink-0 items-center gap-2 rounded-widget bg-foreground px-2.5 py-2 text-background shadow-xs"
+    >
+      <XIcon className="size-3.5" />
+      <span className="sr-only">X · </span>
+      <span className="border-l border-background/25 pl-2 text-[11px] font-medium leading-none">
+        {X_CONTENT_TYPES.find((item) => item.value === type)?.label}
+      </span>
+    </span>
+  );
+}
 
 function PostText({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -27,7 +65,10 @@ function PostText({ text }: { text: string }) {
   return (
     <div>
       <p
-        className={`whitespace-pre-wrap break-words text-sm leading-7 ${collapsible && !expanded ? "line-clamp-6" : ""}`}
+        className={cn(
+          "whitespace-pre-wrap break-words text-sm leading-7 text-foreground",
+          collapsible && !expanded && "line-clamp-6",
+        )}
       >
         {text}
       </p>
@@ -37,7 +78,7 @@ function PostText({ text }: { text: string }) {
           size="sm"
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
-          className="mt-1 text-primary"
+          className="-ml-2 mt-1 text-primary"
         >
           {expanded ? "收起全文" : "展开全文"}
         </Button>
@@ -46,30 +87,44 @@ function PostText({ text }: { text: string }) {
   );
 }
 
-function PostMedia({ media, index }: { media: XMedia; index: number }) {
+function PostMedia({
+  media,
+  index,
+  fill = false,
+}: {
+  media: XMedia;
+  index: number;
+  fill?: boolean;
+}) {
   const [failed, setFailed] = useState(false);
   if (failed)
     return (
-      <LayerCard.Well className="flex min-h-32 items-center justify-center gap-2">
-        <span role="status" className="text-sm text-muted-foreground">
-          媒体暂时无法播放
+      <div
+        className={cn(
+          "flex h-full flex-col items-center justify-center gap-2 rounded-widget border border-dashed border-border bg-background/60 p-3 text-muted-foreground",
+          !fill && "min-h-40 gap-3 p-4",
+        )}
+      >
+        {!fill && <ImageOff className="size-6" strokeWidth={1.5} aria-hidden />}
+        <span role="status" className="text-xs">
+          {media.type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"}
         </span>
         <Button size="sm" variant="outline" onClick={() => setFailed(false)}>
           重试
         </Button>
-      </LayerCard.Well>
+      </div>
     );
   if (media.type !== "PHOTO")
     return (
-      <div className="overflow-hidden rounded-widget bg-black">
+      <div className="relative overflow-hidden rounded-widget border border-border/60 bg-black">
         <video
           src={media.url}
           poster={media.thumbnail_url}
           controls
           playsInline
           preload="none"
-          aria-label="已归档的 X 视频"
-          className="mx-auto block max-h-96 w-full object-contain"
+          aria-label={media.type === "GIF" ? "已归档的 X GIF" : "已归档的 X 视频"}
+          className="mx-auto block max-h-[32rem] w-full object-contain"
           style={{
             aspectRatio: media.width && media.height ? `${media.width}/${media.height}` : "16/9",
           }}
@@ -77,6 +132,11 @@ function PostMedia({ media, index }: { media: XMedia; index: number }) {
         >
           <track kind="captions" />
         </video>
+        <span className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+          {media.type === "GIF" ? "GIF" : "视频"}
+          {!!media.duration &&
+            ` · ${Math.floor(media.duration / 60)}:${String(Math.floor(media.duration % 60)).padStart(2, "0")}`}
+        </span>
       </div>
     );
   return (
@@ -84,14 +144,25 @@ function PostMedia({ media, index }: { media: XMedia; index: number }) {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="h-auto w-full overflow-hidden rounded-widget p-0"
+          className={cn(
+            "h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-background/60 p-0",
+            fill && "h-full rounded-none border-0",
+          )}
           aria-label={`查看图片 ${index + 1}`}
         >
           <img
             src={media.url}
             alt={`帖子图片 ${index + 1}`}
             loading="lazy"
-            className="max-h-96 w-full object-cover"
+            className={cn(
+              "w-full transition-opacity hover:opacity-90",
+              fill ? "h-full object-cover" : "max-h-[32rem] object-contain",
+            )}
+            style={
+              !fill && media.width && media.height
+                ? { aspectRatio: `${media.width}/${media.height}` }
+                : undefined
+            }
             onError={() => setFailed(true)}
           />
         </Button>
@@ -111,25 +182,140 @@ function PostMedia({ media, index }: { media: XMedia; index: number }) {
   );
 }
 
-function Quote({ tweet }: { tweet: XPost }) {
+function MediaGrid({ media }: { media: XMedia[] }) {
+  if (!media.length) return null;
+  const collage = media.length > 1 && media.every((item) => item.type === "PHOTO");
   return (
-    <LayerCard.Well outlined className="space-y-2 rounded-widget">
-      <a
-        href={tweet.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs font-medium hover:underline"
-      >
-        {tweet.author.name} <span className="text-muted-foreground">@{tweet.author.username}</span>
-      </a>
-      <p className="whitespace-pre-wrap break-words text-sm leading-6">{tweet.text}</p>
-    </LayerCard.Well>
+    <div
+      className={cn(
+        "grid gap-2",
+        collage && "grid-cols-2 gap-1 overflow-hidden rounded-widget border border-border/60",
+        collage && media.length <= 4 && "aspect-[4/3] auto-rows-fr",
+      )}
+      data-testid="x-media-grid"
+    >
+      {media.map((item, index) => (
+        <div
+          key={`${item.id}:${item.url}`}
+          className={cn(
+            "min-h-0 min-w-0",
+            collage && media.length === 3 && index === 0 && "row-span-2",
+          )}
+        >
+          <PostMedia media={item} index={index} fill={collage} />
+        </div>
+      ))}
+    </div>
   );
 }
 
-export function XBookmarkContent({ bookmark }: { bookmark: XBookmark }) {
+function PostLinks({
+  links,
+  headline,
+}: {
+  links: ReturnType<typeof getXPostPresentation>["links"];
+  headline?: string | null;
+}) {
+  if (!links.length) return null;
+  return (
+    <div className="space-y-3">
+      {links.map(({ url, hostname, isXArticle, isArticle }) => (
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={url}
+          className="group/article relative block overflow-hidden rounded-widget border border-border/70 bg-background/60 p-4 text-foreground transition-colors hover:border-primary/30 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          data-testid="x-link-preview"
+        >
+          {isXArticle && (
+            <XIcon className="pointer-events-none absolute -right-3 -top-3 size-28 text-foreground/[0.035]" />
+          )}
+          <div className="relative space-y-3">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+              {isArticle ? (
+                <FileText className="size-3.5" aria-hidden />
+              ) : (
+                <Link2 className="size-3.5" aria-hidden />
+              )}
+              {isXArticle ? "X 文章" : "分享链接"}
+            </div>
+            <p
+              className={cn(
+                "break-words font-semibold leading-snug tracking-tight",
+                headline ? "text-xl" : "text-base",
+              )}
+            >
+              {headline || (isXArticle ? "阅读 X 文章" : hostname)}
+            </p>
+            <div className="flex items-center justify-between gap-3 pt-1 text-xs">
+              <span className="min-w-0 truncate text-muted-foreground">
+                {headline || isXArticle
+                  ? hostname
+                  : new URL(url).pathname === "/"
+                    ? "外部网站"
+                    : new URL(url).pathname}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground group-hover/article:text-primary">
+                {isArticle ? "阅读全文" : "打开链接"}
+                <ArrowUpRight className="size-3.5" aria-hidden />
+              </span>
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function Quote({ tweet }: { tweet: XPost }) {
+  const { text, links } = getXPostPresentation(tweet);
+  return (
+    <blockquote
+      aria-label="引用的 X 帖子"
+      className="min-w-0 space-y-3 rounded-widget border border-border/70 bg-background/40 p-4"
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <Avatar className="size-6">
+          <AvatarImage src={tweet.author.profile_image_url} alt="" />
+          <AvatarFallback>{tweet.author.name.slice(0, 1)}</AvatarFallback>
+        </Avatar>
+        <a
+          href={tweet.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="min-w-0 truncate text-xs font-semibold hover:underline"
+        >
+          {tweet.author.name}{" "}
+          <span className="font-normal text-muted-foreground">@{tweet.author.username}</span>
+        </a>
+        <QuoteIcon
+          className="ml-auto size-4 shrink-0 text-muted-foreground"
+          strokeWidth={1.5}
+          aria-label="引用"
+        />
+      </div>
+      {text && <PostText text={text} />}
+      <PostLinks links={links} />
+    </blockquote>
+  );
+}
+
+export function XBookmarkContent({
+  bookmark,
+  note,
+  title,
+}: {
+  bookmark: XBookmark;
+  note?: string | null;
+  title?: string | null;
+}) {
   const tweet = bookmark.tweet;
   if (!tweet) return null;
+  const { text, links } = getXPostPresentation(tweet);
+  const standaloneLink = !text && links.length === 1;
+  const date = formatTweetDate(tweet.created_at);
   const metrics = [
     { icon: Heart, label: "喜欢", count: tweet.metrics.like_count },
     { icon: Repeat2, label: "转帖", count: tweet.metrics.retweet_count },
@@ -137,13 +323,13 @@ export function XBookmarkContent({ bookmark }: { bookmark: XBookmark }) {
     { icon: Eye, label: "浏览", count: tweet.metrics.view_count },
   ];
   return (
-    <LayerCard.Body className="space-y-4" data-testid="x-bookmark-content">
-      <div className="flex items-start gap-3">
-        <Avatar>
+    <LayerCard.Body className="space-y-5 p-5" data-testid="x-bookmark-content">
+      <div className="flex items-center gap-3">
+        <Avatar className="ring-1 ring-border/60 ring-offset-2 ring-offset-secondary">
           <AvatarImage src={tweet.author.profile_image_url} alt={tweet.author.name} />
           <AvatarFallback>{tweet.author.name.slice(0, 1) || "X"}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex items-center gap-1.5">
             <a
               href={`https://x.com/${tweet.author.username}`}
@@ -154,56 +340,73 @@ export function XBookmarkContent({ bookmark }: { bookmark: XBookmark }) {
               {tweet.author.name}
             </a>
             {tweet.author.is_verified && (
-              <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="认证账号" />
+              <BadgeCheck className="size-4 shrink-0 text-muted-foreground" aria-label="认证账号" />
             )}
           </div>
-          <p className="break-all text-xs text-muted-foreground">@{tweet.author.username}</p>
+          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="truncate">@{tweet.author.username}</span>
+            <span aria-hidden>·</span>
+            <time dateTime={tweet.created_at} title={date} className="shrink-0">
+              {date.split(" ")[0]}
+            </time>
+          </div>
         </div>
-        <Badge variant="secondary" className="shrink-0">
-          X
-        </Badge>
+        <XSourceBadge type={getXContentTypes(tweet)[0] ?? "text"} />
       </div>
-      <PostText text={tweet.text} />
-      {tweet.media.length > 0 && (
-        <div
-          className={`grid gap-2 ${tweet.media.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}
-          data-testid="x-media-grid"
-        >
-          {tweet.media.map((media, index) => (
-            <PostMedia key={media.id} media={media} index={index} />
-          ))}
-        </div>
+      {note && !standaloneLink && (
+        <p className="break-words text-base font-semibold leading-7 text-foreground">{note}</p>
       )}
+      {text && <PostText key={tweet.id} text={text} />}
+      <MediaGrid media={tweet.media} />
+      <PostLinks links={links} headline={standaloneLink ? note || title || null : null} />
       {tweet.quoted_tweet && <Quote tweet={tweet.quoted_tweet} />}
-      {tweet.entities.urls.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {tweet.entities.urls.map((url) => (
-            <a
-              key={url}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="break-all text-xs text-primary hover:underline"
-            >
-              {url}
-            </a>
-          ))}
-        </div>
-      )}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-        <time dateTime={tweet.created_at}>{formatTweetDate(tweet.created_at)}</time>
-        <div className="flex flex-wrap gap-4">
+      <section
+        className="border-t border-border/60 pt-4 text-xs text-muted-foreground"
+        aria-label="帖子统计"
+      >
+        <div className="grid grid-cols-4 gap-2">
           {metrics.map(({ icon: Icon, label, count }) => (
-            <span key={label} className="inline-flex items-center gap-1 tabular-nums">
-              <Icon className="size-3.5" aria-hidden />
-              <span aria-hidden>{formatCount(count)}</span>
+            <span
+              key={label}
+              title={`${label} ${count}`}
+              className="inline-flex items-center justify-center gap-1.5 tabular-nums first:justify-start last:justify-end"
+            >
+              <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span aria-hidden className="font-medium">
+                {formatCount(count)}
+              </span>
               <span className="sr-only">
                 {label} {count}
               </span>
             </span>
           ))}
         </div>
+      </section>
+    </LayerCard.Body>
+  );
+}
+
+export function XBookmarkPending({ link }: { link: Link }) {
+  return (
+    <LayerCard.Body className="space-y-5 p-5">
+      <div className="flex items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground">
+          <Clock3 className="size-4" strokeWidth={1.5} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">已保存的 X 帖子</p>
+          <p className="text-xs text-muted-foreground">内容暂未补全</p>
+        </div>
+        <XSourceBadge type="pending" />
       </div>
+      {(link.note || link.metaTitle) && (
+        <p className="break-words text-base font-semibold leading-7">
+          {link.note || link.metaTitle}
+        </p>
+      )}
+      <p className="rounded-widget border border-dashed border-border bg-background/40 p-4 text-sm leading-6 text-muted-foreground">
+        {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}
+      </p>
     </LayerCard.Body>
   );
 }
@@ -230,14 +433,34 @@ export function XBookmarkStatus({
     failed: "补全暂未完成",
     unavailable: "原帖暂不可访问",
   };
+  const StatusIcon =
+    state === "running"
+      ? RefreshCw
+      : state === "complete"
+        ? Check
+        : state === "pending"
+          ? Clock3
+          : CircleAlert;
+  const icon = (
+    <StatusIcon
+      className={cn(
+        "size-3.5 shrink-0",
+        state === "complete" && "text-success",
+        state === "running" && "animate-spin motion-reduce:animate-none",
+        ["partial", "failed", "unavailable"].includes(state) && "text-warning",
+      )}
+      strokeWidth={1.5}
+      aria-hidden
+    />
+  );
   if (compact)
     return (
       <span
         role="status"
         title={labels[state]}
-        className="inline-flex min-w-0 max-w-full items-center gap-1 truncate text-xs"
+        className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs text-muted-foreground"
       >
-        {state === "running" && <RefreshCw className="size-3 shrink-0 animate-spin" aria-hidden />}
+        {icon}
         <span className="truncate">{state === "partial" ? "媒体待补全" : labels[state]}</span>
       </span>
     );
@@ -253,11 +476,7 @@ export function XBookmarkStatus({
   };
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="status">
-      {state === "running" ? (
-        <RefreshCw className="size-3 animate-spin" aria-hidden />
-      ) : state === "pending" ? (
-        <Clock3 className="size-3" aria-hidden />
-      ) : null}
+      {icon}
       <span>
         {currentFeedback
           ? currentFeedback.success
