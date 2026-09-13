@@ -44,27 +44,33 @@ function TitleAnchor({
   href,
   note,
   titleText,
+  onOpenDetails,
 }: {
   href: string;
   note: string | null;
   titleText: string;
+  onOpenDetails?: (() => void) | undefined;
 }) {
+  const content = note ? (
+    <>
+      <span>{note}</span>
+      <span className="mx-1.5 text-border">|</span>
+      <span className="text-muted-foreground">{titleText}</span>
+    </>
+  ) : (
+    titleText
+  );
+  const className =
+    "min-w-0 truncate text-left text-sm font-medium text-foreground hover:underline";
+  if (onOpenDetails)
+    return (
+      <button type="button" onClick={onOpenDetails} className={className}>
+        {content}
+      </button>
+    );
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-sm font-medium text-foreground hover:underline truncate"
-    >
-      {note ? (
-        <>
-          <span>{note}</span>
-          <span className="mx-1.5 text-border">|</span>
-          <span className="text-muted-foreground">{titleText}</span>
-        </>
-      ) : (
-        titleText
-      )}
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {content}
     </a>
   );
 }
@@ -108,6 +114,7 @@ interface TitleRowProps {
   variant: "grid" | "list";
   /** When true, the copy click stops propagation (used in grid's click-through wrapper). */
   stopPropagationOnCopy?: boolean;
+  onOpenDetails?: (() => void) | undefined;
 }
 
 /** Unified favicon + title + copy-URL row, shared between grid + list. */
@@ -120,6 +127,7 @@ export function TitleRow({
   onCopyOriginalUrl,
   variant,
   stopPropagationOnCopy = false,
+  onOpenDetails,
 }: TitleRowProps) {
   const rowCls = variant === "grid" ? "flex items-center gap-1.5" : "flex items-center gap-2 mb-1";
   return (
@@ -130,7 +138,12 @@ export function TitleRow({
         onError={onFaviconError}
         size={variant === "grid" ? "sm" : "md"}
       />
-      <TitleAnchor href={link.originalUrl} note={link.note} titleText={titleText} />
+      <TitleAnchor
+        href={link.originalUrl}
+        note={link.note}
+        titleText={titleText}
+        onOpenDetails={onOpenDetails}
+      />
       <CopyOriginalButton
         copied={copiedOriginalUrl}
         onClick={(e) => {
@@ -155,12 +168,14 @@ export function Description({
   onRefresh: () => void;
   variant: "grid" | "list";
 }) {
-  const baseCls = variant === "grid" ? "" : "mt-0.5";
+  const baseCls = variant === "grid" ? "line-clamp-2 h-8 leading-4" : "mt-0.5 truncate";
   if (description) {
-    return <p className={`text-xs text-muted-foreground/70 truncate ${baseCls}`}>{description}</p>;
+    return (
+      <p className={`break-words text-xs text-muted-foreground/70 ${baseCls}`}>{description}</p>
+    );
   }
   return (
-    <p className={`text-xs text-muted-foreground/40 truncate ${baseCls}`}>
+    <p className={`text-xs text-muted-foreground/40 ${baseCls}`}>
       未抓取描述 ·{" "}
       <button
         type="button"

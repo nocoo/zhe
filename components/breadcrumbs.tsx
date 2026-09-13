@@ -14,6 +14,7 @@ const PAGE_TRAILS: Record<string, { breadcrumbs: AppHeaderCrumb[]; title: string
     title: "待办",
   },
   "/dashboard": { breadcrumbs: [], title: "链接管理" },
+  "/dashboard/x": { breadcrumbs: [{ href: "/dashboard", label: "链接管理" }], title: "X 收藏" },
   "/dashboard/uploads": { breadcrumbs: [{ label: "工具" }], title: "文件上传" },
   "/dashboard/backy": { breadcrumbs: [{ label: "工具" }], title: "Backy" },
   "/dashboard/xray": { breadcrumbs: [{ label: "工具" }], title: "Xray" },

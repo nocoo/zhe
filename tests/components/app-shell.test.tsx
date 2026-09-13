@@ -378,9 +378,9 @@ describe("AppShell", () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // In collapsed mode, all items are links: 3 概览 section + 2 folder nav + 1 dynamic + 9 static = 15
+      // Includes the X library alongside the existing navigation and one folder.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(15);
+      expect(navLinks.length).toBe(16);
     });
 
     it("passes folders to mobile sidebar when open", async () => {
