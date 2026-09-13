@@ -10,6 +10,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.0] - 2026-09-13
+
+### Added
+- Prepare safe article link previews
+- Add cross-category library and compact bookmark cards
+- Render enriched X bookmarks with Basalt controls
+- Enrich saved X links through existing R2 storage
+- Integrate X connector with shared login
+
+### Changed
+- Isolate default configuration from local login
+- Refine content cards and add subtle elevation
+- Record verified Snail retirement
+- Document shared CLI connector and Snail migration gates
+- Validate bundled connector and browser video playback
+- Upgrade @types/react-dom to 19.3.0
+- Bump @types/react to 19.3.0
+- Preserve coverage-path report artifact in quality workflow
+- Migrate ci to base-ci quality and test-job
+- Upgrade basalt to 2.1.7
+- Bump @ai-sdk/anthropic to 4.0.50
+- Bump @aws-sdk/client-s3 to 3.1128.0
+- Align workers types with wrangler
+- Bump wrangler to 4.130.0
+- Upgrade worker sharp override
+- Bump lucide-react to 1.43.0
+- Bump s3 request presigner to 3.1128.0
+- Bump baseline-browser-mapping to 2.11.21
+- Refresh bilingual README with current features
+
+### Fixed
+- Align expanded bookmark panels and article headlines
+- Support long bookmark URLs on D1
+- Retain animated GIF attachments
+- Refresh uploads after video and poster deletion
+- Preserve concurrent media deletion and cleanup
+- Preserve large media request streams
+- Support URL collection as a first-class integration
+- Preserve verified base-ci integration
+
 ## [v1.23.2] - 2026-09-08
 
 ### Changed
