@@ -23,18 +23,37 @@ export function getXBookmarkForLink(
   return bookmark;
 }
 
-function isArticleLink(raw: string): boolean {
+function parsePostLink(raw: string) {
   try {
     const url = new URL(raw);
-    if (!["http:", "https:"].includes(url.protocol)) return false;
-    const host = url.hostname.replace(/^(www|mobile)\./, "");
-    if (host === "t.co" || host === "pic.twitter.com") return false;
-    if (host === "x.com" || host === "twitter.com")
-      return /^\/(?:i\/)?article\//.test(url.pathname);
-    return true;
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    const hostname = url.hostname.replace(/^(www|mobile)\./, "");
+    const isX = hostname === "x.com" || hostname === "twitter.com";
+    const isXArticle = isX && /^\/(?:i\/)?article\//.test(url.pathname);
+    return {
+      url: raw,
+      hostname,
+      isXArticle,
+      isArticle: isXArticle || (!isX && hostname !== "t.co" && hostname !== "pic.twitter.com"),
+    };
   } catch {
-    return false;
+    return null;
   }
+}
+
+/** Display an expanded URL once, while retaining meaningful text and ambiguous short links. */
+export function getXPostPresentation(tweet: XPost) {
+  const links = [...new Set(tweet.entities.urls)].flatMap((raw) => {
+    const link = parsePostLink(raw);
+    return link ? [link] : [];
+  });
+  const text = tweet.text.trim();
+  // Captures have no short-to-expanded mapping. Only a single standalone t.co
+  // URL with a single destination can safely be replaced by its link preview.
+  const redundant =
+    links.some((link) => link.url === text) ||
+    (links.length === 1 && /^https?:\/\/t\.co\/[\w-]+$/.test(text));
+  return { text: redundant ? "" : tweet.text, links };
 }
 
 export function getXContentTypes(tweet: XPost | null | undefined): XContentType[] {
@@ -45,7 +64,8 @@ export function getXContentTypes(tweet: XPost | null | undefined): XContentType[
   if (tweet.media.some((media) => media.type === "GIF")) types.push("gif");
   // ponytail: stored captures have no native article flag; classify long text and
   // expanded links until the Connector records a dedicated article type.
-  if (tweet.text.length > 600 || tweet.entities.urls.some(isArticleLink)) types.push("article");
+  if (tweet.text.length > 600 || tweet.entities.urls.some((url) => parsePostLink(url)?.isArticle))
+    types.push("article");
   if (!types.length) types.push("text");
   return types;
 }

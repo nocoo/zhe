@@ -8,7 +8,7 @@ import { useDashboardService } from "@/contexts/dashboard-service";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import type { XBookmark } from "@/lib/connector/jobs";
 import type { Folder, Link } from "@/models/types";
-import { getXBookmarkForLink, getXContentTypes } from "@/models/x-bookmarks";
+import { getXBookmarkForLink, getXContentTypes, getXPostPresentation } from "@/models/x-bookmarks";
 
 vi.mock("@/contexts/dashboard-service", () => ({ useDashboardService: vi.fn() }));
 vi.mock("@/components/dashboard/link-card", () => ({
@@ -115,6 +115,49 @@ beforeEach(() => {
 });
 
 describe("X content classification", () => {
+  it("replaces only unambiguous URL-only bodies with an expanded preview", () => {
+    const article = "https://x.com/i/article/123";
+    const short = "https://t.co/abc";
+    const capture = post(9, {
+      text: short,
+      entities: { hashtags: [], mentioned_users: [], urls: [article] },
+    });
+    expect(getXPostPresentation(capture).text).toBe("");
+    expect(getXPostPresentation({ ...capture, text: article }).text).toBe("");
+    const prose = `Read this first. ${short}`;
+    expect(getXPostPresentation({ ...capture, text: prose }).text).toBe(prose);
+    const ambiguous = {
+      ...capture,
+      entities: { ...capture.entities, urls: [article, "https://example.org"] },
+    };
+    expect(getXPostPresentation(ambiguous).text).toBe(short);
+    expect(getXPostPresentation({ ...capture, text: "https://t.co.evil.example/abc" }).text).toBe(
+      "https://t.co.evil.example/abc",
+    );
+  });
+  it("deduplicates previews, rejects unsafe URLs and identifies native X articles", () => {
+    const native = "https://mobile.twitter.com/i/article/123";
+    const result = getXPostPresentation(
+      post(9, {
+        text: "Useful reading",
+        entities: {
+          hashtags: [],
+          mentioned_users: [],
+          urls: [native, native, "javascript:alert(1)", "invalid", "https://example.org/reading"],
+        },
+      }),
+    );
+    expect(result.links).toEqual([
+      { url: native, hostname: "twitter.com", isXArticle: true, isArticle: true },
+      {
+        url: "https://example.org/reading",
+        hostname: "example.org",
+        isXArticle: false,
+        isArticle: true,
+      },
+    ]);
+    expect(result.text).toBe("Useful reading");
+  });
   it("matches every media type in a mixed post and keeps unprocessed links separate", () => {
     expect(getXContentTypes(tweets[0])).toEqual(["video", "image"]);
     expect(getXContentTypes(tweets[4])).toEqual(["gif"]);
