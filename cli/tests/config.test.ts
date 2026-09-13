@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   _resetConfig,
   _setConfig,
@@ -12,12 +12,17 @@ import {
   saveApiKey,
 } from "../src/config.js";
 
+vi.mock("node:os", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:os")>()),
+  homedir: vi.fn(),
+}));
+
 describe("config", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `zhe-config-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "zhe-config-test-"));
+    vi.mocked(homedir).mockReturnValue(testDir);
     _resetConfig();
   });
 
@@ -93,17 +98,9 @@ describe("config", () => {
   });
 
   describe("default singleton initialization", () => {
-    // Note: This test is skipped because it reads from real user config at ~/.config/zhe
-    // If a real API key is configured, the test will fail with "expected key to be undefined"
-    // This test validates lazy initialization works - which is covered by other tests
     it("creates default config manager when getApiKey called without setConfig", () => {
-      // Reset to clear any existing config
-      _resetConfig();
-      // Don't call _setConfig - let it use default lazy initialization
-      // This will create a config in ~/.config/zhe
-      const result = getApiKey();
-      // Should return undefined (no key set) but not throw
-      expect(result).toBeUndefined();
+      expect(getApiKey()).toBeUndefined();
+      expect(homedir).toHaveBeenCalled();
     });
   });
 
