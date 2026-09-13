@@ -11,8 +11,10 @@
  * code paths exercise the same call sites, just against a local writer.
  */
 
-import { promises as fs } from "node:fs";
+import { createWriteStream, promises as fs } from "node:fs";
 import { dirname, join, normalize, resolve, sep } from "node:path";
+import type { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 import type { R2Object } from "./client";
 
@@ -20,7 +22,10 @@ const DEFAULT_DIR = ".test-storage/r2";
 const DEFAULT_PORT = 18788;
 
 function getRoot(): string {
-  return resolve(process.cwd(), process.env.LOCAL_R2_DIR || DEFAULT_DIR);
+  return resolve(
+    /* turbopackIgnore: true */ process.cwd(),
+    process.env.LOCAL_R2_DIR || DEFAULT_DIR,
+  );
 }
 
 function getPort(): number {
@@ -36,7 +41,7 @@ function getPort(): number {
 export function keyToPath(key: string): string {
   const root = getRoot();
   const stripped = key.replace(/^[/\\]+/, "");
-  const full = normalize(resolve(root, stripped));
+  const full = normalize(resolve(/* turbopackIgnore: true */ root, stripped));
   if (full !== root && !full.startsWith(root + sep)) {
     throw new Error(`R2 key escapes storage root: ${key}`);
   }
@@ -71,6 +76,19 @@ export async function uploadBufferToR2(
   const path = keyToPath(key);
   await ensureDirFor(path);
   await fs.writeFile(path, body);
+}
+
+export async function uploadStreamToR2(key: string, body: Readable): Promise<void> {
+  const path = keyToPath(key);
+  await ensureDirFor(path);
+  const partial = `${path}.partial`;
+  try {
+    await pipeline(body, createWriteStream(partial, { flags: "wx", mode: 0o600 }));
+    await fs.rename(partial, path);
+  } catch (error) {
+    await fs.rm(partial, { force: true });
+    throw error;
+  }
 }
 
 export async function deleteR2Object(key: string): Promise<void> {

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Use vi.hoisted so mock fns are available inside vi.mock factories
@@ -44,6 +45,7 @@ import {
   listR2Objects,
   resetR2Client,
   uploadBufferToR2,
+  uploadStreamToR2,
 } from "@/lib/r2/client";
 import { unwrap } from "../test-utils";
 
@@ -71,6 +73,24 @@ describe("R2 Client", () => {
   afterEach(() => {
     clearR2Env();
     resetR2Client();
+  });
+
+  it("passes the bounded Connector stream and expected digest to R2 without buffering", async () => {
+    setR2Env();
+    const body = Readable.from([new Uint8Array(32)]);
+    const digest = "ab".repeat(32);
+    await uploadStreamToR2("user/x/post/video.mp4", body, "video/mp4", 32, digest);
+    expect(mockPutObjectCommand).toHaveBeenCalledWith({
+      Bucket: "test-bucket",
+      Key: "user/x/post/video.mp4",
+      Body: body,
+      ContentType: "video/mp4",
+      ContentLength: 32,
+      ChecksumSHA256: Buffer.from(digest, "hex").toString("base64"),
+      Metadata: { sha256: digest },
+    });
+    expect(body.readableDidRead).toBe(false);
+    body.destroy();
   });
 
   // ---- getR2Config (tested indirectly) ----

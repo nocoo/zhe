@@ -2,6 +2,7 @@
  * Upload operations for ScopedDB.
  */
 
+import { drainR2Deletions } from "@/lib/r2/gc";
 import { executeD1Query } from "../d1-client";
 import { rowToUpload } from "../mappers";
 import type { NewUpload, Upload } from "../schema";
@@ -43,6 +44,7 @@ export async function deleteUpload(userId: string, id: number): Promise<boolean>
     "DELETE FROM uploads WHERE id = ? AND user_id = ? RETURNING id",
     [id, userId],
   );
+  if (rows.length) await drainR2Deletions(userId).catch(() => {});
   return rows.length > 0;
 }
 

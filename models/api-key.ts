@@ -15,6 +15,7 @@ export const API_SCOPES = [
   "uploads:write",
   "ideas:read",
   "ideas:write",
+  "connector:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

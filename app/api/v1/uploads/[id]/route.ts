@@ -10,7 +10,6 @@ import { logApiRequest } from "@/lib/api/audit";
 import { apiError, requireAuthWithRateLimit } from "@/lib/api/auth";
 import { uploadToResponse } from "@/lib/api/serializers";
 import { ScopedDB } from "@/lib/db/scoped";
-import { deleteR2Object } from "@/lib/r2/client";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -83,22 +82,11 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
   try {
     const db = new ScopedDB(userId);
 
-    // Get the upload first to know the R2 key
-    const upload = await db.getUploadById(uploadId);
-    if (!upload) {
-      return apiError("Upload not found", 404);
-    }
-
-    // Delete from D1
+    // Shared deletion queues R2 objects and removes linked X attachments.
     const deleted = await db.deleteUpload(uploadId);
     if (!deleted) {
       return apiError("Upload not found", 404);
     }
-
-    // Delete from R2 (fire-and-forget)
-    deleteR2Object(upload.key).catch((error) => {
-      console.error(`[/api/v1/uploads/${id} DELETE] R2 cleanup failed:`, error);
-    });
 
     logApiRequest({
       keyId,

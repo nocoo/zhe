@@ -2,7 +2,7 @@
 
 import { getAuthContext } from "@/lib/auth-context";
 import type { Upload } from "@/lib/db/schema";
-import { createPresignedUploadUrl, deleteR2Object } from "@/lib/r2/client";
+import { createPresignedUploadUrl } from "@/lib/r2/client";
 import type { PresignedUrlResponse, UploadRequest } from "@/models/upload";
 import {
   buildPublicUrl,
@@ -136,19 +136,10 @@ export async function deleteUpload(uploadId: number): Promise<ActionResult> {
       return { success: false, error: "Upload not found or access denied" };
     }
 
-    // Delete from D1 first (reversible), then R2 (irreversible).
-    // If D1 succeeds but R2 fails, we only leave an orphan R2 object
-    // (cleanable later) instead of a dangling DB record pointing nowhere.
-    await ctx.db.deleteUpload(uploadId);
-
-    // Best-effort R2 cleanup — log but don't fail the user action
-    try {
-      await deleteR2Object(key);
-    } catch (r2Error) {
-      console.error("R2 delete failed (orphan object left):", r2Error);
-    }
-
-    return { success: true };
+    // ScopedDB owns durable R2 cleanup and linked attachments for every entry point.
+    return (await ctx.db.deleteUpload(uploadId))
+      ? { success: true }
+      : { success: false, error: "Upload not found or access denied" };
   } catch (error) {
     console.error("Failed to delete upload:", error);
     return {

@@ -10,6 +10,7 @@
  * The remote S3Client is never constructed in that mode.
  */
 
+import type { Readable } from "node:stream";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -112,6 +113,29 @@ export async function uploadBufferToR2(
       Key: key,
       Body: body,
       ContentType: contentType,
+    }),
+  );
+}
+
+/** Stream a bounded, verified Connector upload without buffering a video in memory. */
+export async function uploadStreamToR2(
+  key: string,
+  body: Readable,
+  contentType: string,
+  size: number,
+  sha256: string,
+): Promise<void> {
+  if (isLocalMode()) return localBackend.uploadStreamToR2(key, body);
+  const { bucket } = getR2Config();
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ContentLength: size,
+      ChecksumSHA256: Buffer.from(sha256, "hex").toString("base64"),
+      Metadata: { sha256 },
     }),
   );
 }

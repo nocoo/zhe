@@ -3,6 +3,7 @@
 import { requireAuth } from "@/lib/auth-context";
 import { executeD1Query } from "@/lib/db/d1-client";
 import { deleteR2Objects, listR2Objects } from "@/lib/r2/client";
+import { connectorStorageKeys } from "@/lib/r2/gc";
 import type { D1Stats, R2Stats, StorageScanResult } from "@/models/storage";
 import { classifyR2Objects, computeSummary, extractKeyFromUrl } from "@/models/storage";
 
@@ -67,16 +68,17 @@ async function getR2Stats(): Promise<R2Stats> {
 
   try {
     // Fetch all R2 objects and all DB references in parallel
-    const [r2Objects, uploadKeyRows, screenshotUrlRows] = await Promise.all([
+    const [r2Objects, uploadKeyRows, screenshotUrlRows, stagedKeys] = await Promise.all([
       listR2Objects(),
       executeD1Query<Record<string, unknown>>("SELECT key FROM uploads"),
       executeD1Query<Record<string, unknown>>(
         "SELECT screenshot_url FROM links WHERE screenshot_url IS NOT NULL",
       ),
+      connectorStorageKeys(),
     ]);
 
     // Build lookup sets
-    const uploadKeys = new Set(uploadKeyRows.map((r) => r.key as string));
+    const uploadKeys = new Set([...uploadKeyRows.map((r) => r.key as string), ...stagedKeys]);
     const screenshotKeys = new Set<string>();
     for (const row of screenshotUrlRows) {
       const url = row.screenshot_url as string;
@@ -150,14 +152,15 @@ export async function cleanupOrphanFiles(
     const publicDomain = process.env.R2_PUBLIC_DOMAIN ?? "";
 
     // Re-fetch all references to double-validate
-    const [uploadKeyRows, screenshotUrlRows] = await Promise.all([
+    const [uploadKeyRows, screenshotUrlRows, stagedKeys] = await Promise.all([
       executeD1Query<Record<string, unknown>>("SELECT key FROM uploads"),
       executeD1Query<Record<string, unknown>>(
         "SELECT screenshot_url FROM links WHERE screenshot_url IS NOT NULL",
       ),
+      connectorStorageKeys(),
     ]);
 
-    const uploadKeys = new Set(uploadKeyRows.map((r) => r.key as string));
+    const uploadKeys = new Set([...uploadKeyRows.map((r) => r.key as string), ...stagedKeys]);
     const screenshotKeys = new Set<string>();
     for (const row of screenshotUrlRows) {
       const url = row.screenshot_url as string;

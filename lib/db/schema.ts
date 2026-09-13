@@ -1,5 +1,12 @@
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 // ============================================
 // Auth.js Tables (required for D1 adapter)
@@ -192,6 +199,83 @@ export const apiKeys = sqliteTable("api_keys", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+// X enrichment uses the existing saved link and uploads as its ownership roots.
+// Publication and cleanup triggers are defined in migration 0024.
+export const xBookmarks = sqliteTable(
+  "x_bookmarks",
+  {
+    linkId: integer("link_id")
+      .primaryKey()
+      .references(() => links.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceUrl: text("source_url").notNull(),
+    postId: text("post_id"),
+    state: text("state", {
+      enum: ["pending", "running", "complete", "partial", "failed", "unavailable"],
+    })
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+    leaseKeyId: text("lease_key_id"),
+    leaseToken: text("lease_token"),
+    leaseUntil: integer("lease_until").notNull().default(0),
+    draftJson: text("draft_json"),
+    resultJson: text("result_json"),
+    removedMedia: text("removed_media").notNull().default("[]"),
+    errorCode: text("error_code"),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [index("idx_x_bookmarks_poll").on(t.userId, t.state, t.nextAttemptAt)],
+);
+
+export const xConnectorPresence = sqliteTable("x_connector_presence", {
+  keyId: text("key_id")
+    .primaryKey()
+    .references(() => apiKeys.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  lastSeenAt: integer("last_seen_at").notNull(),
+});
+
+export const xMedia = sqliteTable(
+  "x_media",
+  {
+    id: text("id").primaryKey(),
+    linkId: integer("link_id")
+      .notNull()
+      .references(() => xBookmarks.linkId, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mediaId: text("media_id").notNull(),
+    kind: text("kind", { enum: ["photo", "video", "poster"] }).notNull(),
+    r2Key: text("r2_key").notNull().unique(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    sha256: text("sha256").notNull(),
+    leaseToken: text("lease_token").notNull(),
+    state: text("state", { enum: ["reserved", "uploading", "verified", "published"] })
+      .notNull()
+      .default("reserved"),
+    uploadId: integer("upload_id").references(() => uploads.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    index("idx_x_media_owner").on(t.userId),
+    uniqueIndex("idx_x_media_identity").on(t.linkId, t.mediaId, t.kind),
+  ],
+);
+
+export const r2Deletions = sqliteTable("r2_deletions", {
+  key: text("key").primaryKey(),
+  userId: text("user_id").notNull(),
+  createdAt: integer("created_at").notNull(),
 });
 
 export const apiAuditLogs = sqliteTable("api_audit_logs", {

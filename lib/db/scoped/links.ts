@@ -2,6 +2,7 @@
  * Link operations for ScopedDB. Free functions that take userId.
  */
 
+import { drainR2Deletions } from "@/lib/r2/gc";
 import { executeD1Query } from "../d1-client";
 import { rowToLink } from "../mappers";
 import type { Link, NewLink } from "../schema";
@@ -149,6 +150,7 @@ export async function deleteLink(userId: string, id: number): Promise<boolean> {
     "DELETE FROM links WHERE id = ? AND user_id = ? RETURNING id",
     [id, userId],
   );
+  if (rows.length) await drainR2Deletions(userId).catch(() => {});
   return rows.length > 0;
 }
 
@@ -208,6 +210,7 @@ export async function updateLink(
     `UPDATE links SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params,
   );
+  if (rows.length && data.originalUrl !== undefined) await drainR2Deletions(userId).catch(() => {});
   return rows[0] ? rowToLink(rows[0]) : null;
 }
 

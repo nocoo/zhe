@@ -162,7 +162,8 @@ describe("Upload E2E — full lifecycle", () => {
       const deleteResult = await deleteUpload(uploadId);
 
       expect(deleteResult.success).toBe(true);
-      expect(mockDeleteR2Object).toHaveBeenCalledWith(key);
+      // The action delegates cleanup to ScopedDB; actual D1 triggers/R2 are
+      // exercised by tests/api/v1/connector.test.ts, not this D1 transport mock.
 
       // Step 5: Verify upload is gone
       const listAfterDelete = await getUploads();

@@ -36,6 +36,7 @@ function mockD1Counts(counts: Record<string, number>) {
 function mockR2Queries({ uploadKeys = [] as string[], screenshotUrls = [] as string[] } = {}) {
   mockExecuteD1Query.mockResolvedValueOnce(uploadKeys.map((key) => ({ key })));
   mockExecuteD1Query.mockResolvedValueOnce(screenshotUrls.map((url) => ({ screenshot_url: url })));
+  mockExecuteD1Query.mockResolvedValueOnce([]); // Reserved Connector media keys
 }
 
 // ── Tests ──

@@ -343,6 +343,14 @@ describe("actions/upload", () => {
   // deleteUpload
   // ====================================================================
   describe("deleteUpload", () => {
+    it("reports a concurrent deletion and delegates cleanup to the shared storage path", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetUploadKey.mockResolvedValue(FAKE_UPLOAD.key);
+      mockDeleteUpload.mockResolvedValue(false);
+      const result = await deleteUpload(1);
+      expect(result).toEqual({ success: false, error: "Upload not found or access denied" });
+      expect(mockDeleteR2Object).not.toHaveBeenCalled();
+    });
     it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
@@ -365,7 +373,7 @@ describe("actions/upload", () => {
       expect(mockDeleteUpload).not.toHaveBeenCalled();
     });
 
-    it("deletes from D1 first, then R2 on success", async () => {
+    it("uses shared deletion without bypassing its durable R2 reference checks", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockGetUploadKey.mockResolvedValue("abc123def456/20260212/abc-def.png");
       mockDeleteR2Object.mockResolvedValue(undefined);
@@ -376,7 +384,7 @@ describe("actions/upload", () => {
       expect(result).toEqual({ success: true });
       expect(mockGetUploadKey).toHaveBeenCalledWith(1);
       expect(mockDeleteUpload).toHaveBeenCalledWith(1);
-      expect(mockDeleteR2Object).toHaveBeenCalledWith("abc123def456/20260212/abc-def.png");
+      expect(mockDeleteR2Object).not.toHaveBeenCalled();
     });
 
     it("succeeds even when R2 deletion fails (best-effort cleanup)", async () => {

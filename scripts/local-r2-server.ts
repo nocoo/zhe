@@ -16,9 +16,10 @@
  * from scripts/test-stack.ts; also runnable as a standalone script.
  */
 
-import { promises as fs } from "node:fs";
+import { createReadStream, promises as fs } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname } from "node:path";
+import { pipeline } from "node:stream/promises";
 
 import { deleteR2Object, keyToPath, uploadBufferToR2 } from "../lib/r2/local-fs-backend";
 
@@ -37,6 +38,8 @@ const MIME: Record<string, string> = {
   ".css": "text/css",
   ".js": "application/javascript",
   ".pdf": "application/pdf",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
 };
 
 function guessMime(key: string): string {
@@ -135,18 +138,42 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
         }
         throw err;
       }
-      const headers = {
+      const headers: Record<string, string> = {
         "Content-Type": guessMime(key),
         "Content-Length": String(stat.size),
+        "Accept-Ranges": "bytes",
+        "Access-Control-Allow-Origin": "*",
       };
       if (method === "HEAD") {
         res.writeHead(200, headers);
         res.end();
         return;
       }
-      const body = await fs.readFile(path);
-      res.writeHead(200, headers);
-      res.end(body);
+      let start = 0;
+      let end = stat.size - 1;
+      if (req.headers.range) {
+        const match = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+        const first = match?.[1];
+        const last = match?.[2];
+        start = first ? Number(first) : Math.max(0, stat.size - Number(last));
+        end = first && last ? Math.min(Number(last), end) : end;
+        if (
+          !match ||
+          (!first && !Number(last)) ||
+          !Number.isSafeInteger(start) ||
+          !Number.isSafeInteger(end) ||
+          start > end ||
+          start < 0
+        ) {
+          send(res, 416, undefined, { "Content-Range": `bytes */${stat.size}` });
+          return;
+        }
+        headers["Content-Length"] = String(end - start + 1);
+        headers["Content-Range"] = `bytes ${start}-${end}/${stat.size}`;
+      }
+      res.writeHead(req.headers.range ? 206 : 200, headers);
+      if (stat.size) await pipeline(createReadStream(path, { start, end }), res);
+      else res.end();
       return;
     }
 

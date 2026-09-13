@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { deleteR2Objects, listR2Objects } from "@/lib/r2/client";
+import { drainR2Deletions } from "@/lib/r2/gc";
 import { findExpiredTmpKeys, TMP_PREFIX } from "@/models/tmp-storage";
 
 /** Timing-safe string comparison to prevent timing attacks. */
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
 
   if (!token || !safeCompare(token, workerSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await drainR2Deletions();
+  } catch {
+    return NextResponse.json({ error: "Failed to process media cleanup" }, { status: 503 });
   }
 
   // 2. List all objects under tmp/ prefix
