@@ -315,6 +315,11 @@ export function XBookmarkContent({
   if (!tweet) return null;
   const { text, links } = getXPostPresentation(tweet);
   const standaloneLink = !text && links.length === 1;
+  // Connector metadata identifies the author, not the linked article's headline.
+  const savedTitle = title?.trim() || null;
+  const headline =
+    note?.trim() ||
+    (savedTitle === `${tweet.author.name} (@${tweet.author.username})` ? null : savedTitle);
   const date = formatTweetDate(tweet.created_at);
   const metrics = [
     { icon: Heart, label: "喜欢", count: tweet.metrics.like_count },
@@ -358,7 +363,7 @@ export function XBookmarkContent({
       )}
       {text && <PostText key={tweet.id} text={text} />}
       <MediaGrid media={tweet.media} />
-      <PostLinks links={links} headline={standaloneLink ? note || title || null : null} />
+      <PostLinks links={links} headline={standaloneLink ? headline : null} />
       {tweet.quoted_tweet && <Quote tweet={tweet.quoted_tweet} />}
       <section
         className="border-t border-border/60 pt-4 text-xs text-muted-foreground"

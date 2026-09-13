@@ -87,9 +87,13 @@ export const LinkCard = memo(function LinkCard({
   const xBookmarks = useContext(XBookmarksContext);
   const xPost = canonicalXPost(link.originalUrl);
   const xBookmark = getXBookmarkForLink(link, xBookmarks.get(link.id));
+  const isXFeed = viewMode === "feed" && !!xPost;
+  const panelClassName = isXFeed ? "p-5" : undefined;
+  const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(defaultEditing);
+  const editTrigger = useRef<HTMLElement | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsTrigger = useRef<HTMLElement | null>(null);
   const openDetails = () => {
@@ -100,6 +104,8 @@ export const LinkCard = memo(function LinkCard({
 
   const handleToggleEdit = () => {
     if (defaultEditing) return; // defaultEditing cards stay open
+    editTrigger.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setIsEditing((prev) => !prev);
   };
 
@@ -147,6 +153,7 @@ export const LinkCard = memo(function LinkCard({
   const editArea =
     isEditing && editCallbacks ? (
       <InlineEditArea
+        className={panelClassName}
         link={link}
         tags={tags}
         linkTags={linkTags}
@@ -155,7 +162,10 @@ export const LinkCard = memo(function LinkCard({
         isDeleting={vm.isDeleting}
         handleDelete={vm.handleDelete}
         defaultEditing={defaultEditing}
-        onCloseEdit={() => setIsEditing(false)}
+        onCloseEdit={() => {
+          setIsEditing(false);
+          editTrigger.current?.focus();
+        }}
       />
     ) : null;
 
@@ -212,7 +222,7 @@ export const LinkCard = memo(function LinkCard({
     </Dialog>
   );
 
-  if (viewMode === "feed" && xPost)
+  if (isXFeed)
     return (
       <LayerCard
         padding="none"
@@ -230,11 +240,8 @@ export const LinkCard = memo(function LinkCard({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
               <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
-              <span
-                className="truncate"
-                title={folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox"}
-              >
-                {folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox"}
+              <span className="truncate" title={folderName}>
+                {folderName}
               </span>
             </span>
             <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
@@ -282,6 +289,7 @@ export const LinkCard = memo(function LinkCard({
                       onClick={vm.handleToggleAnalytics}
                       aria-label="查看点击统计"
                       aria-expanded={vm.showAnalytics}
+                      className="aria-expanded:bg-accent aria-expanded:text-foreground"
                     >
                       <BarChart3 strokeWidth={1.5} />
                     </Button>
@@ -308,6 +316,7 @@ export const LinkCard = memo(function LinkCard({
                       onClick={handleToggleEdit}
                       aria-label="Edit link"
                       aria-expanded={isEditing}
+                      className="aria-expanded:bg-accent aria-expanded:text-foreground"
                     >
                       <Pencil strokeWidth={1.5} />
                     </Button>
@@ -319,6 +328,7 @@ export const LinkCard = memo(function LinkCard({
           </TooltipProvider>
         </LayerCard.Footer>
         <AnalyticsPanel
+          className="p-5"
           showAnalytics={vm.showAnalytics}
           analyticsStats={vm.analyticsStats}
           isLoadingAnalytics={vm.isLoadingAnalytics}
@@ -349,22 +359,29 @@ export const LinkCard = memo(function LinkCard({
   return (
     <>
       <LayerCard
+        padding="none"
         data-testid="link-card"
         data-link-id={link.id}
         data-view={viewMode}
-        className="group rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
+        className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
       >
-        <ListView
-          {...sharedViewProps}
-          isEditing={isEditing}
-          showAnalytics={vm.showAnalytics}
-          onToggleAnalytics={vm.handleToggleAnalytics}
-        />
-        {xPost && (
-          <div className="mt-3">
-            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} compact={viewMode !== "feed"} />
-          </div>
-        )}
+        <div className="p-4">
+          <ListView
+            {...sharedViewProps}
+            isEditing={isEditing}
+            showAnalytics={vm.showAnalytics}
+            onToggleAnalytics={vm.handleToggleAnalytics}
+          />
+          {xPost && (
+            <div className="mt-3">
+              <XBookmarkStatus
+                bookmark={xBookmark}
+                linkId={link.id}
+                compact={viewMode !== "feed"}
+              />
+            </div>
+          )}
+        </div>
         <AnalyticsPanel
           showAnalytics={vm.showAnalytics}
           analyticsStats={vm.analyticsStats}

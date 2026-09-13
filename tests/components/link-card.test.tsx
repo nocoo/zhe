@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types";
@@ -148,6 +148,7 @@ describe("LinkCard", () => {
     mockEditVm.error = "";
     mockEditVm.assignedTagIds = new Set();
     mockEditVm.assignedTags = [];
+    mockEditVm.saveEdit.mockResolvedValue(true);
   });
 
   // --- Unified title logic ---
@@ -262,10 +263,10 @@ describe("LinkCard", () => {
 
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.getByText("Countries")).toBeInTheDocument();
-    expect(screen.getByText("Devices")).toBeInTheDocument();
-    expect(screen.getByText("Browsers")).toBeInTheDocument();
-    expect(screen.getByText("OS")).toBeInTheDocument();
+    expect(screen.getByText("国家 / 地区")).toBeInTheDocument();
+    expect(screen.getByText("设备")).toBeInTheDocument();
+    expect(screen.getByText("浏览器")).toBeInTheDocument();
+    expect(screen.getByText("操作系统")).toBeInTheDocument();
   });
 
   it("shows '暂无分析数据' when analytics open but no data and not loading", () => {
@@ -825,7 +826,7 @@ describe("LinkCard", () => {
     expect(screen.getByText("35")).toBeInTheDocument();
   });
 
-  it("shows '+N more' text when countries exceed displayed entries", () => {
+  it("shows the remaining country count when countries exceed displayed entries", () => {
     mockVm.showAnalytics = true;
     mockVm.analyticsStats = {
       totalClicks: 100,
@@ -837,10 +838,10 @@ describe("LinkCard", () => {
 
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.getByText("+3 more")).toBeInTheDocument();
+    expect(screen.getByText("另有 3 个")).toBeInTheDocument();
   });
 
-  it("shows 'No data' when device breakdown is empty", () => {
+  it("shows one empty state instead of four empty breakdowns before any visits", () => {
     mockVm.showAnalytics = true;
     mockVm.analyticsStats = {
       totalClicks: 0,
@@ -852,9 +853,29 @@ describe("LinkCard", () => {
 
     render(<LinkCard {...defaultProps} />);
 
-    const noDataElements = screen.getAllByText("No data");
-    expect(noDataElements.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("暂无分析数据")).toHaveLength(1);
+    expect(screen.queryByText("暂无记录")).not.toBeInTheDocument();
+    expect(screen.queryByText("国家 / 地区")).not.toBeInTheDocument();
   });
+
+  it.each(["browserBreakdown", "osBreakdown"] as const)(
+    "keeps partial analytics visible when only %s has data",
+    (breakdown) => {
+      mockVm.showAnalytics = true;
+      mockVm.analyticsStats = {
+        totalClicks: 1,
+        uniqueCountries: [],
+        deviceBreakdown: {},
+        browserBreakdown: {},
+        osBreakdown: {},
+        [breakdown]: { "Known visitor": 1 },
+      };
+      render(<LinkCard {...defaultProps} />);
+      expect(screen.getByText("Known visitor")).toBeInTheDocument();
+      expect(screen.getAllByText("暂无记录")).toHaveLength(3);
+      expect(screen.queryByText("暂无分析数据")).not.toBeInTheDocument();
+    },
+  );
 
   // --- Screenshot source picker dialog ---
 
@@ -921,6 +942,7 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} defaultEditing />);
 
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "收起" })).not.toBeInTheDocument();
   });
 
   it("defaultEditing cards cannot collapse edit area via edit button", async () => {
@@ -957,6 +979,50 @@ describe("LinkCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     expect(mockEditVm.saveEdit).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
+  });
+
+  it.each(["list", "grid", "feed"] as const)(
+    "can close the %s editor without saving and keeps analytics open",
+    (viewMode) => {
+      mockVm.showAnalytics = true;
+      render(
+        <LinkCard
+          {...defaultProps}
+          link={{ ...baseLink, originalUrl: "https://x.com/example/status/12345" }}
+          viewMode={viewMode}
+        />,
+      );
+      const trigger = screen.getByRole("button", { name: "Edit link" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      expect(screen.getByRole("region", { name: "编辑收藏" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "收起" }));
+      expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
+      expect(mockEditVm.saveEdit).not.toHaveBeenCalled();
+      expect(trigger).toHaveFocus();
+      if (viewMode !== "grid") {
+        expect(screen.getByRole("region", { name: "短链接统计" })).toBeInTheDocument();
+      }
+    },
+  );
+
+  it("keeps the editor and its error visible when saving fails", async () => {
+    mockEditVm.saveEdit.mockResolvedValue(false);
+    mockEditVm.error = "无法保存链接";
+    render(<LinkCard {...defaultProps} />);
+    fireEvent.click(screen.getByTitle("Edit link"));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(mockEditVm.saveEdit).toHaveBeenCalled());
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("无法保存链接");
+  });
+
+  it("keeps the Inbox editor open after saving", async () => {
+    render(<LinkCard {...defaultProps} defaultEditing />);
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(mockEditVm.saveEdit).toHaveBeenCalled());
+    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
   // --- Edit form inputs ---

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   DeleteLinkDialog,
   TagBadge,
@@ -16,11 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
-
-const FIELD_INPUT_CLS = "h-8 rounded-widget border-border text-xs";
 
 function LabelledField({
   id,
@@ -34,105 +33,12 @@ function LabelledField({
   className?: string;
 }) {
   return (
-    <div className={`space-y-1 ${className}`}>
+    <div className={cn("min-w-0 space-y-1.5", className)}>
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
       </Label>
       {children}
     </div>
-  );
-}
-
-interface EditVm {
-  editUrl: string;
-  setEditUrl: (v: string) => void;
-  editSlug: string;
-  setEditSlug: (v: string) => void;
-  editFolderId: string | null;
-  setEditFolderId: (v: string | null) => void;
-  editNote: string;
-  setEditNote: (v: string) => void;
-  editScreenshotUrl: string;
-  setEditScreenshotUrl: (v: string) => void;
-}
-
-function UrlSlugRow({ link, vm }: { link: Link; vm: EditVm }) {
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="flex-1 min-w-[200px]">
-        <Input
-          id={`edit-url-${link.id}`}
-          type="url"
-          value={vm.editUrl}
-          onChange={(e) => vm.setEditUrl(e.target.value)}
-          placeholder="https://example.com"
-          className={FIELD_INPUT_CLS}
-        />
-      </LabelledField>
-      <LabelledField id={`edit-slug-${link.id}`} label="短链接" className="w-40">
-        <Input
-          id={`edit-slug-${link.id}`}
-          type="text"
-          value={vm.editSlug}
-          onChange={(e) => vm.setEditSlug(e.target.value)}
-          placeholder="custom-slug"
-          className={FIELD_INPUT_CLS}
-        />
-      </LabelledField>
-    </div>
-  );
-}
-
-function FolderNoteRow({ link, folders, vm }: { link: Link; folders: Folder[]; vm: EditVm }) {
-  return (
-    <div className="flex flex-wrap items-end gap-3">
-      <LabelledField id={`edit-folder-${link.id}`} label="文件夹">
-        <Select
-          value={vm.editFolderId ?? "__inbox__"}
-          onValueChange={(v) => vm.setEditFolderId(v === "__inbox__" ? null : v)}
-        >
-          <SelectTrigger
-            id={`edit-folder-${link.id}`}
-            className="h-8 w-40 rounded-widget border-border text-xs"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__inbox__">Inbox</SelectItem>
-            {folders.map((folder) => (
-              <SelectItem key={folder.id} value={folder.id}>
-                {folder.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </LabelledField>
-      <LabelledField id={`edit-note-${link.id}`} label="备注" className="flex-1 min-w-[200px]">
-        <Input
-          id={`edit-note-${link.id}`}
-          type="text"
-          value={vm.editNote}
-          onChange={(e) => vm.setEditNote(e.target.value)}
-          placeholder="添加备注..."
-          className={FIELD_INPUT_CLS}
-        />
-      </LabelledField>
-    </div>
-  );
-}
-
-function ScreenshotUrlRow({ link, vm }: { link: Link; vm: EditVm }) {
-  return (
-    <LabelledField id={`edit-screenshot-${link.id}`} label="截图链接">
-      <Input
-        id={`edit-screenshot-${link.id}`}
-        type="url"
-        value={vm.editScreenshotUrl}
-        onChange={(e) => vm.setEditScreenshotUrl(e.target.value)}
-        placeholder="https://example.com/screenshot.png"
-        className={FIELD_INPUT_CLS}
-      />
-    </LabelledField>
   );
 }
 
@@ -171,39 +77,43 @@ function EditToolbar({
   isDeleting,
   onSave,
   onDelete,
+  onClose,
 }: {
   isSaving: boolean;
   isDeleting: boolean;
   onSave: () => void;
   onDelete: () => void;
+  onClose?: (() => void) | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
       <DeleteLinkDialog
         trigger={
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant="ghost"
             aria-label="Delete link"
-            className="flex h-8 items-center gap-1.5 rounded-widget px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-            disabled={isDeleting}
+            className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            disabled={isDeleting || isSaving}
           >
-            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <Trash2 strokeWidth={1.5} aria-hidden />
             {isDeleting ? "删除中..." : "删除"}
-          </button>
+          </Button>
         }
         isDeleting={isDeleting}
         onConfirm={onDelete}
       />
-      <Button size="sm" onClick={onSave} disabled={isSaving}>
-        {isSaving ? (
-          <>
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" strokeWidth={1.5} />
-            保存中
-          </>
-        ) : (
-          "保存"
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+        {onClose && (
+          <Button size="sm" variant="ghost" onClick={onClose} disabled={isSaving || isDeleting}>
+            收起
+          </Button>
         )}
-      </Button>
+        <Button size="sm" onClick={onSave} loading={isSaving} disabled={isDeleting}>
+          {isSaving ? "保存中" : "保存"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -218,6 +128,7 @@ export interface InlineEditAreaProps {
   handleDelete: () => void;
   defaultEditing: boolean;
   onCloseEdit: () => void;
+  className?: string | undefined;
 }
 
 /** Inline edit area rendered below the card content when edit mode is active. */
@@ -231,6 +142,7 @@ export function InlineEditArea({
   handleDelete,
   defaultEditing,
   onCloseEdit,
+  className,
 }: InlineEditAreaProps) {
   const editVm = useInlineLinkEditViewModel(link, tags, linkTags, editCallbacks);
 
@@ -240,10 +152,86 @@ export function InlineEditArea({
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-border px-0 pb-0 space-y-3" data-testid="edit-area">
-      <UrlSlugRow link={link} vm={editVm} />
-      <FolderNoteRow link={link} folders={folders} vm={editVm} />
-      <ScreenshotUrlRow link={link} vm={editVm} />
+    <section
+      className={cn(
+        "@container/edit space-y-4 border-t border-border/60 bg-background/30 p-4",
+        className,
+      )}
+      aria-label="编辑收藏"
+      data-testid="edit-area"
+    >
+      <h3 className="flex items-center gap-2 text-xs font-semibold">
+        <Pencil className="size-3.5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        编辑收藏
+      </h3>
+      <div className="grid grid-cols-1 gap-3 @xs/edit:grid-cols-2">
+        <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="@xs/edit:col-span-2">
+          <Input
+            id={`edit-url-${link.id}`}
+            size="sm"
+            type="url"
+            value={editVm.editUrl}
+            onChange={(e) => editVm.setEditUrl(e.target.value)}
+            placeholder="https://example.com"
+          />
+        </LabelledField>
+        <LabelledField id={`edit-slug-${link.id}`} label="短链接">
+          <Input
+            id={`edit-slug-${link.id}`}
+            size="sm"
+            type="text"
+            value={editVm.editSlug}
+            onChange={(e) => editVm.setEditSlug(e.target.value)}
+            placeholder="custom-slug"
+          />
+        </LabelledField>
+        <LabelledField id={`edit-folder-${link.id}`} label="文件夹">
+          <Select
+            value={editVm.editFolderId ?? "__inbox__"}
+            onValueChange={(v) => editVm.setEditFolderId(v === "__inbox__" ? null : v)}
+          >
+            <SelectTrigger
+              id={`edit-folder-${link.id}`}
+              size="sm"
+              className="w-full min-w-0 gap-2 text-left [&>span]:truncate [&>svg]:shrink-0"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__inbox__">Inbox</SelectItem>
+              {folders.map((folder) => (
+                <SelectItem key={folder.id} value={folder.id}>
+                  {folder.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </LabelledField>
+        <LabelledField id={`edit-note-${link.id}`} label="备注" className="@xs/edit:col-span-2">
+          <Input
+            id={`edit-note-${link.id}`}
+            size="sm"
+            type="text"
+            value={editVm.editNote}
+            onChange={(e) => editVm.setEditNote(e.target.value)}
+            placeholder="添加备注..."
+          />
+        </LabelledField>
+        <LabelledField
+          id={`edit-screenshot-${link.id}`}
+          label="截图链接"
+          className="@xs/edit:col-span-2"
+        >
+          <Input
+            id={`edit-screenshot-${link.id}`}
+            size="sm"
+            type="url"
+            value={editVm.editScreenshotUrl}
+            onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
+            placeholder="https://example.com/screenshot.png"
+          />
+        </LabelledField>
+      </div>
 
       <TagsRow
         allTags={tags}
@@ -254,14 +242,19 @@ export function InlineEditArea({
         onCreate={editVm.createAndAssignTag}
       />
 
-      {editVm.error && <p className="text-xs text-destructive">{editVm.error}</p>}
+      {editVm.error && (
+        <p role="alert" className="text-xs text-destructive">
+          {editVm.error}
+        </p>
+      )}
 
       <EditToolbar
         isSaving={editVm.isSaving}
         isDeleting={isDeleting}
         onSave={handleSave}
         onDelete={handleDelete}
+        onClose={defaultEditing ? undefined : onCloseEdit}
       />
-    </div>
+    </section>
   );
 }

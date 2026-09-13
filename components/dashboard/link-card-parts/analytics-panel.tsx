@@ -1,6 +1,9 @@
 "use client";
 
+import { BarChart3, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { topBreakdownEntries } from "@/models/links";
+import type { AnalyticsStats } from "@/models/types";
 
 /** Compact breakdown column (e.g. Devices / Browsers / OS / Countries). */
 export function BreakdownSection({
@@ -15,76 +18,101 @@ export function BreakdownSection({
   showCount?: boolean;
 }) {
   return (
-    <div>
-      <h4 className="text-muted-foreground text-xs uppercase tracking-wide mb-2">{title}</h4>
+    <div className="min-w-0">
+      <h4 className="mb-2 text-xs font-medium text-muted-foreground">{title}</h4>
       {entries.length > 0 ? (
         <div className="space-y-1">
           {entries.map(([label, count]) => (
-            <div key={label} className="flex justify-between text-xs">
-              <span className="text-muted-foreground capitalize">{label}</span>
-              {showCount && <span className="text-muted-foreground/70">{count}</span>}
+            <div key={label} className="flex items-center justify-between gap-3 text-xs leading-5">
+              <span className="min-w-0 truncate capitalize" title={label}>
+                {label}
+              </span>
+              {showCount && <span className="shrink-0 font-medium tabular-nums">{count}</span>}
             </div>
           ))}
-          {total && total > entries.length && (
-            <span className="text-muted-foreground/70 text-xs">+{total - entries.length} more</span>
+          {total !== undefined && total > entries.length && (
+            <span className="text-xs text-muted-foreground">另有 {total - entries.length} 个</span>
           )}
         </div>
       ) : (
-        <span className="text-muted-foreground text-xs">No data</span>
+        <span className="text-xs text-muted-foreground">暂无记录</span>
       )}
     </div>
   );
 }
 
-interface AnalyticsStats {
-  uniqueCountries: string[];
-  deviceBreakdown: Record<string, number>;
-  browserBreakdown: Record<string, number>;
-  osBreakdown: Record<string, number>;
-}
-
-/** Four-column analytics breakdown, shown when stats are loaded. */
+/** Analytics adapt to the card width, with one empty state before visits arrive. */
 export function AnalyticsPanel({
   showAnalytics,
   analyticsStats,
   isLoadingAnalytics,
+  className,
 }: {
   showAnalytics: boolean;
   analyticsStats: AnalyticsStats | null;
   isLoadingAnalytics: boolean;
+  className?: string | undefined;
 }) {
   if (!showAnalytics) return null;
 
-  if (analyticsStats) {
-    return (
-      <div className="mt-4 pt-4 border-t border-border">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+  const hasBreakdown =
+    analyticsStats &&
+    (analyticsStats.uniqueCountries.length > 0 ||
+      Object.keys(analyticsStats.deviceBreakdown).length > 0 ||
+      Object.keys(analyticsStats.browserBreakdown).length > 0 ||
+      Object.keys(analyticsStats.osBreakdown).length > 0);
+
+  return (
+    <section
+      className={cn(
+        "@container/analytics space-y-4 border-t border-border/60 bg-background/30 p-4",
+        className,
+      )}
+      aria-label="短链接统计"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-xs font-semibold">
+          <BarChart3 className="size-3.5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+          短链接统计
+        </h3>
+        {analyticsStats && (
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {analyticsStats.totalClicks} 次点击
+          </span>
+        )}
+      </div>
+      {hasBreakdown ? (
+        <div className="grid grid-cols-2 gap-x-5 gap-y-4 @xl/analytics:grid-cols-4">
           <BreakdownSection
-            title="Countries"
+            title="国家 / 地区"
             entries={analyticsStats.uniqueCountries.slice(0, 5).map((c) => [c, 0])}
             total={analyticsStats.uniqueCountries.length}
             showCount={false}
           />
           <BreakdownSection
-            title="Devices"
+            title="设备"
             entries={topBreakdownEntries(analyticsStats.deviceBreakdown, 3)}
           />
           <BreakdownSection
-            title="Browsers"
+            title="浏览器"
             entries={topBreakdownEntries(analyticsStats.browserBreakdown, 3)}
           />
           <BreakdownSection
-            title="OS"
+            title="操作系统"
             entries={topBreakdownEntries(analyticsStats.osBreakdown, 3)}
           />
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 pt-4 border-t border-border text-center text-muted-foreground text-xs">
-      {isLoadingAnalytics ? "加载中..." : "暂无分析数据"}
-    </div>
+      ) : (
+        <p
+          role="status"
+          className="flex items-center gap-2 text-xs leading-5 text-muted-foreground"
+        >
+          {isLoadingAnalytics && (
+            <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+          )}
+          {isLoadingAnalytics ? "加载中..." : "暂无分析数据"}
+        </p>
+      )}
+    </section>
   );
 }

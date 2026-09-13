@@ -70,6 +70,7 @@ describe("X bookmark presentation", () => {
             },
           }}
           note="I want to build an AI agent today"
+          title="Example Author (@example)"
         />
       </LayerCard>,
     );
@@ -79,6 +80,31 @@ describe("X bookmark presentation", () => {
     expect(preview).toHaveTextContent("阅读全文");
     expect(screen.queryByText("https://t.co/KW3rQbdBJT")).not.toBeInTheDocument();
     expect(screen.queryByText(url)).not.toBeInTheDocument();
+  });
+  it.each([
+    ["Example Author (@example)", "阅读 X 文章"],
+    ["  Example Author (@example)  ", "阅读 X 文章"],
+    ["  A saved article headline  ", "A saved article headline"],
+  ])("uses article metadata without mistaking %s for a headline", (title, expected) => {
+    render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              text: "https://t.co/article",
+              entities: { ...tweet.entities, urls: ["https://x.com/i/article/12345"] },
+            },
+          }}
+          title={title}
+          note="  "
+        />
+      </LayerCard>,
+    );
+    const preview = screen.getByTestId("x-link-preview");
+    expect(preview).toHaveTextContent(expected);
+    expect(preview).not.toHaveTextContent("Example Author (@example)");
   });
   it.each(["grid", "list"] as const)(
     "keeps %s compact after enrichment and opens the full post on demand",
