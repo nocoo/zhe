@@ -3,9 +3,11 @@
 import { createContext, useContext, useMemo } from "react";
 import type { IdeaListItem, TodoTreeNode } from "@/lib/db/scoped";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
+import { useXBookmarks } from "@/viewmodels/useXBookmarks";
 import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
 import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
 import { useTodosSlice } from "./dashboard-service-parts/useTodosSlice";
+import { XBookmarksContext } from "./x-bookmarks";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -98,6 +100,7 @@ export function DashboardServiceProvider({
   children,
 }: DashboardServiceProviderProps) {
   const core = useDashboardCore(initialFolders);
+  const xBookmarks = useXBookmarks(core.links, core.handleLinkUpdated);
   const ideasSlice = useIdeasSlice();
   const todosSlice = useTodosSlice();
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -160,9 +163,13 @@ export function DashboardServiceProvider({
   );
 
   return (
-    <DashboardActionsContext.Provider value={actionsValue}>
-      <DashboardStateContext.Provider value={stateValue}>{children}</DashboardStateContext.Provider>
-    </DashboardActionsContext.Provider>
+    <XBookmarksContext.Provider value={xBookmarks}>
+      <DashboardActionsContext.Provider value={actionsValue}>
+        <DashboardStateContext.Provider value={stateValue}>
+          {children}
+        </DashboardStateContext.Provider>
+      </DashboardActionsContext.Provider>
+    </XBookmarksContext.Provider>
   );
 }
 

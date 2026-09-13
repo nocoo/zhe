@@ -172,6 +172,19 @@ describe("UploadItem", () => {
       handleDelete: mockHandleDeleteFn,
     });
   });
+  it("previews archived videos and explains cascading attachment deletion", () => {
+    const upload = makeUpload({
+      fileName: "saved.mp4",
+      fileType: "video/mp4",
+      key: "abc123def456/x/123/1/saved.mp4",
+    });
+    render(<UploadItem upload={upload} onDelete={mockOnDelete} />);
+    fireEvent.click(screen.getByRole("button", { name: "预览视频" }));
+    const video = screen.getByLabelText("文件视频预览");
+    expect(video).toHaveAttribute("src", upload.publicUrl);
+    expect(video).toHaveAttribute("controls");
+    expect(video).toHaveAttribute("playsinline");
+  });
 
   it("renders file name and public URL", () => {
     const upload = makeUpload();

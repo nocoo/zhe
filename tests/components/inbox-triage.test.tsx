@@ -1,4 +1,8 @@
 // @vitest-environment happy-dom
+vi.mock("@/actions/connector", () => ({
+  loadXBookmarks: async () => ({ success: true, data: [] }),
+  retryXBookmarkAction: async () => ({ success: true }),
+}));
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

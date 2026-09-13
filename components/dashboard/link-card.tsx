@@ -1,6 +1,10 @@
 "use client";
 
-import { memo, useMemo, useState } from "react";
+import { Button, LayerCard } from "@nocoo/basalt";
+import { BarChart3, Check, Copy, ExternalLink, Pencil, Sparkles } from "lucide-react";
+import { memo, useContext, useMemo, useState } from "react";
+import { canonicalXPost } from "@/cli/src/connector/core";
+import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
@@ -10,6 +14,8 @@ import { GridView } from "./link-card-parts/grid-view";
 import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
 import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
+import { TagBadge } from "./shared-link-components";
+import { XBookmarkContent, XBookmarkStatus } from "./x-bookmark-content";
 
 type ViewMode = "list" | "grid";
 
@@ -65,6 +71,10 @@ export const LinkCard = memo(function LinkCard({
   suggestDisabled,
 }: LinkCardProps) {
   const vm = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
+  const xBookmarks = useContext(XBookmarksContext);
+  const xPost = canonicalXPost(link.originalUrl);
+  const enriched = xBookmarks.get(link.id);
+  const xBookmark = enriched?.tweet && enriched.tweet.id !== xPost?.id ? undefined : enriched;
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(defaultEditing);
@@ -131,32 +141,95 @@ export const LinkCard = memo(function LinkCard({
     />
   );
 
+  if (xPost && xBookmark?.tweet)
+    return (
+      <LayerCard padding="none" className="group overflow-hidden" data-testid="link-card">
+        {link.note && (
+          <LayerCard.Header>
+            <p className="whitespace-pre-wrap break-words text-sm font-medium">{link.note}</p>
+          </LayerCard.Header>
+        )}
+        <XBookmarkContent bookmark={xBookmark} />
+        <LayerCard.Footer className="flex-wrap gap-2">
+          <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
+          <div className="ml-auto flex flex-wrap items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={vm.handleCopy} aria-label="Copy link">
+              {vm.copied ? <Check /> : <Copy />}
+              {link.slug}
+            </Button>
+            <Button size="icon" variant="ghost" asChild aria-label="打开原帖">
+              <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink />
+              </a>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={vm.handleToggleAnalytics}
+              aria-label="查看点击统计"
+            >
+              <BarChart3 />
+            </Button>
+            {onSuggest && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onSuggest}
+                disabled={suggestDisabled}
+                aria-label="AI 建议"
+              >
+                <Sparkles />
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" onClick={handleToggleEdit} aria-label="Edit link">
+              <Pencil />
+            </Button>
+          </div>
+          {cardTags.length > 0 && (
+            <div className="flex w-full flex-wrap gap-1">
+              {cardTags.map((tag) => (
+                <TagBadge key={tag.id} tag={tag} size="sm" />
+              ))}
+            </div>
+          )}
+        </LayerCard.Footer>
+        <AnalyticsPanel
+          showAnalytics={vm.showAnalytics}
+          analyticsStats={vm.analyticsStats}
+          isLoadingAnalytics={vm.isLoadingAnalytics}
+        />
+        {editArea}
+      </LayerCard>
+    );
+
   if (viewMode === "grid") {
     return (
-      <div
-        data-testid="link-card"
-        data-basalt-surface=""
-        className="group rounded-card border-0 bg-secondary shadow-none overflow-hidden transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
-      >
+      <LayerCard padding="none" data-testid="link-card" className="group overflow-hidden">
         <GridView {...sharedViewProps} />
+        {xPost && (
+          <LayerCard.Footer>
+            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
+          </LayerCard.Footer>
+        )}
         {editArea}
         {sourceDialog}
-      </div>
+      </LayerCard>
     );
   }
 
   return (
-    <div
-      data-testid="link-card"
-      data-basalt-surface=""
-      className="group rounded-card border-0 bg-secondary shadow-none p-4 transition-colors hover:bg-secondary/70 focus-within:bg-secondary/70"
-    >
+    <LayerCard data-testid="link-card" className="group">
       <ListView
         {...sharedViewProps}
         isEditing={isEditing}
         showAnalytics={vm.showAnalytics}
         onToggleAnalytics={vm.handleToggleAnalytics}
       />
+      {xPost && (
+        <div className="mt-3">
+          <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
+        </div>
+      )}
       <AnalyticsPanel
         showAnalytics={vm.showAnalytics}
         analyticsStats={vm.analyticsStats}
@@ -164,6 +237,6 @@ export const LinkCard = memo(function LinkCard({
       />
       {editArea}
       {sourceDialog}
-    </div>
+    </LayerCard>
   );
 });

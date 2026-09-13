@@ -7,6 +7,8 @@ import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types"
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { unwrap } from "../test-utils";
 
+vi.mock("@/actions/connector", () => ({ retryXBookmarkAction: vi.fn() }));
+
 const mockVm = {
   shortUrl: "https://zhe.to/abc123",
   copied: false,

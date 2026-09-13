@@ -133,8 +133,9 @@ export function getFileName(key: string): string {
 }
 
 /** Detect file category from MIME type or key extension. */
-export function getFileCategory(key: string): "image" | "document" | "other" {
+export function getFileCategory(key: string): "image" | "video" | "document" | "other" {
   const ext = key.split(".").pop()?.toLowerCase() ?? "";
+  if (["mp4", "webm", "mov", "m4v"].includes(ext)) return "video";
   if (["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "ico"].includes(ext)) {
     return "image";
   }

@@ -10,6 +10,7 @@ import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";
 import { CreateKeyForm } from "./api-keys-page-parts/create-key-form";
 import { NewKeyBanner } from "./api-keys-page-parts/new-key-banner";
+import { ConnectorPanel } from "./connector-panel";
 
 export function ApiKeysPage() {
   const vm = useApiKeysViewModel();
@@ -85,6 +86,7 @@ export function ApiKeysPage() {
           )}
         </CardContent>
       </Card>
+      <ConnectorPanel />
     </div>
   );
 }

@@ -276,12 +276,18 @@ describe("getFileCategory", () => {
 
   it.each([
     ["archive.zip", "other"],
-    ["video.mp4", "other"],
     ["unknown", "other"],
     ["noext", "other"],
   ] as const)("categorizes %s as other", (key, expected) => {
     expect(getFileCategory(key)).toBe(expected);
   });
+
+  it.each(["video.mp4", "clip.webm", "movie.MOV", "saved.m4v"])(
+    "categorizes %s as video",
+    (key) => {
+      expect(getFileCategory(key)).toBe("video");
+    },
+  );
 
   it("is case insensitive for extensions", () => {
     expect(getFileCategory("PHOTO.PNG")).toBe("image");

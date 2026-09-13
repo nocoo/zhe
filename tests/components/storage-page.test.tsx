@@ -3,6 +3,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StoragePage } from "@/components/dashboard/storage-page";
+import { R2FileRow } from "@/components/dashboard/storage-page-parts/r2-file-row";
 import type { StorageScanResult } from "@/models/storage";
 
 // ---------------------------------------------------------------------------
@@ -82,6 +83,26 @@ function makeTestData(overrides?: Partial<StorageScanResult>): StorageScanResult
 // ---------------------------------------------------------------------------
 
 describe("StoragePage", () => {
+  it("uses the configured media origin for archived video files", () => {
+    render(
+      <R2FileRow
+        file={{
+          key: "test/x/123/1/video.mp4",
+          size: 1024,
+          lastModified: "2026-09-12T00:00:00Z",
+          isReferenced: true,
+          publicUrl: "https://media.example.com/test/x/123/1/video.mp4",
+        }}
+        selected={false}
+        onToggle={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "打开 video.mp4" })).toHaveAttribute(
+      "href",
+      "https://media.example.com/test/x/123/1/video.mp4",
+    );
+    expect(screen.getByLabelText("视频文件")).toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

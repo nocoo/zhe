@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, File, FileText, ImageIcon } from "lucide-react";
+import { ExternalLink, File, FileText, ImageIcon, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,6 +10,10 @@ import { formatBytes, getFileCategory, getFileName } from "@/models/storage";
 
 function FileIcon({ fileKey }: { fileKey: string }) {
   const category = getFileCategory(fileKey);
+  if (category === "video")
+    return (
+      <Video aria-label="视频文件" className="h-3.5 w-3.5 text-info shrink-0" strokeWidth={1.5} />
+    );
   if (category === "image") {
     return <ImageIcon className="h-3.5 w-3.5 text-info shrink-0" strokeWidth={1.5} />;
   }
@@ -78,16 +82,18 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
         </Badge>
       )}
 
-      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-        <a
-          href={`https://s.zhe.to/${file.key}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`打开 ${getFileName(file.key)}`}
-        >
-          <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </a>
-      </Button>
+      {file.publicUrl && (
+        <Button variant="ghost" size="icon" className="shrink-0" asChild>
+          <a
+            href={file.publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`打开 ${getFileName(file.key)}`}
+          >
+            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </a>
+        </Button>
+      )}
     </div>
   );
 }

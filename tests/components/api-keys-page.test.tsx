@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+vi.mock("@/actions/connector", () => ({
+  loadConnectorSummary: async () => ({ states: [], lastSeenAt: null }),
+}));
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";

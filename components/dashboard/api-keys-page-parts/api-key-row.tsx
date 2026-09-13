@@ -98,6 +98,11 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
           <span>创建于 {formatDate(apiKey.createdAt)}</span>
           <span>最后使用 {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : "从未使用"}</span>
         </div>
+        {apiKey.scopes.split(",").includes("connector:write") && apiKey.createdAt && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Connector 有效至 {formatDate(new Date(apiKey.createdAt.getTime() + 30 * 86400_000))}
+          </p>
+        )}
       </div>
 
       <RevokeButton id={apiKey.id} onRevoke={onRevoke} />

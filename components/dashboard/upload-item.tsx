@@ -1,6 +1,16 @@
 "use client";
 
 import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  LayerCard,
+} from "@nocoo/basalt";
+import {
   Check,
   Copy,
   ExternalLink,
@@ -8,6 +18,7 @@ import {
   Image as ImageIcon,
   Loader2,
   Trash2,
+  Video,
   X,
 } from "lucide-react";
 import {
@@ -42,26 +53,28 @@ interface UploadItemProps {
 function DeleteUploadDialog({
   isDeleting,
   onDelete,
+  archived,
 }: {
   isDeleting: boolean;
   onDelete: () => void;
+  archived: boolean;
 }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <button
-          type="button"
-          aria-label="Delete file"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          disabled={isDeleting}
-        >
+        <Button variant="ghost" size="icon" aria-label="Delete file" disabled={isDeleting}>
           <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-        </button>
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
           <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
+          {archived && (
+            <p className="text-sm text-muted-foreground">
+              书签中的此附件也会移除；删除视频时会一起清理海报。
+            </p>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
@@ -83,17 +96,17 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
   const { copied, isDeleting, handleCopy, handleDelete } = useUploadItemViewModel(upload, onDelete);
 
   const isImage = isImageType(upload.fileType);
+  const isVideo = upload.fileType.startsWith("video/");
 
   return (
-    <div
-      data-testid="upload-item"
-      className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors"
-    >
+    <LayerCard data-testid="upload-item" padding="none" className="p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent">
-            {isImage ? (
+            {isVideo ? (
+              <Video className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+            ) : isImage ? (
               <ImageIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
             ) : (
               <FileText className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
@@ -130,11 +143,36 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
+          {isVideo && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="预览视频">
+                  <Video className="size-4" strokeWidth={1.5} />
+                </Button>
+              </DialogTrigger>
+              <DialogContent size="xl">
+                <DialogHeader>
+                  <DialogTitle>{upload.fileName}</DialogTitle>
+                  <DialogDescription>已保存在您的 Zhe 存储</DialogDescription>
+                </DialogHeader>
+                <video
+                  src={upload.publicUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label="文件视频预览"
+                  className="max-h-[70dvh] w-full rounded-widget bg-black"
+                >
+                  <track kind="captions" />
+                </video>
+              </DialogContent>
+            </Dialog>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleCopy}
             aria-label="Copy link"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="复制链接"
           >
             {copied ? (
@@ -142,20 +180,26 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
             ) : (
               <Copy className="w-4 h-4" strokeWidth={1.5} />
             )}
-          </button>
-          <a
-            href={upload.publicUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="在新标签页打开"
-          >
-            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
-          </a>
-          <DeleteUploadDialog isDeleting={isDeleting} onDelete={handleDelete} />
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <a
+              href={upload.publicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="在新标签页打开"
+              aria-label="在新标签页打开"
+            >
+              <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
+            </a>
+          </Button>
+          <DeleteUploadDialog
+            isDeleting={isDeleting}
+            onDelete={handleDelete}
+            archived={upload.key.split("/")[1] === "x"}
+          />
         </div>
       </div>
-    </div>
+    </LayerCard>
   );
 }
 
@@ -170,10 +214,7 @@ interface UploadingItemProps {
 
 export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
   return (
-    <div
-      data-testid="uploading-item"
-      className="rounded-card border-0 bg-secondary shadow-none p-4 transition-colors"
-    >
+    <LayerCard data-testid="uploading-item" padding="none" className="p-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}
@@ -206,17 +247,17 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
 
         {/* Dismiss for errors */}
         {file.status === "error" && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onDismiss(file.id)}
             aria-label="Dismiss"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="关闭"
           >
             <X className="w-4 h-4" strokeWidth={1.5} />
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </LayerCard>
   );
 }
