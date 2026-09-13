@@ -26,7 +26,8 @@ Zhe 是个人链接与信息管理应用。它可以收藏网页、生成短链�
 - 使用 Cmd/Ctrl + K 搜索链接、想法和待办，直接进入对应内容。
 - 上传文件到 R2，生成公开文件地址或临时分享；管理存储、导入导出数据，并接入 Backy 备份。
 - 在 AI 设置中配置供应商、模型和密钥，为链接生成文件夹与标签建议，由用户确认后应用。
-- 创建带权限范围的 API Key，供 REST API 与 CLI 使用；保留既有 Webhook 集成入口。
+- 通过 Webhook URL 直接收藏网页；创建带权限范围的 API Key，供 REST API 与 CLI 使用。
+- 照常保存 X 链接，由 CLI 内置的本机 Connector 自动补全正文、作者、图片和视频；归档媒体纳入现有 R2 存储管理和连锁删除。
 
 ## 使用
 
@@ -44,9 +45,11 @@ zhe idea list
 
 CLI 将密钥保存在 `~/.config/zhe/config.json`，当前 API 地址固定为 `https://zhe.to/api/v1`。登录验证需要链接读取权限；创建或修改内容还需要相应写入权限。更多命令见 [CLI README](cli/README.md) 和 `zhe --help`。
 
+开启 X 自动补全时，为同一个 CLI 密钥选择 `links:read` 和 `connector:write`，本机安装 OpenCLI 浏览器扩展、登录 X，并安装 FFmpeg，然后运行 `zhe connector start`（macOS）或 `zhe connector watch`。OpenCLI 随 CLI 安装，无需另一个 Connector 账号或 LLM；Connector 权限自密钥创建起有效 30 天。详见 [X 书签与 Connector](docs/25-x-bookmark-connector.md)。
+
 ## 开发
 
-需要 Bun、Node.js ≥ 22；运行本地端到端测试还需要 PATH 中的 Wrangler。根应用、Worker 和 CLI 各自维护依赖：
+需要 Bun、Node.js ≥ 22.16；运行本地端到端测试还需要 PATH 中的 Wrangler、FFmpeg 和 ffprobe。根应用、Worker 和 CLI 各自维护依赖：
 
 ```bash
 git clone https://github.com/nocoo/zhe.git
@@ -118,6 +121,7 @@ bun run start
 - [待办功能](docs/21-todos-feature.md)
 - [统一搜索](docs/23-global-search-unification.md)
 - [AI 链接整理建议](docs/24-ai-link-suggestions.md)
+- [X 书签与 Connector](docs/25-x-bookmark-connector.md)
 - [Backy 集成](docs/10-backy.md)
 - [CLI 使用](cli/README.md)
 

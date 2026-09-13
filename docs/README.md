@@ -28,3 +28,4 @@ Numbered design and reference documents. Newest feature plans sit at the end of 
 | 22 | [Design Tokens](22-design-tokens.md) |
 | 23 | [Global Search Unification](23-global-search-unification.md) |
 | 24 | [AI Integration and Link Suggestions](24-ai-link-suggestions.md) |
+| 25 | [X Bookmarks and Local Connector](25-x-bookmark-connector.md) |

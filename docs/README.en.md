@@ -26,7 +26,8 @@ The repository contains a Next.js application, a Cloudflare Worker for redirects
 - Use Cmd/Ctrl + K to search links, ideas, and todos and open the matching content.
 - Upload files to R2 for public URLs or temporary sharing; manage storage, import and export data, and connect Backy backups.
 - Configure an AI provider, model, and key to suggest folders and tags for links, then review suggestions before applying them.
-- Create scoped API keys for the REST API and CLI; retain access to the existing Webhook integration.
+- Save webpages directly through a Webhook URL; create scoped API keys for the REST API and CLI.
+- Enrich saved X links with text, authors, images, and videos through the CLI's local Connector. Archived media uses the existing R2 storage manager and cascades on deletion.
 
 ## Usage
 
@@ -44,9 +45,11 @@ zhe idea list
 
 The CLI stores its key in `~/.config/zhe/config.json`. Its API address is currently fixed to `https://zhe.to/api/v1`. Login verification needs link read access; creating or changing content also needs the corresponding write scope. See the [CLI README](../cli/README.md) and `zhe --help` for additional commands.
 
+To enable automatic X enrichment, give the same CLI key `links:read` and `connector:write`, install the OpenCLI browser extension, sign in to X locally, and install FFmpeg. Run `zhe connector start` on macOS or `zhe connector watch` elsewhere. OpenCLI ships with the CLI; no separate Connector account or LLM is needed. Connector access expires 30 days after key creation. See [X bookmarks and Connector](25-x-bookmark-connector.md).
+
 ## Development
 
-Install Bun and Node.js ≥ 22. Local end-to-end tests also need Wrangler on PATH. The main application, Worker, and CLI manage their dependencies separately:
+Install Bun and Node.js ≥ 22.16. Local end-to-end tests also need Wrangler, FFmpeg, and ffprobe on PATH. The main application, Worker, and CLI manage their dependencies separately:
 
 ```bash
 git clone https://github.com/nocoo/zhe.git
