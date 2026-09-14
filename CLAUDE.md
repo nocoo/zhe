@@ -1,5 +1,11 @@
 README.md
 
+## Local Development Preview
+
+- Always open user-facing local previews in **Google Chrome through Caddy**, using `https://zhe.dev.hexly.ai` (X bookmarks: `https://zhe.dev.hexly.ai/dashboard/x`).
+- **Do not open or share `localhost` / `127.0.0.1` URLs for manual previews.** Next.js still runs on port `7006` behind the existing mapping in `/opt/homebrew/etc/Caddyfile`. Verify HTTPS through Caddy before opening the browser.
+- Automated L2/L3 tests continue to use the dedicated ports and isolated local test environment documented below.
+
 ## Versioning
 
 ### Single Source of Truth
