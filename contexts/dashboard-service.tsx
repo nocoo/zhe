@@ -7,7 +7,7 @@ import { useXBookmarks } from "@/viewmodels/useXBookmarks";
 import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
 import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
 import { useTodosSlice } from "./dashboard-service-parts/useTodosSlice";
-import { XBookmarksContext } from "./x-bookmarks";
+import { XBookmarksContext, XBookmarksUpdateContext } from "./x-bookmarks";
 
 // ── State interface (changes on every data mutation) ──
 
@@ -100,7 +100,7 @@ export function DashboardServiceProvider({
   children,
 }: DashboardServiceProviderProps) {
   const core = useDashboardCore(initialFolders);
-  const xBookmarks = useXBookmarks(core.links, core.handleLinkUpdated);
+  const [xBookmarks, setXBookmarks] = useXBookmarks(core.links, core.handleLinkUpdated);
   const ideasSlice = useIdeasSlice();
   const todosSlice = useTodosSlice();
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -164,11 +164,13 @@ export function DashboardServiceProvider({
 
   return (
     <XBookmarksContext.Provider value={xBookmarks}>
-      <DashboardActionsContext.Provider value={actionsValue}>
-        <DashboardStateContext.Provider value={stateValue}>
-          {children}
-        </DashboardStateContext.Provider>
-      </DashboardActionsContext.Provider>
+      <XBookmarksUpdateContext.Provider value={setXBookmarks}>
+        <DashboardActionsContext.Provider value={actionsValue}>
+          <DashboardStateContext.Provider value={stateValue}>
+            {children}
+          </DashboardStateContext.Provider>
+        </DashboardActionsContext.Provider>
+      </XBookmarksUpdateContext.Provider>
     </XBookmarksContext.Provider>
   );
 }

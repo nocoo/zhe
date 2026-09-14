@@ -50,7 +50,7 @@ describe("automatic X card refresh", () => {
     );
     await act(async () => {});
     expect(loadXBookmarks).toHaveBeenCalledWith([1]);
-    expect(result.current.get(1)?.tweet?.text).toBe("Ready after the poll");
+    expect(result.current[0].get(1)?.tweet?.text).toBe("Ready after the poll");
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({ id: 1, metaDescription: "Ready after the poll" }),
     );
@@ -74,6 +74,17 @@ describe("automatic X card refresh", () => {
     });
     expect(update).not.toHaveBeenCalled();
   });
+  it("keeps a saved correction when an older poll response arrives", async () => {
+    const update = vi.fn();
+    const { result } = renderHook(() => useXBookmarks([link], update));
+    await act(async () => {});
+    const corrected = { ...bookmark, updatedAt: 2 };
+    act(() => result.current[1](new Map([[1, corrected]])));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(result.current[0].get(1)).toBe(corrected);
+  });
   it("does not overwrite a link whose URL changed while enrichment was in flight", async () => {
     const update = vi.fn();
     const { result } = renderHook(() =>
@@ -81,7 +92,7 @@ describe("automatic X card refresh", () => {
     );
     await act(async () => {});
     expect(update).not.toHaveBeenCalled();
-    expect(result.current.has(1)).toBe(false);
+    expect(result.current[0].has(1)).toBe(false);
   });
   it("pauses while hidden and resumes when the page becomes visible", async () => {
     Object.defineProperty(document, "hidden", { configurable: true, value: true });

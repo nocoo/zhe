@@ -21,10 +21,7 @@ function syncMetadata(
   }
 }
 
-export function useXBookmarks(
-  links: Link[],
-  onUpdate: (link: Link) => void,
-): Map<number, XBookmark> {
+export function useXBookmarks(links: Link[], onUpdate: (link: Link) => void) {
   const [bookmarks, setBookmarks] = useState(new Map<number, XBookmark>());
   const latest = useRef(links);
   latest.current = links;
@@ -66,7 +63,14 @@ export function useXBookmarks(
           }
         }
         if (cancelled) return;
-        setBookmarks(next);
+        setBookmarks((current) => {
+          for (const [id, item] of next) {
+            const saved = current.get(id);
+            if (saved && saved.tweet?.id === item.tweet?.id && saved.updatedAt > item.updatedAt)
+              next.set(id, saved);
+          }
+          return next;
+        });
         syncMetadata(next, latest.current, onUpdate);
       } catch {
         // Leave the last good cards visible; retry on the next foreground poll.
@@ -89,5 +93,5 @@ export function useXBookmarks(
       document.removeEventListener("visibilitychange", visible);
     };
   }, [key, onUpdate]);
-  return bookmarks;
+  return [bookmarks, setBookmarks] as const;
 }
