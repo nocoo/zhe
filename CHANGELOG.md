@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.2] - 2026-09-14
+
+### Fixed
+- Refine dense X cards with poster previews and editable media ratios
+- Collect coverage in isolated Node processes
+- Retain saved media edits across background refreshes
+- Persist owner corrections to media dimensions
+- Isolate test output to keep local previews running
+
 ## [v1.24.1] - 2026-09-14
 
 ### Changed
