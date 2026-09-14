@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.1] - 2026-09-14
+
+### Changed
+- Require Caddy URLs for local browser previews
+
+### Fixed
+- Compact X bookmark cards and unify detail actions
+- Include unavailable bookmarks in queue statistics
+- Report Connector progress and session statistics
+- Accept API keys with granular scopes
+
 ## [v1.24.0] - 2026-09-13
 
 ### Added
