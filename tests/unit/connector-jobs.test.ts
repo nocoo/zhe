@@ -6,13 +6,19 @@ import { join } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadConnectorSummary, loadXBookmarks, retryXBookmarkAction } from "@/actions/connector";
+import {
+  loadConnectorSummary,
+  loadXBookmarks,
+  retryXBookmarkAction,
+  updateXMediaDimensionsAction,
+} from "@/actions/connector";
 import { cleanupOrphanFiles, scanStorage } from "@/actions/storage";
 import { GET as webhookStatus } from "@/app/api/link/create/[token]/route";
 import { PUT as uploadMedia } from "@/app/api/v1/connector/jobs/[id]/media/[assetId]/route";
 import { POST as updateJob } from "@/app/api/v1/connector/jobs/[id]/route";
 import { POST as poll, GET as status } from "@/app/api/v1/connector/route";
-import { normalizeXPost } from "@/cli/src/connector/core";
+import { normalizeXPost, type XCapture } from "@/cli/src/connector/core";
+import * as authContext from "@/lib/auth-context";
 import { connectorKeyActive } from "@/lib/connector/auth";
 import { type MediaReservation, reserveXMedia, writeXMedia } from "@/lib/connector/media";
 import * as d1 from "@/lib/db/d1-client";
@@ -662,6 +668,86 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
 });
 
 describe("discover saved bookmarks, then enrich", () => {
+  function savedMediaLink(owner = "owner") {
+    const id = link(source, owner);
+    const media = [
+      { id: "123", type: "PHOTO" as const, url: "https://pbs.twimg.com/media/test.jpg" },
+      { id: "456", type: "PHOTO" as const, url: "https://pbs.twimg.com/media/next.jpg" },
+    ];
+    const archived = { ...capture, tweet: { ...capture.tweet, media }, media };
+    db.prepare(
+      "INSERT INTO x_bookmarks(link_id,user_id,source_url,post_id,state,result_json,updated_at) VALUES(?,?,?,?,'complete',?,?)",
+    ).run(id, owner, source, postId, JSON.stringify(archived), now);
+    return { id, archived };
+  }
+
+  it("persists owner-corrected media proportions without changing content or stored files", async () => {
+    const { id, archived } = savedMediaLink();
+    const result = await updateXMediaDimensionsAction(id, [{ id: "123", width: 9, height: 16 }]);
+    expect(result).toEqual({ success: true, updatedAt: now + 1 });
+    const saved = JSON.parse(String(rows("x_bookmarks")[0]?.result_json)) as XCapture;
+    expect(saved.tweet).toEqual({
+      ...archived.tweet,
+      media: [{ ...archived.media[0], width: 9, height: 16 }, archived.media[1]],
+    });
+    expect(saved.media).toEqual(saved.tweet.media);
+    expect(rows("x_media")).toEqual([]);
+    expect(rows("uploads")).toEqual([]);
+  });
+
+  it("rejects unknown attachments, other owners and live Connector leases", async () => {
+    const { id } = savedMediaLink();
+    const otherLink = savedMediaLink("other").id;
+    const before = rows("x_bookmarks");
+    const dimensions = [{ id: "123", width: 9, height: 16 }];
+    expect((await updateXMediaDimensionsAction(otherLink, dimensions)).success).toBe(false);
+    expect(
+      (await updateXMediaDimensionsAction(id, [...dimensions, { id: "999", width: 1, height: 1 }]))
+        .success,
+    ).toBe(false);
+    expect(rows("x_bookmarks")).toEqual(before);
+    vi.spyOn(authContext, "requireAuth").mockResolvedValueOnce(null);
+    expect((await updateXMediaDimensionsAction(id, dimensions)).success).toBe(false);
+    db.prepare("UPDATE x_bookmarks SET state='running',lease_until=? WHERE link_id=?").run(
+      now + 60_000,
+      id,
+    );
+    expect((await updateXMediaDimensionsAction(id, dimensions)).success).toBe(false);
+  });
+
+  it.each([
+    { width: 0, height: 16 },
+    { width: 9, height: -1 },
+    { width: 9.5, height: 16 },
+    { width: 9, height: 65536 },
+    { width: Number.NaN, height: 16 },
+  ])("rejects invalid manual dimensions %j", async (dimensions) => {
+    const { id } = savedMediaLink();
+    const before = rows("x_bookmarks");
+    expect((await updateXMediaDimensionsAction(id, [{ id: "123", ...dimensions }])).success).toBe(
+      false,
+    );
+    expect(rows("x_bookmarks")).toEqual(before);
+  });
+
+  it("does not overwrite a capture updated while a manual correction is being saved", async () => {
+    const { id } = savedMediaLink();
+    const query = d1.executeD1Query;
+    vi.spyOn(d1, "executeD1Query").mockImplementationOnce(async (sql, params) => {
+      const selected = await query(sql, params);
+      db.prepare(
+        "UPDATE x_bookmarks SET result_json=json_set(result_json,'$.tweet.text',?) WHERE link_id=?",
+      ).run("A newer capture", id);
+      return selected;
+    });
+    expect(
+      (await updateXMediaDimensionsAction(id, [{ id: "123", width: 9, height: 16 }])).success,
+    ).toBe(false);
+    const saved = JSON.parse(String(rows("x_bookmarks")[0]?.result_json)) as XCapture;
+    expect(saved.tweet.text).toBe("A newer capture");
+    expect(saved.tweet.media[0]?.width).toBeUndefined();
+  });
+
   it("serves the owner's cards and retries failed jobs without stealing live leases", async () => {
     const id = link();
     const job = required(await claimXBookmark(identity, now));

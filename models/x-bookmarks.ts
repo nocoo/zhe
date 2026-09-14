@@ -14,6 +14,12 @@ export const X_CONTENT_TYPES = [
 
 export type XContentType = (typeof X_CONTENT_TYPES)[number]["value"];
 
+export interface XMediaDimensions {
+  id: string;
+  width: number;
+  height: number;
+}
+
 export function getXBookmarkForLink(
   link: Pick<Link, "originalUrl">,
   bookmark: XBookmark | undefined,
