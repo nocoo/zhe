@@ -14,7 +14,10 @@ describe("Connector progress output", () => {
     const output = vi.spyOn(console, "log").mockImplementation(() => {});
     const log = new ConnectorLogger();
     const status = {
-      states: [{ state: "pending", count: 3 }],
+      states: [
+        { state: "pending", count: 3 },
+        { state: "unavailable", count: 2 },
+      ],
       keyPrefix: "zhe_private_prefix",
       expiresAt: Date.now() + 86400_000,
     };
@@ -44,6 +47,8 @@ describe("Connector progress output", () => {
     log.stop();
     const text = output.mock.calls.flat().join("\n");
     expect(output.mock.calls.filter(([line]) => String(line).includes("QUEUE"))).toHaveLength(1);
+    expect(text).toContain("3 pending");
+    expect(text).toContain("2 unavailable");
     expect(text).toContain("50% · 512 B / 1.0 KB");
     expect(text).toContain("100% · 1.0 KB / 1.0 KB");
     expect(text).toContain("still running");

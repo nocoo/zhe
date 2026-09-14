@@ -93,7 +93,7 @@ export class ConnectorLogger {
     this.queueSnapshot = snapshot;
     this.write(
       "queue",
-      `${["pending", "running", "complete", "partial", "failed"].map((state) => `${states[state] ?? 0} ${state}`).join(" · ")} · key expires ${new Date(status.expiresAt).toISOString().slice(0, 10)}`,
+      `${["pending", "running", "complete", "partial", "failed", "unavailable"].map((state) => `${states[state] ?? 0} ${state}`).join(" · ")} · key expires ${new Date(status.expiresAt).toISOString().slice(0, 10)}`,
       { states, expiresAt: status.expiresAt },
     );
   }
