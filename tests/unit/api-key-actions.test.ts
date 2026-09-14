@@ -1,6 +1,6 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearMockStorage } from "../mocks/db-storage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearMockStorage, getMockApiKeys } from "../mocks/db-storage";
 
 // Mock auth-context before importing actions
 const mockUserId = "user-test";
@@ -20,8 +20,10 @@ import { ScopedDB } from "@/lib/db/scoped";
 describe("api-key actions", () => {
   beforeEach(() => {
     clearMockStorage();
+    vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 8, 14, 2, 3, 26, 987));
     vi.mocked(getScopedDB).mockResolvedValue(new ScopedDB(mockUserId));
   });
+  afterEach(() => vi.restoreAllMocks());
 
   describe("createApiKeyAction", () => {
     it("creates a key and returns fullKey only once", async () => {
@@ -34,7 +36,49 @@ describe("api-key actions", () => {
       expect(result.data.fullKey).toMatch(/^zhe_/);
       expect(result.data.name).toBe("Test Key");
       expect(result.data.prefix).toBe(result.data.fullKey.substring(0, 12));
+      expect(result.data.expiresAt).toBeNull();
+      expect(getMockApiKeys().get(result.data.id)?.expires_at).toBeNull();
     });
+
+    it.each([30, 7, 3, 1])(
+      "persists an explicitly selected %i-day lifetime in seconds",
+      async (days) => {
+        const result = await createApiKeyAction({
+          name: "Expiring Key",
+          scopes: ["connector:write"],
+          expiresInDays: days,
+        });
+        expect(result.success).toBe(true);
+        if (!result.success) return;
+        const expiresAt = Math.floor(Date.now() / 1000) + days * 86400;
+        expect(getMockApiKeys().get(result.data.id)?.expires_at).toBe(expiresAt);
+        expect(result.data.expiresAt?.getTime()).toBe(expiresAt * 1000);
+        const listed = await listApiKeys();
+        expect(listed.success && listed.data[0]?.expiresAt?.getTime()).toBe(expiresAt * 1000);
+      },
+    );
+
+    it("accepts an explicit permanent lifetime", async () => {
+      const result = await createApiKeyAction({
+        name: "Permanent Key",
+        scopes: ["connector:write"],
+        expiresInDays: null,
+      });
+      expect(result.success && result.data.expiresAt).toBeNull();
+    });
+
+    it.each([0, -1, 1 / 1440, 2, 31, NaN, Infinity, "1", "never"])(
+      "rejects unsupported or too-short lifetime %s without creating a key",
+      async (expiresInDays) => {
+        const result = await createApiKeyAction({
+          name: "Invalid Lifetime",
+          scopes: ["connector:write"],
+          expiresInDays: expiresInDays as never,
+        });
+        expect(result.success).toBe(false);
+        expect(getMockApiKeys().size).toBe(0);
+      },
+    );
 
     it("rejects empty name", async () => {
       const result = await createApiKeyAction({ name: "", scopes: ["links:read"] });
@@ -137,6 +181,7 @@ describe("api-key actions", () => {
       expect(result.data.name).toBe("Migrated from Webhook");
       expect(result.data.scopes).toContain("links:read");
       expect(result.data.scopes).toContain("links:write");
+      expect(result.data.expiresAt).toBeNull();
     });
 
     it("returns unauthorized when not logged in", async () => {

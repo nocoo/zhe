@@ -9,6 +9,16 @@ afterEach(() => {
 });
 
 describe("Connector progress output", () => {
+  it.each([false, true])("shows permanent keys without an epoch date (json=%s)", (json) => {
+    const output = vi.spyOn(console, "log").mockImplementation(() => {});
+    new ConnectorLogger(json).queue({ states: [], keyPrefix: "private_prefix", expiresAt: null });
+    const text = output.mock.calls.flat().join("\n");
+    expect(text).toContain("key never expires");
+    expect(text).not.toContain("1970");
+    expect(text).not.toContain("private_prefix");
+    if (json) expect(JSON.parse(String(output.mock.calls[0]?.[0])).expiresAt).toBeNull();
+  });
+
   it("shows real byte progress, slow stages and accurate session totals in human-readable logs", () => {
     vi.useFakeTimers();
     const output = vi.spyOn(console, "log").mockImplementation(() => {});

@@ -45,7 +45,7 @@ zhe idea list
 
 CLI 将密钥保存在 `~/.config/zhe/config.json`，当前 API 地址固定为 `https://zhe.to/api/v1`。登录验证需要链接读取权限；创建或修改内容还需要相应写入权限。更多命令见 [CLI README](cli/README.md) 和 `zhe --help`。
 
-开启 X 自动补全时，为同一个 CLI 密钥选择 `links:read` 和 `connector:write`，本机安装 OpenCLI 浏览器扩展、登录 X，并安装 FFmpeg，然后运行 `zhe connector start`（macOS）或 `zhe connector watch`。OpenCLI 随 CLI 安装，无需另一个 Connector 账号或 LLM；Connector 权限自密钥创建起有效 30 天。详见 [X 书签与 Connector](docs/25-x-bookmark-connector.md)。
+开启 X 自动补全时，为同一个 CLI 密钥选择 `links:read` 和 `connector:write`，本机安装 OpenCLI 浏览器扩展、登录 X，并安装 FFmpeg，然后运行 `zhe connector start`（macOS）或 `zhe connector watch`。OpenCLI 随 CLI 安装，无需另一个 Connector 账号或 LLM；API Key 默认永久有效，创建时可选 30、7、3、1 天，Connector 与普通 API 使用同一有效期。详见 [X 书签与 Connector](docs/25-x-bookmark-connector.md)。
 
 ## 开发
 

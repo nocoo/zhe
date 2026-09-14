@@ -22,14 +22,24 @@ export async function createApiKey(
     keyHash: string;
     name: string;
     scopes: string;
+    expiresAt?: Date | null;
   },
 ): Promise<ApiKey> {
   const now = Math.floor(Date.now() / 1000);
   const rows = await executeD1Query<Record<string, unknown>>(
-    `INSERT INTO api_keys (id, prefix, key_hash, user_id, name, scopes, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO api_keys (id, prefix, key_hash, user_id, name, scopes, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
-    [data.id, data.prefix, data.keyHash, userId, data.name, data.scopes, now],
+    [
+      data.id,
+      data.prefix,
+      data.keyHash,
+      userId,
+      data.name,
+      data.scopes,
+      now,
+      data.expiresAt == null ? null : Math.floor(data.expiresAt.getTime() / 1000),
+    ],
   );
   const row = rows[0];
   if (!row) throw new Error("INSERT RETURNING * returned no rows");

@@ -38,6 +38,22 @@ describe("useApiKeysViewModel", () => {
     expect(createResult?.success).toBe(true);
     expect(result.current.newlyCreatedKey).toMatch(/^zhe_/);
     expect(result.current.keys).toHaveLength(1);
+    expect(result.current.keys[0]?.expiresAt).toBeNull();
+  });
+
+  it("passes an explicitly selected lifetime through to creation and the refreshed list", async () => {
+    const { result } = renderHook(() => useApiKeysViewModel());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
+    await act(async () => {
+      await result.current.handleCreate("One Day", ["connector:write"], 1);
+    });
+    const key = result.current.keys[0];
+    expect(key?.expiresAt?.getTime()).toBeGreaterThanOrEqual(
+      (key?.createdAt?.getTime() ?? 0) + 86399_000,
+    );
+    expect(key?.expiresAt?.getTime()).toBeLessThanOrEqual(
+      (key?.createdAt?.getTime() ?? 0) + 86400_000,
+    );
   });
 
   it("revokes a key and removes from list", async () => {

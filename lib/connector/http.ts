@@ -9,7 +9,7 @@ export async function authorizeConnector(request: NextRequest) {
   if (result instanceof NextResponse) return result;
   if (!(await connectorKeyActive(result.auth)))
     return connectorResponse(
-      { error: "Connector access expired. Create a new CLI key (30-day Connector access)." },
+      { error: "Connector access denied. Use an active API key with connector:write." },
       403,
     );
   const now = Date.now();

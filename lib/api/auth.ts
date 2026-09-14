@@ -57,7 +57,7 @@ export async function authenticateApiKey(request: NextRequest): Promise<AuthResu
   if (!auth) {
     return {
       success: false,
-      error: "Invalid or revoked API key",
+      error: "Invalid, expired or revoked API key",
       status: 401,
     };
   }

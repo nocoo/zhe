@@ -67,7 +67,7 @@ zhe connector status
 zhe connector start
 ```
 
-The Connector reads the same login configuration on every poll. Its permission expires 30 days after key creation; rotate the key through the API Keys page, then run `zhe logout` and `zhe login`. Revoking the key stops further Connector mutations. The background service contains no key or X cookies.
+The Connector reads the same login configuration on every poll. API keys never expire by default; when creating one, you can explicitly choose 30, 7, 3 or 1 days. Connector and ordinary API requests honor that same expiry. Revoking the key stops further Connector mutations. The background service contains no key or X cookies.
 
 On Linux or Windows, run `zhe connector watch` under your normal process supervisor. Keep the browser extension connected and the machine awake. Failed media does not prevent saving the post text; retry is available in the post details. The current limits are 64 MiB per video and 10 MiB per image. Protected accounts and browser challenges are not supported.
 

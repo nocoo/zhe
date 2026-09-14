@@ -291,6 +291,7 @@ export class ScopedDB {
     keyHash: string;
     name: string;
     scopes: string;
+    expiresAt?: Date | null;
   }): Promise<ApiKey> {
     return apiKeysOps.createApiKey(this.userId, data);
   }

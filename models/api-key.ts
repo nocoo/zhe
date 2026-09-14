@@ -20,6 +20,9 @@ export const API_SCOPES = [
 
 export type ApiScope = (typeof API_SCOPES)[number];
 
+/** Explicit API key lifetimes in days; omitted or null means never expires. */
+export const API_KEY_EXPIRY_DAYS = [30, 7, 3, 1] as const;
+
 /** Parse and validate a comma-separated scopes string. */
 export function parseScopes(scopesStr: string): ApiScope[] {
   const scopes = scopesStr

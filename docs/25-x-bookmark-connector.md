@@ -15,7 +15,7 @@ zhe connector status
 zhe connector start
 ```
 
-Connector 的 API Key 只需选择 `connector:write`。登录支持任意有效权限组合，包括单独的读或写权限；从 CLI 列出链接需要 `links:read`，创建链接需要 `links:write`。Connector 权限从密钥创建起有效 30 天，撤销即时作用于后续任务写入。轮询每次重新读取共享配置，轮换或退出登录无需重装服务。
+Connector 的 API Key 只需选择 `connector:write`。登录支持任意有效权限组合，包括单独的读或写权限；从 CLI 列出链接需要 `links:read`，创建链接需要 `links:write`。API Key 默认永久有效；创建时可主动选择 30、7、3、1 天。Connector 与普通 API 使用同一有效期，到期或撤销即时作用于后续任务写入。轮询每次重新读取共享配置，轮换或退出登录无需重装服务。
 
 macOS 的 `start` 安装 `ai.hexly.zhe.connector` LaunchAgent；`stop` 卸载该服务。其他系统运行 `zhe connector watch`，交由既有进程管理器启动。电脑休眠、浏览器未连接或 X 会话失效时，已保存链接仍可使用，补全等待本机恢复。
 
@@ -82,7 +82,7 @@ sequenceDiagram
 
 自动化门禁包括主应用和 CLI 覆盖率、真实本地 D1 / HTTP / R2、桌面与手机浏览器实际播放、Worker、类型、Biome、构建及安全检查。测试媒体由 FFmpeg 临时生成；日志、会话和媒体位于 ignored 目录。
 
-生产部署前执行 `drizzle/migrations/0024_add_x_connector.sql`，确认新增表和触发器存在，再部署通过 CI 的源提交。Zhe 保留 Auth.js / Google 登录与 D1 Worker proxy；Snail 的 Access 配置不替代 Zhe 的认证。
+生产部署前执行 `drizzle/migrations/0024_add_x_connector.sql`，确认新增表和触发器存在。API Key 有效期更新需先执行 `0025_add_api_key_expiry.sql`，再部署通过 CI 的源提交；已有 Key 的有效期为空（永久），创建时间与撤销记录保持不变。Zhe 保留 Auth.js / Google 登录与 D1 Worker proxy；Snail 的 Access 配置不替代 Zhe 的认证。
 
 生产验收必须使用真实登录、真实本机 OpenCLI 读取和 R2：普通保存成功后由轮询领取、补全、流式上传，核对视频 SHA-256，验证 Range 和实际播放，再用独立验证链接检查删除与孤儿清理。本地合成数据通过不等同生产验证。当前完成情况和证据见 [GOAL.md](../GOAL.md)。
 

@@ -48,7 +48,7 @@ describe("/api/v1/uploads", () => {
 
       expect(response.status).toBe(401);
       const body = await response.json();
-      expect(body.error).toContain("Invalid or revoked API key");
+      expect(body.error).toContain("Invalid, expired or revoked API key");
     });
   });
 

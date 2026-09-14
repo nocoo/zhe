@@ -45,7 +45,7 @@ zhe idea list
 
 The CLI stores its key in `~/.config/zhe/config.json`. Its API address is currently fixed to `https://zhe.to/api/v1`. Login verification needs link read access; creating or changing content also needs the corresponding write scope. See the [CLI README](../cli/README.md) and `zhe --help` for additional commands.
 
-To enable automatic X enrichment, give the same CLI key `links:read` and `connector:write`, install the OpenCLI browser extension, sign in to X locally, and install FFmpeg. Run `zhe connector start` on macOS or `zhe connector watch` elsewhere. OpenCLI ships with the CLI; no separate Connector account or LLM is needed. Connector access expires 30 days after key creation. See [X bookmarks and Connector](25-x-bookmark-connector.md).
+To enable automatic X enrichment, give the same CLI key `links:read` and `connector:write`, install the OpenCLI browser extension, sign in to X locally, and install FFmpeg. Run `zhe connector start` on macOS or `zhe connector watch` elsewhere. OpenCLI ships with the CLI; no separate Connector account or LLM is needed. API keys never expire by default; optional lifetimes are 30, 7, 3 or 1 days and apply equally to Connector and ordinary API requests. See [X bookmarks and Connector](25-x-bookmark-connector.md).
 
 ## Development
 

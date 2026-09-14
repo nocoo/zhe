@@ -8,8 +8,8 @@ import type { ConnectorProgress, ConnectorStatus } from "./types.js";
 const fallbackHint = "Connector processing failed. Check the connection and retry.";
 const hints: Record<string, string> = {
   0: "Cannot reach Zhe. Check the network connection.",
-  401: "API Key missing, invalid or revoked. Run `zhe login` with a valid key.",
-  403: "Connector permission missing or expired. Use a key with `connector:write` created within 30 days.",
+  401: "API Key missing, invalid, expired or revoked. Run `zhe login` with a valid key.",
+  403: "Connector access denied. Use an active API Key with `connector:write`.",
   409: "This job's lease is no longer valid; it will not be overwritten.",
   429: "API rate limit reached. Waiting before the next poll.",
   needs_login: "Connect the OpenCLI browser extension and sign in to X.",
@@ -93,7 +93,7 @@ export class ConnectorLogger {
     this.queueSnapshot = snapshot;
     this.write(
       "queue",
-      `${["pending", "running", "complete", "partial", "failed", "unavailable"].map((state) => `${states[state] ?? 0} ${state}`).join(" · ")} · key expires ${new Date(status.expiresAt).toISOString().slice(0, 10)}`,
+      `${["pending", "running", "complete", "partial", "failed", "unavailable"].map((state) => `${states[state] ?? 0} ${state}`).join(" · ")} · ${status.expiresAt === null ? "key never expires" : `key expires ${new Date(status.expiresAt).toISOString()}`}`,
       { states, expiresAt: status.expiresAt },
     );
   }

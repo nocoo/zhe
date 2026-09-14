@@ -197,6 +197,7 @@ export const apiKeys = sqliteTable("api_keys", {
   name: text("name").notNull(), // User-provided label (e.g., "CLI key")
   scopes: text("scopes").notNull(), // Comma-separated scopes (e.g., "links:read,links:write")
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }), // NULL = never expires
   lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
   revokedAt: integer("revoked_at", { mode: "timestamp" }),
 });

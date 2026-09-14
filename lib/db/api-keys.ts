@@ -23,7 +23,7 @@ export type ApiKeyVerifyResult = {
  * Steps:
  * 1. Hash the provided key
  * 2. Look up the hash in api_keys table
- * 3. Check key is not revoked
+ * 3. Check key is not revoked or expired
  * 4. Update last_used_at timestamp (fire-and-forget)
  * 5. Return { userId, keyId, scopes } or null
  */
@@ -32,7 +32,7 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
 
   // Look up by hash (indexed column)
   const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT id, prefix, user_id, scopes, revoked_at, key_hash
+    `SELECT id, prefix, user_id, scopes, revoked_at, key_hash, expires_at
      FROM api_keys
      WHERE key_hash = ?
      LIMIT 1`,
@@ -44,6 +44,9 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
 
   // Check not revoked
   if (row.revoked_at !== null) return null;
+
+  // NULL is permanent. All API key timestamps are stored in Unix seconds.
+  if (row.expires_at != null && (row.expires_at as number) * 1000 <= Date.now()) return null;
 
   // Verify hash (constant-time comparison)
   if (!verifyApiKey(key, row.key_hash as string)) return null;

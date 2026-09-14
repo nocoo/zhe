@@ -106,7 +106,7 @@ describe("API Key Auth Middleware", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toBe("Invalid or revoked API key");
+        expect(result.error).toBe("Invalid, expired or revoked API key");
         expect(result.status).toBe(401);
       }
     });

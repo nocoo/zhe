@@ -54,6 +54,7 @@ export interface MockApiKey {
   name: string;
   scopes: string;
   created_at: number;
+  expires_at: number | null;
   last_used_at: number | null;
   revoked_at: number | null;
 }

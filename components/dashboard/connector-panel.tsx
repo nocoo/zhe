@@ -63,7 +63,8 @@ export function ConnectorPanel() {
         </p>
         <p className="text-sm leading-6 text-muted-foreground">
           与 Zhe CLI 共用安装和登录。为 CLI 密钥选择 <code>links:read</code> 和{" "}
-          <code>connector:write</code>；Connector 权限在密钥创建后 30 天内有效，可在此页面随时撤销。
+          <code>connector:write</code>。API Key 默认永久有效，也可选择 30、7、3、1
+          天，可在此页面随时撤销。
         </p>
         <LayerCard.Well>
           <pre className="overflow-x-auto text-xs leading-7">

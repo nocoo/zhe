@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock d1-client to return a row with mismatched hash
 const mockExecuteD1Query = vi.fn();
@@ -18,6 +18,40 @@ vi.mock("@/models/api-key", () => ({
 }));
 
 import { verifyApiKeyAndGetUser } from "@/lib/db/api-keys";
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("verifyApiKeyAndGetUser — explicit expiry", () => {
+  const now = Date.UTC(2026, 8, 14, 2, 3, 26);
+  it.each([
+    ["permanent", null, true],
+    ["before expiry", now / 1000 + 1, true],
+    ["at expiry", now / 1000, false],
+    ["after expiry", now / 1000 - 1, false],
+    ["epoch expiry", 0, false],
+  ])("accepts only active keys (%s)", async (_, expiresAt, accepted) => {
+    vi.clearAllMocks();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    mockHashApiKey.mockReturnValue("test-hash");
+    mockVerifyApiKey.mockReturnValue(true);
+    mockParseScopes.mockReturnValue(["links:read"]);
+    mockExecuteD1Query.mockResolvedValue([
+      {
+        id: "key-1",
+        prefix: "test-prefix",
+        user_id: "user-123",
+        scopes: "links:read",
+        revoked_at: null,
+        expires_at: expiresAt,
+        key_hash: "test-hash",
+      },
+    ]);
+    expect(Boolean(await verifyApiKeyAndGetUser("test-key"))).toBe(accepted);
+    expect(mockExecuteD1Query.mock.calls.some(([sql]) => sql.includes("SET last_used_at"))).toBe(
+      accepted,
+    );
+  });
+});
 
 describe("verifyApiKeyAndGetUser — hash mismatch", () => {
   beforeEach(() => {

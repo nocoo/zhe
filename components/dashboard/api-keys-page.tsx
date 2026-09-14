@@ -17,6 +17,7 @@ export function ApiKeysPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<ApiScope[]>([]);
+  const [expiresInDays, setExpiresInDays] = useState<number | null>(null);
 
   function toggleScope(scope: ApiScope) {
     setSelectedScopes((prev) =>
@@ -28,10 +29,11 @@ export function ApiKeysPage() {
     setShowCreateForm(false);
     setNewKeyName("");
     setSelectedScopes([]);
+    setExpiresInDays(null);
   }
 
   async function handleCreate() {
-    const result = await vm.handleCreate(newKeyName, selectedScopes);
+    const result = await vm.handleCreate(newKeyName, selectedScopes, expiresInDays);
     if (result.success) resetCreateForm();
   }
 
@@ -65,6 +67,8 @@ export function ApiKeysPage() {
                   setNewKeyName={setNewKeyName}
                   selectedScopes={selectedScopes}
                   toggleScope={toggleScope}
+                  expiresInDays={expiresInDays}
+                  setExpiresInDays={setExpiresInDays}
                   isCreating={vm.isCreating}
                   onCancel={resetCreateForm}
                   onCreate={handleCreate}

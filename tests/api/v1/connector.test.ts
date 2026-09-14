@@ -191,13 +191,25 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
     expect(await queryD1("SELECT * FROM x_bookmarks WHERE user_id=?", [owner])).toEqual([]);
   });
 
-  it("enforces expiration without breaking ordinary use of the same CLI key", async () => {
-    const expiring = await seedApiKey(owner, { scopes: "links:read,connector:write" });
-    await executeD1("UPDATE api_keys SET created_at=0 WHERE key_hash=?", [
-      createHash("sha256").update(expiring).digest("hex"),
+  it("keeps old keys permanent and enforces an explicit expiry across Connector and ordinary APIs", async () => {
+    const permanent = await seedApiKey(owner, { scopes: "links:read,connector:write" });
+    const keyHash = createHash("sha256").update(permanent).digest("hex");
+    await executeD1("UPDATE api_keys SET created_at=0 WHERE key_hash=?", [keyHash]);
+    const old = new ApiClient(permanent, undefined, `${getBaseUrl()}/api/v1`);
+    expect((await old.connectorStatus()).expiresAt).toBeNull();
+    expect((await old.listLinks()).links).toEqual([]);
+    const future = Math.floor(Date.now() / 1000) + 86400;
+    await executeD1("UPDATE api_keys SET expires_at=? WHERE key_hash=?", [future, keyHash]);
+    expect((await old.connectorStatus()).expiresAt).toBe(future * 1000);
+    expect((await old.listLinks()).links).toEqual([]);
+    await executeD1("UPDATE api_keys SET expires_at=? WHERE key_hash=?", [
+      Math.floor(Date.now() / 1000),
+      keyHash,
     ]);
-    const old = new ApiClient(expiring, undefined, `${getBaseUrl()}/api/v1`);
-    await expect(old.connectorStatus()).rejects.toMatchObject({ status: 403 });
+    await expect(old.connectorStatus()).rejects.toMatchObject({ status: 401 });
+    await expect(old.listLinks()).rejects.toMatchObject({ status: 401 });
+    await executeD1("UPDATE api_keys SET expires_at=NULL WHERE key_hash=?", [keyHash]);
+    expect((await old.connectorStatus()).expiresAt).toBeNull();
     expect((await old.listLinks()).links).toEqual([]);
   });
 });

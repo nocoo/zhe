@@ -2,7 +2,6 @@
 
 import type { XCapture } from "@/cli/src/connector/core";
 import { requireAuth } from "@/lib/auth-context";
-import { CONNECTOR_LIFETIME_MS } from "@/lib/connector/auth";
 import { getXBookmarks, type XBookmark } from "@/lib/connector/jobs";
 import { executeD1Query } from "@/lib/db/d1-client";
 import type { XMediaDimensions } from "@/models/x-bookmarks";
@@ -109,8 +108,8 @@ export async function loadConnectorSummary(): Promise<{
     [userId],
   );
   const [row] = await executeD1Query<{ last_seen: number | null }>(
-    "SELECT MAX(p.last_seen_at) AS last_seen FROM x_connector_presence p JOIN api_keys k ON k.id=p.key_id AND k.user_id=p.user_id WHERE p.user_id=? AND k.revoked_at IS NULL AND k.created_at > ? AND (',' || k.scopes || ',') LIKE '%,connector:write,%'",
-    [userId, Math.floor((Date.now() - CONNECTOR_LIFETIME_MS) / 1000)],
+    "SELECT MAX(p.last_seen_at) AS last_seen FROM x_connector_presence p JOIN api_keys k ON k.id=p.key_id AND k.user_id=p.user_id WHERE p.user_id=? AND k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at > ?) AND (',' || k.scopes || ',') LIKE '%,connector:write,%'",
+    [userId, Math.floor(Date.now() / 1000)],
   );
   return { states, lastSeenAt: row?.last_seen ?? null };
 }

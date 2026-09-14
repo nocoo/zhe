@@ -170,15 +170,34 @@ describe("Connector HTTP boundary uses the same CLI authentication", () => {
       headers: { ...headers, ...extra },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
+  it("keeps an existing key without an explicit expiry valid after 30 days", async () => {
+    db.prepare("UPDATE api_keys SET created_at=0 WHERE id=?").run(identity.keyId);
+    const response = await status(request());
+    expect(response.status).toBe(200);
+    expect((await response.json()).expiresAt).toBeNull();
+    expect((await loadConnectorSummary()).lastSeenAt).toBe(now);
+    expect(await connectorKeyActive(identity, now + 31 * 86400_000)).toBe(true);
+  });
   it("requires authentication, scope and unexpired capability", async () => {
     expect((await status(new NextRequest("https://zhe.to/api/v1/connector"))).status).toBe(401);
     expect((await status(request())).status).toBe(200);
     db.prepare("UPDATE api_keys SET scopes='links:read' WHERE id=?").run(identity.keyId);
     expect((await status(request())).status).toBe(403);
-    db.prepare("UPDATE api_keys SET scopes='connector:write',created_at=0 WHERE id=?").run(
+    db.prepare("UPDATE api_keys SET scopes='connector:write',expires_at=0 WHERE id=?").run(
       identity.keyId,
     );
-    expect((await status(request())).status).toBe(403);
+    expect((await status(request())).status).toBe(401);
+    expect((await loadConnectorSummary()).lastSeenAt).toBeNull();
+  });
+  it("reports the selected expiry in milliseconds and rejects it at the exact second", async () => {
+    const expiresAt = (Math.floor(now / 1000) + 60) * 1000;
+    db.prepare("UPDATE api_keys SET expires_at=? WHERE id=?").run(expiresAt / 1000, identity.keyId);
+    expect((await (await status(request())).json()).expiresAt).toBe(expiresAt);
+    expect(await connectorKeyActive(identity, expiresAt - 1)).toBe(true);
+    expect(await connectorKeyActive(identity, expiresAt)).toBe(false);
+    vi.spyOn(Date, "now").mockReturnValue(expiresAt);
+    expect((await status(request())).status).toBe(401);
+    expect((await loadConnectorSummary()).lastSeenAt).toBeNull();
   });
   it("polls a saved bookmark and completes text with an opaque lease", async () => {
     const id = link();
@@ -287,21 +306,28 @@ describe("shared CLI authorization", () => {
       expect(required(await claimXBookmark(identity, later)).attempts).toBe(1);
     },
   );
-  it("uses an existing scoped API key, with an owner and a 30-day Connector lifetime", async () => {
+  it("uses an existing scoped API key with its owner and no implicit lifetime", async () => {
     expect(await connectorKeyActive(identity, now)).toBe(true);
     expect(await connectorKeyActive({ ...identity, userId: "other" }, now)).toBe(false);
-    expect(await connectorKeyActive(identity, now + 30 * 86400_000)).toBe(false);
+    expect(await connectorKeyActive(identity, now + 365 * 86400_000)).toBe(true);
     db.prepare("UPDATE api_keys SET scopes='links:read' WHERE id=?").run(identity.keyId);
     expect(await connectorKeyActive(identity, now)).toBe(false);
   });
-  it("honors revocation at every task mutation", async () => {
+  it.each(["revoked_at", "expires_at"])("honors %s at every task mutation", async (column) => {
     link();
     const job = required(await claimXBookmark(identity, now));
-    db.prepare("UPDATE api_keys SET revoked_at=? WHERE id=?").run(now / 1000, identity.keyId);
+    db.prepare(`UPDATE api_keys SET ${column}=? WHERE id=?`).run(
+      Math.floor(now / 1000),
+      identity.keyId,
+    );
     expect(await connectorKeyActive(identity, now)).toBe(false);
     expect(await renewXBookmark(identity, job.linkId, job.leaseToken, now)).toBe(false);
     expect(await stageXCapture(identity, job.linkId, job.leaseToken, capture, now)).toBe(false);
     expect(await completeXBookmark(identity, job.linkId, job.leaseToken, now)).toBe(false);
+    expect(await failXBookmark(identity, job.linkId, job.leaseToken, "interrupted", now)).toBe(
+      false,
+    );
+    expect(await claimXBookmark(identity, now)).toBeNull();
   });
 });
 
@@ -351,32 +377,49 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     const asset = required(await reserveXMedia(identity, id, job.leaseToken, descriptor, now));
     return { id, job, asset };
   }
-  it("removes a completed upload immediately if its lease expires during streaming", async () => {
-    const { id, job, asset } = await prepare();
-    const original = r2.uploadStreamToR2;
-    vi.spyOn(r2, "uploadStreamToR2").mockImplementation(async (...args) => {
-      await original(...args);
-      vi.spyOn(Date, "now").mockReturnValue(now + 180_001);
-    });
-    expect(await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now)).toBe(false);
-    expect(rows("x_media")).toHaveLength(0);
-    expect(await drainR2Deletions("owner", now + 180_001)).toBe(1);
-    expect(await r2.listR2Objects()).toHaveLength(0);
-  });
-  it("does not publish when the lease expires while reading publication prerequisites", async () => {
-    const { id, job, asset } = await prepare();
-    await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
-    const original = d1.executeD1Query;
-    vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
-      const result = await original(sql, params);
-      if (sql.includes("SELECT media_id,kind"))
-        vi.spyOn(Date, "now").mockReturnValue(now + 180_001);
-      return result;
-    });
-    expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(false);
-    expect(rows("uploads")).toHaveLength(0);
-    expect((await getXBookmarks("owner", [id]))[0]?.tweet).toBeNull();
-  });
+  it.each(["lease", "key"])(
+    "removes a completed upload if its %s expires during streaming",
+    async (expiry) => {
+      const { id, job, asset } = await prepare();
+      const later = expiry === "lease" ? now + 180_001 : now + 2_000;
+      if (expiry === "key")
+        db.prepare("UPDATE api_keys SET expires_at=? WHERE id=?").run(
+          Math.floor(later / 1000),
+          identity.keyId,
+        );
+      const original = r2.uploadStreamToR2;
+      vi.spyOn(r2, "uploadStreamToR2").mockImplementation(async (...args) => {
+        await original(...args);
+        vi.spyOn(Date, "now").mockReturnValue(later);
+      });
+      expect(await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now)).toBe(false);
+      expect(rows("x_media")).toHaveLength(0);
+      expect(await drainR2Deletions("owner", later)).toBe(1);
+      expect(await r2.listR2Objects()).toHaveLength(0);
+    },
+  );
+  it.each(["lease", "key"])(
+    "does not publish when the %s expires while reading prerequisites",
+    async (expiry) => {
+      const { id, job, asset } = await prepare();
+      await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
+      const later = expiry === "lease" ? now + 180_001 : now + 2_000;
+      if (expiry === "key")
+        db.prepare("UPDATE api_keys SET expires_at=? WHERE id=?").run(
+          Math.floor(later / 1000),
+          identity.keyId,
+        );
+      const original = d1.executeD1Query;
+      vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+        const result = await original(sql, params);
+        if (sql.includes("SELECT media_id,kind")) vi.spyOn(Date, "now").mockReturnValue(later);
+        return result;
+      });
+      expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(false);
+      expect(rows("uploads")).toHaveLength(0);
+      expect((await getXBookmarks("owner", [id]))[0]?.tweet).toBeNull();
+    },
+  );
   it("keeps an explicitly deleted video removed when retrying another missing attachment", async () => {
     const { id, job, asset } = await prepare();
     const extended = structuredClone(videoCapture);

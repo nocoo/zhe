@@ -26,7 +26,7 @@ export interface DownloadedMedia {
 export interface ConnectorStatus {
   states: { state: string; count: number }[];
   keyPrefix: string;
-  expiresAt: number;
+  expiresAt: number | null;
 }
 
 export interface ConnectorProgress {

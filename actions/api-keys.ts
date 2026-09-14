@@ -2,7 +2,13 @@
 
 import { nanoid } from "nanoid";
 import { getScopedDB } from "@/lib/auth-context";
-import { API_SCOPES, type ApiScope, generateApiKey, serializeScopes } from "@/models/api-key";
+import {
+  API_KEY_EXPIRY_DAYS,
+  API_SCOPES,
+  type ApiScope,
+  generateApiKey,
+  serializeScopes,
+} from "@/models/api-key";
 
 /**
  * List all active (non-revoked) API keys for the authenticated user.
@@ -21,6 +27,7 @@ export async function listApiKeys() {
       name: k.name,
       scopes: k.scopes,
       createdAt: k.createdAt,
+      expiresAt: k.expiresAt,
       lastUsedAt: k.lastUsedAt,
     })),
   };
@@ -30,7 +37,11 @@ export async function listApiKeys() {
  * Create a new API key.
  * Returns the full key ONCE — it cannot be retrieved again.
  */
-export async function createApiKeyAction(input: { name: string; scopes: ApiScope[] }) {
+export async function createApiKeyAction(input: {
+  name: string;
+  scopes: ApiScope[];
+  expiresInDays?: number | null;
+}) {
   const db = await getScopedDB();
   if (!db) return { success: false as const, error: "Unauthorized" };
 
@@ -49,6 +60,14 @@ export async function createApiKeyAction(input: { name: string; scopes: ApiScope
     return { success: false as const, error: `Invalid scopes: ${invalidScopes.join(", ")}` };
   }
 
+  const expiresInDays = input.expiresInDays ?? null;
+  if (
+    expiresInDays !== null &&
+    !(API_KEY_EXPIRY_DAYS as readonly number[]).includes(expiresInDays)
+  ) {
+    return { success: false as const, error: "Expiry must be never, 30, 7, 3 or 1 days" };
+  }
+
   const { fullKey, prefix, keyHash } = generateApiKey();
   const id = nanoid();
 
@@ -58,6 +77,7 @@ export async function createApiKeyAction(input: { name: string; scopes: ApiScope
     keyHash,
     name,
     scopes: serializeScopes(input.scopes),
+    expiresAt: expiresInDays === null ? null : new Date(Date.now() + expiresInDays * 86400_000),
   });
 
   return {
@@ -68,6 +88,7 @@ export async function createApiKeyAction(input: { name: string; scopes: ApiScope
       name: key.name,
       scopes: key.scopes,
       createdAt: key.createdAt,
+      expiresAt: key.expiresAt,
       fullKey, // Only returned on creation — never stored or returned again
     },
   };
@@ -117,6 +138,7 @@ export async function migrateFromWebhookAction() {
       name: key.name,
       scopes: key.scopes,
       createdAt: key.createdAt,
+      expiresAt: key.expiresAt,
       fullKey, // Only returned on creation — never stored or returned again
     },
   };

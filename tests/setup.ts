@@ -1818,7 +1818,7 @@ vi.mock("@/lib/db/d1-client", async () => {
 
     // INSERT INTO api_keys
     if (sqlLower.startsWith("insert into api_keys")) {
-      const [id, prefix, keyHash, userId, name, scopes, createdAt] = params;
+      const [id, prefix, keyHash, userId, name, scopes, createdAt, expiresAt] = params;
       const mockKeys = getMockApiKeys();
       const apiKey = {
         id: id as string,
@@ -1828,6 +1828,7 @@ vi.mock("@/lib/db/d1-client", async () => {
         name: name as string,
         scopes: scopes as string,
         created_at: createdAt as number,
+        expires_at: (expiresAt as number | null) ?? null,
         last_used_at: null,
         revoked_at: null,
       };

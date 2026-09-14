@@ -4,7 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ApiScope } from "@/models/api-key";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { API_KEY_EXPIRY_DAYS, type ApiScope } from "@/models/api-key";
 
 interface CreateKeyFormProps {
   availableScopes: readonly ApiScope[];
@@ -12,6 +19,8 @@ interface CreateKeyFormProps {
   setNewKeyName: (v: string) => void;
   selectedScopes: ApiScope[];
   toggleScope: (scope: ApiScope) => void;
+  expiresInDays: number | null;
+  setExpiresInDays: (days: number | null) => void;
   isCreating: boolean;
   onCancel: () => void;
   onCreate: () => void;
@@ -23,6 +32,8 @@ export function CreateKeyForm({
   setNewKeyName,
   selectedScopes,
   toggleScope,
+  expiresInDays,
+  setExpiresInDays,
   isCreating,
   onCancel,
   onCreate,
@@ -38,6 +49,26 @@ export function CreateKeyForm({
           onChange={(e) => setNewKeyName(e.target.value)}
           data-testid="key-name-input"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="key-expiry">有效期</Label>
+        <Select
+          value={expiresInDays === null ? "never" : String(expiresInDays)}
+          onValueChange={(value) => setExpiresInDays(value === "never" ? null : Number(value))}
+        >
+          <SelectTrigger id="key-expiry" data-testid="key-expiry-select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="never">永久有效</SelectItem>
+            {API_KEY_EXPIRY_DAYS.map((days) => (
+              <SelectItem key={days} value={String(days)}>
+                {days} 天
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

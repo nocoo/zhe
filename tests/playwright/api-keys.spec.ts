@@ -6,7 +6,7 @@
  * cleans up via beforeAll to avoid cross-spec pollution.
  */
 import { expect, test } from "./fixtures";
-import { executeD1, TEST_USER } from "./helpers/d1";
+import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 
 /** Helper: wait for API Keys page to finish loading. */
 async function waitForApiKeysPage(page: import("@playwright/test").Page): Promise<void> {
@@ -56,6 +56,7 @@ test.describe("API Keys", () => {
 
       const form = page.locator('[data-testid="create-form"]');
       await expect(form).toBeVisible();
+      await expect(page.getByTestId("key-expiry-select")).toHaveText("永久有效");
       await expect(form).toHaveAttribute("data-basalt-surface", "");
       const nameInput = page.locator('[data-testid="key-name-input"]');
       await expect(nameInput).toBeVisible();
@@ -92,11 +93,15 @@ test.describe("API Keys", () => {
 
       await page.locator('[data-testid="show-create-form-btn"]').click();
       await expect(page.locator('[data-testid="create-form"]')).toBeVisible();
+      await page.getByTestId("key-expiry-select").click();
+      await page.getByRole("option", { name: "1 天", exact: true }).click();
 
       await page.locator('[data-testid="cancel-create-btn"]').click();
 
       await expect(page.locator('[data-testid="create-form"]')).toBeHidden();
       await expect(page.locator('[data-testid="show-create-form-btn"]')).toBeVisible();
+      await page.getByTestId("show-create-form-btn").click();
+      await expect(page.getByTestId("key-expiry-select")).toHaveText("永久有效");
     });
 
     test("creates API key with name and scopes", async ({ page }) => {
@@ -122,7 +127,50 @@ test.describe("API Keys", () => {
 
       // Verify key appears in list
       await expect(page.getByText(keyName)).toBeVisible();
+      const [key] = await queryD1<{ expires_at: number | null }>(
+        "SELECT expires_at FROM api_keys WHERE user_id=? AND name=?",
+        [TEST_USER.id, keyName],
+      );
+      expect(key?.expires_at).toBeNull();
+      await expect(page.getByTestId("keys-list")).toContainText("永久有效");
     });
+
+    for (const days of [30, 7, 3, 1]) {
+      test(`persists an explicitly selected ${days}-day lifetime and resets the next form`, async ({
+        page,
+      }) => {
+        const name = `E2E ${days}-day Key`;
+        await page.goto("/dashboard/api-keys");
+        await waitForApiKeysPage(page);
+        await page.getByTestId("show-create-form-btn").click();
+        await page.getByTestId("key-name-input").fill(name);
+        await page.getByTestId("scope-connector:write").click();
+        await page.getByTestId("key-expiry-select").click();
+        await expect(page.getByRole("option")).toHaveText([
+          "永久有效",
+          "30 天",
+          "7 天",
+          "3 天",
+          "1 天",
+        ]);
+        await page.getByRole("option", { name: `${days} 天`, exact: true }).click();
+        await page.getByTestId("create-key-btn").click();
+        await expect(page.getByTestId("new-key-banner")).toBeVisible();
+        const [key] = await queryD1<{ created_at: number; expires_at: number }>(
+          "SELECT created_at,expires_at FROM api_keys WHERE user_id=? AND name=?",
+          [TEST_USER.id, name],
+        );
+        expect(key).toBeDefined();
+        const lifetime = (key?.expires_at ?? 0) - (key?.created_at ?? 0);
+        expect(lifetime).toBeGreaterThanOrEqual(days * 86400 - 1);
+        expect(lifetime).toBeLessThanOrEqual(days * 86400);
+        await page.getByTestId("show-create-form-btn").click();
+        await expect(page.getByTestId("key-expiry-select")).toHaveText("永久有效");
+        await page.reload();
+        await waitForApiKeysPage(page);
+        await expect(page.getByTestId("keys-list")).toContainText("有效至");
+      });
+    }
 
     test("shows newly created key value with copy button", async ({ page }) => {
       await page.goto("/dashboard/api-keys");

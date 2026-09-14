@@ -12,6 +12,7 @@ export interface ApiKeyListItem {
   name: string;
   scopes: string;
   createdAt: Date | null;
+  expiresAt: Date | null;
   lastUsedAt: Date | null;
 }
 
@@ -39,24 +40,27 @@ export function useApiKeysViewModel() {
     };
   }, []);
 
-  const handleCreate = useCallback(async (name: string, scopes: ApiScope[]) => {
-    setIsCreating(true);
-    try {
-      const result = await createApiKeyAction({ name, scopes });
-      if (result.success) {
-        setNewlyCreatedKey(result.data.fullKey);
-        toast.success("已创建 API Key");
-        // Refresh list
-        const listResult = await listApiKeys();
-        if (listResult.success) setKeys(listResult.data);
-      } else {
-        toast.error(result.error || "创建 API Key 失败");
+  const handleCreate = useCallback(
+    async (name: string, scopes: ApiScope[], expiresInDays: number | null = null) => {
+      setIsCreating(true);
+      try {
+        const result = await createApiKeyAction({ name, scopes, expiresInDays });
+        if (result.success) {
+          setNewlyCreatedKey(result.data.fullKey);
+          toast.success("已创建 API Key");
+          // Refresh list
+          const listResult = await listApiKeys();
+          if (listResult.success) setKeys(listResult.data);
+        } else {
+          toast.error(result.error || "创建 API Key 失败");
+        }
+        return result;
+      } finally {
+        setIsCreating(false);
       }
-      return result;
-    } finally {
-      setIsCreating(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const handleRevoke = useCallback(async (id: string) => {
     const result = await revokeApiKeyAction(id);

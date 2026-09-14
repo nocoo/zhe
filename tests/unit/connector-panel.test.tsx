@@ -15,7 +15,7 @@ beforeEach(() => {
   });
 });
 describe("shared installation and storage", () => {
-  it("shows the shared key's Connector expiry and revokes it through the existing control", async () => {
+  it("shows the shared key's explicit expiry and revokes it through the existing control", async () => {
     const revoke = vi.fn();
     render(
       <ApiKeyRow
@@ -25,18 +25,42 @@ describe("shared installation and storage", () => {
           name: "Shared CLI",
           scopes: "links:read,connector:write",
           createdAt: new Date("2026-08-01T12:00:00Z"),
+          expiresAt: new Date("2026-08-02T12:00:00Z"),
           lastUsedAt: new Date("2026-08-02T12:00:00Z"),
         }}
         onRevoke={revoke}
       />,
     );
-    expect(screen.getByText(/Connector 有效至/)).toHaveTextContent("2026年8月31日");
+    expect(screen.getByTestId("key-expiry-shared-key")).toHaveTextContent("已过期");
+    expect(screen.getByTestId("key-expiry-shared-key")).toHaveTextContent("2026/8/2");
     expect(screen.getByText("connector:write")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("revoke-key-shared-key"));
     expect(await screen.findByRole("alertdialog")).toHaveTextContent("所有应用将立即失去访问权限");
     fireEvent.click(screen.getByTestId("confirm-revoke-shared-key"));
     expect(revoke).toHaveBeenCalledWith("shared-key");
   });
+  it.each([null, new Date("2999-01-01T12:00:00Z"), new Date(0)])(
+    "shows permanent, future and expired lifetimes independently of creation date (%s)",
+    (expiresAt) => {
+      render(
+        <ApiKeyRow
+          apiKey={{
+            id: "expiry-key",
+            name: "CLI",
+            prefix: "zhe_example",
+            scopes: "connector:write",
+            createdAt: new Date(0),
+            expiresAt,
+            lastUsedAt: null,
+          }}
+          onRevoke={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId("key-expiry-expiry-key")).toHaveTextContent(
+        expiresAt === null ? "永久有效" : expiresAt.getTime() === 0 ? "已过期" : "有效至",
+      );
+    },
+  );
   it("uses the existing zhe installation and login and shows the automatic queue", async () => {
     render(<ConnectorPanel />);
     expect(screen.getByText(/npm install -g @nocoo\/zhe/)).toBeInTheDocument();
