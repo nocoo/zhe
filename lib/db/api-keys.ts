@@ -42,14 +42,23 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
   const row = rows[0];
   if (!row) return null;
 
-  // Check not revoked
-  if (row.revoked_at !== null) return null;
+  // Verify identity before recording any rejection metadata.
+  if (!verifyApiKey(key, row.key_hash as string)) return null;
 
   // NULL is permanent. All API key timestamps are stored in Unix seconds.
-  if (row.expires_at != null && (row.expires_at as number) * 1000 <= Date.now()) return null;
-
-  // Verify hash (constant-time comparison)
-  if (!verifyApiKey(key, row.key_hash as string)) return null;
+  const revoked = row.revoked_at !== null;
+  const expired = row.expires_at != null && (row.expires_at as number) * 1000 <= Date.now();
+  if (revoked || expired) {
+    // Internal diagnostics only: never log the credential, prefix, hash, or full row.
+    console.warn(
+      JSON.stringify({
+        event: "api_key_auth_rejected",
+        keyId: row.id,
+        reason: revoked ? "revoked" : "expired",
+      }),
+    );
+    return null;
+  }
 
   const keyId = row.id as string;
   const keyPrefix = row.prefix as string;

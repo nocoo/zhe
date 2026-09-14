@@ -32,6 +32,7 @@ describe("verifyApiKeyAndGetUser — explicit expiry", () => {
   ])("accepts only active keys (%s)", async (_, expiresAt, accepted) => {
     vi.clearAllMocks();
     vi.spyOn(Date, "now").mockReturnValue(now);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     mockHashApiKey.mockReturnValue("test-hash");
     mockVerifyApiKey.mockReturnValue(true);
     mockParseScopes.mockReturnValue(["links:read"]);
@@ -51,6 +52,58 @@ describe("verifyApiKeyAndGetUser — explicit expiry", () => {
       accepted,
     );
   });
+});
+
+describe("verifyApiKeyAndGetUser — rejection diagnostics", () => {
+  const now = Date.UTC(2026, 8, 14, 2, 3, 34);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockHashApiKey.mockReturnValue("private-hash");
+    mockVerifyApiKey.mockReturnValue(true);
+  });
+
+  it.each([
+    ["revoked", now / 1000 - 15, null],
+    ["expired", null, now / 1000],
+  ])("logs only the verified record ID and %s reason", async (reason, revokedAt, expiresAt) => {
+    mockExecuteD1Query.mockResolvedValue([
+      {
+        id: "record-id",
+        prefix: "private-prefix",
+        user_id: "private-user",
+        scopes: "links:read",
+        revoked_at: revokedAt,
+        expires_at: expiresAt,
+        key_hash: "private-hash",
+      },
+    ]);
+
+    expect(await verifyApiKeyAndGetUser("private-credential")).toBeNull();
+    expect(mockVerifyApiKey).toHaveBeenCalledWith("private-credential", "private-hash");
+    expect(console.warn).toHaveBeenCalledExactlyOnceWith(
+      JSON.stringify({ event: "api_key_auth_rejected", keyId: "record-id", reason }),
+    );
+    expect(mockExecuteD1Query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["unknown", "hash mismatch"])(
+    "does not log unverified credentials (%s)",
+    async (kind) => {
+      mockExecuteD1Query.mockResolvedValue(
+        kind === "unknown"
+          ? []
+          : [{ id: "record-id", revoked_at: now / 1000 - 15, key_hash: "different-hash" }],
+      );
+      mockVerifyApiKey.mockReturnValue(false);
+
+      expect(await verifyApiKeyAndGetUser("private-credential")).toBeNull();
+      expect(console.warn).not.toHaveBeenCalled();
+      expect(mockExecuteD1Query).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe("verifyApiKeyAndGetUser — hash mismatch", () => {
