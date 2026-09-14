@@ -22,3 +22,32 @@ export interface DownloadedMedia {
   height?: number | undefined;
   duration?: number | undefined;
 }
+
+export interface ConnectorStatus {
+  states: { state: string; count: number }[];
+  keyPrefix: string;
+  expiresAt: number;
+}
+
+export interface ConnectorProgress {
+  stage:
+    | "claim"
+    | "read"
+    | "capture"
+    | "download"
+    | "verify"
+    | "upload"
+    | "uploaded"
+    | "poster"
+    | "saved"
+    | "skipped"
+    | "warning"
+    | "publish";
+  message: string;
+  current?: number;
+  total?: number;
+  received?: number;
+  bytes?: number;
+}
+
+export type ReportProgress = (event: ConnectorProgress) => void;

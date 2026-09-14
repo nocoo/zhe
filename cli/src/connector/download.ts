@@ -59,6 +59,7 @@ export async function downloadMedia(
   media: XMedia,
   directory: string,
   signal?: AbortSignal,
+  onProgress?: (phase: "download" | "verify", received: number, total: number) => void,
 ): Promise<DownloadedMedia> {
   const video = media.type !== "PHOTO";
   const bounded = AbortSignal.any([AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
@@ -72,6 +73,8 @@ export async function downloadMedia(
     const reader = body.getReader();
     const hash = createHash("sha256");
     let received = 0;
+    let lastProgress = Date.now();
+    onProgress?.("download", 0, size);
     let head = new Uint8Array();
     try {
       for (;;) {
@@ -88,6 +91,10 @@ export async function downloadMedia(
         }
         hash.update(value);
         await file.writeFile(value);
+        if (received === size || Date.now() - lastProgress >= 1000) {
+          onProgress?.("download", received, size);
+          lastProgress = Date.now();
+        }
       }
       if (received !== size) throw new ConnectorError("size_mismatch");
       verifySignature(head, mime);
@@ -97,6 +104,7 @@ export async function downloadMedia(
     }
     await file.close();
     file = undefined;
+    onProgress?.("verify", received, size);
     let probe: Record<string, unknown>;
     try {
       const output = await execute(

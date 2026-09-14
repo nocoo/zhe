@@ -3,7 +3,12 @@
  */
 
 import { openAsBlob } from "node:fs";
-import type { DownloadedMedia, MediaReservation, XJob } from "../connector/types.js";
+import type {
+  ConnectorStatus,
+  DownloadedMedia,
+  MediaReservation,
+  XJob,
+} from "../connector/types.js";
 import { CLI_VERSION } from "../version.js";
 import type {
   ApiError,
@@ -288,12 +293,8 @@ export class ApiClient {
     await this.request<Record<string, never>>("DELETE", `/ideas/${id}`);
   }
 
-  connectorStatus(): Promise<{
-    states: { state: string; count: number }[];
-    keyPrefix: string;
-    expiresAt: number;
-  }> {
-    return this.request("GET", "/connector");
+  connectorStatus(signal?: AbortSignal): Promise<ConnectorStatus> {
+    return this.request("GET", "/connector", undefined, {}, signal);
   }
 
   claimXJob(signal?: AbortSignal): Promise<{ job: XJob | null }> {

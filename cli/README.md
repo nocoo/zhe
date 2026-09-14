@@ -69,7 +69,11 @@ zhe connector start
 
 The Connector reads the same login configuration on every poll. Its permission expires 30 days after key creation; rotate the key through the API Keys page, then run `zhe logout` and `zhe login`. Revoking the key stops further Connector mutations. The background service contains no key or X cookies.
 
-On Linux or Windows, run `zhe connector watch` under your normal process supervisor. Keep the browser extension connected and the machine awake. Failed media does not prevent saving the post text; retry is available on the card. The current limits are 64 MiB per video and 10 MiB per image. Protected accounts and browser challenges are not supported.
+On Linux or Windows, run `zhe connector watch` under your normal process supervisor. Keep the browser extension connected and the machine awake. Failed media does not prevent saving the post text; retry is available in the post details. The current limits are 64 MiB per video and 10 MiB per image. Protected accounts and browser challenges are not supported.
+
+`watch` shows timestamped queue counts, the current link/post and retry attempt, text capture, media download percentages, verification, uploads, and poster generation. Slow stages continue to report activity every 10 seconds. Results include elapsed time and session totals for complete/partial/failed jobs, archived/skipped media, and confirmed upload bytes. Processing is serial, with a 20-second wait after each poll finishes. `Ctrl+C` prints the final totals and stops.
+
+Use `zhe connector watch --json` for newline-delimited JSON events, or `zhe connector once` for a single job. `once --json` and `status --json` also support scripted use. Background logs contain no ANSI animation, API keys, browser cookies, post text, or raw upstream errors.
 
 Archived files use Zhe's existing R2 file-sharing behavior. Delete a video to remove its poster too; delete a bookmark to remove all of its archived attachments. Removing an attachment explicitly prevents a later retry from restoring it.
 

@@ -57,7 +57,13 @@ beforeEach(async () => {
       requests.push({ path: new URL(url).pathname, init });
       const body = typeof init.body === "string" ? JSON.parse(init.body) : {};
       const data = new URL(url).pathname.endsWith("/connector")
-        ? { job }
+        ? init.method === "GET"
+          ? {
+              states: [{ state: "pending", count: 1 }],
+              keyPrefix: "zhe_private_prefix",
+              expiresAt: Date.now() + 86400_000,
+            }
+          : { job }
         : body.action === "reserve"
           ? { asset: { id: "asset", key: "test/asset.mp4", uploaded: false } }
           : { ok: true };
@@ -160,16 +166,67 @@ describe("zhe connector", () => {
         controller.abort();
         throw new Error("aborted");
       });
-      await watchConnector(controller.signal);
-      expect(log).toHaveBeenCalledOnce();
-      expect(log.mock.calls[0]?.[0]).not.toContain("private");
+      await watchConnector(controller.signal, true);
+      const events = log.mock.calls.map(([line]) => JSON.parse(String(line)));
+      expect(events[0].event).toBe("ready");
+      expect(events.at(-1).event).toBe("stopped");
+      expect(JSON.stringify(events)).not.toMatch(/private|leaseToken|zhe_shared_cli_key/);
       if (outcome !== "success")
-        expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toEqual({
+        expect(events.find((event) => event.event === "offline")).toMatchObject({
           status: "offline",
           code: outcome === "unauthenticated" ? 401 : "connector_error",
         });
+      expect(delay).toHaveBeenCalledWith(20_000, undefined, { signal: controller.signal });
     },
   );
+  it("shows in-flight progress without claiming overlapping jobs and summarizes confirmed uploads", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const events = () => log.mock.calls.map(([line]) => JSON.parse(String(line)));
+    const data = structuredClone(capture);
+    data.media = data.tweet.media = [
+      { id: "2000000000000000002", type: "PHOTO", url: "https://pbs.twimg.com/media/test.jpg" },
+    ];
+    vi.mocked(readPost).mockResolvedValue(data);
+    const path = join(dir, "photo.jpg");
+    await writeFile(path, new Uint8Array(32));
+    let finish: (() => void) | undefined;
+    vi.mocked(downloadMedia).mockImplementation(
+      (_media, _directory, _signal, progress) =>
+        new Promise((resolve) => {
+          progress?.("download", 16, 32);
+          finish = () => {
+            progress?.("verify", 32, 32);
+            resolve({ path, size: 32, sha256: "a".repeat(64), mime: "image/jpeg" });
+          };
+        }),
+    );
+    vi.mocked(delay).mockImplementation(async () => {
+      controller.abort();
+    });
+    const running = watchConnector(controller.signal, true);
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+    expect(events().some((event) => event.stage === "download" && event.received === 16)).toBe(
+      true,
+    );
+    await vi.advanceTimersByTimeAsync(21_000);
+    expect(events().some((event) => event.event === "working")).toBe(true);
+    expect(
+      requests.filter(
+        (request) => request.path.endsWith("/connector") && request.init.method === "POST",
+      ),
+    ).toHaveLength(1);
+    expect(delay).not.toHaveBeenCalled();
+    assert(finish);
+    finish();
+    await running;
+    expect(events().at(-1)).toMatchObject({
+      event: "stopped",
+      stats: { complete: 1, media: 1, bytes: 32, failed: 0 },
+    });
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it("archives photos and video posters and honors server-side deletion markers", async () => {
     const data = structuredClone(capture);
     data.media = data.tweet.media = [

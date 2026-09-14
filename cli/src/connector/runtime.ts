@@ -6,13 +6,15 @@ import { ApiClient, ApiClientError } from "../api/client.js";
 import { getApiKey } from "../config.js";
 import { ConnectorError } from "./core.js";
 import { downloadMedia, makePoster } from "./download.js";
+import { ConnectorLogger, connectorErrorHint } from "./log.js";
 import { readPost } from "./opencli.js";
-import type { DownloadedMedia, MediaReservation, XJob } from "./types.js";
+import type { DownloadedMedia, MediaReservation, ReportProgress, XJob } from "./types.js";
 
 export interface PollResult {
   status: "idle" | "complete" | "partial" | "failed";
   media: number;
   error?: string;
+  errorStatus?: number;
 }
 
 export function authenticatedClient(): ApiClient {
@@ -21,9 +23,17 @@ export function authenticatedClient(): ApiClient {
   return new ApiClient(key);
 }
 
-export async function processOne(client: ApiClient, parent?: AbortSignal): Promise<PollResult> {
+export async function processOne(
+  client: ApiClient,
+  parent?: AbortSignal,
+  progress?: ReportProgress,
+): Promise<PollResult> {
   const { job } = await client.claimXJob(parent);
   if (!job) return { status: "idle", media: 0 };
+  progress?.({
+    stage: "claim",
+    message: `Link #${job.linkId} · X post ${job.postId} · attempt ${job.attempts}`,
+  });
   const controller = new AbortController();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
   let renewing: Promise<void> | undefined;
@@ -42,21 +52,44 @@ export async function processOne(client: ApiClient, parent?: AbortSignal): Promi
   let incomplete = false;
   try {
     dir = await mkdtemp(join(tmpdir(), "zhe-connector-"));
+    progress?.({ stage: "read", message: "Reading the saved post through the local X session" });
     const capture = await readPost(job.postId, signal);
+    progress?.({
+      stage: "capture",
+      message: `Saving ${capture.tweet.text.length} characters · ${capture.media.length} media found`,
+      total: capture.media.length,
+    });
     await client.connectorAction(job, { action: "capture", capture }, signal);
-    for (const media of capture.media) {
+    for (const [index, media] of capture.media.entries()) {
       signal.throwIfAborted();
+      const reportMedia: ReportProgress = (event) =>
+        progress?.({
+          ...event,
+          current: index + 1,
+          total: capture.media.length,
+          message: `${media.type} ${index + 1}/${capture.media.length} · ${event.message}`,
+        });
       try {
-        const file = await downloadMedia(media, dir, signal);
+        reportMedia({ stage: "download", message: "Connecting to X media" });
+        const file = await downloadMedia(media, dir, signal, (phase, received, bytes) => {
+          reportMedia({
+            stage: phase,
+            message: phase === "download" ? "Downloading" : "Verifying format and full decode",
+            received,
+            bytes,
+          });
+        });
         const kind = media.type === "PHOTO" ? "photo" : "video";
-        if (!(await archive(client, job, media.id, kind, file, signal))) continue;
+        if (!(await archive(client, job, media.id, kind, file, signal, reportMedia))) continue;
         media.width = file.width;
         media.height = file.height;
         media.duration = file.duration;
         archived++;
         if (kind === "video") {
+          reportMedia({ stage: "poster", message: "Generating video poster" });
           const poster = await makePoster(file.path, signal);
-          if (poster) await archive(client, job, media.id, "poster", poster, signal);
+          if (poster) await archive(client, job, media.id, "poster", poster, signal, reportMedia);
+          else reportMedia({ stage: "warning", message: "Poster unavailable; video is archived" });
         }
       } catch (error) {
         if (
@@ -65,10 +98,15 @@ export async function processOne(client: ApiClient, parent?: AbortSignal): Promi
         )
           throw error;
         incomplete = true;
+        reportMedia({ stage: "warning", message: connectorErrorHint(error) });
       }
     }
     signal.throwIfAborted();
     capture.tweet.media = capture.media;
+    progress?.({
+      stage: "publish",
+      message: `Saving the enriched post · ${archived}/${capture.media.length} media archived`,
+    });
     await client.connectorAction(job, { action: "capture", capture }, signal);
     await client.connectorAction(job, { action: "complete" }, signal);
     return { status: incomplete ? "partial" : "complete", media: archived };
@@ -80,7 +118,12 @@ export async function processOne(client: ApiClient, parent?: AbortSignal): Promi
           ? "interrupted"
           : "connector_error";
     await client.connectorAction(job, { action: "fail", code }).catch(() => {});
-    return { status: "failed", media: archived, error: code };
+    return {
+      status: "failed",
+      media: archived,
+      error: code,
+      ...(error instanceof ApiClientError ? { errorStatus: error.status } : {}),
+    };
   } finally {
     clearInterval(heartbeat);
     controller.abort();
@@ -96,7 +139,9 @@ async function archive(
   kind: string,
   file: DownloadedMedia,
   signal: AbortSignal,
+  progress?: ReportProgress,
 ): Promise<boolean> {
+  progress?.({ stage: "upload", message: `Preparing ${kind} archive` });
   const { asset } = await client.connectorAction<{ asset: MediaReservation | { skipped: true } }>(
     job,
     {
@@ -105,28 +150,52 @@ async function archive(
     },
     signal,
   );
-  if (asset.skipped) return false;
-  if (!asset.uploaded) await client.uploadXMedia(job, asset, file, signal);
+  if (asset.skipped) {
+    progress?.({ stage: "skipped", message: `${kind} was explicitly deleted; keeping it deleted` });
+    return false;
+  }
+  if (!asset.uploaded) {
+    progress?.({ stage: "upload", message: `Uploading ${kind} to Zhe`, bytes: file.size });
+    await client.uploadXMedia(job, asset, file, signal);
+    progress?.({ stage: "uploaded", message: `${kind} upload confirmed`, bytes: file.size });
+  } else
+    progress?.({ stage: "saved", message: `${kind} already archived; reusing the saved file` });
   return true;
 }
 
-export async function runOnce(signal?: AbortSignal): Promise<PollResult> {
+export async function runOnce(
+  signal?: AbortSignal,
+  progress?: ReportProgress,
+): Promise<PollResult> {
   // Read the shared CLI configuration on each poll, so logout/rotation takes effect.
-  return processOne(authenticatedClient(), signal);
+  return processOne(authenticatedClient(), signal, progress);
 }
 
-export async function watchConnector(signal: AbortSignal): Promise<void> {
-  while (!signal.aborted) {
-    try {
-      console.log(JSON.stringify(await runOnce(signal)));
-    } catch (error) {
-      console.log(
-        JSON.stringify({
-          status: "offline",
-          code: error instanceof ApiClientError ? error.status : "connector_error",
-        }),
-      );
+export async function watchConnector(signal: AbortSignal, json = false): Promise<void> {
+  const log = new ConnectorLogger(json);
+  const activity = setInterval(() => log.tick(), 10_000);
+  log.start();
+  try {
+    while (!signal.aborted) {
+      const started = Date.now();
+      try {
+        const client = authenticatedClient();
+        // Queue statistics are optional; a failed status lookup must not block enrichment.
+        const status = await client.connectorStatus(signal).catch(() => undefined);
+        if (signal.aborted) break;
+        if (status) log.queue(status);
+        log.result(
+          await processOne(client, signal, log.progress),
+          Date.now() - started,
+          !signal.aborted,
+        );
+      } catch (error) {
+        if (!signal.aborted) log.offline(error);
+      }
+      if (!signal.aborted) await delay(20_000, undefined, { signal }).catch(() => {});
     }
-    await delay(20_000, undefined, { signal }).catch(() => {});
+  } finally {
+    clearInterval(activity);
+    log.stop();
   }
 }

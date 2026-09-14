@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { defineCommand } from "@nocoo/base-cli";
+import { ConnectorLogger } from "../connector/log.js";
 import { authenticatedClient, runOnce, watchConnector } from "../connector/runtime.js";
 
 const execute = promisify(execFile);
@@ -25,25 +26,32 @@ export const connectorCommand = defineCommand({
   subCommands: {
     status: defineCommand({
       meta: { name: "status", description: "Show Connector queue and shared CLI key expiry" },
-      async run() {
-        console.log(JSON.stringify(await authenticatedClient().connectorStatus(), null, 2));
+      args: { json: { type: "boolean", description: "Output JSON" } },
+      async run({ args }) {
+        const status = await authenticatedClient().connectorStatus();
+        if (args.json) console.log(JSON.stringify(status, null, 2));
+        else new ConnectorLogger().queue(status);
       },
     }),
     once: defineCommand({
       meta: { name: "once", description: "Process one saved X bookmark" },
-      async run() {
-        console.log(JSON.stringify(await runOnce()));
+      args: { json: { type: "boolean", description: "Output JSON progress and result" } },
+      async run({ args }) {
+        const log = new ConnectorLogger(Boolean(args.json));
+        const started = Date.now();
+        log.result(await runOnce(undefined, log.progress), Date.now() - started);
       },
     }),
     watch: defineCommand({
       meta: { name: "watch", description: "Poll saved X bookmarks every 20 seconds" },
-      async run() {
+      args: { json: { type: "boolean", description: "Output newline-delimited JSON events" } },
+      async run({ args }) {
         const controller = new AbortController();
         const stop = () => controller.abort();
         process.once("SIGINT", stop);
         process.once("SIGTERM", stop);
         try {
-          await watchConnector(controller.signal);
+          await watchConnector(controller.signal, Boolean(args.json));
         } finally {
           process.removeListener("SIGINT", stop);
           process.removeListener("SIGTERM", stop);

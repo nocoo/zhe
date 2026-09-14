@@ -43,7 +43,8 @@ afterEach(async () => {
 
 describe("bounded local media capture", () => {
   it("checks public DNS, signature, length, hash and full decode before uploading", async () => {
-    const file = await downloadMedia(media, dir);
+    const progress = vi.fn();
+    const file = await downloadMedia(media, dir, undefined, progress);
     expect(file).toMatchObject({
       size: 64,
       mime: "video/mp4",
@@ -54,6 +55,11 @@ describe("bounded local media capture", () => {
     expect(file.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(execute.mock.calls.map((c) => c[0])).toEqual(["ffprobe", "ffmpeg"]);
     expect(await readdir(dir)).toHaveLength(1);
+    expect(progress.mock.calls).toEqual([
+      ["download", 0, 64],
+      ["download", 64, 64],
+      ["verify", 64, 64],
+    ]);
   });
   it("downloads and verifies a GIF's MP4 with the same video safety checks", async () => {
     const file = await downloadMedia(
