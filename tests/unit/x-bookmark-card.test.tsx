@@ -50,6 +50,22 @@ const bookmark: XBookmark = {
   errorCode: null,
   updatedAt: Date.now(),
 };
+const link: Link = {
+  id: 1,
+  userId: "owner",
+  originalUrl: "https://x.com/example/status/12345",
+  slug: "test",
+  isCustom: false,
+  clicks: 0,
+  createdAt: new Date(),
+  expiresAt: null,
+  folderId: null,
+  note: "Keep this saved note after enrichment",
+  screenshotUrl: null,
+  metaTitle: null,
+  metaDescription: null,
+  metaFavicon: null,
+};
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(retryXBookmarkAction).mockResolvedValue({ success: true });
@@ -109,22 +125,6 @@ describe("X bookmark presentation", () => {
   it.each(["grid", "list", "feed"] as const)(
     "keeps %s compact after enrichment and opens the full post on demand",
     async (viewMode) => {
-      const link: Link = {
-        id: 1,
-        userId: "owner",
-        originalUrl: "https://x.com/example/status/12345",
-        slug: "test",
-        isCustom: false,
-        clicks: 0,
-        createdAt: new Date(),
-        expiresAt: null,
-        folderId: null,
-        note: "Keep this saved note after enrichment",
-        screenshotUrl: null,
-        metaTitle: null,
-        metaDescription: null,
-        metaFavicon: null,
-      };
       const card = (
         <LinkCard
           link={link}
@@ -150,11 +150,18 @@ describe("X bookmark presentation", () => {
       expect(screen.queryByText("已补全", { exact: true })).not.toBeInTheDocument();
       expect(screen.queryByText("阅读帖子")).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "展开全文" })).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
+      const user = userEvent.setup();
+      if (viewMode === "feed") {
+        await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+        expect(screen.getByRole("menuitem", { name: "编辑收藏" })).toBeInTheDocument();
+        expect(screen.getByRole("menuitem", { name: "复制短链接" })).toBeInTheDocument();
+        await user.keyboard("{Escape}");
+      } else {
+        expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
+      }
       expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
       const trigger = screen.getByRole("button", { name: "查看帖子详情" });
       expect(trigger).toHaveAccessibleDescription("已补全");
-      const user = userEvent.setup();
       await user.click(trigger);
       const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
       expect(within(dialog).getByTestId("x-bookmark-content")).toBeInTheDocument();
@@ -206,7 +213,7 @@ describe("X bookmark presentation", () => {
     },
   );
   it.each(["VIDEO", "GIF"] as const)(
-    "plays an archived %s inline and opens photos with the public dialog",
+    "loads an archived %s only after clicking its poster and opens photos with the public dialog",
     async (type) => {
       const data = {
         ...bookmark,
@@ -230,7 +237,17 @@ describe("X bookmark presentation", () => {
           <XBookmarkContent bookmark={data} />
         </LayerCard>,
       );
+      expect(container.querySelector("video")).toBeNull();
+      const preview = screen.getByRole("button", {
+        name: `播放${type === "GIF" ? " GIF" : "视频"} 1`,
+      });
+      expect(preview.querySelector("img")).toHaveAttribute(
+        "src",
+        "https://cdn.example.com/poster.jpg",
+      );
+      fireEvent.click(preview);
       expect(container.querySelector("video")).toHaveAttribute("controls");
+      expect(container.querySelector("video")).toHaveAttribute("autoplay");
       expect(container.querySelector("video")).toHaveAttribute("preload", "none");
       expect(container.querySelector("video")).toHaveAttribute(
         "src",
@@ -241,6 +258,81 @@ describe("X bookmark presentation", () => {
       expect(screen.getByRole("heading", { name: "图片预览" })).toBeInTheDocument();
     },
   );
+  it("keeps feed videos as posters and plays only in the detail dialog", async () => {
+    const data: XBookmark = {
+      ...bookmark,
+      tweet: {
+        ...tweet,
+        media: [
+          {
+            id: "video",
+            type: "VIDEO",
+            url: "https://cdn.example.com/video.mp4",
+            thumbnail_url: "https://cdn.example.com/poster.jpg",
+          },
+        ],
+      },
+    };
+    render(
+      <XBookmarksContext.Provider value={new Map([[1, data]])}>
+        <LinkCard
+          link={link}
+          siteUrl="https://zhe.to"
+          onDelete={vi.fn()}
+          onUpdate={vi.fn()}
+          viewMode="feed"
+        />
+      </XBookmarksContext.Provider>,
+    );
+    const card = screen.getByTestId("link-card");
+    const preview = within(card).getByRole("button", { name: "播放视频 1" });
+    const user = userEvent.setup();
+    expect(card.querySelector("video")).toBeNull();
+    await user.click(preview);
+    const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
+    expect(within(dialog).getByLabelText("已归档的 X 视频")).toHaveAttribute("autoplay");
+    expect(card.querySelector("video")).toBeNull();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(preview).toHaveFocus();
+    expect(screen.queryByLabelText("已归档的 X 视频")).not.toBeInTheDocument();
+    await user.click(within(card).getByRole("button", { name: "查看帖子详情" }));
+    expect(screen.queryByLabelText("已归档的 X 视频")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "播放视频 1" }),
+    ).toBeVisible();
+  });
+  it("keeps playback available when a poster cannot load", () => {
+    const { container } = render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              media: [
+                {
+                  id: "video",
+                  type: "VIDEO",
+                  url: "https://cdn.example.com/video.mp4",
+                  thumbnail_url: "https://cdn.example.com/missing.jpg",
+                },
+              ],
+            },
+          }}
+        />
+      </LayerCard>,
+    );
+    const preview = screen.getByRole("button", { name: "播放视频 1" });
+    fireEvent.error(within(preview).getByAltText(""));
+    expect(preview.querySelector("img")).toBeNull();
+    expect(container.querySelector("video")).toBeNull();
+    fireEvent.click(preview);
+    expect(screen.getByLabelText("已归档的 X 视频")).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/video.mp4",
+    );
+  });
   it("renders quoted text without pretending the quote's media belongs to this post", () => {
     render(
       <LayerCard>
@@ -278,6 +370,7 @@ describe("X bookmark presentation", () => {
         type === "VIDEO"
           ? screen.getByLabelText("已归档的 X 视频")
           : screen.getByAltText("帖子图片 1");
+      if (type === "VIDEO") fireEvent.click(screen.getByRole("button", { name: "播放视频 1" }));
       fireEvent.error(media());
       expect(
         screen.getByText(type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"),

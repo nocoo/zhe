@@ -49,6 +49,8 @@ const contentIcons = {
   pending: Clock3,
 };
 
+const X_FEED_CLASS = "gap-3 [column-count:8] [column-width:11rem]";
+
 export function XLibraryPage() {
   const {
     links,
@@ -132,8 +134,9 @@ export function XLibraryPage() {
       <>
         <PageHeaderSkeleton hasActions={false} />
         <CardGridSkeleton
-          count={6}
-          gridClass="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3"
+          count={16}
+          aspectClass="aspect-[4/5]"
+          gridClass={`${X_FEED_CLASS} [&>div]:mb-3 [&>div]:break-inside-avoid`}
         />
       </>
     );
@@ -141,7 +144,7 @@ export function XLibraryPage() {
   return (
     <div>
       <PageHeader title="X 收藏" description={`汇集所有分类 · 共 ${entries.length} 条收藏`} />
-      <div className="mb-6 space-y-4">
+      <div className="mb-4 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row">
           <Select value={folderId} onValueChange={setFolderId}>
             <SelectTrigger size="sm" className="w-full sm:w-52" aria-label="筛选分类">
@@ -183,7 +186,7 @@ export function XLibraryPage() {
             </Button>
           )}
         </div>
-        <fieldset className="flex min-w-0 flex-wrap gap-1 border-b border-border/60 pb-4">
+        <fieldset className="flex min-w-0 flex-wrap gap-1 border-b border-border/60 pb-3">
           <legend className="sr-only">内容类型</legend>
           {X_CONTENT_TYPES.map(({ value, label }) => {
             const Icon = contentIcons[value];
@@ -246,9 +249,9 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <div className="gap-4 [column-count:3] [column-width:22rem]" data-testid="x-feed">
+        <div className={X_FEED_CLASS} data-testid="x-feed">
           {visible.map(({ link }) => (
-            <div key={link.id} className="mb-4 break-inside-avoid pt-px">
+            <div key={link.id} className="mb-3 break-inside-avoid pt-px">
               <LinkCard
                 link={link}
                 siteUrl={siteUrl}

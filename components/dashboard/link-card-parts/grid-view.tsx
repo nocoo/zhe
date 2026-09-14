@@ -137,8 +137,8 @@ function GridScreenshot({
       )}
       {media[0] && media[0].type !== "PHOTO" && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <span className="flex size-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-sm backdrop-blur-sm">
-            <Play className="size-5 fill-current" aria-hidden />
+          <span className="flex size-10 items-center justify-center rounded-widget border border-white/30 bg-black/45 text-white shadow-sm backdrop-blur-sm">
+            <Play className="size-4 fill-current" aria-hidden />
           </span>
         </div>
       )}

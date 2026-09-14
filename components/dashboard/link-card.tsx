@@ -8,10 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
   LayerCard,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@nocoo/basalt";
 import {
   BarChart3,
@@ -19,12 +15,19 @@ import {
   Copy,
   ExternalLink,
   FolderOpen,
+  MoreHorizontal,
   Pencil,
   Sparkles,
   Tags as TagsIcon,
 } from "lucide-react";
 import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
@@ -102,30 +105,32 @@ export const LinkCard = memo(function LinkCard({
   const xPost = canonicalXPost(link.originalUrl);
   const xBookmark = getXBookmarkForLink(link, xBookmarks.get(link.id));
   const isXFeed = viewMode === "feed" && !!xPost;
-  const panelClassName = isXFeed ? "p-4" : undefined;
+  const panelClassName = isXFeed ? "p-3" : undefined;
   const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(defaultEditing);
   const editTrigger = useRef<HTMLElement | null>(null);
+  const cardMenuTrigger = useRef<HTMLButtonElement | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [playMediaId, setPlayMediaId] = useState<string>();
   const detailsTrigger = useRef<HTMLElement | null>(null);
   const openDetails = () => {
     detailsTrigger.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    detailsTrigger.current
-      ?.closest('[data-testid="link-card"]')
-      ?.querySelectorAll("video")
-      .forEach((video) => {
-        video.pause();
-      });
+    setPlayMediaId(undefined);
     setDetailsOpen(true);
+  };
+  const playMedia = (id: string) => {
+    openDetails();
+    setPlayMediaId(id);
   };
 
   const handleToggleEdit = () => {
     if (defaultEditing) return; // defaultEditing cards stay open
     editTrigger.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      cardMenuTrigger.current ??
+      (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     setIsEditing((prev) => !prev);
   };
 
@@ -152,7 +157,7 @@ export const LinkCard = memo(function LinkCard({
     titleText: tweet ? `${tweet.author.name} (@${tweet.author.username})` : titleText,
     showFaviconImage,
     shortUrl: vm.shortUrl,
-    screenshotUrl: xPost ? (cover ?? null) : vm.screenshotUrl,
+    screenshotUrl: cover ?? vm.screenshotUrl,
     faviconUrl: vm.faviconUrl,
     cardTags,
     copied: vm.copied,
@@ -217,7 +222,12 @@ export const LinkCard = memo(function LinkCard({
         </DialogHeader>
         <LayerCard padding="none" className="min-w-0 rounded-none">
           {xBookmark?.tweet ? (
-            <XBookmarkContent bookmark={xBookmark} note={link.note} title={link.metaTitle} />
+            <XBookmarkContent
+              bookmark={xBookmark}
+              note={link.note}
+              title={link.metaTitle}
+              playMediaId={playMediaId}
+            />
           ) : (
             <XBookmarkPending link={link} />
           )}
@@ -258,12 +268,13 @@ export const LinkCard = memo(function LinkCard({
               note={link.note}
               title={link.metaTitle}
               compact
+              onPlayMedia={playMedia}
             />
           ) : (
             <XBookmarkPending link={link} compact />
           )}
           <LayerCard.Footer
-            className="gap-1 border-border/60 bg-background/40 px-4 py-1.5"
+            className="gap-1 border-border/60 bg-background/40 px-3 py-1"
             data-testid="x-card-footer"
           >
             <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
@@ -285,77 +296,47 @@ export const LinkCard = memo(function LinkCard({
                 </span>
               )}
             </div>
-            <TooltipProvider>
-              <div className="-mr-2 flex shrink-0 items-center text-muted-foreground">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={vm.handleCopy}
-                      aria-label="Copy link"
-                      className="text-muted-foreground"
-                    >
-                      {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{vm.copied ? "已复制" : vm.shortUrl}</TooltipContent>
-                </Tooltip>
-                <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" asChild aria-label="打开原帖">
-                      <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink strokeWidth={1.5} />
-                      </a>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>打开原帖</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={vm.handleToggleAnalytics}
-                      aria-label="查看点击统计"
-                      aria-expanded={vm.showAnalytics}
-                      className="aria-expanded:bg-accent aria-expanded:text-foreground"
-                    >
-                      <BarChart3 strokeWidth={1.5} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>点击统计</TooltipContent>
-                </Tooltip>
-                {onSuggest && (
+            <div className="-mr-2 flex shrink-0 items-center text-muted-foreground">
+              <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
+                    ref={cardMenuTrigger}
                     size="icon"
                     variant="ghost"
-                    onClick={onSuggest}
-                    disabled={suggestDisabled}
-                    aria-label="AI 建议"
-                    title="AI 建议"
+                    aria-label="更多收藏操作"
                   >
-                    <Sparkles strokeWidth={1.5} />
+                    <MoreHorizontal strokeWidth={1.5} />
                   </Button>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={handleToggleEdit}
-                      aria-label="Edit link"
-                      aria-expanded={isEditing}
-                      className="aria-expanded:bg-accent aria-expanded:text-foreground"
-                    >
-                      <Pencil strokeWidth={1.5} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>编辑收藏</TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={vm.handleCopy}>
+                    {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
+                    {vm.copied ? "已复制" : "复制短链接"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink strokeWidth={1.5} />
+                      打开原帖
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={vm.handleToggleAnalytics}>
+                    <BarChart3 strokeWidth={1.5} />
+                    点击统计
+                  </DropdownMenuItem>
+                  {onSuggest && (
+                    <DropdownMenuItem onSelect={onSuggest} disabled={suggestDisabled}>
+                      <Sparkles strokeWidth={1.5} />
+                      AI 建议
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onSelect={handleToggleEdit}>
+                    <Pencil strokeWidth={1.5} />
+                    {isEditing ? "收起编辑" : "编辑收藏"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </LayerCard.Footer>
           <AnalyticsPanel
             className="p-4"

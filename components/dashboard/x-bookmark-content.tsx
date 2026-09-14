@@ -30,6 +30,7 @@ import {
   ImageOff,
   Link2,
   MessageCircle,
+  Play,
   Quote as QuoteIcon,
   RefreshCw,
   Repeat2,
@@ -99,15 +100,30 @@ export function XBookmarkDetailsButton({
   );
 }
 
-export function XSourceBadge({ type = "text" }: { type?: XContentType }) {
+export function XSourceBadge({
+  type = "text",
+  compact = false,
+}: {
+  type?: XContentType;
+  compact?: boolean;
+}) {
   return (
     <span
       title="来源：X"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-foreground px-2 py-1.5 text-background"
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-foreground text-background",
+        compact ? "p-1.5" : "px-2 py-1.5",
+      )}
     >
       <XIcon className="size-3.5" />
       <span className="sr-only">X · </span>
-      <span className="border-l border-background/25 pl-2 text-[11px] font-medium leading-none">
+      <span
+        className={
+          compact
+            ? "sr-only"
+            : "border-l border-background/25 pl-2 text-[11px] font-medium leading-none"
+        }
+      >
         {X_CONTENT_TYPES.find((item) => item.value === type)?.label}
       </span>
     </span>
@@ -122,7 +138,7 @@ function PostText({ text, compact = false }: { text: string; compact?: boolean }
       <p
         className={cn(
           "whitespace-pre-wrap break-words text-sm text-foreground",
-          compact ? "line-clamp-5 leading-5" : "leading-6",
+          compact ? "line-clamp-3 leading-5" : "leading-6",
           !compact && collapsible && !expanded && "line-clamp-6",
         )}
       >
@@ -146,24 +162,26 @@ function PostText({ text, compact = false }: { text: string; compact?: boolean }
 function PostMedia({
   media,
   index,
-  fill = false,
   compact = false,
+  autoPlay = false,
+  onPlay,
 }: {
   media: XMedia;
   index: number;
-  fill?: boolean;
   compact?: boolean;
+  autoPlay?: boolean;
+  onPlay?: (() => void) | undefined;
 }) {
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(autoPlay);
+  const [posterFailed, setPosterFailed] = useState(false);
+  // Stored dimensions include manual corrections. Older captures default to
+  // landscape without loading a player or probing media metadata.
+  const aspectRatio = media.width && media.height ? `${media.width}/${media.height}` : "16/9";
   if (failed)
     return (
-      <div
-        className={cn(
-          "flex h-full flex-col items-center justify-center gap-2 rounded-widget border border-dashed border-border bg-background/60 p-3 text-muted-foreground",
-          !fill && "min-h-40 gap-3 p-4",
-        )}
-      >
-        {!fill && <ImageOff className="size-6" strokeWidth={1.5} aria-hidden />}
+      <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-widget border border-dashed border-border bg-background/60 p-3 text-muted-foreground">
+        <ImageOff className="size-6" strokeWidth={1.5} aria-hidden />
         <span role="status" className="text-xs">
           {media.type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"}
         </span>
@@ -172,6 +190,58 @@ function PostMedia({
         </Button>
       </div>
     );
+  if (media.type !== "PHOTO" && !playing)
+    return (
+      <Button
+        variant="ghost"
+        className="group/media relative block h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-accent p-0 hover:bg-accent"
+        aria-label={`播放${media.type === "GIF" ? " GIF" : "视频"} ${index + 1}`}
+        aria-haspopup={onPlay ? "dialog" : undefined}
+        onClick={onPlay ?? (() => setPlaying(true))}
+      >
+        {media.thumbnail_url && !posterFailed ? (
+          <img
+            src={media.thumbnail_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="block h-auto w-full object-contain"
+            style={{ aspectRatio }}
+            onError={() => setPosterFailed(true)}
+          />
+        ) : (
+          <span
+            className="relative block w-full overflow-hidden bg-linear-to-br from-secondary to-accent"
+            style={{ aspectRatio }}
+          >
+            <XIcon
+              className="absolute -bottom-3 -right-3 size-28 text-foreground/[0.06]"
+              aria-hidden
+            />
+          </span>
+        )}
+        <span
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          aria-hidden
+        >
+          <span className="flex size-10 items-center justify-center rounded-widget border border-white/30 bg-black/45 text-white shadow-sm backdrop-blur-sm transition-colors group-hover/media:bg-black/65">
+            <Play className="size-4 fill-current" />
+          </span>
+        </span>
+        <span
+          className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/55 to-transparent px-2.5 pb-2 pt-5 text-[11px] font-medium leading-none text-white"
+          aria-hidden
+        >
+          <span>{media.type === "GIF" ? "GIF" : "视频"}</span>
+          {!!media.duration && (
+            <span className="tabular-nums">
+              {Math.floor(media.duration / 60)}:
+              {String(Math.floor(media.duration % 60)).padStart(2, "0")}
+            </span>
+          )}
+        </span>
+      </Button>
+    );
   if (media.type !== "PHOTO")
     return (
       <div className="relative overflow-hidden rounded-widget border border-border/60 bg-black">
@@ -179,6 +249,7 @@ function PostMedia({
           src={media.url}
           poster={media.thumbnail_url}
           controls
+          autoPlay
           playsInline
           preload="none"
           aria-label={media.type === "GIF" ? "已归档的 X GIF" : "已归档的 X 视频"}
@@ -186,9 +257,7 @@ function PostMedia({
             "mx-auto block w-full object-contain",
             compact ? "max-h-64" : "max-h-[32rem]",
           )}
-          style={{
-            aspectRatio: media.width && media.height ? `${media.width}/${media.height}` : "16/9",
-          }}
+          style={{ aspectRatio }}
           onError={() => setFailed(true)}
         >
           <track kind="captions" />
@@ -205,29 +274,16 @@ function PostMedia({
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className={cn(
-            "h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-background/60 p-0",
-            fill && "h-full rounded-none border-0",
-          )}
+          className="block h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-background/60 p-0"
           aria-label={`查看图片 ${index + 1}`}
         >
           <img
             src={media.url}
             alt={`帖子图片 ${index + 1}`}
             loading="lazy"
-            className={cn(
-              "w-full transition-opacity hover:opacity-90",
-              fill
-                ? "h-full object-cover"
-                : compact
-                  ? "max-h-64 object-contain"
-                  : "max-h-[32rem] object-contain",
-            )}
-            style={
-              !fill && media.width && media.height
-                ? { aspectRatio: `${media.width}/${media.height}` }
-                : undefined
-            }
+            decoding="async"
+            className="block h-auto w-full object-contain transition-opacity hover:opacity-90"
+            style={{ aspectRatio }}
             onError={() => setFailed(true)}
           />
         </Button>
@@ -247,29 +303,37 @@ function PostMedia({
   );
 }
 
-function MediaGrid({ media, compact = false }: { media: XMedia[]; compact?: boolean }) {
+function MediaGrid({
+  media,
+  compact = false,
+  playMediaId,
+  onPlayMedia,
+}: {
+  media: XMedia[];
+  compact?: boolean;
+  playMediaId?: string | undefined;
+  onPlayMedia?: ((id: string) => void) | undefined;
+}) {
   if (!media.length) return null;
   const collage = media.length > 1 && media.every((item) => item.type === "PHOTO");
   const visible = compact ? media.slice(0, collage ? 4 : 1) : media;
   return (
     <div
-      className={cn(
-        "relative grid gap-2",
-        collage && "grid-cols-2 gap-1 overflow-hidden rounded-widget border border-border/60",
-        collage && visible.length <= 4 && "aspect-[4/3] auto-rows-fr",
-        compact && collage && "max-h-64",
-      )}
+      className={cn("relative", collage ? "columns-2 gap-1 space-y-1" : "grid gap-2")}
       data-testid="x-media-grid"
     >
       {visible.map((item, index) => (
         <div
-          key={`${item.id}:${item.url}`}
-          className={cn(
-            "min-h-0 min-w-0",
-            collage && visible.length === 3 && index === 0 && "row-span-2",
-          )}
+          key={`${item.id}:${item.url}:${item.thumbnail_url ?? ""}`}
+          className="min-h-0 min-w-0 break-inside-avoid"
         >
-          <PostMedia media={item} index={index} fill={collage} compact={compact} />
+          <PostMedia
+            media={item}
+            index={index}
+            compact={compact}
+            autoPlay={item.id === playMediaId}
+            onPlay={onPlayMedia ? () => onPlayMedia(item.id) : undefined}
+          />
         </div>
       ))}
       {visible.length < media.length && (
@@ -387,11 +451,15 @@ export function XBookmarkContent({
   note,
   title,
   compact = false,
+  playMediaId,
+  onPlayMedia,
 }: {
   bookmark: XBookmark;
   note?: string | null;
   title?: string | null;
   compact?: boolean;
+  playMediaId?: string | undefined;
+  onPlayMedia?: ((id: string) => void) | undefined;
 }) {
   const tweet = bookmark.tweet;
   if (!tweet) return null;
@@ -411,11 +479,11 @@ export function XBookmarkContent({
   ];
   return (
     <LayerCard.Body
-      className={cn("space-y-3", compact ? "p-4" : "p-5")}
+      className={compact ? "space-y-2.5 p-3" : "space-y-3 p-5"}
       data-testid="x-bookmark-content"
     >
-      <div className="flex items-center gap-2.5">
-        <Avatar className={cn("ring-1 ring-border/60", compact && "size-8")}>
+      <div className={cn("flex items-center", compact ? "gap-2" : "gap-2.5")}>
+        <Avatar className={cn("shrink-0 ring-1 ring-border/60", compact && "size-7")}>
           <AvatarImage src={tweet.author.profile_image_url} alt={tweet.author.name} />
           <AvatarFallback>{tweet.author.name.slice(0, 1) || "X"}</AvatarFallback>
         </Avatar>
@@ -425,7 +493,7 @@ export function XBookmarkContent({
               href={`https://x.com/${tweet.author.username}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-sm font-semibold hover:underline"
+              className="min-w-0 truncate text-sm font-semibold hover:underline"
             >
               {tweet.author.name}
             </a>
@@ -435,13 +503,17 @@ export function XBookmarkContent({
           </div>
           <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
             <span className="truncate">@{tweet.author.username}</span>
-            <span aria-hidden>·</span>
-            <time dateTime={tweet.created_at} title={date} className="shrink-0">
-              {date.split(" ")[0]}
-            </time>
+            {!compact && (
+              <>
+                <span aria-hidden>·</span>
+                <time dateTime={tweet.created_at} title={date} className="shrink-0">
+                  {date.split(" ")[0]}
+                </time>
+              </>
+            )}
           </div>
         </div>
-        <XSourceBadge type={getXContentTypes(tweet)[0] ?? "text"} />
+        <XSourceBadge type={getXContentTypes(tweet)[0] ?? "text"} compact={compact} />
       </div>
       {note && !standaloneLink && (
         <p
@@ -454,9 +526,16 @@ export function XBookmarkContent({
         </p>
       )}
       {text && <PostText key={tweet.id} text={text} compact={compact} />}
-      <MediaGrid media={tweet.media} compact={compact} />
+      <MediaGrid
+        media={tweet.media}
+        compact={compact}
+        playMediaId={playMediaId}
+        onPlayMedia={onPlayMedia}
+      />
       <PostLinks links={links} headline={standaloneLink ? headline : null} compact={compact} />
-      {tweet.quoted_tweet && <Quote tweet={tweet.quoted_tweet} compact={compact} />}
+      {tweet.quoted_tweet && (!compact || !tweet.media.length) && (
+        <Quote tweet={tweet.quoted_tweet} compact={compact} />
+      )}
       {!compact && (
         <section
           className="border-t border-border/60 pt-3 text-xs text-muted-foreground"
@@ -487,16 +566,21 @@ export function XBookmarkContent({
 
 export function XBookmarkPending({ link, compact = false }: { link: Link; compact?: boolean }) {
   return (
-    <LayerCard.Body className={cn("space-y-3", compact ? "p-4" : "p-5")}>
-      <div className="flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground">
+    <LayerCard.Body className={compact ? "space-y-2.5 p-3" : "space-y-3 p-5"}>
+      <div className={cn("flex items-center", compact ? "gap-2" : "gap-3")}>
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground",
+            compact ? "size-7" : "size-9",
+          )}
+        >
           <Clock3 className="size-4" strokeWidth={1.5} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">已保存的 X 帖子</p>
           <p className="text-xs text-muted-foreground">内容暂未补全</p>
         </div>
-        <XSourceBadge type="pending" />
+        <XSourceBadge type="pending" compact={compact} />
       </div>
       {(link.note || link.metaTitle) && (
         <p className={cn("break-words text-sm font-medium leading-5", compact && "line-clamp-2")}>

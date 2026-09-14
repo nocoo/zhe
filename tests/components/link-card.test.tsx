@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types";
@@ -984,7 +985,7 @@ describe("LinkCard", () => {
 
   it.each(["list", "grid", "feed"] as const)(
     "can close the %s editor without saving and keeps analytics open",
-    (viewMode) => {
+    async (viewMode) => {
       mockVm.showAnalytics = true;
       render(
         <LinkCard
@@ -993,11 +994,16 @@ describe("LinkCard", () => {
           viewMode={viewMode}
         />,
       );
-      const trigger = screen.getByRole("button", { name: "Edit link" });
-      trigger.focus();
-      fireEvent.click(trigger);
+      const user = userEvent.setup();
+      const trigger = screen.getByRole("button", {
+        name: viewMode === "feed" ? "更多收藏操作" : "Edit link",
+      });
+      await user.click(trigger);
+      if (viewMode === "feed") {
+        await user.click(screen.getByRole("menuitem", { name: "编辑收藏" }));
+      }
       expect(screen.getByRole("region", { name: "编辑收藏" })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "收起" }));
+      await user.click(screen.getByRole("button", { name: "收起" }));
       expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
       expect(mockEditVm.saveEdit).not.toHaveBeenCalled();
       expect(trigger).toHaveFocus();

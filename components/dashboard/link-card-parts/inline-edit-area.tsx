@@ -1,6 +1,8 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
+import { useContext, useState } from "react";
+import { updateXMediaDimensionsAction } from "@/actions/connector";
 import {
   DeleteLinkDialog,
   TagBadge,
@@ -16,8 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { XBookmarksContext, XBookmarksUpdateContext } from "@/contexts/x-bookmarks";
 import { cn } from "@/lib/utils";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
+import { getXBookmarkForLink, type XMediaDimensions } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 
@@ -145,10 +149,66 @@ export function InlineEditArea({
   className,
 }: InlineEditAreaProps) {
   const editVm = useInlineLinkEditViewModel(link, tags, linkTags, editCallbacks);
+  const bookmarks = useContext(XBookmarksContext);
+  const setBookmarks = useContext(XBookmarksUpdateContext);
+  const bookmark = getXBookmarkForLink(link, bookmarks.get(link.id));
+  const [mediaRatios, setMediaRatios] = useState<Record<string, string>>({});
+  const [savingMedia, setSavingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState("");
 
   const handleSave = async () => {
-    const success = await editVm.saveEdit();
-    if (success && !defaultEditing) onCloseEdit();
+    if (savingMedia || editVm.isSaving) return;
+    setMediaError("");
+    const dimensions: XMediaDimensions[] = [];
+    for (const [id, ratio] of Object.entries(mediaRatios)) {
+      const match = /^(\d{1,5})\s*[:/]\s*(\d{1,5})$/.exec(ratio.trim());
+      const width = Number(match?.[1]);
+      const height = Number(match?.[2]);
+      if (!width || !height || width > 65535 || height > 65535) {
+        setMediaError("请输入有效的宽高比，如 16:9 或 9:16");
+        return;
+      }
+      dimensions.push({ id, width, height });
+    }
+    setSavingMedia(true);
+    try {
+      if (!(await editVm.saveEdit())) return;
+      if (dimensions.length) {
+        const result = await updateXMediaDimensionsAction(link.id, dimensions);
+        const updatedAt = result.updatedAt;
+        if (!result.success || updatedAt === undefined) {
+          setMediaError("媒体比例未保存，请稍后重试");
+          return;
+        }
+        setBookmarks((current) => {
+          const saved = current.get(link.id);
+          if (
+            !saved?.tweet ||
+            saved.tweet.id !== bookmark?.tweet?.id ||
+            saved.updatedAt > updatedAt
+          )
+            return current;
+          const next = new Map(current);
+          next.set(link.id, {
+            ...saved,
+            updatedAt,
+            tweet: {
+              ...saved.tweet,
+              media: saved.tweet.media.map((media) => ({
+                ...media,
+                ...dimensions.find((item) => item.id === media.id),
+              })),
+            },
+          });
+          return next;
+        });
+      }
+      if (!defaultEditing) onCloseEdit();
+    } catch {
+      setMediaError("保存失败，请重试");
+    } finally {
+      setSavingMedia(false);
+    }
   };
 
   return (
@@ -233,6 +293,37 @@ export function InlineEditArea({
         </LabelledField>
       </div>
 
+      {!!bookmark?.tweet?.media.length && (
+        <fieldset className="min-w-0 space-y-3">
+          <legend className="mb-1 text-xs font-medium">媒体比例</legend>
+          <p className="text-xs leading-5 text-muted-foreground">
+            横屏 16:9，竖屏 9:16；也可填写实际宽高。
+          </p>
+          {bookmark.tweet.media.map((media, index) => (
+            <LabelledField
+              key={media.id}
+              id={`edit-media-${link.id}-${media.id}`}
+              label={`${media.type === "PHOTO" ? "图片" : "视频"} ${index + 1} 宽高比`}
+            >
+              <Input
+                id={`edit-media-${link.id}-${media.id}`}
+                size="sm"
+                value={
+                  mediaRatios[media.id] ??
+                  (media.width && media.height ? `${media.width}:${media.height}` : "16:9")
+                }
+                placeholder="16:9"
+                maxLength={15}
+                disabled={savingMedia || editVm.isSaving}
+                onChange={(event) =>
+                  setMediaRatios((current) => ({ ...current, [media.id]: event.target.value }))
+                }
+              />
+            </LabelledField>
+          ))}
+        </fieldset>
+      )}
+
       <TagsRow
         allTags={tags}
         assignedTags={editVm.assignedTags}
@@ -242,14 +333,14 @@ export function InlineEditArea({
         onCreate={editVm.createAndAssignTag}
       />
 
-      {editVm.error && (
+      {(mediaError || editVm.error) && (
         <p role="alert" className="text-xs text-destructive">
-          {editVm.error}
+          {mediaError || editVm.error}
         </p>
       )}
 
       <EditToolbar
-        isSaving={editVm.isSaving}
+        isSaving={editVm.isSaving || savingMedia}
         isDeleting={isDeleting}
         onSave={handleSave}
         onDelete={handleDelete}

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { encode } from "@auth/core/jwt";
 import type { APIRequestContext } from "@playwright/test";
 import { normalizeXPost } from "../../cli/src/connector/core";
+import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
 import { expect, test } from "./fixtures";
 import { appTitle, islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
@@ -68,7 +69,11 @@ for (const viewport of [
     const headers = { authorization: `Bearer ${key}`, "content-type": "application/json" };
     let linkId: number | undefined;
     const errors: string[] = [];
+    const mediaRequests: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (request) => {
+      if (request.resourceType() === "media") mediaRequests.push(request.url());
+    });
     try {
       await page.setViewportSize(viewport);
       if (viewport.width < 600) {
@@ -120,21 +125,22 @@ for (const viewport of [
       };
       const capture = normalizeXPost(raw, postId);
       assert(capture);
+      const mediaSize =
+        viewport.width < 600 ? { width: 180, height: 320 } : { width: 320, height: 180 };
       capture.tweet.media = [
         {
           id: mediaId,
           type: "VIDEO",
-          url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/320x180/test.mp4`,
-          width: 320,
-          height: 180,
+          url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/${mediaSize.width}x${mediaSize.height}/test.mp4`,
+          width: 0,
+          height: 0,
           duration: 1,
         },
         {
           id: photoId,
           type: "PHOTO",
           url: "https://pbs.twimg.com/media/test.jpg",
-          width: 320,
-          height: 180,
+          ...mediaSize,
         },
       ];
       capture.tweet.quoted_tweet = {
@@ -159,7 +165,7 @@ for (const viewport of [
           "-f",
           "lavfi",
           "-i",
-          "testsrc2=size=320x180:rate=12",
+          `testsrc2=size=${mediaSize.width}x${mediaSize.height}:rate=12`,
           "-t",
           "1",
           "-c:v",
@@ -249,7 +255,9 @@ for (const viewport of [
       );
       await expect(post.getByText("Context from the quoted post")).toBeVisible();
       const video = post.getByLabel("已归档的 X 视频");
-      await video.evaluate((element) => (element as HTMLVideoElement).play());
+      await expect(video).toHaveCount(0);
+      expect(mediaRequests).toEqual([]);
+      await post.getByRole("button", { name: "播放视频 1" }).click();
       await expect
         .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
         .toBeGreaterThan(0.1);
@@ -334,6 +342,38 @@ for (const viewport of [
           );
         }
       }
+      const galleryCount = viewport.width > 600 ? 20 : 0;
+      for (let index = 0; index < galleryCount; index++) {
+        const id = `3000000000000000${String(index).padStart(3, "0")}`;
+        const source = `https://x.com/example/status/${id}`;
+        const [saved] = await queryD1<{ id: number }>(
+          "INSERT INTO links(user_id,original_url,slug,note,created_at) VALUES(?,?,?,?,?) RETURNING id",
+          [
+            owner,
+            source,
+            randomUUID().slice(0, 8),
+            `Layout study ${index + 1}`,
+            createdAt - 3600 - index,
+          ],
+        );
+        assert(saved);
+        const extra = normalizeXPost(
+          {
+            ...raw,
+            rest_id: id,
+            legacy: {
+              ...raw.legacy,
+              full_text: "Small details make a useful collection. ".repeat(1 + (index % 3)),
+            },
+          },
+          id,
+        );
+        assert(extra);
+        await executeD1(
+          "INSERT INTO x_bookmarks(link_id,user_id,source_url,post_id,state,result_json,updated_at) VALUES(?,?,?,?,'complete',?,?)",
+          [saved.id, owner, source, id, JSON.stringify(extra), createdAt],
+        );
+      }
       const [ordinary] = await queryD1<{ id: number }>(
         "INSERT INTO links(user_id,original_url,slug,meta_title,meta_description,created_at) VALUES(?,?,?,?,?,?) RETURNING id",
         [
@@ -363,10 +403,11 @@ for (const viewport of [
         animations: "disabled",
       });
 
+      const requestsBeforeFeed = mediaRequests.length;
       await page.goto("/dashboard/x");
       await expect(islandHeading(page, "X 收藏")).toBeVisible();
       const feed = page.getByTestId("x-feed");
-      await expect(feed.getByTestId("link-card")).toHaveCount(4);
+      await expect(feed.getByTestId("link-card")).toHaveCount(4 + galleryCount);
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
       const footer = feedCard.getByTestId("x-card-footer");
       const footerBox = await footer.boundingBox();
@@ -378,18 +419,48 @@ for (const viewport of [
       await expect(footer.getByText(designName, { exact: true })).toBeVisible();
       await expect(footer.getByRole("img", { name: /^标签：/ })).toHaveText("2");
       await expect(feedCard.getByRole("region", { name: "帖子统计" })).toHaveCount(0);
+      await expect(feedCard.getByLabel("引用的 X 帖子")).toHaveCount(0);
       await expect(feedCard.getByRole("button", { name: "展开全文" })).toHaveCount(0);
-      await expect(feed.getByLabel("已归档的 X 视频")).toBeVisible();
-      await feed
-        .getByLabel("已归档的 X 视频")
-        .evaluate((element) => (element as HTMLVideoElement).play());
+      const poster = feedCard.getByRole("button", { name: "播放视频 1" });
+      await expect(poster).toBeVisible();
       await expect
         .poll(() =>
-          feed
-            .getByLabel("已归档的 X 视频")
-            .evaluate((element) => (element as HTMLVideoElement).currentTime),
+          poster.locator("img").evaluate((image) => (image as HTMLImageElement).naturalWidth),
         )
-        .toBeGreaterThan(0.1);
+        .toBeGreaterThan(0);
+      await expect(feed.locator("video")).toHaveCount(0);
+      expect(mediaRequests.length).toBe(requestsBeforeFeed);
+      const defaultPosterBox = await poster.boundingBox();
+      assert(defaultPosterBox);
+      expect(defaultPosterBox.height / defaultPosterBox.width).toBeCloseTo(9 / 16, 1);
+      const editMenu = feedCard.getByRole("button", { name: "更多收藏操作" });
+      await editMenu.click();
+      await page.getByRole("menuitem", { name: "编辑收藏", exact: true }).click();
+      const editor = feedCard.getByRole("region", { name: "编辑收藏" });
+      const ratio = editor.getByLabel("视频 1 宽高比");
+      await expect(ratio).toHaveValue("16:9");
+      await ratio.fill("0:9");
+      await editor.getByRole("button", { name: "保存", exact: true }).click();
+      await expect(editor.getByRole("alert")).toContainText("有效的宽高比");
+      await ratio.fill(`${mediaSize.width}:${mediaSize.height}`);
+      await editor.getByRole("button", { name: "保存", exact: true }).click();
+      await expect(editor).toHaveCount(0);
+      await expect(editMenu).toBeFocused();
+      const correctedPosterBox = await poster.boundingBox();
+      assert(correctedPosterBox);
+      expect(correctedPosterBox.height / correctedPosterBox.width).toBeCloseTo(
+        mediaSize.height / mediaSize.width,
+        1,
+      );
+      await page.reload();
+      await expect(poster).toBeVisible();
+      const persisted = await queryD1<{ width: number; height: number }>(
+        "SELECT json_extract(result_json,'$.tweet.media[0].width') AS width,json_extract(result_json,'$.tweet.media[0].height') AS height FROM x_bookmarks WHERE link_id=? AND user_id=?",
+        [linkId, owner],
+      );
+      expect(persisted).toEqual([mediaSize]);
+      await expect(feed.locator("video")).toHaveCount(0);
+      expect(mediaRequests.length).toBe(requestsBeforeFeed);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
@@ -401,17 +472,71 @@ for (const viewport of [
         path: `.artifacts/x-card-${viewport.width}.png`,
         animations: "disabled",
       });
+      if (viewport.width > 600) {
+        for (const width of [1920, 2560]) {
+          await page.setViewportSize({ width, height: viewport.height });
+          await expect
+            .poll(() =>
+              feed
+                .getByTestId("link-card")
+                .evaluateAll(
+                  (cards) =>
+                    new Set(cards.map((card) => Math.round(card.getBoundingClientRect().x))).size,
+                ),
+            )
+            .toBe(8);
+          expect(
+            await feed
+              .locator('[data-testid="link-card"], [data-testid="x-card-footer"]')
+              .evaluateAll((elements) =>
+                elements.every((element) => element.scrollWidth <= element.clientWidth),
+              ),
+          ).toBe(true);
+          const posterBox = await poster.boundingBox();
+          assert(posterBox);
+          expect(posterBox.height / posterBox.width).toBeCloseTo(
+            mediaSize.height / mediaSize.width,
+            1,
+          );
+          await page.screenshot({
+            path: `.artifacts/x-library-${width}.png`,
+            animations: "disabled",
+          });
+        }
+        await page.emulateMedia({ colorScheme: "dark" });
+        await expect(page.locator("html")).toHaveClass(/dark/);
+        await page.screenshot({
+          path: ".artifacts/x-library-2560-dark.png",
+          animations: "disabled",
+        });
+        await page.emulateMedia({ colorScheme: "light" });
+        await page.setViewportSize(viewport);
+      }
+      const menu = feedCard.getByRole("button", { name: "更多收藏操作" });
+      await menu.click();
+      await expect(page.getByRole("menuitem", { name: "编辑收藏" })).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: "打开原帖" })).toHaveAttribute(
+        "href",
+        `https://x.com/example/status/${postId}`,
+      );
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeFocused();
+      await poster.click();
+      await expect
+        .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
+        .toBeGreaterThan(0.1);
+      await expect(feed.locator("video")).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(poster).toBeFocused();
+      await expect(page.locator("video")).toHaveCount(0);
       const details = feedCard.getByRole("button", { name: "查看帖子详情" });
       await details.click();
       await expect(post.getByRole("region", { name: "帖子统计" })).toBeVisible();
       await expect(post.getByRole("button", { name: "查看图片 2" })).toBeVisible();
       await expect(post.getByText("Design systems", { exact: true })).toBeVisible();
       await expect(post.getByText("Interaction references", { exact: true })).toBeVisible();
-      expect(
-        await feed
-          .getByLabel("已归档的 X 视频")
-          .evaluate((element) => (element as HTMLVideoElement).paused),
-      ).toBe(true);
+      await expect(post.getByRole("button", { name: "播放视频 1" })).toBeVisible();
+      await expect(page.locator("video")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(details).toBeFocused();
       await page.getByRole("button", { name: "图片", exact: true }).click();
@@ -444,6 +569,7 @@ for (const viewport of [
         await page.keyboard.press("Escape");
       }
       await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+      await post.getByRole("button", { name: "播放视频 1" }).click();
       await expect(video).toBeVisible();
       const uploads = await queryD1<{ id: number; file_type: string; public_url: string }>(
         "SELECT * FROM uploads WHERE user_id=?",
@@ -497,6 +623,114 @@ for (const viewport of [
         true,
       );
       await expect(post.getByRole("button", { name: "展开全文" })).toHaveCount(0);
+      if (viewport.width > 600) {
+        assert(process.env.LOCAL_R2 === "1");
+        const id = "4000000000000000001";
+        const source = `https://x.com/example/status/${id}`;
+        const [gallery] = await queryD1<{ id: number }>(
+          "INSERT INTO links(user_id,original_url,slug,created_at) VALUES(?,?,?,?) RETURNING id",
+          [owner, source, randomUUID().slice(0, 8), createdAt + 60],
+        );
+        assert(gallery);
+        const album = {
+          ...capture,
+          tweet: { ...capture.tweet, id, url: source, text: "横竖混排 · 完整画面" },
+        };
+        const shapes = [
+          { width: 180, height: 320 },
+          { width: 320, height: 180 },
+          { width: 240, height: 240 },
+          { width: 240, height: 320 },
+        ];
+        album.tweet.media = shapes.map((shape, index) => ({
+          id: `${id}${index}`,
+          type: "PHOTO" as const,
+          url: `https://pbs.twimg.com/media/gallery${index}.jpg`,
+          ...shape,
+        }));
+        await executeD1(
+          "INSERT INTO x_bookmarks(link_id,user_id,source_url,post_id,state,result_json,updated_at) VALUES(?,?,?,?,'complete',?,?)",
+          [gallery.id, owner, source, id, JSON.stringify(album), Date.now()],
+        );
+        for (const [index, media] of album.tweet.media.entries()) {
+          const path = join(dir, `gallery-${index}.jpg`);
+          execFileSync("ffmpeg", [
+            "-nostdin",
+            "-v",
+            "error",
+            "-i",
+            photoPath,
+            "-vf",
+            `scale=${media.width}:${media.height}`,
+            "-frames:v",
+            "1",
+            path,
+          ]);
+          const bytes = await readFile(path);
+          const key = `fixture/${owner}/${index}.jpg`;
+          await uploadBufferToR2(key, bytes, "image/jpeg");
+          const [upload] = await queryD1<{ id: number }>(
+            "INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at) VALUES(?,?,?,'image/jpeg',?,?,?) RETURNING id",
+            [
+              owner,
+              key,
+              `${index}.jpg`,
+              bytes.length,
+              `http://127.0.0.1:18788/r2/${key}`,
+              Date.now(),
+            ],
+          );
+          assert(upload);
+          await executeD1(
+            "INSERT INTO x_media(id,link_id,user_id,media_id,kind,r2_key,mime,size,sha256,lease_token,state,upload_id,created_at) VALUES(?,?,?,?,'photo',?,'image/jpeg',?,?,'fixture','published',?,?)",
+            [
+              randomUUID(),
+              gallery.id,
+              owner,
+              media.id,
+              key,
+              bytes.length,
+              createHash("sha256").update(bytes).digest("hex"),
+              upload.id,
+              Date.now(),
+            ],
+          );
+        }
+        await page.goto("/dashboard/x");
+        await page.setViewportSize({ width: 1920, height: 960 });
+        const albumCard = page.locator(`[data-testid="link-card"][data-link-id="${gallery.id}"]`);
+        for (const count of [1, 2, 3, 4]) {
+          await executeD1("UPDATE x_bookmarks SET result_json=? WHERE link_id=? AND user_id=?", [
+            JSON.stringify({
+              ...album,
+              tweet: { ...album.tweet, media: album.tweet.media.slice(0, count) },
+            }),
+            gallery.id,
+            owner,
+          ]);
+          await page.reload();
+          const photos = albumCard.getByRole("button", { name: /^查看图片/ });
+          await expect(photos).toHaveCount(count);
+          for (let index = 0; index < count; index++) {
+            const photo = photos.nth(index).locator("img");
+            await expect
+              .poll(() => photo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+              .toBeGreaterThan(0);
+            const box = await photo.boundingBox();
+            const shape = shapes[index];
+            assert(box && shape);
+            expect(box.height / box.width).toBeCloseTo(shape.height / shape.width, 2);
+          }
+          await albumCard.screenshot({
+            path: `.artifacts/x-photos-${count}.png`,
+            animations: "disabled",
+          });
+        }
+        await albumCard.getByRole("button", { name: "查看图片 4" }).click();
+        const photoDialog = page.getByRole("dialog", { name: "图片预览" });
+        await expect(photoDialog).toBeVisible();
+        await expect(photoDialog.getByRole("img")).toHaveAttribute("src", /\/3\.jpg$/);
+      }
       expect(errors).toEqual([]);
     } finally {
       if (linkId) await page.request.delete(`/api/v1/links/${linkId}`, { headers });
