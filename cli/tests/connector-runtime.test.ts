@@ -152,12 +152,16 @@ describe("zhe connector", () => {
     expect(await result).toMatchObject({ status: "failed", error: "interrupted" });
     expect(vi.getTimerCount()).toBe(0);
   });
-  it.each(["success", "unauthenticated", "unknown"])(
+  it.each(["success", "unauthenticated", "rejected", "unknown"])(
     "keeps background logs safe and stops promptly: %s",
     async (outcome) => {
       const controller = new AbortController();
       const log = vi.spyOn(console, "log").mockImplementation(() => {});
       if (outcome === "unauthenticated") vi.mocked(getApiKey).mockReturnValue(undefined);
+      if (outcome === "rejected")
+        vi.mocked(fetch).mockResolvedValue(
+          Response.json({ error: "private auth detail" }, { status: 401 }),
+        );
       if (outcome === "unknown")
         vi.mocked(getApiKey).mockImplementationOnce(() => {
           throw new Error("private config detail");
@@ -171,11 +175,27 @@ describe("zhe connector", () => {
       expect(events[0].event).toBe("ready");
       expect(events.at(-1).event).toBe("stopped");
       expect(JSON.stringify(events)).not.toMatch(/private|leaseToken|zhe_shared_cli_key/);
+      const offline = events.find((event) => event.event === "offline");
       if (outcome !== "success")
-        expect(events.find((event) => event.event === "offline")).toMatchObject({
+        expect(offline).toMatchObject({
           status: "offline",
-          code: outcome === "unauthenticated" ? 401 : "connector_error",
+          code:
+            outcome === "unauthenticated"
+              ? "missing_api_key"
+              : outcome === "rejected"
+                ? 401
+                : "connector_error",
         });
+      if (outcome === "unauthenticated") {
+        expect(fetch).not.toHaveBeenCalled();
+        expect(offline.message).toContain("no request was sent");
+        expect(offline.message).not.toMatch(/expired|revoked/);
+      }
+      if (outcome === "rejected") {
+        expect(fetch).toHaveBeenCalled();
+        expect(offline.message).toContain("Zhe rejected the API Key");
+        expect(offline.message).toContain("`zhe logout`, then `zhe login`");
+      }
       expect(delay).toHaveBeenCalledWith(20_000, undefined, { signal: controller.signal });
     },
   );
@@ -289,7 +309,10 @@ describe("zhe connector", () => {
   });
   it("requires the existing zhe login and reacts to logout on the next poll", async () => {
     vi.mocked(getApiKey).mockReturnValue(undefined);
-    await expect(runOnce()).rejects.toThrow("Not authenticated");
+    await expect(runOnce()).rejects.toMatchObject({
+      name: "ConnectorError",
+      code: "missing_api_key",
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
   it("does nothing when there is no saved work", async () => {

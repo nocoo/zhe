@@ -8,10 +8,12 @@ import type { ConnectorProgress, ConnectorStatus } from "./types.js";
 const fallbackHint = "Connector processing failed. Check the connection and retry.";
 const hints: Record<string, string> = {
   0: "Cannot reach Zhe. Check the network connection.",
-  401: "API Key missing, invalid, expired or revoked. Run `zhe login` with a valid key.",
+  401: "Zhe rejected the API Key (invalid, expired or revoked). Run `zhe logout`, then `zhe login` in this environment.",
   403: "Connector access denied. Use an active API Key with `connector:write`.",
   409: "This job's lease is no longer valid; it will not be overwritten.",
   429: "API rate limit reached. Waiting before the next poll.",
+  missing_api_key:
+    "No saved API Key was found in this CLI environment. Run `zhe login` here; no request was sent.",
   needs_login: "Connect the OpenCLI browser extension and sign in to X.",
   opencli_unavailable: "OpenCLI is unavailable. Check its browser extension and connection.",
   unsupported_opencli_version: "OpenCLI version mismatch. Reinstall the Zhe CLI dependencies.",
@@ -147,7 +149,12 @@ export class ConnectorLogger {
     this.stats.errors++;
     this.write("offline", `${connectorErrorHint(error)} Next poll in 20s.`, {
       status: "offline",
-      code: error instanceof ApiClientError ? error.status : "connector_error",
+      code:
+        error instanceof ApiClientError
+          ? error.status
+          : error instanceof ConnectorError && error.code === "missing_api_key"
+            ? error.code
+            : "connector_error",
     });
   }
 

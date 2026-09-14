@@ -19,7 +19,7 @@ export interface PollResult {
 
 export function authenticatedClient(): ApiClient {
   const key = getApiKey();
-  if (!key) throw new ApiClientError(401, "Not authenticated. Run `zhe login` first.");
+  if (!key) throw new ConnectorError("missing_api_key");
   return new ApiClient(key);
 }
 

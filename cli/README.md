@@ -83,6 +83,8 @@ See the [implementation and operations guide](../docs/25-x-bookmark-connector.md
 
 Config file location: `~/.config/zhe/config.json`
 
+Run `zhe login` in the same user or agent environment as `connector watch`: an isolated home directory has its own configuration. `missing_api_key` means the CLI could not find a saved key and sent no request. HTTP 401 means Zhe rejected the supplied key; use `zhe logout`, then `zhe login` in that environment to replace it.
+
 ## License
 
 MIT
