@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.4] - 2026-09-14
+
+### Fixed
+- Diagnose rejected API keys without logging credentials
+- Distinguish missing credentials from HTTP 401
+- Make expiry explicit and default to permanent
+
 ## [v1.24.3] - 2026-09-14
 
 ### Changed
