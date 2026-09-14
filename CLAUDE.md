@@ -282,6 +282,8 @@ Layout under `.test-storage/` (gitignored):
 
 ### Quality System: L1 + L2 + L3 + G1 + G2
 
+L1 coverage uses forked Node processes (`--pool=forks`). The VM thread pool can miscount executed local R2 functions in V8 coverage; regular test runs retain their existing pool.
+
 | Layer | Name | Hook | Gate |
 |-------|------|------|------|
 | L1 | Unit/Component + Integration | pre-commit | Hard |

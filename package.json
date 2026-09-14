@@ -13,7 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:unit": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**'",
-    "test:unit:coverage": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**' --coverage",
+    "test:unit:coverage": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**' --coverage --pool=forks",
     "test:integration": "vitest run tests/integration",
     "test:api": "bun run scripts/run-api-e2e.ts",
     "test:e2e:pw": "bun x playwright test",
