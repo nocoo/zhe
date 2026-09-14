@@ -193,19 +193,21 @@ zhe login
 4. If valid: save to config
 5. Display result
 
-> **Note**: Login only verifies read access (`links:read`). For full CRUD, your API Key must also include `links:write`. Write operations will fail at runtime if the key lacks `links:write` scope.
+> **Note**: Login verifies identity and accepts any valid key, including a single read or write scope. The API's specific scope-denial response confirms authentication succeeded; an invalid/revoked key (401) is rejected, and unrelated 403 or network errors remain verification failures. Each command still enforces its own permissions.
 
 **Required scopes for full CLI functionality:**
 - `links:read` — list, get
 - `links:write` — create, update, delete
+- `connector:write` — all Connector commands; no other scope is required
+- Folder, tag, and idea commands require their corresponding read or write scopes. Resolving a folder/tag name also requires read access; passing its ID avoids that lookup.
 
 **Output (success):**
 ```
 Enter your API Key: ************************************
-✓ API Key saved (read access verified)
+✓ API Key saved (identity verified)
   API Key: zhe_abcd...wxyz
   
-Note: Write operations require `links:write` scope.
+Commands require their own scopes. Connector only needs `connector:write`.
 To create an API Key, visit: https://zhe.to/dashboard/api-keys
 ```
 
@@ -220,7 +222,8 @@ To create an API Key, visit: https://zhe.to/dashboard/api-keys
 **Errors:**
 - `Invalid API Key format` — doesn't match `zhe_` prefix
 - `Authentication failed` — key rejected by server (401)
-- `Permission denied` — key lacks `links:read` scope (403)
+- The API's `Insufficient permissions. Required scope: links:read` response (403) confirms a valid key with limited scopes and does not prevent login.
+- Other permission/network/server errors — verification fails without saving the key
 
 ---
 

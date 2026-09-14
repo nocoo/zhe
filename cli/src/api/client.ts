@@ -222,7 +222,7 @@ export class ApiClient {
   }
 
   /**
-   * Verify API key by making a test request
+   * Verify identity without requiring links:read or granting any extra scope.
    */
   async verifyKey(): Promise<boolean> {
     try {
@@ -230,9 +230,14 @@ export class ApiClient {
       return true;
     } catch (error) {
       if (error instanceof ApiClientError) {
-        if (error.status === 401 || error.status === 403) {
-          return false;
-        }
+        if (error.status === 401) return false;
+        // This response is only emitted after the API has authenticated the key.
+        // Other 403 responses (for example, an edge denial) do not verify identity.
+        if (
+          error.status === 403 &&
+          error.message === "Insufficient permissions. Required scope: links:read"
+        )
+          return true;
       }
       throw error;
     }

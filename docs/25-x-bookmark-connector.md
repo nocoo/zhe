@@ -6,7 +6,7 @@ Zhe 先按原流程保存链接。网页、Webhook、REST API 和 CLI 创建的 
 
 需要 Node.js ≥ 22.16、FFmpeg / ffprobe，以及已连接 OpenCLI 扩展并登录 X 的浏览器。OpenCLI 作为固定版本依赖随 CLI 安装。
 
-当前机器已从验证过的安装包完成全局安装，可直接运行 `zhe connector status`。此次升级的 npm 公开发布尚待账号二次认证；发布完成前，下方 `npm install` 命令仍会取得旧版，不能用于安装本次 Connector 功能。最新验收与发布状态见 [GOAL.md](../GOAL.md)。
+CLI 已发布到 npm，可直接全局安装。最新验收与发布状态见 [GOAL.md](../GOAL.md)。
 
 ```sh
 npm install -g @nocoo/zhe
@@ -15,7 +15,7 @@ zhe connector status
 zhe connector start
 ```
 
-同一个 API Key 至少选择 `links:read` 和 `connector:write`；从 CLI 创建链接还需要 `links:write`。Connector 权限从密钥创建起有效 30 天，撤销即时作用于后续任务写入。轮询每次重新读取共享配置，轮换或退出登录无需重装服务。
+Connector 的 API Key 只需选择 `connector:write`。登录支持任意有效权限组合，包括单独的读或写权限；从 CLI 列出链接需要 `links:read`，创建链接需要 `links:write`。Connector 权限从密钥创建起有效 30 天，撤销即时作用于后续任务写入。轮询每次重新读取共享配置，轮换或退出登录无需重装服务。
 
 macOS 的 `start` 安装 `ai.hexly.zhe.connector` LaunchAgent；`stop` 卸载该服务。其他系统运行 `zhe connector watch`，交由既有进程管理器启动。电脑休眠、浏览器未连接或 X 会话失效时，已保存链接仍可使用，补全等待本机恢复。服务日志仅含状态、数量和错误码。
 

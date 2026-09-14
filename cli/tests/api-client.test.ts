@@ -716,19 +716,35 @@ describe("ApiClient", () => {
       expect(result).toBe(false);
     });
 
-    it("returns false for 403", async () => {
+    it("accepts an authenticated key without links:read", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
         headers: new Headers(),
-        json: async () => ({ error: "Forbidden" }),
+        json: async () => ({ error: "Insufficient permissions. Required scope: links:read" }),
       });
 
       const client = new ApiClient("zhe_limited");
       const result = await client.verifyKey();
 
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
+
+    it.each(["Forbidden", "Permission denied. Check your API Key scopes."])(
+      "does not mistake an unrelated 403 for verified identity: %s",
+      async (message) => {
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          headers: new Headers(),
+          json: async () => ({ error: message }),
+        });
+        await expect(new ApiClient("zhe_limited").verifyKey()).rejects.toMatchObject({
+          status: 403,
+          message,
+        });
+      },
+    );
 
     it("throws for other errors", async () => {
       mockFetch.mockResolvedValueOnce({

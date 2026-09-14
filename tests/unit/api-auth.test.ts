@@ -2,6 +2,7 @@
 
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiClient } from "@/cli/src/api/client";
 import {
   apiError,
   authenticateApiKey,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/api/auth";
 import { clearAllRateLimits } from "@/lib/api/rate-limit";
 import * as db from "@/lib/db/api-keys";
-import type { ApiScope } from "@/models/api-key";
+import { API_SCOPES, type ApiScope } from "@/models/api-key";
 
 // Mock the database module
 vi.mock("@/lib/db/api-keys", () => ({
@@ -23,6 +24,35 @@ describe("API Key Auth Middleware", () => {
     vi.clearAllMocks();
     clearAllRateLimits();
   });
+
+  it.each(API_SCOPES)(
+    "allows CLI login with only %s without expanding permissions",
+    async (scope) => {
+      vi.mocked(db.verifyApiKeyAndGetUser).mockResolvedValue({
+        userId: "user-scoped",
+        keyId: "key-scoped",
+        keyPrefix: "zhe_scoped",
+        scopes: [scope],
+      });
+      const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const request = new NextRequest(String(url), { headers: init?.headers ?? {} });
+        const result = await requireAuthWithRateLimit(request, "links:read");
+        return result instanceof Response ? result : Response.json({ links: [] });
+      });
+      try {
+        const client = new ApiClient("zhe_synthetic_scoped_key");
+        expect(await client.verifyKey()).toBe(true);
+        if (scope !== "links:read") {
+          await expect(client.listLinks()).rejects.toMatchObject({
+            status: 403,
+            message: "Insufficient permissions. Required scope: links:read",
+          });
+        }
+      } finally {
+        fetch.mockRestore();
+      }
+    },
+  );
 
   describe("authenticateApiKey", () => {
     it("returns error when Authorization header is missing", async () => {

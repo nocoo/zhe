@@ -59,7 +59,7 @@ Save a link through the website, Webhook, API, or `zhe create`. The Connector pi
 
 Use Node.js ≥ 22.16. OpenCLI is included as a pinned dependency; install its [browser extension](https://github.com/jackwener/opencli), sign in to X in that browser, and install FFmpeg with `ffprobe` on PATH (`brew install ffmpeg` on macOS).
 
-On Zhe's API Keys page, create one key with `links:read` and `connector:write`. Add `links:write` to create links from the CLI too. Then:
+On Zhe's API Keys page, create a key with `connector:write`; that is the only scope the Connector needs. Login accepts any valid key, including keys with a single read or write scope. Other commands enforce their own permissions: add `links:read` to list links and `links:write` to create them. Then:
 
 ```bash
 zhe login

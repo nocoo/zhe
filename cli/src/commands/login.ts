@@ -60,10 +60,12 @@ export const loginCommand = defineCommand({
     // Save the key
     saveApiKey(apiKey);
 
-    console.log(pc.green("✓ API Key saved (read access verified)"));
+    console.log(pc.green("✓ API Key saved (identity verified)"));
     console.log(`  API Key: ${pc.cyan(maskApiKey(apiKey))}`);
     console.log();
-    console.log(pc.dim("Note: Write operations require `links:write` scope."));
+    console.log(
+      pc.dim("Commands require their own scopes. Connector only needs `connector:write`."),
+    );
     console.log(`To create an API Key, visit: ${pc.cyan("https://zhe.to/dashboard/api-keys")}`);
   },
 });
