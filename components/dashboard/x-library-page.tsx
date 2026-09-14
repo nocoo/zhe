@@ -246,9 +246,9 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <div className="gap-5 [column-count:3] [column-width:22rem]" data-testid="x-feed">
+        <div className="gap-4 [column-count:3] [column-width:22rem]" data-testid="x-feed">
           {visible.map(({ link }) => (
-            <div key={link.id} className="mb-5 break-inside-avoid pt-px">
+            <div key={link.id} className="mb-4 break-inside-avoid pt-px">
               <LinkCard
                 link={link}
                 siteUrl={siteUrl}

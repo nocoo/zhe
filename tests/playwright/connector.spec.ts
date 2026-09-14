@@ -92,7 +92,9 @@ for (const viewport of [
       await page.locator("#url").fill(`https://x.com/example/status/${postId}`);
       await page.getByRole("button", { name: "创建链接", exact: true }).click();
       await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });
-      await expect(page.getByTestId("link-card").getByText("等待补全")).toBeVisible();
+      await expect(
+        page.getByTestId("link-card").getByRole("button", { name: "查看帖子详情" }),
+      ).toHaveAccessibleDescription(/等待补全/);
       const pendingBox = await page.getByTestId("link-card").boundingBox();
 
       const claim = await page.request.post("/api/v1/connector", { headers, data: {} });
@@ -217,18 +219,24 @@ for (const viewport of [
         ).status(),
       ).toBe(200);
       // The foreground poll updates a fixed-size summary; full media is opened on demand.
-      await expect(card.getByText("已补全", { exact: true })).toBeVisible({ timeout: 20_000 });
+      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
+        /已补全/,
+        { timeout: 20_000 },
+      );
       await expect(card.locator("video")).toHaveCount(0);
       const completedBox = await card.boundingBox();
       assert(pendingBox && completedBox);
       expect(Math.abs(completedBox.height - pendingBox.height)).toBeLessThan(1);
       if (viewport.width < 600) {
-        const statusBox = await card.getByRole("status").boundingBox();
+        const detailsBox = await card.getByRole("button", { name: "查看帖子详情" }).boundingBox();
+        const sourceBox = await card.locator('[title="来源：X"]').boundingBox();
         const editBox = await card
           .getByRole("button", { name: "Edit link", exact: true })
           .boundingBox();
-        assert(statusBox && editBox);
-        expect(statusBox.y).toBeGreaterThanOrEqual(editBox.y + editBox.height);
+        assert(detailsBox && editBox && sourceBox);
+        expect(Math.abs(detailsBox.y - editBox.y)).toBeLessThan(1);
+        expect(detailsBox.height).toBe(editBox.height);
+        expect(sourceBox.y).toBeGreaterThanOrEqual(detailsBox.y + detailsBox.height);
       }
       await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
       const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
@@ -260,10 +268,11 @@ for (const viewport of [
       await expect(card.locator("video")).toHaveCount(0);
 
       const design = randomUUID();
+      const designName = "Design systems and interaction references";
       const reading = randomUUID();
       const createdAt = Math.floor(Date.now() / 1000);
       for (const [id, name] of [
-        [design, "Design"],
+        [design, designName],
         [reading, "Reading"],
       ])
         await executeD1("INSERT INTO folders(id,user_id,name,created_at) VALUES(?,?,?,?)", [
@@ -277,6 +286,17 @@ for (const viewport of [
         linkId,
         owner,
       ]);
+      for (const name of ["Design systems", "Interaction references"]) {
+        const tagId = randomUUID();
+        await executeD1("INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)", [
+          tagId,
+          owner,
+          name,
+          "primary",
+          createdAt,
+        ]);
+        await executeD1("INSERT INTO link_tags(link_id,tag_id) VALUES(?,?)", [linkId, tagId]);
+      }
       for (const [id, note, folder, body, url] of [
         [
           "2000000000000000004",
@@ -327,7 +347,9 @@ for (const viewport of [
       );
       assert(ordinary);
       await page.reload();
-      await expect(card.getByText("已补全", { exact: true })).toBeVisible();
+      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
+        /已补全/,
+      );
       const normalCard = page.locator(`[data-testid="link-card"][data-link-id="${ordinary.id}"]`);
       const normalBox = await normalCard.boundingBox();
       const xBox = await card.boundingBox();
@@ -345,6 +367,18 @@ for (const viewport of [
       await expect(islandHeading(page, "X 收藏")).toBeVisible();
       const feed = page.getByTestId("x-feed");
       await expect(feed.getByTestId("link-card")).toHaveCount(4);
+      const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
+      const footer = feedCard.getByTestId("x-card-footer");
+      const footerBox = await footer.boundingBox();
+      assert(footerBox);
+      expect(footerBox.height).toBeLessThanOrEqual(52);
+      expect(await footer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+        true,
+      );
+      await expect(footer.getByText(designName, { exact: true })).toBeVisible();
+      await expect(footer.getByRole("img", { name: /^标签：/ })).toHaveText("2");
+      await expect(feedCard.getByRole("region", { name: "帖子统计" })).toHaveCount(0);
+      await expect(feedCard.getByRole("button", { name: "展开全文" })).toHaveCount(0);
       await expect(feed.getByLabel("已归档的 X 视频")).toBeVisible();
       await feed
         .getByLabel("已归档的 X 视频")
@@ -363,6 +397,23 @@ for (const viewport of [
         path: `.artifacts/x-library-${viewport.width}.png`,
         animations: "disabled",
       });
+      await feedCard.screenshot({
+        path: `.artifacts/x-card-${viewport.width}.png`,
+        animations: "disabled",
+      });
+      const details = feedCard.getByRole("button", { name: "查看帖子详情" });
+      await details.click();
+      await expect(post.getByRole("region", { name: "帖子统计" })).toBeVisible();
+      await expect(post.getByRole("button", { name: "查看图片 2" })).toBeVisible();
+      await expect(post.getByText("Design systems", { exact: true })).toBeVisible();
+      await expect(post.getByText("Interaction references", { exact: true })).toBeVisible();
+      expect(
+        await feed
+          .getByLabel("已归档的 X 视频")
+          .evaluate((element) => (element as HTMLVideoElement).paused),
+      ).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(details).toBeFocused();
       await page.getByRole("button", { name: "图片", exact: true }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await page.getByRole("combobox", { name: "筛选分类" }).click();
@@ -378,7 +429,9 @@ for (const viewport of [
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await expect(feed.getByTestId("link-card")).toContainText("Pending post");
       await page.goto("/dashboard");
-      await expect(card.getByText("已补全", { exact: true })).toBeVisible();
+      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
+        /已补全/,
+      );
       if (viewport.width > 600) {
         const before = await page.locator('aside img[alt="Zhe"]').boundingBox();
         await page.getByRole("button", { name: "Collapse sidebar" }).click();

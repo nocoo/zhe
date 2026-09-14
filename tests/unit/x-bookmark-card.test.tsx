@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { LayerCard } from "@nocoo/basalt";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { retryXBookmarkAction } from "@/actions/connector";
@@ -106,7 +106,7 @@ describe("X bookmark presentation", () => {
     expect(preview).toHaveTextContent(expected);
     expect(preview).not.toHaveTextContent("Example Author (@example)");
   });
-  it.each(["grid", "list"] as const)(
+  it.each(["grid", "list", "feed"] as const)(
     "keeps %s compact after enrichment and opens the full post on demand",
     async (viewMode) => {
       const link: Link = {
@@ -143,21 +143,29 @@ describe("X bookmark presentation", () => {
           {card}
         </XBookmarksContext.Provider>,
       );
-      expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
+      expect(screen.queryAllByTestId("x-bookmark-content")).toHaveLength(
+        viewMode === "feed" ? 1 : 0,
+      );
+      expect(screen.queryByText("喜欢 7")).not.toBeInTheDocument();
+      expect(screen.queryByText("已补全", { exact: true })).not.toBeInTheDocument();
+      expect(screen.queryByText("阅读帖子")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "展开全文" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
       expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
-      const trigger = screen.getByRole("button", { name: "查看 X 帖子" });
+      const trigger = screen.getByRole("button", { name: "查看帖子详情" });
+      expect(trigger).toHaveAccessibleDescription("已补全");
       const user = userEvent.setup();
       await user.click(trigger);
-      expect(await screen.findByRole("dialog", { name: "X 帖子" })).toBeInTheDocument();
-      expect(screen.getByTestId("x-bookmark-content")).toBeInTheDocument();
+      const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
+      expect(within(dialog).getByTestId("x-bookmark-content")).toBeInTheDocument();
+      expect(within(dialog).getByText("喜欢 7")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "打开原帖" })).toHaveAttribute(
         "href",
         link.originalUrl,
       );
       await user.keyboard("{Escape}");
       await waitFor(() =>
-        expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument(),
+        expect(screen.queryByRole("dialog", { name: "X 帖子" })).not.toBeInTheDocument(),
       );
       expect(trigger).toHaveFocus();
     },

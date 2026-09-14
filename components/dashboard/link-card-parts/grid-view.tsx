@@ -11,6 +11,7 @@ import {
   Pencil,
   Play,
   Sparkles,
+  Tags as TagsIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
@@ -21,7 +22,7 @@ import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { getXContentTypes } from "@/models/x-bookmarks";
-import { XBookmarkStatus, XSourceBadge } from "../x-bookmark-content";
+import { XBookmarkDetailsButton, XSourceBadge } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
@@ -130,7 +131,7 @@ function GridScreenshot({
       </div>
 
       {onOpenDetails && (
-        <span className="pointer-events-none absolute left-3 top-3 z-10">
+        <span className="pointer-events-none absolute bottom-3 left-3 z-10">
           <XSourceBadge type={getXContentTypes(xBookmark?.tweet)[0] ?? "pending"} />
         </span>
       )}
@@ -141,21 +142,21 @@ function GridScreenshot({
           </span>
         </div>
       )}
-      {onOpenDetails && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2">
-          <span className="min-w-0 rounded-full border border-border/40 bg-secondary/95 px-2 py-1 backdrop-blur-sm">
-            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} compact />
-          </span>
-          {media.length > 1 && (
-            <span className="shrink-0 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
-              {media.length} 个附件
-            </span>
-          )}
-        </div>
+      {onOpenDetails && media.length > 1 && (
+        <span className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
+          {media.length} 个附件
+        </span>
       )}
 
       {/* Sibling actions stay clear of the preview and remain visible on touch. */}
       <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        {onOpenDetails && (
+          <XBookmarkDetailsButton
+            bookmark={xBookmark}
+            onClick={onOpenDetails}
+            className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
+          />
+        )}
         {!onOpenDetails && (
           <Button
             type="button"
@@ -217,16 +218,18 @@ function GridMetaRow({
   shortUrl,
   copied,
   onCopy,
+  cardTags,
 }: {
   link: Link;
   shortUrl: string;
   copied: boolean;
   onCopy: () => void;
+  cardTags: Tag[];
 }) {
   return (
     <div className="flex h-7 min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap border-t border-border/60 pt-2 text-xs text-muted-foreground">
       <span className="flex min-w-0 items-center gap-1">
-        <Link2 className="w-3 h-3" strokeWidth={1.5} />
+        <Link2 className="w-3 h-3 shrink-0" strokeWidth={1.5} />
         <a
           href={shortUrl}
           target="_blank"
@@ -239,7 +242,7 @@ function GridMetaRow({
           type="button"
           onClick={onCopy}
           aria-label="Copy link"
-          className="flex h-3.5 w-3.5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
           title="Copy link"
         >
           {copied ? (
@@ -249,6 +252,25 @@ function GridMetaRow({
           )}
         </button>
       </span>
+      {cardTags.length > 0 && (
+        <span
+          role="img"
+          className="inline-flex min-w-0 shrink-0 items-center @min-[20rem]:shrink"
+          title={cardTags.map((tag) => tag.name).join("、")}
+          aria-label={`标签：${cardTags.map((tag) => tag.name).join("、")}`}
+        >
+          <span className="inline-flex items-center gap-1 @min-[20rem]:hidden">
+            <TagsIcon className="size-3" strokeWidth={1.5} aria-hidden />
+            {cardTags.length}
+          </span>
+          <span className="hidden min-w-0 items-center gap-1 overflow-hidden @min-[20rem]:flex [&>span:first-child]:max-w-20 [&>span:first-child]:truncate">
+            {cardTags.slice(0, 1).map((tag) => (
+              <TagBadge key={tag.id} tag={tag} size="sm" />
+            ))}
+            {cardTags.length > 1 && <span className="shrink-0">+{cardTags.length - 1}</span>}
+          </span>
+        </span>
+      )}
       <span
         className="ml-auto flex shrink-0 items-center gap-1"
         title={`${formatNumber(link.clicks ?? 0)} 次点击`}
@@ -313,23 +335,13 @@ export function GridView(props: GridViewProps) {
           onRefresh={onRefreshMetadata}
           variant="grid"
         />
-        <GridMetaRow link={link} shortUrl={shortUrl} copied={copied} onCopy={onCopy} />
-        <div className="flex h-5 min-w-0 items-center gap-1 overflow-hidden [&>span]:max-w-24 [&>span]:truncate">
-          {cardTags.slice(0, 2).map((tag) => (
-            <TagBadge key={tag.id} tag={tag} size="sm" />
-          ))}
-          {cardTags.length > 2 && (
-            <span
-              className="shrink-0 text-xs text-muted-foreground"
-              title={cardTags
-                .slice(2)
-                .map((tag) => tag.name)
-                .join("、")}
-            >
-              +{cardTags.length - 2}
-            </span>
-          )}
-        </div>
+        <GridMetaRow
+          link={link}
+          shortUrl={shortUrl}
+          copied={copied}
+          onCopy={onCopy}
+          cardTags={cardTags}
+        />
       </div>
     </>
   );

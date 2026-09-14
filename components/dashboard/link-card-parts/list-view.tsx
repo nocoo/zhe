@@ -19,8 +19,10 @@ import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { XIcon } from "@/components/x-icon";
+import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
+import { XBookmarkDetailsButton } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface ListViewProps {
@@ -47,6 +49,7 @@ interface ListViewProps {
   onSuggest?: () => void;
   suggestDisabled?: boolean;
   onOpenDetails?: (() => void) | undefined;
+  xBookmark?: XBookmark | undefined;
 }
 
 function ListThumbnail({
@@ -186,6 +189,7 @@ function ListActions({
   onSuggest,
   suggestDisabled,
   onOpenDetails,
+  xBookmark,
 }: {
   isEditing: boolean;
   isFetchingPreview: boolean;
@@ -196,13 +200,12 @@ function ListActions({
   onSuggest?: () => void;
   suggestDisabled?: boolean;
   onOpenDetails?: (() => void) | undefined;
+  xBookmark?: XBookmark | undefined;
 }) {
   return (
     <div className="flex items-center gap-0.5">
       {onOpenDetails ? (
-        <Button type="button" variant="ghost" size="sm" onClick={onOpenDetails}>
-          阅读帖子
-        </Button>
+        <XBookmarkDetailsButton bookmark={xBookmark} onClick={onOpenDetails} />
       ) : (
         <>
           <button
@@ -343,6 +346,7 @@ export function ListView(props: ListViewProps) {
         onOpenPreviewDialog={onOpenPreviewDialog}
         onToggleEdit={onToggleEdit}
         onOpenDetails={props.onOpenDetails}
+        xBookmark={props.xBookmark}
         {...(onSuggest ? { onSuggest } : {})}
         {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
       />

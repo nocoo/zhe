@@ -13,7 +13,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@nocoo/basalt";
-import { BarChart3, Check, Copy, ExternalLink, FolderOpen, Pencil, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  Check,
+  Copy,
+  ExternalLink,
+  FolderOpen,
+  Pencil,
+  Sparkles,
+  Tags as TagsIcon,
+} from "lucide-react";
 import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
@@ -28,7 +37,12 @@ import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
 import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
 import { TagBadge } from "./shared-link-components";
-import { XBookmarkContent, XBookmarkPending, XBookmarkStatus } from "./x-bookmark-content";
+import {
+  XBookmarkContent,
+  XBookmarkDetailsButton,
+  XBookmarkPending,
+  XBookmarkStatus,
+} from "./x-bookmark-content";
 
 type ViewMode = "list" | "grid" | "feed";
 
@@ -88,7 +102,7 @@ export const LinkCard = memo(function LinkCard({
   const xPost = canonicalXPost(link.originalUrl);
   const xBookmark = getXBookmarkForLink(link, xBookmarks.get(link.id));
   const isXFeed = viewMode === "feed" && !!xPost;
-  const panelClassName = isXFeed ? "p-5" : undefined;
+  const panelClassName = isXFeed ? "p-4" : undefined;
   const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
 
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -99,6 +113,12 @@ export const LinkCard = memo(function LinkCard({
   const openDetails = () => {
     detailsTrigger.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    detailsTrigger.current
+      ?.closest('[data-testid="link-card"]')
+      ?.querySelectorAll("video")
+      .forEach((video) => {
+        video.pause();
+      });
     setDetailsOpen(true);
   };
 
@@ -224,53 +244,64 @@ export const LinkCard = memo(function LinkCard({
 
   if (isXFeed)
     return (
-      <LayerCard
-        padding="none"
-        className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
-        data-testid="link-card"
-        data-link-id={link.id}
-        data-view="feed"
-      >
-        {xBookmark?.tweet ? (
-          <XBookmarkContent bookmark={xBookmark} note={link.note} title={link.metaTitle} />
-        ) : (
-          <XBookmarkPending link={link} />
-        )}
-        <LayerCard.Footer className="flex-col items-stretch gap-3 border-border/60 bg-background/40 px-5 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-muted-foreground">
-              <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
-              <span className="truncate" title={folderName}>
-                {folderName}
-              </span>
-            </span>
-            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
-          </div>
-          {cardTags.length > 0 && (
-            <div className="flex w-full flex-wrap gap-1">
-              {cardTags.map((tag) => (
-                <TagBadge key={tag.id} tag={tag} size="sm" />
-              ))}
-            </div>
+      <>
+        <LayerCard
+          padding="none"
+          className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
+          data-testid="link-card"
+          data-link-id={link.id}
+          data-view="feed"
+        >
+          {xBookmark?.tweet ? (
+            <XBookmarkContent
+              bookmark={xBookmark}
+              note={link.note}
+              title={link.metaTitle}
+              compact
+            />
+          ) : (
+            <XBookmarkPending link={link} compact />
           )}
-          <TooltipProvider>
-            <div className="-mx-2 flex items-center justify-between gap-2 text-muted-foreground">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={vm.handleCopy}
-                    aria-label="Copy link"
-                    className="text-muted-foreground"
-                  >
-                    {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
-                    {vm.copied ? "已复制" : "复制链接"}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{vm.shortUrl}</TooltipContent>
-              </Tooltip>
-              <div className="flex items-center gap-0.5">
+          <LayerCard.Footer
+            className="gap-1 border-border/60 bg-background/40 px-4 py-1.5"
+            data-testid="x-card-footer"
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+                <span className="truncate" title={folderName}>
+                  {folderName}
+                </span>
+              </span>
+              {cardTags.length > 0 && (
+                <span
+                  role="img"
+                  className="inline-flex shrink-0 items-center gap-1"
+                  title={cardTags.map((tag) => tag.name).join("、")}
+                  aria-label={`标签：${cardTags.map((tag) => tag.name).join("、")}`}
+                >
+                  <TagsIcon className="size-3.5" strokeWidth={1.5} aria-hidden />
+                  {cardTags.length}
+                </span>
+              )}
+            </div>
+            <TooltipProvider>
+              <div className="-mr-2 flex shrink-0 items-center text-muted-foreground">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={vm.handleCopy}
+                      aria-label="Copy link"
+                      className="text-muted-foreground"
+                    >
+                      {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{vm.copied ? "已复制" : vm.shortUrl}</TooltipContent>
+                </Tooltip>
+                <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button size="icon" variant="ghost" asChild aria-label="打开原帖">
@@ -324,17 +355,18 @@ export const LinkCard = memo(function LinkCard({
                   <TooltipContent>编辑收藏</TooltipContent>
                 </Tooltip>
               </div>
-            </div>
-          </TooltipProvider>
-        </LayerCard.Footer>
-        <AnalyticsPanel
-          className="p-5"
-          showAnalytics={vm.showAnalytics}
-          analyticsStats={vm.analyticsStats}
-          isLoadingAnalytics={vm.isLoadingAnalytics}
-        />
-        {editArea}
-      </LayerCard>
+            </TooltipProvider>
+          </LayerCard.Footer>
+          <AnalyticsPanel
+            className="p-4"
+            showAnalytics={vm.showAnalytics}
+            analyticsStats={vm.analyticsStats}
+            isLoadingAnalytics={vm.isLoadingAnalytics}
+          />
+          {editArea}
+        </LayerCard>
+        {detailsDialog}
+      </>
     );
 
   if (viewMode === "grid") {
@@ -372,15 +404,6 @@ export const LinkCard = memo(function LinkCard({
             showAnalytics={vm.showAnalytics}
             onToggleAnalytics={vm.handleToggleAnalytics}
           />
-          {xPost && (
-            <div className="mt-3">
-              <XBookmarkStatus
-                bookmark={xBookmark}
-                linkId={link.id}
-                compact={viewMode !== "feed"}
-              />
-            </div>
-          )}
         </div>
         <AnalyticsPanel
           showAnalytics={vm.showAnalytics}

@@ -12,10 +12,15 @@ import {
   DialogTitle,
   DialogTrigger,
   LayerCard,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@nocoo/basalt";
 import {
   ArrowUpRight,
   BadgeCheck,
+  BookOpen,
   Check,
   CircleAlert,
   Clock3,
@@ -44,11 +49,61 @@ import {
 } from "@/models/x-bookmarks";
 import { formatCount, formatTweetDate } from "@/models/xray";
 
+const statusLabels = {
+  pending: "等待补全",
+  running: "正在补全",
+  complete: "已补全",
+  partial: "正文已保存，媒体待补全",
+  failed: "补全暂未完成",
+  unavailable: "原帖暂不可访问",
+};
+
+export function XBookmarkDetailsButton({
+  bookmark,
+  onClick,
+  className,
+}: {
+  bookmark: XBookmark | undefined;
+  onClick: () => void;
+  className?: string;
+}) {
+  const state = bookmark?.state ?? "pending";
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onClick}
+            aria-label="查看帖子详情"
+            aria-description={statusLabels[state]}
+            className={cn("relative text-muted-foreground hover:text-foreground", className)}
+          >
+            <BookOpen strokeWidth={1.5} />
+            {state !== "complete" && (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute right-1.5 top-1.5 size-1.5 rounded-full bg-muted-foreground",
+                  state === "running" && "bg-primary animate-pulse motion-reduce:animate-none",
+                  ["partial", "failed", "unavailable"].includes(state) && "bg-warning",
+                )}
+              />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>查看帖子详情 · {statusLabels[state]}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function XSourceBadge({ type = "text" }: { type?: XContentType }) {
   return (
     <span
       title="来源：X"
-      className="inline-flex shrink-0 items-center gap-2 rounded-widget bg-foreground px-2.5 py-2 text-background shadow-xs"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-foreground px-2 py-1.5 text-background"
     >
       <XIcon className="size-3.5" />
       <span className="sr-only">X · </span>
@@ -59,20 +114,21 @@ export function XSourceBadge({ type = "text" }: { type?: XContentType }) {
   );
 }
 
-function PostText({ text }: { text: string }) {
+function PostText({ text, compact = false }: { text: string; compact?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const collapsible = text.length > 600;
   return (
     <div>
       <p
         className={cn(
-          "whitespace-pre-wrap break-words text-sm leading-7 text-foreground",
-          collapsible && !expanded && "line-clamp-6",
+          "whitespace-pre-wrap break-words text-sm text-foreground",
+          compact ? "line-clamp-5 leading-5" : "leading-6",
+          !compact && collapsible && !expanded && "line-clamp-6",
         )}
       >
         {text}
       </p>
-      {collapsible && (
+      {!compact && collapsible && (
         <Button
           variant="ghost"
           size="sm"
@@ -91,10 +147,12 @@ function PostMedia({
   media,
   index,
   fill = false,
+  compact = false,
 }: {
   media: XMedia;
   index: number;
   fill?: boolean;
+  compact?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   if (failed)
@@ -124,7 +182,10 @@ function PostMedia({
           playsInline
           preload="none"
           aria-label={media.type === "GIF" ? "已归档的 X GIF" : "已归档的 X 视频"}
-          className="mx-auto block max-h-[32rem] w-full object-contain"
+          className={cn(
+            "mx-auto block w-full object-contain",
+            compact ? "max-h-64" : "max-h-[32rem]",
+          )}
           style={{
             aspectRatio: media.width && media.height ? `${media.width}/${media.height}` : "16/9",
           }}
@@ -156,7 +217,11 @@ function PostMedia({
             loading="lazy"
             className={cn(
               "w-full transition-opacity hover:opacity-90",
-              fill ? "h-full object-cover" : "max-h-[32rem] object-contain",
+              fill
+                ? "h-full object-cover"
+                : compact
+                  ? "max-h-64 object-contain"
+                  : "max-h-[32rem] object-contain",
             )}
             style={
               !fill && media.width && media.height
@@ -182,29 +247,36 @@ function PostMedia({
   );
 }
 
-function MediaGrid({ media }: { media: XMedia[] }) {
+function MediaGrid({ media, compact = false }: { media: XMedia[]; compact?: boolean }) {
   if (!media.length) return null;
   const collage = media.length > 1 && media.every((item) => item.type === "PHOTO");
+  const visible = compact ? media.slice(0, collage ? 4 : 1) : media;
   return (
     <div
       className={cn(
-        "grid gap-2",
+        "relative grid gap-2",
         collage && "grid-cols-2 gap-1 overflow-hidden rounded-widget border border-border/60",
-        collage && media.length <= 4 && "aspect-[4/3] auto-rows-fr",
+        collage && visible.length <= 4 && "aspect-[4/3] auto-rows-fr",
+        compact && collage && "max-h-64",
       )}
       data-testid="x-media-grid"
     >
-      {media.map((item, index) => (
+      {visible.map((item, index) => (
         <div
           key={`${item.id}:${item.url}`}
           className={cn(
             "min-h-0 min-w-0",
-            collage && media.length === 3 && index === 0 && "row-span-2",
+            collage && visible.length === 3 && index === 0 && "row-span-2",
           )}
         >
-          <PostMedia media={item} index={index} fill={collage} />
+          <PostMedia media={item} index={index} fill={collage} compact={compact} />
         </div>
       ))}
+      {visible.length < media.length && (
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[11px] text-white">
+          {media.length} 个附件
+        </span>
+      )}
     </div>
   );
 }
@@ -212,27 +284,32 @@ function MediaGrid({ media }: { media: XMedia[] }) {
 function PostLinks({
   links,
   headline,
+  compact = false,
 }: {
   links: ReturnType<typeof getXPostPresentation>["links"];
   headline?: string | null;
+  compact?: boolean;
 }) {
   if (!links.length) return null;
   return (
-    <div className="space-y-3">
-      {links.map(({ url, hostname, isXArticle, isArticle }) => (
+    <div className="space-y-2">
+      {(compact ? links.slice(0, 1) : links).map(({ url, hostname, isXArticle, isArticle }) => (
         <a
           key={url}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
           title={url}
-          className="group/article relative block overflow-hidden rounded-widget border border-border/70 bg-background/60 p-4 text-foreground transition-colors hover:border-primary/30 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "group/article relative block overflow-hidden rounded-widget border border-border/70 bg-background/60 text-foreground transition-colors hover:border-primary/30 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            compact ? "p-3" : "p-4",
+          )}
           data-testid="x-link-preview"
         >
           {isXArticle && (
             <XIcon className="pointer-events-none absolute -right-3 -top-3 size-28 text-foreground/[0.035]" />
           )}
-          <div className="relative space-y-3">
+          <div className="relative space-y-2">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
               {isArticle ? (
                 <FileText className="size-3.5" aria-hidden />
@@ -243,13 +320,13 @@ function PostLinks({
             </div>
             <p
               className={cn(
-                "break-words font-semibold leading-snug tracking-tight",
-                headline ? "text-xl" : "text-base",
+                "break-words font-medium leading-5",
+                compact ? "line-clamp-2 text-sm" : "text-base",
               )}
             >
               {headline || (isXArticle ? "阅读 X 文章" : hostname)}
             </p>
-            <div className="flex items-center justify-between gap-3 pt-1 text-xs">
+            <div className="flex items-center justify-between gap-2 text-xs">
               <span className="min-w-0 truncate text-muted-foreground">
                 {headline || isXArticle
                   ? hostname
@@ -258,7 +335,7 @@ function PostLinks({
                     : new URL(url).pathname}
               </span>
               <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground group-hover/article:text-primary">
-                {isArticle ? "阅读全文" : "打开链接"}
+                {!compact && (isArticle ? "阅读全文" : "打开链接")}
                 <ArrowUpRight className="size-3.5" aria-hidden />
               </span>
             </div>
@@ -269,12 +346,15 @@ function PostLinks({
   );
 }
 
-function Quote({ tweet }: { tweet: XPost }) {
+function Quote({ tweet, compact = false }: { tweet: XPost; compact?: boolean }) {
   const { text, links } = getXPostPresentation(tweet);
   return (
     <blockquote
       aria-label="引用的 X 帖子"
-      className="min-w-0 space-y-3 rounded-widget border border-border/70 bg-background/40 p-4"
+      className={cn(
+        "min-w-0 space-y-2 rounded-widget border border-border/70 bg-background/40",
+        compact ? "p-3" : "p-4",
+      )}
     >
       <div className="flex min-w-0 items-center gap-2">
         <Avatar className="size-6">
@@ -296,8 +376,8 @@ function Quote({ tweet }: { tweet: XPost }) {
           aria-label="引用"
         />
       </div>
-      {text && <PostText text={text} />}
-      <PostLinks links={links} />
+      {text && <PostText text={text} compact={compact} />}
+      {!compact && <PostLinks links={links} />}
     </blockquote>
   );
 }
@@ -306,10 +386,12 @@ export function XBookmarkContent({
   bookmark,
   note,
   title,
+  compact = false,
 }: {
   bookmark: XBookmark;
   note?: string | null;
   title?: string | null;
+  compact?: boolean;
 }) {
   const tweet = bookmark.tweet;
   if (!tweet) return null;
@@ -328,9 +410,12 @@ export function XBookmarkContent({
     { icon: Eye, label: "浏览", count: tweet.metrics.view_count },
   ];
   return (
-    <LayerCard.Body className="space-y-5 p-5" data-testid="x-bookmark-content">
-      <div className="flex items-center gap-3">
-        <Avatar className="ring-1 ring-border/60 ring-offset-2 ring-offset-secondary">
+    <LayerCard.Body
+      className={cn("space-y-3", compact ? "p-4" : "p-5")}
+      data-testid="x-bookmark-content"
+    >
+      <div className="flex items-center gap-2.5">
+        <Avatar className={cn("ring-1 ring-border/60", compact && "size-8")}>
           <AvatarImage src={tweet.author.profile_image_url} alt={tweet.author.name} />
           <AvatarFallback>{tweet.author.name.slice(0, 1) || "X"}</AvatarFallback>
         </Avatar>
@@ -359,41 +444,50 @@ export function XBookmarkContent({
         <XSourceBadge type={getXContentTypes(tweet)[0] ?? "text"} />
       </div>
       {note && !standaloneLink && (
-        <p className="break-words text-base font-semibold leading-7 text-foreground">{note}</p>
+        <p
+          className={cn(
+            "break-words text-sm font-medium leading-5 text-foreground",
+            compact && "line-clamp-2",
+          )}
+        >
+          {note}
+        </p>
       )}
-      {text && <PostText key={tweet.id} text={text} />}
-      <MediaGrid media={tweet.media} />
-      <PostLinks links={links} headline={standaloneLink ? headline : null} />
-      {tweet.quoted_tweet && <Quote tweet={tweet.quoted_tweet} />}
-      <section
-        className="border-t border-border/60 pt-4 text-xs text-muted-foreground"
-        aria-label="帖子统计"
-      >
-        <div className="grid grid-cols-4 gap-2">
-          {metrics.map(({ icon: Icon, label, count }) => (
-            <span
-              key={label}
-              title={`${label} ${count}`}
-              className="inline-flex items-center justify-center gap-1.5 tabular-nums first:justify-start last:justify-end"
-            >
-              <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
-              <span aria-hidden className="font-medium">
-                {formatCount(count)}
+      {text && <PostText key={tweet.id} text={text} compact={compact} />}
+      <MediaGrid media={tweet.media} compact={compact} />
+      <PostLinks links={links} headline={standaloneLink ? headline : null} compact={compact} />
+      {tweet.quoted_tweet && <Quote tweet={tweet.quoted_tweet} compact={compact} />}
+      {!compact && (
+        <section
+          className="border-t border-border/60 pt-3 text-xs text-muted-foreground"
+          aria-label="帖子统计"
+        >
+          <div className="grid grid-cols-4 gap-2">
+            {metrics.map(({ icon: Icon, label, count }) => (
+              <span
+                key={label}
+                title={`${label} ${count}`}
+                className="inline-flex items-center justify-center gap-1.5 tabular-nums first:justify-start last:justify-end"
+              >
+                <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+                <span aria-hidden className="font-medium">
+                  {formatCount(count)}
+                </span>
+                <span className="sr-only">
+                  {label} {count}
+                </span>
               </span>
-              <span className="sr-only">
-                {label} {count}
-              </span>
-            </span>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
     </LayerCard.Body>
   );
 }
 
-export function XBookmarkPending({ link }: { link: Link }) {
+export function XBookmarkPending({ link, compact = false }: { link: Link; compact?: boolean }) {
   return (
-    <LayerCard.Body className="space-y-5 p-5">
+    <LayerCard.Body className={cn("space-y-3", compact ? "p-4" : "p-5")}>
       <div className="flex items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground">
           <Clock3 className="size-4" strokeWidth={1.5} aria-hidden />
@@ -405,11 +499,18 @@ export function XBookmarkPending({ link }: { link: Link }) {
         <XSourceBadge type="pending" />
       </div>
       {(link.note || link.metaTitle) && (
-        <p className="break-words text-base font-semibold leading-7">
+        <p className={cn("break-words text-sm font-medium leading-5", compact && "line-clamp-2")}>
           {link.note || link.metaTitle}
         </p>
       )}
-      <p className="rounded-widget border border-dashed border-border bg-background/40 p-4 text-sm leading-6 text-muted-foreground">
+      <p
+        className={cn(
+          "text-sm text-muted-foreground",
+          compact
+            ? "line-clamp-3 leading-5"
+            : "rounded-widget border border-dashed border-border bg-background/40 p-4 leading-6",
+        )}
+      >
         {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}
       </p>
     </LayerCard.Body>
@@ -430,14 +531,6 @@ export function XBookmarkStatus({
   const state = bookmark?.state ?? "pending";
   const version = `${linkId}:${state}:${bookmark?.updatedAt ?? 0}`;
   const currentFeedback = feedback?.version === version ? feedback : null;
-  const labels = {
-    pending: "等待补全",
-    running: "正在补全",
-    complete: "已补全",
-    partial: "正文已保存，媒体待补全",
-    failed: "补全暂未完成",
-    unavailable: "原帖暂不可访问",
-  };
   const StatusIcon =
     state === "running"
       ? RefreshCw
@@ -462,11 +555,11 @@ export function XBookmarkStatus({
     return (
       <span
         role="status"
-        title={labels[state]}
+        title={statusLabels[state]}
         className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs text-muted-foreground"
       >
         {icon}
-        <span className="truncate">{state === "partial" ? "媒体待补全" : labels[state]}</span>
+        <span className="truncate">{state === "partial" ? "媒体待补全" : statusLabels[state]}</span>
       </span>
     );
   const retry = async () => {
@@ -487,7 +580,7 @@ export function XBookmarkStatus({
           ? currentFeedback.success
             ? "已重新排队"
             : "暂时无法重试"
-          : labels[state]}
+          : statusLabels[state]}
       </span>
       {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
         <Button size="sm" variant="ghost" onClick={retry} disabled={retrying}>
