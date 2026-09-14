@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.3] - 2026-09-14
+
+### Changed
+- Upgrade React to 19.3.0
+
+### Fixed
+- Align card actions and standardize menu icons
+
 ## [v1.24.2] - 2026-09-14
 
 ### Fixed
