@@ -59,6 +59,8 @@
 
 图标按钮：`size="icon"`（36×36）。不要再发明 `xs` / `icon-sm`。
 
+菜单项统一使用 `components/ui/dropdown-menu` / `context-menu`：最小行高 36px、正文 `text-sm`、图文间距 8px，图标固定 16×16px、1.5px 描边且不收缩。业务菜单直接放 Lucide 图标，不再单独设置尺寸或 `mr-2`；说明性图标使用 `aria-hidden`。卡片内的辅助信息图标使用 14×14px、1.5px 描边。
+
 ### 硬规则
 
 ```tsx

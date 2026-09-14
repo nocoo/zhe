@@ -81,7 +81,7 @@ export function XBookmarkDetailsButton({
             aria-description={statusLabels[state]}
             className={cn("relative text-muted-foreground hover:text-foreground", className)}
           >
-            <BookOpen strokeWidth={1.5} />
+            <BookOpen strokeWidth={1.5} aria-hidden />
             {state !== "complete" && (
               <span
                 aria-hidden
@@ -376,9 +376,9 @@ function PostLinks({
           <div className="relative space-y-2">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
               {isArticle ? (
-                <FileText className="size-3.5" aria-hidden />
+                <FileText className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
               ) : (
-                <Link2 className="size-3.5" aria-hidden />
+                <Link2 className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
               )}
               {isXArticle ? "X 文章" : "分享链接"}
             </div>
@@ -400,7 +400,7 @@ function PostLinks({
               </span>
               <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground group-hover/article:text-primary">
                 {!compact && (isArticle ? "阅读全文" : "打开链接")}
-                <ArrowUpRight className="size-3.5" aria-hidden />
+                <ArrowUpRight className="size-3.5" strokeWidth={1.5} aria-hidden />
               </span>
             </div>
           </div>
@@ -498,7 +498,11 @@ export function XBookmarkContent({
               {tweet.author.name}
             </a>
             {tweet.author.is_verified && (
-              <BadgeCheck className="size-4 shrink-0 text-muted-foreground" aria-label="认证账号" />
+              <BadgeCheck
+                className="size-3.5 shrink-0 text-muted-foreground"
+                strokeWidth={1.5}
+                aria-label="认证账号"
+              />
             )}
           </div>
           <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">

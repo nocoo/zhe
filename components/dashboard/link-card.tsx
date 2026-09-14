@@ -274,7 +274,7 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkPending link={link} compact />
           )}
           <LayerCard.Footer
-            className="gap-1 border-border/60 bg-background/40 px-3 py-1"
+            className="flex-nowrap gap-2 border-border/60 bg-background/40 px-3 py-1"
             data-testid="x-card-footer"
           >
             <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
@@ -296,7 +296,7 @@ export const LinkCard = memo(function LinkCard({
                 </span>
               )}
             </div>
-            <div className="-mr-2 flex shrink-0 items-center text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
               <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -305,33 +305,38 @@ export const LinkCard = memo(function LinkCard({
                     size="icon"
                     variant="ghost"
                     aria-label="更多收藏操作"
+                    className="data-[state=open]:bg-accent data-[state=open]:text-foreground"
                   >
-                    <MoreHorizontal strokeWidth={1.5} />
+                    <MoreHorizontal strokeWidth={1.5} aria-hidden />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" collisionPadding={8} className="w-44">
                   <DropdownMenuItem onSelect={vm.handleCopy}>
-                    {vm.copied ? <Check className="text-success" /> : <Copy strokeWidth={1.5} />}
+                    {vm.copied ? (
+                      <Check className="text-success" aria-hidden />
+                    ) : (
+                      <Copy aria-hidden />
+                    )}
                     {vm.copied ? "已复制" : "复制短链接"}
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink strokeWidth={1.5} />
+                      <ExternalLink aria-hidden />
                       打开原帖
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={vm.handleToggleAnalytics}>
-                    <BarChart3 strokeWidth={1.5} />
+                    <BarChart3 aria-hidden />
                     点击统计
                   </DropdownMenuItem>
                   {onSuggest && (
                     <DropdownMenuItem onSelect={onSuggest} disabled={suggestDisabled}>
-                      <Sparkles strokeWidth={1.5} />
+                      <Sparkles aria-hidden />
                       AI 建议
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onSelect={handleToggleEdit}>
-                    <Pencil strokeWidth={1.5} />
+                    <Pencil aria-hidden />
                     {isEditing ? "收起编辑" : "编辑收藏"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>

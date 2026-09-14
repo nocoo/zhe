@@ -207,6 +207,8 @@ Do **not** put `rounded-lg` / `rounded-sm` / arbitrary `rounded-[Npx]` on contro
 
 Do **not** invent `xs` / `icon-sm`. Compact is Basalt **`sm`**.
 
+Dropdown and context menu items use the local `components/ui` wrappers: 36px minimum height, 8px icon-to-label gap, and 16px icons with 1.5px strokes. Do not add per-icon sizes or margins inside menu items. Card metadata icons use 14px with the same stroke width.
+
 ### Hard rules for agents
 
 1. **PageHeader actions / filter bars** → Button `size="sm"` (or `icon`); fields `size="sm"`.

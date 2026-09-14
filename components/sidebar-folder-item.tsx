@@ -159,14 +159,14 @@ export function SidebarFolderItem({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="bottom" className="w-32">
           <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
-            <Pencil className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+            <Pencil aria-hidden />
             编辑
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => onDelete(folder.id)}
             className="text-destructive focus:text-destructive"
           >
-            <Trash2 className="mr-2 h-3.5 w-3.5" strokeWidth={1.5} />
+            <Trash2 aria-hidden />
             删除
           </DropdownMenuItem>
         </DropdownMenuContent>
