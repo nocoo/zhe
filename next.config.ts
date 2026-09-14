@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // L2/L3 run beside the user's dev server without sharing its cache or lock.
+  distDir: process.env.PLAYWRIGHT === "1" ? ".next/test" : ".next",
   allowedDevOrigins: ["zhe.dev.hexly.ai"],
 
   // The Worker proxies zhe.to traffic through origin.zhe.to. Railway rewrites
