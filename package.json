@@ -69,7 +69,7 @@
     "@vitejs/plugin-react": "6.1.1",
     "@vitest/coverage-v8": "5.0.0",
     "drizzle-kit": "^0.31.10",
-    "happy-dom": "20.14.0",
+    "happy-dom": "20.14.5",
     "husky": "^9.1.7",
     "lint-staged": "17.5.1",
     "postcss": "8.5.28",
