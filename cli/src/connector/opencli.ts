@@ -36,7 +36,7 @@ export async function readInChild(postId: string): Promise<XCapture> {
   const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8")) as {
     version: string;
   };
-  if (manifest.version !== "1.8.6") throw new ConnectorError("unsupported_opencli_version");
+  if (manifest.version !== "1.8.7") throw new ConnectorError("unsupported_opencli_version");
   const { BrowserBridge } = (await import(
     pathToFileURL(join(root, "dist/src/browser/bridge.js")).href
   )) as { BrowserBridge: new () => Bridge };

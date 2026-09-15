@@ -61,6 +61,7 @@
       "!**/dist",
       "!**/.next",
       "!**/coverage",
+      "!**/coverage-tmp",
       "!**/playwright-report",
       "!**/test-results",
       "!**/.test-storage",
