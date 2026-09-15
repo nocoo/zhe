@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readInChild, readPost, runIsolated } from "../src/connector/opencli.js";
 
@@ -17,6 +18,7 @@ const raw = {
 };
 let child: EventEmitter & { kill: ReturnType<typeof vi.fn> };
 let root: string;
+let installedOpenCliVersion: string;
 let state: {
   options?: unknown;
   urls: string[];
@@ -33,6 +35,11 @@ const originalSend = process.send;
 const originalDisconnect = process.disconnect;
 
 beforeAll(async () => {
+  const registryPath = createRequire(import.meta.url).resolve("@jackwener/opencli/registry");
+  const manifest = JSON.parse(
+    await readFile(resolve(dirname(registryPath), "../../package.json"), "utf8"),
+  ) as { version: string };
+  installedOpenCliVersion = manifest.version;
   root = await mkdtemp(join(tmpdir(), "zhe-opencli-contract-"));
   await mkdir(join(root, "dist/src/browser"), { recursive: true });
   await mkdir(join(root, "clis/twitter"), { recursive: true });
@@ -106,7 +113,10 @@ beforeEach(async () => {
   };
   vi.stubGlobal("__zheConnectorTest", state);
   vi.stubEnv("ZHE_OPENCLI_ROOT", root);
-  await writeFile(join(root, "package.json"), JSON.stringify({ type: "module", version: "1.8.6" }));
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({ type: "module", version: installedOpenCliVersion }),
+  );
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -185,11 +195,14 @@ describe("pinned OpenCLI adapter contract", () => {
     expect(state.closeWindow).toBe(1);
     expect(state.closed).toBe(1);
   });
-  it("refuses an unsupported adapter version before opening the browser", async () => {
-    await writeFile(join(root, "package.json"), '{"version":"0.0.0"}');
-    await expect(readInChild(postId)).rejects.toThrow("unsupported_opencli_version");
-    expect(state.urls).toEqual([]);
-  });
+  it.each(["0.0.0", "1.8.6"])(
+    "refuses unsupported adapter version %s before opening the browser",
+    async (version) => {
+      await writeFile(join(root, "package.json"), JSON.stringify({ version }));
+      await expect(readInChild(postId)).rejects.toThrow("unsupported_opencli_version");
+      expect(state.urls).toEqual([]);
+    },
+  );
   it.each(["write", "missing"])("refuses changed adapter capability: %s", async (access) => {
     state.access = access;
     await expect(captureChild()).rejects.toThrow("adapter_contract_changed");
