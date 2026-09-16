@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.25.1] - 2026-09-16
+
+### Added
+- Keep repository cards equal height with at most four columns
+- Analyze full READMEs with saved AI fields
+
 ## [v1.25.0] - 2026-09-16
 
 ### Added
