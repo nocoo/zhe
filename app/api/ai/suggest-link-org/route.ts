@@ -8,6 +8,7 @@ import type { ScopedDB } from "@/lib/db/scoped";
 import { refreshLinkEnrichment } from "@/lib/enrichment";
 import { parseSuggestLinkOrg } from "@/models/ai-suggest-link-org";
 import { linkMissingMetadata } from "@/models/links";
+import { suggestedFoldersForSource } from "@/models/special-sources";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,10 @@ export async function POST(request: Request): Promise<Response> {
   const currentFolder = folders.find((f) => f.id === resolved.folderId)?.name ?? "Inbox";
 
   const catalogs = {
-    folders: folders.map((f) => ({ id: f.id, name: f.name })),
+    folders: suggestedFoldersForSource(resolved.originalUrl, folders).map((f) => ({
+      id: f.id,
+      name: f.name,
+    })),
     tags: tags.map((t) => ({ id: t.id, name: t.name })),
   };
   const hostname = (() => {

@@ -1,6 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
+import {
+  DEFAULT_SPECIAL_SOURCES,
+  matchesSpecialSources,
+  type SpecialSources,
+} from "@/models/special-sources";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
 import { useLinkMutations } from "@/viewmodels/useLinkMutations";
@@ -17,9 +22,13 @@ export function useInboxViewModel(
   allTags: Tag[],
   allLinkTags: LinkTag[],
   callbacks: InboxCallbacks,
+  sources: SpecialSources = DEFAULT_SPECIAL_SOURCES,
 ) {
   // Filter to uncategorized (inbox) links
-  const inboxLinks = useMemo(() => links.filter((l) => l.folderId === null), [links]);
+  const inboxLinks = useMemo(
+    () => links.filter((l) => l.folderId === null && matchesSpecialSources(l.originalUrl, sources)),
+    [links, sources],
+  );
 
   // ── Tag helpers — delegated to shared useLinkMutations hook ──
   const {
