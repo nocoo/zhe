@@ -60,6 +60,7 @@
       "!**/node_modules",
       "!**/dist",
       "!**/.next",
+      "!**/.wrangler",
       "!**/coverage",
       "!**/coverage-tmp",
       "!**/playwright-report",
