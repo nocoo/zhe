@@ -1,12 +1,14 @@
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { ApiClient, ApiClientError } from "../api/client.js";
 import { getApiKey } from "../config.js";
 import { ConnectorError } from "./core.js";
 import { downloadMedia, makePoster } from "./download.js";
+import { configuredEagle, type EagleSink } from "./eagle.js";
 import { ConnectorLogger, connectorErrorHint } from "./log.js";
+import { trimConnectorLog } from "./log-file.js";
 import { readPost } from "./opencli.js";
 import type { DownloadedMedia, MediaReservation, ReportProgress, XJob } from "./types.js";
 
@@ -27,6 +29,7 @@ export async function processOne(
   client: ApiClient,
   parent?: AbortSignal,
   progress?: ReportProgress,
+  eagle?: EagleSink,
 ): Promise<PollResult> {
   const { job } = await client.claimXJob(parent);
   if (!job) return { status: "idle", media: 0 };
@@ -54,6 +57,12 @@ export async function processOne(
     dir = await mkdtemp(join(tmpdir(), "zhe-connector-"));
     progress?.({ stage: "read", message: "Reading the saved post through the local X session" });
     const capture = await readPost(job.postId, signal);
+    // Fork before any Zhe write; the sidecar owns its downloads, deadlines and recovery.
+    try {
+      eagle?.submit(structuredClone(capture));
+    } catch {
+      /* enrichment is independent */
+    }
     progress?.({
       stage: "capture",
       message: `Saving ${capture.tweet.text.length} characters · ${capture.media.length} media found`,
@@ -88,6 +97,7 @@ export async function processOne(
         if (kind === "video") {
           reportMedia({ stage: "poster", message: "Generating video poster" });
           const poster = await makePoster(file.path, signal);
+          signal.throwIfAborted();
           if (poster) await archive(client, job, media.id, "poster", poster, signal, reportMedia);
           else reportMedia({ stage: "warning", message: "Poster unavailable; video is archived" });
         }
@@ -166,14 +176,19 @@ async function archive(
 export async function runOnce(
   signal?: AbortSignal,
   progress?: ReportProgress,
+  eagle?: EagleSink,
 ): Promise<PollResult> {
   // Read the shared CLI configuration on each poll, so logout/rotation takes effect.
-  return processOne(authenticatedClient(), signal, progress);
+  return processOne(authenticatedClient(), signal, progress, eagle);
 }
 
 export async function watchConnector(signal: AbortSignal, json = false): Promise<void> {
   const log = new ConnectorLogger(json);
+  const eagle = configuredEagle(log.eagle);
   const activity = setInterval(() => log.tick(), 10_000);
+  const logMaintenance = setInterval(() => {
+    void trimConnectorLog(join(homedir(), ".config", "zhe", "connector.log")).catch(() => {});
+  }, 60_000);
   log.start();
   try {
     while (!signal.aborted) {
@@ -185,7 +200,7 @@ export async function watchConnector(signal: AbortSignal, json = false): Promise
         if (signal.aborted) break;
         if (status) log.queue(status);
         log.result(
-          await processOne(client, signal, log.progress),
+          await processOne(client, signal, log.progress, eagle),
           Date.now() - started,
           !signal.aborted,
         );
@@ -196,6 +211,8 @@ export async function watchConnector(signal: AbortSignal, json = false): Promise
     }
   } finally {
     clearInterval(activity);
+    clearInterval(logMaintenance);
+    await eagle?.stop();
     log.stop();
   }
 }

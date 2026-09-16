@@ -5,6 +5,13 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { defineCommand } from "@nocoo/base-cli";
+import { getEagleConfig, saveEagleConfig } from "../config.js";
+import {
+  checkEagleLibrary,
+  checkEaglePrerequisites,
+  configuredEagle,
+  eagleConfig,
+} from "../connector/eagle.js";
 import { ConnectorLogger } from "../connector/log.js";
 import { authenticatedClient, runOnce, watchConnector } from "../connector/runtime.js";
 
@@ -24,6 +31,46 @@ export const connectorCommand = defineCommand({
     description: "Enrich saved X bookmarks using this CLI login and the local X session",
   },
   subCommands: {
+    eagle: defineCommand({
+      meta: {
+        name: "eagle",
+        description: "Configure optional Eagle image sidecar (off by default)",
+      },
+      args: {
+        library: {
+          type: "string",
+          description: "Absolute path to an existing synced Eagle .library",
+        },
+        enable: { type: "boolean", description: "Enable the sidecar" },
+        disable: { type: "boolean", description: "Disable the sidecar and pause queued retries" },
+      },
+      async run({ args }) {
+        if (args.enable && args.disable) throw new Error("Choose --enable or --disable.");
+        const prior = getEagleConfig();
+        if (args.library || args.enable || args.disable) {
+          const next = {
+            ...prior,
+            enabled: args.disable ? false : args.enable ? true : (prior?.enabled ?? false),
+            libraryPath: args.library ?? prior?.libraryPath ?? "",
+          };
+          if (next.enabled) {
+            eagleConfig(next);
+            await checkEaglePrerequisites();
+            await checkEagleLibrary(next.libraryPath);
+          }
+          saveEagleConfig(next);
+        }
+        const config = getEagleConfig();
+        console.log(
+          JSON.stringify(
+            { enabled: config?.enabled ?? false, libraryPath: config?.libraryPath ?? null },
+            null,
+            2,
+          ),
+        );
+        console.log("Restart connector watch/start after changing Eagle settings.");
+      },
+    }),
     status: defineCommand({
       meta: { name: "status", description: "Show Connector queue and shared CLI key expiry" },
       args: { json: { type: "boolean", description: "Output JSON" } },
@@ -39,7 +86,13 @@ export const connectorCommand = defineCommand({
       async run({ args }) {
         const log = new ConnectorLogger(Boolean(args.json));
         const started = Date.now();
-        log.result(await runOnce(undefined, log.progress), Date.now() - started);
+        const eagle = configuredEagle(log.eagle);
+        try {
+          log.result(await runOnce(undefined, log.progress, eagle), Date.now() - started);
+          await eagle?.drain();
+        } finally {
+          await eagle?.stop();
+        }
       },
     }),
     watch: defineCommand({

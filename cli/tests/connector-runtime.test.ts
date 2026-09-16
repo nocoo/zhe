@@ -8,12 +8,14 @@ import { ApiClient, ApiClientError } from "../src/api/client.js";
 import { getApiKey } from "../src/config.js";
 import { ConnectorError, normalizeXPost } from "../src/connector/core.js";
 import { downloadMedia, makePoster } from "../src/connector/download.js";
+import { trimConnectorLog } from "../src/connector/log-file.js";
 import { readPost } from "../src/connector/opencli.js";
 import { processOne, runOnce, watchConnector } from "../src/connector/runtime.js";
 
 vi.mock("../src/connector/opencli.js", () => ({ readPost: vi.fn() }));
+vi.mock("../src/connector/log-file.js", () => ({ trimConnectorLog: vi.fn() }));
 vi.mock("../src/connector/download.js", () => ({ downloadMedia: vi.fn(), makePoster: vi.fn() }));
-vi.mock("../src/config.js", () => ({ getApiKey: vi.fn() }));
+vi.mock("../src/config.js", () => ({ getApiKey: vi.fn(), getEagleConfig: vi.fn() }));
 vi.mock("node:timers/promises", () => ({ setTimeout: vi.fn() }));
 vi.mock("node:fs/promises", async (original) => {
   const fs = await original<typeof import("node:fs/promises")>();
@@ -79,6 +81,40 @@ afterEach(async () => {
 });
 
 describe("zhe connector", () => {
+  it("submits the sidecar before a failed Zhe capture and gives it an independent snapshot", async () => {
+    const data = structuredClone(capture);
+    data.media = [{ id: "222", type: "PHOTO", url: "https://pbs.twimg.com/media/test.jpg" }];
+    vi.mocked(readPost).mockResolvedValue(data);
+    const submitted: (typeof data)[] = [];
+    const client = new ApiClient("fixture");
+    const original = client.connectorAction.bind(client);
+    vi.spyOn(client, "connectorAction").mockImplementation((job, body, signal) => {
+      if ((body as { action: string }).action === "capture") {
+        expect(submitted).toHaveLength(1);
+        return Promise.reject(new ApiClientError(500, "offline"));
+      }
+      return original(job, body, signal);
+    });
+    expect(
+      await processOne(client, undefined, undefined, { submit: (value) => submitted.push(value) }),
+    ).toMatchObject({ status: "failed" });
+    data.media[0].url = "changed by enrich";
+    expect(submitted[0].media[0].url).toContain("pbs.twimg.com");
+  });
+  it("never awaits a blocked sidecar or fails enrichment because its submission throws", async () => {
+    const submit = vi.fn(() => new Promise<void>(() => {}));
+    expect(
+      await processOne(new ApiClient("fixture"), undefined, undefined, { submit }),
+    ).toMatchObject({ status: "complete" });
+    expect(submit).toHaveBeenCalledOnce();
+    expect(
+      await processOne(new ApiClient("fixture"), undefined, undefined, {
+        submit: () => {
+          throw new Error("Drive unavailable");
+        },
+      }),
+    ).toMatchObject({ status: "complete" });
+  });
   it("releases its heartbeat and reports failure if temporary storage is unavailable", async () => {
     vi.useFakeTimers();
     vi.mocked(mkdtemp).mockRejectedValueOnce(new Error("disk full"));
@@ -201,6 +237,7 @@ describe("zhe connector", () => {
   );
   it("shows in-flight progress without claiming overlapping jobs and summarizes confirmed uploads", async () => {
     vi.useFakeTimers();
+    vi.mocked(trimConnectorLog).mockRejectedValue(new Error("log storage unavailable"));
     const controller = new AbortController();
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const events = () => log.mock.calls.map(([line]) => JSON.parse(String(line)));
@@ -230,7 +267,8 @@ describe("zhe connector", () => {
     expect(events().some((event) => event.stage === "download" && event.received === 16)).toBe(
       true,
     );
-    await vi.advanceTimersByTimeAsync(21_000);
+    await vi.advanceTimersByTimeAsync(61_000);
+    expect(trimConnectorLog).toHaveBeenCalledOnce();
     expect(events().some((event) => event.event === "working")).toBe(true);
     expect(
       requests.filter(
