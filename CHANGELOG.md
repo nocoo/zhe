@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.25.0] - 2026-09-16
+
+### Added
+- Add GitHub repository views and categorized source navigation
+- Load repository summaries and resolve README links
+- Add persistent special-source filters to lists and Inbox
+- Share source preferences and exclude X media suggestions
+- Collect GitHub stars commits and complete READMEs
+- Add leased GitHub capture and README APIs
+- Define GitHub repository snapshots and storage
+
+### Changed
+- Document special-source filters and GitHub Connector setup
+- Share source icons filters and Markdown rendering
+
 ## [v1.24.5] - 2026-09-16
 
 ### Added
