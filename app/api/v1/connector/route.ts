@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { claimGitHubBookmark, connectorStates } from "@/lib/connector/github-jobs";
 import { authorizeConnector, connectorFailure, connectorResponse } from "@/lib/connector/http";
 import { claimXBookmark } from "@/lib/connector/jobs";
 import { executeD1Query } from "@/lib/db/d1-client";
@@ -7,10 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await authorizeConnector(request);
     if (auth instanceof NextResponse) return auth;
-    const states = await executeD1Query<{ state: string; count: number }>(
-      "SELECT state,COUNT(*) AS count FROM x_bookmarks WHERE user_id=? GROUP BY state",
-      [auth.userId],
-    );
+    const states = await connectorStates(auth.userId);
     const [key] = await executeD1Query<{ expires_at: number | null }>(
       "SELECT expires_at FROM api_keys WHERE id=? AND user_id=?",
       [auth.keyId, auth.userId],
@@ -29,7 +27,12 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await authorizeConnector(request);
     if (auth instanceof NextResponse) return auth;
-    return connectorResponse({ job: await claimXBookmark(auth) });
+    // Old CLI versions keep receiving only the X jobs they understand.
+    const sources = request.headers.get("x-connector-sources")?.split(",") ?? ["x"];
+    const github = sources.includes("github") ? await claimGitHubBookmark(auth) : null;
+    return connectorResponse({
+      job: github ?? (sources.includes("x") ? await claimXBookmark(auth) : null),
+    });
   } catch (error) {
     return connectorFailure(error);
   }

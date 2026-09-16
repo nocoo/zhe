@@ -5,7 +5,7 @@ import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth"
 import { validateCapture } from "./validation";
 
 export const LEASE_MS = 180_000;
-const ELIGIBLE_SQL = `attempts < 5 AND (
+export const ELIGIBLE_SQL = `attempts < 5 AND (
   (state IN ('pending','partial','failed') AND next_attempt_at <= ?) OR
   (state = 'running' AND lease_until <= ?))`;
 export const LEASE_SQL = `link_id = ? AND user_id = ? AND state = 'running'

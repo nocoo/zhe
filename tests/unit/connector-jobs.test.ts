@@ -12,14 +12,27 @@ import {
   retryXBookmarkAction,
   updateXMediaDimensionsAction,
 } from "@/actions/connector";
+import {
+  loadGitHubBookmarks,
+  loadGitHubReadme,
+  retryGitHubBookmarkAction,
+} from "@/actions/github-connector";
 import { cleanupOrphanFiles, scanStorage } from "@/actions/storage";
 import { GET as webhookStatus } from "@/app/api/link/create/[token]/route";
+import { POST as updateGitHubJob } from "@/app/api/v1/connector/github/jobs/[id]/route";
 import { PUT as uploadMedia } from "@/app/api/v1/connector/jobs/[id]/media/[assetId]/route";
 import { POST as updateJob } from "@/app/api/v1/connector/jobs/[id]/route";
 import { POST as poll, GET as status } from "@/app/api/v1/connector/route";
 import { normalizeXPost, type XCapture } from "@/cli/src/connector/core";
 import * as authContext from "@/lib/auth-context";
 import { connectorKeyActive } from "@/lib/connector/auth";
+import {
+  claimGitHubBookmark,
+  completeGitHubBookmark,
+  failGitHubBookmark,
+  getGitHubBookmarks,
+  renewGitHubBookmark,
+} from "@/lib/connector/github-jobs";
 import { type MediaReservation, reserveXMedia, writeXMedia } from "@/lib/connector/media";
 import * as d1 from "@/lib/db/d1-client";
 import { deleteLink as scopedDeleteLink } from "@/lib/db/scoped/links";
@@ -85,6 +98,23 @@ const capture = required(
   ),
 );
 
+const repository = {
+  sourceFullName: "octocat/Hello-World",
+  fullName: "octocat/Hello-World",
+  description: "A repository",
+  stars: 123,
+  commits: 84,
+  forks: 9,
+  language: "TypeScript",
+  defaultBranch: "main",
+  pushedAt: "2026-09-12T00:00:00Z",
+  archived: false,
+  license: "MIT",
+  topics: ["bookmarks"],
+  readme: `# Hello\n${"全文与代码\n".repeat(1000)}THE END`,
+  readmePath: ".github/README.md",
+};
+
 function link(url = source, owner = "owner", slug = crypto.randomUUID()) {
   return Number(
     db
@@ -134,6 +164,164 @@ afterEach(() => {
   rmSync(storageDir, { recursive: true, force: true });
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+});
+
+describe("GitHub Connector snapshots", () => {
+  it("negotiates GitHub jobs without sending them to old X-only clients", async () => {
+    const id = link("https://github.com/octocat/Hello-World/issues/1");
+    const headers = { authorization: "Bearer zhe_test_cli-key" };
+    const legacy = await poll(
+      new NextRequest("https://zhe.to/api/v1/connector", { method: "POST", headers }),
+    );
+    expect((await legacy.json()).job).toBeNull();
+    const response = await poll(
+      new NextRequest("https://zhe.to/api/v1/connector", {
+        method: "POST",
+        headers: { ...headers, "x-connector-sources": "github,x" },
+      }),
+    );
+    const { job } = await response.json();
+    expect(job).toMatchObject({ source: "github", linkId: id, fullName: repository.fullName });
+    const complete = await updateGitHubJob(
+      new NextRequest(`https://zhe.to/api/v1/connector/github/jobs/${id}`, {
+        method: "POST",
+        headers: { ...headers, "x-connector-lease": job.leaseToken },
+        body: JSON.stringify({ action: "complete", repository }),
+      }),
+      { params: Promise.resolve({ id: String(id) }) },
+    );
+    expect(complete.status).toBe(200);
+    const summaries = await getGitHubBookmarks("owner", [id]);
+    expect(summaries[0]).toMatchObject({
+      state: "complete",
+      hasReadme: true,
+      repository: { stars: 123, commits: 84 },
+      capturedAt: now,
+    });
+    expect(summaries[0]?.repository).not.toHaveProperty("readme");
+    expect(JSON.stringify(summaries)).not.toContain(job.leaseToken);
+    expect((await loadGitHubReadme(id)).data?.readme).toBe(repository.readme);
+    expect(rows("links")[0]?.meta_title).toBe(repository.fullName);
+    expect((await loadConnectorSummary()).states).toEqual([{ state: "complete", count: 1 }]);
+  });
+
+  it("bounds malformed URL discovery, isolates users and claims leases once", async () => {
+    link("https://github.com/topics/typescript");
+    const id = link("HTTP://WWW.GITHUB.COM/octocat/Hello-World.git");
+    link("https://github.com/other/private", "other");
+    const job = required(await claimGitHubBookmark(identity));
+    expect(job.linkId).toBe(id);
+    expect(rows("github_bookmarks")[0]?.state).toBe("unavailable");
+    expect(await claimGitHubBookmark(identity)).toBeNull();
+    expect(await renewGitHubBookmark(other, id, job.leaseToken)).toBe(false);
+    expect(await renewGitHubBookmark(identity, id, "wrong-token")).toBe(false);
+    expect(await completeGitHubBookmark(other, id, job.leaseToken, repository)).toBe(false);
+    expect(await getGitHubBookmarks("other", [id])).toEqual([]);
+    expect(await getGitHubBookmarks("owner", [])).toEqual([]);
+    expect(await renewGitHubBookmark(identity, id, job.leaseToken)).toBe(true);
+    expect((await retryGitHubBookmarkAction(id)).success).toBe(false);
+  });
+
+  it.each(["expired", "revoked", "scope"])(
+    "rechecks key %s at the snapshot mutation",
+    async (failure) => {
+      const id = link("https://github.com/octocat/Hello-World");
+      const job = required(await claimGitHubBookmark(identity));
+      if (failure === "expired")
+        db.prepare("UPDATE api_keys SET expires_at=? WHERE id=?").run(
+          Math.floor(now / 1000),
+          identity.keyId,
+        );
+      if (failure === "revoked")
+        db.prepare("UPDATE api_keys SET revoked_at=? WHERE id=?").run(now, identity.keyId);
+      if (failure === "scope")
+        db.prepare("UPDATE api_keys SET scopes='links:read' WHERE id=?").run(identity.keyId);
+      expect(await completeGitHubBookmark(identity, id, job.leaseToken, repository)).toBe(false);
+      expect(await failGitHubBookmark(identity, id, job.leaseToken, "interrupted")).toBe(false);
+      expect(await renewGitHubBookmark(identity, id, job.leaseToken)).toBe(false);
+      expect(rows("links")[0]?.meta_title).toBeNull();
+    },
+  );
+
+  it("rejects mismatched or excessive captures, retains a good snapshot on failure, and retries", async () => {
+    const id = link("https://github.com/octocat/Hello-World");
+    const job = required(await claimGitHubBookmark(identity));
+    await expect(
+      completeGitHubBookmark(identity, id, job.leaseToken, {
+        ...repository,
+        sourceFullName: "other/repo",
+      }),
+    ).rejects.toThrow("invalid_github_capture");
+    await expect(
+      completeGitHubBookmark(identity, id, job.leaseToken, {
+        ...repository,
+        readme: "\n".repeat(950_000),
+      }),
+    ).rejects.toThrow("github_content_too_large");
+    expect(await completeGitHubBookmark(identity, id, job.leaseToken, repository)).toBe(true);
+    expect(await retryGitHubBookmarkAction(id)).toEqual({ success: true });
+    const retry = required(await claimGitHubBookmark(identity));
+    expect(
+      await failGitHubBookmark(identity, id, retry.leaseToken, "private upstream token detail"),
+    ).toBe(true);
+    expect((await loadGitHubBookmarks([id])).data?.[0]).toMatchObject({
+      state: "failed",
+      errorCode: "connector_error",
+    });
+    expect((await loadGitHubReadme(id)).data?.readme).toBe(repository.readme);
+    expect(await claimGitHubBookmark(identity)).toBeNull();
+  });
+
+  it("invalidates old captures on URL changes, expiration and deletion", async () => {
+    const id = link("https://github.com/octocat/Hello-World");
+    const job = required(await claimGitHubBookmark(identity));
+    expect(await renewGitHubBookmark(identity, id, job.leaseToken, now + 180_000)).toBe(false);
+    db.prepare("UPDATE links SET original_url='https://example.com' WHERE id=?").run(id);
+    expect(await completeGitHubBookmark(identity, id, job.leaseToken, repository)).toBe(false);
+    expect(await loadGitHubReadme(id)).toEqual({ success: true, data: null });
+    expect(await retryGitHubBookmarkAction(id)).toEqual({ success: false });
+    db.prepare(
+      "UPDATE links SET original_url='https://github.com/octocat/Hello-World' WHERE id=?",
+    ).run(id);
+    expect(await retryGitHubBookmarkAction(id)).toEqual({ success: true });
+    const next = required(await claimGitHubBookmark(identity));
+    db.prepare("DELETE FROM links WHERE id=?").run(id);
+    expect(await completeGitHubBookmark(identity, id, next.leaseToken, repository)).toBe(false);
+    expect(rows("github_bookmarks")).toEqual([]);
+  });
+
+  it("retires exhausted interrupted work and allows explicit recovery", async () => {
+    const id = link("https://github.com/octocat/Hello-World");
+    await claimGitHubBookmark(identity);
+    db.prepare("UPDATE github_bookmarks SET attempts=5,lease_until=0 WHERE link_id=?").run(id);
+    expect(await claimGitHubBookmark(identity)).toBeNull();
+    expect(rows("github_bookmarks")[0]).toMatchObject({
+      state: "failed",
+      error_code: "interrupted",
+    });
+    await retryGitHubBookmarkAction(id);
+    const job = required(await claimGitHubBookmark(identity));
+    expect(await failGitHubBookmark(identity, id, job.leaseToken, "github_rate_limited")).toBe(
+      true,
+    );
+    expect(rows("github_bookmarks")[0]?.error_code).toBe("github_rate_limited");
+  });
+
+  it("validates browser actions and does not return another user's README", async () => {
+    const id = link("https://github.com/octocat/Hello-World", "other");
+    const job = required(await claimGitHubBookmark(other));
+    await completeGitHubBookmark(other, id, job.leaseToken, repository);
+    expect(await loadGitHubReadme(id)).toEqual({ success: true, data: null });
+    expect(await retryGitHubBookmarkAction(id)).toEqual({ success: false });
+    expect(await loadGitHubBookmarks([-1])).toEqual({ success: false });
+    expect(await loadGitHubBookmarks(Array(81).fill(1))).toEqual({ success: false });
+    expect(await loadGitHubReadme(NaN)).toEqual({ success: false });
+    expect(await retryGitHubBookmarkAction(-1)).toEqual({ success: false });
+    vi.spyOn(authContext, "requireAuth").mockResolvedValue(null);
+    expect(await loadGitHubBookmarks([id])).toEqual({ success: false });
+    expect(await loadGitHubReadme(id)).toEqual({ success: false });
+    expect(await retryGitHubBookmarkAction(id)).toEqual({ success: false });
+  });
 });
 
 describe("Connector HTTP boundary uses the same CLI authentication", () => {

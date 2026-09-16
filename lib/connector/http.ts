@@ -37,7 +37,10 @@ export function jobParams(id: string, request: NextRequest): { id: number; token
   return { id: Number(id), token };
 }
 
-export async function readConnectorJson(request: Request): Promise<Record<string, unknown>> {
+export async function readConnectorJson(
+  request: Request,
+  maxBytes = 512_000,
+): Promise<Record<string, unknown>> {
   if (!request.body) throw new ConnectorError("invalid_json", 400);
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -47,7 +50,7 @@ export async function readConnectorJson(request: Request): Promise<Record<string
       const { done, value } = await reader.read();
       if (done) break;
       size += value.length;
-      if (size > 512_000) throw new ConnectorError("body_too_large", 413);
+      if (size > maxBytes) throw new ConnectorError("body_too_large", 413);
       chunks.push(value);
     }
     try {

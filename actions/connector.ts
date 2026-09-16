@@ -2,6 +2,7 @@
 
 import type { XCapture } from "@/cli/src/connector/core";
 import { requireAuth } from "@/lib/auth-context";
+import { connectorStates } from "@/lib/connector/github-jobs";
 import { getXBookmarks, type XBookmark } from "@/lib/connector/jobs";
 import { executeD1Query } from "@/lib/db/d1-client";
 import type { XMediaDimensions } from "@/models/x-bookmarks";
@@ -103,10 +104,7 @@ export async function loadConnectorSummary(): Promise<{
 }> {
   const userId = await requireAuth();
   if (!userId) return { states: [], lastSeenAt: null };
-  const states = await executeD1Query<{ state: string; count: number }>(
-    "SELECT state,COUNT(*) AS count FROM x_bookmarks WHERE user_id=? GROUP BY state",
-    [userId],
-  );
+  const states = await connectorStates(userId);
   const [row] = await executeD1Query<{ last_seen: number | null }>(
     "SELECT MAX(p.last_seen_at) AS last_seen FROM x_connector_presence p JOIN api_keys k ON k.id=p.key_id AND k.user_id=p.user_id WHERE p.user_id=? AND k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at > ?) AND (',' || k.scopes || ',') LIKE '%,connector:write,%'",
     [userId, Math.floor(Date.now() / 1000)],

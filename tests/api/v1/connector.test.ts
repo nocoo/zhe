@@ -68,6 +68,54 @@ afterAll(async () => {
 });
 
 describe("saved links enhanced through the shared CLI HTTP interface", () => {
+  it("collects GitHub snapshots through negotiated CLI jobs and atomically preserves README text", async () => {
+    const saved = await client.createLink({ url: "https://github.com/octocat/Hello-World" });
+    expect((await client.claimXJob()).job).toBeNull();
+    const job = unwrap((await client.claimConnectorJob()).job);
+    expect(job).toMatchObject({ source: "github", linkId: saved.link.id });
+    const repository = {
+      sourceFullName: "octocat/Hello-World",
+      fullName: "octocat/Hello-World",
+      description: "Saved GitHub repository",
+      stars: 451,
+      commits: 217,
+      forks: 23,
+      language: "TypeScript",
+      defaultBranch: "main",
+      pushedAt: "2026-09-12T00:00:00Z",
+      archived: false,
+      license: "MIT",
+      topics: ["bookmarks"],
+      readmePath: "README.md",
+      readme: `# Full README\n${"Full content\n".repeat(50_000)}END`,
+    };
+    const outsider = new ApiClient(wrongKey, undefined, `${getBaseUrl()}/api/v1`);
+    await expect(
+      outsider.connectorAction(job, { action: "complete", repository }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      client.connectorAction(job, {
+        action: "complete",
+        repository: { ...repository, commits: -1 },
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    await client.connectorAction(job, { action: "renew" });
+    await client.connectorAction(job, { action: "complete", repository });
+    const [row] = await queryD1<{ result_json: string }>(
+      "SELECT result_json FROM github_bookmarks WHERE link_id=? AND user_id=?",
+      [job.linkId, owner],
+    );
+    expect(JSON.parse(unwrap(row).result_json)).toEqual(repository);
+    expect((await client.getLink(job.linkId)).link.metaTitle).toBe(repository.fullName);
+    await client.deleteLink(job.linkId);
+    expect(
+      await queryD1("SELECT link_id FROM github_bookmarks WHERE link_id=?", [job.linkId]),
+    ).toEqual([]);
+    await expect(
+      client.connectorAction(job, { action: "complete", repository }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
   it("requires the CLI capability while accepting webhook saves without an authorization header", async () => {
     expect((await fetch(`${getBaseUrl()}/api/v1/connector`)).status).toBe(401);
     expect((await authenticatedFetch(`${getBaseUrl()}/api/v1/connector`, readKey)).status).toBe(
