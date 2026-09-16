@@ -1,5 +1,6 @@
 // Pure business logic for link operations — no React, no DOM.
 
+import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
 import type { AnalyticsStats, Link, LinkTag, Tag } from "./types";
 
 /** Build a short URL from site base URL and slug */
@@ -212,15 +213,7 @@ export const GITHUB_REPO_PREVIEW_URL = "/github-preview.jpg";
  * or non-github.com domains.
  */
 export function isGitHubRepoUrl(url: string): boolean {
-  try {
-    const { hostname, pathname } = new URL(url);
-    if (hostname !== "github.com" && hostname !== "www.github.com") return false;
-    // pathname must have at least two non-empty segments: /owner/repo
-    const segments = pathname.split("/").filter(Boolean);
-    return segments.length >= 2;
-  } catch {
-    return false;
-  }
+  return canonicalGitHubRepo(url) !== null;
 }
 
 // --- Screenshot services ---

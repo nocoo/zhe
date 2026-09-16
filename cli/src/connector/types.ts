@@ -1,4 +1,5 @@
 export interface XJob {
+  source?: "x";
   linkId: number;
   userId: string;
   postId: string;
@@ -7,6 +8,17 @@ export interface XJob {
   leaseUntil: number;
   attempts: number;
 }
+export interface GitHubJob {
+  source: "github";
+  linkId: number;
+  userId: string;
+  fullName: string;
+  sourceUrl: string;
+  leaseToken: string;
+  leaseUntil: number;
+  attempts: number;
+}
+export type ConnectorJob = XJob | GitHubJob;
 export interface MediaReservation {
   id: string;
   key: string;

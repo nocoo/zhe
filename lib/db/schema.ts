@@ -244,6 +244,33 @@ export const xConnectorPresence = sqliteTable("x_connector_presence", {
   lastSeenAt: integer("last_seen_at").notNull(),
 });
 
+export const githubBookmarks = sqliteTable(
+  "github_bookmarks",
+  {
+    linkId: integer("link_id")
+      .primaryKey()
+      .references(() => links.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceUrl: text("source_url").notNull(),
+    fullName: text("full_name"),
+    state: text("state", { enum: ["pending", "running", "complete", "failed", "unavailable"] })
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+    leaseKeyId: text("lease_key_id"),
+    leaseToken: text("lease_token"),
+    leaseUntil: integer("lease_until").notNull().default(0),
+    resultJson: text("result_json"),
+    errorCode: text("error_code"),
+    capturedAt: integer("captured_at"),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [index("idx_github_bookmarks_poll").on(t.userId, t.state, t.nextAttemptAt)],
+);
+
 export const xMedia = sqliteTable(
   "x_media",
   {
