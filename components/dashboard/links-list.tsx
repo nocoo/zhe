@@ -178,6 +178,7 @@ export function LinksList() {
   return (
     <div>
       <LinksListToolbar
+        specialSources={filters.specialSources}
         headerTitle={filters.headerTitle}
         linkCount={filters.filteredLinks.length}
         totalCount={links.length}

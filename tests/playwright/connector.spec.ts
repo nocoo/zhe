@@ -80,7 +80,10 @@ for (const viewport of [
         const touch = await context.newCDPSession(page);
         await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
       }
-      await page.addInitScript(() => localStorage.setItem("zhe_links_view_mode", "grid"));
+      await page.addInitScript(() => {
+        localStorage.setItem("zhe_links_view_mode", "grid");
+        localStorage.setItem("zhe_special_sources", JSON.stringify({ github: true, x: true }));
+      });
       await page.goto("/dashboard");
       await expect(islandHeading(page, "全部链接")).toBeVisible();
       await expect(appTitle(page, "链接管理")).toBeVisible();

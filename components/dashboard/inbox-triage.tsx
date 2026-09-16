@@ -14,6 +14,8 @@ import type { LinkTag } from "@/models/types";
 import { useInboxViewModel } from "@/viewmodels/useInboxViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { useSpecialSources } from "./links-list-parts/useSpecialSources";
+import { SpecialSourceFilter } from "./special-source-filter";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 function InboxSkeleton() {
@@ -118,7 +120,15 @@ export function InboxTriage() {
     [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
   );
 
-  const vm = useInboxViewModel(links, folders, tags, linkTags, editCallbacks);
+  const specialSources = useSpecialSources();
+  const vm = useInboxViewModel(
+    links,
+    folders,
+    tags,
+    linkTags,
+    editCallbacks,
+    specialSources.sources,
+  );
   const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
   useEffect(() => {
     void suggestVm.refreshHasAiKey();
@@ -136,6 +146,14 @@ export function InboxTriage() {
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
       />
+
+      <div className="mb-4 flex items-center gap-2">
+        <SpecialSourceFilter
+          sources={specialSources.sources}
+          onToggle={specialSources.toggle}
+          onReset={specialSources.reset}
+        />
+      </div>
 
       {vm.inboxLinks.length === 0 ? (
         <InboxEmpty />

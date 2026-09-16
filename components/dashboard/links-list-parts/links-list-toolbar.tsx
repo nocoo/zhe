@@ -6,10 +6,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { LinkFilterBar } from "../link-filter-bar";
+import { SpecialSourceFilter } from "../special-source-filter";
+import type { useSpecialSources } from "./useSpecialSources";
 
 type ViewMode = "list" | "grid";
 
 interface FilterControlsProps {
+  specialSources: ReturnType<typeof useSpecialSources>;
   folders: Folder[];
   tags: Tag[];
   filterFolderId: string | null;
@@ -43,6 +46,11 @@ function FilterControls(props: FilterControlsProps) {
 
   return (
     <>
+      <SpecialSourceFilter
+        sources={props.specialSources.sources}
+        onToggle={props.specialSources.toggle}
+        onReset={props.specialSources.reset}
+      />
       <LinkFilterBar
         folders={folders}
         tags={tags}
@@ -52,6 +60,7 @@ function FilterControls(props: FilterControlsProps) {
         onToggleTag={onToggleTag}
         onClear={onClearFilters}
         showFolderFilter={showFolderFilter}
+        hasAdditionalFilters={props.specialSources.changed}
       />
       <div className="flex items-center rounded-widget bg-background p-0.5">
         <button

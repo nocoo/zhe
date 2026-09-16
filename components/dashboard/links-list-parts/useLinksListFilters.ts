@@ -2,7 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import { matchesSpecialSources } from "@/models/special-sources";
 import type { Folder, Link, LinkTag } from "@/models/types";
+import { useSpecialSources } from "./useSpecialSources";
 
 /**
  * Filter state + derived filtered/grouped data for the links list.
@@ -28,6 +30,7 @@ export function useLinksListFilters({
 }) {
   const [filterFolderId, setFilterFolderId] = useState<string | null>(null);
   const [filterTagIds, setFilterTagIds] = useState<Set<string>>(new Set());
+  const specialSources = useSpecialSources();
 
   const searchParams = useSearchParams();
   const selectedFolderId = searchParams.get("folder") ?? null;
@@ -48,7 +51,9 @@ export function useLinksListFilters({
   const emptyLinkTags = useMemo<LinkTag[]>(() => [], []);
 
   const filteredLinks = useMemo(() => {
-    let result = links;
+    let result = links.filter((link) =>
+      matchesSpecialSources(link.originalUrl, specialSources.sources),
+    );
 
     // 1. Sidebar folder filter (URL param) takes precedence.
     if (selectedFolderId) {
@@ -78,7 +83,14 @@ export function useLinksListFilters({
     }
 
     return result;
-  }, [links, selectedFolderId, filterFolderId, filterTagIds, linkTagsByLinkId]);
+  }, [
+    links,
+    selectedFolderId,
+    filterFolderId,
+    filterTagIds,
+    linkTagsByLinkId,
+    specialSources.sources,
+  ]);
 
   const selectedFolder = useMemo(() => {
     if (!selectedFolderId || selectedFolderId === "uncategorized") return null;
@@ -92,8 +104,10 @@ export function useLinksListFilters({
         ? selectedFolder.name
         : "全部链接";
 
-  const hasActiveFilters = filterFolderId !== null || filterTagIds.size > 0;
-  const activeFilterCount = (filterFolderId ? 1 : 0) + filterTagIds.size;
+  const hasActiveFilters =
+    filterFolderId !== null || filterTagIds.size > 0 || specialSources.changed;
+  const activeFilterCount =
+    (filterFolderId ? 1 : 0) + filterTagIds.size + (specialSources.changed ? 1 : 0);
 
   const handleToggleFilterTag = useCallback((tagId: string) => {
     setFilterTagIds((prev) => {
@@ -107,9 +121,11 @@ export function useLinksListFilters({
   const handleClearFilters = useCallback(() => {
     setFilterFolderId(null);
     setFilterTagIds(new Set());
-  }, []);
+    specialSources.reset();
+  }, [specialSources.reset]);
 
   return {
+    specialSources,
     selectedFolderId,
     filterFolderId,
     setFilterFolderId,
