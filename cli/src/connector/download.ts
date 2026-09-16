@@ -60,6 +60,7 @@ export async function downloadMedia(
   directory: string,
   signal?: AbortSignal,
   onProgress?: (phase: "download" | "verify", received: number, total: number) => void,
+  imageLimits?: { maxPixels: number; maxDimension: number },
 ): Promise<DownloadedMedia> {
   const video = media.type !== "PHOTO";
   const bounded = AbortSignal.any([AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
@@ -121,6 +122,23 @@ export async function downloadMedia(
         { timeout: 120_000, maxBuffer: 1_048_576, signal: bounded },
       );
       probe = record(JSON.parse(output.stdout));
+      if (imageLimits && !video) {
+        const frame = (Array.isArray(probe.streams) ? probe.streams.map(record) : []).find(
+          (stream) => stream.codec_type === "video",
+        );
+        const width = Number(frame?.width);
+        const height = Number(frame?.height);
+        if (
+          !Number.isSafeInteger(width) ||
+          !Number.isSafeInteger(height) ||
+          width <= 0 ||
+          height <= 0 ||
+          width > imageLimits.maxDimension ||
+          height > imageLimits.maxDimension ||
+          width * height > imageLimits.maxPixels
+        )
+          throw new ConnectorError("invalid_media");
+      }
       await execute(
         "ffmpeg",
         [
@@ -129,6 +147,7 @@ export async function downloadMedia(
           "-v",
           "error",
           "-xerror",
+          ...(imageLimits ? ["-threads", "1"] : []),
           "-i",
           partial,
           "-map",

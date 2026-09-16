@@ -46,6 +46,7 @@ bun-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+__pycache__/
 next-env.d.ts
 
 # IDE

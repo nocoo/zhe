@@ -42,6 +42,44 @@ afterEach(async () => {
 });
 
 describe("bounded local media capture", () => {
+  it.each([
+    { width: 5000, height: 4000, valid: true },
+    { width: 10001, height: 1, valid: false },
+    { width: 1, height: 10001, valid: false },
+    { width: 6000, height: 4000, valid: false },
+    { width: 0, height: 1, valid: false },
+    { width: 1, height: -1, valid: false },
+    { width: 1.5, height: 1, valid: false },
+    { width: 1, height: null, valid: false },
+  ])("checks Eagle dimensions before full decode: %j", async ({ width, height, valid }) => {
+    const photo = {
+      ...media,
+      type: "PHOTO" as const,
+      url: "https://pbs.twimg.com/media/synthetic.jpg",
+    };
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      String(url).includes("dns-query")
+        ? Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] })
+        : new Response(new Uint8Array([255, 216, 255]), {
+            headers: { "content-type": "image/jpeg", "content-length": "3" },
+          }),
+    );
+    execute.mockResolvedValue({
+      stdout: JSON.stringify({ streams: [{ codec_type: "video", width, height }] }),
+    });
+    const result = downloadMedia(photo, dir, undefined, undefined, {
+      maxPixels: 20_000_000,
+      maxDimension: 10000,
+    });
+    if (valid) {
+      await expect(result).resolves.toMatchObject({ width, height });
+      expect(execute.mock.calls[1][1]).toEqual(expect.arrayContaining(["-threads", "1"]));
+    } else {
+      await expect(result).rejects.toThrow();
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(execute.mock.calls[0][0]).toBe("ffprobe");
+    }
+  });
   it("checks public DNS, signature, length, hash and full decode before uploading", async () => {
     const progress = vi.fn();
     const file = await downloadMedia(media, dir, undefined, progress);

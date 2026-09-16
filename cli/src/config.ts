@@ -10,6 +10,7 @@ export interface ZheConfig extends Record<string, unknown> {
   apiKey?: string;
   defaultFolderId?: string;
   outputFormat?: "table" | "json" | "minimal";
+  eagle?: { enabled: boolean; libraryPath: string; timeoutMs?: number; retryMs?: number };
 }
 
 /**
@@ -78,4 +79,12 @@ export function clearApiKey(): void {
  */
 export function getOutputFormat(): "table" | "json" | "minimal" {
   return getConfig().get("outputFormat") || "table";
+}
+
+export function getEagleConfig(): ZheConfig["eagle"] {
+  return getConfig().get("eagle");
+}
+
+export function saveEagleConfig(eagle: NonNullable<ZheConfig["eagle"]>): void {
+  getConfig().set("eagle", eagle);
 }

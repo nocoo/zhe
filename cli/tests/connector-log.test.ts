@@ -3,6 +3,25 @@ import { ApiClientError } from "../src/api/client.js";
 import { ConnectorError } from "../src/connector/core.js";
 import { ConnectorLogger, connectorErrorHint } from "../src/connector/log.js";
 
+it("reports sidecar attempts and retry reasons separately from enrichment", () => {
+  const output = vi.spyOn(console, "log").mockImplementation(() => {});
+  const logger = new ConnectorLogger(true);
+  logger.eagle({ event: "eagle", code: "saved" });
+  logger.eagle({
+    event: "eagle",
+    code: "retry",
+    reason: "drive_unavailable",
+    attempts: 2,
+    retryAt: 1789500000000,
+  });
+  expect(JSON.parse(String(output.mock.calls.at(-1)?.[0]))).toMatchObject({
+    event: "eagle",
+    attempts: 2,
+    reason: "drive_unavailable",
+  });
+  output.mockRestore();
+});
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();

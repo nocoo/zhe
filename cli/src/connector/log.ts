@@ -2,6 +2,7 @@ import { formatDuration, formatSize, pc } from "@nocoo/base-cli";
 import { ApiClientError } from "../api/client.js";
 import { CLI_VERSION } from "../version.js";
 import { ConnectorError } from "./core.js";
+import type { EagleEvent } from "./eagle.js";
 import type { PollResult } from "./runtime.js";
 import type { ConnectorProgress, ConnectorStatus } from "./types.js";
 
@@ -87,6 +88,14 @@ export class ConnectorLogger {
       `Zhe · X Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
     );
   }
+
+  eagle = (event: EagleEvent) => {
+    this.write(
+      "eagle",
+      `Eagle sidecar: ${event.code}${event.reason ? ` · ${event.reason}` : ""}${event.attempts ? ` · attempt ${event.attempts}` : ""}${event.retryAt ? ` · retry after ${new Date(event.retryAt).toISOString()}` : ""}`,
+      { ...event },
+    );
+  };
 
   queue(status: ConnectorStatus) {
     const states = Object.fromEntries(status.states.map(({ state, count }) => [state, count]));

@@ -12,14 +12,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc && cp src/connector/eagle-native.py dist/connector/eagle-native.py",
+    "prepack": "bun run build",
     "dev": "tsc --watch",
-    "test": "vitest run",
+    "test": "vitest run && python3 -m unittest discover -s tests -p eagle_native_test.py",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && python3 -m unittest discover -s tests -p eagle_native_test.py",
     "lint": "tsc --noEmit && biome check src/",
-    "lint:fix": "biome check --write src/",
-    "release": "bun scripts/release.ts"
+    "lint:fix": "biome check --write src/"
   },
   "dependencies": {
     "@jackwener/opencli": "1.8.7",
