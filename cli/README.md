@@ -2,6 +2,8 @@
 
 CLI for managing zhe.to short links.
 
+The built-in Connector enriches saved X posts and GitHub repositories. GitHub snapshots include stars, default-branch commit counts and complete README text. It uses `GH_TOKEN` / `GITHUB_TOKEN` or your existing `gh auth login` in memory; public repositories also work without a GitHub login. GitHub-only collection needs no browser extension or FFmpeg. See [GitHub bookmarks](../docs/27-github-bookmarks.md).
+
 ## Installation
 
 ```bash
@@ -80,7 +82,7 @@ Archived files use Zhe's existing R2 file-sharing behavior. Delete a video to re
 
 See the [implementation and operations guide](../docs/25-x-bookmark-connector.md) for the job lifecycle, storage cleanup, and verification procedure.
 
-The optional [Eagle sidecar](../docs/26-eagle-sidecar.md) writes 1–4 post images in parallel to a configured local GDrive Eagle library. It is off by default and requires macOS/Linux and Python 3.9+ in addition to FFmpeg. Enable it with `zhe connector eagle --library '/absolute/path/Collection.library' --enable`, then restart the Connector. Its queue, deadlines, retries and logs are independent of Zhe enrichment. This release is available through GitHub; no npm publication is performed.
+The optional [Eagle sidecar](../docs/26-eagle-sidecar.md) writes 1–4 post images in parallel to a configured local GDrive Eagle library. It is off by default and requires macOS/Linux and Python 3.9+ in addition to FFmpeg. Enable it with `zhe connector eagle --library '/absolute/path/Collection.library' --enable`, then restart the Connector. Its queue, deadlines, retries and logs are independent of Zhe enrichment. The CLI is published to npm as `@nocoo/zhe` with the same version as the web application.
 
 ## Configuration
 

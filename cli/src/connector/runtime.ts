@@ -7,6 +7,7 @@ import { getApiKey } from "../config.js";
 import { ConnectorError } from "./core.js";
 import { downloadMedia, makePoster } from "./download.js";
 import { configuredEagle, type EagleSink } from "./eagle.js";
+import { readGitHubRepository } from "./github.js";
 import { ConnectorLogger, connectorErrorHint } from "./log.js";
 import { trimConnectorLog } from "./log-file.js";
 import { readPost } from "./opencli.js";
@@ -31,11 +32,11 @@ export async function processOne(
   progress?: ReportProgress,
   eagle?: EagleSink,
 ): Promise<PollResult> {
-  const { job } = await client.claimXJob(parent);
+  const { job } = await client.claimConnectorJob(parent);
   if (!job) return { status: "idle", media: 0 };
   progress?.({
     stage: "claim",
-    message: `Link #${job.linkId} · X post ${job.postId} · attempt ${job.attempts}`,
+    message: `Link #${job.linkId} · ${job.source === "github" ? `GitHub ${job.fullName}` : `X post ${job.postId}`} · attempt ${job.attempts}`,
   });
   const controller = new AbortController();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
@@ -54,6 +55,20 @@ export async function processOne(
   let archived = 0;
   let incomplete = false;
   try {
+    if (job.source === "github") {
+      progress?.({
+        stage: "read",
+        message: "Reading repository statistics and the complete README from GitHub",
+      });
+      const repository = await readGitHubRepository(job.fullName, signal);
+      signal.throwIfAborted();
+      progress?.({
+        stage: "publish",
+        message: `Saving ${repository.stars} stars · ${repository.commits} commits · ${repository.readme?.length ?? 0} README characters`,
+      });
+      await client.connectorAction(job, { action: "complete", repository }, signal);
+      return { status: "complete", media: 0 };
+    }
     dir = await mkdtemp(join(tmpdir(), "zhe-connector-"));
     progress?.({ stage: "read", message: "Reading the saved post through the local X session" });
     const capture = await readPost(job.postId, signal);

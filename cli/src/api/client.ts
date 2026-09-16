@@ -4,6 +4,7 @@
 
 import { openAsBlob } from "node:fs";
 import type {
+  ConnectorJob,
   ConnectorStatus,
   DownloadedMedia,
   MediaReservation,
@@ -301,10 +302,18 @@ export class ApiClient {
     return this.request("POST", "/connector", {}, {}, signal);
   }
 
-  connectorAction<T = { ok: boolean }>(job: XJob, body: unknown, signal?: AbortSignal): Promise<T> {
+  claimConnectorJob(signal?: AbortSignal): Promise<{ job: ConnectorJob | null }> {
+    return this.request("POST", "/connector", {}, { "X-Connector-Sources": "github,x" }, signal);
+  }
+
+  connectorAction<T = { ok: boolean }>(
+    job: ConnectorJob,
+    body: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
     return this.request(
       "POST",
-      `/connector/jobs/${job.linkId}`,
+      `/connector/${job.source === "github" ? "github/" : ""}jobs/${job.linkId}`,
       body,
       { "X-Connector-Lease": job.leaseToken },
       signal,

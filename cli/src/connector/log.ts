@@ -21,6 +21,17 @@ const hints: Record<string, string> = {
   adapter_contract_changed: "OpenCLI adapter changed. Update the Zhe CLI.",
   post_unavailable: "The saved X post is unavailable or protected.",
   invalid_post_id: "The saved X post ID is invalid.",
+  github_needs_login:
+    "GitHub rejected the local credential. Run `gh auth login` or update GH_TOKEN.",
+  github_rate_limited:
+    "GitHub access or rate limit reached. Check the local GitHub login and retry later.",
+  github_repository_unavailable:
+    "The GitHub repository is unavailable or inaccessible to the local login.",
+  github_unavailable: "GitHub is temporarily unavailable; the saved snapshot is retained.",
+  github_response_invalid: "GitHub returned an incomplete snapshot; update the CLI and retry.",
+  github_content_too_large:
+    "The README exceeds the archive limit; it was not truncated. Open it on GitHub.",
+  github_unsafe_redirect: "The GitHub redirect could not be verified.",
   invalid_media: "Media has an unsupported type or exceeds the size limit.",
   decode_failed: "Media verification failed. Check FFmpeg and ffprobe are installed.",
   download_failed: "Media download failed. The saved text is retained for retry.",
@@ -85,7 +96,7 @@ export class ConnectorLogger {
   start() {
     this.write(
       "ready",
-      `Zhe · X Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
+      `Zhe · X / GitHub Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
     );
   }
 

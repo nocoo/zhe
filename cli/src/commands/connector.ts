@@ -28,7 +28,7 @@ const xml = (value: string) =>
 export const connectorCommand = defineCommand({
   meta: {
     name: "connector",
-    description: "Enrich saved X bookmarks using this CLI login and the local X session",
+    description: "Enrich saved X and GitHub bookmarks using local credentials",
   },
   subCommands: {
     eagle: defineCommand({
@@ -81,7 +81,7 @@ export const connectorCommand = defineCommand({
       },
     }),
     once: defineCommand({
-      meta: { name: "once", description: "Process one saved X bookmark" },
+      meta: { name: "once", description: "Process one saved X or GitHub bookmark" },
       args: { json: { type: "boolean", description: "Output JSON progress and result" } },
       async run({ args }) {
         const log = new ConnectorLogger(Boolean(args.json));
@@ -96,7 +96,7 @@ export const connectorCommand = defineCommand({
       },
     }),
     watch: defineCommand({
-      meta: { name: "watch", description: "Poll saved X bookmarks every 20 seconds" },
+      meta: { name: "watch", description: "Poll saved X and GitHub bookmarks every 20 seconds" },
       args: { json: { type: "boolean", description: "Output newline-delimited JSON events" } },
       async run({ args }) {
         const controller = new AbortController();
@@ -117,8 +117,6 @@ export const connectorCommand = defineCommand({
         if (process.platform !== "darwin")
           throw new Error("Use `zhe connector watch` with your system's process supervisor.");
         await authenticatedClient().connectorStatus();
-        for (const command of ["ffmpeg", "ffprobe"])
-          await execute(command, ["-version"], { maxBuffer: 65_536 });
         const cli = fileURLToPath(new URL("../index.js", import.meta.url));
         const configDir = join(homedir(), ".config", "zhe");
         await mkdir(join(homedir(), "Library", "LaunchAgents"), { recursive: true });
