@@ -10,6 +10,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.24.5] - 2026-09-16
+
+### Added
+- Run Eagle archiving independently alongside X enrichment
+- Add durable opt-in Eagle image sidecar
+
+### Changed
+- Preserve retry state assertions during concurrent recovery
+- Exclude generated Wrangler bundles from lint
+- Describe Eagle sidecar configuration and recovery
+- Upgrade wrangler to 4.131.2 (#886)
+- Upgrade lucide-react to 1.46.0 (#885)
+- Upgrade ai to 7.0.100 (#884)
+- Upgrade @cloudflare/workers-types to 5.20260914.1 (#882)
+- Upgrade @aws-sdk/s3-request-presigner to 3.1132.0 (#881)
+- Upgrade @aws-sdk/client-s3 to 3.1132.0 (#880)
+- Upgrade @types/node to 26.5.1 (#876)
+- Upgrade @testing-library/dom to 10.4.2 (#875)
+- Upgrade @jackwener/opencli to 1.8.7 (#874)
+- Upgrade tailwind-merge to 3.7.0 (#872)
+- Upgrade yaml to 2.9.1 (#869)
+- Upgrade next to 16.3.5
+- Upgrade happy-dom to 20.14.5
+- Upgrade @ai-sdk/openai to 4.0.66
+- Upgrade @ai-sdk/anthropic to 4.0.53
+- Upgrade vite to 8.3.0
+- Upgrade lint-staged to 17.5.1
+- Upgrade biome to 2.5.13
+
+### Fixed
+- Share Eagle attempt deadlines and drain terminal output
+- Harden Eagle recovery and media verification
+- Exclude ignored coverage artifacts from Biome (#874)
+- Align OpenCLI adapter contract with 1.8.7 (#874)
+
 ## [v1.24.4] - 2026-09-14
 
 ### Fixed
