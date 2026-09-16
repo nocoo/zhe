@@ -58,8 +58,8 @@ export function ConnectorPanel() {
       </LayerCard.Header>
       <LayerCard.Body className="space-y-4">
         <p className="text-sm leading-6 text-muted-foreground">
-          照常通过网页、Webhook 或 CLI 保存 X 链接。Connector 会定期用本机浏览器的 X
-          登录状态补全文本、图片和视频；几分钟后，书签会自动更新。
+          照常通过网页、Webhook 或 CLI 保存 X 和 GitHub 链接。Connector 使用本机 X
+          登录补全文本和媒体，并采集 GitHub 仓库的 stars、commit 数和 README 全文；书签会自动更新。
         </p>
         <p className="text-sm leading-6 text-muted-foreground">
           与 Zhe CLI 共用安装和登录。为 CLI 密钥选择 <code>links:read</code> 和{" "}
@@ -72,8 +72,9 @@ export function ConnectorPanel() {
           </pre>
         </LayerCard.Well>
         <p className="text-xs leading-6 text-muted-foreground">
-          OpenCLI 随包安装；浏览器需安装 OpenCLI 扩展并登录 X，本机需有 FFmpeg。macOS
-          可后台运行；其他系统使用 <code>zhe connector watch</code>。使用{" "}
+          X 采集需要 OpenCLI 浏览器扩展、X 登录和 FFmpeg；OpenCLI 随包安装。 GitHub
+          公开仓库无需登录，也可复用本机 <code>gh auth login</code>，提高限额或读取有权限的仓库。
+          macOS 可后台运行；其他系统使用 <code>zhe connector watch</code>。使用{" "}
           <code>zhe connector stop</code> 停止后台任务。
         </p>
         <div className="flex flex-wrap items-center gap-2" role="status">

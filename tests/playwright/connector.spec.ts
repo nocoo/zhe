@@ -415,12 +415,13 @@ for (const viewport of [
       const footer = feedCard.getByTestId("x-card-footer");
       const footerBox = await footer.boundingBox();
       assert(footerBox);
-      expect(footerBox.height).toBeLessThanOrEqual(52);
+      // Named tags may take two rows below the category and actions.
+      expect(footerBox.height).toBeLessThanOrEqual(104);
       expect(await footer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true,
       );
       await expect(footer.getByText(designName, { exact: true })).toBeVisible();
-      await expect(footer.getByRole("img", { name: /^标签：/ })).toHaveText("2");
+      await expect(footer.getByTestId("x-card-tags").locator("[data-tag-name]")).toHaveCount(2);
       await expect(feedCard.getByRole("region", { name: "帖子统计" })).toHaveCount(0);
       await expect(feedCard.getByLabel("引用的 X 帖子")).toHaveCount(0);
       await expect(feedCard.getByRole("button", { name: "展开全文" })).toHaveCount(0);

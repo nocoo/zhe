@@ -18,7 +18,6 @@ import {
   MoreHorizontal,
   Pencil,
   Sparkles,
-  Tags as TagsIcon,
 } from "lucide-react";
 import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
@@ -274,7 +273,7 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkPending link={link} compact />
           )}
           <LayerCard.Footer
-            className="flex-nowrap gap-2 border-border/60 bg-background/40 px-3 py-1"
+            className="flex-wrap gap-2 border-border/60 bg-background/40 px-3 py-2"
             data-testid="x-card-footer"
           >
             <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
@@ -284,17 +283,6 @@ export const LinkCard = memo(function LinkCard({
                   {folderName}
                 </span>
               </span>
-              {cardTags.length > 0 && (
-                <span
-                  role="img"
-                  className="inline-flex shrink-0 items-center gap-1"
-                  title={cardTags.map((tag) => tag.name).join("、")}
-                  aria-label={`标签：${cardTags.map((tag) => tag.name).join("、")}`}
-                >
-                  <TagsIcon className="size-3.5" strokeWidth={1.5} aria-hidden />
-                  {cardTags.length}
-                </span>
-              )}
             </div>
             <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
               <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
@@ -342,6 +330,13 @@ export const LinkCard = memo(function LinkCard({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            {cardTags.length > 0 && (
+              <div className="flex w-full flex-wrap gap-1" data-testid="x-card-tags">
+                {cardTags.map((tag) => (
+                  <TagBadge key={tag.id} tag={tag} size="sm" />
+                ))}
+              </div>
+            )}
           </LayerCard.Footer>
           <AnalyticsPanel
             className="p-4"

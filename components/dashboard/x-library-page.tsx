@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
+import { TwitterIcon } from "@/components/site-icons";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -38,6 +39,7 @@ import {
 } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { LinkCard } from "./link-card";
+import { TagFilter } from "./link-filter-bar";
 
 const contentIcons = {
   all: LayoutGrid,
@@ -69,6 +71,7 @@ export function XLibraryPage() {
   const [folderId, setFolderId] = useState("all");
   const [contentType, setContentType] = useState<XContentType>("all");
   const [query, setQuery] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState(new Set<string>());
   const editCallbacks = useMemo<EditLinkCallbacks>(
     () => ({
       onLinkUpdated: handleLinkUpdated,
@@ -106,6 +109,10 @@ export function XLibraryPage() {
       (folderId === "uncategorized" ? link.folderId !== null : link.folderId !== folderId)
     )
       return false;
+    if (
+      [...selectedTagIds].some((id) => !linkTagsById.get(link.id)?.some((tag) => tag.tagId === id))
+    )
+      return false;
     const tweet = bookmark?.tweet;
     return (
       !search ||
@@ -117,16 +124,21 @@ export function XLibraryPage() {
         tweet?.text,
         tweet?.author.name,
         tweet?.author.username,
+        ...tags
+          .filter((tag) => linkTagsById.get(link.id)?.some((assigned) => assigned.tagId === tag.id))
+          .map((tag) => tag.name),
       ].some((value) => value?.toLocaleLowerCase().includes(search))
     );
   });
   const visible =
     contentType === "all" ? scoped : scoped.filter(({ types }) => types.includes(contentType));
-  const filtered = folderId !== "all" || contentType !== "all" || !!query;
+  const filtered =
+    folderId !== "all" || contentType !== "all" || !!query || selectedTagIds.size > 0;
   const clearFilters = () => {
     setFolderId("all");
     setContentType("all");
     setQuery("");
+    setSelectedTagIds(new Set());
   };
 
   if (loading)
@@ -143,9 +155,16 @@ export function XLibraryPage() {
 
   return (
     <div>
-      <PageHeader title="X 收藏" description={`汇集所有分类 · 共 ${entries.length} 条收藏`} />
+      <PageHeader
+        title={
+          <span className="inline-flex items-center gap-2">
+            <TwitterIcon className="size-6" strokeWidth={1.5} aria-hidden />X 收藏
+          </span>
+        }
+        description={`汇集所有分类 · 共 ${entries.length} 条收藏`}
+      />
       <div className="mb-4 space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Select value={folderId} onValueChange={setFolderId}>
             <SelectTrigger size="sm" className="w-full sm:w-52" aria-label="筛选分类">
               <SelectValue placeholder="全部分类" />
@@ -160,6 +179,18 @@ export function XLibraryPage() {
               ))}
             </SelectContent>
           </Select>
+          <TagFilter
+            tags={tags}
+            selectedTagIds={selectedTagIds}
+            onToggle={(id) =>
+              setSelectedTagIds((current) => {
+                const next = new Set(current);
+                if (next.has(id)) next.delete(id);
+                else next.add(id);
+                return next;
+              })
+            }
+          />
           <div className="relative w-full sm:max-w-sm">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"

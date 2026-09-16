@@ -198,7 +198,7 @@ describe("Sidebar", () => {
 
       // Overview, ideas, todos and X library, plus folder and static navigation.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(15);
+      expect(navLinks.length).toBe(16);
     });
 
     it("marks the current page on the matching collapsed nav link", () => {
@@ -563,7 +563,7 @@ describe("Sidebar", () => {
 
       // All static links plus the two dynamic folders.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(17);
+      expect(navLinks.length).toBe(18);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -779,7 +779,7 @@ describe("Sidebar", () => {
 
       // Includes the X library alongside the existing sections.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(15);
+      expect(navLinks.length).toBe(16);
     });
   });
 
@@ -787,7 +787,7 @@ describe("Sidebar", () => {
     it("renders ChevronUp icon for each nav group", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      // 5 groups: 概览, 链接管理, 工具, 集成, 设置
+      // 6 groups: 概览, 特殊来源, 链接管理, 工具, 集成, 设置
       const triggers = container.querySelectorAll("[data-state]");
       expect(triggers.length).toBeGreaterThanOrEqual(5);
     });
@@ -796,8 +796,16 @@ describe("Sidebar", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       const labels = container.querySelectorAll(".text-xs.font-medium.uppercase.tracking-wider");
-      // 5 groups: 概览, 链接管理, 工具, 集成, 设置
-      expect(labels.length).toBe(5);
+      // 6 groups: 概览, 特殊来源, 链接管理, 工具, 集成, 设置
+      expect(labels.length).toBe(6);
+      expect(Array.from(labels).map((label) => label.textContent)).toEqual([
+        "概览",
+        "特殊来源",
+        "链接管理",
+        "工具",
+        "集成",
+        "设置",
+      ]);
     });
   });
 

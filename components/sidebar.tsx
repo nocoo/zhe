@@ -36,6 +36,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   // Collapsible group state — all default open
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({
     概览: true,
+    特殊来源: true,
     链接管理: true,
     工具: true,
     集成: true,

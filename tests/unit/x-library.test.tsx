@@ -9,6 +9,7 @@ import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import type { XBookmark } from "@/lib/connector/jobs";
 import type { Folder, Link } from "@/models/types";
 import { getXBookmarkForLink, getXContentTypes, getXPostPresentation } from "@/models/x-bookmarks";
+import { makeTag } from "../fixtures";
 
 vi.mock("@/contexts/dashboard-service", () => ({ useDashboardService: vi.fn() }));
 vi.mock("@/components/dashboard/link-card", () => ({
@@ -233,6 +234,36 @@ describe("X library", () => {
     await user.clear(screen.getByRole("searchbox"));
     await user.type(screen.getByRole("searchbox"), "LIN");
     expect(screen.getByRole("article", { name: "Research article" })).toBeInTheDocument();
+  });
+  it("intersects named tags, supports deselection, and searches tag names", async () => {
+    service.tags = [
+      makeTag({ id: "design-tag", name: "设计规范" }),
+      makeTag({ id: "read-tag", name: "待读" }),
+    ];
+    service.linkTags = [
+      { linkId: 1, tagId: "design-tag" },
+      { linkId: 1, tagId: "read-tag" },
+      { linkId: 2, tagId: "design-tag" },
+      { linkId: 3, tagId: "read-tag" },
+    ];
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "标签" }));
+    await user.click(screen.getByRole("option", { name: "设计规范" }));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    await user.click(screen.getByRole("option", { name: "待读" }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("article", { name: "Mixed media" })).toBeVisible();
+    await user.click(screen.getByRole("option", { name: "设计规范" }));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.getByRole("article", { name: "Research article" })).toBeVisible();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(screen.getAllByRole("article")).toHaveLength(6);
+    await user.type(screen.getByRole("searchbox", { name: "搜索 X 收藏" }), "设计规范");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.getByRole("article", { name: "Architecture photo" })).toBeVisible();
+    expect(screen.queryByRole("article", { name: "Research article" })).not.toBeInTheDocument();
   });
   it("updates media filtering when the shared capture changes", async () => {
     const { rerender } = renderPage();

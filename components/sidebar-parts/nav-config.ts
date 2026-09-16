@@ -2,7 +2,6 @@
 
 import {
   BarChart3,
-  Bookmark,
   CloudUpload,
   Database,
   FileUp,
@@ -17,6 +16,7 @@ import {
   Tags,
   Webhook,
 } from "lucide-react";
+import { GithubIcon, TwitterIcon } from "@/components/site-icons";
 
 /** Nav items for folder filtering — rendered as <Link>. */
 export interface FolderNavItem {
@@ -64,7 +64,13 @@ export const PRE_LINK_NAV_GROUPS: NavGroup[] = [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
       { title: "想法", icon: Lightbulb, href: "/dashboard/ideas" },
       { title: "待办", icon: ListTodo, href: "/dashboard/todos" },
-      { title: "X 收藏", icon: Bookmark, href: "/dashboard/x" },
+    ],
+  },
+  {
+    label: "特殊来源",
+    items: [
+      { title: "X 收藏", icon: TwitterIcon, href: "/dashboard/x" },
+      { title: "GitHub 收藏", icon: GithubIcon, href: "/dashboard/github" },
     ],
   },
 ];
