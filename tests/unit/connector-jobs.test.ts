@@ -32,6 +32,7 @@ import {
   failGitHubBookmark,
   getGitHubBookmarks,
   renewGitHubBookmark,
+  saveGitHubAnalysis,
 } from "@/lib/connector/github-jobs";
 import { type MediaReservation, reserveXMedia, writeXMedia } from "@/lib/connector/media";
 import * as d1 from "@/lib/db/d1-client";
@@ -167,6 +168,71 @@ afterEach(() => {
 });
 
 describe("GitHub Connector snapshots", () => {
+  it("round-trips analysis without changing the README, and rejects foreign or stale writes", async () => {
+    const url = "https://github.com/octocat/Hello-World";
+    const id = link(url);
+    const job = required(await claimGitHubBookmark(identity));
+    await completeGitHubBookmark(identity, id, job.leaseToken, repository);
+    const analysis = {
+      summary: "完整 README 总结",
+      features: ["归档"],
+      useCases: [],
+      techStack: ["TypeScript"],
+      tags: ["资料"],
+      model: "test",
+      provider: "custom",
+      generatedAt: now,
+    };
+    expect(await saveGitHubAnalysis("other", id, url, repository.readme, analysis)).toBe(false);
+    expect(await saveGitHubAnalysis("owner", id, url, "stale README", analysis)).toBe(false);
+    expect(await saveGitHubAnalysis("owner", id, url, repository.readme, analysis)).toBe(true);
+    const [saved] = await getGitHubBookmarks("owner", [id]);
+    expect(saved?.analysis).toEqual(analysis);
+    expect(saved?.repository).not.toHaveProperty("readme");
+    expect(saved?.repository).not.toHaveProperty("analysis");
+    expect((await loadGitHubReadme(id)).data?.readme).toBe(repository.readme);
+    db.prepare("UPDATE links SET original_url='https://example.com' WHERE id=?").run(id);
+    expect(await saveGitHubAnalysis("owner", id, url, repository.readme, analysis)).toBe(false);
+  });
+
+  it("retains analysis when only repository statistics change and invalidates it for a new README", async () => {
+    const url = "https://github.com/octocat/Hello-World";
+    const id = link(url);
+    const job = required(await claimGitHubBookmark(identity));
+    await completeGitHubBookmark(identity, id, job.leaseToken, repository);
+    const analysis = {
+      summary: "已保存的总结",
+      features: [],
+      useCases: [],
+      techStack: [],
+      tags: [],
+      model: "test",
+      provider: "custom",
+      generatedAt: now,
+    };
+    await saveGitHubAnalysis("owner", id, url, repository.readme, analysis);
+    await retryGitHubBookmarkAction(id);
+    const refresh = required(await claimGitHubBookmark(identity));
+    await completeGitHubBookmark(identity, id, refresh.leaseToken, {
+      ...repository,
+      stars: 456,
+      analysis: { summary: "untrusted connector output" },
+    });
+    expect((await getGitHubBookmarks("owner", [id]))[0]).toMatchObject({
+      analysis,
+      repository: { stars: 456 },
+    });
+    await retryGitHubBookmarkAction(id);
+    const changed = required(await claimGitHubBookmark(identity));
+    await completeGitHubBookmark(identity, id, changed.leaseToken, {
+      ...repository,
+      readme: "# New source",
+      analysis,
+    });
+    expect((await getGitHubBookmarks("owner", [id]))[0]?.analysis).toBeNull();
+    expect((await loadGitHubReadme(id)).data?.readme).toBe("# New source");
+  });
+
   it("negotiates GitHub jobs without sending them to old X-only clients", async () => {
     const id = link("https://github.com/octocat/Hello-World/issues/1");
     const headers = { authorization: "Bearer zhe_test_cli-key" };

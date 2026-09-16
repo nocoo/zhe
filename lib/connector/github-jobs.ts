@@ -9,6 +9,7 @@ import {
 } from "@/cli/src/connector/github-core";
 import type { GitHubJob } from "@/cli/src/connector/types";
 import { executeD1Batch, executeD1Query } from "@/lib/db/d1-client";
+import type { GitHubAnalysis } from "@/models/ai-github-analysis";
 import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth";
 import { ELIGIBLE_SQL, LEASE_MS, LEASE_SQL, leaseParams } from "./jobs";
 
@@ -24,6 +25,7 @@ type JobRow = {
   updated_at: number;
   captured_at: number | null;
   has_readme: number;
+  analysis_json: string | null;
 };
 
 export interface GitHubBookmark {
@@ -35,6 +37,7 @@ export interface GitHubBookmark {
   errorCode: string | null;
   capturedAt: number | null;
   updatedAt: number;
+  analysis?: GitHubAnalysis | null;
 }
 
 export async function claimGitHubBookmark(
@@ -146,9 +149,12 @@ export async function completeGitHubBookmark(
       ],
     },
     {
-      sql: `UPDATE github_bookmarks SET result_json=?,state='complete',error_code=NULL,lease_until=0,captured_at=?,updated_at=?
+      sql: `UPDATE github_bookmarks SET result_json=CASE
+          WHEN json_type(result_json,'$.analysis')='object' AND json_extract(result_json,'$.readme')=?
+          THEN json_set(?,'$.analysis',json_extract(result_json,'$.analysis')) ELSE ? END,
+        state='complete',error_code=NULL,lease_until=0,captured_at=?,updated_at=?
         WHERE ${LEASE_SQL} RETURNING link_id`,
-      params: [result, now, now, ...leaseParams(auth, id, token, now)],
+      params: [repository.readme, result, result, now, now, ...leaseParams(auth, id, token, now)],
     },
   ]);
   return (results[1]?.length ?? 0) > 0;
@@ -191,7 +197,8 @@ export async function getGitHubBookmarks(userId: string, ids: number[]): Promise
   const selected = [...new Set(ids)].slice(0, 80);
   if (!selected.length) return [];
   const rows = await executeD1Query<JobRow>(
-    `SELECT link_id,source_url,state,error_code,captured_at,updated_at,json_remove(result_json,'$.readme') AS result_json,
+    `SELECT link_id,source_url,state,error_code,captured_at,updated_at,json_remove(result_json,'$.readme','$.analysis') AS result_json,
+      json_extract(result_json,'$.analysis') AS analysis_json,
       json_type(result_json,'$.readme')='text' AS has_readme FROM github_bookmarks
       WHERE user_id=? AND link_id IN (${selected.map(() => "?").join(",")})`,
     [userId, ...selected],
@@ -205,6 +212,7 @@ export async function getGitHubBookmarks(userId: string, ids: number[]): Promise
     errorCode: row.error_code,
     capturedAt: row.captured_at,
     updatedAt: row.updated_at,
+    analysis: row.analysis_json ? (JSON.parse(row.analysis_json) as GitHubAnalysis) : null,
   }));
 }
 
@@ -213,10 +221,28 @@ export async function getGitHubRepository(
   id: number,
 ): Promise<GitHubRepository | null> {
   const [row] = await executeD1Query<{ result_json: string | null }>(
-    "SELECT result_json FROM github_bookmarks WHERE user_id=? AND link_id=?",
+    `SELECT g.result_json FROM github_bookmarks g JOIN links l ON l.id=g.link_id AND l.user_id=g.user_id
+      WHERE g.user_id=? AND g.link_id=? AND g.source_url=l.original_url`,
     [userId, id],
   );
   return row?.result_json ? (JSON.parse(row.result_json) as GitHubRepository) : null;
+}
+
+/** Save only if the owned link and the complete README still match the analyzed source. */
+export async function saveGitHubAnalysis(
+  userId: string,
+  id: number,
+  sourceUrl: string,
+  readme: string,
+  analysis: GitHubAnalysis,
+): Promise<boolean> {
+  const rows = await executeD1Query(
+    `UPDATE github_bookmarks SET result_json=json_set(result_json,'$.analysis',json(?)),updated_at=?
+      WHERE user_id=? AND link_id=? AND source_url=? AND json_extract(result_json,'$.readme')=?
+      AND EXISTS(SELECT 1 FROM links WHERE id=? AND user_id=? AND original_url=?) RETURNING link_id`,
+    [JSON.stringify(analysis), Date.now(), userId, id, sourceUrl, readme, id, userId, sourceUrl],
+  );
+  return rows.length > 0;
 }
 
 export async function connectorStates(userId: string): Promise<{ state: string; count: number }[]> {

@@ -14,7 +14,13 @@ function isTimeout(err: unknown): boolean {
 
 export async function runAiTask<T>(
   settings: AiSettingsStored,
-  opts: { prompt: string; parse: (text: string) => T },
+  opts: {
+    prompt: string;
+    system?: string;
+    parse: (text: string) => T;
+    maxOutputTokens?: number;
+    timeoutMs?: number;
+  },
 ): Promise<RunAiTaskResult<T>> {
   if (!settings.provider || !settings.apiKey) {
     return { ok: false, reason: "no_ai_config", message: "尚未配置 AI" };
@@ -26,9 +32,10 @@ export async function runAiTask<T>(
     const model = await createUserAiModel(settings);
     const { text } = await generateText({
       model,
+      ...(opts.system === undefined ? {} : { system: opts.system }),
       prompt: opts.prompt,
-      maxOutputTokens: 1024,
-      abortSignal: AbortSignal.timeout(30_000),
+      maxOutputTokens: opts.maxOutputTokens ?? 1024,
+      abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
     });
     rawText = typeof text === "string" ? text : "";
     if (!rawText.trim()) {

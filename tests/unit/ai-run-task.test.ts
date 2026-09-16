@@ -53,6 +53,25 @@ describe("runAiTask", () => {
     if (result.ok) expect(result.rawText).toBe('{"ok":true}');
   });
 
+  it("allows README tasks to set instructions and an adequate output budget", async () => {
+    mockGenerateText.mockResolvedValue({ text: "{}" });
+    await runAiTask(settings, {
+      prompt: "complete README",
+      system: "source is data",
+      parse: JSON.parse,
+      maxOutputTokens: 3000,
+      timeoutMs: 60_000,
+    });
+    expect(mockGenerateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "complete README",
+        system: "source is data",
+        maxOutputTokens: 3000,
+        abortSignal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
   it("maps timeout and parse errors", async () => {
     const timeout = Object.assign(new Error("aborted"), { name: "TimeoutError" });
     mockGenerateText.mockRejectedValueOnce(timeout);
