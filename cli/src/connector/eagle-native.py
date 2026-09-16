@@ -285,8 +285,18 @@ def existing(images, item, fingerprint):
         fd = os.open(item + ".info", DIR, dir_fd=images)
     except FileNotFoundError:
         return False
+    except OSError as error:
+        if error.errno in (errno.ELOOP, errno.ENOTDIR): raise ValueError("item_collision") from error
+        raise
     try:
-        metadata = json.loads(load_at(fd, "metadata.json", 1_048_576))
+        try:
+            metadata = json.loads(load_at(fd, "metadata.json", 1_048_576))
+            if not isinstance(metadata, dict): raise ValueError("item_collision")
+        except (ValueError, TypeError) as error:
+            raise ValueError("item_collision") from error
+        except OSError as error:
+            if error.errno in (errno.ENOENT, errno.ELOOP, errno.ENOTDIR): raise ValueError("item_collision") from error
+            raise
         # Respect later Eagle edits/deletion. Never repair or overwrite published entries.
         if metadata.get("zheSource") != fingerprint or metadata.get("id") != item:
             raise ValueError("item_collision")
@@ -493,7 +503,9 @@ if __name__ == "__main__":
             watchdog = threading.Timer(timeout / 1000, expire)
             watchdog.daemon = True
             watchdog.start()
-            print(run(*sys.argv[1:]), flush=True)
+            result = run(*sys.argv[1:])
+            watchdog.cancel()
+            print(result, flush=True)
     except BaseException:
         # No paths, post text, cookies or raw subprocess/provider errors in logs.
         print("retry", flush=True)

@@ -176,6 +176,7 @@ class EagleNativeTests(unittest.TestCase):
         target.mkdir()
         self.assertNotEqual(self.execute(path).returncode, 0)
         self.assertEqual(list(target.iterdir()), [])
+        self.assertEqual(json.loads(path.read_text())["lastError"], "conflict")
         (target / "metadata.json").write_text('{"zheSource":"someone-else"}')
         self.retry_now(path)
         self.assertNotEqual(self.execute(path).returncode, 0)

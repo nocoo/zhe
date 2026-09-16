@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -42,6 +42,48 @@ afterEach(async () => {
 });
 
 describe("bounded local media capture", () => {
+  it("persists every byte in order across multiple network chunks", async () => {
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      String(url).includes("dns-query")
+        ? Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] })
+        : new Response(
+            new ReadableStream({
+              start(controller) {
+                for (let offset = 0; offset < bytes.length; offset += 7)
+                  controller.enqueue(bytes.slice(offset, offset + 7));
+                controller.close();
+              },
+            }),
+            { headers: { "content-type": "video/mp4", "content-length": "64" } },
+          ),
+    );
+    const file = await downloadMedia(media, dir);
+    expect(await readFile(file.path)).toEqual(Buffer.from(bytes));
+    expect(file.size).toBe(bytes.length);
+  });
+  it("preserves cancellation during verification instead of reporting corrupt media", async () => {
+    const controller = new AbortController();
+    execute.mockImplementation(async () => {
+      controller.abort();
+      throw new Error("aborted");
+    });
+    await expect(downloadMedia(media, dir, controller.signal)).rejects.toMatchObject({
+      code: "interrupted",
+    });
+  });
+  it.each([true, false])("validates the generated poster JPEG header: %s", async (valid) => {
+    const video = join(dir, "video.mp4");
+    execute.mockImplementation(async () => {
+      await writeFile(
+        `${video}.jpg`,
+        valid ? new Uint8Array([255, 216, 255, 1]) : new Uint8Array([1, 2, 3, 4]),
+      );
+      return { stdout: "" };
+    });
+    const result = await makePoster(video);
+    if (valid) expect(result).toMatchObject({ mime: "image/jpeg", size: 4 });
+    else expect(result).toBeNull();
+  });
   it.each([
     { width: 5000, height: 4000, valid: true },
     { width: 10001, height: 1, valid: false },
@@ -75,7 +117,7 @@ describe("bounded local media capture", () => {
       await expect(result).resolves.toMatchObject({ width, height });
       expect(execute.mock.calls[1][1]).toEqual(expect.arrayContaining(["-threads", "1"]));
     } else {
-      await expect(result).rejects.toThrow();
+      await expect(result).rejects.toMatchObject({ code: "invalid_media" });
       expect(execute).toHaveBeenCalledTimes(1);
       expect(execute.mock.calls[0][0]).toBe("ffprobe");
     }

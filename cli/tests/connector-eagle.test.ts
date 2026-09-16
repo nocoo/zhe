@@ -137,6 +137,19 @@ describe("Eagle configuration", () => {
 });
 
 describe("durable Eagle outbox", () => {
+  it("uses identical UTF-8 identity bytes in TypeScript and Python for Chinese library paths", async () => {
+    const chinese = new EagleSidecar(
+      { ...config, libraryPath: "/用户/图片库.library" },
+      dir,
+      log,
+      saved,
+    );
+    services.push(chinese);
+    chinese.submit(capture(1));
+    await chinese.drain();
+    expect(saved).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledWith(expect.objectContaining({ code: "queued" }));
+  });
   it.each([
     { done: "true" },
     { done: 1 },

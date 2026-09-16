@@ -18,6 +18,45 @@ import type { DownloadedMedia } from "./types.js";
 
 const execute = promisify(execFile);
 
+async function writeChunk(
+  file: Awaited<ReturnType<typeof open>>,
+  value: Uint8Array,
+  position: number,
+) {
+  let offset = 0;
+  while (offset < value.length) {
+    const { bytesWritten } = await file.write(
+      value,
+      offset,
+      value.length - offset,
+      position + offset,
+    );
+    if (bytesWritten <= 0) throw new ConnectorError("size_mismatch");
+    offset += bytesWritten;
+  }
+}
+
+function verifyImageDimensions(
+  probe: Record<string, unknown>,
+  imageLimits: { maxPixels: number; maxDimension: number },
+): void {
+  const frame = (Array.isArray(probe.streams) ? probe.streams.map(record) : []).find(
+    (stream) => stream.codec_type === "video",
+  );
+  const width = Number(frame?.width);
+  const height = Number(frame?.height);
+  if (
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    width <= 0 ||
+    height <= 0 ||
+    width > imageLimits.maxDimension ||
+    height > imageLimits.maxDimension ||
+    width * height > imageLimits.maxPixels
+  )
+    throw new ConnectorError("invalid_media");
+}
+
 async function mediaResponse(media: XMedia, signal: AbortSignal) {
   const video = media.type !== "PHOTO";
   const kind = video ? "video" : "photo";
@@ -63,6 +102,7 @@ export async function downloadMedia(
   imageLimits?: { maxPixels: number; maxDimension: number },
 ): Promise<DownloadedMedia> {
   const video = media.type !== "PHOTO";
+  imageLimits ??= video ? undefined : { maxPixels: 20_000_000, maxDimension: 10_000 };
   const bounded = AbortSignal.any([AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const path = join(directory, randomUUID());
@@ -91,7 +131,7 @@ export async function downloadMedia(
           head = next;
         }
         hash.update(value);
-        await file.writeFile(value);
+        await writeChunk(file, value, received - value.length);
         if (received === size || Date.now() - lastProgress >= 1000) {
           onProgress?.("download", received, size);
           lastProgress = Date.now();
@@ -122,23 +162,7 @@ export async function downloadMedia(
         { timeout: 120_000, maxBuffer: 1_048_576, signal: bounded },
       );
       probe = record(JSON.parse(output.stdout));
-      if (imageLimits && !video) {
-        const frame = (Array.isArray(probe.streams) ? probe.streams.map(record) : []).find(
-          (stream) => stream.codec_type === "video",
-        );
-        const width = Number(frame?.width);
-        const height = Number(frame?.height);
-        if (
-          !Number.isSafeInteger(width) ||
-          !Number.isSafeInteger(height) ||
-          width <= 0 ||
-          height <= 0 ||
-          width > imageLimits.maxDimension ||
-          height > imageLimits.maxDimension ||
-          width * height > imageLimits.maxPixels
-        )
-          throw new ConnectorError("invalid_media");
-      }
+      if (imageLimits && !video) verifyImageDimensions(probe, imageLimits);
       await execute(
         "ffmpeg",
         [
@@ -160,7 +184,9 @@ export async function downloadMedia(
         ],
         { timeout: 120_000, maxBuffer: 1_048_576, signal: bounded },
       );
-    } catch {
+    } catch (error) {
+      if (bounded.aborted) throw new ConnectorError("interrupted");
+      if (error instanceof ConnectorError) throw error;
       throw new ConnectorError("decode_failed");
     }
     const streams = Array.isArray(probe.streams) ? probe.streams.map(record) : [];
@@ -190,7 +216,7 @@ export async function downloadMedia(
     await Promise.all([rm(partial, { force: true }), rm(path, { force: true })]);
     throw error instanceof ConnectorError
       ? error
-      : new ConnectorError(signal?.aborted ? "interrupted" : "download_failed");
+      : new ConnectorError(bounded.aborted ? "interrupted" : "download_failed");
   }
 }
 
@@ -224,6 +250,14 @@ export async function makePoster(
     );
     const { size } = await stat(path);
     if (size < 3 || size > MAX_IMAGE_BYTES) throw new ConnectorError("invalid_media");
+    const file = await open(path, "r");
+    try {
+      const head = Buffer.alloc(3);
+      await file.read(head, 0, 3, 0);
+      verifySignature(head, "image/jpeg");
+    } finally {
+      await file.close();
+    }
     const hash = createHash("sha256");
     for await (const bytes of createReadStream(path)) hash.update(bytes);
     return { path, size, mime: "image/jpeg", sha256: hash.digest("hex") };

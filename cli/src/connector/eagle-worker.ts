@@ -1,8 +1,9 @@
 // Runs only inside the isolated Eagle attempt process group, never in the enrich process.
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { open, readFile, rename } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { downloadMedia } from "./download.js";
 import type { EagleTask } from "./eagle.js";
@@ -43,22 +44,41 @@ export async function prepareEagle(task: EagleTask, directory: string): Promise<
     bytes.toString("hex", 0, 8) !== "89504e470d0a1a0a"
   )
     throw new Error("invalid_thumbnail");
-  await writeFile(
-    join(directory, "prepared.json"),
-    JSON.stringify({
-      ext,
-      size: file.size,
-      sha256: file.sha256,
-      width: file.width,
-      height: file.height,
-      thumbnailSha256: createHash("sha256").update(bytes).digest("hex"),
-    }),
-    { mode: 0o600 },
-  );
+  for (const path of [join(directory, `original.${ext}`), thumbnail]) {
+    const file = await open(path, "r");
+    try {
+      await file.sync();
+    } finally {
+      await file.close();
+    }
+  }
+  const manifest = await open(join(directory, "prepared.json.tmp"), "wx", 0o600);
+  try {
+    await manifest.writeFile(
+      JSON.stringify({
+        ext,
+        size: file.size,
+        sha256: file.sha256,
+        width: file.width,
+        height: file.height,
+        thumbnailSha256: createHash("sha256").update(bytes).digest("hex"),
+      }),
+    );
+    await manifest.sync();
+  } finally {
+    await manifest.close();
+  }
+  await rename(join(directory, "prepared.json.tmp"), join(directory, "prepared.json"));
+  const parent = await open(directory, "r");
+  try {
+    await parent.sync();
+  } finally {
+    await parent.close();
+  }
 }
 
 // The Python supervisor supplies a local queue path and a private work directory.
-if (process.argv[1]?.endsWith("/eagle-worker.js")) {
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const [path, directory] = process.argv.slice(2);
   try {
     await prepareEagle(JSON.parse(await readFile(path, "utf8")), directory);
