@@ -122,6 +122,7 @@ bun run start
 - [统一搜索](docs/23-global-search-unification.md)
 - [AI 链接整理建议](docs/24-ai-link-suggestions.md)
 - [X 书签与 Connector](docs/25-x-bookmark-connector.md)
+- [Eagle 图片旁路](docs/26-eagle-sidecar.md)
 - [Backy 集成](docs/10-backy.md)
 - [CLI 使用](cli/README.md)
 

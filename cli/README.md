@@ -52,6 +52,7 @@ zhe open my-slug
 | `zhe connector watch` | Poll for saved X bookmarks every 20 seconds |
 | `zhe connector start` | Start the background Connector at macOS login |
 | `zhe connector stop` | Stop and remove the macOS background service |
+| `zhe connector eagle` | Configure the optional Eagle image sidecar |
 
 ## Automatic X enrichment
 
@@ -78,6 +79,8 @@ Use `zhe connector watch --json` for newline-delimited JSON events, or `zhe conn
 Archived files use Zhe's existing R2 file-sharing behavior. Delete a video to remove its poster too; delete a bookmark to remove all of its archived attachments. Removing an attachment explicitly prevents a later retry from restoring it.
 
 See the [implementation and operations guide](../docs/25-x-bookmark-connector.md) for the job lifecycle, storage cleanup, and verification procedure.
+
+The optional [Eagle sidecar](../docs/26-eagle-sidecar.md) writes 1–4 post images in parallel to a configured local GDrive Eagle library. It is off by default and requires macOS/Linux and Python 3.9+ in addition to FFmpeg. Enable it with `zhe connector eagle --library '/absolute/path/Collection.library' --enable`, then restart the Connector. Its queue, deadlines, retries and logs are independent of Zhe enrichment. This release is available through GitHub; no npm publication is performed.
 
 ## Configuration
 

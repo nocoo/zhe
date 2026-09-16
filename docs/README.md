@@ -29,3 +29,4 @@ Numbered design and reference documents. Newest feature plans sit at the end of 
 | 23 | [Global Search Unification](23-global-search-unification.md) |
 | 24 | [AI Integration and Link Suggestions](24-ai-link-suggestions.md) |
 | 25 | [X Bookmarks and Local Connector](25-x-bookmark-connector.md) |
+| 26 | [Eagle Image Sidecar](26-eagle-sidecar.md) |
