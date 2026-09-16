@@ -419,7 +419,7 @@ def publish(task, path, work):
         os.close(library)
 
 
-def run(path, node, worker):
+def run(path, node, worker, deadline=None):
     if not re.fullmatch(r"[a-f0-9]{64}\.json", os.path.basename(path)):
         raise ValueError("invalid_task")
     if os.path.exists(receipt(path)):
@@ -438,6 +438,7 @@ def run(path, node, worker):
         if task["nextAttemptAt"] > now:
             return "retry"
         slot = worker_slot(os.path.dirname(path))
+        deadline = deadline or (time.monotonic() + task["timeoutMs"] / 1000)
         task["attempts"] += 1
         backoff = min(300_000, task["retryMs"] * 2 ** min(task["attempts"] - 1, 10))
         task["nextAttemptAt"] = now + task["timeoutMs"] + backoff
@@ -458,7 +459,8 @@ def run(path, node, worker):
                 if os.path.lexists(work):
                     remove_work(work)
                 reserve_work(os.path.dirname(path), work)
-                subprocess.run([node, worker, path, work], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                remaining = max(1, int((deadline - time.monotonic()) * 1000))
+                subprocess.run([node, worker, path, work, str(remaining)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 prepared(work)
             phase = "drive_unavailable"
             result = publish(task, path, work)
@@ -491,10 +493,13 @@ if __name__ == "__main__":
         else:
             # Keep a deadline even if the connector parent crashes and loses its timer.
             try:
-                timeout = read_json(sys.argv[1]).get("timeoutMs", 120_000)
+                timeout = read_json(sys.argv[1]).get("timeoutMs", 180_000)
             except (OSError, ValueError, TypeError):
-                timeout = 120_000
-            timeout = timeout if isinstance(timeout, int) and 1000 <= timeout <= 600_000 else 120_000
+                timeout = 180_000
+            timeout = timeout if isinstance(timeout, int) and 1000 <= timeout <= 600_000 else 180_000
+            if len(sys.argv) > 4:
+                timeout = max(1, min(timeout, int(sys.argv[4]) - int(time.time() * 1000)))
+            deadline = time.monotonic() + timeout / 1000
             def expire():
                 if os.getpgrp() == os.getpid():
                     os.killpg(os.getpgrp(), signal.SIGKILL)
@@ -503,7 +508,7 @@ if __name__ == "__main__":
             watchdog = threading.Timer(timeout / 1000, expire)
             watchdog.daemon = True
             watchdog.start()
-            result = run(*sys.argv[1:])
+            result = run(*sys.argv[1:4], deadline=deadline)
             watchdog.cancel()
             print(result, flush=True)
     except BaseException:

@@ -46,7 +46,7 @@ it("kills the entire process group on timeout and releases blocked stdio", async
   const result = runEagleAttempt("/local/outbox.json", 1000, new AbortController().signal);
   child.stdout.write("x".repeat(500));
   child.stdout.write("ignored");
-  await vi.advanceTimersByTimeAsync(1000);
+  await vi.advanceTimersByTimeAsync(1250);
   expect(await result).toBe("timeout");
   expect(process.kill).toHaveBeenCalledWith(-12345, "SIGKILL");
   expect(child.stdout.destroyed).toBe(true);
@@ -66,7 +66,7 @@ it("contains missing executables and cancellation races", async () => {
   expect(await cancelled).toBe("retry");
   child.pid = undefined;
   const noPid = runEagleAttempt("/local/outbox.json", 1000, new AbortController().signal);
-  await vi.advanceTimersByTimeAsync(1000);
+  await vi.advanceTimersByTimeAsync(1250);
   expect(await noPid).toBe("timeout");
 });
 
@@ -76,4 +76,13 @@ it("collects stdout delivered after process exit before classifying the result",
   child.stdout.write("exists");
   child.emit("close", 0);
   expect(await result).toBe("exists");
+});
+
+it("drains a durable success message when exit races the deadline", async () => {
+  const result = runEagleAttempt("/local/outbox.json", 1000, new AbortController().signal);
+  await vi.advanceTimersByTimeAsync(1000);
+  child.stdout.write("saved\n");
+  child.emit("close", null);
+  expect(await result).toBe("saved");
+  expect(vi.getTimerCount()).toBe(0);
 });

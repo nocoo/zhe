@@ -74,9 +74,9 @@ export function eagleConfig(value: ZheConfig["eagle"]): EagleConfig | undefined 
     !isAbsolute(value.libraryPath) ||
     !value.libraryPath.endsWith(".library") ||
     value.libraryPath.includes("\0") ||
-    !Number.isInteger(value.timeoutMs ?? 120_000) ||
-    (value.timeoutMs ?? 120_000) < 1000 ||
-    (value.timeoutMs ?? 120_000) > 600_000 ||
+    !Number.isInteger(value.timeoutMs ?? 180_000) ||
+    (value.timeoutMs ?? 180_000) < 1000 ||
+    (value.timeoutMs ?? 180_000) > 600_000 ||
     !Number.isInteger(value.retryMs ?? 5000) ||
     (value.retryMs ?? 5000) < 1000 ||
     (value.retryMs ?? 5000) > 300_000
@@ -84,7 +84,7 @@ export function eagleConfig(value: ZheConfig["eagle"]): EagleConfig | undefined 
     throw new Error("invalid_config");
   return {
     libraryPath: normalize(value.libraryPath),
-    timeoutMs: value.timeoutMs ?? 120_000,
+    timeoutMs: value.timeoutMs ?? 180_000,
     retryMs: value.retryMs ?? 5000,
   };
 }
@@ -186,7 +186,12 @@ export async function checkEagleLibrary(path: string): Promise<void> {
 }
 export const runEagleAttempt: EagleAttempt = (path, timeoutMs, signal) =>
   runNative(
-    [path, process.execPath, fileURLToPath(new URL("./eagle-worker.js", import.meta.url))],
+    [
+      path,
+      process.execPath,
+      fileURLToPath(new URL("./eagle-worker.js", import.meta.url)),
+      String(Date.now() + timeoutMs),
+    ],
     timeoutMs,
     signal,
   );
@@ -208,10 +213,19 @@ function runNative(
     });
     let output = "";
     let settled = false;
+    let timedOut = false;
+    let grace: ReturnType<typeof setTimeout> | undefined;
+    const observed = (): EagleEvent["code"] | undefined => {
+      const code = output.trim();
+      return code !== "retry" && (acceptedCodes as readonly string[]).includes(code)
+        ? (code as EagleEvent["code"])
+        : undefined;
+    };
     const finish = (code: EagleEvent["code"]) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimeout(grace);
       signal.removeEventListener("abort", stop);
       child.stdout.destroy();
       child.stdin.destroy();
@@ -232,8 +246,10 @@ function runNative(
       finish("retry");
     };
     const timer = setTimeout(() => {
+      timedOut = true;
       kill();
-      finish("timeout");
+      // Drain already-written terminal output, but do not wait on blocked Drive IO.
+      grace = setTimeout(() => finish(observed() ?? "timeout"), 250);
     }, timeoutMs);
     signal.addEventListener("abort", stop, { once: true });
     child.stdout.on("data", (data: Buffer) => {
@@ -242,13 +258,7 @@ function runNative(
     child.stdin.on("error", () => {});
     child.stdin.end(input);
     child.once("error", () => finish("missing_dependency"));
-    child.once("close", (code) =>
-      finish(
-        code === 0 && (acceptedCodes as readonly string[]).includes(output.trim())
-          ? (output.trim() as EagleEvent["code"])
-          : "retry",
-      ),
-    );
+    child.once("close", () => finish(observed() ?? (timedOut ? "timeout" : "retry")));
   });
 }
 

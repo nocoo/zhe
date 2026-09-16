@@ -62,6 +62,24 @@ it("prepares original, bounded PNG thumbnail and independently hashed manifest",
     expect.any(Function),
   );
 });
+
+it("budgets a slow download without consuming thumbnail and publication time", async () => {
+  vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(350);
+  await prepareEagle(task, directory, 900);
+  expect(downloadMedia).toHaveBeenCalledWith(
+    task.media,
+    directory,
+    expect.any(AbortSignal),
+    undefined,
+    expect.any(Object),
+  );
+  expect(execFile).toHaveBeenCalledWith(
+    "ffmpeg",
+    expect.any(Array),
+    expect.objectContaining({ timeout: 250 }),
+    expect.any(Function),
+  );
+});
 it.each([
   { mime: "video/mp4" },
   { width: undefined },

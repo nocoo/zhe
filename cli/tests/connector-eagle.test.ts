@@ -97,7 +97,7 @@ describe("Eagle configuration", () => {
     expect(eagleConfig(getEagleConfig())).toBeUndefined();
     expect(eagleConfig({ enabled: true, libraryPath: "/some/Drive.library" })).toEqual({
       libraryPath: "/some/Drive.library",
-      timeoutMs: 120_000,
+      timeoutMs: 180_000,
       retryMs: 5000,
     });
     expect(eagleConfig({ enabled: true, ...config })).toEqual(config);

@@ -8,8 +8,15 @@ import { promisify } from "node:util";
 import { downloadMedia } from "./download.js";
 import type { EagleTask } from "./eagle.js";
 
-export async function prepareEagle(task: EagleTask, directory: string): Promise<void> {
-  const file = await downloadMedia(task.media, directory, undefined, undefined, {
+export async function prepareEagle(
+  task: EagleTask,
+  directory: string,
+  budgetMs = task.timeoutMs ?? 180_000,
+): Promise<void> {
+  const started = Date.now();
+  const reserveMs = Math.min(30_000, budgetMs / 3);
+  const downloadSignal = AbortSignal.timeout(Math.max(1, Math.floor(budgetMs - 2 * reserveMs)));
+  const file = await downloadMedia(task.media, directory, downloadSignal, undefined, {
     maxPixels: 20_000_000,
     maxDimension: 10_000,
   });
@@ -35,7 +42,13 @@ export async function prepareEagle(task: EagleTask, directory: string): Promise<
       "scale=640:640:force_original_aspect_ratio=decrease",
       thumbnail,
     ],
-    { timeout: 30_000, maxBuffer: 65_536 },
+    {
+      timeout: Math.max(
+        1,
+        Math.min(30_000, Math.floor(budgetMs - (Date.now() - started) - reserveMs)),
+      ),
+      maxBuffer: 65_536,
+    },
   );
   const bytes = await readFile(thumbnail);
   if (
@@ -79,9 +92,12 @@ export async function prepareEagle(task: EagleTask, directory: string): Promise<
 
 // The Python supervisor supplies a local queue path and a private work directory.
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const [path, directory] = process.argv.slice(2);
+  const [path, directory, remaining] = process.argv.slice(2);
   try {
-    await prepareEagle(JSON.parse(await readFile(path, "utf8")), directory);
+    const budget = Number(remaining ?? 180_000);
+    if (!Number.isFinite(budget) || budget < 1 || budget > 600_000)
+      throw new Error("invalid_budget");
+    await prepareEagle(JSON.parse(await readFile(path, "utf8")), directory, budget);
   } catch {
     process.exitCode = 1;
   }
