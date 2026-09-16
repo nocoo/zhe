@@ -22,6 +22,7 @@ import { normalizeXPost, type XCapture } from "../src/connector/core.js";
 import {
   checkEagleLibrary,
   configuredEagle,
+  type EagleAttempt,
   EagleSidecar,
   type EagleTask,
   eagleConfig,
@@ -56,7 +57,7 @@ const saved = vi.fn(async (path: string) => {
   await writeFile(path, JSON.stringify({ ...task, done: true }));
   return "saved" as const;
 });
-function service(attempt = saved, path = dir) {
+function service(attempt: EagleAttempt = saved, path = dir) {
   const sidecar = new EagleSidecar(config, path, log, attempt);
   services.push(sidecar);
   return sidecar;
@@ -261,13 +262,18 @@ describe("durable Eagle outbox", () => {
     await sidecar.drain();
     expect(attempt).toHaveBeenCalledTimes(4);
   });
-  it("retains receipts across duplicate and concurrent enqueue without resetting backoff", async () => {
-    const one = service();
-    const two = service();
+  it("preserves pending retry state across duplicate and concurrent enqueue", async () => {
+    const one = service(vi.fn().mockResolvedValue("retry"));
+    const two = service(vi.fn().mockResolvedValue("retry"));
     one.submit(capture(1));
     two.submit(capture(1));
     await Promise.all([one.drain(), two.drain()]);
     const path = join(dir, `${eagleKey(config.libraryPath, "123", "200")}.json`);
+    const task = JSON.parse(await readFile(path, "utf8"));
+    await writeFile(
+      path,
+      JSON.stringify({ ...task, attempts: 7, nextAttemptAt: Date.now() + 60_000 }),
+    );
     const before = await readFile(path, "utf8");
     one.submit(capture(1));
     await one.drain();
