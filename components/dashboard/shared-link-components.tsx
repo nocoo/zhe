@@ -76,13 +76,14 @@ export function TagBadge({ tag, onRemove, size = "md" }: TagBadgeProps) {
   if (size === "sm") {
     return (
       <span
-        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium"
+        className="inline-flex max-w-full items-center gap-0.5 rounded-full px-1.5 py-0 text-[10px] font-medium"
         style={styles.badge}
         data-testid="tag-badge"
         data-tag-name={tag.name}
+        title={tag.name}
       >
-        <span className="h-1 w-1 rounded-full" style={styles.dot} />
-        {tag.name}
+        <span className="h-1 w-1 shrink-0 rounded-full" style={styles.dot} />
+        <span className="truncate">{tag.name}</span>
       </span>
     );
   }

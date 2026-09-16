@@ -1,6 +1,6 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ export interface MarkdownPreviewProps {
   className?: string;
   /** Placeholder text when content is empty */
   placeholder?: string;
+  urlTransform?: Options["urlTransform"];
+  components?: Options["components"];
 }
 
 /**
@@ -22,6 +24,8 @@ export function MarkdownPreview({
   content,
   className,
   placeholder = "预览将在此处显示...",
+  urlTransform,
+  components,
 }: MarkdownPreviewProps) {
   if (!content.trim()) {
     return (
@@ -49,7 +53,13 @@ export function MarkdownPreview({
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        {...(urlTransform ? { urlTransform } : {})}
+        {...(components ? { components } : {})}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }

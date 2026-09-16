@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown, FolderOpen, Tag, X } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -25,6 +26,7 @@ interface LinkFilterBarProps {
   onClear: () => void;
   /** Hide folder filter when sidebar already selected a folder */
   showFolderFilter: boolean;
+  hasAdditionalFilters?: boolean;
 }
 
 export function LinkFilterBar({
@@ -36,8 +38,9 @@ export function LinkFilterBar({
   onToggleTag,
   onClear,
   showFolderFilter,
+  hasAdditionalFilters = false,
 }: LinkFilterBarProps) {
-  const hasActiveFilters = filterFolderId !== null || filterTagIds.size > 0;
+  const hasActiveFilters = filterFolderId !== null || filterTagIds.size > 0 || hasAdditionalFilters;
   const selectedFolder = filterFolderId
     ? filterFolderId === "uncategorized"
       ? { name: "Inbox" }
@@ -126,10 +129,11 @@ function FolderFilter({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-widget border px-2.5 py-1 text-xs transition-colors",
+            "gap-1.5",
             selectedFolderId
               ? "border-primary/30 bg-primary/5 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
@@ -138,7 +142,7 @@ function FolderFilter({
           <FolderOpen className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>{selectedFolderName ?? "文件夹"}</span>
           <ChevronDown className="h-3 w-3 opacity-50" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-0" align="start">
         <Command shouldFilter={false}>
@@ -196,7 +200,7 @@ interface TagFilterProps {
   onToggle: (tagId: string) => void;
 }
 
-function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
+export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -205,10 +209,11 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-widget border px-2.5 py-1 text-xs transition-colors",
+            "gap-1.5",
             selectedTagIds.size > 0
               ? "border-primary/30 bg-primary/5 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
@@ -218,7 +223,7 @@ function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           <Tag className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>{selectedTagIds.size > 0 ? `标签 (${selectedTagIds.size})` : "标签"}</span>
           <ChevronDown className="h-3 w-3 opacity-50" />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command shouldFilter={false}>
