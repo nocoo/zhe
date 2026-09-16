@@ -73,6 +73,7 @@ export function GitHubLibraryPage() {
       if ([...tagIds].some((id) => !tagsByLink.get(link.id)?.some((tag) => tag.tagId === id)))
         return false;
       const repository = bookmark?.repository;
+      const analysis = bookmark?.analysis;
       return (
         !search ||
         [
@@ -83,6 +84,11 @@ export function GitHubLibraryPage() {
           repository?.language,
           repository?.fullName,
           ...(repository?.topics ?? []),
+          analysis?.summary,
+          ...(analysis?.features ?? []),
+          ...(analysis?.useCases ?? []),
+          ...(analysis?.techStack ?? []),
+          ...(analysis?.tags ?? []),
           ...tags
             .filter((tag) => tagsByLink.get(link.id)?.some((assigned) => assigned.tagId === tag.id))
             .map((tag) => tag.name),
@@ -104,7 +110,7 @@ export function GitHubLibraryPage() {
       </>
     );
   return (
-    <div>
+    <div className="@container/github">
       <PageHeader
         title={
           <span className="inline-flex items-center gap-2">
@@ -148,7 +154,7 @@ export function GitHubLibraryPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label="搜索 GitHub 收藏"
-            placeholder="搜索仓库、语言或备注"
+            placeholder="搜索仓库、功能、技术栈或备注"
             className="pl-9"
           />
         </div>
@@ -167,7 +173,10 @@ export function GitHubLibraryPage() {
         显示 {visible.length} 个仓库
       </p>
       {visible.length ? (
-        <div className="grid items-start gap-4 xl:grid-cols-2" data-testid="github-repositories">
+        <div
+          className="grid auto-rows-fr grid-cols-1 items-stretch gap-4 @2xl/github:grid-cols-2 @5xl/github:grid-cols-3 @7xl/github:grid-cols-4"
+          data-testid="github-repositories"
+        >
           {visible.map(({ link, bookmark }) => (
             <GitHubRepositoryCard
               key={link.id}

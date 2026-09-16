@@ -6,7 +6,7 @@ import { islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
 test.describe.configure({ mode: "serial" });
-for (const width of [1365, 390]) {
+for (const width of [1920, 1365, 390]) {
   test(`source filters and GitHub README at ${width}px`, async ({ page, context, baseURL }) => {
     test.setTimeout(90_000);
     assert(baseURL === "http://localhost:27006");
@@ -145,9 +145,51 @@ for (const width of [1365, 390]) {
         data: { action: "complete", repository },
       });
       expect(completed.status()).toBe(200);
+      // Mix long content, many topics, archived/failed snapshots and an uncaptured repo.
+      for (let index = 1; index <= 5; index++) {
+        const fullName = `fixture/repository-${index}${index === 1 ? "-with-a-long-name-that-must-wrap-without-growing-the-card" : ""}`;
+        const url = `https://github.com/${fullName}`;
+        const [extra] = await queryD1<{ id: number }>(
+          "INSERT INTO links(user_id,original_url,slug,meta_description,note,created_at) VALUES(?,?,?,?,?,?) RETURNING id",
+          [
+            owner,
+            url,
+            randomUUID(),
+            "Saved description",
+            "A long personal note. ".repeat(index * 20),
+            Date.now(),
+          ],
+        );
+        assert(extra);
+        if (index === 5) continue;
+        await executeD1(
+          "INSERT INTO github_bookmarks(link_id,user_id,source_url,state,result_json,error_code,captured_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+          [
+            extra.id,
+            owner,
+            url,
+            index === 4 ? "failed" : "complete",
+            JSON.stringify({
+              ...repository,
+              sourceFullName: fullName,
+              fullName,
+              description: "A much longer description with detailed project capabilities. ".repeat(
+                index * 20,
+              ),
+              topics: Array.from({ length: 12 }, (_, topic) => `topic-${topic}-with-long-label`),
+              archived: index === 2,
+            }),
+            index === 4 ? "github_rate_limited" : null,
+            Date.now(),
+            Date.now(),
+          ],
+        );
+      }
       await page.goto("/dashboard/github");
       await expect(islandHeading(page, "GitHub 收藏")).toBeVisible();
-      const card = page.getByTestId("github-repository");
+      const cards = page.getByTestId("github-repository");
+      await expect(cards).toHaveCount(6);
+      const card = page.locator(`[data-testid="github-repository"][data-link-id="${ids[0]}"]`);
       await expect(card.getByTitle("GitHub stars")).toContainText("1,250");
       await expect(card.getByTitle("默认分支 main 的 commit 总数")).toContainText("321");
       await expect(card.getByText("开发收藏", { exact: true })).toBeVisible();
@@ -155,6 +197,25 @@ for (const width of [1365, 390]) {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
+      const geometry = await cards.evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { height: rect.height, top: Math.round(rect.top) };
+        }),
+      );
+      const heights = geometry.map((box) => box.height);
+      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+      const rows = geometry.reduce<Record<number, number>>((counts, box) => {
+        counts[box.top] = (counts[box.top] ?? 0) + 1;
+        return counts;
+      }, {});
+      expect(Math.max(...Object.values(rows))).toBeLessThanOrEqual(4);
+      if (width === 1920) expect(Math.max(...Object.values(rows))).toBe(4);
+      if (width === 390) expect(Math.max(...Object.values(rows))).toBe(1);
+      await card.getByRole("button", { name: "编辑 GitHub 收藏" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      expect((await card.boundingBox())?.height).toBe(heights[0]);
+      await page.getByRole("button", { name: "关闭编辑" }).click();
       await page.screenshot({
         path: `.artifacts/github-library-${width}.png`,
         animations: "disabled",

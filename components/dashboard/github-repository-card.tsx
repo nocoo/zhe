@@ -10,6 +10,7 @@ import {
   GitFork,
   Pencil,
   RefreshCw,
+  Sparkles,
   Star,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import {
 } from "@/models/github-bookmarks";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { GitHubAnalysisButton } from "./github-analysis-button";
 import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { TagBadge } from "./shared-link-components";
 
@@ -164,6 +166,14 @@ export function GitHubRepositoryCard({
     repository?.fullName ?? canonicalGitHubRepo(link.originalUrl)?.fullName ?? link.metaTitle;
   const folder = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
   const assignedTags = tags.filter((tag) => linkTags.some((assigned) => assigned.tagId === tag.id));
+  const description =
+    bookmark?.analysis?.summary ||
+    repository?.description ||
+    link.metaDescription ||
+    "保存仓库后，Connector 会补全仓库信息和 README。";
+  const topics = bookmark?.analysis?.tags.length
+    ? bookmark.analysis.tags
+    : (repository?.topics ?? []);
   const state = bookmark?.state ?? "pending";
   const retry = async () => {
     setRetrying(true);
@@ -183,19 +193,22 @@ export function GitHubRepositoryCard({
     <>
       <LayerCard
         padding="none"
-        className="min-w-0 overflow-hidden rounded-card shadow-card ring-1 ring-border/40"
+        className="flex h-full min-w-0 flex-col overflow-hidden rounded-card shadow-card ring-1 ring-border/40"
         data-testid="github-repository"
         data-link-id={link.id}
       >
-        <div className="space-y-4 p-5">
-          <div className="flex items-start gap-3">
+        <div className="flex flex-1 flex-col gap-3 p-4">
+          <div className="flex h-10 shrink-0 items-start gap-2">
             <GithubIcon
               className="mt-0.5 size-5 shrink-0 text-muted-foreground"
               strokeWidth={1.5}
               aria-hidden
             />
             <div className="min-w-0 flex-1">
-              <h2 className="break-all text-base font-semibold leading-6">
+              <h2
+                className="line-clamp-2 break-all text-sm font-semibold leading-5"
+                title={name ?? undefined}
+              >
                 <a
                   href={link.originalUrl}
                   target="_blank"
@@ -205,11 +218,6 @@ export function GitHubRepositoryCard({
                   {name}
                 </a>
               </h2>
-              {repository?.archived && (
-                <Badge variant="secondary" className="mt-1">
-                  已归档
-                </Badge>
-              )}
             </div>
             <Button
               variant="ghost"
@@ -220,115 +228,213 @@ export function GitHubRepositoryCard({
               <Pencil strokeWidth={1.5} />
             </Button>
           </div>
-          <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-            {repository?.description ||
-              link.metaDescription ||
-              "保存仓库后，Connector 会补全仓库信息和 README。"}
+          <p
+            className="line-clamp-3 h-15 shrink-0 text-sm leading-5 text-muted-foreground"
+            title={description}
+          >
+            {bookmark?.analysis && (
+              <Sparkles className="mr-1 inline size-3.5 text-primary" aria-label="AI 摘要" />
+            )}
+            {description}
           </p>
-          {repository && (
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm tabular-nums">
-              <span className="inline-flex items-center gap-1.5" title="GitHub stars">
-                <Star className="size-3.5 text-amber-500" strokeWidth={1.5} aria-hidden />
-                {repository.stars.toLocaleString()}
-                <span className="text-xs text-muted-foreground">stars</span>
+          <div className="grid h-5 shrink-0 grid-cols-3 gap-2 text-xs tabular-nums">
+            {repository ? (
+              <>
+                <span className="inline-flex items-center gap-1.5" title="GitHub stars">
+                  <Star className="size-3.5 text-amber-500" strokeWidth={1.5} aria-hidden />
+                  {repository.stars.toLocaleString()}
+                  <span className="sr-only">stars</span>
+                </span>
+                <span
+                  className="inline-flex items-center gap-1.5"
+                  title={`默认分支 ${repository.defaultBranch} 的 commit 总数`}
+                >
+                  <GitCommitHorizontal
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  {repository.commits.toLocaleString()}
+                  <span className="sr-only">commits</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5" title="GitHub forks">
+                  <GitFork
+                    className="size-3.5 text-muted-foreground"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  {repository.forks.toLocaleString()}
+                  <span className="sr-only">forks</span>
+                </span>
+              </>
+            ) : (
+              <span className="col-span-3 text-muted-foreground">仓库统计待补全</span>
+            )}
+          </div>
+          <div className="flex h-5 shrink-0 items-center gap-2 overflow-hidden text-xs text-muted-foreground">
+            {repository?.language && (
+              <span className="truncate" title={repository.language}>
+                {repository.language}
               </span>
+            )}
+            {repository?.license && (
+              <span className="truncate" title={repository.license}>
+                {repository.license}
+              </span>
+            )}
+            {repository && (
               <span
-                className="inline-flex items-center gap-1.5"
-                title={`默认分支 ${repository.defaultBranch} 的 commit 总数`}
+                className="min-w-0 flex-1 truncate"
+                title={`默认分支 ${repository.defaultBranch}${repository.pushedAt ? ` · 最近提交 ${new Date(repository.pushedAt).toLocaleDateString()}` : ""}`}
               >
-                <GitCommitHorizontal
-                  className="size-3.5 text-muted-foreground"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-                {repository.commits.toLocaleString()}
-                <span className="text-xs text-muted-foreground">commits</span>
+                分支 {repository.defaultBranch}
               </span>
-              <span className="inline-flex items-center gap-1.5" title="GitHub forks">
-                <GitFork className="size-3.5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
-                {repository.forks.toLocaleString()}
-                <span className="text-xs text-muted-foreground">forks</span>
-              </span>
-            </div>
-          )}
-          {repository && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {repository.language && <span>{repository.language}</span>}
-              {repository.license && <span>{repository.license}</span>}
-              <span>分支 {repository.defaultBranch}</span>
-              {repository.pushedAt && (
-                <span>最近提交 {new Date(repository.pushedAt).toLocaleDateString()}</span>
-              )}
-            </div>
-          )}
-          {repository?.topics.length ? (
-            <div className="flex flex-wrap gap-1">
-              {repository.topics.map((topic) => (
-                <Badge key={topic} variant="outline">
-                  {topic}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-          {link.note && (
-            <p className="border-l-2 border-border pl-3 text-sm leading-6">{link.note}</p>
-          )}
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="mr-1 inline-flex items-center gap-1.5">
-              <FolderOpen className="size-3.5" strokeWidth={1.5} aria-hidden />
-              {folder}
-            </span>
-            {assignedTags.map((tag) => (
-              <TagBadge key={tag.id} tag={tag} size="sm" />
+            )}
+            {repository?.archived && (
+              <Badge variant="secondary" className="shrink-0">
+                已归档
+              </Badge>
+            )}
+          </div>
+          <div
+            className="flex h-8 shrink-0 items-center gap-1 overflow-hidden"
+            data-testid="github-card-topics"
+          >
+            {topics.slice(0, 3).map((topic) => (
+              <Badge key={topic} variant="outline" className="min-w-0 max-w-28" title={topic}>
+                <span className="truncate">{topic}</span>
+              </Badge>
             ))}
+            {topics.length > 3 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 px-2"
+                aria-label="查看全部仓库标签"
+                onClick={() => setReading(true)}
+              >
+                +{topics.length - 3}
+              </Button>
+            )}
+          </div>
+          <p
+            className="line-clamp-2 h-10 shrink-0 border-l-2 border-border pl-3 text-xs leading-5 text-muted-foreground"
+            title={link.note || undefined}
+          >
+            {link.note ||
+              (bookmark?.analysis?.features.length
+                ? bookmark.analysis.features.slice(0, 2).join(" · ")
+                : "暂无备注")}
+          </p>
+          <div className="mt-auto flex h-8 shrink-0 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground">
+            <span className="mr-auto inline-flex min-w-0 items-center gap-1.5" title={folder}>
+              <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span className="truncate">{folder}</span>
+            </span>
+            {assignedTags.slice(0, 2).map((tag) => (
+              <span key={tag.id} className="min-w-0 max-w-20">
+                <TagBadge tag={tag} size="sm" />
+              </span>
+            ))}
+            {assignedTags.length > 2 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 px-2"
+                aria-label="查看全部收藏标签"
+                onClick={() => setReading(true)}
+              >
+                +{assignedTags.length - 2}
+              </Button>
+            )}
           </div>
         </div>
-        <LayerCard.Footer className="flex-wrap gap-2 bg-background/30 px-5 py-3">
-          <div className="mr-auto text-xs text-muted-foreground" role="status">
-            {state !== "complete"
-              ? GITHUB_STATE_LABELS[state]
-              : bookmark?.capturedAt
-                ? `采集于 ${new Date(bookmark.capturedAt).toLocaleString()}`
-                : "已补全"}
+        <LayerCard.Footer className="mt-auto flex-col items-stretch gap-2 bg-background/30 px-4 py-3">
+          <div
+            className="h-8 overflow-hidden text-xs leading-4 text-muted-foreground"
+            role="status"
+          >
+            <p
+              className="truncate"
+              title={
+                bookmark?.capturedAt ? new Date(bookmark.capturedAt).toLocaleString() : undefined
+              }
+            >
+              {state !== "complete"
+                ? GITHUB_STATE_LABELS[state]
+                : bookmark?.capturedAt
+                  ? `采集于 ${new Date(bookmark.capturedAt).toLocaleDateString()}`
+                  : "已补全"}
+            </p>
             {bookmark?.errorCode && (
-              <p className="mt-1">
+              <p
+                className="truncate"
+                title={GITHUB_ERROR_LABELS[bookmark.errorCode] ?? "稍后重试，已有内容会保留"}
+              >
                 {GITHUB_ERROR_LABELS[bookmark.errorCode] ?? "稍后重试，已有内容会保留"}
               </p>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="重新采集 GitHub 仓库"
-            disabled={retrying || state === "running"}
-            onClick={retry}
-          >
-            <RefreshCw className={retrying ? "animate-spin" : ""} strokeWidth={1.5} />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!repository}
-            onClick={() => setReading(true)}
-          >
-            <BookOpen strokeWidth={1.5} />
-            阅读 README
-          </Button>
+          <div className="flex items-center gap-1">
+            <GitHubAnalysisButton
+              key={`${link.originalUrl}:${bookmark?.capturedAt}`}
+              linkId={link.id}
+              name={name || "GitHub 仓库"}
+              analysis={bookmark?.analysis ?? null}
+              hasReadme={Boolean(bookmark?.hasReadme)}
+              onSaved={onRefresh}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!repository}
+              onClick={() => setReading(true)}
+              className="ml-auto"
+            >
+              <BookOpen strokeWidth={1.5} />
+              阅读 README
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="重新采集 GitHub 仓库"
+              disabled={retrying || state === "running"}
+              onClick={retry}
+            >
+              <RefreshCw className={retrying ? "animate-spin" : ""} strokeWidth={1.5} />
+            </Button>
+          </div>
         </LayerCard.Footer>
-        {editing && (
-          <InlineEditArea
-            link={link}
-            tags={tags}
-            linkTags={linkTags}
-            folders={folders}
-            editCallbacks={editCallbacks}
-            isDeleting={vm.isDeleting}
-            handleDelete={vm.handleDelete}
-            defaultEditing={false}
-            onCloseEdit={() => setEditing(false)}
-          />
-        )}
       </LayerCard>
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto">
+          <div className="flex items-start gap-3">
+            <DialogHeader className="min-w-0 flex-1">
+              <DialogTitle className="break-all">编辑 GitHub 收藏</DialogTitle>
+              <DialogDescription className="break-all">{name}</DialogDescription>
+            </DialogHeader>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" aria-label="关闭编辑">
+                <X />
+              </Button>
+            </DialogClose>
+          </div>
+          {editing && (
+            <InlineEditArea
+              link={link}
+              tags={tags}
+              linkTags={linkTags}
+              folders={folders}
+              editCallbacks={editCallbacks}
+              isDeleting={vm.isDeleting}
+              handleDelete={vm.handleDelete}
+              defaultEditing={false}
+              onCloseEdit={() => setEditing(false)}
+              className="border-0 bg-transparent p-0"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog open={reading} onOpenChange={setReading}>
         <DialogContent size="xl" className="max-h-[90dvh] overflow-hidden">
           <div className="flex items-start gap-3">
@@ -345,6 +451,31 @@ export function GitHubRepositoryCard({
             </DialogClose>
           </div>
           <div className="min-h-0 overflow-y-auto">
+            <div className="mb-5 space-y-3 border-b border-border/60 pb-4 text-sm leading-6">
+              <p className="break-words">{repository?.description || link.metaDescription}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[...new Set([...topics, ...(repository?.topics ?? [])])].map((topic) => (
+                  <Badge
+                    key={topic}
+                    variant="outline"
+                    className="max-w-full whitespace-normal break-words"
+                  >
+                    {topic}
+                  </Badge>
+                ))}
+              </div>
+              {link.note && (
+                <p className="whitespace-pre-wrap break-words border-l-2 border-border pl-3">
+                  {link.note}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="mr-2 text-xs text-muted-foreground">{folder}</span>
+                {assignedTags.map((tag) => (
+                  <TagBadge key={tag.id} tag={tag} size="sm" />
+                ))}
+              </div>
+            </div>
             {reading && <Readme key={`${link.originalUrl}:${bookmark?.capturedAt}`} link={link} />}
           </div>
         </DialogContent>
