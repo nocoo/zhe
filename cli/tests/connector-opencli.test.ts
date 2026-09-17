@@ -173,8 +173,25 @@ describe("isolated OpenCLI parent boundary", () => {
     const check = expect(readPost(postId, controller.signal)).rejects.toThrow("interrupted");
     if (when === "during") controller.abort();
     if (when === "timeout") await vi.advanceTimersByTimeAsync(120_000);
+    if (when !== "before") child.emit("close");
     await check;
-    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    if (when === "before") expect(forkMock).not.toHaveBeenCalled();
+    else expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("waits for an unresponsive child to exit after forced termination", async () => {
+    const controller = new AbortController();
+    const settled = vi.fn();
+    const result = readPost(postId, controller.signal).finally(settled);
+    const check = expect(result).rejects.toThrow("interrupted");
+    controller.abort();
+    child.emit("message", { ok: true, capture: { tweet: { id: postId } } });
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(child.kill.mock.calls).toEqual([["SIGTERM"], ["SIGKILL"]]);
+    expect(settled).not.toHaveBeenCalled();
+    child.emit("close");
+    await check;
+    expect(settled).toHaveBeenCalledOnce();
     expect(vi.getTimerCount()).toBe(0);
   });
 });

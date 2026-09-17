@@ -11,8 +11,10 @@ import { downloadMedia, makePoster } from "../src/connector/download.js";
 import { trimConnectorLog } from "../src/connector/log-file.js";
 import { readPost } from "../src/connector/opencli.js";
 import { processOne, runOnce, watchConnector } from "../src/connector/runtime.js";
+import { captureScreenshot } from "../src/connector/screenshot.js";
 
 vi.mock("../src/connector/opencli.js", () => ({ readPost: vi.fn() }));
+vi.mock("../src/connector/screenshot.js", () => ({ captureScreenshot: vi.fn() }));
 vi.mock("../src/connector/log-file.js", () => ({ trimConnectorLog: vi.fn() }));
 vi.mock("../src/connector/download.js", () => ({ downloadMedia: vi.fn(), makePoster: vi.fn() }));
 vi.mock("../src/config.js", () => ({ getApiKey: vi.fn(), getEagleConfig: vi.fn() }));
@@ -81,6 +83,43 @@ afterEach(async () => {
 });
 
 describe("zhe connector", () => {
+  it("processes a preview through the shared lease, then removes its temporary file", async () => {
+    const client = new ApiClient("fixture");
+    const previewJob = {
+      ...job,
+      source: "screenshot" as const,
+      sourceUrl: "https://example.com/article",
+    };
+    vi.spyOn(client, "claimConnectorJob").mockResolvedValue({ job: previewJob });
+    let temporaryPath = "";
+    vi.mocked(captureScreenshot).mockImplementation(async (_url, directory) => {
+      temporaryPath = join(directory, "preview.webp");
+      await writeFile(temporaryPath, "screenshot bytes");
+      return {
+        path: temporaryPath,
+        size: 16,
+        mime: "image/webp",
+        width: 1600,
+        height: 1200,
+        sha256: "f".repeat(64),
+      };
+    });
+    const progress = vi.fn();
+    const eagle = { submit: vi.fn() };
+    expect(await processOne(client, undefined, progress, eagle)).toEqual({
+      status: "complete",
+      media: 1,
+    });
+    expect(readPost).not.toHaveBeenCalled();
+    expect(downloadMedia).not.toHaveBeenCalled();
+    expect(eagle.submit).not.toHaveBeenCalled();
+    const upload = requests.find((request) => request.init.method === "PUT");
+    expect(upload?.path).toBe("/api/v1/connector/screenshot/jobs/1");
+    expect(new Headers(upload?.init.headers).get("content-type")).toBe("image/webp");
+    expect(new Headers(upload?.init.headers).get("x-content-sha256")).toBe("f".repeat(64));
+    const { access } = await import("node:fs/promises");
+    await expect(access(temporaryPath)).rejects.toMatchObject({ code: "ENOENT" });
+  });
   it("submits the sidecar before a failed Zhe capture and gives it an independent snapshot", async () => {
     const data = structuredClone(capture);
     data.media = [{ id: "222", type: "PHOTO", url: "https://pbs.twimg.com/media/test.jpg" }];

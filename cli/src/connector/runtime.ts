@@ -11,7 +11,14 @@ import { readGitHubRepository } from "./github.js";
 import { ConnectorLogger, connectorErrorHint } from "./log.js";
 import { trimConnectorLog } from "./log-file.js";
 import { readPost } from "./opencli.js";
-import type { DownloadedMedia, MediaReservation, ReportProgress, XJob } from "./types.js";
+import { captureScreenshot } from "./screenshot.js";
+import type {
+  ConnectorJob,
+  DownloadedMedia,
+  MediaReservation,
+  ReportProgress,
+  XJob,
+} from "./types.js";
 
 export interface PollResult {
   status: "idle" | "complete" | "partial" | "failed";
@@ -26,6 +33,12 @@ export function authenticatedClient(): ApiClient {
   return new ApiClient(key);
 }
 
+function jobLabel(job: ConnectorJob): string {
+  if (job.source === "github") return `GitHub ${job.fullName}`;
+  if (job.source === "screenshot") return `Preview ${new URL(job.sourceUrl).hostname}`;
+  return `X post ${job.postId}`;
+}
+
 export async function processOne(
   client: ApiClient,
   parent?: AbortSignal,
@@ -36,7 +49,7 @@ export async function processOne(
   if (!job) return { status: "idle", media: 0 };
   progress?.({
     stage: "claim",
-    message: `Link #${job.linkId} · ${job.source === "github" ? `GitHub ${job.fullName}` : `X post ${job.postId}`} · attempt ${job.attempts}`,
+    message: `Link #${job.linkId} · ${jobLabel(job)} · attempt ${job.attempts}`,
   });
   const controller = new AbortController();
   const signal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
@@ -70,6 +83,23 @@ export async function processOne(
       return { status: "complete", media: 0 };
     }
     dir = await mkdtemp(join(tmpdir(), "zhe-connector-"));
+    if (job.source === "screenshot") {
+      progress?.({
+        stage: "read",
+        message: "Rendering the saved page through OpenCLI at 2× pixel density",
+      });
+      const file = await captureScreenshot(job.sourceUrl, dir, signal);
+      signal.throwIfAborted();
+      progress?.({
+        stage: "capture",
+        message: `4:3 preview · ${file.width}×${file.height} WebP`,
+        total: 1,
+      });
+      progress?.({ stage: "upload", message: "Saving the preview to Zhe", bytes: file.size });
+      await client.uploadScreenshot(job, file, signal);
+      progress?.({ stage: "uploaded", message: "CDN preview saved", bytes: file.size });
+      return { status: "complete", media: 1 };
+    }
     progress?.({ stage: "read", message: "Reading the saved post through the local X session" });
     const capture = await readPost(job.postId, signal);
     // Fork before any Zhe write; the sidecar owns its downloads, deadlines and recovery.

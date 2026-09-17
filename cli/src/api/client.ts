@@ -8,6 +8,7 @@ import type {
   ConnectorStatus,
   DownloadedMedia,
   MediaReservation,
+  ScreenshotJob,
   XJob,
 } from "../connector/types.js";
 import { CLI_VERSION } from "../version.js";
@@ -303,7 +304,13 @@ export class ApiClient {
   }
 
   claimConnectorJob(signal?: AbortSignal): Promise<{ job: ConnectorJob | null }> {
-    return this.request("POST", "/connector", {}, { "X-Connector-Sources": "github,x" }, signal);
+    return this.request(
+      "POST",
+      "/connector",
+      {},
+      { "X-Connector-Sources": "github,x,screenshot" },
+      signal,
+    );
   }
 
   connectorAction<T = { ok: boolean }>(
@@ -313,7 +320,7 @@ export class ApiClient {
   ): Promise<T> {
     return this.request(
       "POST",
-      `/connector/${job.source === "github" ? "github/" : ""}jobs/${job.linkId}`,
+      `/connector/${job.source && job.source !== "x" ? `${job.source}/` : ""}jobs/${job.linkId}`,
       body,
       { "X-Connector-Lease": job.leaseToken },
       signal,
@@ -332,6 +339,25 @@ export class ApiClient {
       `/connector/jobs/${job.linkId}/media/${asset.id}`,
       body,
       { "X-Connector-Lease": job.leaseToken, "Content-Type": file.mime },
+      signal,
+    );
+  }
+
+  async uploadScreenshot(
+    job: ScreenshotJob,
+    file: DownloadedMedia,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const body = await openAsBlob(file.path, { type: file.mime });
+    await this.request(
+      "PUT",
+      `/connector/screenshot/jobs/${job.linkId}`,
+      body,
+      {
+        "X-Connector-Lease": job.leaseToken,
+        "Content-Type": file.mime,
+        "X-Content-SHA256": file.sha256,
+      },
       signal,
     );
   }

@@ -14,6 +14,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "rewriteRelativeImportExtensions": true,
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*"],

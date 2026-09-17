@@ -28,7 +28,7 @@ const xml = (value: string) =>
 export const connectorCommand = defineCommand({
   meta: {
     name: "connector",
-    description: "Enrich saved X and GitHub bookmarks using local credentials",
+    description: "Enrich X, GitHub and missing webpage previews using local credentials",
   },
   subCommands: {
     eagle: defineCommand({
@@ -81,7 +81,7 @@ export const connectorCommand = defineCommand({
       },
     }),
     once: defineCommand({
-      meta: { name: "once", description: "Process one saved X or GitHub bookmark" },
+      meta: { name: "once", description: "Process one X, GitHub or webpage preview job" },
       args: { json: { type: "boolean", description: "Output JSON progress and result" } },
       async run({ args }) {
         const log = new ConnectorLogger(Boolean(args.json));
@@ -96,7 +96,7 @@ export const connectorCommand = defineCommand({
       },
     }),
     watch: defineCommand({
-      meta: { name: "watch", description: "Poll saved X and GitHub bookmarks every 20 seconds" },
+      meta: { name: "watch", description: "Poll X, GitHub and webpage previews every 20 seconds" },
       args: { json: { type: "boolean", description: "Output newline-delimited JSON events" } },
       async run({ args }) {
         const controller = new AbortController();

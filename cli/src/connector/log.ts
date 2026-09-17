@@ -21,6 +21,12 @@ const hints: Record<string, string> = {
   adapter_contract_changed: "OpenCLI adapter changed. Update the Zhe CLI.",
   post_unavailable: "The saved X post is unavailable or protected.",
   invalid_post_id: "The saved X post ID is invalid.",
+  screenshot_unavailable:
+    "The page could not be captured. Check that it loads in the connected browser.",
+  screenshot_too_large: "The compressed preview exceeds the 512 KiB limit.",
+  invalid_screenshot: "The preview is not a valid 1600×1200 WebP image.",
+  unsafe_screenshot_url: "The page redirected to an excluded site or an unsupported address.",
+  storage_unavailable: "Zhe's R2 storage or CDN configuration is unavailable.",
   github_needs_login:
     "GitHub rejected the local credential. Run `gh auth login` or update GH_TOKEN.",
   github_rate_limited:
@@ -96,7 +102,7 @@ export class ConnectorLogger {
   start() {
     this.write(
       "ready",
-      `Zhe · X / GitHub Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
+      `Zhe · X / GitHub / Preview Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
     );
   }
 

@@ -1,4 +1,4 @@
-import { ConnectorError } from "./core.js";
+import { ConnectorError } from "./core.ts";
 
 export function isPublicAddress(address: string) {
   if (address.includes(":")) {
@@ -13,7 +13,7 @@ export function isPublicAddress(address: string) {
   if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(address)) return false;
   const octets = address.split(".").map(Number);
   if (octets.some((n) => n > 255)) return false;
-  const [a, b, c] = octets;
+  const [a = 0, b = 0, c = 0] = octets;
   return !(
     a === 0 ||
     a === 10 ||

@@ -265,7 +265,9 @@ describe("GitHub REST collection", () => {
       await processOne(new ApiClient("synthetic-zhe-credential"), undefined, undefined, eagle),
     ).toEqual({ status: "complete", media: 0 });
     expect(eagle.submit).not.toHaveBeenCalled();
-    expect(new Headers(zheRequests[0].headers).get("x-connector-sources")).toBe("github,x");
+    expect(new Headers(zheRequests[0].headers).get("x-connector-sources")).toBe(
+      "github,x,screenshot",
+    );
     expect(JSON.parse(zheRequests[1].body as string)).toEqual({
       action: "complete",
       repository: snapshot,
