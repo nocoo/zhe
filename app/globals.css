@@ -129,6 +129,75 @@
   }
 }
 
+/* The dialog supplies focus trapping and scroll locking; only the two card
+ * faces move. The original card stays in place as a layout placeholder. */
+.link-card-editor[data-basalt-surface-root] {
+  padding: 0;
+  overflow: visible;
+  max-height: none;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  perspective: 1600px;
+}
+
+[data-card-backdrop] {
+  animation: none !important;
+}
+
+.link-card-flight {
+  position: relative;
+  visibility: hidden;
+  transform: rotateY(180deg);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.link-card-front,
+.link-card-back {
+  border-radius: var(--radius-card);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.link-card-front {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.link-card-back {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: rotateY(180deg);
+  background: hsl(var(--secondary));
+  box-shadow: 0 24px 80px -20px rgb(0 0 0 / 0.3);
+  outline: 1px solid hsl(var(--border) / 0.6);
+}
+
+@supports (height: 100dvh) {
+  .link-card-back {
+    max-height: calc(100dvh - 2rem);
+  }
+}
+
+.link-card-editor:not([data-phase="editing"]) .link-card-back {
+  pointer-events: none;
+}
+
+/* Drop the 3D layers at rest so text and form controls remain crisp. */
+.link-card-editor[data-phase="editing"] .link-card-flight,
+.link-card-editor[data-phase="editing"] .link-card-back {
+  transform: none;
+  will-change: auto;
+}
+
+.link-card-editor[data-phase="editing"] .link-card-front {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     --motion-fast: 0ms;
