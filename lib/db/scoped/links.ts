@@ -2,7 +2,9 @@
  * Link operations for ScopedDB. Free functions that take userId.
  */
 
-import { drainR2Deletions } from "@/lib/r2/gc";
+import { drainR2Deletions, enqueueR2Deletion } from "@/lib/r2/gc";
+import { extractKeyFromUrl } from "@/models/storage";
+import { hashUserId } from "@/models/upload";
 import { executeD1Query } from "../d1-client";
 import { rowToLink } from "../mappers";
 import type { Link, NewLink } from "../schema";
@@ -262,6 +264,36 @@ export async function updateLinkScreenshot(
     [screenshotUrl, id, userId],
   );
   return rows[0] ? rowToLink(rows[0]) : null;
+}
+
+/** Clear only the preview the user saw; a repeated request cannot delete its replacement. */
+export async function deleteLinkScreenshot(
+  userId: string,
+  id: number,
+  screenshotUrl: string,
+): Promise<Link | null> {
+  const link = await getLinkById(userId, id);
+  if (!link || !screenshotUrl.trim() || link.screenshotUrl !== screenshotUrl) return link;
+
+  const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+  const salt = process.env.R2_USER_HASH_SALT;
+  if (!publicDomain || !salt) throw new Error("R2 screenshot storage is not configured");
+  const key = extractKeyFromUrl(screenshotUrl, publicDomain);
+  if (
+    key?.startsWith(`${await hashUserId(userId, salt)}/`) &&
+    new URL(screenshotUrl).href === screenshotUrl
+  ) {
+    // Persist cleanup before clearing the reference, including legacy provider screenshots.
+    // The shared queue protects other links/uploads and retries failed R2 deletions.
+    await enqueueR2Deletion(key, userId);
+  }
+  await executeD1Query(
+    "UPDATE links SET screenshot_url = NULL WHERE id = ? AND user_id = ? AND screenshot_url = ?",
+    [id, userId, screenshotUrl],
+  );
+  // Existing triggers retire the old Connector job, making this link discoverable again.
+  await drainR2Deletions(userId).catch(() => {});
+  return getLinkById(userId, id);
 }
 
 export async function updateLinkNote(

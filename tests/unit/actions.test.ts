@@ -34,6 +34,7 @@ const mockUpdateLinkMetadata = vi.fn();
 const mockGetLinkById = vi.fn();
 const mockGetLinksByIds = vi.fn();
 const mockUpdateLinkScreenshot = vi.fn();
+const mockDeleteLinkScreenshot = vi.fn();
 const mockUpdateLinkNote = vi.fn();
 const mockAddTagToLink = vi.fn();
 const mockGetFolderById = vi.fn();
@@ -50,6 +51,7 @@ vi.mock("@/lib/db/scoped", () => ({
       getLinkById: mockGetLinkById,
       getLinksByIds: mockGetLinksByIds,
       updateLinkScreenshot: mockUpdateLinkScreenshot,
+      deleteLinkScreenshot: mockDeleteLinkScreenshot,
       updateLinkNote: mockUpdateLinkNote,
       addTagToLink: mockAddTagToLink,
       getFolderById: mockGetFolderById,
@@ -113,7 +115,11 @@ import {
   updateLinkNote,
 } from "@/actions/links";
 import { batchRefreshLinkMetadata, refreshLinkMetadata } from "@/actions/links/metadata";
-import { fetchAndSaveScreenshot, saveScreenshot } from "@/actions/links/screenshot";
+import {
+  deleteScreenshot,
+  fetchAndSaveScreenshot,
+  saveScreenshot,
+} from "@/actions/links/screenshot";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1004,6 +1010,50 @@ describe("actions/links — uncovered paths", () => {
       const result = await updateLinkNote(1, "note");
 
       expect(result).toEqual({ success: false, error: "Failed to update link note" });
+    });
+  });
+
+  // ====================================================================
+  // deleteScreenshot
+  // ====================================================================
+  describe("deleteScreenshot", () => {
+    const url = "https://s.zhe.to/user/20260917/preview.webp";
+
+    it("requires authentication before deleting a preview", async () => {
+      mockAuth.mockResolvedValue(null);
+      expect(await deleteScreenshot(1, url)).toEqual({ success: false, error: "Unauthorized" });
+      expect(mockDeleteLinkScreenshot).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [0, url],
+      [1.5, url],
+      [1, " "],
+      [1, null],
+    ])("rejects invalid arguments %j", async (id, screenshotUrl) => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      expect(await deleteScreenshot(id as number, screenshotUrl as string)).toEqual({
+        success: false,
+        error: "Invalid screenshot",
+      });
+      expect(mockDeleteLinkScreenshot).not.toHaveBeenCalled();
+    });
+
+    it("uses scoped deletion and returns the current link", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockDeleteLinkScreenshot.mockResolvedValue(FAKE_LINK);
+      expect(await deleteScreenshot(1, url)).toEqual({ success: true, data: FAKE_LINK });
+      expect(mockDeleteLinkScreenshot).toHaveBeenCalledWith(1, url);
+      mockDeleteLinkScreenshot.mockResolvedValue(null);
+      expect(await deleteScreenshot(1, url)).toEqual({
+        success: false,
+        error: "Link not found or access denied",
+      });
+      mockDeleteLinkScreenshot.mockRejectedValue(new Error("storage failure"));
+      expect(await deleteScreenshot(1, url)).toEqual({
+        success: false,
+        error: "Failed to delete screenshot",
+      });
     });
   });
 

@@ -136,3 +136,28 @@ export async function saveScreenshot(
     return { success: false, error: "Failed to save screenshot" };
   }
 }
+
+/** Delete the stored preview and its owned R2 object so Connector can capture it again. */
+export async function deleteScreenshot(
+  linkId: number,
+  screenshotUrl: string,
+): Promise<ActionResult<Link>> {
+  try {
+    const ctx = await getAuthContext();
+    if (!ctx) return { success: false, error: "Unauthorized" };
+    if (
+      !Number.isSafeInteger(linkId) ||
+      linkId <= 0 ||
+      typeof screenshotUrl !== "string" ||
+      !screenshotUrl.trim()
+    )
+      return { success: false, error: "Invalid screenshot" };
+
+    const updated = await ctx.db.deleteLinkScreenshot(linkId, screenshotUrl);
+    if (!updated) return { success: false, error: "Link not found or access denied" };
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Failed to delete screenshot:", error);
+    return { success: false, error: "Failed to delete screenshot" };
+  }
+}

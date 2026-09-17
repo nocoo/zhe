@@ -48,6 +48,7 @@ import {
   writeScreenshot,
 } from "@/lib/connector/screenshot-jobs";
 import * as d1 from "@/lib/db/d1-client";
+import { ScopedDB } from "@/lib/db/scoped";
 import {
   deleteLink as scopedDeleteLink,
   updateLink as scopedUpdateLink,
@@ -491,6 +492,128 @@ describe("serialized webpage previews", () => {
     expect((await uploadScreenshot(put(), context)).status).toBe(200);
     expect((await uploadScreenshot(put(), context)).status).toBe(200);
     expect((await updateScreenshotJob(action("renew"), context)).status).toBe(409);
+  });
+});
+
+describe("deleting screenshot previews", () => {
+  it("deletes the file and job, permits recapture and preserves a replacement on repeated requests", async () => {
+    const id = link("https://example.com/article");
+    const scoped = new ScopedDB("owner");
+    const first = required(await claimScreenshot(identity));
+    await writeScreenshot(identity, id, first.leaseToken, screenshotDigest, screenshotBody());
+    const oldUrl = required((await scoped.getLinkById(id))?.screenshotUrl);
+
+    expect((await scoped.deleteLinkScreenshot(id, oldUrl))?.screenshotUrl).toBeNull();
+    expect(await r2.listR2Objects()).toEqual([]);
+    expect(rows("screenshot_jobs")).toEqual([]);
+    expect((await scoped.deleteLinkScreenshot(id, oldUrl))?.screenshotUrl).toBeNull();
+    expect(
+      await writeScreenshot(identity, id, first.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(false);
+
+    const second = required(await claimScreenshot(identity));
+    expect(second.linkId).toBe(id);
+    expect(second.leaseToken).not.toBe(first.leaseToken);
+    expect(await claimScreenshot(identity)).toBeNull();
+    await writeScreenshot(identity, id, second.leaseToken, screenshotDigest, screenshotBody());
+    const newUrl = required((await scoped.getLinkById(id))?.screenshotUrl);
+    expect(newUrl).not.toBe(oldUrl);
+    expect((await scoped.deleteLinkScreenshot(id, oldUrl))?.screenshotUrl).toBe(newUrl);
+    expect(await r2.listR2Objects()).toHaveLength(1);
+    expect(rows("screenshot_jobs")[0]?.state).toBe("complete");
+  });
+
+  it("also deletes legacy provider files and retains cleanup when R2 is unavailable", async () => {
+    const id = link("https://example.com/article");
+    const key = `${await hashUserId("owner", "connector-test-salt")}/20260917/legacy.png`;
+    const url = `https://cdn.example.com/${key}`;
+    await r2.uploadBufferToR2(key, screenshot, "image/png");
+    db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(url, id);
+    const remove = vi
+      .spyOn(r2, "deleteR2Object")
+      .mockRejectedValueOnce(new Error("R2 unavailable"));
+
+    expect((await new ScopedDB("owner").deleteLinkScreenshot(id, url))?.screenshotUrl).toBeNull();
+    expect(remove).toHaveBeenCalledWith(key);
+    expect(rows("r2_deletions")[0]?.key).toBe(key);
+    expect(await r2.listR2Objects()).toHaveLength(1);
+    await drainR2Deletions("owner");
+    expect(await r2.listR2Objects()).toEqual([]);
+    expect(rows("r2_deletions")).toEqual([]);
+    expect(required(await claimScreenshot(identity)).linkId).toBe(id);
+  });
+
+  it("enforces link ownership and keeps an object until its last link reference is cleared", async () => {
+    const first = link("https://example.com/first");
+    const second = link("https://example.com/second");
+    const key = `${await hashUserId("owner", "connector-test-salt")}/20260917/shared.png`;
+    const url = `https://cdn.example.com/${key}`;
+    await r2.uploadBufferToR2(key, screenshot, "image/png");
+    db.prepare("UPDATE links SET screenshot_url=?").run(url);
+    expect(await new ScopedDB("other").deleteLinkScreenshot(first, url)).toBeNull();
+    const scoped = new ScopedDB("owner");
+    expect((await scoped.getLinkById(first))?.screenshotUrl).toBe(url);
+    await scoped.deleteLinkScreenshot(first, url);
+    expect(await r2.listR2Objects()).toHaveLength(1);
+    await scoped.deleteLinkScreenshot(second, url);
+    expect(await r2.listR2Objects()).toEqual([]);
+  });
+
+  it("clears external, shared and foreign previews without deleting unrelated R2 objects", async () => {
+    const owned = await hashUserId("owner", "connector-test-salt");
+    const foreign = `${await hashUserId("other", "connector-test-salt")}/20260917/image.png`;
+    await r2.uploadBufferToR2(foreign, screenshot, "image/png");
+    const remove = vi.spyOn(r2, "deleteR2Object");
+    for (const url of [
+      `https://cdn.example.com/${foreign}`,
+      `https://cdn.example.com/${owned}/../${foreign}`,
+      "https://external.example.com/image.png",
+      "/github-preview.jpg",
+    ]) {
+      const id = link("https://example.com/article");
+      db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(url, id);
+      expect((await new ScopedDB("owner").deleteLinkScreenshot(id, url))?.screenshotUrl).toBeNull();
+    }
+    expect(remove).not.toHaveBeenCalled();
+    expect(await r2.listR2Objects()).toHaveLength(1);
+  });
+
+  it("keeps the preview when durable cleanup cannot be recorded", async () => {
+    const id = link("https://example.com/article");
+    const url = `https://cdn.example.com/${await hashUserId("owner", "connector-test-salt")}/20260917/legacy.png`;
+    db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(url, id);
+    const query = d1.executeD1Query;
+    vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+      if (sql.includes("INSERT INTO r2_deletions")) throw new Error("D1 unavailable");
+      return query(sql, params);
+    });
+    await expect(new ScopedDB("owner").deleteLinkScreenshot(id, url)).rejects.toThrow(
+      "D1 unavailable",
+    );
+    expect(db.prepare("SELECT screenshot_url FROM links WHERE id=?").get(id)?.screenshot_url).toBe(
+      url,
+    );
+    vi.stubEnv("R2_USER_HASH_SALT", "");
+    await expect(new ScopedDB("owner").deleteLinkScreenshot(id, url)).rejects.toThrow(
+      "not configured",
+    );
+  });
+
+  it("does not clear a concurrent replacement between reading and deleting the preview", async () => {
+    const id = link("https://example.com/article");
+    const url = `https://cdn.example.com/${await hashUserId("owner", "connector-test-salt")}/20260917/legacy.png`;
+    db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(url, id);
+    const query = d1.executeD1Query;
+    vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+      if (sql.includes("INSERT INTO r2_deletions"))
+        db.prepare("UPDATE links SET screenshot_url='https://example.com/new.png' WHERE id=?").run(
+          id,
+        );
+      return query(sql, params);
+    });
+    expect((await new ScopedDB("owner").deleteLinkScreenshot(id, url))?.screenshotUrl).toBe(
+      "https://example.com/new.png",
+    );
   });
 });
 

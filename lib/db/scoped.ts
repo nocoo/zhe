@@ -124,6 +124,10 @@ export class ScopedDB {
     return linksOps.updateLinkScreenshot(this.userId, id, screenshotUrl);
   }
 
+  deleteLinkScreenshot(id: number, screenshotUrl: string): Promise<Link | null> {
+    return linksOps.deleteLinkScreenshot(this.userId, id, screenshotUrl);
+  }
+
   updateLinkNote(id: number, note: string | null): Promise<Link | null> {
     return linksOps.updateLinkNote(this.userId, id, note);
   }
