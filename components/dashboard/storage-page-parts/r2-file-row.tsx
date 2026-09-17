@@ -54,7 +54,7 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
         <img
           src={file.publicUrl}
           alt={getFileName(file.key)}
-          className="h-8 w-8 rounded object-cover shrink-0 bg-secondary"
+          className="h-8 w-8 rounded object-cover shrink-0 bg-white scheme-light"
           loading="lazy"
         />
       ) : (

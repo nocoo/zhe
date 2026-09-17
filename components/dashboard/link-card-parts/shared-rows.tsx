@@ -27,7 +27,7 @@ export function Favicon({
         alt="favicon"
         width={dim}
         height={dim}
-        className={`${cls} shrink-0 rounded-sm`}
+        className={`${cls} box-content shrink-0 rounded-sm bg-white p-0.5 object-contain scheme-light`}
         unoptimized
         onError={onError}
       />

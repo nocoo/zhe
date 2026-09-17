@@ -28,7 +28,7 @@ function Favicon({ src }: { src: string | null | undefined }) {
         alt=""
         width={14}
         height={14}
-        className="w-3.5 h-3.5 rounded-[3px]"
+        className="w-3.5 h-3.5 box-content rounded-[3px] bg-white p-0.5 object-contain scheme-light"
         unoptimized
       />
     );

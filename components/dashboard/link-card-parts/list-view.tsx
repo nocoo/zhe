@@ -104,7 +104,7 @@ function ListThumbnail({
             alt="Site favicon"
             width={40}
             height={40}
-            className="w-10 h-10 object-contain"
+            className="w-10 h-10 box-content rounded-widget bg-white p-1.5 object-contain scheme-light"
             unoptimized
           />
         </div>

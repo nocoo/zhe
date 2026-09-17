@@ -122,7 +122,7 @@ function GridScreenshot({
               alt="Site favicon"
               width={48}
               height={48}
-              className="w-12 h-12 object-contain"
+              className="w-12 h-12 box-content rounded-widget bg-white p-2 object-contain scheme-light"
               unoptimized
             />
           </div>

@@ -44,8 +44,8 @@ export function MarkdownPreview({
         // Code blocks
         "prose-pre:bg-background prose-pre:rounded-widget",
         "prose-code:text-foreground prose-code:bg-background prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
-        // Images
-        "prose-img:rounded-md",
+        // Keep transparent logos and diagrams readable in both themes.
+        "prose-img:rounded-md prose-img:bg-white prose-img:scheme-light",
         // Tables
         "prose-th:text-left",
         // Task lists
