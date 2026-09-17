@@ -12,8 +12,21 @@ export function ThemeToggle({ "aria-label": ariaLabel = "切换主题" }: ThemeT
   const nextTheme = theme === "system" ? "light" : theme === "light" ? "dark" : "system";
   const Icon = theme === "system" ? Monitor : theme === "dark" ? Moon : Sun;
   return (
-    <HeaderTooltip label={(nextTheme === "system" ? "跟随系统主题" : nextTheme === "dark" ? "切换为深色主题" : "切换为浅色主题")}>
-      <Button variant="ghost" size="icon" onClick={() => setTheme(nextTheme)} aria-label={ariaLabel}>
+    <HeaderTooltip
+      label={
+        nextTheme === "system"
+          ? "跟随系统主题"
+          : nextTheme === "dark"
+            ? "切换为深色主题"
+            : "切换为浅色主题"
+      }
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setTheme(nextTheme)}
+        aria-label={ariaLabel}
+      >
         <Icon className="h-4 w-4" aria-hidden="true" strokeWidth={1.5} />
       </Button>
     </HeaderTooltip>

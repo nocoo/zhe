@@ -90,7 +90,7 @@ describe("Home Page", () => {
     const jsx = await Home();
     render(withTheme(jsx));
 
-    const link = screen.getByTitle("GitHub");
+    const link = screen.getByRole("link", { name: "GitHub" });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "https://github.com/nocoo/zhe");
   });

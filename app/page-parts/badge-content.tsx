@@ -1,8 +1,8 @@
-import { HeaderTooltip, HexlyLink } from "../../components/header-links";
-import { ThemeToggle } from "../../components/theme-toggle";
 import { Button } from "@nocoo/basalt";
 import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
+import { HeaderTooltip, HexlyLink } from "../../components/header-links";
+import { ThemeToggle } from "../../components/theme-toggle";
 
 export function TopRightControls() {
   return (

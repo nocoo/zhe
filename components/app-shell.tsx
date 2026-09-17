@@ -1,9 +1,5 @@
 "use client";
 
-import { HeaderTooltip, HexlyLink } from "./header-links";
-
-import { ThemeToggle } from "./theme-toggle";
-
 import { Button, ContentIsland, Sheet, SheetContent, SheetTitle } from "@nocoo/basalt";
 import { AppHeader } from "@nocoo/basalt/components/app-header";
 import {
@@ -21,6 +17,8 @@ import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import type { Folder } from "@/models/types";
+import { HeaderTooltip, HexlyLink } from "./header-links";
+import { ThemeToggle } from "./theme-toggle";
 
 export interface AppShellProps {
   children: React.ReactNode;

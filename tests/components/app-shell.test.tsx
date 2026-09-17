@@ -225,7 +225,7 @@ describe("AppShell", () => {
 
   it("renders GitHub link in header", async () => {
     await renderShell();
-    const link = screen.getByTitle("GitHub");
+    const link = screen.getByRole("link", { name: "GitHub" });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "https://github.com/nocoo/zhe");
   });
