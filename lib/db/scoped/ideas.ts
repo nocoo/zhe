@@ -3,10 +3,12 @@
  * ScopedDB methods delegate here to keep scoped.ts small.
  */
 
+import { normalizeSearchText } from "@/models/search";
 import { generateExcerpt } from "../../markdown";
 import { type D1Statement, executeD1Batch, executeD1Query } from "../d1-client";
 import { rowToIdea, rowToIdeaTag } from "../mappers";
 import type { IdeaTag } from "../schema";
+import { ensureSearchIndex } from "./search";
 import type { GetIdeasOptions, IdeaDetail, IdeaListItem } from "./types";
 
 function buildIdeasQuery(
@@ -17,10 +19,11 @@ function buildIdeasQuery(
   const conditions: string[] = ["i.user_id = ?"];
   const params: unknown[] = [userId];
 
-  if (query) {
-    const searchPattern = `%${query}%`;
-    conditions.push(`(i.title LIKE ? OR i.excerpt LIKE ?)`);
-    params.push(searchPattern, searchPattern);
+  if (query && normalizeSearchText(query)) {
+    conditions.push(
+      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='idea' AND s.resource_id=i.id AND s.user_id=i.user_id AND s.indexed_revision=s.revision AND instr(s.search_text,?)>0)`,
+    );
+    params.push(normalizeSearchText(query));
   }
 
   let joinClause = "";
@@ -71,6 +74,7 @@ export async function getIdeas(
   userId: string,
   options: GetIdeasOptions = {},
 ): Promise<IdeaListItem[]> {
+  if (options.query && normalizeSearchText(options.query)) await ensureSearchIndex(userId);
   const { conditions, params, joinClause } = buildIdeasQuery(userId, options);
 
   const sql = `
@@ -92,6 +96,7 @@ export async function getIdeasPage(
   userId: string,
   options: GetIdeasOptions & { limit: number; offset: number },
 ): Promise<{ items: IdeaListItem[]; total: number }> {
+  if (options.query && normalizeSearchText(options.query)) await ensureSearchIndex(userId);
   const { limit, offset, ...filterOptions } = options;
   const { conditions, params, joinClause } = buildIdeasQuery(userId, filterOptions);
   const whereClause = conditions.join(" AND ");

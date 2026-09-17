@@ -106,6 +106,7 @@ vi.mock("@/components/sidebar-context", () => ({
   SidebarProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+import { SearchProvider } from "@/components/search-provider";
 import { Sidebar } from "@/components/sidebar";
 
 function resetMockFoldersVm(overrides: Partial<FoldersViewModel> = {}): void {
@@ -139,7 +140,9 @@ function renderSidebar(
   return render(
     withTheme(
       <TooltipProvider>
-        <Sidebar {...defaultProps} />
+        <SearchProvider>
+          <Sidebar {...defaultProps} />
+        </SearchProvider>
       </TooltipProvider>,
     ),
   );

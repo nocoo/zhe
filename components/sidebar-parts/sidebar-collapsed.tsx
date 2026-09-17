@@ -1,9 +1,8 @@
 "use client";
 
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { FolderIcon } from "@/components/folder-icon";
-import { SearchCommandDialog } from "@/components/search-command-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -21,8 +20,7 @@ interface SidebarCollapsedProps {
   user?: { name?: string | null; image?: string | null } | undefined;
   folders: Folder[];
   onToggle: () => void;
-  searchOpen: boolean;
-  setSearchOpen: (open: boolean) => void;
+  openSearch: () => void;
 }
 
 function isFolderNavActive(currentFolder: string | null | "__other__", folderParam: string | null) {
@@ -43,8 +41,7 @@ export function SidebarCollapsed({
   user,
   folders,
   onToggle,
-  searchOpen,
-  setSearchOpen,
+  openSearch,
 }: SidebarCollapsedProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden">
@@ -61,6 +58,14 @@ export function SidebarCollapsed({
         <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
       </button>
 
+      <button
+        type="button"
+        onClick={openSearch}
+        aria-label="打开搜索"
+        className={iconLinkCls(false)}
+      >
+        <Search className="h-4 w-4" />
+      </button>
       <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
         {PRE_LINK_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
           <Tooltip key={item.href} delayDuration={0}>
@@ -150,7 +155,6 @@ export function SidebarCollapsed({
           </TooltipContent>
         </Tooltip>
       </div>
-      <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

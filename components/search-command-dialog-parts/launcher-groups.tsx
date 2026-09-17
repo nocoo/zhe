@@ -8,6 +8,7 @@ import {
   PRE_LINK_NAV_GROUPS,
 } from "@/components/sidebar-parts/nav-config";
 import { CommandGroup, CommandItem } from "@/components/ui/command";
+import { normalizeSearchText } from "@/models/search";
 
 /**
  * Flatten the sidebar nav config into a single list of jump-to-page
@@ -46,7 +47,7 @@ export function buildPageDestinations(): PageDestination[] {
         title: item.title,
         icon: item.icon,
         href: item.href,
-        search: aliasFor(item.title).toLowerCase(),
+        search: normalizeSearchText(aliasFor(item.title)),
       });
     }
   }
@@ -55,7 +56,7 @@ export function buildPageDestinations(): PageDestination[] {
       title: item.title,
       icon: item.icon,
       href: item.href,
-      search: aliasFor(item.title).toLowerCase(),
+      search: normalizeSearchText(aliasFor(item.title)),
     });
   }
   for (const group of OTHER_NAV_GROUPS) {
@@ -64,7 +65,7 @@ export function buildPageDestinations(): PageDestination[] {
         title: item.title,
         icon: item.icon,
         href: item.href,
-        search: aliasFor(item.title).toLowerCase(),
+        search: normalizeSearchText(aliasFor(item.title)),
       });
     }
   }
@@ -75,17 +76,17 @@ export function buildPageDestinations(): PageDestination[] {
  *  the logic inside PageJumpGroup so the host can decide whether to
  *  render a "no results" fallback. */
 export function countPageMatches(query: string): number {
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = normalizeSearchText(query);
   const all = buildPageDestinations();
   if (!trimmed) return 0; // when empty, the "home" view shows a slice — don't claim a match
-  return all.filter((p) => p.search.includes(trimmed)).length;
+  return all.filter((p) => normalizeSearchText(p.search).includes(trimmed)).length;
 }
 
 /** Returns how many actions match the given query. */
 export function countActionMatches(actions: LauncherAction[], query: string): number {
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = normalizeSearchText(query);
   if (!trimmed) return 0;
-  return actions.filter((a) => a.search.includes(trimmed)).length;
+  return actions.filter((a) => normalizeSearchText(a.search).includes(trimmed)).length;
 }
 
 interface PageJumpGroupProps {
@@ -99,10 +100,10 @@ interface PageJumpGroupProps {
  *  active-query state (filtered by substring against title/alias). */
 export function PageJumpGroup({ query, visibleWhenEmpty = 5, onNavigate }: PageJumpGroupProps) {
   const all = useMemo(() => buildPageDestinations(), []);
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = normalizeSearchText(query);
   const matches = useMemo(() => {
     if (!trimmed) return all.slice(0, visibleWhenEmpty);
-    return all.filter((p) => p.search.includes(trimmed));
+    return all.filter((p) => normalizeSearchText(p.search).includes(trimmed));
   }, [all, trimmed, visibleWhenEmpty]);
 
   if (matches.length === 0) return null;
@@ -147,10 +148,10 @@ interface ActionGroupProps {
 }
 
 export function ActionGroup({ query, actions, visibleWhenEmpty = 5 }: ActionGroupProps) {
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = normalizeSearchText(query);
   const matches = useMemo(() => {
     if (!trimmed) return actions.slice(0, visibleWhenEmpty);
-    return actions.filter((a) => a.search.includes(trimmed));
+    return actions.filter((a) => normalizeSearchText(a.search).includes(trimmed));
   }, [actions, trimmed, visibleWhenEmpty]);
 
   if (matches.length === 0) return null;

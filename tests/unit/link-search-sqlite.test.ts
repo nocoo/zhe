@@ -1,6 +1,7 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildLinksQuery } from "@/lib/db/scoped/links";
+import { normalizeSearchText } from "@/models/search";
 
 let database: DatabaseSync;
 
@@ -9,7 +10,7 @@ beforeEach(() => {
   database.exec(`CREATE TABLE links (
     id INTEGER PRIMARY KEY, user_id TEXT, slug TEXT, original_url TEXT, note TEXT,
     meta_title TEXT, meta_description TEXT, created_at INTEGER
-  )`);
+  ); CREATE TABLE search_documents (kind TEXT,resource_id INTEGER,user_id TEXT,indexed_revision INTEGER,revision INTEGER,search_text TEXT)`);
 });
 
 afterEach(() => database.close());
@@ -20,6 +21,9 @@ function save(id: number, note: string, owner = "owner") {
       "INSERT INTO links (id,user_id,slug,original_url,note,created_at) VALUES (?,?,?,?,?,?)",
     )
     .run(id, owner, `saved-${id}`, "https://example.com", note, id);
+  database
+    .prepare("INSERT INTO search_documents VALUES ('link',?,?,0,0,?)")
+    .run(id, owner, normalizeSearchText(note));
 }
 
 function search(query: string) {

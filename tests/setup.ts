@@ -332,9 +332,9 @@ vi.mock("@/lib/db/d1-client", async () => {
       const folderIsNull = sqlLower.includes("folder_id is null");
       let paramIndex = 1;
 
-      if (sqlLower.includes("instr(lower(l.slug)")) {
+      if (sqlLower.includes("instr(s.search_text,")) {
         queryPattern = params[paramIndex] as string;
-        paramIndex += 5;
+        paramIndex += 1;
       }
       if (sqlLower.includes("folder_id = ?")) {
         folderId = params[paramIndex] as string;
@@ -393,9 +393,9 @@ vi.mock("@/lib/db/d1-client", async () => {
       let paramIndex = 1; // Start after userId
 
       // Check for literal keyword search across the five link fields.
-      if (sqlLower.includes("instr(lower(l.slug)")) {
+      if (sqlLower.includes("instr(s.search_text,")) {
         queryPattern = params[paramIndex] as string;
-        paramIndex += 5;
+        paramIndex += 1;
       }
 
       // Check for folder_id = ? (not IS NULL)
@@ -1937,10 +1937,10 @@ vi.mock("@/lib/db/d1-client", async () => {
       let paramIndex = 1;
 
       let keyword: string | null = null;
-      if (sqlLower.includes("i.title like ?")) {
+      if (sqlLower.includes("instr(s.search_text,")) {
         const searchPattern = params[paramIndex] as string;
-        keyword = searchPattern.slice(1, -1);
-        paramIndex += 2;
+        keyword = searchPattern;
+        paramIndex += 1;
       }
 
       const tagId = sqlLower.includes("it.tag_id = ?") ? (params[paramIndex] as string) : undefined;
@@ -1974,10 +1974,10 @@ vi.mock("@/lib/db/d1-client", async () => {
 
       // Check keyword search if present (title or excerpt LIKE %)
       let keyword: string | null = null;
-      if (sqlLower.includes("i.title like ?")) {
+      if (sqlLower.includes("instr(s.search_text,")) {
         const searchPattern = params[paramIndex] as string;
-        keyword = searchPattern.slice(1, -1); // Remove % wrappers
-        paramIndex += 2; // Two LIKE params (title, excerpt)
+        keyword = searchPattern; // Remove % wrappers
+        paramIndex += 1; // One normalized literal search parameter
       }
 
       // Check tag filter

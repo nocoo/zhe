@@ -2,7 +2,8 @@
 
 import { Sidebar as BasaltSidebar } from "@nocoo/basalt";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useOpenSearch } from "@/components/search-provider";
 import { useSidebar } from "@/components/sidebar-context";
 import { useDashboardState } from "@/contexts/dashboard-service";
 import { buildLinkCounts } from "@/models/links";
@@ -31,7 +32,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   const { links } = useDashboardState();
   const linkCounts = useMemo(() => buildLinkCounts(links), [links]);
 
-  const [searchOpen, setSearchOpen] = useState(false);
+  const openSearch = useOpenSearch();
 
   // Collapsible group state — all default open
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({
@@ -47,20 +48,6 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     [],
   );
 
-  // Cmd+K / Ctrl+K global keyboard shortcut
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  const openSearch = useCallback(() => setSearchOpen(true), []);
-
   return (
     <BasaltSidebar collapsed={collapsed}>
       {collapsed ? (
@@ -70,8 +57,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           user={user}
           folders={foldersVm.folders}
           onToggle={toggle}
-          searchOpen={searchOpen}
-          setSearchOpen={setSearchOpen}
+          openSearch={openSearch}
         />
       ) : (
         <SidebarExpanded
@@ -85,8 +71,6 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           groupOpen={groupOpen}
           toggleGroup={toggleGroup}
           onToggle={toggle}
-          searchOpen={searchOpen}
-          setSearchOpen={setSearchOpen}
           openSearch={openSearch}
         />
       )}

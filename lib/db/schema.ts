@@ -462,3 +462,29 @@ export type Todo = typeof todos.$inferSelect;
 export type NewTodo = typeof todos.$inferInsert;
 
 export type TodoTag = typeof todoTags.$inferSelect;
+
+/** Derived Unicode search projection; source triggers and CAS control freshness. */
+export const searchDocuments = sqliteTable(
+  "search_documents",
+  {
+    kind: text("kind").notNull(),
+    resourceId: integer("resource_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    source: text("source").notNull().default("web"),
+    revision: integer("revision").notNull().default(0),
+    indexedRevision: integer("indexed_revision").notNull().default(-1),
+    searchText: text("search_text").notNull().default(""),
+    titles: text("titles").notNull().default(""),
+    identities: text("identities").notNull().default(""),
+    metadata: text("metadata").notNull().default(""),
+    summaries: text("summaries").notNull().default(""),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.kind, table.resourceId] }),
+    index("idx_search_user_source").on(table.userId, table.source),
+    index("idx_search_user_dirty").on(table.userId, table.indexedRevision, table.revision),
+  ],
+);

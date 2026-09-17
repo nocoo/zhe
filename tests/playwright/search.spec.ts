@@ -131,7 +131,9 @@ test.describe("Cmd+K search", () => {
     await input.fill(`e2e-search`);
 
     // The heading shows "链接 (N)" where N is the count
-    await expect(page.locator("[cmdk-group-heading]")).toContainText("链接");
+    await expect(
+      page.locator("[cmdk-group-heading]").filter({ hasText: "搜索结果" }),
+    ).toContainText("搜索结果");
 
     // Both items should be visible
     await expect(page.locator(`[cmdk-item][data-value="${slug1}"]`)).toBeVisible({

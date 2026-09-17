@@ -2,7 +2,6 @@
 
 import { LogOut, PanelLeft, Plus, Search } from "lucide-react";
 import Link from "next/link";
-import { SearchCommandDialog } from "@/components/search-command-dialog";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,8 +35,7 @@ interface SidebarExpandedProps {
   groupOpen: Record<string, boolean>;
   toggleGroup: (label: string) => void;
   onToggle: () => void;
-  searchOpen: boolean;
-  setSearchOpen: (open: boolean) => void;
+
   openSearch: () => void;
 }
 
@@ -265,15 +263,13 @@ export function SidebarExpanded({
   groupOpen,
   toggleGroup,
   onToggle,
-  searchOpen,
-  setSearchOpen,
+
   openSearch,
 }: SidebarExpandedProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <SidebarHeader onToggle={onToggle} />
       <SidebarSearchButton onClick={openSearch} />
-      <SearchCommandDialog open={searchOpen} onOpenChange={setSearchOpen} />
 
       <nav className="flex-1 overflow-y-auto pt-2">
         {PRE_LINK_NAV_GROUPS.map((group) => (

@@ -3,12 +3,14 @@
  */
 
 import { drainR2Deletions, enqueueR2Deletion } from "@/lib/r2/gc";
+import { normalizeSearchText } from "@/models/search";
 import { extractKeyFromUrl } from "@/models/storage";
 import { hashUserId } from "@/models/upload";
 import { executeD1Query } from "../d1-client";
 import { rowToLink } from "../mappers";
 import type { Link, NewLink } from "../schema";
 import { getFolderById } from "./folders";
+import { ensureSearchIndex } from "./search";
 import type { GetLinksOptions } from "./types";
 
 export function buildLinksQuery(
@@ -19,16 +21,11 @@ export function buildLinksQuery(
   const conditions: string[] = ["l.user_id = ?"];
   const params: unknown[] = [userId];
 
-  if (query) {
-    // D1 limits LIKE patterns to 50 bytes; INSTR also keeps URL punctuation literal.
-    conditions.push(`(
-      instr(lower(l.slug), lower(?)) > 0 OR
-      instr(lower(l.original_url), lower(?)) > 0 OR
-      instr(lower(l.note), lower(?)) > 0 OR
-      instr(lower(l.meta_title), lower(?)) > 0 OR
-      instr(lower(l.meta_description), lower(?)) > 0
-    )`);
-    params.push(query, query, query, query, query);
+  if (query && normalizeSearchText(query)) {
+    conditions.push(
+      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='link' AND s.resource_id=l.id AND s.user_id=l.user_id AND s.indexed_revision=s.revision AND instr(s.search_text,?)>0)`,
+    );
+    params.push(normalizeSearchText(query));
   }
 
   if (folderId === "inbox") {
@@ -53,6 +50,7 @@ export function buildLinksQuery(
 }
 
 export async function getLinks(userId: string, options: GetLinksOptions = {}): Promise<Link[]> {
+  if (options.query && normalizeSearchText(options.query)) await ensureSearchIndex(userId);
   const { conditions, params, joinClause, orderClause } = buildLinksQuery(userId, options);
   const sql = `
     SELECT l.* FROM links l
@@ -68,6 +66,7 @@ export async function getLinksPage(
   userId: string,
   options: GetLinksOptions & { limit: number; offset: number },
 ): Promise<{ items: Link[]; total: number }> {
+  if (options.query && normalizeSearchText(options.query)) await ensureSearchIndex(userId);
   const { limit, offset, ...filterOptions } = options;
   const { conditions, params, joinClause, orderClause } = buildLinksQuery(userId, filterOptions);
   const whereClause = conditions.join(" AND ");

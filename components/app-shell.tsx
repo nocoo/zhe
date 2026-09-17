@@ -7,11 +7,12 @@ import {
   AppSkipLink,
   AppShell as BasaltAppShell,
 } from "@nocoo/basalt/components/app-shell";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { GithubIcon } from "@/components/github-icon";
+import { SearchProvider, useOpenSearch } from "@/components/search-provider";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,9 +37,11 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
     <DashboardServiceProvider initialFolders={initialFolders}>
       <TooltipProvider>
         <SidebarProvider>
-          <AppShellInner user={user} signOutAction={signOutAction}>
-            {children}
-          </AppShellInner>
+          <SearchProvider>
+            <AppShellInner user={user} signOutAction={signOutAction}>
+              {children}
+            </AppShellInner>
+          </SearchProvider>
         </SidebarProvider>
       </TooltipProvider>
     </DashboardServiceProvider>
@@ -54,6 +57,7 @@ function AppShellInner({
   user?: AppShellProps["user"];
   signOutAction: () => Promise<void>;
 }) {
+  const openSearch = useOpenSearch();
   const { isMobile, mobileOpen, setMobileOpen, toggle, closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -110,6 +114,11 @@ function AppShellInner({
           title={title}
           actions={
             <>
+              {isMobile && (
+                <Button variant="ghost" size="icon" aria-label="打开搜索" onClick={openSearch}>
+                  <Search className="h-4 w-4" />
+                </Button>
+              )}
               <HeaderTooltip label="GitHub repository">
                 <Button variant="ghost" size="icon" asChild>
                   <a

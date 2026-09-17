@@ -14,6 +14,7 @@
  * small and to make each domain independently testable / refactorable.
  */
 
+import type { SearchFilter } from "@/models/search";
 import type {
   Analytics,
   ApiKey,
@@ -36,6 +37,7 @@ import * as foldersOps from "./scoped/folders";
 import * as ideasOps from "./scoped/ideas";
 import * as linksOps from "./scoped/links";
 import * as overviewOps from "./scoped/overview";
+import * as searchOps from "./scoped/search";
 import * as settingsOps from "./scoped/settings";
 import * as tagsOps from "./scoped/tags";
 import * as todosOps from "./scoped/todos";
@@ -82,6 +84,14 @@ export class ScopedDB {
     if (!userId) {
       throw new Error("ScopedDB requires a non-empty userId");
     }
+  }
+
+  prepareSearchIndex() {
+    return searchOps.ensureSearchIndex(this.userId);
+  }
+
+  search(query: string, source: SearchFilter = "all", limit = 20, offset = 0) {
+    return searchOps.searchResources(this.userId, query, source, limit, offset);
   }
 
   // ---- Links ------------------------------------------------

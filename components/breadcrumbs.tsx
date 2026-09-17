@@ -4,6 +4,7 @@ export type AppHeaderCrumb = {
 };
 
 const PAGE_TRAILS: Record<string, { breadcrumbs: AppHeaderCrumb[]; title: string }> = {
+  "/dashboard/search": { breadcrumbs: [], title: "搜索" },
   "/dashboard/overview": { breadcrumbs: [], title: "概览" },
   "/dashboard/ideas": {
     breadcrumbs: [{ href: "/dashboard/overview", label: "概览" }],
