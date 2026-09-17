@@ -2,7 +2,7 @@
 
 CLI for managing zhe.to short links.
 
-The built-in Connector enriches saved X posts and GitHub repositories. GitHub snapshots include stars, default-branch commit counts and complete README text. It uses `GH_TOKEN` / `GITHUB_TOKEN` or your existing `gh auth login` in memory; public repositories also work without a GitHub login. GitHub-only collection needs no browser extension or FFmpeg. See [GitHub bookmarks](../docs/27-github-bookmarks.md).
+The built-in Connector enriches saved X posts, GitHub repositories, and missing webpage previews. GitHub snapshots include stars, default-branch commit counts and complete README text. It uses `GH_TOKEN` / `GITHUB_TOKEN` or your existing `gh auth login` in memory; public repositories also work without a GitHub login. GitHub collection needs no browser extension or FFmpeg. See [GitHub bookmarks](../docs/27-github-bookmarks.md).
 
 ## Installation
 
@@ -49,9 +49,9 @@ zhe open my-slug
 | `zhe update <id>` | Update a link |
 | `zhe delete <id>` | Delete a link |
 | `zhe open <slug>` | Open short URL in browser |
-| `zhe connector status` | Show the X enrichment queue and shared key expiry |
-| `zhe connector once` | Enrich one saved X bookmark |
-| `zhe connector watch` | Poll for saved X bookmarks every 20 seconds |
+| `zhe connector status` | Show the combined enrichment queue and shared key expiry |
+| `zhe connector once` | Process one X, GitHub, or webpage preview job |
+| `zhe connector watch` | Poll the shared queue every 20 seconds |
 | `zhe connector start` | Start the background Connector at macOS login |
 | `zhe connector stop` | Stop and remove the macOS background service |
 | `zhe connector eagle` | Configure the optional Eagle image sidecar |
@@ -83,6 +83,14 @@ Archived files use Zhe's existing R2 file-sharing behavior. Delete a video to re
 See the [implementation and operations guide](../docs/25-x-bookmark-connector.md) for the job lifecycle, storage cleanup, and verification procedure.
 
 The optional [Eagle sidecar](../docs/26-eagle-sidecar.md) writes 1–4 post images in parallel to a configured local GDrive Eagle library. It is off by default and requires macOS/Linux and Python 3.9+ in addition to FFmpeg. Enable it with `zhe connector eagle --library '/absolute/path/Collection.library' --enable`, then restart the Connector. Its queue, deadlines, retries and logs are independent of Zhe enrichment. The CLI is published to npm as `@nocoo/zhe` with the same version as the web application.
+
+## Automatic webpage previews
+
+The same `once`, `watch`, and background service discover ordinary saved links whose `screenshotUrl` is missing or blank. X/Twitter and GitHub domains, including their subdomains and profile pages, are excluded; GitHub keeps its shared preview. Existing screenshots are preserved. Install and connect the OpenCLI browser extension; webpage screenshots do not require FFmpeg.
+
+Pages render at a 1280×960 desktop viewport with 2× device pixel density, then save as **1600×1200 WebP**. Quality starts at 80 and drops to 70 or 60 only if needed to fit **512 KiB**. The Connector saves the exact page viewport, including its path, rather than a full-page image. Zhe stores it at `{userHash}/YYYYMMDD/{uuid}.webp` and publishes the configured CDN URL. Cards refresh automatically while the dashboard is visible.
+
+X, GitHub and previews share a serial scheduler: sources take turns, each account has at most one active job across clients and keys, and each poll waits for its job and cleanup to finish before the next 20-second pause. Lease renewal, bounded retries and idempotent uploads prevent duplicate work. URL changes, manual replacements, deletion and revoked keys fence out late writes. See [webpage previews](../docs/28-webpage-previews.md) for the storage and deployment contract.
 
 ## Configuration
 

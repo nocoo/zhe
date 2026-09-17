@@ -30,3 +30,5 @@ Numbered design and reference documents. Newest feature plans sit at the end of 
 | 24 | [AI Integration and Link Suggestions](24-ai-link-suggestions.md) |
 | 25 | [X Bookmarks and Local Connector](25-x-bookmark-connector.md) |
 | 26 | [Eagle Image Sidecar](26-eagle-sidecar.md) |
+| 27 | [GitHub Bookmarks](27-github-bookmarks.md) |
+| 28 | [Webpage Previews](28-webpage-previews.md) |

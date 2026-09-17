@@ -28,6 +28,7 @@ Zhe 是个人链接与信息管理应用。它可以收藏网页、生成短链�
 - 在 AI 设置中配置供应商、模型和密钥，为链接生成文件夹与标签建议，由用户确认后应用。
 - 通过 Webhook URL 直接收藏网页；创建带权限范围的 API Key，供 REST API 与 CLI 使用。
 - 照常保存 X 链接，由 CLI 内置的本机 Connector 自动补全正文、作者、图片和视频；归档媒体纳入现有 R2 存储管理和连锁删除。
+- 由同一个 Connector 为缺少预览图的普通网页补全 4:3 高清 WebP 截图，存入 R2 并通过 CDN 显示；与 X、GitHub 补全轮换串行执行。
 - 按特殊来源筛选书签，在独立 GitHub 收藏中查看 Connector 采集的 stars、默认分支 commit 数、分类标签和 README 全文。
 
 ## 使用
@@ -124,6 +125,7 @@ bun run start
 - [AI 链接整理建议](docs/24-ai-link-suggestions.md)
 - [X 书签与 Connector](docs/25-x-bookmark-connector.md)
 - [特殊来源与 GitHub 收藏](docs/27-github-bookmarks.md)
+- [网页预览图补全](docs/28-webpage-previews.md)
 - [Eagle 图片旁路](docs/26-eagle-sidecar.md)
 - [Backy 集成](docs/10-backy.md)
 - [CLI 使用](cli/README.md)
