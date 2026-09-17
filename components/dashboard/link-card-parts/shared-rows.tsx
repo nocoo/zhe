@@ -2,8 +2,11 @@
 
 import { Check, Copy, Link2 } from "lucide-react";
 import Image from "next/image";
+import { canonicalXPost } from "@/cli/src/connector/core";
 import { XIcon } from "@/components/x-icon";
+import { linkPresentation } from "@/models/link-presentation";
 import type { Link } from "@/models/types";
+import { CardText, CardTitleText } from "./curated-text";
 
 /** Favicon image with fallback to placeholder square. */
 export function Favicon({
@@ -40,26 +43,23 @@ export function Favicon({
   );
 }
 
-/** Inline anchor that renders `note | titleText` when a note is present. */
+/** Shared title mapping never uses the note as a heading. */
 function TitleAnchor({
   href,
-  note,
+  title,
   titleText,
   onOpenDetails,
 }: {
   href: string;
-  note: string | null;
+  title: string | null;
   titleText: string;
   onOpenDetails?: (() => void) | undefined;
 }) {
-  const content = note ? (
-    <>
-      <span>{note}</span>
-      <span className="mx-1.5 text-border">|</span>
-      <span className="text-muted-foreground">{titleText}</span>
-    </>
-  ) : (
-    titleText
+  const content = (
+    <CardTitleText
+      title={title?.trim() || titleText}
+      original={title?.trim() && title.trim() !== titleText ? titleText : ""}
+    />
   );
   const className =
     "min-w-0 truncate text-left text-sm font-medium leading-5 text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -145,7 +145,7 @@ export function TitleRow({
       )}
       <TitleAnchor
         href={link.originalUrl}
-        note={link.note}
+        title={link.title}
         titleText={titleText}
         onOpenDetails={onOpenDetails}
       />
@@ -163,28 +163,36 @@ export function TitleRow({
 
 /** Description paragraph or "click to fetch" hint when metadata is missing. */
 export function Description({
-  description,
+  link,
   isRefreshingMetadata,
   onRefresh,
   variant,
 }: {
-  description: string | null;
+  link: Link;
   isRefreshingMetadata: boolean;
   onRefresh: () => void;
   variant: "grid" | "list";
 }) {
-  const baseCls = variant === "grid" ? "line-clamp-2 h-10 leading-5" : "mt-0.5 truncate";
-  if (description) {
-    return <p className={`break-words text-xs text-muted-foreground ${baseCls}`}>{description}</p>;
-  }
+  const display = linkPresentation(link);
+  if (display.description)
+    return (
+      <div className="min-w-0 space-y-1">
+        <CardText
+          text={display.description}
+          singleLine={variant === "list"}
+          code={Boolean(display.note && canonicalXPost(link.originalUrl))}
+        />
+        {display.originalDescription && <CardText text={display.originalDescription} auxiliary />}
+      </div>
+    );
   return (
-    <p className={`text-xs text-muted-foreground/40 ${baseCls}`}>
+    <p className="text-xs text-muted-foreground/60">
       未抓取描述 ·{" "}
       <button
         type="button"
         onClick={onRefresh}
         disabled={isRefreshingMetadata}
-        className="hover:text-muted-foreground underline underline-offset-2 transition-colors"
+        className="underline underline-offset-2"
       >
         {isRefreshingMetadata ? "抓取中..." : "点击抓取"}
       </button>

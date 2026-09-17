@@ -83,6 +83,7 @@ export const links = sqliteTable("links", {
   isCustom: integer("is_custom", { mode: "boolean" }).default(false),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   clicks: integer("clicks").default(0),
+  title: text("title"),
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
   metaFavicon: text("meta_favicon"),
@@ -313,6 +314,7 @@ export const xMedia = sqliteTable(
     r2Key: text("r2_key").notNull().unique(),
     mime: text("mime").notNull(),
     size: integer("size").notNull(),
+    resolution: text("resolution"),
     sha256: text("sha256").notNull(),
     leaseToken: text("lease_token").notNull(),
     state: text("state", { enum: ["reserved", "uploading", "verified", "published"] })

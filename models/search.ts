@@ -19,6 +19,7 @@ export interface SearchInput {
   kind: SearchKind;
   id: number;
   title?: string | null;
+  originalTitle?: string | null;
   url?: string;
   slug?: string;
   description?: string | null;
@@ -37,6 +38,8 @@ export interface SearchInput {
   emoji?: string | null;
 }
 export interface SearchDocument {
+  note?: string;
+  originalTitle?: string;
   kind: SearchKind;
   id: number;
   source: SearchSource;
@@ -150,6 +153,7 @@ export function buildSearchDocument(input: SearchInput): SearchDocument {
     identity.host ||
     (input.kind === "idea" ? "未命名想法" : "未命名待办");
   add("标题", title, "title");
+  add("原始标题", input.originalTitle, "title");
   add("短链", input.slug, "identity");
   add("链接", input.url, "identity");
   if (input.kind === "link") add("域名", identity.host, "identity");
@@ -203,6 +207,10 @@ export function buildSearchDocument(input: SearchInput): SearchDocument {
     tags: input.tags ?? [],
     fields,
     metadata,
+    ...(input.kind === "link" && input.note?.trim() ? { note: input.note.trim() } : {}),
+    ...(input.originalTitle && input.originalTitle !== title
+      ? { originalTitle: input.originalTitle }
+      : {}),
     ...(input.slug ? { slug: input.slug } : {}),
     ...(input.favicon ? { favicon: input.favicon } : {}),
     ...(input.folderName ? { folderName: input.folderName, folderId: input.folderId } : {}),

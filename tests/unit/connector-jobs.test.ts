@@ -37,7 +37,6 @@ import {
   failGitHubBookmark,
   getGitHubBookmarks,
   renewGitHubBookmark,
-  saveGitHubAnalysis,
 } from "@/lib/connector/github-jobs";
 import { type MediaReservation, reserveXMedia, writeXMedia } from "@/lib/connector/media";
 import { claimConnectorJob } from "@/lib/connector/scheduler";
@@ -618,33 +617,6 @@ describe("deleting screenshot previews", () => {
 });
 
 describe("GitHub Connector snapshots", () => {
-  it("round-trips analysis without changing the README, and rejects foreign or stale writes", async () => {
-    const url = "https://github.com/octocat/Hello-World";
-    const id = link(url);
-    const job = required(await claimGitHubBookmark(identity));
-    await completeGitHubBookmark(identity, id, job.leaseToken, repository);
-    const analysis = {
-      summary: "完整 README 总结",
-      features: ["归档"],
-      useCases: [],
-      techStack: ["TypeScript"],
-      tags: ["资料"],
-      model: "test",
-      provider: "custom",
-      generatedAt: now,
-    };
-    expect(await saveGitHubAnalysis("other", id, url, repository.readme, analysis)).toBe(false);
-    expect(await saveGitHubAnalysis("owner", id, url, "stale README", analysis)).toBe(false);
-    expect(await saveGitHubAnalysis("owner", id, url, repository.readme, analysis)).toBe(true);
-    const [saved] = await getGitHubBookmarks("owner", [id]);
-    expect(saved?.analysis).toEqual(analysis);
-    expect(saved?.repository).not.toHaveProperty("readme");
-    expect(saved?.repository).not.toHaveProperty("analysis");
-    expect((await loadGitHubReadme(id)).data?.readme).toBe(repository.readme);
-    db.prepare("UPDATE links SET original_url='https://example.com' WHERE id=?").run(id);
-    expect(await saveGitHubAnalysis("owner", id, url, repository.readme, analysis)).toBe(false);
-  });
-
   it("retains analysis when only repository statistics change and invalidates it for a new README", async () => {
     const url = "https://github.com/octocat/Hello-World";
     const id = link(url);
@@ -660,7 +632,10 @@ describe("GitHub Connector snapshots", () => {
       provider: "custom",
       generatedAt: now,
     };
-    await saveGitHubAnalysis("owner", id, url, repository.readme, analysis);
+    db.prepare(
+      "UPDATE github_bookmarks SET result_json=json_set(result_json,'$.analysis',json(?)) WHERE link_id=?",
+    ).run(JSON.stringify(analysis), id);
+    db.prepare("UPDATE links SET title='用户标题',note='用户备注' WHERE id=?").run(id);
     await retryGitHubBookmarkAction(id);
     const refresh = required(await claimGitHubBookmark(identity));
     await completeGitHubBookmark(identity, id, refresh.leaseToken, {
@@ -681,6 +656,10 @@ describe("GitHub Connector snapshots", () => {
     });
     expect((await getGitHubBookmarks("owner", [id]))[0]?.analysis).toBeNull();
     expect((await loadGitHubReadme(id)).data?.readme).toBe("# New source");
+    expect(await new ScopedDB("owner").getLinkById(id)).toMatchObject({
+      title: "用户标题",
+      note: "用户备注",
+    });
   });
 
   it("negotiates GitHub jobs without sending them to old X-only clients", async () => {
@@ -1080,6 +1059,8 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     mime: "video/mp4",
     size: bytes.length,
     sha256: sha,
+    width: 1280,
+    height: 720,
   };
   const stream = (value = bytes) =>
     new ReadableStream<Uint8Array>({
@@ -1233,6 +1214,64 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     expect(result.state).toBe("complete");
     expect((await r2.listR2Objects()).map((o) => o.size)).toEqual([bytes.length]);
   });
+  it("publishes precise size failures without exposing upstream media URLs", async () => {
+    const { id, job } = await prepare();
+    const failed = structuredClone(videoCapture) as XCapture;
+    required(failed.tweet.media[0]).archiveError = "media_too_large";
+    required(failed.tweet.media[0]).videoAttempts = [
+      { width: 3840, height: 2160, size: 564200241 },
+      { width: 1920, height: 1080, size: 120845059 },
+      { width: 1280, height: 720, size: 100000001 },
+    ];
+    await stageXCapture(identity, id, job.leaseToken, failed, now);
+    await completeXBookmark(identity, id, job.leaseToken, now);
+    const [result] = await getXBookmarks("owner", [id]);
+    expect(result).toMatchObject({
+      state: "partial",
+      errorCode: "media_too_large",
+      tweet: { media: [] },
+      mediaErrors: [
+        {
+          mediaId,
+          type: "VIDEO",
+          code: "media_too_large",
+          attempts: required(failed.tweet.media[0]).videoAttempts,
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("video.twimg.com");
+  });
+  it("keeps resolution and size tied to the archived bytes on retry", async () => {
+    const { id, job, asset } = await prepare();
+    await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
+    const replacement = { ...descriptor, size: 99_000_000, width: 3840, height: 2160 };
+    expect(await reserveXMedia(identity, id, job.leaseToken, replacement, now)).toMatchObject({
+      id: asset.id,
+      uploaded: true,
+    });
+    const changed = structuredClone(videoCapture) as XCapture;
+    required(changed.tweet.media[0]).width = 9;
+    required(changed.tweet.media[0]).height = 16;
+    required(changed.tweet.media[0]).size = 1;
+    required(changed.tweet.media[0]).resolution = "4K";
+    await stageXCapture(identity, id, job.leaseToken, changed, now);
+    await completeXBookmark(identity, id, job.leaseToken, now);
+    expect((await getXBookmarks("owner", [id]))[0]?.tweet?.media[0]).toMatchObject({
+      resolution: "720p",
+      size: 64,
+      width: 9,
+      height: 16,
+    });
+  });
+  it("accepts exactly 100 MB and rejects invalid resolution metadata", async () => {
+    const { id, job } = await prepare();
+    await expect(
+      reserveXMedia(identity, id, job.leaseToken, { ...descriptor, size: 100_000_000 }, now),
+    ).resolves.toBeTruthy();
+    await expect(
+      reserveXMedia(identity, id, job.leaseToken, { ...descriptor, width: -1 }, now),
+    ).rejects.toThrow("invalid_media");
+  });
   it("keeps text when media fails and reuses already verified files on retry", async () => {
     const { id, job, asset } = await prepare();
     await completeXBookmark(identity, id, job.leaseToken, now);
@@ -1276,14 +1315,8 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
       reserveXMedia(identity, id, job.leaseToken, { ...descriptor, mediaId: "9000" }, now),
     ).rejects.toThrow("invalid_media");
     await expect(
-      reserveXMedia(
-        identity,
-        id,
-        job.leaseToken,
-        { ...descriptor, size: 64 * 1024 * 1024 + 1 },
-        now,
-      ),
-    ).rejects.toThrow("invalid_media");
+      reserveXMedia(identity, id, job.leaseToken, { ...descriptor, size: 100_000_001 }, now),
+    ).rejects.toThrow("media_too_large");
     expect(await writeXMedia(other, id, job.leaseToken, asset.id, stream(), now)).toBe(false);
     expect(await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now + 180_000)).toBe(
       false,

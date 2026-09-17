@@ -1,6 +1,5 @@
-import { validateTagName } from "@/models/tags";
-
 export const SUGGEST_NOTE_MAX = 120;
+export const SUGGEST_TITLE_MAX = 32;
 
 export interface SuggestFolderOption {
   folderId: string | null;
@@ -9,12 +8,13 @@ export interface SuggestFolderOption {
 }
 
 export interface SuggestTagOption {
-  tagId: string | null;
+  tagId: string;
   name: string;
   reason: string;
 }
 
 export interface SuggestLinkOrgResult {
+  title: string;
   folders: SuggestFolderOption[];
   tags: SuggestTagOption[];
   note: string;
@@ -67,6 +67,7 @@ function parseFolders(rawItems: unknown[], folderById: Map<string, string>): Sug
     const folderId = normalizeOptionalId(item.folderId);
     if (folderId === undefined) continue;
     if (typeof item.name !== "string" || typeof item.reason !== "string") continue;
+    if (folderId === null && item.name !== "Inbox") continue;
     if (folderId === "inbox") continue;
     if (folderId !== null && !folderById.has(folderId)) continue;
     const name = folderId === null ? "Inbox" : (folderById.get(folderId) ?? item.name);
@@ -85,17 +86,12 @@ function parseTags(rawItems: unknown[], tagById: Map<string, string>): SuggestTa
   for (const raw of rawItems) {
     if (!raw || typeof raw !== "object") continue;
     const item = raw as Record<string, unknown>;
-    let tagId = normalizeOptionalId(item.tagId);
-    if (tagId === undefined) continue;
+    const tagId = item.tagId;
+    if (typeof tagId !== "string" || !tagById.has(tagId)) continue;
     if (typeof item.name !== "string" || typeof item.reason !== "string") continue;
-    if (tagId && !tagById.has(tagId)) tagId = null;
-    const name = tagId ? (tagById.get(tagId) ?? item.name) : item.name;
-    const valid = validateTagName(name);
-    if (!valid) continue;
-    const dedupe = valid.toLowerCase();
-    if (seen.has(dedupe)) continue;
-    seen.add(dedupe);
-    tags.push({ tagId, name: valid, reason: asReason(item.reason) });
+    if (seen.has(tagId)) continue;
+    seen.add(tagId);
+    tags.push({ tagId, name: tagById.get(tagId) as string, reason: asReason(item.reason) });
     if (tags.length === 5) break;
   }
   return tags;
@@ -121,17 +117,18 @@ export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): Su
   }
   const folders = parseFolders(root.folders, new Map(catalogs.folders.map((f) => [f.id, f.name])));
   const tags = parseTags(root.tags, new Map(catalogs.tags.map((t) => [t.id, t.name])));
-  if (folders.length === 0 || tags.length === 0) {
-    throw new SuggestParseError("未得到可用的文件夹或标签建议");
-  }
   if (typeof root.note !== "string") {
     throw new SuggestParseError("返回必须包含备注总结");
   }
-  const note = root.note.trim().slice(0, SUGGEST_NOTE_MAX);
+  if (typeof root.title !== "string") throw new SuggestParseError("返回必须包含整理标题");
+  const title = root.title.trim();
+  const note = root.note.trim();
+  if (Array.from(title).length > SUGGEST_TITLE_MAX || Array.from(note).length > SUGGEST_NOTE_MAX)
+    throw new SuggestParseError("标题或备注过长，请重新生成更简洁的建议");
   if (!note) {
     throw new SuggestParseError("未得到可用的备注总结");
   }
-  return { folders, tags, note };
+  return { folders, tags, title, note };
 }
 
 function folderKey(folderId: string | null): string {

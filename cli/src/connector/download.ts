@@ -18,6 +18,12 @@ import type { DownloadedMedia } from "./types.js";
 
 const execute = promisify(execFile);
 
+export class MediaTooLargeError extends ConnectorError {
+  constructor(public size: number) {
+    super("media_too_large");
+  }
+}
+
 async function writeChunk(
   file: Awaited<ReturnType<typeof open>>,
   value: Uint8Array,
@@ -57,6 +63,19 @@ function verifyImageDimensions(
     throw new ConnectorError("invalid_media");
 }
 
+function mediaMetadata(response: Response, video: boolean) {
+  if (response.status !== 200) throw new ConnectorError("media_http_error");
+  const mime = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+  if (!(video ? ["video/mp4"] : ["image/jpeg", "image/png", "image/webp"]).includes(mime))
+    throw new ConnectorError("unsupported_media_type");
+  const declared = response.headers.get("content-length") ?? "";
+  const size = Number(declared);
+  if (!/^\d+$/.test(declared) || !Number.isSafeInteger(size) || size < (video ? 24 : 3))
+    throw new ConnectorError("invalid_media_length");
+  if (size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES)) throw new MediaTooLargeError(size);
+  return { size, mime };
+}
+
 async function mediaResponse(media: XMedia, signal: AbortSignal) {
   const video = media.type !== "PHOTO";
   const kind = video ? "video" : "photo";
@@ -74,22 +93,14 @@ async function mediaResponse(media: XMedia, signal: AbortSignal) {
       url = next;
       continue;
     }
-    const mime = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    const declared = response.headers.get("content-length") ?? "";
-    const size = Number(declared);
-    if (
-      response.status !== 200 ||
-      !response.body ||
-      !/^\d+$/.test(declared) ||
-      !Number.isSafeInteger(size) ||
-      size < (video ? 24 : 3) ||
-      size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES) ||
-      !(video ? ["video/mp4"] : ["image/jpeg", "image/png", "image/webp"]).includes(mime)
-    ) {
+    try {
+      const metadata = mediaMetadata(response, video);
+      if (!response.body) throw new ConnectorError("invalid_media_length");
+      return { body: response.body, ...metadata };
+    } catch (error) {
       await response.body?.cancel();
-      throw new ConnectorError("invalid_media");
+      throw error;
     }
-    return { body: response.body, size, mime };
   }
   throw new ConnectorError("unsafe_redirect");
 }

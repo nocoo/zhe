@@ -18,6 +18,7 @@ export function linkToResponse(link: Link, tags: Tag[] = []): Record<string, unk
     folderId: link.folderId,
     isCustom: link.isCustom,
     clicks: link.clicks,
+    title: link.title,
     note: link.note,
     metaTitle: link.metaTitle,
     metaDescription: link.metaDescription,

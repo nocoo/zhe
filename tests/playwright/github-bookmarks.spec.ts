@@ -138,13 +138,23 @@ for (const width of [1920, 1365, 390]) {
         license: "MIT",
         topics: ["bookmarks", "productivity"],
         readmePath: ".github/README.md",
-        readme: `# Full repository README\n\n[Guide](../guide.md)\n\n${"A paragraph from the full document.\n\n".repeat(80)}END OF README`,
+        readme: `# Full repository README\n\n[Guide](../guide.md)\n\n    bun run dev\n\n${"A paragraph from the full document.\n\n".repeat(80)}END OF README`,
       };
       const completed = await page.request.post(`/api/v1/connector/github/jobs/${job.linkId}`, {
         headers: { ...headers, "x-connector-lease": job.leaseToken },
         data: { action: "complete", repository },
       });
       expect(completed.status()).toBe(200);
+      const analysis = {
+        summary: "保存和整理开发资料，支持搜索仓库与阅读完整文档。",
+        features: ["全文归档", "统一搜索"],
+        useCases: ["个人知识管理"],
+        techStack: ["TypeScript"],
+        tags: ["知识管理", "开发工具"],
+        model: "test-model",
+        provider: "custom",
+        generatedAt: Date.now(),
+      };
       // Mix long content, many topics, archived/failed snapshots and an uncaptured repo.
       for (let index = 1; index <= 5; index++) {
         const fullName = `fixture/repository-${index}${index === 1 ? "-with-a-long-name-that-must-wrap-without-growing-the-card" : ""}`;
@@ -156,7 +166,7 @@ for (const width of [1920, 1365, 390]) {
             url,
             randomUUID(),
             "Saved description",
-            "A long personal note. ".repeat(index * 20),
+            index === 3 ? analysis.summary : "A long personal note. ".repeat(index * 20),
             Date.now(),
           ],
         );
@@ -178,6 +188,7 @@ for (const width of [1920, 1365, 390]) {
               ),
               topics: Array.from({ length: 12 }, (_, topic) => `topic-${topic}-with-long-label`),
               archived: index === 2,
+              ...(index === 3 ? { analysis } : {}),
             }),
             index === 4 ? "github_rate_limited" : null,
             Date.now(),
@@ -194,6 +205,8 @@ for (const width of [1920, 1365, 390]) {
       await expect(card.getByTitle("默认分支 main 的 commit 总数")).toContainText("321");
       await expect(card.getByText("开发收藏", { exact: true })).toBeVisible();
       await expect(card.getByTestId("tag-badge")).toHaveText("待读");
+      await expect(cards.getByText(analysis.summary, { exact: true })).toHaveCount(1);
+      await expect(cards.getByText("全文归档 · 统一搜索", { exact: true })).toHaveCount(0);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
@@ -204,7 +217,12 @@ for (const width of [1920, 1365, 390]) {
         }),
       );
       const heights = geometry.map((box) => box.height);
-      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1);
+      // Dense cards size each row to its own content instead of padding every row.
+      for (const top of new Set(geometry.map((box) => box.top))) {
+        const rowHeights = geometry.filter((box) => box.top === top).map((box) => box.height);
+        expect(Math.max(...rowHeights) - Math.min(...rowHeights)).toBeLessThanOrEqual(1);
+      }
+      expect(Math.max(...heights)).toBeLessThan(410);
       const rows = geometry.reduce<Record<number, number>>((counts, box) => {
         counts[box.top] = (counts[box.top] ?? 0) + 1;
         return counts;
@@ -212,10 +230,12 @@ for (const width of [1920, 1365, 390]) {
       expect(Math.max(...Object.values(rows))).toBeLessThanOrEqual(4);
       if (width === 1920) expect(Math.max(...Object.values(rows))).toBe(4);
       if (width === 390) expect(Math.max(...Object.values(rows))).toBe(1);
+      const cardHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       await card.getByRole("button", { name: "编辑 GitHub 收藏" }).click();
       await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
-      expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBe(
-        heights[0],
+      expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
+        cardHeight,
+        2,
       );
       await page.getByRole("button", { name: "收起", exact: true }).click();
       await expect(page.getByTestId("card-edit-dialog")).not.toBeAttached();
@@ -226,6 +246,11 @@ for (const width of [1920, 1365, 390]) {
       await card.getByRole("button", { name: "阅读 README" }).click();
       const dialog = page.getByRole("dialog");
       await expect(dialog.getByRole("heading", { name: "Full repository README" })).toBeVisible();
+      for (const surface of [dialog, dialog.locator("pre"), dialog.locator("pre code")]) {
+        expect(await surface.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+          "rgb(255, 255, 255)",
+        );
+      }
       await expect(dialog.getByRole("link", { name: "Guide", exact: true })).toHaveAttribute(
         "href",
         "https://github.com/octocat/Hello-World/blob/main/guide.md",

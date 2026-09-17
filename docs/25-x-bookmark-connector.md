@@ -60,7 +60,7 @@ sequenceDiagram
 
 任务租约为 180 秒，本机每 30 秒续约；同一链接只能被一个有效租约处理。每次写入同时检查用户、密钥权限、撤销状态、期限和租约。修改原 URL 或删除链接会使旧任务失效。
 
-下载只接受指定的 X 媒体域名及匹配的媒体路径，做公网 DNS 预检、重定向检查、长度与文件签名验证。每张图片最多 10 MiB，每段视频最多 64 MiB。FFmpeg 完整解码后才上传，视频另生成 JPEG 海报。媒体失败仍发布正文，任务按退避间隔重试，最多 5 次；卡片可手工重试。
+下载只接受指定的 X 媒体域名及匹配的媒体路径，做公网 DNS 预检、重定向检查、长度与文件签名验证。每张图片最多 10 MiB，每段视频最多 100 MB（100,000,000 字节）。FFmpeg 完整解码后才上传，视频另生成 JPEG 海报。媒体失败仍发布正文，任务按退避间隔重试，最多 5 次；卡片可手工重试。
 
 ## 存储与删除
 
@@ -99,3 +99,9 @@ Hexly 已移除 Snail 的项目、发现及监控入口，项目页跳转至 Zhe
 Snail 专属 Worker、D1、R2、Access 应用、custom domain 与 DNS 已删除，旧本机进程、Caddy 映射、Keychain 凭据和 nmem 端口登记已清理。GitHub Release workflow 已禁用，生产部署凭据引用已移除。Zhe、Hexly 的共享存储和健康接口在退役后验证正常。
 
 最终 D1、原媒体、完整 Git 历史及原验收资料保留于 Zhe 的 ignored 私有迁移目录，校验通过后已删除本地 Snail checkout。远程 `nocoo/snail` GitHub 仓库保留。Zhe 的全局 CLI、共享登录和后台 Connector 独立运行，退役后的原收藏与视频已再次通过真实检索和播放验证。
+
+## Video archive selection (v1.27.0)
+
+Videos prefer the best available MP4 up to 4K, then try 1080p and 720p when the declared file size exceeds 100 MB (100,000,000 bytes). Oversize responses are canceled before downloading the body. Originally smaller videos remain supported; after rejecting 720p the Connector never falls back to 360p. Non-size errors stop with their specific reason. Full download, signature, digest and FFmpeg decode checks still precede upload. Photos retain their 10 MiB limit.
+
+Capture diagnostics retain each attempted resolution and size; the server exposes safe failure codes without upstream media URLs. The X card displays the archived resolution and authoritative file size below its media, or the exact failure reason. Migration `0031_x_media_resolution.sql` stores file resolution separately from mutable card display dimensions, so reusing a saved file cannot relabel its quality. Old clients may omit resolution metadata.

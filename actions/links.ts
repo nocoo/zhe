@@ -22,6 +22,12 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
     }
     const { db, userId } = ctx;
 
+    if (
+      input.title !== undefined &&
+      (typeof input.title !== "string" || Array.from(input.title.trim()).length > 32)
+    )
+      return { success: false, error: "标题最多 32 个字符" };
+
     // Validate URL
     const urlResult = validateUrl(input.originalUrl);
     if (typeof urlResult === "string") {
@@ -54,6 +60,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<L
       isCustom: !!input.customSlug,
       folderId: input.folderId,
       expiresAt: input.expiresAt,
+      title: input.title?.trim() || undefined,
       note: input.note || undefined,
       screenshotUrl: input.screenshotUrl || undefined,
     });
@@ -157,6 +164,8 @@ export async function deleteLink(linkId: number): Promise<ActionResult> {
 export async function updateLink(
   linkId: number,
   data: {
+    title?: string | null;
+    note?: string | null;
     originalUrl?: string;
     folderId?: string | null;
     expiresAt?: Date;
@@ -169,6 +178,15 @@ export async function updateLink(
     if (!db) {
       return { success: false, error: "Unauthorized" };
     }
+
+    if (
+      data.title !== undefined &&
+      data.title !== null &&
+      (typeof data.title !== "string" || Array.from(data.title.trim()).length > 32)
+    )
+      return { success: false, error: "标题最多 32 个字符" };
+    if (data.note !== undefined && data.note !== null && typeof data.note !== "string")
+      return { success: false, error: "备注格式无效" };
 
     // Validate URL if provided (same as createLink)
     if (data.originalUrl) {
@@ -196,6 +214,8 @@ export async function updateLink(
     }
 
     const updateData: {
+      title?: string | null;
+      note?: string | null;
       originalUrl?: string;
       folderId?: string | null;
       expiresAt?: Date;
@@ -203,6 +223,8 @@ export async function updateLink(
       isCustom?: boolean;
       screenshotUrl?: string | null;
     } = {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.note !== undefined && { note: data.note }),
       ...(data.originalUrl !== undefined && { originalUrl: data.originalUrl }),
       ...(data.folderId !== undefined && { folderId: data.folderId }),
       ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt }),

@@ -48,6 +48,7 @@ function makeLink(overrides: Partial<Link> = {}): Link {
     isCustom: false,
     expiresAt: null,
     clicks: 0,
+    title: null,
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,

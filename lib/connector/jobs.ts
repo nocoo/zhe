@@ -200,6 +200,12 @@ export async function completeXBookmark(
   const complete = capture.media.every((m) =>
     media.some((a) => a.media_id === m.id && a.kind === (m.type === "PHOTO" ? "photo" : "video")),
   );
+  const failedMedia = capture.media.find(
+    (m) =>
+      !media.some(
+        (a) => a.media_id === m.id && a.kind === (m.type === "PHOTO" ? "photo" : "video"),
+      ),
+  );
   const state = complete ? "complete" : "partial";
   now = Math.max(now, Date.now());
   const results = await executeD1Batch<{ link_id: number }>([
@@ -238,7 +244,7 @@ export async function completeXBookmark(
         WHERE ${LEASE_SQL} RETURNING link_id`,
       params: [
         state,
-        complete ? null : "media_incomplete",
+        complete ? null : (failedMedia?.archiveError ?? "media_incomplete"),
         now + 300_000,
         now,
         ...leaseParams(auth, id, token, now),
@@ -286,6 +292,12 @@ export interface XBookmark {
   tweet: XPost | null;
   errorCode: string | null;
   updatedAt: number;
+  mediaErrors?: Array<{
+    mediaId: string;
+    type: XMedia["type"];
+    code: string;
+    attempts?: XMedia["videoAttempts"];
+  }>;
 }
 export async function getXBookmarks(userId: string, ids: number[]): Promise<XBookmark[]> {
   if (!ids.length) return [];
@@ -299,12 +311,15 @@ export async function getXBookmarks(userId: string, ids: number[]): Promise<XBoo
     media_id: string;
     kind: string;
     public_url: string;
+    size: number;
+    resolution: string | null;
   }>(
-    `SELECT m.link_id,m.media_id,m.kind,u.public_url FROM x_media m JOIN uploads u ON u.id=m.upload_id AND u.user_id=m.user_id
+    `SELECT m.link_id,m.media_id,m.kind,m.size,m.resolution,u.public_url FROM x_media m JOIN uploads u ON u.id=m.upload_id AND u.user_id=m.user_id
     WHERE m.user_id=? AND m.state='published' AND m.link_id IN (${selected.map(() => "?").join(",")})`,
     [userId, ...selected],
   );
   return rows.map((row) => {
+    const mediaErrors: NonNullable<XBookmark["mediaErrors"]> = [];
     const tweet = row.result_json ? (JSON.parse(row.result_json) as XCapture).tweet : null;
     if (tweet) {
       tweet.media = tweet.media.flatMap((m): XMedia[] => {
@@ -314,11 +329,28 @@ export async function getXBookmarks(userId: string, ids: number[]): Promise<XBoo
             a.media_id === m.id &&
             a.kind === (m.type === "PHOTO" ? "photo" : "video"),
         );
-        if (!match) return [];
+        if (!match) {
+          mediaErrors.push({
+            mediaId: m.id,
+            type: m.type,
+            code: m.archiveError ?? "media_incomplete",
+            attempts: m.videoAttempts,
+          });
+          return [];
+        }
         const poster = attachments.find(
           (a) => a.link_id === row.link_id && a.media_id === m.id && a.kind === "poster",
         );
-        return [{ ...m, url: match.public_url, thumbnail_url: poster?.public_url }];
+        const { variants: _variants, archiveError: _error, ...published } = m;
+        return [
+          {
+            ...published,
+            size: match.size,
+            ...(match.resolution ? { resolution: match.resolution } : {}),
+            url: match.public_url,
+            thumbnail_url: poster?.public_url,
+          },
+        ];
       });
     }
     return {
@@ -327,6 +359,7 @@ export async function getXBookmarks(userId: string, ids: number[]): Promise<XBoo
       tweet,
       errorCode: row.error_code,
       updatedAt: row.updated_at,
+      ...(mediaErrors.length ? { mediaErrors } : {}),
     };
   });
 }

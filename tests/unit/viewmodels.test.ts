@@ -59,13 +59,7 @@ vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => mockIsMobile,
 }));
 
-import {
-  createLink,
-  deleteLink,
-  getAnalyticsStats,
-  updateLink,
-  updateLinkNote,
-} from "@/actions/links";
+import { createLink, deleteLink, getAnalyticsStats, updateLink } from "@/actions/links";
 import { batchRefreshLinkMetadata, refreshLinkMetadata } from "@/actions/links/metadata";
 import { deleteScreenshot } from "@/actions/links/screenshot";
 import { copyToClipboard } from "@/lib/utils";
@@ -1296,26 +1290,17 @@ describe("useInlineLinkEditViewModel", () => {
     expect(result.current.error).toBe("An unexpected error occurred");
   });
 
-  it("saveEdit shows note error when note update fails", async () => {
-    const updatedLink = makeLink({ note: "old note" });
-    vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
-    vi.mocked(updateLinkNote).mockResolvedValue({ success: false, error: "Note too long" });
-
-    const linkWithNote = makeLink({ note: "old note" });
+  it("saveEdit reports a failed atomic update and preserves the note draft", async () => {
+    vi.mocked(updateLink).mockResolvedValue({ success: false, error: "Save failed" });
     const { result } = renderHook(() =>
-      useInlineLinkEditViewModel(linkWithNote, [], [], callbacks),
+      useInlineLinkEditViewModel(makeLink({ note: "old" }), [], [], callbacks),
     );
-
-    // Change the note to trigger the note-update path
-    act(() => {
-      result.current.setEditNote("new note");
-    });
-
+    act(() => result.current.setEditNote("new note"));
     await act(async () => {
-      await result.current.saveEdit();
+      expect(await result.current.saveEdit()).toBe(false);
     });
-
-    expect(result.current.error).toBe("Link saved but note update failed");
-    expect(callbacks.onLinkUpdated).toHaveBeenCalled();
+    expect(result.current.error).toBe("Save failed");
+    expect(result.current.editNote).toBe("new note");
+    expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
   });
 });

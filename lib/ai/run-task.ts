@@ -20,6 +20,7 @@ export async function runAiTask<T>(
     parse: (text: string) => T;
     maxOutputTokens?: number;
     timeoutMs?: number;
+    signal?: AbortSignal;
   },
 ): Promise<RunAiTaskResult<T>> {
   if (!settings.provider || !settings.apiKey) {
@@ -35,7 +36,10 @@ export async function runAiTask<T>(
       ...(opts.system === undefined ? {} : { system: opts.system }),
       prompt: opts.prompt,
       maxOutputTokens: opts.maxOutputTokens ?? 1024,
-      abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
+      abortSignal: AbortSignal.any([
+        AbortSignal.timeout(opts.timeoutMs ?? 30_000),
+        ...(opts.signal ? [opts.signal] : []),
+      ]),
     });
     rawText = typeof text === "string" ? text : "";
     if (!rawText.trim()) {

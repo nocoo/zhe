@@ -151,6 +151,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const expiresResult = parseExpiresAt(bodyObj.expiresAt);
     if (expiresResult instanceof NextResponse) return expiresResult;
 
+    if (
+      bodyObj.title !== undefined &&
+      bodyObj.title !== null &&
+      (typeof bodyObj.title !== "string" || Array.from(bodyObj.title.trim()).length > 32)
+    )
+      return apiError("title must be a string of at most 32 characters or null", 400);
     const noteError = validateNote(bodyObj.note);
     if (noteError) return noteError;
 
@@ -160,6 +166,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isCustom: slugResult.isCustom,
       folderId: typeof bodyObj.folderId === "string" ? bodyObj.folderId : null,
       ...(expiresResult ? { expiresAt: expiresResult } : {}),
+      title: typeof bodyObj.title === "string" ? bodyObj.title.trim() || null : null,
       note: typeof bodyObj.note === "string" ? bodyObj.note : null,
       screenshotUrl: null,
     });

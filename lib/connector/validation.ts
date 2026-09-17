@@ -1,6 +1,8 @@
 import {
   ConnectorError,
   canonicalXPost,
+  MEDIA_FAILURE_CODES,
+  type MediaFailureCode,
   mediaUrl,
   record,
   type XCapture,
@@ -59,6 +61,24 @@ function validatePost(raw: unknown, id: string, depth = 0): XPost {
         duration > 86400)
     )
       invalid();
+    let videoAttempts: XMedia["videoAttempts"];
+    if (m.videoAttempts !== undefined) {
+      if (type === "PHOTO" || !Array.isArray(m.videoAttempts) || m.videoAttempts.length > 3)
+        invalid();
+      videoAttempts = m.videoAttempts.map((attempt) => {
+        const value = record(attempt);
+        const width = count(value.width);
+        const height = count(value.height);
+        const size = count(value.size);
+        if (!width || !height || width > 16384 || height > 16384 || !size) invalid();
+        return { width, height, size };
+      });
+    }
+    if (
+      m.archiveError !== undefined &&
+      !(MEDIA_FAILURE_CODES as readonly unknown[]).includes(m.archiveError)
+    )
+      invalid();
     return {
       id: mediaId,
       type: type as XMedia["type"],
@@ -67,6 +87,8 @@ function validatePost(raw: unknown, id: string, depth = 0): XPost {
       width: m.width === undefined ? undefined : count(m.width),
       height: m.height === undefined ? undefined : count(m.height),
       duration: duration as number | undefined,
+      ...(videoAttempts === undefined ? {} : { videoAttempts }),
+      ...(m.archiveError === undefined ? {} : { archiveError: m.archiveError as MediaFailureCode }),
     };
   });
   if (new Set(media.map((m) => m.id)).size !== media.length) invalid();

@@ -2,7 +2,7 @@
 
 import { toast } from "@nocoo/basalt/components/toast";
 import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { LinkCard } from "@/components/dashboard/link-card";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
@@ -131,9 +131,6 @@ export function InboxTriage() {
     specialSources.sources,
   );
   const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
-  useEffect(() => {
-    void suggestVm.refreshHasAiKey();
-  }, [suggestVm.refreshHasAiKey]);
 
   const linkTagsByLinkId = useLinkTagsByLinkId(linkTags);
   const emptyLinkTags: LinkTag[] = useMemo(() => [], []);
@@ -176,7 +173,6 @@ export function InboxTriage() {
                 onSuggest={() => {
                   void suggestVm.openForLink(link.id);
                 }}
-                suggestDisabled={!suggestVm.hasAiKey}
               />
             </div>
           ))}

@@ -1,3 +1,5 @@
+import type { XVideoAttempt } from "./core.js";
+
 export interface XJob {
   source?: "x";
   linkId: number;
@@ -42,6 +44,8 @@ export interface DownloadedMedia {
   width?: number | undefined;
   height?: number | undefined;
   duration?: number | undefined;
+  sourceUrl?: string | undefined;
+  videoAttempts?: XVideoAttempt[] | undefined;
 }
 
 export interface ConnectorStatus {

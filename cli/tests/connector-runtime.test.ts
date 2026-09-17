@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiClientError } from "../src/api/client.js";
 import { getApiKey } from "../src/config.js";
 import { ConnectorError, normalizeXPost } from "../src/connector/core.js";
-import { downloadMedia, makePoster } from "../src/connector/download.js";
+import { downloadMedia, MediaTooLargeError, makePoster } from "../src/connector/download.js";
 import { trimConnectorLog } from "../src/connector/log-file.js";
 import { readPost } from "../src/connector/opencli.js";
 import { processOne, runOnce, watchConnector } from "../src/connector/runtime.js";
@@ -16,7 +16,11 @@ import { captureScreenshot } from "../src/connector/screenshot.js";
 vi.mock("../src/connector/opencli.js", () => ({ readPost: vi.fn() }));
 vi.mock("../src/connector/screenshot.js", () => ({ captureScreenshot: vi.fn() }));
 vi.mock("../src/connector/log-file.js", () => ({ trimConnectorLog: vi.fn() }));
-vi.mock("../src/connector/download.js", () => ({ downloadMedia: vi.fn(), makePoster: vi.fn() }));
+vi.mock("../src/connector/download.js", async (original) => ({
+  ...(await original<typeof import("../src/connector/download.js")>()),
+  downloadMedia: vi.fn(),
+  makePoster: vi.fn(),
+}));
 vi.mock("../src/config.js", () => ({ getApiKey: vi.fn(), getEagleConfig: vi.fn() }));
 vi.mock("node:timers/promises", () => ({ setTimeout: vi.fn() }));
 vi.mock("node:fs/promises", async (original) => {
@@ -418,10 +422,68 @@ describe("zhe connector", () => {
       height: 720,
       duration: 1,
     });
+    const selected = data.media[0];
+    assert(selected);
+    selected.variants = [
+      {
+        url: selected.url.replace("1280x720", "3840x2160"),
+        width: 3840,
+        height: 2160,
+        bitrate: 10,
+      },
+      { url: selected.url, width: 1280, height: 720, bitrate: 1 },
+    ];
+    vi.mocked(downloadMedia).mockRejectedValueOnce(new MediaTooLargeError(564200241));
     expect(await runOnce()).toEqual({ status: "complete", media: 1 });
+    const actions = requests
+      .filter((r) => typeof r.init.body === "string")
+      .map((r) => JSON.parse(String(r.init.body)));
+    expect(actions.find((a) => a.action === "reserve").media).toMatchObject({
+      width: 1280,
+      height: 720,
+      size: 32,
+    });
+    expect(
+      actions.filter((a) => a.action === "capture").at(-1).capture.tweet.media[0],
+    ).toMatchObject({
+      url: selected.url,
+      width: 1280,
+      height: 720,
+      videoAttempts: [
+        { width: 3840, height: 2160, size: 564200241 },
+        { width: 1280, height: 720, size: 32 },
+      ],
+    });
     const upload = requests.find((r) => r.init.method === "PUT");
     expect(upload?.init.body).toBeInstanceOf(Blob);
     expect(new Headers(upload?.init.headers).get("x-connector-lease")).toBe(job.leaseToken);
+  });
+  it("publishes failed video diagnostics with the retained post text", async () => {
+    const data = structuredClone(capture);
+    data.media = data.tweet.media = [
+      {
+        id: "2000000000000000002",
+        type: "VIDEO",
+        url: "https://video.twimg.com/ext_tw_video/2000000000000000002/pu/vid/1280x720/test.mp4",
+      },
+    ];
+    vi.mocked(readPost).mockResolvedValue(data);
+    vi.mocked(downloadMedia).mockRejectedValue(new MediaTooLargeError(100000001));
+    expect(await runOnce()).toEqual({ status: "partial", media: 0 });
+    const saved = requests
+      .filter((r) => typeof r.init.body === "string")
+      .map((r) => JSON.parse(String(r.init.body)))
+      .filter((a) => a.action === "capture")
+      .at(-1);
+    expect(saved.capture.tweet).toMatchObject({
+      text: capture.tweet.text,
+      media: [
+        {
+          archiveError: "media_too_large",
+          videoAttempts: [{ width: 1280, height: 720, size: 100000001 }],
+        },
+      ],
+    });
   });
   it("publishes text even when a media download fails", async () => {
     const data = structuredClone(capture);

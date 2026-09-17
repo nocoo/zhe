@@ -139,6 +139,12 @@ describe("actions/settings", () => {
         slug: "new-slug",
         isCustom: false,
         clicks: 0,
+        title: null,
+        note: null,
+        metaTitle: null,
+        metaDescription: null,
+        metaFavicon: null,
+        screenshotUrl: null,
       });
     });
 
@@ -221,6 +227,7 @@ describe("actions/settings", () => {
           createdAt: "2026-01-15T00:00:00.000Z",
           folderId: null,
           expiresAt: null,
+          title: null,
           metaTitle: null,
           metaDescription: null,
           metaFavicon: null,

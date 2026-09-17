@@ -139,7 +139,7 @@ describe("useInlineLinkEditViewModel", () => {
     it("updates link and note, calls onLinkUpdated", async () => {
       const link = makeLink({ id: 1, note: "old note" });
       const cbs = makeCallbacks();
-      const updatedLink = makeLink({ id: 1, originalUrl: "https://new.com" });
+      const updatedLink = makeLink({ id: 1, originalUrl: "https://new.com", note: "new note" });
 
       vi.mocked(updateLink).mockResolvedValue({ success: true, data: updatedLink });
       vi.mocked(updateLinkNote).mockResolvedValue({ success: true });
@@ -159,9 +159,9 @@ describe("useInlineLinkEditViewModel", () => {
 
       expect(updateLink).toHaveBeenCalledWith(1, {
         originalUrl: "https://new.com",
-        folderId: undefined,
+        note: "new note",
       });
-      expect(updateLinkNote).toHaveBeenCalledWith(1, "new note");
+      expect(updateLinkNote).not.toHaveBeenCalled();
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith({
         ...updatedLink,
         note: "new note",
@@ -253,36 +253,21 @@ describe("useInlineLinkEditViewModel", () => {
       expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
-    it("keeps the editor open when the link saves but the note fails", async () => {
-      const link = makeLink({ id: 1, note: null });
+    it("keeps the draft and does not update the list if the atomic save fails", async () => {
       const cbs = makeCallbacks();
-
-      vi.mocked(updateLink).mockResolvedValue({
-        success: true,
-        data: makeLink({ id: 1 }),
-      });
-      vi.mocked(updateLinkNote).mockResolvedValue({
-        success: false,
-        error: "Note too long",
-      });
-
-      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
-
+      vi.mocked(updateLink).mockResolvedValue({ success: false, error: "Save failed" });
+      const { result } = renderHook(() => useInlineLinkEditViewModel(makeLink(), [], [], cbs));
       act(() => {
         result.current.setEditNote("new note");
+        result.current.setEditTitle("new title");
       });
-
       await act(async () => {
         expect(await result.current.saveEdit()).toBe(false);
       });
-
-      // Link update succeeded — list should still be updated
-      expect(cbs.onLinkUpdated).toHaveBeenCalled();
-      // Updated link should keep original note since note save failed
-      const updatedLink = unwrap(vi.mocked(cbs.onLinkUpdated).mock.calls[0])[0];
-      expect(updatedLink.note).toBeNull();
-      // Error is shown
-      expect(result.current.error).toBe("Link saved but note update failed");
+      expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
+      expect(result.current.editNote).toBe("new note");
+      expect(result.current.editTitle).toBe("new title");
+      expect(result.current.error).toBe("Save failed");
     });
 
     it("clears note to null when edit note is empty/whitespace", async () => {
@@ -305,7 +290,7 @@ describe("useInlineLinkEditViewModel", () => {
         await result.current.saveEdit();
       });
 
-      expect(updateLinkNote).toHaveBeenCalledWith(1, null);
+      expect(updateLink).toHaveBeenCalledWith(1, expect.objectContaining({ note: null }));
       expect(cbs.onLinkUpdated).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
     });
 
@@ -315,7 +300,7 @@ describe("useInlineLinkEditViewModel", () => {
 
       vi.mocked(updateLink).mockResolvedValue({
         success: true,
-        data: makeLink({ id: 1 }),
+        data: makeLink({ id: 1, screenshotUrl: "https://img.example.com/shot.png" }),
       });
 
       const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));

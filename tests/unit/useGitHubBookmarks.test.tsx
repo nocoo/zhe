@@ -31,6 +31,7 @@ const bookmark: GitHubBookmark = {
   hasReadme: true,
   capturedAt: 1789171200000,
   updatedAt: 1,
+  note: link.note,
   errorCode: null,
 };
 beforeEach(() => {
@@ -44,6 +45,36 @@ afterEach(() => {
 });
 
 describe("GitHub summary polling", () => {
+  it("never overwrites curated fields from an older metadata polling response", async () => {
+    const current = {
+      ...link,
+      title: "用户标题",
+      note: "用户备注",
+      metaTitle: repository.fullName,
+      metaDescription: repository.description,
+    };
+    const update = vi.fn();
+    vi.mocked(loadGitHubBookmarks).mockResolvedValue({
+      success: true,
+      data: [{ ...bookmark, note: "旧 AI 简介" }],
+    });
+    const { result } = renderHook(() => useGitHubBookmarks([current], update));
+    await act(async () => {});
+    expect(update).not.toHaveBeenCalled();
+    vi.mocked(loadGitHubBookmarks).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          ...bookmark,
+          repository: { ...repository, description: "新原始简介" },
+          note: "旧 AI 简介",
+        },
+      ],
+    });
+    await act(async () => result.current.refresh());
+    expect(update).toHaveBeenLastCalledWith({ ...current, metaDescription: "新原始简介" });
+  });
+
   it("refreshes and syncs metadata, skips hidden pages, and retains good snapshots on failure", async () => {
     vi.useFakeTimers();
     const update = vi.fn();

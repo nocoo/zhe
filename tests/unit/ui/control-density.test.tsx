@@ -13,10 +13,31 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 afterEach(() => cleanup());
+
+describe("dialog typography", () => {
+  it("uses a distinct modal heading and consistent body scale", () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>编辑收藏</DialogTitle>
+          <DialogDescription>修改标题和备注</DialogDescription>
+        </DialogContent>
+      </Dialog>,
+    );
+    const heading = screen.getByRole("heading", { name: "编辑收藏" });
+    expect(heading.className).toMatch(/\btext-lg\b/);
+    expect(heading.className).toMatch(/\bleading-6\b/);
+    const description = screen.getByText("修改标题和备注");
+    expect(description.className).toMatch(/\btext-sm\b/);
+    expect(description.className).toMatch(/\bleading-5\b/);
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-basalt-surface-root");
+  });
+});
 
 describe("control density — Input", () => {
   it("lg size is form primary (h-10)", () => {

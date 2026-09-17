@@ -6,6 +6,7 @@ import {
   MAX_VIDEO_BYTES,
   record,
   verifySignature,
+  videoResolution,
   type XCapture,
 } from "@/cli/src/connector/core";
 import { executeD1Query } from "@/lib/db/d1-client";
@@ -82,11 +83,24 @@ export async function reserveXMedia(
     typeof raw.size !== "number" ||
     !Number.isSafeInteger(raw.size) ||
     raw.size < (video ? 24 : 3) ||
-    raw.size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES) ||
     typeof raw.sha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(raw.sha256)
   )
     throw new ConnectorError("invalid_media", 400);
+  if (raw.size > (video ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES))
+    throw new ConnectorError("media_too_large", 400);
+  if (
+    (raw.width !== undefined || raw.height !== undefined) &&
+    ![raw.width, raw.height].every(
+      (value) =>
+        typeof value === "number" && Number.isSafeInteger(value) && value > 0 && value <= 16384,
+    )
+  )
+    throw new ConnectorError("invalid_media", 400);
+  const resolution =
+    video && typeof raw.width === "number" && typeof raw.height === "number"
+      ? videoResolution(raw.width, raw.height)
+      : null;
   const lookup = [id, auth.userId, source.id, raw.kind];
   const [existing] = await executeD1Query<MediaRow>(
     "SELECT * FROM x_media WHERE link_id=? AND user_id=? AND media_id=? AND kind=?",
@@ -111,8 +125,8 @@ export async function reserveXMedia(
     `${source.id}:${raw.kind === "poster" ? "video" : raw.kind}`,
   ];
   const rows = await executeD1Query<MediaRow>(
-    `INSERT INTO x_media(id,link_id,user_id,media_id,kind,r2_key,mime,size,sha256,lease_token,created_at)
-    SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL} AND NOT ${removalSql})
+    `INSERT INTO x_media(id,link_id,user_id,media_id,kind,r2_key,mime,size,sha256,lease_token,created_at,resolution)
+    SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL} AND NOT ${removalSql})
     ON CONFLICT(link_id,media_id,kind) DO NOTHING RETURNING *`,
     [
       assetId,
@@ -126,6 +140,7 @@ export async function reserveXMedia(
       raw.sha256,
       token,
       now,
+      resolution,
       ...leaseParams(auth, id, token, now),
       ...removalParams,
     ],

@@ -62,6 +62,7 @@ const link: Link = {
   folderId: null,
   note: "Keep this saved note after enrichment",
   screenshotUrl: null,
+  title: null,
   metaTitle: null,
   metaDescription: null,
   metaFavicon: null,
@@ -72,6 +73,73 @@ beforeEach(() => {
 });
 
 describe("X bookmark presentation", () => {
+  it("shows archived resolution and decimal file size below the video", () => {
+    render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              media: [
+                {
+                  id: "123",
+                  type: "VIDEO",
+                  url: "https://cdn.example.com/video.mp4",
+                  width: 9,
+                  height: 16,
+                  resolution: "720p",
+                  size: 32088091,
+                },
+              ],
+            },
+          }}
+          compact
+        />
+      </LayerCard>,
+    );
+    const info = screen.getByTestId("x-video-archive-info");
+    expect(info).toHaveTextContent("已归档720p32.1 MB");
+    expect(info.previousElementSibling).toHaveAttribute("data-testid", "x-media-grid");
+  });
+  it("shows all rejected versions and the size limit directly on a compact card", () => {
+    render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            state: "partial",
+            mediaErrors: [
+              {
+                mediaId: "123",
+                type: "VIDEO",
+                code: "media_too_large",
+                attempts: [
+                  { width: 3840, height: 2160, size: 564200241 },
+                  { width: 1920, height: 1080, size: 120845059 },
+                  { width: 1280, height: 720, size: 100000001 },
+                ],
+              },
+            ],
+          }}
+          compact
+        />
+      </LayerCard>,
+    );
+    expect(screen.getByTestId("x-video-archive-info")).toHaveTextContent(
+      "视频未归档：4K 564.2 MB、1080p 120.8 MB、720p 100 MB，均超过 100 MB 上限。",
+    );
+  });
+  it("shows a specific connector error even without captured content", () => {
+    render(
+      <XBookmarkStatus
+        bookmark={{ ...bookmark, state: "failed", tweet: null, errorCode: "needs_login" }}
+        linkId={1}
+        compact
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("本地浏览器尚未登录 X");
+  });
   it("uses the saved headline for a standalone article without repeating raw URLs", () => {
     const url = "https://x.com/i/article/2037129045423341568";
     render(
@@ -86,13 +154,16 @@ describe("X bookmark presentation", () => {
             },
           }}
           note="I want to build an AI agent today"
-          title="Example Author (@example)"
+          originalTitle="Example Author (@example)"
         />
       </LayerCard>,
     );
     const preview = screen.getByTestId("x-link-preview");
     expect(preview).toHaveAttribute("href", url);
-    expect(preview).toHaveTextContent("I want to build an AI agent today");
+    expect(preview).not.toHaveTextContent("I want to build an AI agent today");
+    expect(screen.getByText("I want to build an AI agent today").closest("details")).toHaveClass(
+      "bg-primary/5",
+    );
     expect(preview).toHaveTextContent("阅读全文");
     expect(screen.queryByText("https://t.co/KW3rQbdBJT")).not.toBeInTheDocument();
     expect(screen.queryByText(url)).not.toBeInTheDocument();
@@ -113,7 +184,7 @@ describe("X bookmark presentation", () => {
               entities: { ...tweet.entities, urls: ["https://x.com/i/article/12345"] },
             },
           }}
-          title={title}
+          originalTitle={title}
           note="  "
         />
       </LayerCard>,

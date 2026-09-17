@@ -22,7 +22,7 @@ This file is the contract; hooks, CI and config are enforcement. Raise weaker en
 - `zhe-edge` proxies `zhe.to` to the Railway origin, resolves KV short links and authenticates analytics/cleanup calls. Keep reserved paths synchronized in `lib/constants.ts` and `worker/src/index.ts`.
 - Set cache invalidation/dirty state at D1 mutation sites. Apply schema migrations before dependent release; mirror exceptional schema fixups into a real migration and the local test stack.
 - Use Google Chrome through Caddy at `https://zhe.dev.hexly.ai` for manual previews, including `/dashboard/x`; verify HTTPS first. Keep the user's dev server running. Automated tests use dedicated loopback ports.
-- Reuse Basalt density/radius/surface controls from [design tokens](docs/22-design-tokens.md): toolbar `sm` 32px, form `default` 36px or `lg` 40px; no invented xs/icon-sm or raw checkbox. Primitive changes update contract tests and docs together.
+- Reuse Basalt density/radius/surface controls from [design tokens](docs/22-design-tokens.md): toolbar `sm` 32px, form `default` 36px or `lg` 40px; no invented xs/icon-sm or raw checkbox. Dialogs and their nested controls use the top bright theme surface, with 18px headings, 14px body and 12px field labels. Primitive changes update contract tests and docs together.
 - Preserve card elevation/ring tokens and border-only nested media, menu wrappers and same-row density; keep business logic in ViewModels/models and routes thin. Detailed UI rules remain in [maintainer notes](docs/29-maintainer-operations.md).
 - Store only bare SemVer in root `package.json`, display `v` prefix and import `APP_VERSION`; no hardcoded runtime/test versions. Synchronize `cli/package.json` when publishing `@nocoo/zhe`, not during routine docs edits.
 

@@ -39,6 +39,12 @@ const hints: Record<string, string> = {
     "The README exceeds the archive limit; it was not truncated. Open it on GitHub.",
   github_unsafe_redirect: "The GitHub redirect could not be verified.",
   invalid_media: "Media has an unsupported type or exceeds the size limit.",
+  media_too_large:
+    "Video exceeds 100 MB in every eligible version (down to 720p); no smaller version was downloaded.",
+  video_variant_unavailable: "No supported MP4 version is available at 4K, 1080p or 720p.",
+  media_http_error: "X media returned an unsuccessful HTTP response.",
+  unsupported_media_type: "The media response is not a supported MP4 or image format.",
+  invalid_media_length: "X media returned a missing or invalid file size.",
   decode_failed: "Media verification failed. Check FFmpeg and ffprobe are installed.",
   download_failed: "Media download failed. The saved text is retained for retry.",
   size_mismatch: "Media download was incomplete or its size changed.",

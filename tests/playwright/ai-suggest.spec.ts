@@ -1,102 +1,190 @@
-/**
- * E2E: AI suggestion dialog — intercepts the suggest API.
- */
 import { expect, test } from "./fixtures";
 import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 
-test.describe("AI link suggestions", () => {
-  test.describe.configure({ timeout: 60_000, retries: 1 });
-
-  test("applies an intercepted folder and tag suggestion", async ({ page }) => {
-    const tagName = `e2e-ai-tag-${Date.now()}`;
-    const folderId = `e2e-ai-folder-${Date.now()}`;
-    const folderName = `AI Folder ${Date.now()}`;
-    const slug = `e2e-ai-${Date.now()}`;
-    await executeD1(
-      "INSERT INTO folders (id, user_id, name, icon, created_at) VALUES (?, ?, ?, ?, ?)",
-      [folderId, TEST_USER.id, folderName, "folder", Math.floor(Date.now() / 1000)],
+for (const scenario of [
+  { source: "web", width: 1365, path: "/dashboard", url: "https://example.com/e2e-ai" },
+  {
+    source: "github",
+    width: 1365,
+    path: "/dashboard/github",
+    url: "https://github.com/example/e2e-ai",
+  },
+  {
+    source: "x",
+    width: 390,
+    path: "/dashboard/x",
+    url: "https://x.com/example/status/12345678987654321",
+  },
+]) {
+  test(`shared AI editor: ${scenario.source} at ${scenario.width}px`, async ({ page }) => {
+    test.setTimeout(60_000);
+    const suffix = `${scenario.source}-${Date.now()}`;
+    const tagName = `ai-${suffix}`;
+    const tagId = `t-${suffix}`;
+    const manualTag = `manual-${suffix}`;
+    const folderId = `f-${suffix}`;
+    const slug = `ai-${suffix}`;
+    await executeD1("INSERT INTO folders(id,user_id,name,icon,created_at) VALUES(?,?,?,?,?)", [
+      folderId,
+      TEST_USER.id,
+      "开发资料",
+      "folder",
+      Date.now(),
+    ]);
+    await executeD1("INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)", [
+      tagId,
+      TEST_USER.id,
+      tagName,
+      "primary",
+      Date.now(),
+    ]);
+    const [seeded] = await queryD1<{ id: number }>(
+      "INSERT INTO links(user_id,original_url,slug,meta_title,meta_description,note,created_at) VALUES(?,?,?,?,?,?,?) RETURNING id",
+      [
+        TEST_USER.id,
+        scenario.url,
+        slug,
+        "Original title",
+        "Original description",
+        "旧备注",
+        Date.now(),
+      ],
     );
-    await executeD1(
-      "INSERT INTO links (user_id, original_url, slug, is_custom, clicks, created_at) VALUES (?, ?, ?, 1, 0, ?)",
-      [TEST_USER.id, "https://example.com/e2e-ai-suggest", slug, Date.now()],
+    if (!seeded) throw new Error("Missing fixture");
+    const linkId = seeded.id;
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.route("**/api/settings/ai", (route) =>
+      route.fulfill({ contentType: "application/json", body: '{"hasApiKey":true}' }),
     );
-    const seeded = await queryD1<{ id: number }>(
-      "SELECT id FROM links WHERE user_id = ? AND slug = ?",
-      [TEST_USER.id, slug],
-    );
-    const linkId = seeded[0]?.id;
-    expect(linkId).toBeDefined();
-    await page.route("**/api/settings/ai", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            provider: "anthropic",
-            model: "claude-sonnet-4-5",
-            baseURL: "",
-            sdkType: "",
-            authType: "",
-            hasApiKey: true,
-            apiKeyLast4: "1234",
-          }),
-        });
-        return;
-      }
-      await route.continue();
-    });
-
     await page.route("**/api/ai/suggest-link-org", async (route) => {
+      const [row] = await queryD1<{ revision: number }>(
+        "SELECT revision FROM search_documents WHERE resource_id=? AND kind='link'",
+        [linkId],
+      );
+      const events = [
+        { type: "stage", stage: "prepare", message: "读取已有资料" },
+        {
+          type: "context",
+          revision: row?.revision,
+          supplied: ["URL", "原始标题", "原始简介"],
+          notices: scenario.source === "github" ? ["README 未收录，本次使用已有资料整理"] : [],
+          current: { title: "", note: "旧备注", folderId: null, tagIds: [] },
+          catalogs: {
+            folders: [{ id: folderId, name: "开发资料" }],
+            tags: [{ id: tagId, name: tagName }],
+          },
+          historicalAnalysis: null,
+          prompt: `url: ${scenario.url}`,
+          model: "test-model",
+          provider: "custom",
+        },
+        { type: "stage", stage: "request", message: "等待模型" },
+        { type: "stage", stage: "parse", message: "校验结果" },
+        {
+          type: "result",
+          result: {
+            title: "整理后的短标题",
+            note: "便于检索和阅读的开发资料。",
+            folders: [{ folderId, name: "开发资料", reason: "开发相关" }],
+            tags: [{ tagId, name: tagName, reason: "检索" }],
+          },
+          durationMs: 1200,
+          rawText: "model output",
+        },
+      ];
       await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          folders: [{ folderId, name: folderName, reason: "归入此文件夹" }],
-          tags: [{ tagId: null, name: tagName, reason: "测试标签" }],
-          note: "e2e 备注总结",
-          catalogs: { folders: [{ id: folderId, name: folderName }], tags: [] },
-          model: "claude-sonnet-4-5",
-          provider: "anthropic",
-          durationMs: 12,
-          prompt: "url: https://example.com/e2e-ai-suggest",
-          rawText: '{"folders":[],"tags":[]}',
-        }),
+        contentType: "application/x-ndjson",
+        body: events.map((e) => JSON.stringify(e)).join("\n"),
       });
     });
-
     try {
-      await page.goto("/dashboard");
-      const card = page.locator('[data-testid="link-card"]').filter({ hasText: slug });
-      const suggest = card.getByRole("button", { name: "AI 建议" });
-      await expect(suggest).toBeVisible();
-      await suggest.click();
-      await expect(page.getByTestId("suggest-link-org-dialog")).toBeVisible();
+      await page.goto(scenario.path);
+      const card = page.locator(`[data-link-id="${linkId}"]`).first();
+      await expect(card).toBeVisible();
+      if (scenario.source === "x") {
+        await card.getByRole("button", { name: "更多收藏操作" }).click();
+        await page.getByRole("menuitem", { name: "AI 整理" }).click();
+      } else await card.getByRole("button", { name: "AI 整理" }).click();
+      const dialog = page.getByTestId("suggest-link-org-dialog");
+      await expect(page.getByTestId("suggest-title")).toHaveValue("整理后的短标题");
       await expect(page.getByTestId("suggest-step-ready")).toHaveAttribute("data-state", "done");
-      await expect(page.getByTestId("suggest-prompt-body")).toHaveCount(0);
-      await page.getByTestId("suggest-prompt-toggle").click();
-      await expect(page.getByTestId("suggest-prompt-body")).toContainText("e2e-ai-suggest");
-      await expect(page.getByTestId("suggest-note")).toHaveValue("e2e 备注总结");
-      await page.getByTestId("suggest-note").fill("用户改过的备注");
+      if (scenario.source === "github")
+        await expect(
+          dialog.getByText("README 未收录，本次使用已有资料整理", { exact: true }),
+        ).toBeVisible();
+      for (const selector of [
+        '[data-testid="suggest-link-org-dialog"]',
+        "#suggest-title",
+        "#suggest-note",
+        "#suggest-folder",
+      ]) {
+        expect(
+          await page.locator(selector).evaluate((el) => getComputedStyle(el).backgroundColor),
+        ).toBe("rgb(255, 255, 255)");
+      }
+      expect(await dialog.getByText(/AI 建议|字数/).count()).toBe(0);
+      if (scenario.width > 640) {
+        await expect
+          .poll(() =>
+            dialog.evaluate((el) => {
+              const folder = el.querySelector('[role="combobox"]')?.getBoundingClientRect();
+              const tag = el.querySelector("[aria-pressed]")?.getBoundingClientRect();
+              return {
+                aligned: !!folder && !!tag && Math.abs(folder.y - tag.y) <= 1,
+                heights: [folder?.height, tag?.height],
+              };
+            }),
+          )
+          .toEqual({ aligned: true, heights: [36, 36] });
+      }
+      expect(
+        await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [TEST_USER.id, manualTag]),
+      ).toHaveLength(0);
+      if (scenario.source === "github") {
+        await dialog.getByText("管理标签", { exact: true }).click();
+        await dialog.getByLabel("新标签名称", { exact: true }).fill(manualTag);
+        await dialog.getByRole("button", { name: "创建标签", exact: true }).click();
+        await expect(dialog.getByLabel("新标签名称", { exact: true })).toHaveValue("");
+        expect(
+          await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [
+            TEST_USER.id,
+            manualTag,
+          ]),
+        ).toHaveLength(1);
+        await dialog.getByText("管理标签", { exact: true }).click();
+      }
+      await page.getByTestId("suggest-title").fill("用户标题");
+      await page.getByTestId("suggest-note").fill("用户覆盖后的备注");
+      expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      await page.screenshot({
+        path: `.artifacts/ai-organization-${scenario.source}-${scenario.width}.png`,
+      });
       await page.getByTestId("suggest-apply").click();
-      await expect(page.getByText("已应用建议").first()).toBeVisible();
-      await expect(page.getByText("部分标签未能应用")).toHaveCount(0);
-      const badge = page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`);
-      await expect(badge).toBeVisible();
+      await expect(dialog).not.toBeVisible();
       await page.reload();
-      await expect(
-        page.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-      ).toBeVisible();
-      const assigned = await queryD1<{ folder_id: string | null; note: string | null }>(
-        "SELECT folder_id, note FROM links WHERE id = ? AND user_id = ?",
+      await expect(page.locator(`[data-link-id="${linkId}"]`).first()).toContainText("用户标题");
+      await expect(page.locator(`[data-link-id="${linkId}"]`).first()).toContainText(
+        "用户覆盖后的备注",
+      );
+      const [saved] = await queryD1<{ title: string; note: string; folder_id: string }>(
+        "SELECT title,note,folder_id FROM links WHERE id=? AND user_id=?",
         [linkId, TEST_USER.id],
       );
-      expect(assigned[0]?.folder_id).toBe(folderId);
-      expect(assigned[0]?.note).toBe("用户改过的备注");
+      expect(saved).toEqual({ title: "用户标题", note: "用户覆盖后的备注", folder_id: folderId });
+      const assigned = await queryD1<{ name: string }>(
+        "SELECT t.name FROM tags t JOIN link_tags lt ON lt.tag_id=t.id WHERE lt.link_id=?",
+        [linkId],
+      );
+      expect(assigned.map((t) => t.name)).toContain(tagName);
+      if (scenario.source === "github") expect(assigned.map((t) => t.name)).toContain(manualTag);
     } finally {
-      await executeD1("DELETE FROM link_tags WHERE link_id = ?", [linkId]);
-      await executeD1("DELETE FROM tags WHERE user_id = ? AND name = ?", [TEST_USER.id, tagName]);
-      await executeD1("DELETE FROM links WHERE id = ?", [linkId]);
-      await executeD1("DELETE FROM folders WHERE id = ?", [folderId]);
+      await executeD1("DELETE FROM links WHERE id=? AND user_id=?", [linkId, TEST_USER.id]);
+      await executeD1("DELETE FROM tags WHERE user_id=? AND name IN (?,?)", [
+        TEST_USER.id,
+        tagName,
+        manualTag,
+      ]);
+      await executeD1("DELETE FROM folders WHERE id=? AND user_id=?", [folderId, TEST_USER.id]);
     }
   });
-});
+}

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { XBookmarksContext, XBookmarksUpdateContext } from "@/contexts/x-bookmarks";
 import { cn } from "@/lib/utils";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
@@ -39,7 +40,7 @@ function LabelledField({
 }) {
   return (
     <div className={cn("min-w-0 space-y-1.5", className)}>
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
+      <Label htmlFor={id} className="block text-xs font-medium leading-4">
         {label}
       </Label>
       {children}
@@ -98,7 +99,7 @@ function EditToolbar({
         trigger={
           <Button
             type="button"
-            size={modal ? "default" : "sm"}
+            size={modal ? "lg" : "sm"}
             variant="ghost"
             aria-label="Delete link"
             className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -114,7 +115,7 @@ function EditToolbar({
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
         {onClose && (
           <Button
-            size={modal ? "default" : "sm"}
+            size={modal ? "lg" : "sm"}
             variant="ghost"
             onClick={onClose}
             disabled={isSaving || isDeleting}
@@ -123,7 +124,7 @@ function EditToolbar({
           </Button>
         )}
         <Button
-          size={modal ? "default" : "sm"}
+          size={modal ? "lg" : "sm"}
           onClick={onSave}
           loading={isSaving}
           disabled={isDeleting}
@@ -242,9 +243,12 @@ export function InlineEditArea({
       data-testid="edit-area"
     >
       <Heading
-        className={cn("flex items-center gap-2 text-xs font-semibold", modal && "text-base")}
+        className={cn(
+          "flex items-center gap-2 text-xs font-semibold",
+          modal && "text-lg leading-6",
+        )}
       >
-        <Pencil className="size-3.5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <Pencil className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
         编辑收藏
       </Heading>
       <div className="grid grid-cols-1 gap-3 @xs/edit:grid-cols-2">
@@ -290,11 +294,19 @@ export function InlineEditArea({
             </SelectContent>
           </Select>
         </LabelledField>
-        <LabelledField id={`edit-note-${link.id}`} label="备注" className="@xs/edit:col-span-2">
+        <LabelledField id={`edit-title-${link.id}`} label="标题" className="@xs/edit:col-span-2">
           <Input
-            id={`edit-note-${link.id}`}
+            id={`edit-title-${link.id}`}
             size={fieldSize}
-            type="text"
+            value={editVm.editTitle}
+            onChange={(e) => editVm.setEditTitle(e.target.value)}
+            placeholder="标题（可选）"
+          />
+        </LabelledField>
+        <LabelledField id={`edit-note-${link.id}`} label="备注" className="@xs/edit:col-span-2">
+          <Textarea
+            id={`edit-note-${link.id}`}
+            rows={3}
             value={editVm.editNote}
             onChange={(e) => editVm.setEditNote(e.target.value)}
             placeholder="添加备注..."
@@ -347,14 +359,17 @@ export function InlineEditArea({
         </fieldset>
       )}
 
-      <TagsRow
-        allTags={tags}
-        assignedTags={editVm.assignedTags}
-        assignedTagIds={editVm.assignedTagIds}
-        onAdd={editVm.addTag}
-        onRemove={editVm.removeTag}
-        onCreate={editVm.createAndAssignTag}
-      />
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium leading-4">标签</p>
+        <TagsRow
+          allTags={tags}
+          assignedTags={editVm.assignedTags}
+          assignedTagIds={editVm.assignedTagIds}
+          onAdd={editVm.addTag}
+          onRemove={editVm.removeTag}
+          onCreate={editVm.createAndAssignTag}
+        />
+      </div>
 
       {(mediaError || editVm.error) && (
         <p role="alert" className="text-xs text-destructive">

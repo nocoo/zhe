@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
+vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
+
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -69,6 +72,7 @@ const bookmark: GitHubBookmark = {
   hasReadme: true,
   capturedAt: 1789171200000,
   updatedAt: 1,
+  note: link.note,
   errorCode: null,
 };
 const callbacks = {
@@ -156,13 +160,13 @@ describe("GitHub collection", () => {
   });
 });
 
-function renderCard(value: GitHubBookmark | undefined = bookmark) {
+function renderCard(value: GitHubBookmark | undefined = bookmark, savedLink = link) {
   const refresh = vi.fn();
   return {
     refresh,
     ...render(
       <GitHubRepositoryCard
-        link={link}
+        link={savedLink}
         bookmark={value}
         folders={[folder]}
         tags={[tag]}
@@ -281,64 +285,80 @@ describe("README reading", () => {
   });
 });
 
-describe("README AI analysis", () => {
-  it("saves and displays the generated fields, then finds repositories by a use case", async () => {
+describe("shared AI organization entry", () => {
+  it("prioritizes the current note over historical analysis and retains source controls", () => {
     const analysis = {
-      summary: "整理个人收藏的工具",
+      summary: "旧 AI 简介",
       features: ["全文归档"],
-      useCases: ["离线研究"],
-      techStack: ["SQLite"],
-      tags: ["知识管理"],
-      model: "test-model",
+      useCases: [],
+      techStack: [],
+      tags: ["历史主题"],
+      model: "test",
       provider: "custom",
-      generatedAt: Date.now(),
+      generatedAt: 1,
     };
-    const fetchMock = vi
+    renderCard({ ...bookmark, analysis }, { ...link, title: "整理标题", note: "当前手改备注" });
+    expect(screen.getByText("整理标题")).toBeVisible();
+    expect(screen.getByText("当前手改备注")).toBeVisible();
+    expect(screen.queryByText("旧 AI 简介")).not.toBeInTheDocument();
+    expect(screen.getByText("Repository description")).toBeVisible();
+    for (const name of ["AI 整理", "阅读 README", "编辑 GitHub 收藏", "重新采集 GitHub 仓库"])
+      expect(screen.getByRole("button", { name })).toBeEnabled();
+  });
+  it("opens the unified editor without requiring README", async () => {
+    vi.mocked(loadGitHubBookmarks).mockResolvedValue({
+      success: true,
+      data: [{ ...bookmark, hasReadme: false }],
+    });
+    const events = [
+      {
+        type: "context",
+        revision: 1,
+        supplied: ["URL"],
+        notices: ["README 未收录"],
+        current: { title: "", note: "", folderId: null, tagIds: [] },
+        catalogs: { folders: [], tags: [] },
+        historicalAnalysis: null,
+        prompt: "input",
+        model: "test",
+        provider: "custom",
+      },
+      {
+        type: "result",
+        result: {
+          title: "短标题",
+          note: "共享备注",
+          folders: [{ folderId: null, name: "Inbox", reason: "暂存" }],
+          tags: [],
+        },
+        rawText: "output",
+        durationMs: 1,
+      },
+    ];
+    const mock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ analysis }), { status: 200 }));
-    vi.mocked(loadGitHubBookmarks)
-      .mockResolvedValueOnce({ success: true, data: [bookmark] })
-      .mockResolvedValue({ success: true, data: [{ ...bookmark, analysis }] });
+      .mockImplementation(async (url) =>
+        String(url).includes("settings")
+          ? new Response('{"hasApiKey":true}')
+          : new Response(events.map((e) => JSON.stringify(e)).join("\n")),
+      );
     try {
       render(<GitHubLibraryPage />);
       await screen.findByText("1,234");
-      const firstCard = screen.getAllByTestId("github-repository")[0];
-      if (!firstCard) throw new Error("Missing repository card");
-      fireEvent.click(within(firstCard).getByRole("button", { name: "AI 分析" }));
-      const dialog = await screen.findByRole("dialog");
-      expect(await within(dialog).findByText("离线研究")).toBeVisible();
-      expect(within(dialog).getByText("SQLite")).toBeVisible();
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/ai/analyze-github",
+      fireEvent.click(
+        within(screen.getAllByTestId("github-repository")[0] as HTMLElement).getByRole("button", {
+          name: "AI 整理",
+        }),
+      );
+      await waitFor(() => expect(screen.getByTestId("suggest-title")).toHaveValue("短标题"));
+      expect(screen.getByTestId("suggest-note")).toHaveValue("共享备注");
+      expect(screen.getByText("README 未收录")).toBeVisible();
+      expect(mock).toHaveBeenCalledWith(
+        "/api/ai/suggest-link-org",
         expect.objectContaining({ body: JSON.stringify({ linkId: 1 }) }),
       );
-      fireEvent.click(within(dialog).getByRole("button", { name: "关闭 AI 分析" }));
-      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-      fireEvent.change(screen.getByRole("searchbox"), { target: { value: "离线研究" } });
-      expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
-      expect(screen.getByText(analysis.summary)).toBeVisible();
     } finally {
-      fetchMock.mockRestore();
-    }
-  });
-
-  it("keeps analysis retryable and links to AI settings when configuration is missing", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ reason: "no_ai_config", error: "请先配置 AI" }), {
-        status: 400,
-      }),
-    );
-    try {
-      renderCard();
-      fireEvent.click(screen.getByRole("button", { name: "AI 分析" }));
-      expect(await screen.findByRole("alert")).toHaveTextContent("请先配置 AI");
-      expect(screen.getByRole("link", { name: "前往 AI 设置" })).toHaveAttribute(
-        "href",
-        "/dashboard/settings/ai",
-      );
-      expect(screen.getByRole("button", { name: "重试分析" })).toBeEnabled();
-    } finally {
-      fetchMock.mockRestore();
+      mock.mockRestore();
     }
   });
 });

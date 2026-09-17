@@ -29,6 +29,60 @@ describe("/api/v1/links POST + rate-limit", () => {
   });
 
   describe("POST /api/v1/links", () => {
+    it("round-trips curated title and note separately from raw metadata", async () => {
+      const response = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: "https://example.com/curated-title",
+          title: "整理标题",
+          note: "我的备注",
+        }),
+      });
+      expect(response.status).toBe(201);
+      const { link } = await response.json();
+      expect(link).toMatchObject({ title: "整理标题", note: "我的备注" });
+      const resource = `${API_URL}/${link.id}`;
+      const patch = (body: unknown) =>
+        authenticatedFetch(resource, apiKeyWithReadWrite, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      expect(
+        (await patch({ metaTitle: "Raw title", metaDescription: "Raw description" })).status,
+      ).toBe(200);
+      expect((await patch({ title: "新标题", note: "手工覆盖" })).status).toBe(200);
+      const saved = await (await authenticatedFetch(resource, apiKeyWithReadWrite)).json();
+      expect(saved.link).toMatchObject({
+        title: "新标题",
+        note: "手工覆盖",
+        metaTitle: "Raw title",
+        metaDescription: "Raw description",
+      });
+      for (const title of ["字".repeat(33), 42]) expect((await patch({ title })).status).toBe(400);
+      expect((await patch({ title: "😀".repeat(32) })).status).toBe(200);
+      expect((await patch({ title: null, note: null })).status).toBe(200);
+      const cleared = await (await authenticatedFetch(resource, apiKeyWithReadWrite)).json();
+      expect(cleared.link).toMatchObject({
+        title: null,
+        note: null,
+        metaTitle: "Raw title",
+        metaDescription: "Raw description",
+      });
+    });
+
+    it("rejects invalid titles during creation", async () => {
+      for (const title of ["字".repeat(33), 42]) {
+        const response = await authenticatedFetch(API_URL, apiKeyWithReadWrite, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/invalid-title", title }),
+        });
+        expect(response.status).toBe(400);
+      }
+    });
+
     it("returns 403 when API key lacks links:write scope", async () => {
       const response = await authenticatedFetch(API_URL, apiKeyReadOnly, {
         method: "POST",

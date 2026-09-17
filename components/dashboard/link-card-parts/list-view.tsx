@@ -256,14 +256,14 @@ function ListActions({
                   variant="ghost"
                   onClick={onSuggest}
                   disabled={suggestDisabled}
-                  aria-label="AI 建议"
+                  aria-label="AI 整理"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <Sparkles strokeWidth={1.5} />
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}</TooltipContent>
+            <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 整理"}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
@@ -330,7 +330,7 @@ export function ListView(props: ListViewProps) {
           onOpenDetails={props.onOpenDetails}
         />
         <Description
-          description={link.metaDescription ?? null}
+          link={link}
           isRefreshingMetadata={isRefreshingMetadata}
           onRefresh={onRefreshMetadata}
           variant="list"

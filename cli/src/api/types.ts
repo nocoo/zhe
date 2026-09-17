@@ -11,6 +11,7 @@ export interface Link {
   clicks: number;
   folderId: string | null;
   note: string | null;
+  title: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
   screenshotUrl: string | null;
@@ -92,6 +93,7 @@ export interface CreateLinkRequest {
   url: string;
   slug?: string;
   folderId?: string;
+  title?: string;
   note?: string;
   expiresAt?: string;
 }
@@ -100,6 +102,7 @@ export interface UpdateLinkRequest {
   originalUrl?: string;
   slug?: string;
   folderId?: string | null;
+  title?: string | null;
   note?: string | null;
   expiresAt?: string | null;
   metaTitle?: string | null;

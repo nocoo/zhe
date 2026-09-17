@@ -106,6 +106,7 @@ export function filterLinks(links: Link[], query: string, ctx?: FilterContext): 
     // Original URL (protocol-stripped)
     if (stripProtocol(link.originalUrl).toLowerCase().includes(trimmed)) return true;
     // Meta title
+    if (link.title?.toLowerCase().includes(trimmed)) return true;
     if (link.metaTitle?.toLowerCase().includes(trimmed)) return true;
     // Meta description
     if (link.metaDescription?.toLowerCase().includes(trimmed)) return true;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -9,12 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { stripProtocol } from "@/models/links";
 import type { Folder, Tag } from "@/models/types";
 import { TagBadge, TagPicker } from "../shared-link-components";
-
-const INPUT_CLS =
-  "rounded-widget border-border text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
 
 interface ModeTabsProps {
   mode: "simple" | "custom";
@@ -22,20 +21,19 @@ interface ModeTabsProps {
 }
 
 export function ModeTabs({ mode, setMode }: ModeTabsProps) {
-  const tabCls = (active: boolean) =>
-    `flex-1 py-2 text-sm rounded-widget transition-colors ${
-      active
-        ? "bg-primary text-primary-foreground"
-        : "bg-secondary text-secondary-foreground hover:bg-accent"
-    }`;
   return (
     <div className="flex gap-2">
-      <button type="button" onClick={() => setMode("simple")} className={tabCls(mode === "simple")}>
-        简单模式
-      </button>
-      <button type="button" onClick={() => setMode("custom")} className={tabCls(mode === "custom")}>
-        自定义 slug
-      </button>
+      {(["simple", "custom"] as const).map((option) => (
+        <Button
+          key={option}
+          variant="outline"
+          aria-pressed={mode === option}
+          className={cn("flex-1", mode === option && "border-primary/40 text-primary")}
+          onClick={() => setMode(option)}
+        >
+          {option === "simple" ? "简单模式" : "自定义 slug"}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -52,8 +50,8 @@ export function SlugInput({
   required: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="slug" className="text-sm text-foreground">
+    <div className="space-y-1.5">
+      <Label htmlFor="slug" className="block text-xs font-medium leading-4">
         自定义 slug
       </Label>
       <div className="flex items-center gap-2">
@@ -62,7 +60,7 @@ export function SlugInput({
         </span>
         <Input
           id="slug"
-          size="lg"
+          size="default"
           type="text"
           placeholder="my-custom-link"
           value={customSlug}
@@ -70,7 +68,6 @@ export function SlugInput({
           pattern="^[a-zA-Z0-9_-]+$"
           title="Only letters, numbers, hyphens, and underscores"
           required={required}
-          className={INPUT_CLS}
         />
       </div>
     </div>
@@ -88,18 +85,15 @@ export function FolderSelect({
 }) {
   if (folders.length === 0) return null;
   return (
-    <div className="space-y-2">
-      <Label htmlFor="folder" className="text-sm text-foreground">
+    <div className="space-y-1.5">
+      <Label htmlFor="folder" className="block text-xs font-medium leading-4">
         文件夹
       </Label>
       <Select
         value={folderId ?? "__inbox__"}
         onValueChange={(v) => setFolderId(v === "__inbox__" ? undefined : v)}
       >
-        <SelectTrigger
-          id="folder"
-          className="h-9 w-full rounded-widget border-border text-sm focus:ring-1 focus:ring-primary"
-        >
+        <SelectTrigger id="folder" className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -131,8 +125,8 @@ export function TagsField({
   onCreateTag: (name: string) => Promise<void>;
 }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-sm text-foreground">标签</Label>
+    <div className="space-y-1.5">
+      <Label className="block text-xs font-medium leading-4">标签</Label>
       <div className="flex flex-wrap items-center gap-1.5">
         {assignedTags.map((tag) => (
           <TagBadge key={tag.id} tag={tag} onRemove={onRemoveTag} />

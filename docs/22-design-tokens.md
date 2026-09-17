@@ -25,7 +25,7 @@
 - shadcn 的 `--card` 在本项目语义上是 **L1 面板**，不是 `<Card>` 默认底。
 - `<Card>` 故意用 `bg-secondary`（L2），以便嵌在 L1 面板内浮起。
 - 控件填充跟当前表面走 `bg-basalt-control`，不要写死 `bg-secondary` / `bg-card`。
-- Dialog / AlertDialog 作为 overlay 自己开 L1：`data-basalt-surface-root`，不要 `bg-background`。
+- Dialog / AlertDialog 通过 `data-basalt-surface-root` 使用最高层表面 `--basalt-bright`。弹窗面板、嵌套区域和表单控件统一使用该表面，浅色主题为白色，不再嵌入灰色层级；暗色主题沿用对应的 bright token。下拉菜单中的控件跟随 popover 表面。
 
 ---
 
@@ -115,10 +115,14 @@ L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`�
 | 角色 | 类 | 说明 |
 |------|-----|------|
 | 页头标题 | `text-2xl font-semibold` | Basalt `PageHeader` |
+| 弹窗标题 | `text-lg leading-6 font-semibold` | 统一 `DialogTitle`，18px |
 | Panel 主标题 / 行内 title | `text-base font-medium` | 勿用 `text-lg` 与页头抢层级 |
 | 正文 / 备注 | `text-sm` | |
+| 弹窗说明 | `text-sm leading-5` | 统一 `DialogDescription`，14px |
 | 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `sm` / 字段 `sm` 一致 |
 | Chip 内文 | `text-[11px]` 或 `text-xs` | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
+
+新建、编辑和 AI 整理表单的标签使用 `block text-xs font-medium leading-4`，与字段间距 6px；同行标签及控件顶端对齐。弹窗字段默认 36px / 14px，主操作区按钮同排同高。AI 整理、新建与编辑的操作按钮使用 40px。弹窗高度不超过视口的 90%，内容溢出时在弹窗内滚动。
 
 ---
 

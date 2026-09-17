@@ -1,5 +1,7 @@
 # AI Integration and Link Organization Suggestions
 
+> 整理功能的当前实现见 [统一链接整理](31-unified-link-organization.md)。本文保留早期设计与 AI 配置背景，旧整理流程不再适用。
+
 > **Status**: Implemented (v1.5) · Codex Sign Off on design; implementation pending code review  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  

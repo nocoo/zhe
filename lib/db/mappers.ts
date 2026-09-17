@@ -29,6 +29,7 @@ export function rowToLink(row: Record<string, unknown>): Link {
     isCustom: Boolean(row.is_custom),
     expiresAt: row.expires_at ? new Date(row.expires_at as number) : null,
     clicks: row.clicks as number,
+    title: (row.title as string) ?? null,
     metaTitle: (row.meta_title as string) ?? null,
     metaDescription: (row.meta_description as string) ?? null,
     metaFavicon: (row.meta_favicon as string) ?? null,

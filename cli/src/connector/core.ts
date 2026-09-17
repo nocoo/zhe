@@ -1,4 +1,35 @@
 // Portable X contracts: shipped with the CLI and reused by the server.
+export interface XVideoVariant {
+  url: string;
+  width: number;
+  height: number;
+  bitrate: number;
+}
+
+export interface XVideoAttempt {
+  width: number;
+  height: number;
+  size: number;
+}
+
+export const MEDIA_FAILURE_CODES = [
+  "media_too_large",
+  "video_variant_unavailable",
+  "media_http_error",
+  "unsupported_media_type",
+  "invalid_media_length",
+  "invalid_media",
+  "download_failed",
+  "decode_failed",
+  "size_mismatch",
+  "unsafe_redirect",
+  "unsafe_media_address",
+  "media_dns_unavailable",
+  "upload_failed",
+  "interrupted",
+] as const;
+export type MediaFailureCode = (typeof MEDIA_FAILURE_CODES)[number];
+
 export interface XMedia {
   id: string;
   type: "PHOTO" | "VIDEO" | "GIF";
@@ -7,6 +38,13 @@ export interface XMedia {
   width?: number | undefined;
   height?: number | undefined;
   duration?: number | undefined;
+  /** Local source choices; the server does not publish these URLs. */
+  variants?: XVideoVariant[] | undefined;
+  videoAttempts?: XVideoAttempt[] | undefined;
+  archiveError?: MediaFailureCode | undefined;
+  /** Populated from the published attachment, never trusted from a capture. */
+  size?: number | undefined;
+  resolution?: string | undefined;
 }
 
 export interface XPost {
@@ -174,6 +212,24 @@ function normalizeMedia(legacy: Record<string, unknown>, postId: string): XMedia
       width: count(dimensions.width) || count(resolution?.[1]),
       height: count(dimensions.height) || count(resolution?.[2]),
       duration: count(info.duration_millis) / 1000,
+      ...(raw.type === "video"
+        ? {
+            variants: variants.flatMap((v) => {
+              const candidate = mediaUrl(text(v.url), id, "video");
+              const dimensions = candidate && /\/(\d+)x(\d+)\//.exec(new URL(candidate).pathname);
+              return candidate && dimensions
+                ? [
+                    {
+                      url: candidate,
+                      width: Number(dimensions[1]),
+                      height: Number(dimensions[2]),
+                      bitrate: count(v.bitrate),
+                    },
+                  ]
+                : [];
+            }),
+          }
+        : {}),
     });
   }
   return media;
@@ -277,8 +333,17 @@ export function collectTweetEntities(payload: unknown): Map<string, unknown> {
   return found;
 }
 
-export const MAX_VIDEO_BYTES = 64 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 100_000_000;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+export function videoResolution(width: number, height: number): string {
+  const short = Math.min(width, height);
+  return short === 2160 ? "4K" : `${short}p`;
+}
+
+export function videoFileSize(bytes: number): string {
+  return `${(bytes / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 1 })} MB`;
+}
 
 export function verifySignature(bytes: Uint8Array, mime: string): void {
   const text = new TextDecoder("ascii");

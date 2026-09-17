@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { encode } from "@auth/core/jwt";
 import type { APIRequestContext } from "@playwright/test";
-import { normalizeXPost } from "../../cli/src/connector/core";
+import { normalizeXPost, videoFileSize, videoResolution } from "../../cli/src/connector/core";
 import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
 import { expect, test } from "./fixtures";
 import { appTitle, islandHeading } from "./helpers/chrome";
@@ -353,6 +353,7 @@ for (const viewport of [
             media: {
               mediaId: id,
               kind,
+              ...(kind === "video" ? mediaSize : {}),
               size: data.length,
               mime,
               sha256: createHash("sha256").update(data).digest("hex"),
@@ -563,6 +564,9 @@ for (const viewport of [
       const feed = page.getByTestId("x-feed");
       await expect(feed.getByTestId("link-card")).toHaveCount(4 + galleryCount);
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
+      const archiveInfo = feedCard.getByTestId("x-video-archive-info");
+      await expect(archiveInfo).toContainText(videoResolution(mediaSize.width, mediaSize.height));
+      await expect(archiveInfo).toContainText(videoFileSize((await readFile(videoPath)).length));
       const footer = feedCard.getByTestId("x-card-footer");
       const footerBox = await footer.boundingBox();
       assert(footerBox);

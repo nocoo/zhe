@@ -177,7 +177,7 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
     expect((await client.claimXJob()).job).toBeNull();
   });
 
-  it.each([64, 12 * 1024 * 1024])(
+  it.each([64, 100_000_000])(
     "streams a %i-byte video and poster, serves Range, and cascades file removal",
     async (size) => {
       const saved = await client.createLink({ url: source });
@@ -201,13 +201,13 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
       await writeFile(file.path, bytes);
       const { asset } = await client.connectorAction<{ asset: MediaReservation }>(job, {
         action: "reserve",
-        media: { mediaId, kind: "video", ...file },
+        media: { mediaId, kind: "video", ...file, width: 1280, height: 720 },
       });
       await client.uploadXMedia(job, asset, file);
       expect(await queryD1("SELECT id FROM uploads WHERE user_id=?", [owner])).toEqual([]);
       const repeated = await client.connectorAction<{ asset: MediaReservation }>(job, {
         action: "reserve",
-        media: { mediaId, kind: "video", ...file },
+        media: { mediaId, kind: "video", ...file, width: 1280, height: 720 },
       });
       expect(repeated.asset).toMatchObject({ id: asset.id, uploaded: true });
       const jpg = new Uint8Array([255, 216, 255, 224, 0, 0, 0, 0]);

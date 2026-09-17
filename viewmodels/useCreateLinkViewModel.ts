@@ -11,6 +11,7 @@ export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) 
   const [url, setUrl] = useState("");
   const [customSlug, setCustomSlug] = useState("");
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
+  const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
@@ -33,6 +34,7 @@ export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) 
     setUrl("");
     setCustomSlug("");
     setFolderId(undefined);
+    setTitle("");
     setNote("");
     setScreenshotUrl("");
     setSelectedTagIds(new Set());
@@ -49,6 +51,7 @@ export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) 
         originalUrl: url,
         customSlug: mode === "custom" ? customSlug : undefined,
         folderId,
+        title: title.trim() || undefined,
         note: note.trim() || undefined,
         screenshotUrl: screenshotUrl.trim() || undefined,
         tagIds: selectedTagIds.size > 0 ? Array.from(selectedTagIds) : undefined,
@@ -63,7 +66,18 @@ export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) 
         setError(result.error || "Failed to create link");
       }
     },
-    [url, mode, customSlug, folderId, note, screenshotUrl, selectedTagIds, onSuccess, resetForm],
+    [
+      url,
+      mode,
+      customSlug,
+      folderId,
+      title,
+      note,
+      screenshotUrl,
+      selectedTagIds,
+      onSuccess,
+      resetForm,
+    ],
   );
 
   return {
@@ -77,6 +91,8 @@ export function useCreateLinkViewModel(siteUrl: string, onSuccess: (link: Link) 
     setCustomSlug,
     folderId,
     setFolderId,
+    title,
+    setTitle,
     note,
     setNote,
     screenshotUrl,

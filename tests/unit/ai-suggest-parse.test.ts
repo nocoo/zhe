@@ -29,6 +29,7 @@ describe("parseSuggestLinkOrg", () => {
   it("parses happy JSON and overwrites catalog names", () => {
     const result = parseSuggestLinkOrg(
       JSON.stringify({
+        title: "简短标题",
         folders: [{ folderId: "f1", name: "wrong", reason: "适合工作" }],
         tags: [{ tagId: "t1", name: "wrong", reason: "文档类" }],
         note: "工作文档入口",
@@ -42,44 +43,48 @@ describe("parseSuggestLinkOrg", () => {
 
   it("parses fenced JSON and treats missing folderId as Inbox", () => {
     const result = parseSuggestLinkOrg(
-      '```json\n{"folders":[{"name":"Inbox","reason":"暂存"}],"tags":[{"tagId":null,"name":"新标签","reason":"新建"}],"note":"暂存这条链接"}\n```',
+      '```json\n{"title":"简短标题","folders":[{"name":"Inbox","reason":"暂存"}],"tags":[{"tagId":"t1","name":"文档","reason":"文档"}],"note":"暂存这条链接"}\n```',
       catalogs,
     );
     expect(result.folders[0]?.folderId).toBeNull();
-    expect(result.tags[0]).toMatchObject({ tagId: null, name: "新标签" });
+    expect(result.tags[0]).toMatchObject({ tagId: "t1", name: "文档" });
   });
 
-  it("drops unknown folders, inbox string, long tag names, and bad types", () => {
-    expect(() =>
-      parseSuggestLinkOrg(
-        JSON.stringify({
-          folders: [
-            { folderId: "missing", name: "x", reason: "r" },
-            { folderId: "inbox", name: "Inbox", reason: "r" },
-            { folderId: 1, name: "n", reason: "r" },
-          ],
-          tags: [{ tagId: null, name: "x".repeat(31), reason: "r" }],
-        }),
-        catalogs,
-      ),
-    ).toThrow("未得到可用");
-  });
-
-  it("treats unknown tagId as a new tag", () => {
+  it("drops invented folders and tags instead of turning them into new options", () => {
     const result = parseSuggestLinkOrg(
       JSON.stringify({
-        folders: [{ folderId: null, name: "Inbox", reason: "r" }],
-        tags: [{ tagId: "unknown", name: "新的", reason: "r" }],
-        note: "一条新的链接",
+        title: "短标题",
+        note: "内容介绍",
+        folders: [
+          { folderId: "missing", name: "x", reason: "r" },
+          { folderId: null, name: "虚构分类", reason: "r" },
+          { folderId: "inbox", name: "Inbox", reason: "r" },
+          { folderId: 1, name: "x", reason: "r" },
+        ],
+        tags: [
+          { tagId: "unknown", name: "新的", reason: "r" },
+          { tagId: null, name: "文档", reason: "r" },
+          { tagId: 1, name: "x", reason: "r" },
+        ],
       }),
       catalogs,
     );
-    expect(result.tags[0]).toMatchObject({ tagId: null, name: "新的" });
+    expect(result.folders).toEqual([]);
+    expect(result.tags).toEqual([]);
+  });
+  it("accepts empty catalogs and empty recommendations", () => {
+    expect(
+      parseSuggestLinkOrg(
+        JSON.stringify({ title: "短标题", note: "内容介绍", folders: [], tags: [] }),
+        { folders: [], tags: [] },
+      ),
+    ).toMatchObject({ folders: [], tags: [] });
   });
 
   it("dedupes folders and tags and caps reason length", () => {
     const result = parseSuggestLinkOrg(
       JSON.stringify({
+        title: "简短标题",
         folders: [
           { folderId: "f1", name: "工作", reason: "a".repeat(120) },
           { folderId: "f1", name: "工作", reason: "dup" },
@@ -88,7 +93,7 @@ describe("parseSuggestLinkOrg", () => {
           { tagId: "t1", name: "文档", reason: "r" },
           { tagId: null, name: "文档", reason: "dup name" },
         ],
-        note: "n".repeat(160),
+        note: "n".repeat(120),
       }),
       catalogs,
     );
@@ -99,7 +104,9 @@ describe("parseSuggestLinkOrg", () => {
   });
 
   it("fails on fullwidth commas", () => {
-    expect(() => parseSuggestLinkOrg('{"folders":[]，"tags":[]}', catalogs)).toThrow();
+    expect(() =>
+      parseSuggestLinkOrg('{"title":"简短标题","folders":[]，"tags":[]}', catalogs),
+    ).toThrow();
   });
 
   it("treats a null root as a parse error", () => {
@@ -109,6 +116,7 @@ describe("parseSuggestLinkOrg", () => {
   it("caps folders at 3 and tags at 5 and skips junk items", () => {
     const result = parseSuggestLinkOrg(
       JSON.stringify({
+        title: "简短标题",
         folders: [
           null,
           { folderId: null },
@@ -121,16 +129,19 @@ describe("parseSuggestLinkOrg", () => {
           "nope",
           { tagId: 1, name: "x", reason: "r" },
           { tagId: null, name: "", reason: "r" },
-          { tagId: null, name: "a", reason: "1" },
-          { tagId: null, name: "b", reason: "2" },
-          { tagId: null, name: "c", reason: "3" },
-          { tagId: null, name: "d", reason: "4" },
-          { tagId: null, name: "e", reason: "5" },
-          { tagId: null, name: "f", reason: "6" },
+          { tagId: "a", name: "a", reason: "1" },
+          { tagId: "b", name: "b", reason: "2" },
+          { tagId: "c", name: "c", reason: "3" },
+          { tagId: "d", name: "d", reason: "4" },
+          { tagId: "e", name: "e", reason: "5" },
+          { tagId: "f", name: "f", reason: "6" },
         ],
         note: "学习资料",
       }),
-      { folders: [...catalogs.folders, { id: "f2", name: "学习" }], tags: catalogs.tags },
+      {
+        folders: [...catalogs.folders, { id: "f2", name: "学习" }],
+        tags: "abcdef".split("").map((id) => ({ id, name: id })),
+      },
     );
     expect(result.folders).toHaveLength(3);
     expect(result.tags).toHaveLength(5);
@@ -141,6 +152,7 @@ describe("parseSuggestLinkOrg", () => {
     expect(() =>
       parseSuggestLinkOrg(
         JSON.stringify({
+          title: "简短标题",
           folders: [{ folderId: null, name: "Inbox", reason: "r" }],
           tags: [{ tagId: "t1", name: "文档", reason: "r" }],
         }),
@@ -150,6 +162,7 @@ describe("parseSuggestLinkOrg", () => {
     expect(() =>
       parseSuggestLinkOrg(
         JSON.stringify({
+          title: "简短标题",
           folders: [{ folderId: null, name: "Inbox", reason: "r" }],
           tags: [{ tagId: "t1", name: "文档", reason: "r" }],
           note: "   ",
@@ -193,7 +206,7 @@ describe("parseSuggestLinkOrg", () => {
 
   it("extracts a JSON object from surrounding prose", () => {
     const result = parseSuggestLinkOrg(
-      'Sure.\n{"folders":[{"folderId":"f1","name":"工作","reason":"适合"}],"tags":[{"tagId":"t1","name":"文档","reason":"文档"}],"note":"工作文档"}\nDone.',
+      'Sure.\n{"title":"简短标题","folders":[{"folderId":"f1","name":"工作","reason":"适合"}],"tags":[{"tagId":"t1","name":"文档","reason":"文档"}],"note":"工作文档"}\nDone.',
       catalogs,
     );
     expect(result.folders[0]).toMatchObject({ folderId: "f1", name: "工作" });
@@ -218,10 +231,10 @@ describe("buildSuggestLinkOrgPrompt", () => {
       currentTags: "（无）",
       catalogs: { folders: [{ id: "f1", name: "工作" }], tags: [] },
     });
-    expect(prompt).toContain("folderId=null name=Inbox");
-    expect(prompt).toContain("folderId=f1 name=工作");
-    expect(prompt).toContain("tagCatalog:\n（无）");
+    expect(JSON.parse(prompt).current.folder).toBe("Inbox");
+    expect(JSON.parse(prompt).catalogs.folders).toEqual([{ id: "f1", name: "工作" }]);
+    expect(JSON.parse(prompt).catalogs.tags).toEqual([]);
     expect(prompt).toContain("https://example.com");
-    expect(prompt).toContain('"note":"..."');
+    expect(JSON.parse(prompt).current.note).toBe("");
   });
 });

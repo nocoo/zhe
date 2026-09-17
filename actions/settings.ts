@@ -46,6 +46,12 @@ export async function importLinks(
           slug: entry.slug,
           isCustom: entry.isCustom,
           clicks: entry.clicks,
+          title: entry.title,
+          note: entry.note,
+          screenshotUrl: entry.screenshotUrl,
+          metaTitle: entry.metaTitle,
+          metaDescription: entry.metaDescription,
+          metaFavicon: entry.metaFavicon,
         });
         created++;
 

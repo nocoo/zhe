@@ -15,7 +15,10 @@ import type { Link } from "@/lib/db/schema";
 import type { ScopedDB } from "@/lib/db/scoped";
 
 export type UpdateLinkData = Partial<
-  Pick<Link, "originalUrl" | "slug" | "folderId" | "expiresAt" | "isCustom" | "screenshotUrl">
+  Pick<
+    Link,
+    "originalUrl" | "slug" | "folderId" | "expiresAt" | "isCustom" | "screenshotUrl" | "title"
+  >
 >;
 
 export interface PatchPlan {
@@ -163,6 +166,14 @@ export async function validatePatchFields(
   const optionalErr = validateOptionalStringFields(bodyObj);
   if (optionalErr) return optionalErr;
 
+  if (bodyObj.title !== undefined) {
+    if (
+      bodyObj.title !== null &&
+      (typeof bodyObj.title !== "string" || Array.from(bodyObj.title.trim()).length > 32)
+    )
+      return apiError("title must be a string of at most 32 characters or null", 400);
+    updateData.title = typeof bodyObj.title === "string" ? bodyObj.title.trim() || null : null;
+  }
   return {
     updateData,
     noteUpdate: bodyObj.note as string | null | undefined,
@@ -258,6 +269,10 @@ export function buildPatchStatements(
   if (Object.keys(u).length > 0) {
     const setClauses: string[] = [];
     const setParams: unknown[] = [];
+    if (u.title !== undefined) {
+      setClauses.push("title = ?");
+      setParams.push(u.title);
+    }
     if (u.originalUrl !== undefined) {
       setClauses.push("original_url = ?");
       setParams.push(u.originalUrl);

@@ -70,6 +70,7 @@ function makeExportedLink(overrides: Partial<ExportedLink> = {}): ExportedLink {
     createdAt: "2026-01-15T00:00:00.000Z",
     folderId: null,
     expiresAt: null,
+    title: null,
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,

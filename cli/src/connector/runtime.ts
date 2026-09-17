@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { ApiClient, ApiClientError } from "../api/client.js";
 import { getApiKey } from "../config.js";
-import { ConnectorError } from "./core.js";
+import { ConnectorError, MEDIA_FAILURE_CODES, type MediaFailureCode } from "./core.js";
 import { downloadMedia, makePoster } from "./download.js";
 import { configuredEagle, type EagleSink } from "./eagle.js";
 import { readGitHubRepository } from "./github.js";
@@ -19,6 +19,7 @@ import type {
   ReportProgress,
   XJob,
 } from "./types.js";
+import { downloadVideo, VideoArchiveError } from "./video.js";
 
 export interface PollResult {
   status: "idle" | "complete" | "partial" | "failed";
@@ -125,19 +126,15 @@ export async function processOne(
         });
       try {
         reportMedia({ stage: "download", message: "Connecting to X media" });
-        const file = await downloadMedia(media, dir, signal, (phase, received, bytes) => {
-          reportMedia({
-            stage: phase,
-            message: phase === "download" ? "Downloading" : "Verifying format and full decode",
-            received,
-            bytes,
-          });
-        });
+        const file = await downloadAttachment(media, dir, signal, reportMedia);
         const kind = media.type === "PHOTO" ? "photo" : "video";
-        if (!(await archive(client, job, media.id, kind, file, signal, reportMedia))) continue;
         media.width = file.width;
         media.height = file.height;
         media.duration = file.duration;
+        media.url = file.sourceUrl ?? media.url;
+        media.videoAttempts = file.videoAttempts;
+        if (!(await archive(client, job, media.id, kind, file, signal, reportMedia))) continue;
+        delete media.archiveError;
         archived++;
         if (kind === "video") {
           reportMedia({ stage: "poster", message: "Generating video poster" });
@@ -153,6 +150,7 @@ export async function processOne(
         )
           throw error;
         incomplete = true;
+        recordMediaFailure(media, error);
         reportMedia({ stage: "warning", message: connectorErrorHint(error) });
       }
     }
@@ -187,6 +185,32 @@ export async function processOne(
   }
 }
 
+async function downloadAttachment(
+  media: import("./core.js").XMedia,
+  directory: string,
+  signal: AbortSignal,
+  report: ReportProgress,
+): Promise<DownloadedMedia> {
+  const onProgress: Parameters<typeof downloadMedia>[3] = (phase, received, bytes) =>
+    report({
+      stage: phase,
+      message: phase === "download" ? "Downloading" : "Verifying format and full decode",
+      received,
+      bytes,
+    });
+  return media.type === "VIDEO"
+    ? downloadVideo(media, directory, signal, onProgress, report)
+    : downloadMedia(media, directory, signal, onProgress);
+}
+
+function recordMediaFailure(media: import("./core.js").XMedia, error: unknown) {
+  const code = error instanceof ConnectorError ? error.code : "upload_failed";
+  media.archiveError = (MEDIA_FAILURE_CODES as readonly string[]).includes(code)
+    ? (code as MediaFailureCode)
+    : "download_failed";
+  if (error instanceof VideoArchiveError) media.videoAttempts = error.attempts;
+}
+
 async function archive(
   client: ApiClient,
   job: XJob,
@@ -201,7 +225,15 @@ async function archive(
     job,
     {
       action: "reserve",
-      media: { mediaId, kind, size: file.size, mime: file.mime, sha256: file.sha256 },
+      media: {
+        mediaId,
+        kind,
+        size: file.size,
+        mime: file.mime,
+        sha256: file.sha256,
+        width: file.width,
+        height: file.height,
+      },
     },
     signal,
   );

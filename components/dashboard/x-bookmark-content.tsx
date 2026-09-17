@@ -37,18 +37,21 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { retryXBookmarkAction } from "@/actions/connector";
-import type { XMedia, XPost } from "@/cli/src/connector/core";
+import { videoFileSize, videoResolution, type XMedia, type XPost } from "@/cli/src/connector/core";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { cn } from "@/lib/utils";
+import { linkPresentation } from "@/models/link-presentation";
 import type { Link } from "@/models/types";
 import {
   getXContentTypes,
   getXPostPresentation,
   X_CONTENT_TYPES,
   type XContentType,
+  xMediaFailureMessage,
 } from "@/models/x-bookmarks";
 import { formatCount, formatTweetDate } from "@/models/xray";
+import { CardText, CardTitleText } from "./link-card-parts/curated-text";
 
 const statusLabels = {
   pending: "等待补全",
@@ -450,6 +453,7 @@ export function XBookmarkContent({
   bookmark,
   note,
   title,
+  originalTitle,
   compact = false,
   playMediaId,
   onPlayMedia,
@@ -457,6 +461,7 @@ export function XBookmarkContent({
   bookmark: XBookmark;
   note?: string | null;
   title?: string | null;
+  originalTitle?: string | null;
   compact?: boolean;
   playMediaId?: string | undefined;
   onPlayMedia?: ((id: string) => void) | undefined;
@@ -465,11 +470,16 @@ export function XBookmarkContent({
   if (!tweet) return null;
   const { text, links } = getXPostPresentation(tweet);
   const standaloneLink = !text && links.length === 1;
-  // Connector metadata identifies the author, not the linked article's headline.
-  const savedTitle = title?.trim() || null;
-  const headline =
-    note?.trim() ||
-    (savedTitle === `${tweet.author.name} (@${tweet.author.username})` ? null : savedTitle);
+  const authorTitle = `${tweet.author.name} (@${tweet.author.username})`;
+  const display = linkPresentation({
+    title: title ?? null,
+    note: note ?? null,
+    metaTitle: originalTitle || authorTitle,
+    metaDescription: text,
+    originalUrl: tweet.url,
+  });
+  const rawHeadline = originalTitle?.trim();
+  const headline = rawHeadline && rawHeadline !== authorTitle ? rawHeadline : null;
   const date = formatTweetDate(tweet.created_at);
   const metrics = [
     { icon: Heart, label: "喜欢", count: tweet.metrics.like_count },
@@ -482,6 +492,11 @@ export function XBookmarkContent({
       className={compact ? "space-y-2.5 p-3" : "space-y-3 p-5"}
       data-testid="x-bookmark-content"
     >
+      {title?.trim() && (
+        <div className="min-w-0 text-sm font-semibold">
+          <CardTitleText title={display.title} />
+        </div>
+      )}
       <div className={cn("flex items-center", compact ? "gap-2" : "gap-2.5")}>
         <Avatar className={cn("shrink-0 ring-1 ring-border/60", compact && "size-7")}>
           <AvatarImage src={tweet.author.profile_image_url} alt={tweet.author.name} />
@@ -519,16 +534,7 @@ export function XBookmarkContent({
         </div>
         <XSourceBadge type={getXContentTypes(tweet)[0] ?? "text"} compact={compact} />
       </div>
-      {note && !standaloneLink && (
-        <p
-          className={cn(
-            "break-words text-sm font-medium leading-5 text-foreground",
-            compact && "line-clamp-2",
-          )}
-        >
-          {note}
-        </p>
-      )}
+      <CardText text={display.note} code />
       {text && <PostText key={tweet.id} text={text} compact={compact} />}
       <MediaGrid
         media={tweet.media}
@@ -536,6 +542,32 @@ export function XBookmarkContent({
         playMediaId={playMediaId}
         onPlayMedia={onPlayMedia}
       />
+      {(tweet.media.some((media) => media.type !== "PHOTO" && media.size) ||
+        bookmark.mediaErrors?.length) && (
+        <div
+          className="space-y-1.5 text-xs leading-5 text-muted-foreground"
+          data-testid="x-video-archive-info"
+        >
+          {tweet.media
+            .filter((media) => media.type !== "PHOTO" && media.size)
+            .map((media) => (
+              <p key={media.id} className="flex flex-wrap items-center gap-x-2 tabular-nums">
+                <span>已归档</span>
+                {media.resolution || (media.width && media.height) ? (
+                  <span>
+                    {media.resolution || videoResolution(media.width ?? 0, media.height ?? 0)}
+                  </span>
+                ) : null}
+                <span>{videoFileSize(media.size ?? 0)}</span>
+              </p>
+            ))}
+          {bookmark.mediaErrors?.map((error) => (
+            <p key={error.mediaId} className="break-words text-warning" role="status">
+              {xMediaFailureMessage(error.code, error.attempts, error.type)}
+            </p>
+          ))}
+        </div>
+      )}
       <PostLinks links={links} headline={standaloneLink ? headline : null} compact={compact} />
       {tweet.quoted_tweet && (!compact || !tweet.media.length) && (
         <Quote tweet={tweet.quoted_tweet} compact={compact} />
@@ -569,6 +601,7 @@ export function XBookmarkContent({
 }
 
 export function XBookmarkPending({ link, compact = false }: { link: Link; compact?: boolean }) {
+  const display = linkPresentation(link);
   return (
     <LayerCard.Body className={compact ? "space-y-2.5 p-3" : "space-y-3 p-5"}>
       <div className={cn("flex items-center", compact ? "gap-2" : "gap-3")}>
@@ -586,11 +619,12 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
         </div>
         <XSourceBadge type="pending" compact={compact} />
       </div>
-      {(link.note || link.metaTitle) && (
-        <p className={cn("break-words text-sm font-medium leading-5", compact && "line-clamp-2")}>
-          {link.note || link.metaTitle}
-        </p>
+      {(link.title || link.metaTitle) && (
+        <div className="text-sm font-medium">
+          <CardTitleText title={display.title} original={display.originalTitle} />
+        </div>
       )}
+      <CardText text={display.note} code />
       <p
         className={cn(
           "text-sm text-muted-foreground",
@@ -619,6 +653,10 @@ export function XBookmarkStatus({
   const state = bookmark?.state ?? "pending";
   const version = `${linkId}:${state}:${bookmark?.updatedAt ?? 0}`;
   const currentFeedback = feedback?.version === version ? feedback : null;
+  const errorMessage =
+    bookmark?.errorCode && !bookmark.mediaErrors?.length
+      ? xMediaFailureMessage(bookmark.errorCode)
+      : undefined;
   const StatusIcon =
     state === "running"
       ? RefreshCw
@@ -643,11 +681,13 @@ export function XBookmarkStatus({
     return (
       <span
         role="status"
-        title={statusLabels[state]}
+        title={errorMessage ?? statusLabels[state]}
         className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs text-muted-foreground"
       >
         {icon}
-        <span className="truncate">{state === "partial" ? "媒体待补全" : statusLabels[state]}</span>
+        <span className="truncate">
+          {errorMessage ?? (state === "partial" ? "媒体待补全" : statusLabels[state])}
+        </span>
       </span>
     );
   const retry = async () => {
@@ -670,6 +710,11 @@ export function XBookmarkStatus({
             : "暂时无法重试"
           : statusLabels[state]}
       </span>
+      {errorMessage &&
+        ["failed", "partial", "unavailable"].includes(state) &&
+        !currentFeedback?.success && (
+          <span className="basis-full text-warning">{errorMessage}</span>
+        )}
       {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
         <Button size="sm" variant="ghost" onClick={retry} disabled={retrying}>
           重新补全

@@ -34,6 +34,7 @@ type JobRow = {
   captured_at: number | null;
   has_readme: number;
   analysis_json: string | null;
+  note: string | null;
 };
 
 export interface GitHubBookmark {
@@ -45,6 +46,7 @@ export interface GitHubBookmark {
   errorCode: string | null;
   capturedAt: number | null;
   updatedAt: number;
+  note: string | null;
   analysis?: GitHubAnalysis | null;
 }
 
@@ -210,6 +212,8 @@ export async function getGitHubBookmarks(userId: string, ids: number[]): Promise
   const rows = await executeD1Query<JobRow>(
     `SELECT link_id,source_url,state,error_code,captured_at,updated_at,json_remove(result_json,'$.readme','$.analysis') AS result_json,
       json_extract(result_json,'$.analysis') AS analysis_json,
+      (SELECT note FROM links WHERE id=github_bookmarks.link_id AND user_id=github_bookmarks.user_id
+        AND original_url=github_bookmarks.source_url) AS note,
       json_type(result_json,'$.readme')='text' AS has_readme FROM github_bookmarks
       WHERE user_id=? AND link_id IN (${selected.map(() => "?").join(",")})`,
     [userId, ...selected],
@@ -223,6 +227,7 @@ export async function getGitHubBookmarks(userId: string, ids: number[]): Promise
     errorCode: row.error_code,
     capturedAt: row.captured_at,
     updatedAt: row.updated_at,
+    note: row.note,
     analysis: row.analysis_json ? (JSON.parse(row.analysis_json) as GitHubAnalysis) : null,
   }));
 }
@@ -237,21 +242,4 @@ export async function getGitHubRepository(
     [userId, id],
   );
   return row?.result_json ? (JSON.parse(row.result_json) as GitHubRepository) : null;
-}
-
-/** Save only if the owned link and the complete README still match the analyzed source. */
-export async function saveGitHubAnalysis(
-  userId: string,
-  id: number,
-  sourceUrl: string,
-  readme: string,
-  analysis: GitHubAnalysis,
-): Promise<boolean> {
-  const rows = await executeD1Query(
-    `UPDATE github_bookmarks SET result_json=json_set(result_json,'$.analysis',json(?)),updated_at=?
-      WHERE user_id=? AND link_id=? AND source_url=? AND json_extract(result_json,'$.readme')=?
-      AND EXISTS(SELECT 1 FROM links WHERE id=? AND user_id=? AND original_url=?) RETURNING link_id`,
-    [JSON.stringify(analysis), Date.now(), userId, id, sourceUrl, readme, id, userId, sourceUrl],
-  );
-  return rows.length > 0;
 }

@@ -39,7 +39,7 @@ export function parsePreviewStyle(value: unknown): PreviewStyle {
 }
 
 /** Current backup schema version. Bump when the backup format changes. */
-export const BACKUP_SCHEMA_VERSION = 2;
+export const BACKUP_SCHEMA_VERSION = 3;
 
 /** Exported link shape — includes all meaningful fields for backup */
 export interface ExportedLink {
@@ -50,6 +50,7 @@ export interface ExportedLink {
   createdAt: string; // ISO 8601
   folderId: string | null;
   expiresAt: string | null; // ISO 8601
+  title: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
   metaFavicon: string | null;
@@ -83,6 +84,7 @@ export function serializeLinksForExport(links: Link[]): ExportedLink[] {
     createdAt: new Date(link.createdAt).toISOString(),
     folderId: link.folderId ?? null,
     expiresAt: link.expiresAt ? new Date(link.expiresAt).toISOString() : null,
+    title: link.title ?? null,
     metaTitle: link.metaTitle ?? null,
     metaDescription: link.metaDescription ?? null,
     metaFavicon: link.metaFavicon ?? null,
@@ -147,6 +149,7 @@ export function parseImportPayload(payload: unknown): ParseResult {
       createdAt: entry.createdAt ?? new Date().toISOString(),
       folderId: typeof entry.folderId === "string" ? entry.folderId : null,
       expiresAt: typeof entry.expiresAt === "string" ? entry.expiresAt : null,
+      title: typeof entry.title === "string" ? entry.title : null,
       metaTitle: typeof entry.metaTitle === "string" ? entry.metaTitle : null,
       metaDescription: typeof entry.metaDescription === "string" ? entry.metaDescription : null,
       metaFavicon: typeof entry.metaFavicon === "string" ? entry.metaFavicon : null,

@@ -30,6 +30,7 @@ interface UpdateArgs {
   note?: string;
   expires?: string;
   title?: string;
+  "meta-title"?: string;
   desc?: string;
   screenshot?: string;
   "add-tag"?: string;
@@ -68,8 +69,9 @@ async function buildUpdatePayload(client: ApiClient, args: UpdateArgs): Promise<
     data.expiresAt = args.expires === "never" ? null : args.expires;
   }
   if (args.title !== undefined) {
-    data.metaTitle = args.title === "" ? null : args.title;
+    data.title = args.title === "" ? null : args.title;
   }
+  if (args["meta-title"] !== undefined) data.metaTitle = args["meta-title"] || null;
   if (args.desc !== undefined) {
     data.metaDescription = args.desc === "" ? null : args.desc;
   }
@@ -124,8 +126,9 @@ export const updateCommand = defineCommand({
     title: {
       type: "string",
       alias: "t",
-      description: 'Meta title (use "" to clear)',
+      description: 'Curated title, max 32 characters (use "" to clear)',
     },
+    "meta-title": { type: "string", description: "Original metadata title" },
     desc: {
       type: "string",
       alias: "d",
@@ -169,7 +172,7 @@ export const updateCommand = defineCommand({
       console.log(pc.yellow("No changes specified."));
       console.log(
         pc.dim(
-          "Use --url, --slug, --folder, --note, --expires, --title, --desc, --screenshot, --add-tag, or --remove-tag",
+          "Use --url, --slug, --folder, --note, --expires, --title, --meta-title, --desc, --screenshot, --add-tag, or --remove-tag",
         ),
       );
       process.exit(EXIT_INVALID_ARGS);

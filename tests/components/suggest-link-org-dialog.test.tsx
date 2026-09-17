@@ -13,6 +13,18 @@ afterEach(() => cleanup());
 function makeVm(overrides: Partial<SuggestLinkOrgViewModel> = {}): SuggestLinkOrgViewModel {
   return {
     open: true,
+    draftTitle: "整理标题",
+    setDraftTitle: vi.fn(),
+    stage: "ready",
+    supplied: ["URL"],
+    notices: ["README 未收录"],
+    history: null,
+    log: [],
+    ready: true,
+    addTag: vi.fn(),
+    creatingTag: false,
+    tagError: "",
+    regenerate: vi.fn(),
     loading: false,
     applying: false,
     error: "",
@@ -25,18 +37,14 @@ function makeVm(overrides: Partial<SuggestLinkOrgViewModel> = {}): SuggestLinkOr
         name: "文档",
         reason: "已有标签",
         checked: true,
-        draftName: "文档",
         source: "ai",
       },
     ],
     draftNote: "工作文档入口",
     setDraftNote: vi.fn(),
-    hasAiKey: true,
-    refreshHasAiKey: vi.fn(),
     openForLink: vi.fn(),
     close: vi.fn(),
     toggleTag: vi.fn(),
-    renameTag: vi.fn(),
     apply: vi.fn(),
     prompt: 'url: https://example.com\n{"hello":true}',
     rawText: '{"folders":[{"folderId":"f1"}],"tags":[]}',
@@ -49,84 +57,49 @@ function makeVm(overrides: Partial<SuggestLinkOrgViewModel> = {}): SuggestLinkOr
 }
 
 describe("SuggestLinkOrgDialog", () => {
-  it("uses a wide dialog and marks the request step while loading", () => {
-    render(<SuggestLinkOrgDialog vm={makeVm({ loading: true, folders: [], tags: [] })} />);
-    const dialog = screen.getByTestId("suggest-link-org-dialog");
-    expect(dialog.className).toContain("sm:w-[48rem]");
+  it("shows actual request progress without an invented percent", () => {
+    render(<SuggestLinkOrgDialog vm={makeVm({ loading: true, ready: false, stage: "request" })} />);
     expect(screen.getByTestId("suggest-step-request")).toHaveAttribute("data-state", "current");
-    expect(screen.getByTestId("suggest-step-progress")).toHaveStyle({ width: "38%" });
-    expect(screen.getByTestId("suggest-step-caption")).toHaveTextContent("正在调用模型");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("suggest-apply")).toBeDisabled();
+    expect(screen.getByTestId("suggest-step-caption")).toHaveTextContent("已等待");
   });
-
-  it("keeps transcripts collapsed until expanded", () => {
+  it("provides editable title and multiline note, with selectable inline tags", () => {
+    const vm = makeVm();
+    render(<SuggestLinkOrgDialog vm={vm} />);
+    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "新标题" } });
+    fireEvent.change(screen.getByLabelText("备注"), { target: { value: "用户备注" } });
+    const tagButton = screen.getAllByRole("button", { name: "文档" })[0];
+    if (!tagButton) throw new Error("Missing recommended tag");
+    fireEvent.click(tagButton);
+    expect(vm.setDraftTitle).toHaveBeenCalledWith("新标题");
+    expect(vm.setDraftNote).toHaveBeenCalledWith("用户备注");
+    expect(vm.toggleTag).toHaveBeenCalledWith(0);
+    expect(screen.getByLabelText("备注").tagName).toBe("TEXTAREA");
+    expect(screen.queryByText(/AI 建议|\/32|字数/)).not.toBeInTheDocument();
+  });
+  it("keeps run details folded and missing README informational", () => {
     render(<SuggestLinkOrgDialog vm={makeVm()} />);
-    expect(screen.queryByTestId("suggest-prompt-body")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("suggest-raw-body")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId("suggest-prompt-toggle"));
-    expect(screen.getByTestId("suggest-prompt-body")).toHaveTextContent("https://example.com");
-
-    fireEvent.click(screen.getByTestId("suggest-raw-toggle"));
-    expect(screen.getByTestId("suggest-raw-body")).toHaveTextContent('"folderId": "f1"');
+    const summary = screen.getByText("运行详情");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText("README 未收录")).toBeVisible();
+    expect(screen.getByTestId("suggest-apply")).toBeEnabled();
   });
-
-  it("marks the failed parse step and still offers the raw reply", () => {
+  it("shows errors and disables a title that is too long", () => {
     render(
       <SuggestLinkOrgDialog
-        vm={makeVm({
-          error: "模型返回不是有效 JSON",
-          failedStep: "parse",
-          folders: [],
-          tags: [],
-          rawText: "{",
-        })}
+        vm={makeVm({ error: "格式错误", draftTitle: "字".repeat(33), failedStep: "parse" })}
       />,
     );
-    expect(screen.getByTestId("suggest-step-parse")).toHaveAttribute("data-state", "error");
-    expect(screen.getByTestId("suggest-error")).toHaveTextContent("模型返回不是有效 JSON");
-    fireEvent.click(screen.getByTestId("suggest-raw-toggle"));
-    expect(screen.getByTestId("suggest-raw-body")).toHaveTextContent("{");
+    expect(screen.getByRole("alert")).toHaveTextContent("格式错误");
+    expect(screen.getByTestId("suggest-apply")).toBeDisabled();
   });
-
-  it("lets the user pick a catalog folder and edit the note", () => {
-    const setSelectedFolderId = vi.fn();
-    const setDraftNote = vi.fn();
-    render(
-      <SuggestLinkOrgDialog
-        vm={makeVm({
-          folders: [
-            { folderId: "f1", name: "工作", reason: "适合工作", source: "ai" },
-            { folderId: "f2", name: "学习", reason: "", source: "catalog" },
-          ],
-          tags: [
-            {
-              tagId: "t1",
-              name: "文档",
-              reason: "已有标签",
-              checked: true,
-              draftName: "文档",
-              source: "ai",
-            },
-            {
-              tagId: "t2",
-              name: "阅读",
-              reason: "",
-              checked: false,
-              draftName: "阅读",
-              source: "catalog",
-            },
-          ],
-          setSelectedFolderId,
-          setDraftNote,
-        })}
-      />,
-    );
-    expect(screen.getAllByText("推荐")).toHaveLength(2);
-    expect(screen.getAllByText("其他")).toHaveLength(2);
-    fireEvent.click(screen.getByText("学习"));
-    expect(setSelectedFolderId).toHaveBeenCalledWith("f2");
-    fireEvent.change(screen.getByTestId("suggest-note"), { target: { value: "改过的备注" } });
-    expect(setDraftNote).toHaveBeenCalledWith("改过的备注");
-    expect(screen.getByTestId("suggest-note").closest(".overflow-y-auto")).toHaveClass("p-1");
+  it("uses the same apply and regenerate actions", () => {
+    const vm = makeVm();
+    render(<SuggestLinkOrgDialog vm={vm} />);
+    fireEvent.click(screen.getByTestId("suggest-apply"));
+    fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
+    expect(vm.apply).toHaveBeenCalled();
+    expect(vm.regenerate).toHaveBeenCalled();
   });
 });

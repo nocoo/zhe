@@ -189,14 +189,14 @@ function GridScreenshot({
                     variant="ghost"
                     onClick={onSuggest}
                     disabled={suggestDisabled}
-                    aria-label="AI 建议"
+                    aria-label="AI 整理"
                     className="text-white/90 hover:bg-white/15 hover:text-white disabled:opacity-40"
                   >
                     <Sparkles strokeWidth={1.5} />
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 建议"}</TooltipContent>
+              <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 整理"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
@@ -334,7 +334,7 @@ export function GridView(props: GridViewProps) {
           onOpenDetails={props.onOpenDetails}
         />
         <Description
-          description={link.metaDescription ?? null}
+          link={link}
           isRefreshingMetadata={isRefreshingMetadata}
           onRefresh={onRefreshMetadata}
           variant="grid"

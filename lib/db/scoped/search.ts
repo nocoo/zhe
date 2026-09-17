@@ -66,7 +66,8 @@ export async function loadSearchDocuments(
     };
     if (kind === "link")
       Object.assign(input, {
-        title: row.meta_title,
+        title: row.title || row.meta_title,
+        originalTitle: row.meta_title,
         url: row.original_url,
         slug: row.slug,
         description: row.meta_description,

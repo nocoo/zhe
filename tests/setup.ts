@@ -137,6 +137,10 @@ vi.mock("@/lib/db/d1-client", async () => {
         clicks,
         note,
         screenshotUrl,
+        title,
+        metaTitle,
+        metaDescription,
+        metaFavicon,
         createdAt,
       ] = params;
       // Enforce UNIQUE constraint on slug (matches real D1 behaviour)
@@ -153,9 +157,10 @@ vi.mock("@/lib/db/d1-client", async () => {
         is_custom: isCustom,
         expires_at: expiresAt,
         clicks: clicks ?? 0,
-        meta_title: null,
-        meta_description: null,
-        meta_favicon: null,
+        title: title ?? null,
+        meta_title: metaTitle ?? null,
+        meta_description: metaDescription ?? null,
+        meta_favicon: metaFavicon ?? null,
         screenshot_url: screenshotUrl ?? null,
         note: note ?? null,
         created_at: createdAt,
@@ -541,6 +546,8 @@ vi.mock("@/lib/db/d1-client", async () => {
                 rawLink.meta_favicon = params[paramIndex];
               } else if (field === "screenshot_url") {
                 rawLink.screenshot_url = params[paramIndex];
+              } else if (field === "title") {
+                rawLink.title = params[paramIndex];
               } else if (field === "note") {
                 rawLink.note = params[paramIndex];
               } else if (field === "slug") {

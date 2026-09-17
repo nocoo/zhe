@@ -39,8 +39,10 @@ import {
   type XContentType,
 } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 import { LinkCard } from "./link-card";
 import { TagFilter } from "./link-filter-bar";
+import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 const contentIcons = {
   all: LayoutGrid,
@@ -82,6 +84,7 @@ export function XLibraryPage() {
     }),
     [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
   );
+  const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
   const linkTagsById = useMemo(() => {
     const grouped = new Map<number, LinkTag[]>();
     for (const tag of linkTags) {
@@ -290,6 +293,7 @@ export function XLibraryPage() {
             <LinkCard
               key={link.id}
               link={link}
+              onSuggest={() => void suggestVm.openForLink(link.id)}
               siteUrl={siteUrl}
               onDelete={handleLinkDeleted}
               onUpdate={handleLinkUpdated}
@@ -302,6 +306,7 @@ export function XLibraryPage() {
           ))}
         </AnimatedCardList>
       )}
+      <SuggestLinkOrgDialog vm={suggestVm} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { updateLink, updateLinkNote } from "@/actions/links";
+import { updateLink } from "@/actions/links";
 import type { Link, LinkTag, Tag } from "@/models/types";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
 import { useLinkMutations } from "@/viewmodels/useLinkMutations";
@@ -15,6 +15,7 @@ interface EditFields {
   editUrl: string;
   editSlug: string;
   editFolderId: string | null;
+  editTitle: string;
   editNote: string;
   editScreenshotUrl: string;
 }
@@ -25,6 +26,8 @@ interface EditFields {
  */
 function buildUpdatePayload(link: Link, fields: EditFields) {
   const payload: {
+    title?: string | null;
+    note?: string | null;
     originalUrl: string;
     folderId?: string | null;
     slug?: string;
@@ -42,12 +45,13 @@ function buildUpdatePayload(link: Link, fields: EditFields) {
   if (fields.editScreenshotUrl !== currentScreenshotUrl) {
     payload.screenshotUrl = fields.editScreenshotUrl.trim() || null;
   }
+  if (fields.editTitle !== (link.title ?? "")) payload.title = fields.editTitle.trim() || null;
+  if (fields.editNote !== (link.note ?? "")) payload.note = fields.editNote.trim() || null;
   return payload;
 }
 
 /**
- * Execute the save: update link → update note (if changed) → merge results.
- * Returns {ok, updatedLink?, errorMessage?, noteFailed?}.
+ * Save link fields, including the curated title and note, together.
  */
 async function executeSave(
   link: Link,
@@ -56,7 +60,6 @@ async function executeSave(
   ok: boolean;
   updatedLink?: Link;
   errorMessage?: string;
-  noteFailed?: boolean;
 }> {
   const payload = buildUpdatePayload(link, fields);
   const linkResult = await updateLink(link.id, payload);
@@ -64,20 +67,7 @@ async function executeSave(
     return { ok: false, errorMessage: linkResult.error || "Failed to update link" };
   }
 
-  // Note update — only if changed
-  const currentNote = link.note ?? "";
-  let noteSaved = true;
-  if (fields.editNote !== currentNote) {
-    const noteResult = await updateLinkNote(link.id, fields.editNote.trim() || null);
-    if (!noteResult.success) noteSaved = false;
-  }
-
-  const updatedLink: Link = {
-    ...linkResult.data,
-    note: noteSaved ? fields.editNote.trim() || null : (link.note ?? null),
-    screenshotUrl: fields.editScreenshotUrl.trim() || null,
-  };
-  return { ok: true, updatedLink, noteFailed: !noteSaved };
+  return { ok: true, updatedLink: linkResult.data };
 }
 
 /** ViewModel for inline link editing — manages URL, folder, note, tags & save. */
@@ -91,6 +81,7 @@ export function useInlineLinkEditViewModel(
   const [editUrl, setEditUrl] = useState(link.originalUrl);
   const [editSlug, setEditSlug] = useState(link.slug);
   const [editFolderId, setEditFolderId] = useState<string | null>(link.folderId ?? null);
+  const [editTitle, setEditTitle] = useState(link.title ?? "");
   const [editNote, setEditNote] = useState(link.note ?? "");
   const [editScreenshotUrl, setEditScreenshotUrl] = useState(link.screenshotUrl ?? "");
 
@@ -99,9 +90,10 @@ export function useInlineLinkEditViewModel(
     setEditUrl(link.originalUrl);
     setEditSlug(link.slug);
     setEditFolderId(link.folderId ?? null);
+    setEditTitle(link.title ?? "");
     setEditNote(link.note ?? "");
     setEditScreenshotUrl(link.screenshotUrl ?? "");
-  }, [link.originalUrl, link.slug, link.folderId, link.note, link.screenshotUrl]);
+  }, [link.originalUrl, link.slug, link.folderId, link.title, link.note, link.screenshotUrl]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -122,6 +114,7 @@ export function useInlineLinkEditViewModel(
         editUrl,
         editSlug,
         editFolderId,
+        editTitle,
         editNote,
         editScreenshotUrl,
       };
@@ -131,17 +124,14 @@ export function useInlineLinkEditViewModel(
         return false;
       }
       callbacks.onLinkUpdated(result.updatedLink);
-      if (result.noteFailed) {
-        setError("Link saved but note update failed");
-      }
-      return !result.noteFailed;
+      return true;
     } catch {
       setError("An unexpected error occurred");
       return false;
     } finally {
       setIsSaving(false);
     }
-  }, [link, editUrl, editSlug, editFolderId, editNote, editScreenshotUrl, callbacks]);
+  }, [link, editUrl, editSlug, editFolderId, editTitle, editNote, editScreenshotUrl, callbacks]);
 
   const addTag = useCallback(
     async (tagId: string) => {
@@ -167,6 +157,8 @@ export function useInlineLinkEditViewModel(
     setEditSlug,
     editFolderId,
     setEditFolderId,
+    editTitle,
+    setEditTitle,
     editNote,
     setEditNote,
     editScreenshotUrl,

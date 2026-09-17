@@ -28,6 +28,7 @@ describe("models/settings", () => {
         createdAt: new Date("2026-02-01T12:00:00.000Z"),
         folderId: "folder-1",
         expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+        title: null,
         metaTitle: "Page Title",
         metaDescription: "A description",
         metaFavicon: "https://example.com/favicon.ico",
@@ -44,6 +45,7 @@ describe("models/settings", () => {
           createdAt: "2026-02-01T12:00:00.000Z",
           folderId: "folder-1",
           expiresAt: "2027-01-01T00:00:00.000Z",
+          title: null,
           metaTitle: "Page Title",
           metaDescription: "A description",
           metaFavicon: "https://example.com/favicon.ico",
@@ -107,6 +109,7 @@ describe("models/settings", () => {
           createdAt: "2026-01-15T00:00:00.000Z",
           folderId: null,
           expiresAt: null,
+          title: null,
           metaTitle: null,
           metaDescription: null,
           metaFavicon: null,
@@ -196,6 +199,7 @@ describe("models/settings", () => {
           slug: "abc",
           folderId: "folder-1",
           expiresAt: "2027-01-01T00:00:00.000Z",
+          title: null,
           metaTitle: "Title",
           metaDescription: "Desc",
           metaFavicon: "https://example.com/fav.ico",
@@ -241,6 +245,7 @@ describe("models/settings", () => {
           createdAt: "2026-01-01",
           folderId: null,
           expiresAt: null,
+          title: null,
           metaTitle: null,
           metaDescription: null,
           metaFavicon: null,
@@ -255,6 +260,7 @@ describe("models/settings", () => {
           createdAt: "2026-02-01",
           folderId: "f1",
           expiresAt: null,
+          title: null,
           metaTitle: "Title",
           metaDescription: null,
           metaFavicon: null,
@@ -341,8 +347,8 @@ describe("models/settings", () => {
   });
 
   describe("BACKUP_SCHEMA_VERSION", () => {
-    it("is 2", () => {
-      expect(BACKUP_SCHEMA_VERSION).toBe(2);
+    it("is 3", () => {
+      expect(BACKUP_SCHEMA_VERSION).toBe(3);
     });
   });
 });

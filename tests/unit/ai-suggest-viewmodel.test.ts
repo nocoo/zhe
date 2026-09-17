@@ -1,33 +1,18 @@
 // @vitest-environment happy-dom
-
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockUpdateLink = vi.fn();
-const mockUpdateLinkNote = vi.fn();
-const mockEnsureTagOnLink = vi.fn();
-vi.mock("@/actions/links", () => ({
-  updateLink: (...args: unknown[]) => mockUpdateLink(...args),
-  updateLinkNote: (...args: unknown[]) => mockUpdateLinkNote(...args),
+const save = vi.fn();
+const create = vi.fn();
+vi.mock("@/actions/tags", () => ({ createTag: (...args: unknown[]) => create(...args) }));
+vi.mock("@/actions/link-organization", () => ({
+  applyLinkOrganization: (...args: unknown[]) => save(...args),
 }));
-vi.mock("@/actions/tags", () => ({
-  ensureTagOnLink: (...args: unknown[]) => mockEnsureTagOnLink(...args),
-}));
-const mockToastSuccess = vi.fn();
-const mockToastError = vi.fn();
-vi.mock("@nocoo/basalt/components/toast", () => ({
-  toast: {
-    success: (...args: unknown[]) => mockToastSuccess(...args),
-    error: (...args: unknown[]) => mockToastError(...args),
-  },
-}));
+vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { success: vi.fn() } }));
 
-import {
-  failedSuggestStep,
-  suggestStepProgress,
-  suggestStepState,
-} from "@/models/ai-suggest-progress";
-import { loadHasAiKey, useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { failedSuggestStep } from "@/models/ai-suggest-progress";
+import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { makeLink } from "../fixtures";
 
 const callbacks = {
   onLinkUpdated: vi.fn(),
@@ -35,336 +20,184 @@ const callbacks = {
   onLinkTagAdded: vi.fn(),
   onLinkTagRemoved: vi.fn(),
 };
-
-const suggestion = {
-  folders: [{ folderId: "f1", name: "工作", reason: "工作相关" }],
-  tags: [
-    { tagId: "t1", name: "文档", reason: "已有标签" },
-    { tagId: null, name: "新标签", reason: "新建" },
-  ],
-  note: "工作文档入口",
+const context = {
+  type: "context",
+  revision: 3,
+  supplied: ["URL"],
+  notices: ["README 未收录"],
+  current: { title: "旧标题", note: "旧备注", folderId: "old-folder", tagIds: ["old"] },
   catalogs: {
-    folders: [
-      { id: "f1", name: "工作" },
-      { id: "f2", name: "学习" },
-    ],
+    folders: [{ id: "f", name: "开发" }],
     tags: [
-      { id: "t1", name: "文档" },
-      { id: "t3", name: "阅读" },
+      { id: "old", name: "已有标签" },
+      { id: "recommended", name: "推荐标签" },
     ],
   },
-  prompt: "url: https://example.com",
-  rawText: '{"folders":[],"tags":[]}',
-  model: "claude-sonnet-4-5",
-  provider: "anthropic",
-  durationMs: 1600,
+  historicalAnalysis: null,
+  prompt: "prompt",
+  model: "model",
+  provider: "custom",
 };
-
-describe("useSuggestLinkOrgViewModel", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUpdateLinkNote.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1", note: "工作文档入口" },
-    });
+const resultEvent = {
+  type: "result",
+  result: {
+    title: "短标题",
+    note: "新的摘要",
+    folders: [{ folderId: null, name: "Inbox", reason: "暂存" }],
+    tags: [{ tagId: "recommended", name: "推荐标签", reason: "推荐" }],
+  },
+  rawText: "reply",
+  durationMs: 20,
+};
+const events = [
+  { type: "stage", stage: "prepare", message: "读取资料" },
+  context,
+  { type: "stage", stage: "request", message: "模型调用" },
+  resultEvent,
+];
+function response(items: unknown[] = events) {
+  return new Response(`${items.map((e) => JSON.stringify(e)).join("\n")}\n`, {
+    headers: { "content-type": "application/x-ndjson" },
   });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("opens, stores options, and applies folder plus tags", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
-    );
-    mockUpdateLink.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1" },
-    });
-    mockEnsureTagOnLink
-      .mockResolvedValueOnce({
-        success: true,
-        data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
-      })
-      .mockResolvedValueOnce({
-        success: true,
-        data: { tag: { id: "t2", name: "新标签" }, created: true, attached: true },
-      });
-
+}
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation(async () => response()),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+describe("shared AI editor state", () => {
+  it("consumes real events, retains existing tags and selects Inbox explicitly", async () => {
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    expect(result.current.folders.map((f) => f.folderId)).toEqual(["f1", null, "f2"]);
-    expect(result.current.tags.map((t) => t.draftName)).toEqual(["文档", "新标签", "阅读"]);
-    expect(result.current.tags[0]?.checked).toBe(true);
-    expect(result.current.tags[2]?.checked).toBe(false);
-    expect(result.current.draftNote).toBe("工作文档入口");
-    expect(result.current.prompt).toContain("example.com");
-    expect(result.current.rawText).toContain("folders");
-    expect(result.current.failedStep).toBeNull();
-
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(mockUpdateLink).toHaveBeenCalledWith(1, { folderId: "f1" });
-    expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, "工作文档入口");
-    expect(mockEnsureTagOnLink).toHaveBeenCalled();
-    expect(callbacks.onLinkUpdated).toHaveBeenCalled();
-    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t1", name: "文档" });
-    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t2", name: "新标签" });
-    expect(callbacks.onLinkTagAdded).toHaveBeenCalledTimes(2);
-    expect(mockToastSuccess).toHaveBeenCalledWith("已应用建议");
+    await act(() => result.current.openForLink(1));
+    expect(result.current.ready).toBe(true);
+    expect(result.current.stage).toBe("ready");
+    expect(result.current.selectedFolderId).toBeNull();
+    expect(result.current.tags.filter((t) => t.checked).map((t) => t.name)).toEqual([
+      "推荐标签",
+      "已有标签",
+    ]);
+    expect(result.current.notices).toEqual(context.notices);
+    expect(result.current.draftTitle).toBe("短标题");
   });
-
-  it("keeps the dialog open when some tags fail", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
-    );
-    mockUpdateLink.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1" },
-    });
-    mockEnsureTagOnLink
-      .mockResolvedValueOnce({
-        success: true,
-        data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
-      })
-      .mockResolvedValueOnce({ success: false, error: "Invalid tag name" });
-
+  it("writes edited title/note and tag choices in one action", async () => {
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(mockToastSuccess).not.toHaveBeenCalled();
-    expect(mockToastError).toHaveBeenCalledWith("Invalid tag name");
-    expect(result.current.open).toBe(true);
-    expect(result.current.tags.map((tag) => tag.draftName)).toEqual(["新标签", "阅读"]);
-  });
-
-  it("syncs a tag created on a previous failed attach retry", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
-    );
-    mockUpdateLink.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1" },
-    });
-    mockEnsureTagOnLink
-      .mockResolvedValueOnce({ success: false, error: "Failed to add tag to link" })
-      .mockResolvedValueOnce({ success: false, error: "Failed to add tag to link" })
-      .mockResolvedValueOnce({
-        success: true,
-        data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
-      })
-      .mockResolvedValueOnce({
-        success: true,
-        data: { tag: { id: "t2", name: "新标签" }, created: false, attached: true },
-      });
-
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(result.current.open).toBe(true);
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "t2", name: "新标签" });
-    expect(mockToastSuccess).toHaveBeenCalledWith("已应用建议");
-  });
-
-  it("is a no-op apply when nothing is selected after unchecking", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
-    );
-    mockUpdateLink.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1" },
-    });
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
+    await act(() => result.current.openForLink(1));
     act(() => {
-      result.current.toggleTag(0);
+      result.current.setDraftTitle("人工标题");
+      result.current.setDraftNote("人工备注");
       result.current.toggleTag(1);
     });
-    await act(async () => {
-      await result.current.apply();
+    save.mockResolvedValue({
+      success: true,
+      data: {
+        link: makeLink({ id: 1, title: "人工标题", note: "人工备注" }),
+        tags: [{ id: "recommended", name: "推荐标签" }],
+      },
     });
-    expect(mockEnsureTagOnLink).not.toHaveBeenCalled();
-  });
-
-  it("records an error when suggest fails and can close", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({
-          error: "尚未配置 AI",
-          reason: "no_ai_config",
-          prompt: "url: https://example.com",
-        }),
-      }),
-    );
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(7);
+    await act(() => result.current.apply());
+    expect(save).toHaveBeenCalledWith({
+      linkId: 1,
+      revision: 3,
+      title: "人工标题",
+      note: "人工备注",
+      folderId: null,
+      tagIds: ["recommended"],
     });
-    expect(result.current.error).toContain("尚未配置 AI");
-    expect(result.current.failedStep).toBe("prepare");
-    expect(result.current.prompt).toContain("example.com");
-    act(() => {
-      result.current.renameTag(0, "ignored");
-      result.current.close();
-    });
+    expect(callbacks.onLinkTagRemoved).toHaveBeenCalledWith(1, "old");
+    expect(callbacks.onLinkUpdated).toHaveBeenCalled();
     expect(result.current.open).toBe(false);
   });
-
-  it("toasts when folder apply fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
-    );
-    mockUpdateLink.mockResolvedValue({ success: false, error: "Folder not found" });
+  it("preserves the draft when a save fails", async () => {
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(mockToastError).toHaveBeenCalledWith("Folder not found");
+    await act(() => result.current.openForLink(1));
+    act(() => result.current.setDraftNote("不能丢失"));
+    save.mockResolvedValue({ success: false, error: "conflict" });
+    await act(() => result.current.apply());
+    expect(result.current.draftNote).toBe("不能丢失");
     expect(result.current.open).toBe(true);
-    expect(mockUpdateLinkNote).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("conflict");
+    expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
   });
-
-  it("applies the edited note and toasts when note write fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => suggestion,
-      }),
+  it("creates tags only after an explicit user action and reuses existing tags", async () => {
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(create).not.toHaveBeenCalled();
+    create.mockResolvedValue({ success: true, data: { id: "user-created", name: "Another" } });
+    await act(() => result.current.addTag("Another"));
+    await act(() => result.current.addTag("another"));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith({ name: "Another" });
+    expect(result.current.tags.filter((t) => t.name === "Another")).toHaveLength(1);
+    expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "user-created", name: "Another" });
+  });
+  it("retains the editor and reports failed manual tag creation", async () => {
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    await act(() => result.current.addTag(" "));
+    expect(create).not.toHaveBeenCalled();
+    create.mockResolvedValue({ success: false });
+    await act(() => result.current.addTag("失败"));
+    expect(result.current.tagError).toContain("创建失败");
+    create.mockRejectedValue(new Error("offline"));
+    await act(() => result.current.addTag("失败"));
+    expect(result.current.creatingTag).toBe(false);
+    expect(result.current.draftNote).toBe("新的摘要");
+  });
+  it("reports incomplete responses and keeps existing source notes", async () => {
+    vi.mocked(fetch).mockResolvedValue(response(events.slice(0, 3)));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.ready).toBe(false);
+    expect(result.current.error).toContain("连接中断");
+    expect(result.current.draftNote).toBe("旧备注");
+  });
+  it("preserves manual text when regeneration fails", async () => {
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    act(() => result.current.setDraftNote("手改"));
+    vi.mocked(fetch).mockResolvedValue(
+      response([
+        context,
+        { type: "error", reason: "parse_error", message: "格式错误", rawText: "bad" },
+      ]),
     );
-    mockUpdateLink.mockResolvedValue({
-      success: true,
-      data: { id: 1, folderId: "f1" },
-    });
-    mockEnsureTagOnLink.mockResolvedValue({
-      success: true,
-      data: { tag: { id: "t1", name: "文档" }, created: false, attached: true },
-    });
-    mockUpdateLinkNote.mockResolvedValueOnce({ success: false, error: "Note too long" });
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    act(() => {
-      result.current.setDraftNote("  用户改过的备注  ");
-    });
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(mockUpdateLinkNote).toHaveBeenCalledWith(1, "用户改过的备注");
-    expect(mockToastError).toHaveBeenCalledWith("Note too long");
-    expect(mockEnsureTagOnLink).not.toHaveBeenCalled();
-
-    mockUpdateLinkNote.mockResolvedValueOnce({
-      success: true,
-      data: { id: 1, folderId: "f1", note: null },
-    });
-    act(() => {
-      result.current.setDraftNote("   ");
-    });
-    await act(async () => {
-      await result.current.apply();
-    });
-    expect(mockUpdateLinkNote).toHaveBeenLastCalledWith(1, null);
-  });
-
-  it("records a network error when suggest fetch throws", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
-    expect(result.current.error).toBe("网络错误");
-    expect(result.current.failedStep).toBe("request");
-  });
-
-  it("maps parse_error onto the parse step", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({
-          error: "模型返回不是有效 JSON",
-          reason: "parse_error",
-          prompt: "sent",
-          rawText: "{",
-        }),
-      }),
-    );
-    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
-    await act(async () => {
-      await result.current.openForLink(1);
-    });
+    await act(() => result.current.openForLink(1, true));
+    expect(result.current.draftNote).toBe("手改");
     expect(result.current.failedStep).toBe("parse");
-    expect(result.current.rawText).toBe("{");
   });
-
-  it("derives step states for loading, success, and failure", () => {
-    expect(failedSuggestStep("parse_error")).toBe("parse");
-    expect(failedSuggestStep("timeout")).toBe("request");
-    expect(suggestStepState("request", true, "", null)).toBe("current");
-    expect(suggestStepState("prepare", true, "", null)).toBe("done");
-    expect(suggestStepState("parse", true, "", null)).toBe("pending");
-    expect(suggestStepState("ready", false, "", null)).toBe("done");
-    expect(suggestStepState("parse", false, "坏了", "parse")).toBe("error");
-    expect(suggestStepState("request", false, "坏了", "parse")).toBe("done");
-    expect(suggestStepState("ready", false, "坏了", "parse")).toBe("pending");
-    expect(suggestStepProgress(true, "", null)).toBe(38);
-    expect(suggestStepProgress(false, "", null)).toBe(100);
-    expect(suggestStepProgress(false, "坏了", "parse")).toBe(50);
-  });
-
-  it("loads hasApiKey without caching a failed fetch", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("offline")));
-    expect(await loadHasAiKey()).toBe(false);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ hasApiKey: true }),
-      }),
+  it("cancels a closed request and ignores its late response", async () => {
+    let resolve: (value: Response) => void = () => {};
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
     );
-    expect(await loadHasAiKey()).toBe(true);
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    let pending: Promise<void>;
+    act(() => {
+      pending = result.current.openForLink(1);
+    });
+    act(() => result.current.close());
+    await act(async () => {
+      resolve(response());
+      await pending;
+    });
+    expect(result.current.open).toBe(false);
+    expect(result.current.draftTitle).toBe("");
+  });
+  it("handles transport errors and configuration checks", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
+    );
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.error).toBe("Unauthorized");
+    vi.mocked(fetch).mockRejectedValue(new Error("offline"));
+    expect(failedSuggestStep("validation")).toBe("prepare");
+    expect(failedSuggestStep("timeout")).toBe("request");
   });
 });

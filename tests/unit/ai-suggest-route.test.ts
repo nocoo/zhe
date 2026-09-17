@@ -1,228 +1,112 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockGetAuthContext = vi.fn();
-const mockRunAiTask = vi.fn();
-const mockRefreshLinkEnrichment = vi.fn();
-
-vi.mock("@/lib/auth-context", () => ({
-  getAuthContext: (...args: unknown[]) => mockGetAuthContext(...args),
+const auth = vi.fn();
+const load = vi.fn();
+const run = vi.fn();
+vi.mock("@/lib/auth-context", () => ({ getAuthContext: (...args: unknown[]) => auth(...args) }));
+vi.mock("@/lib/ai/link-context", () => ({
+  loadLinkOrgContext: (...args: unknown[]) => load(...args),
 }));
+vi.mock("@/lib/ai/run-task", () => ({ runAiTask: (...args: unknown[]) => run(...args) }));
 
-vi.mock("@/lib/ai/run-task", () => ({
-  runAiTask: (...args: unknown[]) => mockRunAiTask(...args),
-}));
-
-vi.mock("@/lib/enrichment", () => ({
-  refreshLinkEnrichment: (...args: unknown[]) => mockRefreshLinkEnrichment(...args),
-}));
-
+import { POST as legacy } from "@/app/api/ai/analyze-github/route";
 import { POST } from "@/app/api/ai/suggest-link-org/route";
+import { LINK_ORG_SYSTEM } from "@/lib/ai/tasks/suggest-link-org";
 
-const bareLink = {
-  id: 1,
-  originalUrl: "https://example.com",
-  metaTitle: null as string | null,
-  metaDescription: null as string | null,
-  metaFavicon: null as string | null,
-  note: "",
-  folderId: null as string | null,
+const result = {
+  title: "书签工具",
+  note: "管理收藏资料。",
+  folders: [{ folderId: null, name: "Inbox", reason: "暂存" }],
+  tags: [{ tagId: "t", name: "工具", reason: "用途" }],
 };
-
-function db(overrides: Record<string, unknown> = {}) {
-  return {
-    getLinkById: vi.fn().mockResolvedValue({
-      ...bareLink,
-      metaTitle: "Example",
-      metaDescription: "desc",
-    }),
-    getFolders: vi.fn().mockResolvedValue([{ id: "f1", name: "工作" }]),
-    getTags: vi.fn().mockResolvedValue([{ id: "t1", name: "文档" }]),
-    getLinkTags: vi.fn().mockResolvedValue([]),
-    getAiSettings: vi.fn().mockResolvedValue({
-      provider: "anthropic",
-      apiKey: "sk-test-key-1234",
-      model: "claude-sonnet-4-5",
-    }),
-    ...overrides,
-  };
+const context = {
+  link: { title: null, note: "旧备注", folderId: null },
+  revision: 3,
+  assigned: [],
+  catalogs: { folders: [], tags: [{ id: "t", name: "工具" }] },
+  prompt: "complete stored data",
+  supplied: ["URL"],
+  notices: ["README 未收录"],
+  historicalAnalysis: null,
+};
+const db = { getAiSettings: vi.fn() };
+const request = (body: unknown = { linkId: 1 }, stream = true) =>
+  new Request("https://example.com/api/ai/suggest-link-org", {
+    method: "POST",
+    headers: { accept: stream ? "application/x-ndjson" : "application/json" },
+    body: JSON.stringify(body),
+  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  auth.mockResolvedValue({ db, userId: "owner" });
+  load.mockResolvedValue(context);
+  db.getAiSettings.mockResolvedValue({ provider: "custom", apiKey: "secret", model: "model" });
+  run.mockImplementation(async (_settings, options) => ({
+    ok: true,
+    result: options.parse(JSON.stringify(result)),
+    durationMs: 100,
+    rawText: JSON.stringify(result),
+  }));
+});
+async function events(response: Response) {
+  return (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
 }
-
-function auth(overrides: Record<string, unknown> = {}) {
-  const scoped = db(overrides);
-  mockGetAuthContext.mockResolvedValue({ db: scoped, userId: "user-1" });
-  return scoped;
-}
-
-describe("POST /api/ai/suggest-link-org", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRefreshLinkEnrichment.mockResolvedValue({ success: true });
-  });
-
-  it("returns 400 without config", async () => {
-    auth();
-    mockRunAiTask.mockResolvedValue({ ok: false, reason: "no_ai_config", message: "missing" });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ reason: "no_ai_config" });
-  });
-
-  it("returns 404 for an unknown link", async () => {
-    auth({ getLinkById: vi.fn().mockResolvedValue(null) });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 99 }),
-      }),
-    );
-    expect(res.status).toBe(404);
-    expect(await res.json()).toMatchObject({ reason: "not_found" });
-  });
-
-  it("maps parse_error to 502 and timeout to 504", async () => {
-    auth();
-    mockRunAiTask.mockResolvedValueOnce({ ok: false, reason: "parse_error", message: "bad" });
-    const parseRes = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(parseRes.status).toBe(502);
-
-    mockRunAiTask.mockResolvedValueOnce({ ok: false, reason: "timeout", message: "slow" });
-    const timeoutRes = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(timeoutRes.status).toBe(504);
-    expect(await parseRes.json()).toMatchObject({
-      reason: "parse_error",
-      prompt: expect.stringContaining("https://example.com"),
-    });
-  });
-
-  it("returns prompt and raw text with suggestions", async () => {
-    auth();
-    mockRunAiTask.mockResolvedValue({
-      ok: true,
-      result: {
-        folders: [{ folderId: "f1", name: "工作", reason: "适合" }],
-        tags: [{ tagId: "t1", name: "文档", reason: "文档" }],
-        note: "示例站点",
-      },
-      model: "claude-sonnet-4-5",
-      provider: "anthropic",
-      durationMs: 12,
-      rawText: '{"folders":[],"tags":[]}',
-    });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(res.status).toBe(200);
-    expect(mockRefreshLinkEnrichment).not.toHaveBeenCalled();
-    expect(await res.json()).toMatchObject({
-      prompt: expect.stringContaining("https://example.com"),
-      rawText: '{"folders":[],"tags":[]}',
-      model: "claude-sonnet-4-5",
-      note: "示例站点",
-      catalogs: {
-        folders: [{ id: "f1", name: "工作" }],
-        tags: [{ id: "t1", name: "文档" }],
-      },
-    });
-  });
-
-  it("refreshes metadata before building the prompt when the link has none", async () => {
-    const getLinkById = vi
-      .fn()
-      .mockResolvedValueOnce(bareLink)
-      .mockResolvedValueOnce({
-        ...bareLink,
-        metaTitle: "Whoiz",
-        metaDescription: "GitHub 上的开源项目",
-      });
-    auth({ getLinkById });
-    mockRunAiTask.mockResolvedValue({
-      ok: true,
-      result: {
-        folders: [{ folderId: "f1", name: "工作", reason: "适合" }],
-        tags: [{ tagId: "t1", name: "文档", reason: "文档" }],
-        note: "开源项目",
-      },
-      model: "claude-sonnet-4-5",
-      provider: "anthropic",
-      durationMs: 12,
-      rawText: "{}",
-    });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(res.status).toBe(200);
-    expect(mockRefreshLinkEnrichment).toHaveBeenCalledWith("https://example.com", 1, "user-1");
-    expect(mockRunAiTask).toHaveBeenCalledWith(
+describe("one AI organization route", () => {
+  it("shares the exact handler with the legacy GitHub URL", () => expect(legacy).toBe(POST));
+  it("reports real ordered stages, supplies editable context, and never saves on generation", async () => {
+    const response = await POST(request({ linkId: 1, userId: "other", readme: "injected" }));
+    expect(response.headers.get("content-type")).toContain("application/x-ndjson");
+    const output = await events(response);
+    expect(output.map((e) => e.type)).toEqual(["stage", "context", "stage", "stage", "result"]);
+    expect(output.filter((e) => e.type === "stage").map((e) => e.stage)).toEqual([
+      "prepare",
+      "request",
+      "parse",
+    ]);
+    expect(load).toHaveBeenCalledWith(db, "owner", 1);
+    expect(run).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        prompt: expect.stringMatching(/Whoiz[\s\S]*GitHub 上的开源项目/),
-      }),
+      expect.objectContaining({ system: LINK_ORG_SYSTEM, prompt: context.prompt }),
     );
+    expect(output[1]).toMatchObject({ notices: context.notices, current: { note: "旧备注" } });
+    expect(output.at(-1).result).toEqual(result);
+    expect(JSON.stringify(output)).not.toContain("secret");
   });
-
-  it("does not refresh metadata when AI is not configured", async () => {
-    auth({
-      getLinkById: vi.fn().mockResolvedValue(bareLink),
-      getAiSettings: vi.fn().mockResolvedValue({ provider: null, apiKey: null }),
-    });
-    mockRunAiTask.mockResolvedValue({ ok: false, reason: "no_ai_config", message: "尚未配置 AI" });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(res.status).toBe(400);
-    expect(mockRefreshLinkEnrichment).not.toHaveBeenCalled();
+  it("keeps a JSON transport using the same optional-source task", async () => {
+    expect(await (await POST(request(undefined, false))).json()).toMatchObject(result);
   });
-
-  it("still suggests when metadata refresh throws", async () => {
-    auth({ getLinkById: vi.fn().mockResolvedValue(bareLink) });
-    mockRefreshLinkEnrichment.mockRejectedValue(new Error("timeout"));
-    mockRunAiTask.mockResolvedValue({
-      ok: true,
-      result: {
-        folders: [{ folderId: "f1", name: "工作", reason: "适合" }],
-        tags: [{ tagId: "t1", name: "文档", reason: "文档" }],
-        note: "示例",
-      },
-      model: "claude-sonnet-4-5",
-      provider: "anthropic",
-      durationMs: 12,
-      rawText: "{}",
-    });
-    const res = await POST(
-      new Request("http://localhost/api/ai/suggest-link-org", {
-        method: "POST",
-        body: JSON.stringify({ linkId: 1 }),
-      }),
-    );
-    expect(res.status).toBe(200);
-    expect(mockRunAiTask).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ prompt: expect.stringContaining("title: example.com") }),
-    );
+  it.each([0, -1, 1.5, "1", null])("rejects invalid IDs %s", async (id) =>
+    expect((await POST(request({ linkId: id }))).status).toBe(400),
+  );
+  it("requires authentication", async () => {
+    auth.mockResolvedValue(null);
+    expect((await POST(request())).status).toBe(401);
+    expect(load).not.toHaveBeenCalled();
+  });
+  it("rejects invalid JSON", async () => {
+    expect(
+      (await POST(new Request("https://example.com", { method: "POST", body: "{" }))).status,
+    ).toBe(400);
+  });
+  it("reports absent links and configuration without calling the model", async () => {
+    load.mockResolvedValueOnce(null);
+    expect((await events(await POST(request()))).at(-1).reason).toBe("not_found");
+    db.getAiSettings.mockResolvedValue({});
+    expect((await events(await POST(request()))).at(-1).reason).toBe("no_ai_config");
+    expect(run).not.toHaveBeenCalled();
+  });
+  it.each(["timeout", "parse_error", "ai_error"])("reports %s without a result", async (reason) => {
+    run.mockResolvedValue({ ok: false, reason, message: "failure", rawText: "bad reply" });
+    const output = await events(await POST(request()));
+    expect(output.at(-1)).toMatchObject({ type: "error", reason, rawText: "bad reply" });
+    expect(output.some((e) => e.type === "result")).toBe(false);
+  });
+  it("reports preparation failures", async () => {
+    load.mockRejectedValue(new Error("database"));
+    expect((await events(await POST(request()))).at(-1).reason).toBe("prepare_error");
   });
 });

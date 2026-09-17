@@ -63,6 +63,14 @@ export function SearchResult({ hit, query }: { hit: SearchHit; query: string }) 
           <span className="truncate text-sm font-medium text-foreground">
             <SearchHighlights segments={searchHighlight(hit.title, query)} />
           </span>
+          {hit.originalTitle && (
+            <span
+              className="max-w-[30%] truncate text-xs text-muted-foreground"
+              title={hit.originalTitle}
+            >
+              {hit.originalTitle}
+            </span>
+          )}
           <span className="shrink-0 text-[11px] text-muted-foreground">
             {SEARCH_SOURCE_LABELS[hit.source]}
           </span>
@@ -96,6 +104,11 @@ export function SearchResult({ hit, query }: { hit: SearchHit; query: string }) 
             <span key={tag}>#{tag}</span>
           ))}
         </div>
+        {hit.note && (
+          <p className="line-clamp-1 text-sm text-foreground" title={hit.note}>
+            {hit.note}
+          </p>
+        )}
         <p className="line-clamp-2 break-words text-xs leading-relaxed text-muted-foreground">
           <span className="mr-2 text-[10px] font-medium opacity-75">{hit.match.label}</span>
           <SearchHighlights segments={hit.match.segments} />

@@ -99,6 +99,7 @@ const baseLink: Link = {
   createdAt: new Date("2026-01-15"),
   expiresAt: null,
   folderId: null,
+  title: null,
   metaTitle: null,
   metaDescription: null,
   metaFavicon: null,
@@ -177,26 +178,27 @@ describe("LinkCard", () => {
     expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
   });
 
-  it("shows note | metaTitle as title when both available (list mode)", () => {
+  it("shows note separately below metaTitle when both available (list mode)", () => {
     const linkWithBoth = {
       ...baseLink,
       note: "Important",
+      title: null,
       metaTitle: "Example Page",
     };
     render(<LinkCard {...defaultProps} link={linkWithBoth} />);
 
     expect(screen.getByText("Important")).toBeInTheDocument();
     expect(screen.getByText("Example Page")).toBeInTheDocument();
-    expect(screen.getByText("|")).toBeInTheDocument();
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
   });
 
-  it("shows note | hostname when note exists but no metaTitle (list mode)", () => {
+  it("shows note separately from hostname when note exists but no metaTitle (list mode)", () => {
     const linkWithNote = { ...baseLink, note: "My note" };
     render(<LinkCard {...defaultProps} link={linkWithNote} />);
 
     expect(screen.getByText("My note")).toBeInTheDocument();
     expect(screen.getByText("example.com")).toBeInTheDocument();
-    expect(screen.getByText("|")).toBeInTheDocument();
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
   });
 
   // --- Slug in meta row ---
@@ -399,6 +401,7 @@ describe("LinkCard", () => {
   it("shows meta title when metaTitle is set", () => {
     const linkWithMeta = {
       ...baseLink,
+      title: null,
       metaTitle: "Example Page Title",
     };
     render(<LinkCard {...defaultProps} link={linkWithMeta} />);
@@ -526,13 +529,13 @@ describe("LinkCard", () => {
     expect(screen.getByText("example.com")).toBeInTheDocument();
   });
 
-  it("shows note | hostname in grid mode when note exists but no metaTitle", () => {
+  it("shows note separately from hostname in grid mode when note exists but no metaTitle", () => {
     const linkWithNote = { ...baseLink, note: "Grid note" };
     render(<LinkCard {...defaultProps} link={linkWithNote} viewMode="grid" />);
 
     expect(screen.getByText("Grid note")).toBeInTheDocument();
     expect(screen.getByText("example.com")).toBeInTheDocument();
-    expect(screen.getByText("|")).toBeInTheDocument();
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
   });
 
   it("shows slug in grid mode meta row", () => {

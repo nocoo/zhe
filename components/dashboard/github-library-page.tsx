@@ -20,8 +20,10 @@ import { useDashboardService } from "@/contexts/dashboard-service";
 import { sortLinksByDate } from "@/models/links";
 import type { LinkTag } from "@/models/types";
 import { useGitHubBookmarks } from "@/viewmodels/useGitHubBookmarks";
+import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 import { GitHubRepositoryCard } from "./github-repository-card";
 import { LinkFilterBar } from "./link-filter-bar";
+import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 export function GitHubLibraryPage() {
   const service = useDashboardService();
@@ -52,6 +54,7 @@ export function GitHubLibraryPage() {
     }),
     [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
   );
+  const suggestVm = useSuggestLinkOrgViewModel(callbacks);
   const tagsByLink = useMemo(() => {
     const map = new Map<number, LinkTag[]>();
     for (const tag of linkTags) map.set(tag.linkId, [...(map.get(tag.linkId) ?? []), tag]);
@@ -79,6 +82,7 @@ export function GitHubLibraryPage() {
         !search ||
         [
           link.originalUrl,
+          link.title,
           link.metaTitle,
           link.metaDescription,
           link.note,
@@ -175,7 +179,7 @@ export function GitHubLibraryPage() {
       </p>
       {visible.length ? (
         <AnimatedCardList
-          className="grid auto-rows-fr grid-cols-1 items-stretch gap-4 @2xl/github:grid-cols-2 @5xl/github:grid-cols-3 @7xl/github:grid-cols-4"
+          className="grid grid-cols-1 items-stretch gap-3 @2xl/github:grid-cols-2 @5xl/github:grid-cols-3 @7xl/github:grid-cols-4"
           data-testid="github-repositories"
         >
           {visible.map(({ link, bookmark }) => (
@@ -186,6 +190,7 @@ export function GitHubLibraryPage() {
               folders={folders}
               tags={tags}
               linkTags={tagsByLink.get(link.id) ?? []}
+              onSuggest={() => void suggestVm.openForLink(link.id)}
               siteUrl={siteUrl}
               editCallbacks={callbacks}
               onDelete={handleLinkDeleted}
@@ -204,6 +209,7 @@ export function GitHubLibraryPage() {
           }
         />
       )}
+      <SuggestLinkOrgDialog vm={suggestVm} />
     </div>
   );
 }

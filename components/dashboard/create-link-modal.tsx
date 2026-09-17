@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Folder, Link, Tag } from "@/models/types";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { FolderSelect, ModeTabs, SlugInput, TagsField } from "./create-link-modal-parts/fields";
@@ -24,9 +25,6 @@ interface CreateLinkModalProps {
   tags?: Tag[];
   onTagCreated?: (tag: Tag) => void;
 }
-
-const INPUT_CLS =
-  "rounded-widget border-border text-sm placeholder:text-muted-foreground focus-visible:ring-primary";
 
 function LabelledInput({
   id,
@@ -46,19 +44,18 @@ function LabelledInput({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-sm text-foreground">
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="block text-xs font-medium leading-4">
         {label}
       </Label>
       <Input
         id={id}
-        size="lg"
+        size="default"
         type={type}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className={INPUT_CLS}
       />
     </div>
   );
@@ -108,9 +105,9 @@ export function CreateLinkModal({
           <Plus className="w-4 h-4" strokeWidth={1.5} />
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" className="rounded-card border-0">
+      <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto rounded-card border-0">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">创建短链接</DialogTitle>
+          <DialogTitle>创建短链接</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={vm.handleSubmit} className="space-y-4">
@@ -138,13 +135,26 @@ export function CreateLinkModal({
           <FolderSelect folders={folders} folderId={vm.folderId} setFolderId={vm.setFolderId} />
 
           <LabelledInput
-            id="note"
-            label="备注"
+            id="title"
+            label="标题"
             type="text"
-            placeholder="添加备注..."
-            value={vm.note}
-            onChange={vm.setNote}
+            placeholder="标题（可选）"
+            value={vm.title}
+            onChange={vm.setTitle}
           />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="note" className="block text-xs font-medium leading-4">
+              备注
+            </Label>
+            <Textarea
+              id="note"
+              rows={3}
+              placeholder="备注（可选）"
+              value={vm.note}
+              onChange={(event) => vm.setNote(event.target.value)}
+            />
+          </div>
 
           <LabelledInput
             id="screenshotUrl"

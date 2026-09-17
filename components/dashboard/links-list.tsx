@@ -2,7 +2,7 @@
 
 import { toast } from "@nocoo/basalt/components/toast";
 import { Link2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -135,9 +135,6 @@ export function LinksList() {
     [handleLinkUpdated, handleTagCreated, handleLinkTagAdded, handleLinkTagRemoved],
   );
   const suggestVm = useSuggestLinkOrgViewModel(editCallbacks);
-  useEffect(() => {
-    void suggestVm.refreshHasAiKey();
-  }, [suggestVm.refreshHasAiKey]);
 
   // Batch-refresh metadata for links missing it (replaces per-card N+1 auto-fetch)
   useAutoRefreshMetadata(links, handleLinkUpdated);
@@ -218,7 +215,6 @@ export function LinksList() {
         onSuggest={(id) => {
           void suggestVm.openForLink(id);
         }}
-        suggestDisabled={!suggestVm.hasAiKey}
       />
       <SuggestLinkOrgDialog vm={suggestVm} />
     </div>

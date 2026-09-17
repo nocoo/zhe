@@ -249,7 +249,8 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkContent
               bookmark={xBookmark}
               note={link.note}
-              title={link.metaTitle}
+              title={link.title}
+              originalTitle={link.metaTitle}
               playMediaId={playMediaId}
             />
           ) : (
@@ -291,7 +292,8 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkContent
               bookmark={xBookmark}
               note={link.note}
-              title={link.metaTitle}
+              title={link.title}
+              originalTitle={link.metaTitle}
               compact
               onPlayMedia={playMedia}
             />
@@ -346,7 +348,7 @@ export const LinkCard = memo(function LinkCard({
                   {onSuggest && (
                     <DropdownMenuItem onSelect={onSuggest} disabled={suggestDisabled}>
                       <Sparkles aria-hidden />
-                      AI 建议
+                      AI 整理
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onSelect={handleToggleEdit}>

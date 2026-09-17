@@ -216,7 +216,7 @@ test.describe("Link CRUD", () => {
 
       const editor = page.getByTestId("card-edit-dialog");
       await expect(editor).toHaveAttribute("data-phase", "editing");
-      const noteInput = editor.locator('input[id^="edit-note-"]');
+      const noteInput = editor.locator('textarea[id^="edit-note-"]');
       await expect(noteInput).toBeVisible({ timeout: 5_000 });
 
       // Modify the note

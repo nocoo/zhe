@@ -95,4 +95,18 @@ describe("real authenticated search HTTP", () => {
       ).total,
     ).toBe(0);
   });
+  it("indexes edited title and note while retaining raw title search", async () => {
+    await executeD1("UPDATE links SET title=?,note=? WHERE id=?", [
+      "我的整理标题",
+      "手工补充线索",
+      linkId,
+    ]);
+    for (const query of ["我的整理标题", "手工补充线索", "Search repository"]) {
+      const response = await apiPost("/api/search", { query }, { Cookie: cookie });
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.total).toBe(1);
+      expect(data.items[0].title).toBe("我的整理标题");
+    }
+  });
 });

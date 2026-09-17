@@ -125,8 +125,8 @@ export async function createLink(
 ): Promise<Link> {
   const now = Date.now();
   const rows = await executeD1Query<Record<string, unknown>>(
-    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, title, meta_title, meta_description, meta_favicon, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
     [
       userId,
@@ -138,6 +138,10 @@ export async function createLink(
       data.clicks ?? 0,
       data.note ?? null,
       data.screenshotUrl ?? null,
+      data.title?.trim() || null,
+      data.metaTitle ?? null,
+      data.metaDescription ?? null,
+      data.metaFavicon ?? null,
       now,
     ],
   );
@@ -156,6 +160,8 @@ export async function deleteLink(userId: string, id: number): Promise<boolean> {
 }
 
 export interface UpdateLinkData {
+  title?: string | null;
+  note?: string | null;
   originalUrl?: string;
   folderId?: string | null;
   expiresAt?: Date | null;
@@ -167,6 +173,12 @@ export interface UpdateLinkData {
 function buildUpdateSet(data: UpdateLinkData): { setClauses: string[]; params: unknown[] } {
   const setClauses: string[] = [];
   const params: unknown[] = [];
+  for (const field of ["title", "note"] as const) {
+    if (data[field] !== undefined) {
+      setClauses.push(`${field} = ?`);
+      params.push(data[field]?.trim() || null);
+    }
+  }
   if (data.originalUrl !== undefined) {
     setClauses.push("original_url = ?");
     params.push(data.originalUrl);

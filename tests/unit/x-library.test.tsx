@@ -1,4 +1,7 @@
 // @vitest-environment happy-dom
+vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
+vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
+
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -48,6 +51,7 @@ function link(id: number, note: string, folderId: string | null = "design"): Lin
     createdAt: new Date(2026, 8, id),
     expiresAt: null,
     screenshotUrl: null,
+    title: null,
     metaTitle: null,
     metaDescription: null,
     metaFavicon: null,

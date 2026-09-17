@@ -37,6 +37,7 @@ export const createCommand = defineCommand({
       alias: "f",
       description: "Folder name or ID",
     },
+    title: { type: "string", alias: "t", description: "Curated title (max 32 characters)" },
     note: {
       type: "string",
       alias: "n",
@@ -81,6 +82,7 @@ export const createCommand = defineCommand({
       // Build request object, only including defined fields
       const createRequest: CreateLinkRequest = { url };
       if (args.slug) createRequest.slug = args.slug;
+      if (args.title) createRequest.title = args.title;
       if (args.note) createRequest.note = args.note;
       if (args.expires) createRequest.expiresAt = args.expires;
 

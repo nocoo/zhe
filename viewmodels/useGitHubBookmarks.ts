@@ -19,7 +19,11 @@ function syncMetadata(
       repo &&
       (link.metaTitle !== repo.fullName || link.metaDescription !== repo.description)
     )
-      onUpdate({ ...link, metaTitle: repo.fullName, metaDescription: repo.description });
+      onUpdate({
+        ...link,
+        metaTitle: repo.fullName,
+        metaDescription: repo.description,
+      });
   }
 }
 

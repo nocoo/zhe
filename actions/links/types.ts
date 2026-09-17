@@ -5,6 +5,7 @@ export interface CreateLinkInput {
   customSlug?: string | undefined;
   folderId?: string | undefined;
   expiresAt?: Date | undefined;
+  title?: string | undefined;
   note?: string | undefined;
   screenshotUrl?: string | undefined;
   tagIds?: string[] | undefined;

@@ -129,6 +129,24 @@
   }
 }
 
+/* Overlays sit above every page surface. Their panels and controls stay at
+ * the brightest theme surface, including nested cards and the flip editor. */
+:is([role="dialog"], [role="alertdialog"])[data-basalt-surface-root] {
+  --basalt-background: var(--basalt-bright);
+  --basalt-card: var(--basalt-bright);
+  --basalt-secondary: var(--basalt-bright);
+  --basalt-muted: var(--basalt-bright);
+  --background: var(--basalt-bright);
+  --card: var(--basalt-bright);
+  --secondary: var(--basalt-bright);
+  --muted: var(--basalt-bright);
+  --basalt-control-fill: hsl(var(--basalt-bright));
+}
+
+[data-radix-popper-content-wrapper] {
+  --basalt-control-fill: hsl(var(--basalt-popover));
+}
+
 /* The dialog supplies focus trapping and scroll locking; only the two card
  * faces move. The original card stays in place as a layout placeholder. */
 .link-card-editor[data-basalt-surface-root] {

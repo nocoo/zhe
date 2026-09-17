@@ -149,6 +149,8 @@ export function formatLinkDetail(
     }
   }
 
+  if (link.title) lines.push(`  Title:        ${link.title}`);
+  if (link.metaTitle) lines.push(`  Original title: ${link.metaTitle}`);
   if (link.note) {
     lines.push(`  Note:         ${link.note}`);
   }

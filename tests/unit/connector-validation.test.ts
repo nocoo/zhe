@@ -21,6 +21,42 @@ assert(value);
 const base = value;
 
 describe("Connector capture trust boundary", () => {
+  it("retains bounded video diagnostics but drops client size, resolution, and variant URLs", () => {
+    const data = structuredClone(base);
+    data.tweet.media = [
+      {
+        id: mediaId,
+        type: "VIDEO",
+        url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/1280x720/test.mp4`,
+        size: 1,
+        resolution: "4K",
+        variants: [],
+        archiveError: "media_too_large",
+        videoAttempts: [{ width: 1280, height: 720, size: 100000001 }],
+      },
+    ];
+    const result = validateCapture(data, postId).media[0];
+    expect(result).toMatchObject({
+      archiveError: "media_too_large",
+      videoAttempts: data.tweet.media[0]?.videoAttempts,
+    });
+    expect(result).not.toHaveProperty("size");
+    expect(result).not.toHaveProperty("resolution");
+    expect(result).not.toHaveProperty("variants");
+    for (const invalid of [
+      { videoAttempts: [{}] },
+      { videoAttempts: Array(4).fill({ width: 1, height: 1, size: 1 }) },
+      { videoAttempts: [{ width: 0, height: 1, size: 1 }] },
+      { archiveError: "private upstream error" },
+    ]) {
+      expect(() =>
+        validateCapture(
+          { tweet: { ...data.tweet, media: [{ ...data.tweet.media[0], ...invalid }] } },
+          postId,
+        ),
+      ).toThrow("invalid_capture");
+    }
+  });
   const invalid: [string, (capture: XCapture) => void][] = [
     [
       "foreign URL",

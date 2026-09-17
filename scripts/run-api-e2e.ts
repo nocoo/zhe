@@ -137,6 +137,8 @@ async function runHttpTests(): Promise<number> {
 
 async function main(): Promise<void> {
   loadEnvFile(pathResolve(PROJECT_ROOT, ".env.local"));
+  // Daily dev uses HTTPS cookies; this isolated HTTP stack must use its own origin.
+  process.env.AUTH_URL = BASE_URL;
 
   console.log("\n━━━ L2: Real HTTP API E2E tests (local stack) ━━━\n");
 

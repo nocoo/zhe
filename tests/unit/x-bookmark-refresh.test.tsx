@@ -20,6 +20,7 @@ const link: Link = {
   folderId: null,
   note: null,
   screenshotUrl: null,
+  title: null,
   metaTitle: null,
   metaDescription: null,
   metaFavicon: null,
