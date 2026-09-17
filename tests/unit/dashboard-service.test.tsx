@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 vi.mock("@/actions/connector", () => ({
   loadXBookmarks: async () => ({ success: true, data: [] }),
+  loadScreenshotPreviews: async () => ({ success: true, data: [] }),
   retryXBookmarkAction: async () => ({ success: true }),
 }));
 

@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo } from "react";
 import type { IdeaListItem, TodoTreeNode } from "@/lib/db/scoped";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
+import { useScreenshotPreviews } from "@/viewmodels/useScreenshotPreviews";
 import { useXBookmarks } from "@/viewmodels/useXBookmarks";
 import { useDashboardCore } from "./dashboard-service-parts/useDashboardCore";
 import { useIdeasSlice } from "./dashboard-service-parts/useIdeasSlice";
@@ -101,6 +102,7 @@ export function DashboardServiceProvider({
 }: DashboardServiceProviderProps) {
   const core = useDashboardCore(initialFolders);
   const [xBookmarks, setXBookmarks] = useXBookmarks(core.links, core.handleLinkUpdated);
+  useScreenshotPreviews(core.links, core.handleLinkUpdated);
   const ideasSlice = useIdeasSlice();
   const todosSlice = useTodosSlice();
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
