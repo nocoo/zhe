@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.26.1] - 2026-09-17
+
+### Fixed
+- Wait ten seconds before webpage capture
+- Replace screenshot providers with deletion controls
+- Delete stored screenshots and queue R2 cleanup
+
 ## [v1.26.0] - 2026-09-17
 
 ### Added
