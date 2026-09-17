@@ -181,6 +181,16 @@ function PostMedia({
   // Stored dimensions include manual corrections. Older captures default to
   // landscape without loading a player or probing media metadata.
   const aspectRatio = media.width && media.height ? `${media.width}/${media.height}` : "16/9";
+  const mediaBadge = (
+    <span
+      data-testid="x-media-type-badge"
+      className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+    >
+      {media.type === "GIF" ? "GIF" : "视频"}
+      {!!media.duration &&
+        ` · ${Math.floor(media.duration / 60)}:${String(Math.floor(media.duration % 60)).padStart(2, "0")}`}
+    </span>
+  );
   if (failed)
     return (
       <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-widget border border-dashed border-border bg-background/60 p-3 text-muted-foreground">
@@ -231,18 +241,7 @@ function PostMedia({
             <Play className="size-4 fill-current" />
           </span>
         </span>
-        <span
-          className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/55 to-transparent px-2.5 pb-2 pt-5 text-[11px] font-medium leading-none text-white"
-          aria-hidden
-        >
-          <span>{media.type === "GIF" ? "GIF" : "视频"}</span>
-          {!!media.duration && (
-            <span className="tabular-nums">
-              {Math.floor(media.duration / 60)}:
-              {String(Math.floor(media.duration % 60)).padStart(2, "0")}
-            </span>
-          )}
-        </span>
+        {mediaBadge}
       </Button>
     );
   if (media.type !== "PHOTO")
@@ -254,6 +253,8 @@ function PostMedia({
           controls
           autoPlay
           playsInline
+          loop={media.type === "GIF"}
+          muted={media.type === "GIF"}
           preload="none"
           aria-label={media.type === "GIF" ? "已归档的 X GIF" : "已归档的 X 视频"}
           className={cn(
@@ -265,11 +266,7 @@ function PostMedia({
         >
           <track kind="captions" />
         </video>
-        <span className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
-          {media.type === "GIF" ? "GIF" : "视频"}
-          {!!media.duration &&
-            ` · ${Math.floor(media.duration / 60)}:${String(Math.floor(media.duration % 60)).padStart(2, "0")}`}
-        </span>
+        {mediaBadge}
       </div>
     );
   return (

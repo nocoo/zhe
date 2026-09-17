@@ -316,7 +316,13 @@ describe("X bookmark presentation", () => {
         "src",
         "https://cdn.example.com/poster.jpg",
       );
+      const label = type === "GIF" ? "GIF" : "视频";
+      expect(within(preview).getByTestId("x-media-type-badge")).toHaveTextContent(label);
+      expect(within(preview).getByTestId("x-media-type-badge")).toHaveClass("top-3", "left-3");
       fireEvent.click(preview);
+      expect(screen.getByTestId("x-media-type-badge")).toHaveTextContent(label);
+      expect(container.querySelector("video")?.loop).toBe(type === "GIF");
+      expect(container.querySelector("video")?.muted).toBe(type === "GIF");
       expect(container.querySelector("video")).toHaveAttribute("controls");
       expect(container.querySelector("video")).toHaveAttribute("autoplay");
       expect(container.querySelector("video")).toHaveAttribute("preload", "none");

@@ -177,9 +177,13 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
     expect((await client.claimXJob()).job).toBeNull();
   });
 
-  it.each([64, 100_000_000])(
-    "streams a %i-byte video and poster, serves Range, and cascades file removal",
-    async (size) => {
+  it.each([
+    { size: 64, type: "VIDEO" },
+    { size: 100_000_000, type: "VIDEO" },
+    { size: 64, type: "GIF" },
+  ] as const)(
+    "streams a $size-byte $type and poster, serves Range, and cascades file removal",
+    async ({ size, type }) => {
       const saved = await client.createLink({ url: source });
       const job = unwrap((await client.claimXJob()).job);
       expect(job.linkId).toBe(saved.link.id);
@@ -187,8 +191,11 @@ describe("saved links enhanced through the shared CLI HTTP interface", () => {
       videoCapture.tweet.media = [
         {
           id: mediaId,
-          type: "VIDEO",
-          url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/1280x720/test.mp4`,
+          type,
+          url:
+            type === "GIF"
+              ? "https://video.twimg.com/tweet_video/SyntheticGif_1.mp4"
+              : `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/1280x720/test.mp4`,
           width: 1280,
           height: 720,
         },

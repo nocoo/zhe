@@ -105,3 +105,5 @@ Snail 专属 Worker、D1、R2、Access 应用、custom domain 与 DNS 已删除�
 Videos prefer the best available MP4 up to 4K, then try 1080p and 720p when the declared file size exceeds 100 MB (100,000,000 bytes). Oversize responses are canceled before downloading the body. Originally smaller videos remain supported; after rejecting 720p the Connector never falls back to 360p. Non-size errors stop with their specific reason. Full download, signature, digest and FFmpeg decode checks still precede upload. Photos retain their 10 MiB limit.
 
 Capture diagnostics retain each attempted resolution and size; the server exposes safe failure codes without upstream media URLs. The X card displays the archived resolution and authoritative file size below its media, or the exact failure reason. Migration `0031_x_media_resolution.sql` stores file resolution separately from mutable card display dimensions, so reusing a saved file cannot relabel its quality. Old clients may omit resolution metadata.
+
+GIF 补全识别 X 的 `animated_gif`，保留 GIF 类型并归档 X 提供的 MP4 动图源。封面与播放器均在左上角显示 GIF 标识，点击后静音循环播放；列表中仅加载封面，避免自动下载全部动图。GIF 与视频共用 100 MB 上限、完整解码校验及归档大小展示。
