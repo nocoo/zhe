@@ -10,6 +10,21 @@ export const ELIGIBLE_SQL = `attempts < 5 AND (
   (state = 'running' AND lease_until <= ?))`;
 export const LEASE_SQL = `link_id = ? AND user_id = ? AND state = 'running'
   AND lease_key_id = ? AND lease_token = ? AND lease_until > ? AND ${ACTIVE_KEY_SQL}`;
+// Checked inside each atomic claim, including legacy clients and different API keys.
+export const CONNECTOR_IDLE_SQL = `NOT EXISTS (
+  SELECT 1 FROM x_bookmarks WHERE user_id=? AND state='running' AND lease_until>?
+  UNION ALL SELECT 1 FROM github_bookmarks WHERE user_id=? AND state='running' AND lease_until>?
+  UNION ALL SELECT 1 FROM screenshot_jobs WHERE user_id=? AND state='running' AND lease_until>?
+)`;
+export function connectorIdleParams(auth: ConnectorIdentity, now: number): unknown[] {
+  return [auth.userId, now, auth.userId, now, auth.userId, now];
+}
+export async function connectorIsIdle(auth: ConnectorIdentity, now: number): Promise<boolean> {
+  return (
+    (await executeD1Query(`SELECT 1 WHERE ${CONNECTOR_IDLE_SQL}`, connectorIdleParams(auth, now)))
+      .length > 0
+  );
+}
 export function leaseParams(
   auth: ConnectorIdentity,
   linkId: number,
@@ -87,7 +102,8 @@ export async function claimXBookmark(
     const rows = await executeD1Query<JobRow>(
       `UPDATE x_bookmarks SET post_id=?, state=?,
       attempts=attempts+1, lease_key_id=?, lease_token=?, lease_until=?, updated_at=?, draft_json=NULL
-      WHERE link_id=? AND user_id=? AND source_url=? AND ${ELIGIBLE_SQL} AND ${ACTIVE_KEY_SQL} RETURNING *`,
+      WHERE link_id=? AND user_id=? AND source_url=? AND ${ELIGIBLE_SQL} AND ${ACTIVE_KEY_SQL}
+        AND ${CONNECTOR_IDLE_SQL} RETURNING *`,
       [
         post?.id ?? null,
         post ? "running" : "unavailable",
@@ -101,9 +117,11 @@ export async function claimXBookmark(
         now,
         now,
         ...activeKeyParams(auth, now),
+        ...connectorIdleParams(auth, now),
       ],
     );
     const row = rows[0];
+    if (!row && !(await connectorIsIdle(auth, now))) return null;
     if (row && post)
       return {
         linkId: row.link_id,

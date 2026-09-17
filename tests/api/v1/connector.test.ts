@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -68,6 +68,40 @@ afterAll(async () => {
 });
 
 describe("saved links enhanced through the shared CLI HTTP interface", () => {
+  it("backfills a preview once through the negotiated CLI API and serves its WebP via the CDN", async () => {
+    const saved = await client.createLink({ url: "https://example.com/preview" });
+    expect((await client.claimXJob()).job).toBeNull();
+    const claims = await Promise.all([client.claimConnectorJob(), client.claimConnectorJob()]);
+    const jobs = claims.flatMap((result) => (result.job ? [result.job] : []));
+    expect(jobs).toHaveLength(1);
+    const job = unwrap(jobs[0]);
+    if (job.source !== "screenshot") throw new Error("Expected a screenshot job");
+    expect(job.linkId).toBe(saved.link.id);
+    const bytes = await readFile("cli/tests/fixtures/screenshot.webp");
+    const file = {
+      path: join(dir, "preview.webp"),
+      size: bytes.length,
+      mime: "image/webp",
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    };
+    await writeFile(file.path, bytes);
+    await client.connectorAction(job, { action: "renew" });
+    await client.uploadScreenshot(job, file);
+    await client.uploadScreenshot(job, file);
+    const url = unwrap((await client.getLink(job.linkId)).link.screenshotUrl);
+    expect(new URL(url).pathname).toMatch(/\/[a-f0-9]+\/\d{8}\/[a-f0-9-]{36}\.webp$/);
+    const response = await fetch(url);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    expect((await client.claimConnectorJob()).job).toBeNull();
+    const updated = await client.updateLink(job.linkId, {
+      originalUrl: "https://example.com/changed",
+    });
+    expect(updated.link.screenshotUrl).toBeNull();
+    await expect(client.uploadScreenshot(job, file)).rejects.toMatchObject({ status: 409 });
+    await client.deleteLink(job.linkId);
+    expect((await fetch(url)).status).toBe(404);
+  });
   it("collects GitHub snapshots through negotiated CLI jobs and atomically preserves README text", async () => {
     const saved = await client.createLink({ url: "https://github.com/octocat/Hello-World" });
     expect((await client.claimXJob()).job).toBeNull();

@@ -210,7 +210,10 @@ export async function updateLink(
     `UPDATE links SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params,
   );
-  if (rows.length && data.originalUrl !== undefined) await drainR2Deletions(userId).catch(() => {});
+  if (rows.length && (data.originalUrl !== undefined || data.screenshotUrl !== undefined))
+    await drainR2Deletions(userId).catch(() => {});
+  // SQLite RETURNING precedes AFTER triggers, which can clear an old generated preview.
+  if (rows.length && data.originalUrl !== undefined) return getLinkById(userId, id);
   return rows[0] ? rowToLink(rows[0]) : null;
 }
 

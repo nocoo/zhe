@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { claimGitHubBookmark, connectorStates } from "@/lib/connector/github-jobs";
 import { authorizeConnector, connectorFailure, connectorResponse } from "@/lib/connector/http";
-import { claimXBookmark } from "@/lib/connector/jobs";
+import { claimConnectorJob, connectorStates } from "@/lib/connector/scheduler";
 import { executeD1Query } from "@/lib/db/d1-client";
 
 export async function GET(request: NextRequest) {
@@ -29,9 +28,8 @@ export async function POST(request: NextRequest) {
     if (auth instanceof NextResponse) return auth;
     // Old CLI versions keep receiving only the X jobs they understand.
     const sources = request.headers.get("x-connector-sources")?.split(",") ?? ["x"];
-    const github = sources.includes("github") ? await claimGitHubBookmark(auth) : null;
     return connectorResponse({
-      job: github ?? (sources.includes("x") ? await claimXBookmark(auth) : null),
+      job: await claimConnectorJob(auth, sources),
     });
   } catch (error) {
     return connectorFailure(error);

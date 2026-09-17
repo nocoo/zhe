@@ -271,6 +271,33 @@ export const githubBookmarks = sqliteTable(
   (t) => [index("idx_github_bookmarks_poll").on(t.userId, t.state, t.nextAttemptAt)],
 );
 
+export const screenshotJobs = sqliteTable(
+  "screenshot_jobs",
+  {
+    linkId: integer("link_id")
+      .primaryKey()
+      .references(() => links.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceUrl: text("source_url").notNull(),
+    state: text("state", { enum: ["pending", "running", "complete", "failed", "unavailable"] })
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+    leaseKeyId: text("lease_key_id"),
+    leaseToken: text("lease_token"),
+    leaseUntil: integer("lease_until").notNull().default(0),
+    r2Key: text("r2_key").unique(),
+    publicUrl: text("public_url"),
+    sha256: text("sha256"),
+    errorCode: text("error_code"),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (t) => [index("idx_screenshot_jobs_poll").on(t.userId, t.state, t.nextAttemptAt)],
+);
+
 export const xMedia = sqliteTable(
   "x_media",
   {

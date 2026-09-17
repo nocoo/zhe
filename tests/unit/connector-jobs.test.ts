@@ -8,6 +8,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadConnectorSummary,
+  loadScreenshotPreviews,
   loadXBookmarks,
   retryXBookmarkAction,
   updateXMediaDimensionsAction,
@@ -23,6 +24,10 @@ import { POST as updateGitHubJob } from "@/app/api/v1/connector/github/jobs/[id]
 import { PUT as uploadMedia } from "@/app/api/v1/connector/jobs/[id]/media/[assetId]/route";
 import { POST as updateJob } from "@/app/api/v1/connector/jobs/[id]/route";
 import { POST as poll, GET as status } from "@/app/api/v1/connector/route";
+import {
+  POST as updateScreenshotJob,
+  PUT as uploadScreenshot,
+} from "@/app/api/v1/connector/screenshot/jobs/[id]/route";
 import { normalizeXPost, type XCapture } from "@/cli/src/connector/core";
 import * as authContext from "@/lib/auth-context";
 import { connectorKeyActive } from "@/lib/connector/auth";
@@ -35,12 +40,23 @@ import {
   saveGitHubAnalysis,
 } from "@/lib/connector/github-jobs";
 import { type MediaReservation, reserveXMedia, writeXMedia } from "@/lib/connector/media";
+import { claimConnectorJob } from "@/lib/connector/scheduler";
+import {
+  claimScreenshot,
+  failScreenshot,
+  renewScreenshot,
+  writeScreenshot,
+} from "@/lib/connector/screenshot-jobs";
 import * as d1 from "@/lib/db/d1-client";
-import { deleteLink as scopedDeleteLink } from "@/lib/db/scoped/links";
+import {
+  deleteLink as scopedDeleteLink,
+  updateLink as scopedUpdateLink,
+} from "@/lib/db/scoped/links";
 import { deleteUpload as scopedDeleteUpload } from "@/lib/db/scoped/uploads";
 import * as r2 from "@/lib/r2/client";
 import { drainR2Deletions, enqueueR2Deletion } from "@/lib/r2/gc";
 import { hashApiKey } from "@/models/api-key";
+import { hashUserId } from "@/models/upload";
 
 vi.mock("@/lib/auth-context", () => ({ requireAuth: async () => "owner" }));
 
@@ -116,6 +132,16 @@ const repository = {
   readmePath: ".github/README.md",
 };
 
+const screenshot = readFileSync("cli/tests/fixtures/screenshot.webp");
+const screenshotDigest = createHash("sha256").update(screenshot).digest("hex");
+const screenshotBody = (bytes = screenshot) =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(bytes));
+      controller.close();
+    },
+  });
+
 function link(url = source, owner = "owner", slug = crypto.randomUUID()) {
   return Number(
     db
@@ -165,6 +191,307 @@ afterEach(() => {
   rmSync(storageDir, { recursive: true, force: true });
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+});
+
+describe("serialized webpage previews", () => {
+  it("discovers missing previews, excluding entire special sites and existing screenshots", async () => {
+    const excluded = [
+      "https://x.com",
+      "https://mobile.twitter.com/person",
+      "https://x.com/i/article/1",
+      "https://github.com/",
+      "https://docs.github.com/en",
+      "https://github.com.?q=x",
+    ];
+    for (const url of excluded) link(url);
+    const existing = link("https://example.com/already-saved");
+    db.prepare("UPDATE links SET screenshot_url=? WHERE id=?").run(
+      "https://cdn.example.com/manual.webp",
+      existing,
+    );
+    link("https://127.0.0.1/private");
+    link("https://example.com/foreign", "other");
+    const id = link("https://example.com/article");
+    db.prepare("UPDATE links SET screenshot_url=' ' WHERE id=?").run(id);
+    const job = required(await claimScreenshot(identity));
+    expect(job).toMatchObject({
+      source: "screenshot",
+      linkId: id,
+      sourceUrl: "https://example.com/article",
+      attempts: 1,
+    });
+    expect(
+      rows("screenshot_jobs").filter((row) => excluded.includes(String(row.source_url))),
+    ).toEqual([]);
+    expect(await claimScreenshot(identity)).toBeNull();
+    expect(await renewScreenshot(other, id, job.leaseToken)).toBe(false);
+    expect(await renewScreenshot(identity, id, job.leaseToken)).toBe(true);
+  });
+
+  it("allows one active job per owner across every source and API key", async () => {
+    link();
+    link("https://github.com/octocat/Hello-World");
+    link("https://example.com/article");
+    db.prepare(
+      "INSERT INTO api_keys(id,prefix,key_hash,user_id,name,scopes,created_at) VALUES('second','second','second','owner','second','connector:write',0)",
+    ).run();
+    const claims = await Promise.all([
+      claimXBookmark(identity),
+      claimGitHubBookmark({ userId: "owner", keyId: "second" }),
+      claimScreenshot(identity),
+    ]);
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    expect(await claimConnectorJob(identity, ["x", "github", "screenshot"])).toBeNull();
+    link("https://example.com/foreign", "other");
+    expect(await claimScreenshot(other)).toMatchObject({ userId: "other" });
+  });
+
+  it("rotates busy sources and respects older clients' capabilities", async () => {
+    link();
+    link(source);
+    link("https://github.com/octocat/Hello-World");
+    link("https://example.com/article");
+    const sources: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      vi.mocked(Date.now).mockReturnValue(now + i * 1000);
+      const job = required(await claimConnectorJob(identity, ["x", "github", "screenshot"]));
+      sources.push(job.source ?? "x");
+      if (job.source === "github")
+        await failGitHubBookmark(identity, job.linkId, job.leaseToken, "interrupted");
+      else if (job.source === "screenshot")
+        await failScreenshot(identity, job.linkId, job.leaseToken, "interrupted");
+      else await failXBookmark(identity, job.linkId, job.leaseToken, "interrupted");
+    }
+    expect(sources).toEqual(["github", "x", "screenshot", "x"]);
+    link("https://example.com/second");
+    expect(await claimConnectorJob(identity, ["x", "github"])).toBeNull();
+    expect(await claimConnectorJob(identity, ["screenshot"])).toMatchObject({
+      source: "screenshot",
+    });
+  });
+
+  it("publishes once at the standard R2 key and returns the CDN URL to the owner", async () => {
+    const id = link("https://example.com/article");
+    const job = required(await claimScreenshot(identity));
+    const upload = vi.spyOn(r2, "uploadBufferToR2");
+    expect(
+      await writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(true);
+    expect(
+      await writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(true);
+    expect(upload).toHaveBeenCalledOnce();
+    expect(upload.mock.calls[0]?.[2]).toBe("image/webp");
+    const hash = await hashUserId("owner", "connector-test-salt");
+    const [object] = await r2.listR2Objects();
+    expect(object?.key).toMatch(new RegExp(`^${hash}/\\d{8}/[a-f0-9-]{36}\\.webp$`));
+    const url = `https://cdn.example.com/${object?.key}`;
+    expect(db.prepare("SELECT screenshot_url FROM links WHERE id=?").get(id)?.screenshot_url).toBe(
+      url,
+    );
+    expect((await loadScreenshotPreviews([id])).data).toEqual([
+      { id, originalUrl: job.sourceUrl, screenshotUrl: url },
+    ]);
+    expect(await loadScreenshotPreviews([-1])).toEqual({ success: false });
+    expect(await loadScreenshotPreviews([])).toEqual({ success: true, data: [] });
+    expect(
+      await writeScreenshot(other, id, job.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(false);
+    expect(await claimScreenshot(identity)).toBeNull();
+    expect(await drainR2Deletions("owner")).toBe(0);
+    await scopedDeleteLink("owner", id);
+    await drainR2Deletions("owner");
+    expect(await r2.listR2Objects()).toEqual([]);
+  });
+
+  it("locks concurrent PUTs and protects the reserved object from orphan cleanup", async () => {
+    const id = link("https://example.com/article");
+    const job = required(await claimScreenshot(identity));
+    const original = r2.uploadBufferToR2;
+    const gate = Promise.withResolvers<void>();
+    const upload = vi.spyOn(r2, "uploadBufferToR2").mockImplementation(async (...args) => {
+      await original(...args);
+      await gate.promise;
+    });
+    const first = writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody());
+    await vi.waitFor(() => expect(upload).toHaveBeenCalledOnce());
+    expect(
+      await writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(false);
+    expect(await drainR2Deletions("owner")).toBe(0);
+    expect((await scanStorage()).data?.r2.summary.orphanFiles).toBe(0);
+    gate.resolve();
+    expect(await first).toBe(true);
+  });
+
+  it.each(["url", "manual", "delete", "revoke", "expire"])(
+    "rejects stale publication after %s during upload",
+    async (change) => {
+      const id = link("https://example.com/article");
+      const job = required(await claimScreenshot(identity));
+      const original = r2.uploadBufferToR2;
+      vi.spyOn(r2, "uploadBufferToR2").mockImplementationOnce(async (...args) => {
+        if (change === "url")
+          db.prepare("UPDATE links SET original_url='https://example.com/new' WHERE id=?").run(id);
+        if (change === "manual")
+          db.prepare(
+            "UPDATE links SET screenshot_url='https://cdn.example.com/manual.webp' WHERE id=?",
+          ).run(id);
+        if (change === "delete") db.prepare("DELETE FROM links WHERE id=?").run(id);
+        if (change === "revoke")
+          db.prepare("UPDATE api_keys SET revoked_at=1 WHERE id=?").run(identity.keyId);
+        if (change === "expire") vi.mocked(Date.now).mockReturnValue(job.leaseUntil + 1);
+        // Simulate cleanup winning the race before a late R2 write finishes.
+        await drainR2Deletions("owner");
+        await original(...args);
+      });
+      expect(
+        await writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody()),
+      ).toBe(false);
+      expect(
+        db.prepare("SELECT screenshot_url FROM links WHERE id=?").get(id)?.screenshot_url ?? null,
+      ).toBe(change === "manual" ? "https://cdn.example.com/manual.webp" : null);
+      vi.mocked(Date.now).mockReturnValue(job.leaseUntil + 1);
+      await drainR2Deletions("owner");
+      expect(await r2.listR2Objects()).toEqual([]);
+    },
+  );
+
+  it("retires the old generated preview when its source changes and preserves manual replacements", async () => {
+    const id = link("https://example.com/article");
+    const job = required(await claimScreenshot(identity));
+    await writeScreenshot(identity, id, job.leaseToken, screenshotDigest, screenshotBody());
+    const updated = await scopedUpdateLink("owner", id, { originalUrl: "https://example.com/new" });
+    expect(updated?.screenshotUrl).toBeNull();
+    expect(
+      db.prepare("SELECT screenshot_url FROM links WHERE id=?").get(id)?.screenshot_url,
+    ).toBeNull();
+    await drainR2Deletions("owner");
+    expect(await r2.listR2Objects()).toEqual([]);
+    const next = required(await claimScreenshot(identity));
+    expect(next.sourceUrl).toBe("https://example.com/new");
+    await writeScreenshot(identity, id, next.leaseToken, screenshotDigest, screenshotBody());
+    db.prepare(
+      "UPDATE links SET screenshot_url='https://cdn.example.com/manual.webp' WHERE id=?",
+    ).run(id);
+    await drainR2Deletions("owner");
+    expect(await r2.listR2Objects()).toEqual([]);
+    expect(await claimScreenshot(identity)).toBeNull();
+  });
+
+  it("retries with backoff and fresh keys, then stops after five failures", async () => {
+    const id = link("https://example.com/article");
+    const keys = new Set<string>();
+    let time = now;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      vi.mocked(Date.now).mockReturnValue(time);
+      const job = required(await claimScreenshot(identity));
+      keys.add(String(rows("screenshot_jobs")[0]?.r2_key));
+      expect(job.attempts).toBe(attempt);
+      expect(await failScreenshot(identity, id, job.leaseToken, "private upstream error")).toBe(
+        true,
+      );
+      expect(rows("screenshot_jobs")[0]?.error_code).toBe("connector_error");
+      expect(await claimScreenshot(identity)).toBeNull();
+      time = Number(rows("screenshot_jobs")[0]?.next_attempt_at);
+    }
+    vi.mocked(Date.now).mockReturnValue(time + 1);
+    expect(await claimScreenshot(identity)).toBeNull();
+    expect(keys.size).toBe(5);
+  });
+
+  it("fences an expired worker from a replacement lease", async () => {
+    const id = link("https://example.com/article");
+    const first = required(await claimScreenshot(identity));
+    const firstKey = rows("screenshot_jobs")[0]?.r2_key;
+    vi.mocked(Date.now).mockReturnValue(first.leaseUntil + 1);
+    const second = required(await claimScreenshot(identity));
+    expect(second.leaseToken).not.toBe(first.leaseToken);
+    expect(rows("screenshot_jobs")[0]?.r2_key).not.toBe(firstKey);
+    expect(
+      await writeScreenshot(identity, id, first.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(false);
+    expect(
+      await writeScreenshot(identity, id, second.leaseToken, screenshotDigest, screenshotBody()),
+    ).toBe(true);
+  });
+
+  it("checks upload dimensions, digest and HTTP content bounds before publishing", async () => {
+    const id = link("https://example.com/article");
+    const job = required(await claimScreenshot(identity));
+    await expect(
+      writeScreenshot(identity, id, job.leaseToken, "invalid", screenshotBody()),
+    ).rejects.toThrow("invalid_screenshot");
+    await expect(
+      writeScreenshot(
+        identity,
+        id,
+        job.leaseToken,
+        screenshotDigest,
+        screenshotBody(Buffer.alloc(512 * 1024 + 1)),
+      ),
+    ).rejects.toThrow("screenshot_too_large");
+    await expect(
+      writeScreenshot(identity, id, job.leaseToken, "0".repeat(64), screenshotBody()),
+    ).rejects.toThrow("digest_mismatch");
+    await expect(
+      writeScreenshot(
+        identity,
+        id,
+        job.leaseToken,
+        screenshotDigest,
+        screenshotBody(Buffer.from("not a screenshot")),
+      ),
+    ).rejects.toThrow("invalid_screenshot");
+    expect(await r2.listR2Objects()).toEqual([]);
+    const context = { params: Promise.resolve({ id: String(id) }) };
+    const headers = {
+      authorization: "Bearer zhe_test_cli-key",
+      "x-connector-lease": job.leaseToken,
+      "x-content-sha256": screenshotDigest,
+    };
+    expect(
+      (
+        await uploadScreenshot(
+          new NextRequest("https://zhe.to/api/v1/connector/screenshot/jobs/1", {
+            method: "PUT",
+            headers: { ...headers, "content-type": "image/png" },
+            body: screenshot,
+          }),
+          context,
+        )
+      ).status,
+    ).toBe(415);
+    expect(
+      (
+        await uploadScreenshot(
+          new NextRequest("https://zhe.to/api/v1/connector/screenshot/jobs/1", {
+            method: "PUT",
+            headers: { ...headers, "content-type": "image/webp", "content-length": "524289" },
+            body: screenshot,
+          }),
+          context,
+        )
+      ).status,
+    ).toBe(413);
+    const action = (action: string) =>
+      new NextRequest("https://zhe.to/api/v1/connector/screenshot/jobs/1", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ action }),
+      });
+    expect((await updateScreenshotJob(action("complete"), context)).status).toBe(400);
+    expect((await updateScreenshotJob(action("renew"), context)).status).toBe(200);
+    const put = () =>
+      new NextRequest("https://zhe.to/api/v1/connector/screenshot/jobs/1", {
+        method: "PUT",
+        headers: { ...headers, "content-type": "image/webp" },
+        body: screenshot,
+      });
+    expect((await uploadScreenshot(put(), context)).status).toBe(200);
+    expect((await uploadScreenshot(put(), context)).status).toBe(200);
+    expect((await updateScreenshotJob(action("renew"), context)).status).toBe(409);
+  });
 });
 
 describe("GitHub Connector snapshots", () => {
@@ -391,6 +718,21 @@ describe("GitHub Connector snapshots", () => {
 });
 
 describe("Connector HTTP boundary uses the same CLI authentication", () => {
+  it("returns retryable failures from dashboard actions when D1 is unavailable", async () => {
+    vi.spyOn(d1, "executeD1Query").mockRejectedValue(new Error("D1 unavailable"));
+    for (const action of [
+      () => loadXBookmarks([1]),
+      () => loadScreenshotPreviews([1]),
+      () => loadGitHubBookmarks([1]),
+      () => loadGitHubReadme(1),
+      () => retryXBookmarkAction(1),
+      () => retryGitHubBookmarkAction(1),
+      () => updateXMediaDimensionsAction(1, [{ id: "1", width: 1600, height: 1200 }]),
+    ]) {
+      await expect(action()).resolves.toEqual({ success: false });
+    }
+  });
+
   it("reports only actual Connector activity, and keeps the public webhook supported", async () => {
     db.prepare("UPDATE api_keys SET last_used_at=? WHERE id=?").run(
       Math.floor(now / 1000),
@@ -1065,9 +1407,15 @@ describe("discover saved bookmarks, then enrich", () => {
     link("https://example.com/article");
     link(source, "other");
     const before = rows("links");
-    const jobs = await Promise.all(ids.map(() => claimXBookmark(identity, now)));
-    expect(new Set(jobs.map((j) => j?.linkId))).toEqual(new Set(ids));
-    expect(jobs.every((j) => j?.postId === postId && j.userId === "owner")).toBe(true);
+    const claims = await Promise.all(ids.map(() => claimXBookmark(identity, now)));
+    const jobs = claims.filter((job) => job !== null);
+    expect(jobs).toHaveLength(1);
+    for (const id of ids) {
+      const job = required(jobs.at(-1));
+      expect(job).toMatchObject({ linkId: id, postId, userId: "owner" });
+      await failXBookmark(identity, id, job.leaseToken, "interrupted", now);
+      if (id !== ids.at(-1)) jobs.push(required(await claimXBookmark(identity, now)));
+    }
     expect(await claimXBookmark(identity, now)).toBeNull();
     expect(rows("links")).toEqual(before);
   });

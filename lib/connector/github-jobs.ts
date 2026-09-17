@@ -11,7 +11,15 @@ import type { GitHubJob } from "@/cli/src/connector/types";
 import { executeD1Batch, executeD1Query } from "@/lib/db/d1-client";
 import type { GitHubAnalysis } from "@/models/ai-github-analysis";
 import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth";
-import { ELIGIBLE_SQL, LEASE_MS, LEASE_SQL, leaseParams } from "./jobs";
+import {
+  CONNECTOR_IDLE_SQL,
+  connectorIdleParams,
+  connectorIsIdle,
+  ELIGIBLE_SQL,
+  LEASE_MS,
+  LEASE_SQL,
+  leaseParams,
+} from "./jobs";
 
 type JobRow = {
   link_id: number;
@@ -67,7 +75,8 @@ export async function claimGitHubBookmark(
     const token = randomUUID();
     const [row] = await executeD1Query<JobRow>(
       `UPDATE github_bookmarks SET full_name=?,state=?,attempts=attempts+1,lease_key_id=?,lease_token=?,lease_until=?,updated_at=?
-        WHERE link_id=? AND user_id=? AND source_url=? AND ${ELIGIBLE_SQL} AND ${ACTIVE_KEY_SQL} RETURNING link_id,attempts,lease_until`,
+        WHERE link_id=? AND user_id=? AND source_url=? AND ${ELIGIBLE_SQL} AND ${ACTIVE_KEY_SQL}
+          AND ${CONNECTOR_IDLE_SQL} RETURNING link_id,attempts,lease_until`,
       [
         repository?.fullName ?? null,
         repository ? "running" : "unavailable",
@@ -81,8 +90,10 @@ export async function claimGitHubBookmark(
         now,
         now,
         ...activeKeyParams(auth, now),
+        ...connectorIdleParams(auth, now),
       ],
     );
+    if (!row && !(await connectorIsIdle(auth, now))) return null;
     if (row && repository)
       return {
         source: "github",
@@ -243,12 +254,4 @@ export async function saveGitHubAnalysis(
     [JSON.stringify(analysis), Date.now(), userId, id, sourceUrl, readme, id, userId, sourceUrl],
   );
   return rows.length > 0;
-}
-
-export async function connectorStates(userId: string): Promise<{ state: string; count: number }[]> {
-  return executeD1Query(
-    `SELECT state,COUNT(*) AS count FROM (SELECT state FROM x_bookmarks WHERE user_id=?
-      UNION ALL SELECT state FROM github_bookmarks WHERE user_id=?) GROUP BY state`,
-    [userId, userId],
-  );
 }

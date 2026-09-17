@@ -17,7 +17,11 @@ export async function enqueueR2Deletion(
 
 /** Also protects uploads that have been reserved but not published yet. */
 export async function connectorStorageKeys(): Promise<string[]> {
-  const rows = await executeD1Query<{ r2_key: string }>("SELECT r2_key FROM x_media");
+  const rows = await executeD1Query<{ r2_key: string }>(
+    `SELECT r2_key FROM x_media UNION ALL SELECT r2_key FROM screenshot_jobs
+      WHERE r2_key IS NOT NULL AND (state='complete' OR (state='running' AND lease_until>?))`,
+    [Date.now()],
+  );
   return rows.map((row) => row.r2_key);
 }
 
@@ -34,18 +38,20 @@ export async function drainR2Deletions(userId?: string, now = Date.now()): Promi
     `SELECT key,created_at FROM r2_deletions d
     WHERE NOT EXISTS(SELECT 1 FROM uploads WHERE key=d.key)
       AND NOT EXISTS(SELECT 1 FROM x_media WHERE r2_key=d.key)
+      AND NOT EXISTS(SELECT 1 FROM screenshot_jobs WHERE r2_key=d.key AND (state='complete' OR (state='running' AND lease_until>?)))
       AND NOT EXISTS(SELECT 1 FROM links WHERE screenshot_url=? || '/' || d.key)
       ${userId ? "AND user_id=?" : ""}
     ORDER BY created_at LIMIT 100`,
-    [publicDomain, ...(userId ? [userId] : [])],
+    [now, publicDomain, ...(userId ? [userId] : [])],
   );
   let deleted = 0;
   for (const { key, created_at } of pending) {
     const referenced = await executeD1Query(
       `SELECT 1 FROM uploads WHERE key=?
       UNION ALL SELECT 1 FROM x_media WHERE r2_key=?
+      UNION ALL SELECT 1 FROM screenshot_jobs WHERE r2_key=? AND (state='complete' OR (state='running' AND lease_until>?))
       UNION ALL SELECT 1 FROM links WHERE screenshot_url=? LIMIT 1`,
-      [key, key, `${publicDomain}/${key}`],
+      [key, key, key, Math.max(now, Date.now()), `${publicDomain}/${key}`],
     );
     if (referenced.length) continue;
     try {

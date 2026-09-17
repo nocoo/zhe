@@ -2,8 +2,8 @@
 
 import type { XCapture } from "@/cli/src/connector/core";
 import { requireAuth } from "@/lib/auth-context";
-import { connectorStates } from "@/lib/connector/github-jobs";
 import { getXBookmarks, type XBookmark } from "@/lib/connector/jobs";
+import { connectorStates } from "@/lib/connector/scheduler";
 import { executeD1Query } from "@/lib/db/d1-client";
 import type { XMediaDimensions } from "@/models/x-bookmarks";
 
@@ -78,6 +78,38 @@ export async function loadXBookmarks(
     return { success: false };
   try {
     return { success: true, data: await getXBookmarks(userId, ids) };
+  } catch {
+    return { success: false };
+  }
+}
+
+export async function loadScreenshotPreviews(ids: number[]): Promise<{
+  success: boolean;
+  data?: { id: number; originalUrl: string; screenshotUrl: string }[];
+}> {
+  const userId = await requireAuth();
+  if (
+    !userId ||
+    !Array.isArray(ids) ||
+    ids.length > 80 ||
+    ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+  )
+    return { success: false };
+  if (!ids.length) return { success: true, data: [] };
+  try {
+    const rows = await executeD1Query<{ id: number; original_url: string; screenshot_url: string }>(
+      `SELECT id,original_url,screenshot_url FROM links WHERE user_id=? AND screenshot_url IS NOT NULL
+        AND trim(screenshot_url)<>'' AND id IN (${ids.map(() => "?").join(",")})`,
+      [userId, ...ids],
+    );
+    return {
+      success: true,
+      data: rows.map((row) => ({
+        id: row.id,
+        originalUrl: row.original_url,
+        screenshotUrl: row.screenshot_url,
+      })),
+    };
   } catch {
     return { success: false };
   }

@@ -1,19 +1,8 @@
-export type SpecialSource = "github" | "x";
+import { getSpecialSource, type SpecialSource } from "@/cli/src/connector/sources";
+
+export { getSpecialSource, type SpecialSource };
 export type SpecialSources = Record<SpecialSource, boolean>;
 export const DEFAULT_SPECIAL_SOURCES: SpecialSources = { github: true, x: false };
-
-/** Covers the entire source site, including profiles and native X articles. */
-export function getSpecialSource(raw: string): SpecialSource | null {
-  try {
-    const { hostname } = new URL(raw);
-    if (["x.com", "twitter.com"].some((host) => hostname === host || hostname.endsWith(`.${host}`)))
-      return "x";
-    if (hostname === "github.com" || hostname.endsWith(".github.com")) return "github";
-  } catch {
-    /* Ordinary malformed URLs do not become a special source. */
-  }
-  return null;
-}
 
 export function matchesSpecialSources(url: string, sources: SpecialSources): boolean {
   const source = getSpecialSource(url);
