@@ -134,7 +134,7 @@ export function useInlineLinkEditViewModel(
       if (result.noteFailed) {
         setError("Link saved but note update failed");
       }
-      return true;
+      return !result.noteFailed;
     } catch {
       setError("An unexpected error occurred");
       return false;

@@ -253,7 +253,7 @@ describe("useInlineLinkEditViewModel", () => {
       expect(cbs.onLinkUpdated).not.toHaveBeenCalled();
     });
 
-    it("still updates list when updateLinkNote fails, shows warning", async () => {
+    it("keeps the editor open when the link saves but the note fails", async () => {
       const link = makeLink({ id: 1, note: null });
       const cbs = makeCallbacks();
 
@@ -273,7 +273,7 @@ describe("useInlineLinkEditViewModel", () => {
       });
 
       await act(async () => {
-        await result.current.saveEdit();
+        expect(await result.current.saveEdit()).toBe(false);
       });
 
       // Link update succeeded — list should still be updated

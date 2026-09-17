@@ -136,7 +136,7 @@ function useFaviconState(_metaFavicon: string | null | undefined) {
 export function useLinkCardViewModel(
   link: Link,
   siteUrl: string,
-  onDelete: (id: number) => void,
+  onDelete: (id: number) => void | Promise<void>,
   onUpdate: (link: Link) => void,
 ) {
   const shortUrl = buildShortUrl(siteUrl, link.slug);
@@ -157,12 +157,18 @@ export function useLinkCardViewModel(
 
   const [isDeleting, setIsDeleting] = useState(false);
   const handleDelete = useCallback(async () => {
+    if (isDeleting) return;
     setIsDeleting(true);
-    const result = await deleteLink(link.id);
-    if (result.success) onDelete(link.id);
-    else toast.error("删除失败", { description: result.error || "Failed to delete link" });
-    setIsDeleting(false);
-  }, [link.id, onDelete]);
+    try {
+      const result = await deleteLink(link.id);
+      if (result.success) await onDelete(link.id);
+      else toast.error("删除失败", { description: result.error || "Failed to delete link" });
+    } catch {
+      toast.error("删除失败", { description: "请稍后重试" });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [link.id, onDelete, isDeleting]);
 
   return {
     shortUrl,

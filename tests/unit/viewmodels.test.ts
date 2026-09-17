@@ -216,6 +216,19 @@ describe("useLinkCardViewModel", () => {
     expect(result.current.isDeleting).toBe(false);
   });
 
+  it("keeps the card and clears the busy state when deletion throws", async () => {
+    vi.mocked(deleteLink).mockRejectedValue(new Error("Network unavailable"));
+    const { result } = renderHook(() =>
+      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+    );
+    await act(async () => {
+      await result.current.handleDelete();
+    });
+    expect(mockOnDelete).not.toHaveBeenCalled();
+    expect(result.current.isDeleting).toBe(false);
+    expect(mockToast.error).toHaveBeenCalledWith("删除失败", { description: "请稍后重试" });
+  });
+
   it("handleDelete shows default error message when error is empty", async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: false });
 
