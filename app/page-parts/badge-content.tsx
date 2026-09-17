@@ -1,21 +1,25 @@
-import { Button, ThemeToggle } from "@nocoo/basalt";
+import { HeaderTooltip, HexlyLink } from "../../components/header-links";
+import { ThemeToggle } from "../../components/theme-toggle";
+import { Button } from "@nocoo/basalt";
 import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
 
 export function TopRightControls() {
   return (
     <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
-      <Button variant="ghost" size="icon" asChild>
-        <a
-          href="https://github.com/nocoo/zhe"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="GitHub"
-          aria-label="GitHub"
-        >
-          <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-        </a>
-      </Button>
+      <HeaderTooltip label="GitHub repository">
+        <Button variant="ghost" size="icon" asChild>
+          <a
+            href="https://github.com/nocoo/zhe"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+          >
+            <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          </a>
+        </Button>
+      </HeaderTooltip>
+      <HexlyLink />
       <ThemeToggle aria-label="切换主题" />
     </div>
   );

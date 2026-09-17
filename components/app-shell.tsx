@@ -1,6 +1,10 @@
 "use client";
 
-import { Button, ContentIsland, Sheet, SheetContent, SheetTitle, ThemeToggle } from "@nocoo/basalt";
+import { HeaderTooltip, HexlyLink } from "./header-links";
+
+import { ThemeToggle } from "./theme-toggle";
+
+import { Button, ContentIsland, Sheet, SheetContent, SheetTitle } from "@nocoo/basalt";
 import { AppHeader } from "@nocoo/basalt/components/app-header";
 import {
   AppMain,
@@ -90,33 +94,37 @@ function AppShellInner({
         <AppHeader
           leading={
             isMobile ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={toggle}
-                aria-label="Open menu"
-              >
-                <Menu className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
-              </Button>
+              <HeaderTooltip label="Open navigation menu">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={toggle}
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+                </Button>
+              </HeaderTooltip>
             ) : null
           }
           breadcrumbs={breadcrumbs}
           title={title}
           actions={
             <>
-              <Button variant="ghost" size="icon" asChild>
-                <a
-                  href="https://github.com/nocoo/zhe"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="GitHub"
-                  aria-label="GitHub"
-                >
-                  <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                </a>
-              </Button>
+              <HeaderTooltip label="GitHub repository">
+                <Button variant="ghost" size="icon" asChild>
+                  <a
+                    href="https://github.com/nocoo/zhe"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub"
+                  >
+                    <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                  </a>
+                </Button>
+              </HeaderTooltip>
+              <HexlyLink />
               <ThemeToggle aria-label="切换主题" />
             </>
           }
