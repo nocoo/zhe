@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.26.2] - 2026-09-17
+
+### Added
+- Unify enriched search and add keyboard-accessible results page
+
+### Changed
+- Standardize claude handbook
+- Upgrade basalt to 2.1.8
+- Update wrangler
+- Update workers-types
+- Update biome
+- Update s3-request-presigner
+- Update client-s3
+- Align AI SDK provider interfaces
+- Align vitest 5.0.1
+
+### Fixed
+- Keep favicons and transparent previews visible in dark mode
+
 ## [v1.26.1] - 2026-09-17
 
 ### Fixed
