@@ -2,12 +2,12 @@
 
 import {
   BarChart3,
-  Camera,
   Check,
   ChevronDown,
   ChevronUp,
   Copy,
   ImageIcon,
+  ImageOff,
   Link2,
   Loader2,
   Pencil,
@@ -36,13 +36,14 @@ interface ListViewProps {
   copied: boolean;
   copiedOriginalUrl: boolean;
   isEditing: boolean;
-  isFetchingPreview: boolean;
+  canDeleteScreenshot: boolean;
+  isDeletingScreenshot: boolean;
   isRefreshingMetadata: boolean;
   showAnalytics: boolean;
   onFaviconError: () => void;
   onCopy: () => void;
   onCopyOriginalUrl: () => void;
-  onOpenPreviewDialog: () => void;
+  onDeleteScreenshot: () => void;
   onToggleEdit: () => void;
   onToggleAnalytics: () => void;
   onRefreshMetadata: () => void;
@@ -181,10 +182,11 @@ function ListMetaRow({
 
 function ListActions({
   isEditing,
-  isFetchingPreview,
+  canDeleteScreenshot,
+  isDeletingScreenshot,
   isRefreshingMetadata,
   onRefreshMetadata,
-  onOpenPreviewDialog,
+  onDeleteScreenshot,
   onToggleEdit,
   onSuggest,
   suggestDisabled,
@@ -192,10 +194,11 @@ function ListActions({
   xBookmark,
 }: {
   isEditing: boolean;
-  isFetchingPreview: boolean;
+  canDeleteScreenshot: boolean;
+  isDeletingScreenshot: boolean;
   isRefreshingMetadata: boolean;
   onRefreshMetadata: () => void;
-  onOpenPreviewDialog: () => void;
+  onDeleteScreenshot: () => void;
   onToggleEdit: () => void;
   onSuggest?: () => void;
   suggestDisabled?: boolean;
@@ -222,20 +225,24 @@ function ListActions({
               <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
             )}
           </button>
-          <button
-            type="button"
-            onClick={onOpenPreviewDialog}
-            disabled={isFetchingPreview}
-            aria-label="Refresh preview"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="刷新预览图"
-          >
-            {isFetchingPreview ? (
-              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-            ) : (
-              <Camera className="w-4 h-4" strokeWidth={1.5} />
-            )}
-          </button>
+          {canDeleteScreenshot && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={onDeleteScreenshot}
+              disabled={isDeletingScreenshot}
+              aria-label="删除截图"
+              className="text-muted-foreground hover:text-destructive"
+              title="删除截图"
+            >
+              {isDeletingScreenshot ? (
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <ImageOff className="w-4 h-4" strokeWidth={1.5} />
+              )}
+            </Button>
+          )}
         </>
       )}
       {onSuggest && (
@@ -287,13 +294,14 @@ export function ListView(props: ListViewProps) {
     copied,
     copiedOriginalUrl,
     isEditing,
-    isFetchingPreview,
+    canDeleteScreenshot,
+    isDeletingScreenshot,
     isRefreshingMetadata,
     showAnalytics,
     onFaviconError,
     onCopy,
     onCopyOriginalUrl,
-    onOpenPreviewDialog,
+    onDeleteScreenshot,
     onToggleEdit,
     onToggleAnalytics,
     onRefreshMetadata,
@@ -340,10 +348,11 @@ export function ListView(props: ListViewProps) {
 
       <ListActions
         isEditing={isEditing}
-        isFetchingPreview={isFetchingPreview}
+        canDeleteScreenshot={canDeleteScreenshot}
+        isDeletingScreenshot={isDeletingScreenshot}
         isRefreshingMetadata={isRefreshingMetadata}
         onRefreshMetadata={onRefreshMetadata}
-        onOpenPreviewDialog={onOpenPreviewDialog}
+        onDeleteScreenshot={onDeleteScreenshot}
         onToggleEdit={onToggleEdit}
         onOpenDetails={props.onOpenDetails}
         xBookmark={props.xBookmark}

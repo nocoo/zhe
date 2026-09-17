@@ -163,7 +163,7 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 | `refreshLinkMetadata(linkId)` | 手动刷新链接元数据 |
 | `updateLinkNote(linkId, note)` | 更新链接备注 |
 | `batchRefreshLinkMetadata(linkIds)` | 批量刷新元数据（并发限制 5，上限 500） |
-| `fetchAndSaveScreenshot(linkId, url, source)` | 服务端截图获取 → R2 → 更新 DB |
+| `deleteScreenshot(linkId, screenshotUrl)` | 校验当前截图 → 清空字段并清理 R2 → 允许 Connector 重新补图 |
 | `saveScreenshot(linkId, screenshotUrl)` | 下载外部截图 → R2 → 更新 DB |
 
 ### 文件夹管理（`actions/folders.ts`）

@@ -89,7 +89,7 @@ export async function createPresignedUploadUrl(key: string, contentType: string)
 
 /**
  * Upload a buffer directly to R2 (server-side).
- * Used for proxying external images (e.g. Microlink screenshots) into R2.
+ * Used for proxying external images and storing Connector screenshots.
  *
  * @param key         - R2 object key
  * @param body        - File content as Buffer or Uint8Array

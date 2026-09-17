@@ -2,10 +2,10 @@
 
 import {
   BarChart3,
-  Camera,
   Check,
   Copy,
   ImageIcon,
+  ImageOff,
   Link2,
   Loader2,
   Pencil,
@@ -35,12 +35,13 @@ interface GridViewProps {
   cardTags: Tag[];
   copied: boolean;
   copiedOriginalUrl: boolean;
-  isFetchingPreview: boolean;
+  canDeleteScreenshot: boolean;
+  isDeletingScreenshot: boolean;
   isRefreshingMetadata: boolean;
   onFaviconError: () => void;
   onCopy: () => void;
   onCopyOriginalUrl: () => void;
-  onOpenPreviewDialog: () => void;
+  onDeleteScreenshot: () => void;
   onToggleEdit: () => void;
   onRefreshMetadata: () => void;
   onSuggest?: () => void;
@@ -53,8 +54,9 @@ function GridScreenshot({
   link,
   screenshotUrl,
   faviconUrl,
-  isFetchingPreview,
-  onOpenPreviewDialog,
+  canDeleteScreenshot,
+  isDeletingScreenshot,
+  onDeleteScreenshot,
   onToggleEdit,
   onSuggest,
   suggestDisabled,
@@ -65,8 +67,9 @@ function GridScreenshot({
   | "link"
   | "screenshotUrl"
   | "faviconUrl"
-  | "isFetchingPreview"
-  | "onOpenPreviewDialog"
+  | "canDeleteScreenshot"
+  | "isDeletingScreenshot"
+  | "onDeleteScreenshot"
   | "onToggleEdit"
   | "onSuggest"
   | "suggestDisabled"
@@ -157,21 +160,21 @@ function GridScreenshot({
             className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
           />
         )}
-        {!onOpenDetails && (
+        {!onOpenDetails && canDeleteScreenshot && (
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            onClick={onOpenPreviewDialog}
-            disabled={isFetchingPreview}
-            aria-label="Refresh preview"
+            onClick={onDeleteScreenshot}
+            disabled={isDeletingScreenshot}
+            aria-label="删除截图"
             className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
-            title="刷新预览图"
+            title="删除截图"
           >
-            {isFetchingPreview ? (
+            {isDeletingScreenshot ? (
               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
             ) : (
-              <Camera className="w-4 h-4" strokeWidth={1.5} />
+              <ImageOff className="w-4 h-4" strokeWidth={1.5} />
             )}
           </Button>
         )}
@@ -308,8 +311,9 @@ export function GridView(props: GridViewProps) {
         link={link}
         screenshotUrl={props.screenshotUrl}
         faviconUrl={props.faviconUrl}
-        isFetchingPreview={props.isFetchingPreview}
-        onOpenPreviewDialog={props.onOpenPreviewDialog}
+        canDeleteScreenshot={props.canDeleteScreenshot}
+        isDeletingScreenshot={props.isDeletingScreenshot}
+        onDeleteScreenshot={props.onDeleteScreenshot}
         onToggleEdit={props.onToggleEdit}
         xBookmark={props.xBookmark}
         onOpenDetails={props.onOpenDetails}

@@ -25,8 +25,9 @@ const mockVm = {
   handleRefreshMetadata: vi.fn(),
   isRefreshingMetadata: false,
   screenshotUrl: null as string | null,
-  isFetchingPreview: false,
-  handleFetchPreview: vi.fn(),
+  canDeleteScreenshot: false,
+  isDeletingScreenshot: false,
+  handleDeleteScreenshot: vi.fn(),
   faviconUrl: null as string | null,
   faviconError: false,
   handleFaviconError: vi.fn(),
@@ -147,7 +148,8 @@ describe("LinkCard", () => {
     mockVm.isLoadingAnalytics = false;
     mockVm.isRefreshingMetadata = false;
     mockVm.screenshotUrl = null;
-    mockVm.isFetchingPreview = false;
+    mockVm.canDeleteScreenshot = false;
+    mockVm.isDeletingScreenshot = false;
     mockVm.faviconUrl = null;
     mockVm.faviconError = false;
     mockEditVm.isSaving = false;
@@ -583,19 +585,11 @@ describe("LinkCard", () => {
 
   it("shows placeholder icon when no screenshot and not loading in grid mode", () => {
     mockVm.screenshotUrl = null;
-    mockVm.isFetchingPreview = false;
+    mockVm.isDeletingScreenshot = false;
     const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
 
     const svgs = container.querySelectorAll("svg");
     expect(svgs.length).toBeGreaterThan(0);
-  });
-
-  it("shows spinner when preview is fetching in grid mode", () => {
-    mockVm.isFetchingPreview = true;
-    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const spinner = container.querySelector(".animate-spin");
-    expect(spinner).toBeInTheDocument();
   });
 
   it("shows screenshot image when screenshotUrl is set in grid mode", () => {
@@ -630,10 +624,10 @@ describe("LinkCard", () => {
     expect(placeholders.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows hover overlay actions (refresh preview, edit) in grid mode", () => {
+  it("keeps editing available when a grid card has no preview", () => {
     render(<LinkCard {...defaultProps} viewMode="grid" />);
 
-    expect(screen.getByLabelText("Refresh preview")).toBeInTheDocument();
+    expect(screen.queryByLabelText("删除截图")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
   });
 
@@ -655,7 +649,7 @@ describe("LinkCard", () => {
 
   it("shows placeholder icon in list mode when no screenshot and not loading", () => {
     mockVm.screenshotUrl = null;
-    mockVm.isFetchingPreview = false;
+    mockVm.isDeletingScreenshot = false;
     const { container } = render(<LinkCard {...defaultProps} />);
 
     const thumbArea = container.querySelector(".group\\/thumb");
@@ -664,26 +658,40 @@ describe("LinkCard", () => {
     expect(svgs.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows refresh preview (camera) button in list mode", () => {
-    render(<LinkCard {...defaultProps} />);
+  it.each(["list", "grid"] as const)(
+    "offers screenshot deletion only for existing previews in %s mode",
+    (viewMode) => {
+      const { rerender } = render(<LinkCard {...defaultProps} viewMode={viewMode} />);
+      expect(screen.queryByLabelText("删除截图")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Refresh preview")).not.toBeInTheDocument();
+      mockVm.canDeleteScreenshot = true;
+      mockVm.screenshotUrl = "https://cdn.example.com/preview.webp";
+      rerender(
+        <LinkCard
+          {...defaultProps}
+          viewMode={viewMode}
+          link={{ ...baseLink, screenshotUrl: mockVm.screenshotUrl }}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "删除截图" }));
+      expect(mockVm.handleDeleteScreenshot).toHaveBeenCalledOnce();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    },
+  );
 
-    expect(screen.getByLabelText("Refresh preview")).toBeInTheDocument();
-  });
-
-  it("shows refresh preview (camera) button in grid mode hover overlay", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.getByLabelText("Refresh preview")).toBeInTheDocument();
-  });
-
-  it("shows spinner on camera button when isFetchingPreview is true in list mode", () => {
-    mockVm.isFetchingPreview = true;
-    render(<LinkCard {...defaultProps} />);
-
-    const btn = screen.getByLabelText("Refresh preview");
-    const spinner = btn.querySelector(".animate-spin");
-    expect(spinner).toBeInTheDocument();
-  });
+  it.each(["list", "grid"] as const)(
+    "disables screenshot deletion while pending in %s mode",
+    (viewMode) => {
+      mockVm.canDeleteScreenshot = true;
+      mockVm.isDeletingScreenshot = true;
+      render(<LinkCard {...defaultProps} viewMode={viewMode} />);
+      const button = screen.getByRole("button", { name: "删除截图" });
+      expect(button).toBeDisabled();
+      expect(button.querySelector(".animate-spin")).toBeInTheDocument();
+      fireEvent.click(button);
+      expect(mockVm.handleDeleteScreenshot).not.toHaveBeenCalled();
+    },
+  );
 
   // --- Favicon display in thumbnail area ---
 
@@ -729,7 +737,7 @@ describe("LinkCard", () => {
 
   it("always shows thumbnail area in list mode even without screenshot", () => {
     mockVm.screenshotUrl = null;
-    mockVm.isFetchingPreview = false;
+    mockVm.isDeletingScreenshot = false;
     const { container } = render(<LinkCard {...defaultProps} />);
 
     const thumbArea = container.querySelector(".group\\/thumb");
@@ -740,7 +748,7 @@ describe("LinkCard", () => {
     render(<LinkCard {...defaultProps} />);
 
     expect(screen.getByTitle("刷新元数据")).toBeInTheDocument();
-    expect(screen.getByTitle("刷新预览图")).toBeInTheDocument();
+    expect(screen.queryByTitle("刷新预览图")).not.toBeInTheDocument();
   });
 
   // --- Copy button callbacks ---
@@ -885,44 +893,6 @@ describe("LinkCard", () => {
       expect(screen.queryByText("暂无分析数据")).not.toBeInTheDocument();
     },
   );
-
-  // --- Screenshot source picker dialog ---
-
-  it("opens screenshot source picker dialog when refresh preview is clicked in list mode", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByLabelText("Refresh preview"));
-
-    expect(screen.getByText("选择截图来源")).toBeInTheDocument();
-    expect(screen.getByText("Microlink")).toBeInTheDocument();
-    expect(screen.getByText("Screenshot Domains")).toBeInTheDocument();
-  });
-
-  it("calls handleFetchPreview with 'microlink' when Microlink source is selected", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByLabelText("Refresh preview"));
-    fireEvent.click(screen.getByText("Microlink"));
-
-    expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("microlink");
-  });
-
-  it("calls handleFetchPreview with 'screenshotDomains' when Screenshot Domains source is selected", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByLabelText("Refresh preview"));
-    fireEvent.click(screen.getByText("Screenshot Domains"));
-
-    expect(mockVm.handleFetchPreview).toHaveBeenCalledWith("screenshotDomains");
-  });
-
-  it("opens screenshot source picker dialog when refresh preview is clicked in grid mode", async () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    fireEvent.click(screen.getByLabelText("Refresh preview"));
-
-    expect(screen.getByText("选择截图来源")).toBeInTheDocument();
-  });
 
   // --- List mode thumbnail dimensions ---
 

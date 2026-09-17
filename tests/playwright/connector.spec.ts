@@ -17,12 +17,12 @@ test.describe.configure({ mode: "serial" });
 test.describe("webpage previews", () => {
   test.use({ deviceScaleFactor: 2 });
 
-  test("publishes a Retina preview without reloading the card", async ({
+  test("publishes, deletes and recaptures a Retina preview without reloading the card", async ({
     page,
     context,
     baseURL,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     assert(baseURL === "http://localhost:27006");
     assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
     const secret = process.env.AUTH_SECRET;
@@ -74,6 +74,8 @@ test.describe("webpage previews", () => {
       await expect(card).toBeVisible();
       const image = card.getByRole("img", { name: "Screenshot", exact: true });
       await expect(image).toHaveCount(0);
+      await expect(card.getByRole("button", { name: "删除截图" })).toHaveCount(0);
+      await expect(card.getByRole("button", { name: "Refresh preview" })).toHaveCount(0);
       const headers = { authorization: `Bearer ${key}`, "x-connector-sources": "screenshot" };
       const claims = await Promise.all([
         page.request.post("/api/v1/connector", { headers, data: {} }),
@@ -87,11 +89,11 @@ test.describe("webpage previews", () => {
       const job = jobs[0];
       expect(job).toMatchObject({ source: "screenshot", linkId: link.id });
       const bytes = await readFile("cli/tests/fixtures/screenshot.webp");
-      const upload = () =>
+      const upload = (leaseToken = job.leaseToken) =>
         page.request.put(`/api/v1/connector/screenshot/jobs/${link.id}`, {
           headers: {
             ...headers,
-            "x-connector-lease": job.leaseToken,
+            "x-connector-lease": leaseToken,
             "content-type": "image/webp",
             "x-content-sha256": createHash("sha256").update(bytes).digest("hex"),
           },
@@ -129,10 +131,34 @@ test.describe("webpage previews", () => {
       }
       const next = await page.request.post("/api/v1/connector", { headers, data: {} });
       expect((await next.json()).job).toBeNull();
+
+      await card.hover();
+      await card.getByRole("button", { name: "删除截图" }).click();
+      await expect(image).toHaveCount(0);
+      await expect(card.getByRole("button", { name: "删除截图" })).toHaveCount(0);
+      const [cleared] = await queryD1<{ screenshot_url: string | null }>(
+        "SELECT screenshot_url FROM links WHERE id=? AND user_id=?",
+        [link.id, owner],
+      );
+      expect(cleared?.screenshot_url).toBeNull();
+      expect((await fetch(saved.screenshot_url)).status).toBe(404);
+      expect((await upload()).status()).toBe(409);
+      const recapture = await page.request.post("/api/v1/connector", { headers, data: {} });
+      const replacement = (await recapture.json()).job;
+      expect(replacement).toMatchObject({ source: "screenshot", linkId: link.id });
+      expect(replacement.leaseToken).not.toBe(job.leaseToken);
+      expect((await upload(replacement.leaseToken)).status()).toBe(200);
+      const [recaptured] = await queryD1<{ screenshot_url: string }>(
+        "SELECT screenshot_url FROM links WHERE id=? AND user_id=?",
+        [link.id, owner],
+      );
+      assert(recaptured);
+      expect(recaptured.screenshot_url).not.toBe(saved.screenshot_url);
+      await expect(image).toHaveAttribute("src", recaptured.screenshot_url, { timeout: 20_000 });
       expect((await page.request.delete(`/api/v1/links/${link.id}`, { headers })).status()).toBe(
         200,
       );
-      expect((await fetch(saved.screenshot_url)).status).toBe(404);
+      expect((await fetch(recaptured.screenshot_url)).status).toBe(404);
     } finally {
       await executeD1("DELETE FROM users WHERE id=?", [owner]);
     }

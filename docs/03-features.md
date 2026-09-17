@@ -67,12 +67,9 @@ Dashboard 链接列表支持多维筛选：
 
 ### 截图获取
 
-链接支持两种截图源（`fetchAndSaveScreenshot`）：
+普通网页缺少预览时，由本机 Connector 使用 OpenCLI 自动截图，生成 1600×1200 的 4:3 WebP，上传到标准 R2 路径，并将 CDN URL 保存到 `screenshotUrl`。X/Twitter、GitHub 使用各自的展示方式，跳过网页截图。
 
-- **Microlink** — 通过 Microlink API 获取网页截图
-- **screenshotDomains** — 通过自定义截图服务获取
-
-截图流程：服务端获取 → 上传到 R2 → 更新链接的 `screenshotUrl` 字段。
+列表和网格卡片提供“删除截图”：清空当前截图字段并清理属于该用户的 R2 文件，随后由 Connector 自动重新补全。删除请求校验原截图 URL，重复请求不会删除新截图；仍被其他链接或上传记录引用的文件会保留。详见 [网页截图补全](28-webpage-previews.md)。
 
 ### 预览样式
 

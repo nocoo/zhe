@@ -39,7 +39,6 @@ import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
 import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
-import { ScreenshotSourceDialog } from "./link-card-parts/screenshot-source-dialog";
 import { TagBadge } from "./shared-link-components";
 import {
   XBookmarkContent,
@@ -122,7 +121,6 @@ export const LinkCard = memo(function LinkCard({
   const panelClassName = isXFeed ? "p-3" : undefined;
   const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
 
-  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(defaultEditing);
   const editTrigger = useRef<HTMLElement | null>(null);
   const cardMenuTrigger = useRef<HTMLButtonElement | null>(null);
@@ -180,12 +178,13 @@ export const LinkCard = memo(function LinkCard({
     cardTags,
     copied: vm.copied,
     copiedOriginalUrl: vm.copiedOriginalUrl,
-    isFetchingPreview: vm.isFetchingPreview,
+    canDeleteScreenshot: vm.canDeleteScreenshot,
+    isDeletingScreenshot: vm.isDeletingScreenshot,
     isRefreshingMetadata: vm.isRefreshingMetadata,
     onFaviconError: vm.handleFaviconError,
     onCopy: vm.handleCopy,
     onCopyOriginalUrl: vm.handleCopyOriginalUrl,
-    onOpenPreviewDialog: () => setPreviewDialogOpen(true),
+    onDeleteScreenshot: vm.handleDeleteScreenshot,
     onToggleEdit: handleToggleEdit,
     onRefreshMetadata: vm.handleRefreshMetadata,
     ...(onSuggest ? { onSuggest } : {}),
@@ -230,18 +229,6 @@ export const LinkCard = memo(function LinkCard({
         onDeleted={() => onDelete(link.id)}
       />
     ) : null;
-
-  const sourceDialog = (
-    <ScreenshotSourceDialog
-      open={previewDialogOpen}
-      onOpenChange={setPreviewDialogOpen}
-      onSelect={(source) => {
-        setPreviewDialogOpen(false);
-        vm.handleFetchPreview(source);
-      }}
-      isFetching={vm.isFetchingPreview}
-    />
-  );
 
   const detailsDialog = xPost && (
     <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -403,7 +390,6 @@ export const LinkCard = memo(function LinkCard({
         >
           <GridView {...sharedViewProps} />
           {editArea}
-          {sourceDialog}
         </LayerCard>
         {detailsDialog}
         {editDialog}
@@ -435,7 +421,6 @@ export const LinkCard = memo(function LinkCard({
           isLoadingAnalytics={vm.isLoadingAnalytics}
         />
         {editArea}
-        {sourceDialog}
       </LayerCard>
       {detailsDialog}
       {editDialog}

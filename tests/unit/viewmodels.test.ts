@@ -30,7 +30,7 @@ vi.mock("@/actions/links/metadata", () => ({
 }));
 
 vi.mock("@/actions/links/screenshot", () => ({
-  fetchAndSaveScreenshot: vi.fn(),
+  deleteScreenshot: vi.fn(),
 }));
 
 vi.mock("@/actions/folders", () => ({
@@ -67,7 +67,7 @@ import {
   updateLinkNote,
 } from "@/actions/links";
 import { batchRefreshLinkMetadata, refreshLinkMetadata } from "@/actions/links/metadata";
-import { fetchAndSaveScreenshot } from "@/actions/links/screenshot";
+import { deleteScreenshot } from "@/actions/links/screenshot";
 import { copyToClipboard } from "@/lib/utils";
 import { useDashboardLayoutViewModel } from "@/viewmodels/useDashboardLayoutViewModel";
 // Import after mocks are defined
@@ -111,7 +111,7 @@ describe("useLinkCardViewModel", () => {
     vi.mocked(getAnalyticsStats).mockReset();
     vi.mocked(refreshLinkMetadata).mockReset();
     vi.mocked(batchRefreshLinkMetadata).mockReset();
-    vi.mocked(fetchAndSaveScreenshot).mockReset();
+    vi.mocked(deleteScreenshot).mockReset();
   });
 
   afterEach(() => {
@@ -438,104 +438,97 @@ describe("useLinkCardViewModel", () => {
     consoleSpy.mockRestore();
   });
 
-  // --- handleFetchPreview ---
+  // --- screenshot deletion ---
 
-  it("handleFetchPreview with microlink source calls server action and updates", async () => {
-    const updatedLink = { ...link, screenshotUrl: "https://r2.example.com/img.png" };
-    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
-
+  it("deletes the displayed preview and updates the card", async () => {
+    const current = { ...link, screenshotUrl: "https://cdn.example.com/preview.webp" };
+    const updated = { ...current, screenshotUrl: null };
+    vi.mocked(deleteScreenshot).mockResolvedValue({ success: true, data: updated });
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+      useLinkCardViewModel(current, SITE_URL, mockOnDelete, mockOnUpdate),
     );
-
-    // Flush auto-fetch metadata effect
-    await act(async () => {});
-    mockToast.info.mockClear();
-
+    expect(result.current.canDeleteScreenshot).toBe(true);
     await act(async () => {
-      await result.current.handleFetchPreview("microlink");
+      await result.current.handleDeleteScreenshot();
     });
-
-    expect(mockToast.info).toHaveBeenCalledWith("正在抓取预览图...", {
-      description: "来源: Microlink",
-    });
-    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(42, "https://example.com", "microlink");
-    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(mockToast.success).toHaveBeenCalledWith("预览图已更新");
-    expect(result.current.isFetchingPreview).toBe(false);
+    expect(deleteScreenshot).toHaveBeenCalledWith(42, current.screenshotUrl);
+    expect(mockOnUpdate).toHaveBeenCalledWith(updated);
+    expect(result.current.screenshotUrl).toBeNull();
+    expect(result.current.canDeleteScreenshot).toBe(false);
+    expect(result.current.isDeletingScreenshot).toBe(false);
+    expect(mockToast.success).toHaveBeenCalledWith("截图已删除");
   });
 
-  it("handleFetchPreview with screenshotDomains source calls server action and updates", async () => {
-    const updatedLink = { ...link, screenshotUrl: "https://r2.example.com/img.png" };
-    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: true, data: updatedLink });
-
+  it("ignores another delete while the first request is pending", async () => {
+    const current = { ...link, screenshotUrl: "https://cdn.example.com/preview.webp" };
+    const pending = Promise.withResolvers<{ success: true; data: typeof link }>();
+    vi.mocked(deleteScreenshot).mockReturnValue(pending.promise);
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+      useLinkCardViewModel(current, SITE_URL, mockOnDelete, mockOnUpdate),
     );
-
-    await act(async () => {});
-    mockToast.info.mockClear();
-
+    act(() => {
+      void result.current.handleDeleteScreenshot();
+    });
+    expect(result.current.isDeletingScreenshot).toBe(true);
     await act(async () => {
-      await result.current.handleFetchPreview("screenshotDomains");
+      await result.current.handleDeleteScreenshot();
     });
-
-    expect(mockToast.info).toHaveBeenCalledWith("正在抓取预览图...", {
-      description: "来源: Screenshot Domains",
+    expect(deleteScreenshot).toHaveBeenCalledOnce();
+    await act(async () => {
+      pending.resolve({ success: true, data: { ...current, screenshotUrl: null } });
+      await pending.promise;
     });
-    expect(fetchAndSaveScreenshot).toHaveBeenCalledWith(
-      42,
-      "https://example.com",
-      "screenshotDomains",
-    );
-    expect(mockOnUpdate).toHaveBeenCalledWith(updatedLink);
-    expect(mockToast.success).toHaveBeenCalledWith("预览图已更新");
-    expect(result.current.isFetchingPreview).toBe(false);
+    expect(result.current.isDeletingScreenshot).toBe(false);
   });
 
-  it("handleFetchPreview shows toast when server action returns error", async () => {
-    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({
-      success: false,
-      error: "Microlink did not return a valid screenshot",
-    });
+  it.each(["Storage unavailable", undefined])(
+    "preserves the preview when deletion fails (%s)",
+    async (error) => {
+      const current = { ...link, screenshotUrl: "https://cdn.example.com/preview.webp" };
+      vi.mocked(deleteScreenshot).mockResolvedValue({
+        success: false,
+        ...(error ? { error } : {}),
+      });
+      const { result } = renderHook(() =>
+        useLinkCardViewModel(current, SITE_URL, mockOnDelete, mockOnUpdate),
+      );
+      await act(async () => {
+        await result.current.handleDeleteScreenshot();
+      });
+      expect(result.current.screenshotUrl).toBe(current.screenshotUrl);
+      expect(result.current.isDeletingScreenshot).toBe(false);
+      expect(mockOnUpdate).not.toHaveBeenCalled();
+      expect(mockToast.error).toHaveBeenCalledWith("删除截图失败", {
+        description: error || "请稍后重试",
+      });
+    },
+  );
 
+  it("does not send deletion when no screenshot exists", async () => {
     const { result } = renderHook(() =>
       useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
     );
-
-    await act(async () => {});
-    mockToast.error.mockClear();
-
     await act(async () => {
-      await result.current.handleFetchPreview("microlink");
+      await result.current.handleDeleteScreenshot();
     });
-
-    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图失败", {
-      description: "Microlink did not return a valid screenshot",
-    });
-    expect(mockOnUpdate).not.toHaveBeenCalled();
-    expect(result.current.isFetchingPreview).toBe(false);
+    expect(deleteScreenshot).not.toHaveBeenCalled();
   });
 
-  it("handleFetchPreview shows toast when server action fails with upload error", async () => {
-    vi.mocked(fetchAndSaveScreenshot).mockResolvedValue({ success: false, error: "Upload failed" });
-
+  it.each([
+    "https://github.com/nocoo/zhe",
+    "https://docs.github.com",
+    "https://x.com/person/status/1",
+    "https://mobile.twitter.com/person",
+  ])("keeps special-site previews out of screenshot deletion (%s)", (originalUrl) => {
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+      useLinkCardViewModel(
+        { ...link, originalUrl, screenshotUrl: "https://cdn.example.com/preview.webp" },
+        SITE_URL,
+        mockOnDelete,
+        mockOnUpdate,
+      ),
     );
-
-    await act(async () => {});
-    mockToast.error.mockClear();
-
-    await act(async () => {
-      await result.current.handleFetchPreview("microlink");
-    });
-
-    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图失败", {
-      description: "Upload failed",
-    });
-    expect(mockOnUpdate).not.toHaveBeenCalled();
-    expect(result.current.isFetchingPreview).toBe(false);
+    expect(result.current.canDeleteScreenshot).toBe(false);
   });
 
   // --- favicon / screenshot display logic ---
@@ -619,13 +612,13 @@ describe("useLinkCardViewModel", () => {
     expect(result.current.faviconUrl).toBe("https://favicon.im/github.com?larger=true");
   });
 
-  it("does not auto-fetch screenshot on mount", async () => {
+  it("does not delete a screenshot on mount", async () => {
     renderHook(() => useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate));
 
     await act(async () => {});
 
-    // Screenshot fetch is now a server action — it should NOT be called on mount
-    expect(fetchAndSaveScreenshot).not.toHaveBeenCalled();
+    // Deletion requires an explicit user action.
+    expect(deleteScreenshot).not.toHaveBeenCalled();
   });
 
   it("handleFaviconError sets faviconError to true", () => {
@@ -657,19 +650,19 @@ describe("useLinkCardViewModel", () => {
     expect(result.current.copiedOriginalUrl).toBe(true);
   });
 
-  it("handleFetchPreview catches thrown errors and shows error toast", async () => {
-    vi.mocked(fetchAndSaveScreenshot).mockRejectedValue(new Error("Network error"));
-
+  it("preserves the screenshot and shows an error when deletion throws", async () => {
+    vi.mocked(deleteScreenshot).mockRejectedValue(new Error("Network error"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const current = { ...link, screenshotUrl: "https://cdn.example.com/preview.webp" };
     const { result } = renderHook(() =>
-      useLinkCardViewModel(link, SITE_URL, mockOnDelete, mockOnUpdate),
+      useLinkCardViewModel(current, SITE_URL, mockOnDelete, mockOnUpdate),
     );
-
     await act(async () => {
-      await result.current.handleFetchPreview("microlink");
+      await result.current.handleDeleteScreenshot();
     });
-
-    expect(mockToast.error).toHaveBeenCalledWith("抓取预览图出错", { description: "请稍后重试" });
-    expect(result.current.isFetchingPreview).toBe(false);
+    expect(mockToast.error).toHaveBeenCalledWith("删除截图失败", { description: "请稍后重试" });
+    expect(result.current.screenshotUrl).toBe(current.screenshotUrl);
+    expect(result.current.isDeletingScreenshot).toBe(false);
   });
 });
 

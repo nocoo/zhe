@@ -62,7 +62,7 @@ vi.mock("@/actions/links/metadata", () => ({
 }));
 
 vi.mock("@/actions/links/screenshot", () => ({
-  fetchAndSaveScreenshot: vi.fn(),
+  deleteScreenshot: vi.fn(),
   saveScreenshot: vi.fn(),
 }));
 
@@ -434,11 +434,11 @@ describe("InboxTriage (interactions)", () => {
       expect(refreshButtons).toHaveLength(2);
     });
 
-    it("shows refresh preview button from LinkCard", () => {
+    it("hides screenshot actions for links without a preview", () => {
       render(<InboxTriage />);
 
-      const previewButtons = screen.getAllByLabelText("Refresh preview");
-      expect(previewButtons).toHaveLength(2);
+      expect(screen.queryByLabelText("Refresh preview")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("删除截图")).not.toBeInTheDocument();
     });
 
     it("shows copy link button from LinkCard", () => {

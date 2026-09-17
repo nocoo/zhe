@@ -62,7 +62,7 @@ vi.mock("@/actions/links/metadata", () => ({
 }));
 
 vi.mock("@/actions/links/screenshot", () => ({
-  fetchAndSaveScreenshot: vi.fn(),
+  deleteScreenshot: vi.fn(),
   saveScreenshot: vi.fn(),
 }));
 
