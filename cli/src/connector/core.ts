@@ -342,6 +342,8 @@ export function videoResolution(width: number, height: number): string {
 }
 
 export function videoFileSize(bytes: number): string {
+  if (bytes < 1000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} KB`;
   return `${(bytes / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 1 })} MB`;
 }
 

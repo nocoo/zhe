@@ -106,4 +106,6 @@ Videos prefer the best available MP4 up to 4K, then try 1080p and 720p when the 
 
 Capture diagnostics retain each attempted resolution and size; the server exposes safe failure codes without upstream media URLs. The X card displays the archived resolution and authoritative file size below its media, or the exact failure reason. Migration `0031_x_media_resolution.sql` stores file resolution separately from mutable card display dimensions, so reusing a saved file cannot relabel its quality. Old clients may omit resolution metadata.
 
-GIF 补全识别 X 的 `animated_gif`，保留 GIF 类型并归档 X 提供的 MP4 动图源。封面与播放器均在左上角显示 GIF 标识，点击后静音循环播放；列表中仅加载封面，避免自动下载全部动图。GIF 与视频共用 100 MB 上限、完整解码校验及归档大小展示。
+GIF 补全识别 X 的 `animated_gif`，保留 GIF 类型并归档 X 提供的 MP4 动图源。封面与播放器均在左上角显示 GIF 标识，进入可视区域后静音循环播放，离开可视区域或切换到后台标签页时暂停；不可见的动图不加载视频文件。GIF 与视频共用 100 MB 上限、完整解码校验及归档大小展示。
+
+文件大小按十进制显示：小于 1 MB 用整数 KB，小于 1 KB 用 B，其他用 MB（最多一位小数）。

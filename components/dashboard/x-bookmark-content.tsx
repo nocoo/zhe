@@ -51,6 +51,7 @@ import {
   xMediaFailureMessage,
 } from "@/models/x-bookmarks";
 import { formatCount, formatTweetDate } from "@/models/xray";
+import { useGifPlayback } from "@/viewmodels/useGifPlayback";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
 
 const statusLabels = {
@@ -178,6 +179,7 @@ function PostMedia({
   const [failed, setFailed] = useState(false);
   const [playing, setPlaying] = useState(autoPlay);
   const [posterFailed, setPosterFailed] = useState(false);
+  const videoRef = useGifPlayback(media.type === "GIF" ? media.url : null, failed);
   // Stored dimensions include manual corrections. Older captures default to
   // landscape without loading a player or probing media metadata.
   const aspectRatio = media.width && media.height ? `${media.width}/${media.height}` : "16/9";
@@ -203,12 +205,12 @@ function PostMedia({
         </Button>
       </div>
     );
-  if (media.type !== "PHOTO" && !playing)
+  if (media.type === "VIDEO" && !playing)
     return (
       <Button
         variant="ghost"
         className="group/media relative block h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-accent p-0 hover:bg-accent"
-        aria-label={`播放${media.type === "GIF" ? " GIF" : "视频"} ${index + 1}`}
+        aria-label={`播放视频 ${index + 1}`}
         aria-haspopup={onPlay ? "dialog" : undefined}
         onClick={onPlay ?? (() => setPlaying(true))}
       >
@@ -248,7 +250,8 @@ function PostMedia({
     return (
       <div className="relative overflow-hidden rounded-widget border border-border/60 bg-black">
         <video
-          src={media.url}
+          ref={videoRef}
+          src={media.type === "GIF" ? undefined : media.url}
           poster={media.thumbnail_url}
           controls
           autoPlay

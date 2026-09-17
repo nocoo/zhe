@@ -173,3 +173,14 @@ it("rejects missing file size rather than downloading an unbounded response", as
   await expect(downloadVideo(media, dir)).rejects.toMatchObject({ code: "invalid_media_length" });
   expect(execute).not.toHaveBeenCalled();
 });
+
+it.each([
+  [254000, "254 KB"],
+  [197953, "198 KB"],
+  [80279, "80 KB"],
+  [64, "64 B"],
+  [1000000, "1 MB"],
+  [32088091, "32.1 MB"],
+] as const)("formats %i bytes as %s", (bytes, label) => {
+  expect(videoFileSize(bytes)).toBe(label);
+});

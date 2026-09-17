@@ -283,7 +283,7 @@ describe("X bookmark presentation", () => {
       expect(paragraph).not.toHaveClass("line-clamp-6");
     },
   );
-  it.each(["VIDEO", "GIF"] as const)(
+  it.each(["VIDEO"] as const)(
     "loads an archived %s only after clicking its poster and opens photos with the public dialog",
     async (type) => {
       const data = {
@@ -310,19 +310,19 @@ describe("X bookmark presentation", () => {
       );
       expect(container.querySelector("video")).toBeNull();
       const preview = screen.getByRole("button", {
-        name: `播放${type === "GIF" ? " GIF" : "视频"} 1`,
+        name: "播放视频 1",
       });
       expect(preview.querySelector("img")).toHaveAttribute(
         "src",
         "https://cdn.example.com/poster.jpg",
       );
-      const label = type === "GIF" ? "GIF" : "视频";
+      const label = "视频";
       expect(within(preview).getByTestId("x-media-type-badge")).toHaveTextContent(label);
       expect(within(preview).getByTestId("x-media-type-badge")).toHaveClass("top-3", "left-3");
       fireEvent.click(preview);
       expect(screen.getByTestId("x-media-type-badge")).toHaveTextContent(label);
-      expect(container.querySelector("video")?.loop).toBe(type === "GIF");
-      expect(container.querySelector("video")?.muted).toBe(type === "GIF");
+      expect(container.querySelector("video")?.loop).toBe(false);
+      expect(container.querySelector("video")?.muted).toBe(false);
       expect(container.querySelector("video")).toHaveAttribute("controls");
       expect(container.querySelector("video")).toHaveAttribute("autoplay");
       expect(container.querySelector("video")).toHaveAttribute("preload", "none");
@@ -335,6 +335,75 @@ describe("X bookmark presentation", () => {
       expect(screen.getByRole("heading", { name: "图片预览" })).toBeInTheDocument();
     },
   );
+  it("autoplays visible GIFs, pauses hidden ones, and does not fetch offscreen files", async () => {
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    let notify: IntersectionObserverCallback = () => {};
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          notify = callback;
+        }
+        observe = observe;
+        disconnect = disconnect;
+      },
+    );
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    try {
+      const { container, unmount } = render(
+        <LayerCard>
+          <XBookmarkContent
+            compact
+            bookmark={{
+              ...bookmark,
+              tweet: {
+                ...tweet,
+                media: [
+                  {
+                    id: "gif",
+                    type: "GIF",
+                    url: "https://cdn.example.com/animated.mp4",
+                    thumbnail_url: "https://cdn.example.com/poster.jpg",
+                    size: 254000,
+                  },
+                ],
+              },
+            }}
+          />
+        </LayerCard>,
+      );
+      const video = container.querySelector("video");
+      expect(video).not.toHaveAttribute("src");
+      expect(observe).toHaveBeenCalledWith(video);
+      expect(screen.getByTestId("x-media-type-badge")).toHaveTextContent("GIF");
+      expect(screen.getByTestId("x-video-archive-info")).toHaveTextContent("254 KB");
+      const intersect = (isIntersecting: boolean) =>
+        notify([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+      intersect(true);
+      expect(video).toHaveAttribute("src", "https://cdn.example.com/animated.mp4");
+      expect(video?.muted).toBe(true);
+      expect(video?.loop).toBe(true);
+      expect(play).toHaveBeenCalledOnce();
+      intersect(false);
+      expect(pause).toHaveBeenCalledOnce();
+      visibility.mockReturnValue("hidden");
+      intersect(true);
+      expect(play).toHaveBeenCalledOnce();
+      visibility.mockReturnValue("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(play).toHaveBeenCalledTimes(2);
+      unmount();
+      expect(disconnect).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+      play.mockRestore();
+      pause.mockRestore();
+      visibility.mockRestore();
+    }
+  });
   it("keeps feed videos as posters and plays only in the detail dialog", async () => {
     const data: XBookmark = {
       ...bookmark,
