@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.25.2] - 2026-09-17
+
+### Added
+- Add shared flip-and-flight editors for Grid, GitHub and X bookmark cards
+- Animate card deletion and smoothly fill gaps across Grid, List, GitHub, X and Inbox, respecting reduced motion
+
+### Changed
+- Use a regular edit dialog in List mode
+
+### Fixed
+- Keep editors open after note save failures and handle deletion errors without leaving cards busy
+
 ## [v1.25.1] - 2026-09-16
 
 ### Added
