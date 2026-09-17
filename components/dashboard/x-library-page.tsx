@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { TwitterIcon } from "@/components/site-icons";
+import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -280,23 +281,26 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <div className={X_FEED_CLASS} data-testid="x-feed">
+        <AnimatedCardList
+          className={X_FEED_CLASS}
+          itemClassName="mb-3 break-inside-avoid pt-px"
+          data-testid="x-feed"
+        >
           {visible.map(({ link }) => (
-            <div key={link.id} className="mb-3 break-inside-avoid pt-px">
-              <LinkCard
-                link={link}
-                siteUrl={siteUrl}
-                onDelete={handleLinkDeleted}
-                onUpdate={handleLinkUpdated}
-                viewMode="feed"
-                tags={tags}
-                linkTags={linkTagsById.get(link.id) ?? []}
-                folders={folders}
-                editCallbacks={editCallbacks}
-              />
-            </div>
+            <LinkCard
+              key={link.id}
+              link={link}
+              siteUrl={siteUrl}
+              onDelete={handleLinkDeleted}
+              onUpdate={handleLinkUpdated}
+              viewMode="feed"
+              tags={tags}
+              linkTags={linkTagsById.get(link.id) ?? []}
+              folders={folders}
+              editCallbacks={editCallbacks}
+            />
           ))}
-        </div>
+        </AnimatedCardList>
       )}
     </div>
   );

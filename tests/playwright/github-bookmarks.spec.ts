@@ -213,9 +213,12 @@ for (const width of [1920, 1365, 390]) {
       if (width === 1920) expect(Math.max(...Object.values(rows))).toBe(4);
       if (width === 390) expect(Math.max(...Object.values(rows))).toBe(1);
       await card.getByRole("button", { name: "编辑 GitHub 收藏" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
-      expect((await card.boundingBox())?.height).toBe(heights[0]);
-      await page.getByRole("button", { name: "关闭编辑" }).click();
+      await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
+      expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBe(
+        heights[0],
+      );
+      await page.getByRole("button", { name: "收起", exact: true }).click();
+      await expect(page.getByTestId("card-edit-dialog")).not.toBeAttached();
       await page.screenshot({
         path: `.artifacts/github-library-${width}.png`,
         animations: "disabled",

@@ -214,15 +214,16 @@ test.describe("Link CRUD", () => {
 
       await editButton.click();
 
-      // Inline edit area should appear inside the card (note input becomes visible)
-      const noteInput = card.locator('input[id^="edit-note-"]');
+      const editor = page.getByTestId("card-edit-dialog");
+      await expect(editor).toHaveAttribute("data-phase", "editing");
+      const noteInput = editor.locator('input[id^="edit-note-"]');
       await expect(noteInput).toBeVisible({ timeout: 5_000 });
 
       // Modify the note
       await noteInput.fill("E2E test note");
 
       // Save
-      await card.locator('button:has-text("保存")').click();
+      await editor.getByRole("button", { name: "保存", exact: true }).click();
 
       // Edit area should collapse after save (note input hidden)
       await expect(noteInput).toBeHidden({ timeout: 10_000 });
@@ -236,13 +237,15 @@ test.describe("Link CRUD", () => {
       await card.getByRole("button", { name: "Edit link" }).first().click();
 
       // Clear and fill slug input
-      const slugInput = card.locator('input[id^="edit-slug-"]');
+      const editor = page.getByTestId("card-edit-dialog");
+      await expect(editor).toHaveAttribute("data-phase", "editing");
+      const slugInput = editor.locator('input[id^="edit-slug-"]');
       await expect(slugInput).toBeVisible({ timeout: 5_000 });
       await slugInput.clear();
       await slugInput.fill(newSlug);
 
       // Save
-      await card.locator('button:has-text("保存")').click();
+      await editor.getByRole("button", { name: "保存", exact: true }).click();
       await expect(slugInput).toBeHidden({ timeout: 10_000 });
 
       // Verify new slug visible, old slug gone
@@ -274,13 +277,15 @@ test.describe("Link CRUD", () => {
         await card.getByRole("button", { name: "Edit link" }).first().click();
 
         // Select folder
-        const folderTrigger = card.locator('[id^="edit-folder-"]');
+        const editor = page.getByTestId("card-edit-dialog");
+        await expect(editor).toHaveAttribute("data-phase", "editing");
+        const folderTrigger = editor.locator('[id^="edit-folder-"]');
         await expect(folderTrigger).toBeVisible({ timeout: 5_000 });
         await folderTrigger.click();
         await page.getByRole("option", { name: folderName }).click();
 
         // Save
-        await card.locator('button:has-text("保存")').click();
+        await editor.getByRole("button", { name: "保存", exact: true }).click();
         await expect(folderTrigger).toBeHidden({ timeout: 10_000 });
 
         // Navigate to the folder via sidebar
@@ -312,12 +317,15 @@ test.describe("Link CRUD", () => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
 
-      // Enter edit mode first — delete button is inside the inline edit area
+      // Enter edit mode first — delete is on the back of the card.
       const editButton = card.getByRole("button", { name: "Edit link" }).first();
       await editButton.click();
 
       // Wait for edit area to appear, then click delete
-      const deleteButton = card.getByRole("button", { name: "Delete link" }).first();
+      await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
+      const deleteButton = page.getByTestId("card-edit-dialog").getByRole("button", {
+        name: "Delete link",
+      });
       await expect(deleteButton).toBeVisible({ timeout: 5_000 });
       await deleteButton.click();
 
@@ -330,7 +338,7 @@ test.describe("Link CRUD", () => {
       await dialog.getByRole("button", { name: "删除" }).click();
 
       // Link should disappear
-      await expect(page.getByText(testSlug)).toBeHidden({ timeout: 10_000 });
+      await expect(card).not.toBeAttached({ timeout: 10_000 });
     });
   });
 

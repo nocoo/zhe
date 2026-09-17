@@ -4,6 +4,7 @@ import { toast } from "@nocoo/basalt/components/toast";
 import { Inbox as InboxIcon, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LinkCard } from "@/components/dashboard/link-card";
+import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
 import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -158,7 +159,7 @@ export function InboxTriage() {
       {vm.inboxLinks.length === 0 ? (
         <InboxEmpty />
       ) : (
-        <div className="space-y-2" data-testid="card-list">
+        <AnimatedCardList className="space-y-2" data-testid="card-list">
           {vm.inboxLinks.map((link, i) => (
             <div key={link.id} className="animate-fade-up" style={staggerStyle(i)}>
               <LinkCard
@@ -179,7 +180,7 @@ export function InboxTriage() {
               />
             </div>
           ))}
-        </div>
+        </AnimatedCardList>
       )}
       <SuggestLinkOrgDialog vm={suggestVm} />
     </div>

@@ -19,7 +19,7 @@ import {
   Pencil,
   Sparkles,
 } from "lucide-react";
-import { memo, useContext, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import {
   DropdownMenu,
@@ -28,12 +28,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
+import { destroyCard } from "@/lib/motion";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
+import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
 import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
@@ -99,7 +101,20 @@ export const LinkCard = memo(function LinkCard({
   onSuggest,
   suggestDisabled,
 }: LinkCardProps) {
-  const vm = useLinkCardViewModel(link, siteUrl, onDelete, onUpdate);
+  const card = useRef<HTMLDivElement | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  const handleDeleted = useCallback(
+    async (id: number) => {
+      if (defaultEditing) {
+        await destroyCard(card.current);
+        onDelete(id);
+      } else {
+        setDeleted(true);
+      }
+    },
+    [defaultEditing, onDelete],
+  );
+  const vm = useLinkCardViewModel(link, siteUrl, handleDeleted, onUpdate);
   const xBookmarks = useContext(XBookmarksContext);
   const xPost = canonicalXPost(link.originalUrl);
   const xBookmark = getXBookmarkForLink(link, xBookmarks.get(link.id));
@@ -126,11 +141,12 @@ export const LinkCard = memo(function LinkCard({
   };
 
   const handleToggleEdit = () => {
-    if (defaultEditing) return; // defaultEditing cards stay open
+    if (defaultEditing || !editCallbacks) return;
     editTrigger.current =
       cardMenuTrigger.current ??
+      card.current?.querySelector<HTMLElement>('[aria-label="Edit link"]') ??
       (document.activeElement instanceof HTMLElement ? document.activeElement : null);
-    setIsEditing((prev) => !prev);
+    setIsEditing(true);
   };
 
   const { cardTags, titleText, showFaviconImage } = useCardDisplay(
@@ -143,12 +159,15 @@ export const LinkCard = memo(function LinkCard({
   const firstMedia = tweet?.media[0];
   const cover = firstMedia?.type === "PHOTO" ? firstMedia.url : firstMedia?.thumbnail_url;
   const presentation = tweet ? getXPostPresentation(tweet) : null;
+  const articleDescription =
+    presentation?.links.some((item) => item.isXArticle) && "X 文章 · 点击阅读全文";
+  const pendingDescription = xPost ? "内容尚未补全 · 可先查看原帖" : null;
   const description = presentation
     ? presentation.text ||
-      (presentation.links.some((item) => item.isXArticle)
-        ? "X 文章 · 点击阅读全文"
-        : presentation.links.map((item) => item.hostname).join(" · ") || "查看帖子与全部附件")
-    : link.metaDescription || (xPost ? "内容尚未补全 · 可先查看原帖" : null);
+      articleDescription ||
+      presentation.links.map((item) => item.hostname).join(" · ") ||
+      "查看帖子与全部附件"
+    : link.metaDescription || pendingDescription;
 
   // Bundle the common view props once — grid/list share most of them.
   const sharedViewProps = {
@@ -175,7 +194,7 @@ export const LinkCard = memo(function LinkCard({
   };
 
   const editArea =
-    isEditing && editCallbacks ? (
+    defaultEditing && editCallbacks ? (
       <InlineEditArea
         className={panelClassName}
         link={link}
@@ -190,6 +209,25 @@ export const LinkCard = memo(function LinkCard({
           setIsEditing(false);
           editTrigger.current?.focus();
         }}
+      />
+    ) : null;
+
+  const editDialog =
+    isEditing && !defaultEditing && editCallbacks ? (
+      <CardEditDialog
+        source={card}
+        trigger={editTrigger}
+        animated={viewMode !== "list"}
+        link={link}
+        tags={tags}
+        linkTags={linkTags}
+        folders={folders}
+        editCallbacks={editCallbacks}
+        isDeleting={vm.isDeleting}
+        handleDelete={vm.handleDelete}
+        deleted={deleted}
+        onClose={() => setIsEditing(false)}
+        onDeleted={() => onDelete(link.id)}
       />
     ) : null;
 
@@ -255,6 +293,7 @@ export const LinkCard = memo(function LinkCard({
     return (
       <>
         <LayerCard
+          ref={card}
           padding="none"
           className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
           data-testid="link-card"
@@ -347,6 +386,7 @@ export const LinkCard = memo(function LinkCard({
           {editArea}
         </LayerCard>
         {detailsDialog}
+        {editDialog}
       </>
     );
 
@@ -354,6 +394,7 @@ export const LinkCard = memo(function LinkCard({
     return (
       <>
         <LayerCard
+          ref={card}
           padding="none"
           data-testid="link-card"
           data-link-id={link.id}
@@ -365,6 +406,7 @@ export const LinkCard = memo(function LinkCard({
           {sourceDialog}
         </LayerCard>
         {detailsDialog}
+        {editDialog}
       </>
     );
   }
@@ -372,6 +414,7 @@ export const LinkCard = memo(function LinkCard({
   return (
     <>
       <LayerCard
+        ref={card}
         padding="none"
         data-testid="link-card"
         data-link-id={link.id}
@@ -395,6 +438,7 @@ export const LinkCard = memo(function LinkCard({
         {sourceDialog}
       </LayerCard>
       {detailsDialog}
+      {editDialog}
     </>
   );
 });

@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LinkCard } from "@/components/dashboard/link-card";
 import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types";
-import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { type EditLinkCallbacks, useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 import { unwrap } from "../test-utils";
 
 vi.mock("@/actions/connector", () => ({ retryXBookmarkAction: vi.fn() }));
@@ -55,7 +55,7 @@ const mockEditVm = {
 
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => mockVm,
-  useInlineLinkEditViewModel: () => mockEditVm,
+  useInlineLinkEditViewModel: vi.fn(() => mockEditVm),
 }));
 
 vi.mock("@/lib/utils", async (importOriginal) => {
@@ -133,6 +133,11 @@ describe("LinkCard", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // happy-dom exposes WAAPI without advancing its animation timeline.
+    vi.spyOn(HTMLElement.prototype, "animate").mockReturnValue({
+      finished: Promise.resolve(),
+      cancel: vi.fn(),
+    } as unknown as Animation);
     mockVm.shortUrl = "https://zhe.to/abc123";
     mockVm.copied = false;
     mockVm.copiedOriginalUrl = false;
@@ -313,7 +318,7 @@ describe("LinkCard", () => {
     expect(screen.getByTitle("Edit link")).toBeInTheDocument();
   });
 
-  it("toggles inline edit area when edit button is clicked in list mode", async () => {
+  it("opens a plain dialog in List mode and keeps the source card visible", async () => {
     render(<LinkCard {...defaultProps} />);
 
     // Edit area not visible initially
@@ -323,9 +328,12 @@ describe("LinkCard", () => {
     fireEvent.click(screen.getByTitle("Edit link"));
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
 
-    // Click edit again to close
-    fireEvent.click(screen.getByTitle("Edit link"));
-    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "编辑收藏" })).toBeInTheDocument();
+    expect(screen.getByTestId("link-card")).toBeVisible();
+    expect(screen.getByTestId("card-edit-dialog").querySelector(".link-card-flight")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
+    expect(screen.getByTestId("link-card")).toBeVisible();
   });
 
   // --- Tag badges ---
@@ -1004,7 +1012,7 @@ describe("LinkCard", () => {
       }
       expect(screen.getByRole("region", { name: "编辑收藏" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "收起" }));
-      expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
       expect(mockEditVm.saveEdit).not.toHaveBeenCalled();
       expect(trigger).toHaveFocus();
       if (viewMode !== "grid") {
@@ -1022,6 +1030,50 @@ describe("LinkCard", () => {
     await waitFor(() => expect(mockEditVm.saveEdit).toHaveBeenCalled());
     expect(screen.getByTestId("edit-area")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("无法保存链接");
+  });
+
+  it("publishes edits after landing and still forwards late tag rollbacks", async () => {
+    render(<LinkCard {...defaultProps} viewMode="grid" />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit link" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
+    );
+    const callbacks = unwrap(vi.mocked(useInlineLinkEditViewModel).mock.lastCall)[3];
+    const landing = Promise.withResolvers<Animation>();
+    vi.mocked(HTMLElement.prototype.animate).mockReturnValue({
+      finished: landing.promise,
+      cancel: vi.fn(),
+    } as unknown as Animation);
+    const updated = { ...baseLink, folderId: "f1" };
+    mockEditVm.saveEdit.mockImplementation(async () => {
+      callbacks.onLinkUpdated(updated);
+      return true;
+    });
+    act(() => callbacks.onLinkTagRemoved(baseLink.id, "t1"));
+    fireEvent.click(screen.getByRole("button", { name: /^保存$/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "returning"),
+    );
+    expect(editCallbacks.onLinkUpdated).not.toHaveBeenCalled();
+    expect(editCallbacks.onLinkTagRemoved).not.toHaveBeenCalled();
+    expect(screen.getByTestId("link-card")).toBeInTheDocument();
+    await act(async () => landing.resolve({} as Animation));
+    await waitFor(() => expect(screen.queryByTestId("card-edit-dialog")).not.toBeInTheDocument());
+    expect(editCallbacks.onLinkUpdated).toHaveBeenCalledWith(updated);
+    expect(editCallbacks.onLinkTagRemoved).toHaveBeenCalledWith(baseLink.id, "t1");
+    callbacks.onLinkTagAdded({ linkId: baseLink.id, tagId: "t1" });
+    expect(editCallbacks.onLinkTagAdded).toHaveBeenCalledWith({ linkId: baseLink.id, tagId: "t1" });
+  });
+
+  it("ignores Escape while a save is in progress", async () => {
+    mockEditVm.isSaving = true;
+    render(<LinkCard {...defaultProps} />);
+    fireEvent.click(screen.getByTitle("Edit link"));
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
+    );
+    await userEvent.setup().keyboard("{Escape}");
+    expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
   });
 
   it("keeps the Inbox editor open after saving", async () => {

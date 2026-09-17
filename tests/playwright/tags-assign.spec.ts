@@ -38,7 +38,8 @@ test.describe("Tag UI - assign existing", () => {
 
     card = await openEditMode(page, slug2);
 
-    await card.locator('[data-testid="tag-picker-trigger"]').click();
+    const editor = page.getByTestId("card-edit-dialog");
+    await editor.locator('[data-testid="tag-picker-trigger"]').click();
     const pickerInput = page.locator("[cmdk-input]").last();
     await pickerInput.fill(tagName);
 
@@ -47,13 +48,12 @@ test.describe("Tag UI - assign existing", () => {
     await tagItem.click();
 
     await expect(
-      card
+      editor
         .locator('[data-testid="edit-area"]')
         .locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
     ).toBeVisible({ timeout: 10_000 });
 
-    // Dismiss the popover so it doesn't block the save button
-    await page.keyboard.press("Escape");
+    // The picker closes automatically after selection.
     await expect(page.locator("[cmdk-input]")).toBeHidden({ timeout: 5_000 });
 
     await saveAndCloseEdit(card);

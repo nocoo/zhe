@@ -14,7 +14,7 @@ import {
   Star,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadGitHubReadme, retryGitHubBookmarkAction } from "@/actions/github-connector";
 import { canonicalGitHubRepo, type GitHubRepository } from "@/cli/src/connector/github-core";
 import { MarkdownPreview } from "@/components/markdown-preview";
@@ -38,7 +38,7 @@ import {
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { GitHubAnalysisButton } from "./github-analysis-button";
-import { InlineEditArea } from "./link-card-parts/inline-edit-area";
+import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { TagBadge } from "./shared-link-components";
 
 function Readme({ link }: { link: Link }) {
@@ -159,8 +159,16 @@ export function GitHubRepositoryCard({
 }) {
   const [reading, setReading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const vm = useLinkCardViewModel(link, siteUrl, onDelete, editCallbacks.onLinkUpdated);
+  const card = useRef<HTMLDivElement | null>(null);
+  const editTrigger = useRef<HTMLButtonElement | null>(null);
+  const vm = useLinkCardViewModel(
+    link,
+    siteUrl,
+    () => setDeleted(true),
+    editCallbacks.onLinkUpdated,
+  );
   const repository = bookmark?.repository;
   const name =
     repository?.fullName ?? canonicalGitHubRepo(link.originalUrl)?.fullName ?? link.metaTitle;
@@ -192,6 +200,7 @@ export function GitHubRepositoryCard({
   return (
     <>
       <LayerCard
+        ref={card}
         padding="none"
         className="flex h-full min-w-0 flex-col overflow-hidden rounded-card shadow-card ring-1 ring-border/40"
         data-testid="github-repository"
@@ -220,10 +229,11 @@ export function GitHubRepositoryCard({
               </h2>
             </div>
             <Button
+              ref={editTrigger}
               variant="ghost"
               size="icon"
               aria-label="编辑 GitHub 收藏"
-              onClick={() => setEditing(!editing)}
+              onClick={() => setEditing(true)}
             >
               <Pencil strokeWidth={1.5} />
             </Button>
@@ -406,35 +416,22 @@ export function GitHubRepositoryCard({
           </div>
         </LayerCard.Footer>
       </LayerCard>
-      <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto">
-          <div className="flex items-start gap-3">
-            <DialogHeader className="min-w-0 flex-1">
-              <DialogTitle className="break-all">编辑 GitHub 收藏</DialogTitle>
-              <DialogDescription className="break-all">{name}</DialogDescription>
-            </DialogHeader>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" aria-label="关闭编辑">
-                <X />
-              </Button>
-            </DialogClose>
-          </div>
-          {editing && (
-            <InlineEditArea
-              link={link}
-              tags={tags}
-              linkTags={linkTags}
-              folders={folders}
-              editCallbacks={editCallbacks}
-              isDeleting={vm.isDeleting}
-              handleDelete={vm.handleDelete}
-              defaultEditing={false}
-              onCloseEdit={() => setEditing(false)}
-              className="border-0 bg-transparent p-0"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {editing && (
+        <CardEditDialog
+          source={card}
+          trigger={editTrigger}
+          link={link}
+          tags={tags}
+          linkTags={linkTags}
+          folders={folders}
+          editCallbacks={editCallbacks}
+          isDeleting={vm.isDeleting}
+          handleDelete={vm.handleDelete}
+          deleted={deleted}
+          onClose={() => setEditing(false)}
+          onDeleted={() => onDelete(link.id)}
+        />
+      )}
       <Dialog open={reading} onOpenChange={setReading}>
         <DialogContent size="xl" className="max-h-[90dvh] overflow-hidden">
           <div className="flex items-start gap-3">

@@ -45,7 +45,7 @@ test.describe("Tag UI - create and display", () => {
 
     card = await openEditMode(page, slug);
 
-    const editArea = card.locator('[data-testid="edit-area"]');
+    const editArea = page.getByTestId("card-edit-dialog").getByTestId("edit-area");
     const tagBadge = editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`);
     await expect(tagBadge).toBeVisible({ timeout: 5_000 });
     await tagBadge.locator(`button[aria-label="Remove tag ${tagName}"]`).click();

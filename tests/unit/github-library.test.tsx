@@ -25,7 +25,14 @@ vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => ({ isDeleting: false, handleDelete: vi.fn() }),
 }));
 vi.mock("@/components/dashboard/link-card-parts/inline-edit-area", () => ({
-  InlineEditArea: () => <div>编辑仓库分类和标签</div>,
+  InlineEditArea: ({ onCloseEdit }: { onCloseEdit: () => void }) => (
+    <div>
+      编辑仓库分类和标签
+      <button type="button" onClick={onCloseEdit}>
+        收起
+      </button>
+    </div>
+  ),
 }));
 
 const repository: GitHubRepository = {
@@ -86,6 +93,10 @@ const service = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.spyOn(HTMLElement.prototype, "animate").mockReturnValue({
+    finished: Promise.resolve(),
+    cancel: vi.fn(),
+  } as unknown as Animation);
   Object.defineProperty(document, "hidden", { configurable: true, value: false });
   vi.mocked(useDashboardService).mockReturnValue(service);
   vi.mocked(loadGitHubBookmarks).mockResolvedValue({ success: true, data: [bookmark] });
@@ -224,9 +235,12 @@ describe("README reading", () => {
       repository: { ...summary, archived: true },
     });
     fireEvent.click(screen.getByRole("button", { name: "编辑 GitHub 收藏" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
+    );
     expect(screen.getByText("编辑仓库分类和标签")).toBeVisible();
     expect(screen.getByRole("dialog")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "关闭编辑" }));
+    fireEvent.click(screen.getByRole("button", { name: "收起" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByText("已归档")).toBeVisible();
     expect(screen.getByText("GitHub 暂时限制访问，稍后重试")).toBeVisible();

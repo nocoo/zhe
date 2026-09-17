@@ -3,6 +3,7 @@
 import { toast } from "@nocoo/basalt/components/toast";
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeaderSkeleton } from "@/components/ui/page-header";
@@ -82,7 +83,7 @@ function LinksContent(props: LinksContentProps) {
   }
 
   return (
-    <div
+    <AnimatedCardList
       className={viewMode === "grid" ? CARD_GRID_CLASS : "space-y-2"}
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
@@ -103,7 +104,7 @@ function LinksContent(props: LinksContentProps) {
           />
         </div>
       ))}
-    </div>
+    </AnimatedCardList>
   );
 }
 

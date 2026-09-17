@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
 import { GithubIcon } from "@/components/site-icons";
+import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -173,7 +174,7 @@ export function GitHubLibraryPage() {
         显示 {visible.length} 个仓库
       </p>
       {visible.length ? (
-        <div
+        <AnimatedCardList
           className="grid auto-rows-fr grid-cols-1 items-stretch gap-4 @2xl/github:grid-cols-2 @5xl/github:grid-cols-3 @7xl/github:grid-cols-4"
           data-testid="github-repositories"
         >
@@ -191,7 +192,7 @@ export function GitHubLibraryPage() {
               onRefresh={refresh}
             />
           ))}
-        </div>
+        </AnimatedCardList>
       ) : (
         <EmptyState
           icon={GithubIcon}

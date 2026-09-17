@@ -26,7 +26,7 @@ export async function createLink(page: Page, url: string, slug: string): Promise
 export async function openEditMode(page: Page, slug: string): Promise<Locator> {
   const card = page.locator(`[data-testid="link-card"]:has-text("${slug}")`).first();
   await card.getByRole("button", { name: "Edit link" }).first().click();
-  await expect(card.locator('[data-testid="edit-area"]')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
   return card;
 }
 
@@ -36,8 +36,9 @@ export async function openEditMode(page: Page, slug: string): Promise<Locator> {
  * connections get reset).
  */
 export async function saveAndCloseEdit(card: Locator): Promise<void> {
-  const editArea = card.locator('[data-testid="edit-area"]');
-  const saveBtn = card.locator('button:has-text("保存")');
+  const editor = card.page().getByTestId("card-edit-dialog");
+  const editArea = editor.locator('[data-testid="edit-area"]');
+  const saveBtn = editor.getByRole("button", { name: "保存", exact: true });
 
   for (let attempt = 0; attempt < 3; attempt++) {
     await saveBtn.click();
@@ -65,7 +66,8 @@ export async function createTagInEditMode(
   card: Locator,
   tagName: string,
 ): Promise<void> {
-  await card.locator('[data-testid="tag-picker-trigger"]').click();
+  const editor = card.page().getByTestId("card-edit-dialog");
+  await editor.locator('[data-testid="tag-picker-trigger"]').click();
 
   const pickerInput = page.locator("[cmdk-input]").last();
   await pickerInput.fill(tagName);
@@ -75,13 +77,11 @@ export async function createTagInEditMode(
   await createOption.click();
 
   // Wait for tag badge to appear in edit area
-  const editArea = card.locator('[data-testid="edit-area"]');
+  const editArea = editor.locator('[data-testid="edit-area"]');
   await expect(
     editArea.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
   ).toBeVisible({ timeout: 30_000 });
 
-  // Dismiss the popover so it doesn't block the save button
-  await page.keyboard.press("Escape");
-  // Wait for the popover to fully close
+  // Selecting a tag closes the picker; Escape here would close the editor.
   await expect(page.locator("[cmdk-input]")).toBeHidden({ timeout: 5_000 });
 }
