@@ -14,6 +14,131 @@ import { executeD1, queryD1 } from "./helpers/d1";
 
 test.describe.configure({ mode: "serial" });
 
+test.describe("webpage previews", () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test("publishes a Retina preview without reloading the card", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    test.setTimeout(60_000);
+    assert(baseURL === "http://localhost:27006");
+    assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
+    const secret = process.env.AUTH_SECRET;
+    assert(secret);
+    const owner = `preview-browser-${randomUUID()}`;
+    const key = `zhe_${randomUUID().replaceAll("-", "")}`;
+    await executeD1("INSERT INTO users(id,name,email) VALUES(?,?,?)", [
+      owner,
+      "Preview Test",
+      `${owner}@test.local`,
+    ]);
+    try {
+      await executeD1(
+        "INSERT INTO api_keys(id,prefix,key_hash,user_id,name,scopes,created_at) VALUES(?,?,?,?,?,?,?)",
+        [
+          randomUUID(),
+          key.slice(0, 12),
+          createHash("sha256").update(key).digest("hex"),
+          owner,
+          "Synthetic preview connector",
+          "connector:write,links:write",
+          Math.floor(Date.now() / 1000),
+        ],
+      );
+      const [link] = await queryD1<{ id: number }>(
+        "INSERT INTO links(user_id,original_url,slug,meta_title,created_at) VALUES(?,?,?,?,?) RETURNING id",
+        [owner, "https://example.com/article", randomUUID(), "Saved webpage", Date.now()],
+      );
+      assert(link);
+      const session = await encode({
+        token: { sub: owner, name: "Preview Test", email: `${owner}@test.local` },
+        secret,
+        salt: "authjs.session-token",
+      });
+      await context.addCookies([
+        {
+          name: "authjs.session-token",
+          value: session,
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      await page.addInitScript(() => localStorage.setItem("zhe_links_view_mode", "grid"));
+      await page.setViewportSize({ width: 1365, height: 960 });
+      await page.goto("/dashboard");
+      const card = page.locator(`[data-testid="link-card"][data-link-id="${link.id}"]`);
+      await expect(card).toBeVisible();
+      const image = card.getByRole("img", { name: "Screenshot", exact: true });
+      await expect(image).toHaveCount(0);
+      const headers = { authorization: `Bearer ${key}`, "x-connector-sources": "screenshot" };
+      const claims = await Promise.all([
+        page.request.post("/api/v1/connector", { headers, data: {} }),
+        page.request.post("/api/v1/connector", { headers, data: {} }),
+      ]);
+      for (const response of claims) expect(response.status()).toBe(200);
+      const jobs = (await Promise.all(claims.map((response) => response.json())))
+        .map((result) => result.job)
+        .filter(Boolean);
+      expect(jobs).toHaveLength(1);
+      const job = jobs[0];
+      expect(job).toMatchObject({ source: "screenshot", linkId: link.id });
+      const bytes = await readFile("cli/tests/fixtures/screenshot.webp");
+      const upload = () =>
+        page.request.put(`/api/v1/connector/screenshot/jobs/${link.id}`, {
+          headers: {
+            ...headers,
+            "x-connector-lease": job.leaseToken,
+            "content-type": "image/webp",
+            "x-content-sha256": createHash("sha256").update(bytes).digest("hex"),
+          },
+          data: bytes,
+        });
+      expect((await upload()).status()).toBe(200);
+      expect((await upload()).status()).toBe(200);
+      const [saved] = await queryD1<{ screenshot_url: string }>(
+        "SELECT screenshot_url FROM links WHERE id=? AND user_id=?",
+        [link.id, owner],
+      );
+      assert(saved);
+      await expect(image).toHaveAttribute("src", saved.screenshot_url, { timeout: 20_000 });
+      await expect
+        .poll(() =>
+          image.evaluate((element: HTMLImageElement) => [
+            element.naturalWidth,
+            element.naturalHeight,
+          ]),
+        )
+        .toEqual([1600, 1200]);
+      expect(await page.evaluate(() => devicePixelRatio)).toBe(2);
+      for (const width of [1365, 390]) {
+        await page.setViewportSize({ width, height: 960 });
+        // Measure the 4:3 frame; its bottom border sits outside the image content box.
+        await expect
+          .poll(() =>
+            image.evaluate((element) => {
+              const frame = element.parentElement?.parentElement?.getBoundingClientRect();
+              return frame ? frame.width / frame.height : 0;
+            }),
+          )
+          .toBeCloseTo(4 / 3, 2);
+        await card.screenshot({ path: `.artifacts/connector-preview-${width}.png` });
+      }
+      const next = await page.request.post("/api/v1/connector", { headers, data: {} });
+      expect((await next.json()).job).toBeNull();
+      expect((await page.request.delete(`/api/v1/links/${link.id}`, { headers })).status()).toBe(
+        200,
+      );
+      expect((await fetch(saved.screenshot_url)).status).toBe(404);
+    } finally {
+      await executeD1("DELETE FROM users WHERE id=?", [owner]);
+    }
+  });
+});
+
 for (const viewport of [
   { width: 1365, height: 960 },
   { width: 390, height: 844 },
@@ -440,10 +565,12 @@ for (const viewport of [
       const editMenu = feedCard.getByRole("button", { name: "更多收藏操作" });
       await editMenu.click();
       await page.getByRole("menuitem", { name: "编辑收藏", exact: true }).click();
-      const editor = feedCard.getByRole("region", { name: "编辑收藏" });
+      const editor = page.getByRole("dialog", { name: "编辑收藏", exact: true });
+      await expect(editor).toHaveAttribute("data-phase", "editing");
       const ratio = editor.getByLabel("视频 1 宽高比");
       await expect(ratio).toHaveValue("16:9");
       await ratio.fill("0:9");
+      await expect(ratio).toHaveValue("0:9");
       await editor.getByRole("button", { name: "保存", exact: true }).click();
       await expect(editor.getByRole("alert")).toContainText("有效的宽高比");
       await ratio.fill(`${mediaSize.width}:${mediaSize.height}`);
