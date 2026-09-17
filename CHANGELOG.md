@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v1.26.0] - 2026-09-17
+
+### Added
+- Surface serialized webpage preview completion
+- Refresh generated previews without reloading bookmarks
+- Serialize preview jobs and publish idempotent R2 screenshots
+- Capture compact Retina webpage previews with OpenCLI
+- Add Hexly project link and header tooltips
+
+### Changed
+- Locate homepage controls by accessible names
+- Document Retina previews and serialized scheduling
+
+### Fixed
+- Restore baseline lint and unit coverage gates
+
 ## [v1.25.2] - 2026-09-17
 
 ### Added
