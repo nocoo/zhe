@@ -27,9 +27,10 @@ test.describe("Landing page", () => {
     await page.goto("/");
 
     // GitHub link
-    const githubLink = page.locator('a[title="GitHub"]');
+    const githubLink = page.getByRole("link", { name: "GitHub", exact: true });
     await expect(githubLink).toBeVisible();
     await expect(githubLink).toHaveAttribute("href", "https://github.com/nocoo/zhe");
+    await expect(page.getByRole("button", { name: "切换主题", exact: true })).toBeVisible();
   });
 
   test("applies stored dark theme on first paint", async ({ page }) => {
