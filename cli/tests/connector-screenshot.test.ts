@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type OpenCliPage, runOpenCliTask, withOpenCliPage } from "../src/connector/opencli.js";
 import { captureScreenshot, captureScreenshotInChild } from "../src/connector/screenshot.js";
@@ -103,6 +104,19 @@ describe("4:3 Retina webpage capture", () => {
     expect(await readFile(file.path)).toEqual(screenshot);
     expect((await stat(file.path)).mode & 0o777).toBe(0o600);
     expect(file.sha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("cannot capture until the ten-second wait after opening the page has completed", async () => {
+    const wait = Promise.withResolvers<void>();
+    vi.mocked(delay).mockReturnValueOnce(wait.promise);
+    const capture = captureScreenshotInChild(url, dir);
+    await vi.waitFor(() => expect(delay).toHaveBeenCalledWith(10_000));
+    expect(page.newTab).toHaveBeenCalledWith(url);
+    expect(page.cdp).not.toHaveBeenCalledWith("Page.captureScreenshot", expect.anything());
+    expect(await readdir(dir)).toEqual([]);
+    wait.resolve();
+    expect((await capture).size).toBe(screenshot.length);
+    expect(page.cdp).toHaveBeenCalledWith("Page.captureScreenshot", expect.anything());
   });
 
   it("reduces quality only when needed and never increases the byte budget", async () => {

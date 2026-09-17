@@ -15,7 +15,7 @@
 | 硬上限 | 512 KiB；不降低尺寸、不上传超限图 |
 | 截取范围 | 保存 URL 的首屏，包括路径和查询参数；不抓取整页长图 |
 
-通过固定版本 OpenCLI 的 `newTab` 创建任务独占的后台标签页，绑定后用 `Emulation.setDeviceMetricsOverride` 设置桌面视口。等待页面、字体和可见图片加载，检查最终地址与错误页，再用 `Page.captureScreenshot` 的 `clip.scale=0.625` 将 2560×1920 的 2× 渲染缩到最终尺寸。浏览器直接压缩，无新增依赖，也不依赖 FFmpeg 的 WebP 编码器。
+通过固定版本 OpenCLI 的 `newTab` 创建任务独占的后台标签页，绑定后用 `Emulation.setDeviceMetricsOverride` 设置桌面视口。打开页面后固定等待至少 10 秒，再检查页面、字体和可见图片是否加载完成，检查最终地址与错误页，然后用 `Page.captureScreenshot` 的 `clip.scale=0.625` 将 2560×1920 的 2× 渲染缩到最终尺寸。浏览器直接压缩，无新增依赖，也不依赖 FFmpeg 的 WebP 编码器。
 
 实际验证中，example.com 为 12,300 字节，Cloudflare 首页为 103,970 字节，均为 1600×1200；不同页面的大小会变化。
 

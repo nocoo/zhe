@@ -88,7 +88,9 @@ The optional [Eagle sidecar](../docs/26-eagle-sidecar.md) writes 1–4 post imag
 
 The same `once`, `watch`, and background service discover ordinary saved links whose `screenshotUrl` is missing or blank. X/Twitter and GitHub domains, including their subdomains and profile pages, are excluded; GitHub keeps its shared preview. Existing screenshots are preserved. Install and connect the OpenCLI browser extension; webpage screenshots do not require FFmpeg.
 
-Pages render at a 1280×960 desktop viewport with 2× device pixel density, then save as **1600×1200 WebP**. Quality starts at 80 and drops to 70 or 60 only if needed to fit **512 KiB**. The Connector saves the exact page viewport, including its path, rather than a full-page image. Zhe stores it at `{userHash}/YYYYMMDD/{uuid}.webp` and publishes the configured CDN URL. Cards refresh automatically while the dashboard is visible.
+After opening each page, the Connector waits **at least 10 seconds** and checks that the page, fonts and visible images are ready. Pages render at a 1280×960 desktop viewport with 2× device pixel density, then save as **1600×1200 WebP**. Quality starts at 80 and drops to 70 or 60 only if needed to fit **512 KiB**. The Connector saves the exact page viewport, including its path, rather than a full-page image. Zhe stores it at `{userHash}/YYYYMMDD/{uuid}.webp` and publishes the configured CDN URL. Cards refresh automatically while the dashboard is visible.
+
+Use **删除截图** on a webpage card to clear its current preview and delete the owned R2 file. The Connector will discover the missing preview and capture it again. Screenshots remain in the same serial queue as X and GitHub jobs.
 
 X, GitHub and previews share a serial scheduler: sources take turns, each account has at most one active job across clients and keys, and each poll waits for its job and cleanup to finish before the next 20-second pause. Lease renewal, bounded retries and idempotent uploads prevent duplicate work. URL changes, manual replacements, deletion and revoked keys fence out late writes. See [webpage previews](../docs/28-webpage-previews.md) for the storage and deployment contract.
 

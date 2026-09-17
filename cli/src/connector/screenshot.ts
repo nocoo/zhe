@@ -78,6 +78,8 @@ export async function captureScreenshotInChild(
         ...SCREENSHOT_VIEWPORT,
         mobile: false,
       });
+      // Give delayed client-rendered content ten seconds before checking readiness.
+      await delay(10_000);
       await settlePage(page);
       const clip = {
         x: 0,
