@@ -40,7 +40,7 @@
 | **G2** | 安全检查 | Secrets 泄露 (gitleaks) + 依赖漏洞 (osv-scanner) | pre-commit + pre-push | Hard |
 | **Worker** | Edge Worker | Cloudflare Worker 边缘逻辑 | on-demand | Hard |
 
-### 当前指标（2026-04-20）
+### 历史指标（2026-04-20，不代表当前契约）
 
 | 指标 | 当前值 | 目标 |
 |------|--------|------|
@@ -65,7 +65,7 @@
 #### 设计目标
 
 - **快速反馈**：pre-commit 执行，<30 秒完成
-- **高覆盖率**：语句 ≥90%，作为代码质量的基础保障
+- **覆盖率契约**：语句、分支、函数、行各 ≥95%；当前较低的执行门槛是待修复差距，不能降低契约
 - **隔离性**：通过 `vi.mock` + D1 内存模拟器，不依赖外部服务
 
 #### 测试范围
@@ -92,7 +92,7 @@
 - Setup：`tests/setup.ts`（D1 内存模拟器，mock 的是 `@/lib/db/d1-client`）
 - 包含：`tests/**/*.{test,spec}.{ts,tsx}`
 - 排除：`tests/playwright/**`、`node_modules/**`
-- 覆盖率：v8 provider，`thresholds` 全局门槛 `lines/statements ≥ 95`、`functions ≥ 90`、`branches ≥ 85`（仅做全局校验，未按模块细分）
+- 当前执行：v8 provider，全局 `lines/statements ≥95`、`functions ≥90`、`branches ≥85`。要求为四项各 ≥95%，函数/分支和未覆盖逻辑是待修复差距；CLI 与 Worker 的独立缺口见根手册。
 
 **D1 内存模拟器**（`tests/setup.ts`）：
 ```typescript
@@ -118,63 +118,13 @@ bun run test:integration    # 集成测试（Server Actions）
 
 ### L2：API E2E 测试
 
-#### 设计目标
+#### 设计目标与当前入口
 
-- **真实 HTTP**：测试完整的请求-响应周期，包括中间件、路由、数据库
-- **黑盒断言**：验证 HTTP response + 数据库副作用，不依赖内部 mock
-- **环境隔离**：使用独立的 Cloudflare 测试资源
+`bun run test:api` 调用 `scripts/run-api-e2e.ts`，启动本地 Worker/SQLite/KV/R2 与 Next.js 17006，通过真实 HTTP 断言响应和数据副作用。导入 handler 的 mock 测试属于 L1。
 
-#### 架构
+`test-stack.ts` 在本地应用全部 migrations，注入测试 env，校验 `_test_marker`，并负责 readiness、退出和清理。Worker 8788、R2 shim 18788；应用使用 `.next/test`。生产 Cloudflare 凭据和旧的远端 `*_TEST_*` 资源变量均不需要。
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    run-api-e2e.ts                               │
-│  1. 加载 .env.local 测试环境变量                                  │
-│  2. 覆盖 D1/R2/KV 为测试资源                                      │
-│  3. 启动 Next.js dev server (port 17006)                        │
-│  4. 等待 /api/health 就绪                                        │
-│  5. 运行 vitest (vitest.api.config.ts)                          │
-│  6. 关闭 server，返回退出码                                       │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                 Next.js Dev Server (17006)                      │
-│  • PLAYWRIGHT=1 → 启用 e2e-credentials 认证                      │
-│  • CLOUDFLARE_D1_DATABASE_ID → 测试 D1                          │
-│  • D1_PROXY_URL → 测试 Worker (zhe-edge-test)                   │
-│  • R2_BUCKET_NAME → 测试 R2 bucket                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                 Cloudflare 测试资源                              │
-│  • zhe-db-test (D1)                                             │
-│  • zhe-test (R2)                                                │
-│  • zhe-test (KV)                                                │
-│  • zhe-edge-test (Worker)                                       │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 安全防线（四重隔离）
-
-1. **测试入口 env 覆盖**：`main()` 将 `CLOUDFLARE_D1_DATABASE_ID` 覆盖为 `D1_TEST_DATABASE_ID`
-2. **ID 不等性检查**：`testDbId !== prodDbId`，防止误配回生产
-3. **防御性 guard**：`executeD1()` / `queryD1()` 中确认覆盖已生效
-4. **`_test_marker` 标记表**：测试 D1 中有标记行，生产 D1 无此表
-
-#### Hard Gate 设计
-
-L2 测试是 **Hard Gate**——所有必需的环境变量必须正确配置，否则 pre-push 将失败：
-
-| 环境变量 | 用途 | 必需 |
-|----------|------|------|
-| `D1_TEST_DATABASE_ID` | 测试 D1 数据库 ID | ✅ |
-| `D1_TEST_PROXY_URL` | 测试 Worker URL（必须含 "-test"） | ✅ |
-| `D1_TEST_PROXY_SECRET` | 测试 Worker D1 代理密钥 | ✅ |
-| `R2_TEST_BUCKET_NAME` | 测试 R2 bucket | ✅ |
-| `R2_TEST_PUBLIC_DOMAIN` | 测试 R2 公开域名 | ✅ |
-| `KV_TEST_NAMESPACE_ID` | 测试 KV namespace | 可选 |
+L2 是 pre-push/CI 的硬检查。完整 endpoint/method 100% 清单覆盖、每次运行独立目录，以及清理前的目录/marker 检查仍是质量差距；不要把当前固定 `.test-storage` 描述成完整 per-run 隔离。不得使用生产或日常开发存储。
 
 #### 测试文件
 
@@ -507,102 +457,23 @@ worker/
 
 ## 七、测试环境隔离
 
-### Cloudflare 资源分离
+L2/L3 均使用 `scripts/test-stack.ts` 管理的本地栈，不能创建或部署远端 `-test` Worker、D1、KV、R2。
 
-| 资源类型 | 生产 | 测试 |
-|----------|------|------|
-| D1 Database | `zhe-db` | `zhe-db-test` |
-| R2 Bucket | `zhe` | `zhe-test` |
-| KV Namespace | `zhe` | `zhe-test` |
-| Worker | `zhe-edge` | `zhe-edge-test` |
+| 组件 | 当前本地实现 | 尚需完善 |
+|---|---|---|
+| D1 / KV | Wrangler + SQLite，`.test-storage/wrangler`，Worker 8788 | 固定目录改为每次运行独立目录 |
+| R2 | `.test-storage/r2` + test-only HTTP shim 18788 | 每次运行隔离；禁止作为生产 shim |
+| Next | L2 17006、L3 27006，`.next/test` | 两层仍共享存储/输出，当前必须串行 |
+| 数据 guard | Loopback D1 proxy、`_test_marker(env=test)` 和测试 env 覆盖 | 首次删除目录前验证本地目录归属与 marker |
 
-### 环境变量配置
-
-开发者必须在 `.env.local` 中配置以下变量才能运行测试：
-
-```bash
-# 测试 D1
-D1_TEST_DATABASE_ID=xxx          # 必须不等于 CLOUDFLARE_D1_DATABASE_ID
-
-# 测试 Worker（D1 代理）
-D1_TEST_PROXY_URL=https://zhe-edge-test.xxx.workers.dev  # URL 必须含 "-test"
-D1_TEST_PROXY_SECRET=xxx
-
-# 测试 R2
-R2_TEST_BUCKET_NAME=zhe-test
-R2_TEST_PUBLIC_DOMAIN=https://test-r2.zhe.to
-
-# 测试 KV（可选）
-KV_TEST_NAMESPACE_ID=xxx
-```
-
----
+测试入口会覆盖本地资源变量并清除生产 Cloudflare 资源身份；测试不需要 `CLOUDFLARE_API_TOKEN` 或旧远端 test 资源变量。不要为了运行测试复制生产 secrets。
+`applySchemaFixups()` 的临时列修补必须同时补真实 migration，避免生产 schema 漂移。
 
 ## 八、CI/CD 集成
 
-### GitHub Actions 工作流
+`.github/workflows/ci.yml` 是当前执行依据：共享 quality 跑 web L1/G1/G2/build，CLI job 跑 build/lint/coverage/Python unittest，Worker job 跑单元测试，API/browser job 跑本地 L2/L3。Wrangler matrix 的实验版本允许失败，稳定行才是硬结果。
 
-项目使用 `base-ci` 可复用工作流实现标准化 CI，所有测试层级在 CI 中并行执行：
-
-```yaml
-# .github/workflows/ci.yml
-jobs:
-  quality:      # L1 + G1 + G2（来自 base-ci）
-  api-e2e:      # L2 API E2E（本地定义）
-  browser-e2e:  # L3 Playwright（本地定义）
-  worker-tests: # Worker 单元测试（本地定义）
-```
-
-**并行执行**：4 个 job 同时运行，CI 时间从串行 ~15-20 分钟降至 ~8-10 分钟。
-
-### GitHub Secrets 配置
-
-CI 需要以下 secrets 来访问测试资源（在 GitHub repo Settings > Secrets 中配置）：
-
-| Secret | 用途 | 隔离层 |
-|--------|------|--------|
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账户 ID | - |
-| `CLOUDFLARE_API_TOKEN` | D1/R2/KV API 访问令牌 | - |
-| `CLOUDFLARE_D1_DATABASE_ID` | **生产** D1 ID（用于 `testDbId !== prodDbId` 检查） | D1 |
-| `D1_TEST_DATABASE_ID` | **测试** D1 ID | D1 |
-| `D1_TEST_PROXY_URL` | **测试** Worker URL（必须包含 "-test"） | D1 Proxy |
-| `D1_TEST_PROXY_SECRET` | **测试** Worker D1 代理密钥 | D1 Proxy |
-| `R2_ACCESS_KEY_ID` | R2 S3 访问密钥 ID | R2 |
-| `R2_SECRET_ACCESS_KEY` | R2 S3 访问密钥 | R2 |
-| `R2_ENDPOINT` | R2 S3 端点 | R2 |
-| `R2_USER_HASH_SALT` | 用户哈希盐 | R2 |
-| `R2_TEST_BUCKET_NAME` | **测试** R2 bucket | R2 |
-| `R2_TEST_PUBLIC_DOMAIN` | **测试** R2 公开域名 | R2 |
-| `KV_TEST_NAMESPACE_ID` | **测试** KV namespace | KV |
-| `AUTH_SECRET` | NextAuth 密钥 | Auth |
-| `WORKER_SECRET` | Worker 共享密钥 | Auth |
-
-### CI 隔离验证链
-
-CI 中的 L2/L3 测试通过以下验证链确保不会操作生产资源：
-
-```
-1. ci.yml 只传递 *_TEST_* secrets
-         │
-         ▼
-2. run-api-e2e.ts / playwright.config.ts
-   ├─ 验证 D1_TEST_PROXY_URL 包含 "-test"
-   ├─ 验证 testDbId !== prodDbId
-   └─ 覆盖 CLOUDFLARE_D1_DATABASE_ID = D1_TEST_DATABASE_ID
-         │
-         ▼
-3. global-setup.ts (L3)
-   ├─ 再次验证 testDbId !== prodDbId
-   └─ 查询 _test_marker 表（仅测试 D1 有此表）
-         │
-         ▼
-4. d1.ts helpers
-   └─ 验证 CLOUDFLARE_D1_DATABASE_ID === D1_TEST_DATABASE_ID
-```
-
-任一层验证失败，测试立即终止，不会执行任何数据库操作。
-
----
+CI 当前还传递 `AUTH_SECRET` 和 `WORKER_SECRET` 名称，但远端 Cloudflare 测试资源已经退役；本地 runner 的测试覆写不应依赖生产值。完整 CLI/Worker G1/G2、四指标 coverage、push-ref 扫描和每次运行隔离的现状见根 [CLAUDE.md](../CLAUDE.md)。
 
 ## 九、Git Hook 绕过禁令
 
@@ -631,13 +502,9 @@ git push --no-verify
 - **代码审查**：发现 `--no-verify` 提交记录，PR 直接驳回
 - **CI 兜底**：即使本地跳过，CI 仍会执行完整检查并阻止合并
 
-### 唯一例外
+### Hook 故障
 
-仅当 hook 脚本本身有 bug 需要紧急修复时，可临时使用 `--no-verify`，但必须：
-1. 在 PR 描述中说明原因
-2. 修复 hook 后立即补跑完整检查
-
----
+通过正常流程诊断并修复 hook；不得用 `--no-verify` 跳过提交或推送检查。
 
 ## 十、覆盖率分析与优化空间
 
