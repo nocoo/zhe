@@ -3,12 +3,12 @@
  * ScopedDB methods delegate here to keep scoped.ts small.
  */
 
-import { normalizeSearchText } from "@/models/search";
+import { normalizeSearchText, searchTerms } from "@/models/search";
 import { generateExcerpt } from "../../markdown";
 import { type D1Statement, executeD1Batch, executeD1Query } from "../d1-client";
 import { rowToIdea, rowToIdeaTag } from "../mappers";
 import type { IdeaTag } from "../schema";
-import { ensureSearchIndex } from "./search";
+import { ensureSearchIndex, searchMatchSql } from "./search";
 import type { GetIdeasOptions, IdeaDetail, IdeaListItem } from "./types";
 
 function buildIdeasQuery(
@@ -21,9 +21,9 @@ function buildIdeasQuery(
 
   if (query && normalizeSearchText(query)) {
     conditions.push(
-      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='idea' AND s.resource_id=i.id AND s.user_id=i.user_id AND s.indexed_revision=s.revision AND instr(s.search_text,?)>0)`,
+      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='idea' AND s.resource_id=i.id AND s.user_id=i.user_id AND s.indexed_revision=s.revision AND ${searchMatchSql()})`,
     );
-    params.push(normalizeSearchText(query));
+    params.push(JSON.stringify(searchTerms(query)));
   }
 
   let joinClause = "";

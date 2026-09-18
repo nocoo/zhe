@@ -12,7 +12,7 @@ import { expect, test } from "./fixtures";
  * need one edit here (C14 added "、待办" and this file missed it, which
  * broke every search spec — this const prevents a repeat).
  */
-const SEARCH_INPUT_PLACEHOLDER = "搜索链接、想法、待办 · 跳转页面 · 触发动作...";
+const SEARCH_INPUT_PLACEHOLDER = "搜索标题、备注、正文、README…";
 const searchInputLocator = `[placeholder="${SEARCH_INPUT_PLACEHOLDER}"]`;
 
 /** Helper: wait for link-crud page to finish loading inside <main>. */
@@ -182,7 +182,7 @@ test.describe("Cmd+K search", () => {
     await waitForLinksPage(page);
 
     // Click the search button in sidebar
-    await page.locator("text=搜索链接...").click();
+    await page.locator("text=搜索收藏与记录…").click();
 
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
     await expect(page.locator(searchInputLocator)).toBeVisible();

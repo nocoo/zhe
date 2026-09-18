@@ -129,7 +129,7 @@ function SidebarSearchButton({ onClick }: { onClick: () => void }) {
         className="flex w-full items-center gap-3 rounded-lg bg-secondary px-3 py-1.5 cursor-pointer"
       >
         <Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-        <span className="flex-1 text-left text-sm text-muted-foreground">搜索链接...</span>
+        <span className="flex-1 text-left text-sm text-muted-foreground">搜索收藏与记录…</span>
         <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>

@@ -70,3 +70,22 @@ it("times out and permits retry", async () => {
   expect(result.current.error).toContain("超时");
   vi.useRealTimers();
 });
+
+it("continues index preparation without presenting an error or stale results", async () => {
+  vi.useFakeTimers();
+  try {
+    fetcher
+      .mockResolvedValueOnce(Response.json({ code: "index_updating" }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ items: [], total: 0 }));
+    const { result } = renderHook(() => useSearch("pending"));
+    await act(async () => vi.advanceTimersByTimeAsync(181));
+    expect(result.current.loading).toBe(true);
+    expect(result.current.message).toContain("更新搜索索引");
+    expect(result.current.error).toBeUndefined();
+    await act(async () => vi.advanceTimersByTimeAsync(1001));
+    await act(async () => vi.advanceTimersByTimeAsync(181));
+    expect(result.current.data?.total).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});

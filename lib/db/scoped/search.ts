@@ -8,6 +8,7 @@ import {
   type SearchKind,
   type SearchResponse,
   searchProjection,
+  searchTerms,
   toSearchHit,
 } from "@/models/search";
 import { executeD1Batch, executeD1Query } from "../d1-client";
@@ -66,7 +67,7 @@ export async function loadSearchDocuments(
     };
     if (kind === "link")
       Object.assign(input, {
-        title: row.title || row.meta_title,
+        title: row.title,
         originalTitle: row.meta_title,
         url: row.original_url,
         slug: row.slug,
@@ -158,14 +159,19 @@ export async function ensureSearchIndex(userId: string): Promise<void> {
   return work;
 }
 
-export function searchRankSql(alias = "s"): string {
+/** JSON parameters keep keyword count independent of D1's bind parameter limit. */
+export function searchMatchSql(alias = "s"): string {
+  return `NOT EXISTS (SELECT 1 FROM json_each(?) term WHERE instr(${alias}.search_text,term.value)=0)`;
+}
+
+export function searchRankSql(alias = "s", needle = "?"): string {
   return `CASE
-    WHEN instr(char(10)||${alias}.titles||char(10),char(10)||?||char(10))>0 THEN 0
-    WHEN instr(char(10)||${alias}.titles,char(10)||?)>0 THEN 1
-    WHEN instr(${alias}.titles,?)>0 THEN 2
-    WHEN instr(${alias}.identities,?)>0 THEN 3
-    WHEN instr(${alias}.metadata,?)>0 THEN 4
-    WHEN instr(${alias}.summaries,?)>0 THEN 5 ELSE 6 END`;
+    WHEN instr(char(10)||${alias}.titles||char(10),char(10)||${needle}||char(10))>0 THEN 0
+    WHEN instr(char(10)||${alias}.titles,char(10)||${needle})>0 THEN 1
+    WHEN instr(${alias}.titles,${needle})>0 THEN 2
+    WHEN instr(${alias}.identities,${needle})>0 THEN 3
+    WHEN instr(${alias}.metadata,${needle})>0 THEN 4
+    WHEN instr(${alias}.summaries,${needle})>0 THEN 5 ELSE 6 END`;
 }
 
 export async function searchResources(
@@ -182,18 +188,26 @@ export async function searchResources(
   ) as SearchResponse["counts"];
   if (!needle) return { query, items: [], total: 0, counts, limit, offset };
   await ensureSearchIndex(userId);
-  const where = "s.user_id=? AND s.indexed_revision=s.revision AND instr(s.search_text,?)>0";
+  const terms = searchTerms(query);
+  const termsJson = JSON.stringify(terms);
+  const rank =
+    terms.length === 1
+      ? searchRankSql()
+      : `CASE WHEN ${searchRankSql()}<3 THEN ${searchRankSql()} ELSE 7+(SELECT SUM(${searchRankSql("s", "term.value")}) FROM json_each(?) term) END`;
+  const rankParams =
+    terms.length === 1 ? Array(6).fill(terms[0]) : [...Array(12).fill(needle), termsJson];
+  const where = `s.user_id=? AND s.indexed_revision=s.revision AND ${searchMatchSql()}`;
   const results = await executeD1Batch<Record<string, unknown>>([
     {
       sql: `SELECT s.source,COUNT(*) AS count FROM search_documents s WHERE ${where} GROUP BY s.source`,
-      params: [userId, needle],
+      params: [userId, termsJson],
     },
     {
-      sql: `SELECT s.kind,s.resource_id,${searchRankSql()} AS rank FROM search_documents s WHERE ${where}${source === "all" ? "" : " AND s.source=?"} ORDER BY rank,s.created_at DESC,s.kind,s.resource_id DESC LIMIT ? OFFSET ?`,
+      sql: `SELECT s.kind,s.resource_id,${rank} AS rank FROM search_documents s WHERE ${where}${source === "all" ? "" : " AND s.source=?"} ORDER BY rank,s.created_at DESC,s.kind,s.resource_id DESC LIMIT ? OFFSET ?`,
       params: [
-        ...Array(6).fill(needle),
+        ...rankParams,
         userId,
-        needle,
+        termsJson,
         ...(source === "all" ? [] : [source]),
         limit,
         offset,

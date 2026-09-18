@@ -48,6 +48,28 @@ function capture(id: number, result: unknown, owner = "owner") {
     .run(id, owner, `https://github.com/owner/repo${id}`, JSON.stringify(result));
 }
 describe("migrated search index with real SQL", () => {
+  it("combines cross-field keywords with shared SQL/model ranking, source counts and REST semantics", async () => {
+    link(1, "React TypeScript");
+    link(2, "React");
+    link(3, "Other");
+    link(4, "React TypeScript", "other");
+    capture(2, { language: "TypeScript", readme: "unique-body" });
+    capture(3, { language: "TypeScript", readme: "React unique-body" });
+    const db = new ScopedDB("owner");
+    const page = await db.search("react typescript");
+    expect(page.items.map((hit) => hit.id)).toEqual([1, 2, 3]);
+    expect(page.counts.github).toBe(3);
+    expect((await db.search("react typescript", "github", 1, 1)).items[0]?.id).toBe(2);
+    expect((await db.search("react react")).total).toBe(3);
+    expect((await db.getLinks({ query: "typescript unique-body" })).map((link) => link.id)).toEqual(
+      [3, 2],
+    );
+    expect((await db.search("typescript missing")).total).toBe(0);
+    const many = Array.from({ length: 30 }, (_, i) => `term${i}`).join(" ");
+    database.prepare("UPDATE links SET note=? WHERE id=1").run(many);
+    expect((await db.search(many)).total).toBe(1);
+  });
+
   it("searches enriched bodies, literal punctuation and owner tags with stable rank/pagination and no tenant leaks", async () => {
     link(1, "needle");
     link(2, "needle prefix");

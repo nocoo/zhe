@@ -4,12 +4,8 @@ import { ArrowLeft, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SearchResult } from "@/components/search-result";
-import {
-  normalizeSearchText,
-  SEARCH_SOURCE_LABELS,
-  SEARCH_SOURCES,
-  type SearchFilter,
-} from "@/models/search";
+import { SearchSourceFilter } from "@/components/search-source-filter";
+import { normalizeSearchText, SEARCH_SOURCES, type SearchFilter } from "@/models/search";
 import { useSearch } from "@/viewmodels/useSearch";
 
 export function SearchPage() {
@@ -17,7 +13,11 @@ export function SearchPage() {
   const params = useSearchParams();
   const initial = params.get("q") ?? "";
   const [query, setQuery] = useState(initial);
-  const [source, setSource] = useState<SearchFilter>("all");
+  const initialSource = params.get("source");
+  const selectedSource: SearchFilter = SEARCH_SOURCES.includes(initialSource as never)
+    ? (initialSource as SearchFilter)
+    : "all";
+  const [source, setSource] = useState<SearchFilter>(selectedSource);
   const [offset, setOffset] = useState(0);
   const result = useSearch(query, source, offset);
   const input = useRef<HTMLInputElement>(null);
@@ -27,17 +27,20 @@ export function SearchPage() {
   }, []);
   useEffect(() => {
     setQuery(initial);
+    setSource(selectedSource);
     setOffset(0);
-  }, [initial]);
+  }, [initial, selectedSource]);
   useEffect(() => {
     const timer = setTimeout(() => {
       const next = new URL(window.location.href);
       if (query) next.searchParams.set("q", query);
       else next.searchParams.delete("q");
+      if (source !== "all") next.searchParams.set("source", source);
+      else next.searchParams.delete("source");
       window.history.replaceState(null, "", next);
     }, 250);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, source]);
   function keyboard(event: React.KeyboardEvent) {
     if (event.nativeEvent.isComposing || document.querySelector('[role="dialog"]')) return;
     if (event.key === "Escape") {
@@ -45,26 +48,34 @@ export function SearchPage() {
       router.back();
       return;
     }
-    if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     const links = Array.from(
       list.current?.querySelectorAll<HTMLAnchorElement>("a[data-search-result]") ?? [],
     );
     if (!links.length) return;
     const index = links.indexOf(document.activeElement as HTMLAnchorElement);
-    if (index < 0 && event.target !== input.current) return;
+    if (
+      index < 0 &&
+      (event.target !== input.current || event.key === "Home" || event.key === "End")
+    )
+      return;
     event.preventDefault();
     links[
-      index < 0
-        ? event.key === "ArrowDown"
-          ? 0
-          : links.length - 1
-        : (index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? links.length - 1
+          : index < 0
+            ? event.key === "ArrowDown"
+              ? 0
+              : links.length - 1
+            : (index + (event.key === "ArrowDown" ? 1 : -1) + links.length) % links.length
     ]?.focus();
   }
   return (
     <section
       aria-label="搜索结果"
-      className="mx-auto flex w-full max-w-5xl flex-col p-4 md:p-6"
+      className="mx-auto flex w-full max-w-4xl flex-col"
       onKeyDown={keyboard}
     >
       <div className="mb-5 flex items-start gap-3">
@@ -89,39 +100,27 @@ export function SearchPage() {
           placeholder="标题、正文、账号、仓库、标签或 URL…"
           value={query}
           maxLength={2000}
-          className="h-10 pl-9"
+          size="lg"
+          className="pl-9"
           onChange={(event) => {
             setQuery(event.target.value);
             setOffset(0);
           }}
         />
       </div>
-      <fieldset className="my-4 flex flex-wrap gap-1" aria-label="按来源筛选">
-        {(["all", ...SEARCH_SOURCES] as const).map((key) => (
-          <Button
-            key={key}
-            size="sm"
-            variant={source === key ? "default" : "ghost"}
-            aria-pressed={source === key}
-            onClick={() => {
-              setSource(key);
-              setOffset(0);
-            }}
-          >
-            {key === "all" ? "全部" : SEARCH_SOURCE_LABELS[key]}
-            {result.data && (
-              <span className="ml-1.5 font-mono text-xs text-muted-foreground">
-                {key === "all"
-                  ? Object.values(result.data.counts).reduce((a, b) => a + b, 0)
-                  : result.data.counts[key]}
-              </span>
-            )}
-          </Button>
-        ))}
-      </fieldset>
+      <div className="my-3">
+        <SearchSourceFilter
+          value={source}
+          counts={result.data?.counts}
+          onChange={(value) => {
+            setSource(value);
+            setOffset(0);
+          }}
+        />
+      </div>
       <div aria-live="polite" aria-atomic="true" className="mb-2 text-xs text-muted-foreground">
         {result.loading
-          ? "正在搜索…"
+          ? result.message || "正在搜索…"
           : result.data
             ? `${result.data.total} 个结果 · 按相关性排序`
             : ""}
@@ -130,7 +129,7 @@ export function SearchPage() {
         <div className="py-16 text-center text-muted-foreground">
           <Search className="mx-auto mb-3 h-7 w-7 opacity-50" />
           <p className="text-sm">输入关键词，找回收藏与记录</p>
-          <p className="mt-2 text-xs">支持完整 README、推文引用与 AI 分析；标点按原样匹配</p>
+          <p className="mt-2 text-xs">可组合作者、标签和正文关键词，用空格分开</p>
         </div>
       )}
       {result.error && (

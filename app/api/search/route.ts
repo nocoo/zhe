@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { slidingWindowCheck } from "@/lib/api/rate-limit";
 import { getAuthContext } from "@/lib/auth-context";
+import { SearchIndexPendingError } from "@/lib/db/scoped/search";
 import { SEARCH_SOURCES, type SearchFilter } from "@/models/search";
 
 const headers = { "Cache-Control": "private, no-store" };
@@ -50,7 +51,9 @@ export async function POST(request: Request) {
     return reply({ error: "无效的搜索参数（关键词最多 2000 字符）" }, 400);
   try {
     return reply(await context.db.search(query, source as SearchFilter, limit, offset));
-  } catch {
+  } catch (error) {
+    if (error instanceof SearchIndexPendingError)
+      return reply({ error: "正在更新搜索索引…", code: "index_updating" }, 503);
     return reply({ error: "暂时无法搜索，请重试" }, 503);
   }
 }

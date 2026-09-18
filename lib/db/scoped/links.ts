@@ -3,14 +3,14 @@
  */
 
 import { drainR2Deletions, enqueueR2Deletion } from "@/lib/r2/gc";
-import { normalizeSearchText } from "@/models/search";
+import { normalizeSearchText, searchTerms } from "@/models/search";
 import { extractKeyFromUrl } from "@/models/storage";
 import { hashUserId } from "@/models/upload";
 import { executeD1Query } from "../d1-client";
 import { rowToLink } from "../mappers";
 import type { Link, NewLink } from "../schema";
 import { getFolderById } from "./folders";
-import { ensureSearchIndex } from "./search";
+import { ensureSearchIndex, searchMatchSql } from "./search";
 import type { GetLinksOptions } from "./types";
 
 export function buildLinksQuery(
@@ -23,9 +23,9 @@ export function buildLinksQuery(
 
   if (query && normalizeSearchText(query)) {
     conditions.push(
-      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='link' AND s.resource_id=l.id AND s.user_id=l.user_id AND s.indexed_revision=s.revision AND instr(s.search_text,?)>0)`,
+      `EXISTS (SELECT 1 FROM search_documents s WHERE s.kind='link' AND s.resource_id=l.id AND s.user_id=l.user_id AND s.indexed_revision=s.revision AND ${searchMatchSql()})`,
     );
-    params.push(normalizeSearchText(query));
+    params.push(JSON.stringify(searchTerms(query)));
   }
 
   if (folderId === "inbox") {

@@ -354,13 +354,21 @@ vi.mock("@/lib/db/d1-client", async () => {
         const rawLink = link as unknown as Record<string, unknown>;
         if (rawLink.user_id !== userId) continue;
         if (queryPattern) {
-          const search = queryPattern.toLowerCase();
-          const matchesSearch =
-            ((rawLink.slug as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.original_url as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.note as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.meta_title as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.meta_description as string) || "").toLowerCase().includes(search);
+          const terms = JSON.parse(queryPattern) as string[];
+          const matchesSearch = terms.every((search) =>
+            [
+              rawLink.slug,
+              rawLink.original_url,
+              rawLink.title,
+              rawLink.note,
+              rawLink.meta_title,
+              rawLink.meta_description,
+            ].some((value) =>
+              String(value ?? "")
+                .toLowerCase()
+                .includes(search),
+            ),
+          );
           if (!matchesSearch) continue;
         }
         if (folderIsNull && rawLink.folder_id !== null) continue;
@@ -422,13 +430,21 @@ vi.mock("@/lib/db/d1-client", async () => {
 
         // Keyword search filter
         if (queryPattern) {
-          const search = queryPattern.toLowerCase();
-          const matchesSearch =
-            ((rawLink.slug as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.original_url as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.note as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.meta_title as string) || "").toLowerCase().includes(search) ||
-            ((rawLink.meta_description as string) || "").toLowerCase().includes(search);
+          const terms = JSON.parse(queryPattern) as string[];
+          const matchesSearch = terms.every((search) =>
+            [
+              rawLink.slug,
+              rawLink.original_url,
+              rawLink.title,
+              rawLink.note,
+              rawLink.meta_title,
+              rawLink.meta_description,
+            ].some((value) =>
+              String(value ?? "")
+                .toLowerCase()
+                .includes(search),
+            ),
+          );
           if (!matchesSearch) continue;
         }
 
@@ -1960,9 +1976,15 @@ vi.mock("@/lib/db/d1-client", async () => {
           if (!hasTag) continue;
         }
         if (keyword) {
-          const matchesTitle = idea.title?.toLowerCase().includes(keyword.toLowerCase());
-          const matchesExcerpt = idea.excerpt?.toLowerCase().includes(keyword.toLowerCase());
-          if (!matchesTitle && !matchesExcerpt) continue;
+          const terms = JSON.parse(keyword) as string[];
+          if (
+            !terms.every((term) =>
+              [idea.title, idea.excerpt, idea.content].some((value) =>
+                value?.toLowerCase().includes(term),
+              ),
+            )
+          )
+            continue;
         }
         matchIds.add(idea.id);
       }
@@ -2002,9 +2024,15 @@ vi.mock("@/lib/db/d1-client", async () => {
 
         // Check keyword search
         if (keyword) {
-          const matchesTitle = idea.title?.toLowerCase().includes(keyword.toLowerCase());
-          const matchesExcerpt = idea.excerpt?.toLowerCase().includes(keyword.toLowerCase());
-          if (!matchesTitle && !matchesExcerpt) continue;
+          const terms = JSON.parse(keyword) as string[];
+          if (
+            !terms.every((term) =>
+              [idea.title, idea.excerpt, idea.content].some((value) =>
+                value?.toLowerCase().includes(term),
+              ),
+            )
+          )
+            continue;
         }
 
         results.push({

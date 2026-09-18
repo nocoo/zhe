@@ -258,7 +258,7 @@ describe("Sidebar", () => {
 
     it("displays search button with text", () => {
       renderSidebar({ collapsed: false });
-      expect(screen.getByText("搜索链接...")).toBeInTheDocument();
+      expect(screen.getByText("搜索收藏与记录…")).toBeInTheDocument();
     });
 
     it("displays ⌘K keyboard shortcut hint in search button", () => {
@@ -296,14 +296,12 @@ describe("Sidebar", () => {
     it("opens search dialog when search button is clicked", () => {
       renderSidebar({ collapsed: false });
 
-      const searchButton = screen.getByText("搜索链接...").closest("button");
+      const searchButton = screen.getByText("搜索收藏与记录…").closest("button");
       expect(searchButton).toBeInTheDocument();
       fireEvent.click(unwrap(searchButton));
 
       // SearchCommandDialog should render with a search input
-      expect(
-        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索标题、备注、正文、README…")).toBeInTheDocument();
     });
 
     it("opens search dialog on Cmd+K", () => {
@@ -311,9 +309,7 @@ describe("Sidebar", () => {
 
       fireEvent.keyDown(document, { key: "k", metaKey: true });
 
-      expect(
-        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索标题、备注、正文、README…")).toBeInTheDocument();
     });
 
     it("opens search dialog on Ctrl+K", () => {
@@ -321,9 +317,7 @@ describe("Sidebar", () => {
 
       fireEvent.keyDown(document, { key: "k", ctrlKey: true });
 
-      expect(
-        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索标题、备注、正文、README…")).toBeInTheDocument();
     });
 
     it("toggles search dialog closed on second Cmd+K", () => {
@@ -331,14 +325,12 @@ describe("Sidebar", () => {
 
       // Open
       fireEvent.keyDown(document, { key: "k", metaKey: true });
-      expect(
-        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索标题、备注、正文、README…")).toBeInTheDocument();
 
       // Close — the CommandInput placeholder should disappear
       fireEvent.keyDown(document, { key: "k", metaKey: true });
       expect(
-        screen.queryByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
+        screen.queryByPlaceholderText("搜索标题、备注、正文、README…"),
       ).not.toBeInTheDocument();
     });
 
@@ -347,17 +339,15 @@ describe("Sidebar", () => {
 
       fireEvent.keyDown(document, { key: "k" });
 
-      // The sidebar button text "搜索链接..." exists, but no CommandInput placeholder
-      const allMatches = screen.queryAllByPlaceholderText(
-        "搜索链接、想法、待办 · 跳转页面 · 触发动作...",
-      );
+      // The sidebar button text "搜索收藏与记录…" exists, but no CommandInput placeholder
+      const allMatches = screen.queryAllByPlaceholderText("搜索标题、备注、正文、README…");
       expect(allMatches).toHaveLength(0);
     });
 
     it("does not render search button in collapsed mode", () => {
       renderSidebar({ collapsed: true });
 
-      expect(screen.queryByText("搜索链接...")).not.toBeInTheDocument();
+      expect(screen.queryByText("搜索收藏与记录…")).not.toBeInTheDocument();
     });
 
     it("opens search dialog on Cmd+K even when sidebar is collapsed", () => {
@@ -365,9 +355,7 @@ describe("Sidebar", () => {
 
       fireEvent.keyDown(document, { key: "k", metaKey: true });
 
-      expect(
-        screen.getByPlaceholderText("搜索链接、想法、待办 · 跳转页面 · 触发动作..."),
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("搜索标题、备注、正文、README…")).toBeInTheDocument();
     });
 
     it("prevents default browser behavior on Cmd+K", () => {

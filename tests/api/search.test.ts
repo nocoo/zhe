@@ -101,7 +101,12 @@ describe("real authenticated search HTTP", () => {
       "手工补充线索",
       linkId,
     ]);
-    for (const query of ["我的整理标题", "手工补充线索", "Search repository"]) {
+    for (const query of [
+      "我的整理标题",
+      "手工补充线索",
+      "Search repository",
+      "repository 手工补充线索 new-stack",
+    ]) {
       const response = await apiPost("/api/search", { query }, { Cookie: cookie });
       expect(response.status).toBe(200);
       const data = await response.json();

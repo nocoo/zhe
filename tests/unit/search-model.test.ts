@@ -62,6 +62,36 @@ const tweet = {
   },
 };
 describe("verified search fields and literal semantics", () => {
+  it("combines literal keywords across fields and preserves matching evidence", () => {
+    const doc = buildSearchDocument({ ...base, repository });
+    const hit = toSearchHit(doc, "owner typescript readme-tail");
+    expect(hit?.matches?.map((match) => match.label)).toEqual(["仓库", "语言", "README"]);
+    expect(toSearchHit(doc, "description a note")).not.toBeNull();
+    expect(toSearchHit(doc, "owner missing-word")).toBeNull();
+    expect(toSearchHit(doc, "标题 标题")?.score).toBe(0);
+    expect(
+      searchHighlight("React with TypeScript", "typescript react")
+        .filter((part) => part.highlight)
+        .map((part) => part.text),
+    ).toEqual(["React", "TypeScript"]);
+  });
+  it("searches X media and quoted post identities without indexing media URLs", () => {
+    const doc = buildSearchDocument({
+      ...base,
+      url: "https://x.com/a/status/1",
+      tweet: {
+        ...tweet,
+        media: [{ type: "VIDEO", url: "private-video" }, { type: "GIF" }],
+        quoted_tweet: { id: "quoted-id", media: [{ type: "PHOTO" }], is_reply: true },
+      },
+    });
+    for (const query of ["@account 视频", "gif", "引用帖", "quoted-id 图片", "reply"]) {
+      if (query !== "引用帖") expect(toSearchHit(doc, query)).not.toBeNull();
+    }
+    expect(toSearchHit(doc, "private-video")).toBeNull();
+    expect(doc.metadata.mediaTypes).toEqual(["视频", "GIF"]);
+  });
+
   it.each([
     "标题",
     "short-slug",
@@ -149,8 +179,7 @@ describe("verified search fields and literal semantics", () => {
       "😀",
     ])
       expect(toSearchHit(doc, query)).not.toBeNull();
-    for (const query of ["mix.*text", "description a note", "", " \n "])
-      expect(toSearchHit(doc, query)).toBeNull();
+    for (const query of ["mix.*text", "", " \n "]) expect(toSearchHit(doc, query)).toBeNull();
   });
   it("ranks exact title, title prefix, substring, identity, metadata, summary then body", () => {
     const docs: SearchInput[] = [

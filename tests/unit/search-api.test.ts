@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/search/route";
 import { clearAllRateLimits } from "@/lib/api/rate-limit";
+import { SearchIndexPendingError } from "@/lib/db/scoped/search";
 
 const { auth, search } = vi.hoisted(() => ({ auth: vi.fn(), search: vi.fn() }));
 vi.mock("@/lib/auth-context", () => ({ getAuthContext: auth }));
@@ -49,4 +50,11 @@ it("returns a safe retryable error and rate limits by session user", async () =>
   expect(await response.text()).not.toContain("private D1 detail");
   for (let i = 0; i < 119; i++) await POST(request({ query: "x" }));
   expect((await POST(request({ query: "x" }))).status).toBe(429);
+});
+
+it("distinguishes an updating projection from a failed search", async () => {
+  search.mockRejectedValueOnce(new SearchIndexPendingError());
+  const response = await POST(request({ query: "x" }));
+  expect(response.status).toBe(503);
+  expect(await response.json()).toMatchObject({ code: "index_updating" });
 });

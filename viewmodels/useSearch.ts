@@ -6,7 +6,12 @@ import { normalizeSearchText, type SearchFilter, type SearchResponse } from "@/m
 /** Both search surfaces use the same ranked, tenant-scoped endpoint. */
 export function useSearch(query: string, source: SearchFilter = "all", offset = 0, enabled = true) {
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<{ key: string; data?: SearchResponse; error?: string }>({
+  const [state, setState] = useState<{
+    key: string;
+    data?: SearchResponse;
+    error?: string;
+    message?: string;
+  }>({
     key: "",
   });
   const needle = normalizeSearchText(query);
@@ -16,6 +21,7 @@ export function useSearch(query: string, source: SearchFilter = "all", offset = 
     if (!active) return;
     const controller = new AbortController();
     let disposed = false;
+    let resume: ReturnType<typeof setTimeout> | undefined;
     const timer = setTimeout(async () => {
       const timeout = setTimeout(() => controller.abort(), 20_000);
       try {
@@ -27,6 +33,13 @@ export function useSearch(query: string, source: SearchFilter = "all", offset = 
           cache: "no-store",
         });
         const body = await response.json();
+        if (response.status === 503 && body.code === "index_updating") {
+          if (!disposed) {
+            setState({ key, message: "正在更新搜索索引…" });
+            resume = setTimeout(() => setAttempt((value) => value + 1), 1000);
+          }
+          return;
+        }
         if (!response.ok) throw new Error(body.error || "暂时无法搜索，请重试");
         if (!disposed) setState({ key, data: body });
       } catch (error) {
@@ -46,6 +59,7 @@ export function useSearch(query: string, source: SearchFilter = "all", offset = 
     return () => {
       disposed = true;
       clearTimeout(timer);
+      clearTimeout(resume);
       controller.abort();
     };
   }, [active, key, needle, offset, source]);
@@ -54,6 +68,7 @@ export function useSearch(query: string, source: SearchFilter = "all", offset = 
     data: current ? state.data : undefined,
     error: current ? state.error : undefined,
     loading: active && (!current || (!state.data && !state.error)),
+    message: current ? state.message : undefined,
     retry: () => setAttempt((value) => value + 1),
   };
 }

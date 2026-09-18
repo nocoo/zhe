@@ -60,6 +60,7 @@ for (const width of [1365, 390])
               text: "Search post",
               author: { name: "Search Author", username: "rarehandle" },
               entities: { hashtags: ["raretopic"] },
+              media: [{ type: "VIDEO" }, { type: "GIF" }],
               quoted_tweet: { text: "rare-quote" },
             },
           }),
@@ -92,6 +93,10 @@ for (const width of [1365, 390])
       await expect(page.locator("[data-search-result]").nth(1)).toBeFocused();
       await page.keyboard.press("ArrowUp");
       await expect(page.locator("[data-search-result]").first()).toBeFocused();
+      await page.keyboard.press("End");
+      await expect(page.locator("[data-search-result]").last()).toBeFocused();
+      await page.keyboard.press("Home");
+      await expect(page.locator("[data-search-result]").first()).toBeFocused();
       const popup = page.waitForEvent("popup");
       await page.keyboard.press("Enter");
       const opened = await popup;
@@ -107,6 +112,18 @@ for (const width of [1365, 390])
       await expect(page.locator('[role="option"][aria-selected="true"]')).toContainText(
         "Search repository",
       );
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: /^GitHub/ })
+        .click();
+      await expect(
+        page.locator('[role="option"]').filter({ hasText: "Search repository" }),
+      ).toBeVisible();
+      await global.focus();
+      await global.fill("example rare-stack");
+      await expect(page.locator('[role="option"][aria-selected="true"]')).toContainText(
+        "Search repository",
+      );
       await global.dispatchEvent("keydown", { key: "Enter", isComposing: true });
       await expect(page.getByRole("dialog")).toBeVisible();
       await page.keyboard.press("Escape");
@@ -117,6 +134,8 @@ for (const width of [1365, 390])
         ["#raretopic", "话题"],
         ["rare-quote", "引用帖"],
         ["@rarehandle", "账号"],
+        ["@rarehandle 视频", "媒体类型"],
+        ["example rare-topic", "GitHub topic"],
       ]) {
         await input.fill(query ?? "");
         await expect(page.locator("[data-search-result]")).toHaveCount(1);

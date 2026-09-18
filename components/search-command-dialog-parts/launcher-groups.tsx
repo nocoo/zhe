@@ -8,7 +8,7 @@ import {
   PRE_LINK_NAV_GROUPS,
 } from "@/components/sidebar-parts/nav-config";
 import { CommandGroup, CommandItem } from "@/components/ui/command";
-import { normalizeSearchText } from "@/models/search";
+import { normalizeSearchText, searchIncludes } from "@/models/search";
 
 /**
  * Flatten the sidebar nav config into a single list of jump-to-page
@@ -79,14 +79,14 @@ export function countPageMatches(query: string): number {
   const trimmed = normalizeSearchText(query);
   const all = buildPageDestinations();
   if (!trimmed) return 0; // when empty, the "home" view shows a slice — don't claim a match
-  return all.filter((p) => normalizeSearchText(p.search).includes(trimmed)).length;
+  return all.filter((p) => searchIncludes(p.search, trimmed)).length;
 }
 
 /** Returns how many actions match the given query. */
 export function countActionMatches(actions: LauncherAction[], query: string): number {
   const trimmed = normalizeSearchText(query);
   if (!trimmed) return 0;
-  return actions.filter((a) => normalizeSearchText(a.search).includes(trimmed)).length;
+  return actions.filter((a) => searchIncludes(a.search, trimmed)).length;
 }
 
 interface PageJumpGroupProps {
@@ -103,7 +103,7 @@ export function PageJumpGroup({ query, visibleWhenEmpty = 5, onNavigate }: PageJ
   const trimmed = normalizeSearchText(query);
   const matches = useMemo(() => {
     if (!trimmed) return all.slice(0, visibleWhenEmpty);
-    return all.filter((p) => normalizeSearchText(p.search).includes(trimmed));
+    return all.filter((p) => searchIncludes(p.search, trimmed));
   }, [all, trimmed, visibleWhenEmpty]);
 
   if (matches.length === 0) return null;
@@ -151,7 +151,7 @@ export function ActionGroup({ query, actions, visibleWhenEmpty = 5 }: ActionGrou
   const trimmed = normalizeSearchText(query);
   const matches = useMemo(() => {
     if (!trimmed) return actions.slice(0, visibleWhenEmpty);
-    return actions.filter((a) => normalizeSearchText(a.search).includes(trimmed));
+    return actions.filter((a) => searchIncludes(a.search, trimmed));
   }, [actions, trimmed, visibleWhenEmpty]);
 
   if (matches.length === 0) return null;
