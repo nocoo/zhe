@@ -147,7 +147,7 @@ for (const width of [1365, 390])
       await page.getByRole("button", { name: /^GitHub/ }).click();
       await expect(page.locator("[data-search-result]")).toHaveCount(1);
       await page.screenshot({
-        path: `.artifacts/search-1.26.2/search-${width}-light.png`,
+        path: `.artifacts/enriched-search/search-${width}-light.png`,
         fullPage: true,
       });
       await page.keyboard.press("Control+k");
@@ -155,7 +155,7 @@ for (const width of [1365, 390])
       await page.getByText("切换到深色主题", { exact: true }).click();
       await expect(page.getByRole("dialog")).toBeHidden();
       await page.screenshot({
-        path: `.artifacts/search-1.26.2/search-${width}-dark.png`,
+        path: `.artifacts/enriched-search/search-${width}-dark.png`,
         fullPage: true,
       });
       expect(
