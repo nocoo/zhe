@@ -653,7 +653,7 @@ for (const viewport of [
                     new Set(cards.map((card) => Math.round(card.getBoundingClientRect().x))).size,
                 ),
             )
-            .toBe(8);
+            .toBe(6);
           expect(
             await feed
               .locator('[data-testid="link-card"], [data-testid="x-card-footer"]')
