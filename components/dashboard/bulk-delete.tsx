@@ -34,7 +34,7 @@ export function BulkDeleteActions({ selection }: { selection: BulkDeleteState })
 
   return (
     <>
-      <div ref={toolbar} className="min-w-0">
+      <div ref={toolbar} className="flex min-w-0">
         {selection.active ? (
           <SelectionControls selection={selection} deleteRef={trigger} />
         ) : (

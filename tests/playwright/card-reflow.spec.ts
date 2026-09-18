@@ -479,17 +479,20 @@ for (const collection of ["grid", "list", "github", "x", "uncategorized"] as con
       height,
     );
     expect(await cards.first().evaluate((element) => !!element.closest("[inert]"))).toBe(true);
-    await page.getByRole("button", { name: "删除所选" }).scrollIntoViewIfNeeded();
+    const deleteSelected = page
+      .getByRole("group", { name: "多选操作", exact: true })
+      .getByRole("button", { name: "删除所选" });
+    await deleteSelected.scrollIntoViewIfNeeded();
     await page.screenshot({
       path: `.artifacts/bulk-selection-${collection}.png`,
       animations: "disabled",
     });
-    await page.getByRole("button", { name: "删除所选" }).click();
+    await deleteSelected.click();
     const dialog = page.getByRole("alertdialog");
     await expect(dialog.getByRole("heading", { name: "删除 2 项内容？" })).toBeVisible();
     await dialog.getByRole("button", { name: "取消" }).click();
     expect(await queryD1("SELECT id FROM links WHERE user_id=?", [owner])).toHaveLength(8);
-    await page.getByRole("button", { name: "删除所选" }).click();
+    await deleteSelected.click();
     let release: () => void = () => {};
     let releaseSecond: () => void = () => {};
     const gate = new Promise<void>((resolve) => {

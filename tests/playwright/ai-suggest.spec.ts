@@ -103,7 +103,7 @@ for (const scenario of [
       await page.goto(scenario.path);
       const card = page.locator(`[data-link-id="${linkId}"]`).first();
       await expect(card).toBeVisible();
-      if (scenario.source === "x") {
+      if (scenario.source === "x" || scenario.source === "github") {
         await card.getByRole("button", { name: "更多收藏操作" }).click();
         await page.getByRole("menuitem", { name: "AI 整理" }).click();
       } else await card.getByRole("button", { name: "AI 整理" }).click();
