@@ -95,7 +95,7 @@ test.describe("Dashboard navigation", () => {
   test("sidebar shows search button with keyboard shortcut", async ({ page }) => {
     await page.goto("/dashboard");
 
-    await expect(page.locator("text=搜索链接...")).toBeVisible();
+    await expect(page.getByRole("button", { name: /搜索收藏与记录/ })).toBeVisible();
   });
 
   test("navigate to Overview page", async ({ page }) => {
