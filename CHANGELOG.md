@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.0.1] - 2026-09-18
+
+### Fixed
+- Clarify AI review and require explicit creation of suggested tags
+
 ## [v2.0.0] - 2026-09-18
 
 ### Added
