@@ -9,7 +9,6 @@ import {
   ImageIcon,
   LayoutGrid,
   Play,
-  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
@@ -19,7 +18,6 @@ import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
 import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
   Select,
@@ -73,7 +71,6 @@ export function XLibraryPage() {
   const bookmarks = useContext(XBookmarksContext);
   const [folderId, setFolderId] = useState("all");
   const [contentType, setContentType] = useState<XContentType>("all");
-  const [query, setQuery] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState(new Set<string>());
   const editCallbacks = useMemo<EditLinkCallbacks>(
     () => ({
@@ -106,8 +103,7 @@ export function XLibraryPage() {
         }),
     [links, bookmarks],
   );
-  const search = query.trim().toLocaleLowerCase();
-  const scoped = entries.filter(({ link, bookmark }) => {
+  const scoped = entries.filter(({ link }) => {
     if (
       folderId !== "all" &&
       (folderId === "uncategorized" ? link.folderId !== null : link.folderId !== folderId)
@@ -117,31 +113,14 @@ export function XLibraryPage() {
       [...selectedTagIds].some((id) => !linkTagsById.get(link.id)?.some((tag) => tag.tagId === id))
     )
       return false;
-    const tweet = bookmark?.tweet;
-    return (
-      !search ||
-      [
-        link.note,
-        link.metaTitle,
-        link.metaDescription,
-        link.originalUrl,
-        tweet?.text,
-        tweet?.author.name,
-        tweet?.author.username,
-        ...tags
-          .filter((tag) => linkTagsById.get(link.id)?.some((assigned) => assigned.tagId === tag.id))
-          .map((tag) => tag.name),
-      ].some((value) => value?.toLocaleLowerCase().includes(search))
-    );
+    return true;
   });
   const visible =
     contentType === "all" ? scoped : scoped.filter(({ types }) => types.includes(contentType));
-  const filtered =
-    folderId !== "all" || contentType !== "all" || !!query || selectedTagIds.size > 0;
+  const filtered = folderId !== "all" || contentType !== "all" || selectedTagIds.size > 0;
   const clearFilters = () => {
     setFolderId("all");
     setContentType("all");
-    setQuery("");
     setSelectedTagIds(new Set());
   };
 
@@ -165,110 +144,81 @@ export function XLibraryPage() {
             <TwitterIcon className="size-6" strokeWidth={1.5} aria-hidden />X 收藏
           </span>
         }
-        description={`汇集所有分类 · 共 ${entries.length} 条收藏`}
-      />
-      <div className="mb-4 space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Select value={folderId} onValueChange={setFolderId}>
-            <SelectTrigger size="sm" className="w-full sm:w-52" aria-label="筛选分类">
-              <SelectValue placeholder="全部分类" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部分类</SelectItem>
-              <SelectItem value="uncategorized">Inbox · 未分类</SelectItem>
-              {folders.map((folder) => (
-                <SelectItem key={folder.id} value={folder.id}>
-                  {folder.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <TagFilter
-            tags={tags}
-            selectedTagIds={selectedTagIds}
-            onToggle={(id) =>
-              setSelectedTagIds((current) => {
-                const next = new Set(current);
-                if (next.has(id)) next.delete(id);
-                else next.add(id);
-                return next;
-              })
-            }
-          />
-          <div className="relative w-full sm:max-w-sm">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              size="sm"
-              type="search"
-              aria-label="搜索 X 收藏"
-              placeholder="搜索正文、作者或备注"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="pl-9"
-            />
-          </div>
-          {filtered && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="self-start sm:self-center"
+        description={
+          <span role="status">
+            共 {entries.length} 条收藏{filtered ? ` · 显示 ${visible.length} 条` : ""}
+            {contentType === "article" ? " · 包含长文和带外部链接的帖子" : ""}
+          </span>
+        }
+        actions={
+          <>
+            <Select
+              value={contentType}
+              onValueChange={(value) => setContentType(value as XContentType)}
             >
-              清除筛选
-            </Button>
-          )}
-        </div>
-        <fieldset className="flex min-w-0 flex-wrap gap-1 border-b border-border/60 pb-3">
-          <legend className="sr-only">内容类型</legend>
-          {X_CONTENT_TYPES.map(({ value, label }) => {
-            const Icon = contentIcons[value];
-            return (
-              <Button
-                key={value}
-                variant="ghost"
-                size="sm"
-                className={
-                  contentType === value
-                    ? "bg-secondary text-foreground shadow-xs ring-1 ring-border/60"
-                    : "text-muted-foreground"
-                }
-                aria-pressed={contentType === value}
-                onClick={() => setContentType(value)}
-                title={value === "article" ? "长文和带外部链接的帖子" : undefined}
-              >
-                <Icon
-                  className={contentType === value ? "text-primary" : ""}
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-                {label}
-                <span
-                  aria-hidden
-                  className="min-w-4 rounded-full bg-background/70 px-1 text-[11px] tabular-nums text-muted-foreground"
-                >
-                  {value === "all"
-                    ? scoped.length
-                    : scoped.filter(({ types }) => types.includes(value)).length}
-                </span>
+              <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="内容类型">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="min-w-40">
+                {X_CONTENT_TYPES.map(({ value, label }) => {
+                  const Icon = contentIcons[value];
+                  const count =
+                    value === "all"
+                      ? scoped.length
+                      : scoped.filter(({ types }) => types.includes(value)).length;
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <span>{label}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <Select value={folderId} onValueChange={setFolderId}>
+              <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="筛选分类">
+                <SelectValue placeholder="全部分类" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部分类</SelectItem>
+                <SelectItem value="uncategorized">Inbox · 未分类</SelectItem>
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <TagFilter
+              tags={tags}
+              selectedTagIds={selectedTagIds}
+              onToggle={(id) =>
+                setSelectedTagIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+            />
+            {filtered && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                清除筛选
               </Button>
-            );
-          })}
-        </fieldset>
-        <p role="status" className="text-xs text-muted-foreground">
-          显示 {visible.length} 条收藏
-          {contentType === "article" ? " · 包含长文和带外部链接的帖子" : ""}
-        </p>
-      </div>
+            )}
+          </>
+        }
+      />
       {visible.length === 0 ? (
         <EmptyState
           icon={Bookmark}
           title={entries.length ? "没有符合条件的 X 收藏" : "还没有 X 收藏"}
           description={
             entries.length
-              ? "试试其他分类、内容类型或关键词。"
+              ? "试试其他分类、内容类型或标签。"
               : "保存 X 帖子链接后，可以在这里集中阅读。"
           }
           action={

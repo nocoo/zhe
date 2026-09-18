@@ -198,6 +198,14 @@ for (const width of [1920, 1365, 390]) {
       }
       await page.goto("/dashboard/github");
       await expect(islandHeading(page, "GitHub 收藏")).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "搜索 GitHub 收藏" })).toHaveCount(0);
+      if (width >= 768) {
+        const heading = await islandHeading(page, "GitHub 收藏").boundingBox();
+        const filter = await page.getByRole("combobox", { name: "仓库排序" }).boundingBox();
+        assert(heading && filter);
+        expect(Math.abs(heading.y - filter.y)).toBeLessThan(2);
+        expect(filter.x).toBeGreaterThan(heading.x);
+      }
       const cards = page.getByTestId("github-repository");
       await expect(cards).toHaveCount(6);
       const card = page.locator(`[data-testid="github-repository"][data-link-id="${ids[0]}"]`);

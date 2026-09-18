@@ -2,7 +2,7 @@
 vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
 vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { normalizeXPost, type XPost } from "@/cli/src/connector/core";
@@ -197,6 +197,11 @@ describe("X content classification", () => {
   });
 });
 
+async function selectType(name: string) {
+  await userEvent.click(screen.getByRole("combobox", { name: "内容类型" }));
+  await userEvent.click(screen.getByRole("option", { name: new RegExp(`^${name}`) }));
+}
+
 describe("X library", () => {
   it("combines all categories and keeps pending posts visible without including normal links", () => {
     renderPage();
@@ -207,19 +212,19 @@ describe("X library", () => {
       "data-view",
       "feed",
     );
-    expect(screen.getByText("显示 6 条收藏")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("共 6 条收藏");
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
   });
   it("intersects the category and media filters, supports mixed posts, and clears filters", async () => {
     renderPage();
     const user = userEvent.setup();
-    const types = within(screen.getByRole("group", { name: "内容类型" }));
-    await user.click(types.getByRole("button", { name: "图片" }));
+    await selectType("图片");
     expect(screen.getAllByRole("article")).toHaveLength(2);
     await user.click(screen.getByRole("combobox", { name: "筛选分类" }));
     await user.click(screen.getByRole("option", { name: "阅读" }));
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(screen.getByRole("article", { name: "Architecture photo" })).toBeInTheDocument();
-    await user.click(types.getByRole("button", { name: "视频" }));
+    await selectType("视频");
     expect(screen.getByText("没有符合条件的 X 收藏")).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: "清除筛选" })[0] as HTMLElement);
     expect(screen.getAllByRole("article")).toHaveLength(6);
@@ -228,18 +233,14 @@ describe("X library", () => {
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(screen.getByRole("article", { name: "Simple note" })).toBeInTheDocument();
   });
-  it("filters articles and searches saved notes and author names", async () => {
+  it("filters articles using the compact header control", async () => {
     renderPage();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "文章" }));
+    await selectType("文章");
     expect(screen.getAllByRole("article")).toHaveLength(1);
-    await user.type(screen.getByRole("searchbox", { name: "搜索 X 收藏" }), "research");
     expect(screen.getByRole("article", { name: "Research article" })).toBeInTheDocument();
-    await user.clear(screen.getByRole("searchbox"));
-    await user.type(screen.getByRole("searchbox"), "LIN");
-    expect(screen.getByRole("article", { name: "Research article" })).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
   });
-  it("intersects named tags, supports deselection, and searches tag names", async () => {
+  it("intersects named tags and supports deselection", async () => {
     service.tags = [
       makeTag({ id: "design-tag", name: "设计规范" }),
       makeTag({ id: "read-tag", name: "待读" }),
@@ -264,14 +265,10 @@ describe("X library", () => {
     await user.keyboard("{Escape}");
     await user.click(screen.getByRole("button", { name: "清除筛选" }));
     expect(screen.getAllByRole("article")).toHaveLength(6);
-    await user.type(screen.getByRole("searchbox", { name: "搜索 X 收藏" }), "设计规范");
-    expect(screen.getAllByRole("article")).toHaveLength(2);
-    expect(screen.getByRole("article", { name: "Architecture photo" })).toBeVisible();
-    expect(screen.queryByRole("article", { name: "Research article" })).not.toBeInTheDocument();
   });
   it("updates media filtering when the shared capture changes", async () => {
     const { rerender } = renderPage();
-    await userEvent.click(screen.getByRole("button", { name: "待补全" }));
+    await selectType("待补全");
     expect(screen.getByRole("article", { name: "Waiting" })).toBeInTheDocument();
     const updated = new Map(bookmarks);
     updated.set(5, { linkId: 5, tweet: post(5), state: "complete", errorCode: null, updatedAt: 2 });
@@ -281,7 +278,7 @@ describe("X library", () => {
       </XBookmarksContext.Provider>,
     );
     expect(screen.queryByRole("article", { name: "Waiting" })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "文字" }));
+    await selectType("文字");
     expect(screen.getByRole("article", { name: "Waiting" })).toBeInTheDocument();
   });
   it("shows initial loading and an actionable empty state", () => {

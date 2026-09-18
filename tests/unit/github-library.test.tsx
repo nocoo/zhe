@@ -119,12 +119,7 @@ describe("GitHub collection", () => {
     expect(screen.getByText("分支 main")).toBeVisible();
     expect(screen.getAllByTestId("github-repository")).toHaveLength(2);
     expect(loadGitHubReadme).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole("searchbox", { name: "搜索 GitHub 收藏" }), {
-      target: { value: "TypeScript" },
-    });
-    expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "absent" } });
-    expect(screen.getByText("没有符合条件的 GitHub 收藏")).toBeVisible();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
   });
   it("combines folder and tag filters and supports metric sorting", async () => {
     const user = userEvent.setup();

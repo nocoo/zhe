@@ -561,6 +561,14 @@ for (const viewport of [
       const requestsBeforeFeed = mediaRequests.length;
       await page.goto("/dashboard/x");
       await expect(islandHeading(page, "X 收藏")).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "搜索 X 收藏" })).toHaveCount(0);
+      if (viewport.width >= 768) {
+        const heading = await islandHeading(page, "X 收藏").boundingBox();
+        const filter = await page.getByRole("combobox", { name: "内容类型" }).boundingBox();
+        assert(heading && filter);
+        expect(Math.abs(heading.y - filter.y)).toBeLessThan(2);
+        expect(filter.x).toBeGreaterThan(heading.x);
+      }
       const feed = page.getByTestId("x-feed");
       await expect(feed.getByTestId("link-card")).toHaveCount(4 + galleryCount);
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
@@ -700,18 +708,20 @@ for (const viewport of [
       await expect(page.locator("video")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(details).toBeFocused();
-      await page.getByRole("button", { name: "图片", exact: true }).click();
+      await page.getByRole("combobox", { name: "内容类型" }).click();
+      await page.getByRole("option", { name: /^图片/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await page.getByRole("combobox", { name: "筛选分类" }).click();
       await page.getByRole("option", { name: "Reading", exact: true }).click();
       await expect(page.getByText("没有符合条件的 X 收藏")).toBeVisible();
-      await page.getByRole("button", { name: "文章", exact: true }).click();
+      await page.getByRole("combobox", { name: "内容类型" }).click();
+      await page.getByRole("option", { name: /^文章/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await expect(feed.getByText("Reading article", { exact: true })).toBeVisible();
-      await page.getByRole("searchbox", { name: "搜索 X 收藏" }).fill("not present");
-      await expect(page.getByText("没有符合条件的 X 收藏")).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "搜索 X 收藏" })).toHaveCount(0);
       await page.getByRole("button", { name: "清除筛选", exact: true }).first().click();
-      await page.getByRole("button", { name: "待补全", exact: true }).click();
+      await page.getByRole("combobox", { name: "内容类型" }).click();
+      await page.getByRole("option", { name: /^待补全/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await expect(feed.getByTestId("link-card")).toContainText("Pending post");
       await page.goto("/dashboard");
