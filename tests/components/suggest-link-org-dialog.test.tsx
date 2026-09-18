@@ -31,6 +31,7 @@ function makeVm(overrides: Partial<SuggestLinkOrgViewModel> = {}): SuggestLinkOr
     folders: [{ folderId: "f1", name: "工作", reason: "适合工作", source: "ai" }],
     selectedFolderId: "f1",
     setSelectedFolderId: vi.fn(),
+    newTagSuggestions: [{ name: "知识管理", reason: "可复用的主题" }],
     tags: [
       {
         tagId: "t1",
@@ -64,19 +65,43 @@ describe("SuggestLinkOrgDialog", () => {
     expect(screen.getByTestId("suggest-apply")).toBeDisabled();
     expect(screen.getByTestId("suggest-step-caption")).toHaveTextContent("已等待");
   });
-  it("provides editable title and multiline note, with selectable inline tags", () => {
+  it("provides editable title and multiline note, with selectable tags", () => {
     const vm = makeVm();
     render(<SuggestLinkOrgDialog vm={vm} />);
-    fireEvent.change(screen.getByLabelText("标题"), { target: { value: "新标题" } });
-    fireEvent.change(screen.getByLabelText("备注"), { target: { value: "用户备注" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "标题" }), {
+      target: { value: "新标题" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "用户备注" },
+    });
     const tagButton = screen.getAllByRole("button", { name: "文档" })[0];
     if (!tagButton) throw new Error("Missing recommended tag");
     fireEvent.click(tagButton);
     expect(vm.setDraftTitle).toHaveBeenCalledWith("新标题");
     expect(vm.setDraftNote).toHaveBeenCalledWith("用户备注");
     expect(vm.toggleTag).toHaveBeenCalledWith(0);
-    expect(screen.getByLabelText("备注").tagName).toBe("TEXTAREA");
+    expect(screen.getByRole("textbox", { name: "备注" }).tagName).toBe("TEXTAREA");
+    expect(
+      screen.getAllByRole("region").map((section) => section.getAttribute("aria-label")),
+    ).toEqual(["1 标题", "2 备注", "3 分类", "4 标签"]);
+    expect(screen.getByText("推荐理由：适合工作")).toBeVisible();
+    expect(screen.getByText("推荐理由：已有标签")).toBeVisible();
+    expect(screen.getByTestId("suggest-apply")).toHaveTextContent("确认保存");
     expect(screen.queryByText(/AI 建议|\/32|字数/)).not.toBeInTheDocument();
+  });
+  it("uses badges and creates a suggested new tag only when clicked", () => {
+    const vm = makeVm();
+    render(<SuggestLinkOrgDialog vm={vm} />);
+    const existing = screen.getAllByRole("button", { name: "文档" })[0];
+    expect(existing).toHaveAttribute("aria-pressed", "true");
+    expect(existing?.querySelector("span")).toHaveClass("rounded-full");
+    const create = screen.getByRole("button", { name: "创建标签 知识管理" });
+    expect(create).not.toHaveAttribute("aria-pressed");
+    expect(create.querySelector("span")).toHaveClass("border-dashed");
+    expect(vm.addTag).not.toHaveBeenCalled();
+    fireEvent.click(create);
+    expect(vm.addTag).toHaveBeenCalledWith("知识管理");
+    expect(vm.apply).not.toHaveBeenCalled();
   });
   it("keeps run details folded and missing README informational", () => {
     render(<SuggestLinkOrgDialog vm={makeVm()} />);

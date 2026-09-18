@@ -22,6 +22,7 @@ for (const scenario of [
     const tagName = `ai-${suffix}`;
     const tagId = `t-${suffix}`;
     const manualTag = `manual-${suffix}`;
+    const newTagName = `new-${suffix}`;
     const folderId = `f-${suffix}`;
     const slug = `ai-${suffix}`;
     await executeD1("INSERT INTO folders(id,user_id,name,icon,created_at) VALUES(?,?,?,?,?)", [
@@ -87,6 +88,7 @@ for (const scenario of [
             note: "便于检索和阅读的开发资料。",
             folders: [{ folderId, name: "开发资料", reason: "开发相关" }],
             tags: [{ tagId, name: tagName, reason: "检索" }],
+            newTags: [{ name: newTagName, reason: "可复用主题" }],
           },
           durationMs: 1200,
           rawText: "model output",
@@ -123,20 +125,56 @@ for (const scenario of [
         ).toBe("rgb(255, 255, 255)");
       }
       expect(await dialog.getByText(/AI 建议|字数/).count()).toBe(0);
-      if (scenario.width > 640) {
-        await expect
-          .poll(() =>
-            dialog.evaluate((el) => {
-              const folder = el.querySelector('[role="combobox"]')?.getBoundingClientRect();
-              const tag = el.querySelector("[aria-pressed]")?.getBoundingClientRect();
-              return {
-                aligned: !!folder && !!tag && Math.abs(folder.y - tag.y) <= 1,
-                heights: [folder?.height, tag?.height],
-              };
-            }),
-          )
-          .toEqual({ aligned: true, heights: [36, 36] });
+      await expect(dialog.getByRole("region")).toHaveCount(4);
+      await expect(dialog.getByText("推荐理由：开发相关")).toBeVisible();
+      const suggestedTag = dialog
+        .getByRole("region", { name: "4 标签" })
+        .getByRole("button", { name: tagName, exact: true })
+        .first();
+      await expect(suggestedTag).toHaveAttribute("aria-pressed", "true");
+      expect(await queryD1("SELECT tag_id FROM link_tags WHERE link_id=?", [linkId])).toHaveLength(
+        0,
+      );
+      await suggestedTag.click();
+      await expect(suggestedTag).toHaveAttribute("aria-pressed", "false");
+      await suggestedTag.click();
+      await expect(suggestedTag).toHaveAttribute("aria-pressed", "true");
+      const newSuggestion = dialog.getByRole("button", {
+        name: `创建标签 ${newTagName}`,
+        exact: true,
+      });
+      await expect(newSuggestion).toBeVisible();
+      expect(
+        await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [TEST_USER.id, newTagName]),
+      ).toHaveLength(0);
+      if (scenario.source === "github") {
+        await newSuggestion.click();
+        await expect(newSuggestion).not.toBeVisible();
+        await expect(
+          dialog.getByRole("button", { name: newTagName, exact: true }).first(),
+        ).toHaveAttribute("aria-pressed", "true");
+        expect(
+          await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [
+            TEST_USER.id,
+            newTagName,
+          ]),
+        ).toHaveLength(1);
+        expect(
+          await queryD1("SELECT tag_id FROM link_tags WHERE link_id=?", [linkId]),
+        ).toHaveLength(0);
       }
+      expect(
+        await dialog
+          .getByRole("region")
+          .evaluateAll((sections) =>
+            sections.every(
+              (section, index) =>
+                index === 0 ||
+                section.getBoundingClientRect().top >=
+                  (sections[index - 1]?.getBoundingClientRect().bottom ?? 0),
+            ),
+          ),
+      ).toBe(true);
       expect(
         await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [TEST_USER.id, manualTag]),
       ).toHaveLength(0);
@@ -176,13 +214,24 @@ for (const scenario of [
         [linkId],
       );
       expect(assigned.map((t) => t.name)).toContain(tagName);
-      if (scenario.source === "github") expect(assigned.map((t) => t.name)).toContain(manualTag);
+      if (scenario.source === "github") {
+        expect(assigned.map((t) => t.name)).toContain(manualTag);
+        expect(assigned.map((t) => t.name)).toContain(newTagName);
+      } else {
+        expect(
+          await queryD1("SELECT id FROM tags WHERE user_id=? AND name=?", [
+            TEST_USER.id,
+            newTagName,
+          ]),
+        ).toHaveLength(0);
+      }
     } finally {
       await executeD1("DELETE FROM links WHERE id=? AND user_id=?", [linkId, TEST_USER.id]);
-      await executeD1("DELETE FROM tags WHERE user_id=? AND name IN (?,?)", [
+      await executeD1("DELETE FROM tags WHERE user_id=? AND name IN (?,?,?)", [
         TEST_USER.id,
         tagName,
         manualTag,
+        newTagName,
       ]);
       await executeD1("DELETE FROM folders WHERE id=? AND user_id=?", [folderId, TEST_USER.id]);
     }

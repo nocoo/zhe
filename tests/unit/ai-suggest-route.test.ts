@@ -19,6 +19,7 @@ const result = {
   note: "管理收藏资料。",
   folders: [{ folderId: null, name: "Inbox", reason: "暂存" }],
   tags: [{ tagId: "t", name: "工具", reason: "用途" }],
+  newTags: [{ name: "知识管理", reason: "可复用主题" }],
 };
 const context = {
   link: { title: null, note: "旧备注", folderId: null },

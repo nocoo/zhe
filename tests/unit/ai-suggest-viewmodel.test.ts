@@ -45,6 +45,7 @@ const resultEvent = {
     note: "新的摘要",
     folders: [{ folderId: null, name: "Inbox", reason: "暂存" }],
     tags: [{ tagId: "recommended", name: "推荐标签", reason: "推荐" }],
+    newTags: [{ name: "Another", reason: "可复用主题" }],
   },
   rawText: "reply",
   durationMs: 20,
@@ -79,6 +80,10 @@ describe("shared AI editor state", () => {
       "推荐标签",
       "已有标签",
     ]);
+    expect(result.current.tags.find((tag) => tag.tagId === "recommended")?.checked).toBe(true);
+    expect(save).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+    expect(result.current.newTagSuggestions).toEqual(resultEvent.result.newTags);
     expect(result.current.notices).toEqual(context.notices);
     expect(result.current.draftTitle).toBe("短标题");
   });
@@ -106,6 +111,7 @@ describe("shared AI editor state", () => {
       folderId: null,
       tagIds: ["recommended"],
     });
+    expect(create).not.toHaveBeenCalled();
     expect(callbacks.onLinkTagRemoved).toHaveBeenCalledWith(1, "old");
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
     expect(result.current.open).toBe(false);
@@ -131,6 +137,9 @@ describe("shared AI editor state", () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith({ name: "Another" });
     expect(result.current.tags.filter((t) => t.name === "Another")).toHaveLength(1);
+    expect(result.current.tags.find((t) => t.name === "Another")?.checked).toBe(true);
+    expect(result.current.newTagSuggestions).toEqual([]);
+    expect(save).not.toHaveBeenCalled();
     expect(callbacks.onTagCreated).toHaveBeenCalledWith({ id: "user-created", name: "Another" });
   });
   it("retains the editor and reports failed manual tag creation", async () => {

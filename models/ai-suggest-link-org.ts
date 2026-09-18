@@ -1,3 +1,5 @@
+import { validateTagName } from "./tags";
+
 export const SUGGEST_NOTE_MAX = 120;
 export const SUGGEST_TITLE_MAX = 32;
 
@@ -13,16 +15,19 @@ export interface SuggestTagOption {
   reason: string;
 }
 
+export type SuggestNewTagOption = Pick<SuggestTagOption, "name" | "reason">;
+
 export interface SuggestLinkOrgResult {
   title: string;
   folders: SuggestFolderOption[];
   tags: SuggestTagOption[];
+  newTags: SuggestNewTagOption[];
   note: string;
 }
 
 export interface SuggestCatalogs {
   folders: Array<{ id: string; name: string }>;
-  tags: Array<{ id: string; name: string }>;
+  tags: Array<{ id: string; name: string; color?: string }>;
 }
 
 export class SuggestParseError extends Error {
@@ -97,6 +102,22 @@ function parseTags(rawItems: unknown[], tagById: Map<string, string>): SuggestTa
   return tags;
 }
 
+function parseNewTags(rawItems: unknown[], catalogs: SuggestCatalogs): SuggestNewTagOption[] {
+  const seen = new Set(catalogs.tags.map((tag) => tag.name.trim().toLowerCase()));
+  const tags: SuggestNewTagOption[] = [];
+  for (const raw of rawItems) {
+    if (!raw || typeof raw !== "object") continue;
+    const item = raw as Record<string, unknown>;
+    if (typeof item.name !== "string" || typeof item.reason !== "string") continue;
+    const name = validateTagName(item.name);
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    tags.push({ name, reason: asReason(item.reason) });
+    if (tags.length === 3) break;
+  }
+  return tags;
+}
+
 export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): SuggestLinkOrgResult {
   const payload = extractJsonObject(text);
   if (!payload.trim()) {
@@ -115,6 +136,10 @@ export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): Su
   if (!Array.isArray(root.folders) || !Array.isArray(root.tags)) {
     throw new SuggestParseError("返回必须包含文件夹和标签列表");
   }
+  if (root.newTags !== undefined && !Array.isArray(root.newTags)) {
+    throw new SuggestParseError("新标签建议必须是列表");
+  }
+  const newTags = parseNewTags(root.newTags ?? [], catalogs);
   const folders = parseFolders(root.folders, new Map(catalogs.folders.map((f) => [f.id, f.name])));
   const tags = parseTags(root.tags, new Map(catalogs.tags.map((t) => [t.id, t.name])));
   if (typeof root.note !== "string") {
@@ -128,7 +153,7 @@ export function parseSuggestLinkOrg(text: string, catalogs: SuggestCatalogs): Su
   if (!note) {
     throw new SuggestParseError("未得到可用的备注总结");
   }
-  return { folders, tags, title, note };
+  return { folders, tags, newTags, title, note };
 }
 
 function folderKey(folderId: string | null): string {

@@ -31,7 +31,8 @@ describe("ApiClient", () => {
     });
 
     it("allows custom version", () => {
-      const client = new ApiClient("zhe_testkey", "2.0.0");
+      const customVersion = `${CLI_VERSION}-custom`;
+      const client = new ApiClient("zhe_testkey", customVersion);
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -41,7 +42,7 @@ describe("ApiClient", () => {
       client.listLinks();
       const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = options.headers as Record<string, string>;
-      expect(headers["User-Agent"]).toBe("zhe-cli/2.0.0");
+      expect(headers["User-Agent"]).toBe(`zhe-cli/${customVersion}`);
     });
   });
 

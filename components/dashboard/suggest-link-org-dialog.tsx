@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, ChevronRight, Loader2, Sparkles, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plus, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SUGGEST_TITLE_MAX } from "@/models/ai-suggest-link-org";
 import { SUGGEST_STEPS } from "@/models/ai-suggest-progress";
+import { getTagStyles } from "@/models/tags";
 import type { SuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 
 function Transcript({ title, text }: { title: string; text: string }) {
@@ -37,6 +39,49 @@ function Transcript({ title, text }: { title: string; text: string }) {
         {text || "暂无"}
       </pre>
     </details>
+  );
+}
+
+function TagChoice({
+  name,
+  color,
+  checked = false,
+  create = false,
+  onClick,
+}: {
+  name: string;
+  color?: string | undefined;
+  checked?: boolean;
+  create?: boolean;
+  onClick: () => void;
+}) {
+  const styles = getTagStyles(name, color);
+  return (
+    <button
+      type="button"
+      aria-pressed={create ? undefined : checked}
+      aria-label={create ? `创建标签 ${name}` : undefined}
+      onClick={onClick}
+      className="max-w-full cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+    >
+      <Badge
+        variant="outline"
+        className={cn(
+          "max-w-full transition-colors",
+          checked ? "border-transparent" : "text-muted-foreground",
+          create && "border-dashed",
+        )}
+        style={checked ? styles.badge : undefined}
+      >
+        {create ? (
+          <Plus className="size-3 shrink-0" aria-hidden />
+        ) : (
+          <span className="size-1.5 shrink-0 rounded-full" style={styles.dot} aria-hidden />
+        )}
+        <span className="truncate">{name}</span>
+        {checked && <Check className="size-3 shrink-0" aria-hidden />}
+      </Badge>
+    </button>
   );
 }
 
@@ -82,10 +127,10 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
               {vm.loading
                 ? `正在整理 · 已等待 ${(elapsed / 1000).toFixed(1)} 秒`
                 : vm.ready
-                  ? "建议已生成，可直接修改"
+                  ? "按 1–4 项核对建议，可直接修改，确认后保存"
                   : vm.error
                     ? "整理未完成"
-                    : "整理标题、备注和分类"}
+                    : "整理标题、备注、分类和标签"}
             </DialogDescription>
           </DialogHeader>
           <Button
@@ -160,10 +205,17 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </div>
           )}
           <fieldset disabled={busy || !vm.ready} className="min-w-0 space-y-4 disabled:opacity-60">
-            <div className="space-y-1.5">
+            <section
+              aria-label="1 标题"
+              className="space-y-2 rounded-card border border-border p-4"
+            >
               <Label htmlFor="suggest-title" className="block text-xs font-medium leading-4">
+                <span aria-hidden className="mr-2 text-primary">
+                  1
+                </span>
                 标题
               </Label>
+              <p className="text-xs leading-5 text-muted-foreground">核对标题是否准确概括内容。</p>
               <Input
                 id="suggest-title"
                 value={vm.draftTitle}
@@ -178,11 +230,20 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                   标题过长，请精简
                 </p>
               )}
-            </div>
-            <div className="space-y-1.5">
+            </section>
+            <section
+              aria-label="2 备注"
+              className="space-y-2 rounded-card border border-border p-4"
+            >
               <Label htmlFor="suggest-note" className="block text-xs font-medium leading-4">
+                <span aria-hidden className="mr-2 text-primary">
+                  2
+                </span>
                 备注
               </Label>
+              <p className="text-xs leading-5 text-muted-foreground">
+                核对摘要中的事实与重点，删改不准确的内容。
+              </p>
               <Textarea
                 id="suggest-note"
                 rows={3}
@@ -192,131 +253,172 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                 placeholder="备注"
                 data-testid="suggest-note"
               />
-            </div>
-            <div className="grid min-w-0 grid-cols-1 items-start gap-4 sm:grid-cols-2">
-              <div className="min-w-0 space-y-1.5">
-                <Label htmlFor="suggest-folder" className="block text-xs font-medium leading-4">
-                  文件夹
-                </Label>
-                <Select
-                  value={vm.selectedFolderId ?? "__inbox__"}
-                  onValueChange={(value) =>
-                    vm.setSelectedFolderId(value === "__inbox__" ? null : value)
-                  }
-                >
-                  <SelectTrigger id="suggest-folder" className="w-full">
-                    <SelectValue placeholder="选择文件夹" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vm.folders.map((folder) => (
-                      <SelectItem
-                        key={folder.folderId ?? "inbox"}
-                        value={folder.folderId ?? "__inbox__"}
-                      >
-                        {folder.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {vm.folders
-                  .filter((f) => f.source === "ai" && f.folderId !== vm.selectedFolderId)
-                  .map((folder) => (
-                    <Button
+            </section>
+            <section
+              aria-label="3 分类"
+              className="min-w-0 space-y-2 rounded-card border border-border p-4"
+            >
+              <Label htmlFor="suggest-folder" className="block text-xs font-medium leading-4">
+                <span aria-hidden className="mr-2 text-primary">
+                  3
+                </span>
+                分类
+              </Label>
+              <p className="text-xs leading-5 text-muted-foreground">
+                核对归属文件夹，也可以改选其他分类。
+              </p>
+              <Select
+                value={vm.selectedFolderId ?? "__inbox__"}
+                onValueChange={(value) =>
+                  vm.setSelectedFolderId(value === "__inbox__" ? null : value)
+                }
+              >
+                <SelectTrigger id="suggest-folder" className="w-full">
+                  <SelectValue placeholder="选择文件夹" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vm.folders.map((folder) => (
+                    <SelectItem
                       key={folder.folderId ?? "inbox"}
-                      variant="ghost"
-                      size="sm"
-                      className="mr-1"
-                      onClick={() => vm.setSelectedFolderId(folder.folderId)}
+                      value={folder.folderId ?? "__inbox__"}
                     >
                       {folder.name}
-                    </Button>
+                    </SelectItem>
                   ))}
-              </div>
-              <div className="min-w-0 space-y-1.5">
-                <p className="text-xs font-medium leading-4">标签</p>
-                <div className="flex min-h-9 flex-wrap items-center gap-2">
-                  {visibleTags.map((tag) => (
+                </SelectContent>
+              </Select>
+              {vm.folders.find((folder) => folder.folderId === vm.selectedFolderId)?.reason && (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  推荐理由：
+                  {vm.folders.find((folder) => folder.folderId === vm.selectedFolderId)?.reason}
+                </p>
+              )}
+              {vm.folders
+                .filter((f) => f.source === "ai" && f.folderId !== vm.selectedFolderId)
+                .map((folder) => (
+                  <div key={folder.folderId ?? "inbox"} className="space-y-1">
                     <Button
-                      key={tag.tagId}
                       variant="outline"
-                      aria-pressed={tag.checked}
+                      size="sm"
+                      onClick={() => vm.setSelectedFolderId(folder.folderId)}
+                    >
+                      改选 {folder.name}
+                    </Button>
+                    <p className="text-xs leading-5 text-muted-foreground">{folder.reason}</p>
+                  </div>
+                ))}
+            </section>
+            <section
+              aria-label="4 标签"
+              className="min-w-0 space-y-3 rounded-card border border-border p-4"
+            >
+              <h3 className="text-xs font-medium leading-4">
+                <span aria-hidden className="mr-2 text-primary">
+                  4
+                </span>
+                标签
+              </h3>
+              <p className="text-xs leading-5 text-muted-foreground">
+                已有标签的推荐默认勾选，可点击取消；新标签需主动创建。
+              </p>
+              <p className="text-xs font-medium">已有标签</p>
+              <div className="space-y-2">
+                {visibleTags.map((tag) => (
+                  <div key={tag.tagId} className="space-y-1">
+                    <TagChoice
+                      name={tag.name}
+                      color={tag.color}
+                      checked={tag.checked}
                       onClick={() => vm.toggleTag(vm.tags.indexOf(tag))}
-                      className={cn("max-w-full", tag.checked && "border-primary/40 text-primary")}
-                    >
-                      <span className="truncate">{tag.name}</span>
-                      {tag.checked && <Check aria-hidden strokeWidth={1.5} />}
-                    </Button>
-                  ))}
-                  {!visibleTags.length && (
-                    <span className="text-xs text-muted-foreground">未选择标签</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <details className="min-w-0">
-              <summary className="cursor-pointer text-xs leading-5 text-muted-foreground">
-                管理标签
-              </summary>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                <div className="min-w-0 space-y-2">
-                  <Input
-                    aria-label="搜索已有标签"
-                    placeholder="搜索已有标签"
-                    value={tagQuery}
-                    onChange={(event) => setTagQuery(event.target.value)}
-                  />
-                  <div className="flex max-h-36 flex-wrap gap-2 overflow-auto">
-                    {vm.tags
-                      .filter((tag) =>
-                        tag.name.toLowerCase().includes(tagQuery.trim().toLowerCase()),
-                      )
-                      .map((tag) => (
-                        <Button
-                          key={tag.tagId}
-                          size="sm"
-                          variant="outline"
-                          aria-pressed={tag.checked}
-                          onClick={() => vm.toggleTag(vm.tags.indexOf(tag))}
-                          className={cn(tag.checked && "border-primary/40 text-primary")}
-                        >
-                          {tag.name}
-                          {tag.checked && <Check aria-hidden />}
-                        </Button>
-                      ))}
-                    {!vm.tags.length && <p className="text-xs text-muted-foreground">暂无标签</p>}
-                  </div>
-                </div>
-                <div className="min-w-0 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      aria-label="新标签名称"
-                      placeholder="新标签名称"
-                      value={newTag}
-                      onChange={(event) => setNewTag(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void createTag();
-                        }
-                      }}
                     />
-                    <Button
-                      variant="outline"
-                      disabled={!newTag.trim() || busy}
-                      onClick={() => void createTag()}
-                      className="shrink-0"
-                    >
-                      创建标签
-                    </Button>
+                    {tag.reason && (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        推荐理由：{tag.reason}
+                      </p>
+                    )}
                   </div>
-                  {vm.tagError && (
-                    <p role="alert" className="text-xs text-destructive">
-                      {vm.tagError}
-                    </p>
-                  )}
-                </div>
+                ))}
+                {!visibleTags.length && (
+                  <p className="text-xs text-muted-foreground">未选择标签，可在管理标签中添加。</p>
+                )}
               </div>
-            </details>
+              {vm.newTagSuggestions.length > 0 && (
+                <div className="space-y-2 border-t border-border pt-3">
+                  <p className="text-xs font-medium">建议新建</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    默认不创建。点击标签即可创建并选中，确认保存后关联到这条链接。
+                  </p>
+                  {vm.newTagSuggestions.map((tag) => (
+                    <div key={tag.name} className="space-y-1">
+                      <TagChoice name={tag.name} create onClick={() => void vm.addTag(tag.name)} />
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        推荐理由：{tag.reason}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {vm.tagError && (
+                <p role="alert" className="text-xs text-destructive">
+                  {vm.tagError}
+                </p>
+              )}
+              <details className="min-w-0">
+                <summary className="cursor-pointer text-xs leading-5 text-muted-foreground">
+                  管理标签
+                </summary>
+                <div className="mt-3 space-y-4">
+                  <div className="min-w-0 space-y-2">
+                    <Input
+                      aria-label="搜索已有标签"
+                      placeholder="搜索已有标签"
+                      value={tagQuery}
+                      onChange={(event) => setTagQuery(event.target.value)}
+                    />
+                    <div className="flex max-h-36 flex-wrap gap-2 overflow-auto">
+                      {vm.tags
+                        .filter((tag) =>
+                          tag.name.toLowerCase().includes(tagQuery.trim().toLowerCase()),
+                        )
+                        .map((tag) => (
+                          <TagChoice
+                            key={tag.tagId}
+                            name={tag.name}
+                            color={tag.color}
+                            checked={tag.checked}
+                            onClick={() => vm.toggleTag(vm.tags.indexOf(tag))}
+                          />
+                        ))}
+                      {!vm.tags.length && <p className="text-xs text-muted-foreground">暂无标签</p>}
+                    </div>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        aria-label="新标签名称"
+                        placeholder="新标签名称"
+                        value={newTag}
+                        onChange={(event) => setNewTag(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void createTag();
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        disabled={!newTag.trim() || busy}
+                        onClick={() => void createTag()}
+                        className="shrink-0"
+                      >
+                        创建标签
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </section>
           </fieldset>
           <details className="min-w-0 border-t border-border pt-3">
             <summary className="cursor-pointer text-xs leading-5 text-muted-foreground">
@@ -368,7 +470,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             data-testid="suggest-apply"
           >
             {vm.applying ? <Loader2 className="animate-spin" /> : null}
-            {vm.applying ? "保存中" : "应用"}
+            {vm.applying ? "保存中" : "确认保存"}
           </Button>
         </DialogFooter>
       </DialogContent>

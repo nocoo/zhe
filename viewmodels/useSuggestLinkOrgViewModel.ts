@@ -8,6 +8,7 @@ import {
   remainingFolderOptions,
   remainingTagOptions,
   type SuggestFolderOption,
+  type SuggestNewTagOption,
   type SuggestTagOption,
 } from "@/models/ai-suggest-link-org";
 import {
@@ -22,6 +23,7 @@ export type SuggestOptionSource = "ai" | "catalog";
 export type SuggestFolderDraft = SuggestFolderOption & { source: SuggestOptionSource };
 export interface SuggestTagDraft extends SuggestTagOption {
   checked: boolean;
+  color?: string | undefined;
   source: SuggestOptionSource;
 }
 
@@ -56,6 +58,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
   const [folders, setFolders] = useState<SuggestFolderDraft[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [tags, setTags] = useState<SuggestTagDraft[]>([]);
+  const [newTagSuggestions, setNewTagSuggestions] = useState<SuggestNewTagOption[]>([]);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftNote, setDraftNote] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -99,6 +102,7 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     if (!regenerate) {
       setFolders([]);
       setTags([]);
+      setNewTagSuggestions([]);
       setDraftTitle("");
       setDraftNote("");
     }
@@ -141,15 +145,19 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
         ]);
         setSelectedFolderId((result.folders[0] ?? { folderId: context.current.folderId }).folderId);
         const assigned = new Set(context.current.tagIds);
+        const colors = new Map(context.catalogs.tags.map((tag) => [tag.id, tag.color]));
+        setNewTagSuggestions(result.newTags ?? []);
         setTags([
-          ...result.tags.map((t, i) => ({
+          ...result.tags.map((t) => ({
             ...t,
-            checked: i < 3 || Boolean(t.tagId && assigned.has(t.tagId)),
+            checked: true,
+            color: colors.get(t.tagId),
             source: "ai" as const,
           })),
           ...remainingTagOptions(result.tags, context.catalogs).map((t) => ({
             ...t,
             checked: Boolean(t.tagId && assigned.has(t.tagId)),
+            color: colors.get(t.tagId),
             source: "catalog" as const,
           })),
         ]);
@@ -233,7 +241,14 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
         callbacks.onTagCreated(tag);
         setTags((current) => [
           ...current,
-          { tagId: tag.id, name: tag.name, reason: "", checked: true, source: "catalog" },
+          {
+            tagId: tag.id,
+            name: tag.name,
+            color: tag.color,
+            reason: "",
+            checked: true,
+            source: "catalog",
+          },
         ]);
         return true;
       } catch {
@@ -303,6 +318,9 @@ export function useSuggestLinkOrgViewModel(callbacks: LinkMutationCallbacks) {
     selectedFolderId,
     setSelectedFolderId,
     tags,
+    newTagSuggestions: newTagSuggestions.filter(
+      (suggestion) => !tags.some((tag) => tag.name.toLowerCase() === suggestion.name.toLowerCase()),
+    ),
     draftTitle,
     setDraftTitle,
     draftNote,

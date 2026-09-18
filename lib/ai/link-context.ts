@@ -53,7 +53,7 @@ export async function loadLinkOrgContext(db: ScopedDB, userId: string, linkId: n
       id,
       name,
     })),
-    tags: tags.map(({ id, name }) => ({ id, name })),
+    tags: tags.map(({ id, name, color }) => ({ id, name, color })),
   };
   const prompt = buildSuggestLinkOrgPrompt({
     url: link.originalUrl,

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { APP_VERSION } from "@/lib/version";
 import {
   buildBackyTag,
   formatFileSize,
@@ -158,8 +159,8 @@ describe("backy model", () => {
     });
 
     it("handles zero counts", () => {
-      const tag = buildBackyTag("2.0.0", { links: 0, folders: 0, tags: 0 }, "2026-01-01");
-      expect(tag).toBe("v2.0.0-2026-01-01-0lnk-0fld-0tag");
+      const tag = buildBackyTag(APP_VERSION, { links: 0, folders: 0, tags: 0 }, "2026-01-01");
+      expect(tag).toBe(`v${APP_VERSION}-2026-01-01-0lnk-0fld-0tag`);
     });
 
     it("handles large counts", () => {

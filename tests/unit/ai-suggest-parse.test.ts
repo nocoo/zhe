@@ -72,6 +72,39 @@ describe("parseSuggestLinkOrg", () => {
     expect(result.folders).toEqual([]);
     expect(result.tags).toEqual([]);
   });
+  it("separates new suggestions, validates names, dedupes against the catalog and caps at three", () => {
+    const result = parseSuggestLinkOrg(
+      JSON.stringify({
+        title: "标题",
+        note: "备注",
+        folders: [],
+        tags: [],
+        newTags: [
+          null,
+          {},
+          { name: " ", reason: "r" },
+          { name: "字".repeat(31), reason: "r" },
+          { name: " 文档 ", reason: "already exists" },
+          { name: " Topic ", reason: "r".repeat(100) },
+          { name: "topic", reason: "duplicate" },
+          { name: "工具", reason: "r" },
+          { name: "学习", reason: "r" },
+          { name: "多余", reason: "r" },
+        ],
+      }),
+      catalogs,
+    );
+    expect(result.tags).toEqual([]);
+    expect(result.newTags.map((tag) => tag.name)).toEqual(["Topic", "工具", "学习"]);
+    expect(result.newTags[0]?.reason).toHaveLength(80);
+    expect(() =>
+      parseSuggestLinkOrg(
+        JSON.stringify({ title: "标题", note: "备注", folders: [], tags: [], newTags: {} }),
+        catalogs,
+      ),
+    ).toThrow("新标签建议必须是列表");
+  });
+
   it("accepts empty catalogs and empty recommendations", () => {
     expect(
       parseSuggestLinkOrg(
