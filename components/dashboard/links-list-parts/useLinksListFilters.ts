@@ -99,7 +99,7 @@ export function useLinksListFilters({
 
   const headerTitle =
     selectedFolderId === "uncategorized"
-      ? "Inbox"
+      ? "未分类"
       : selectedFolder
         ? selectedFolder.name
         : "全部链接";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadXBookmarks } from "@/actions/connector";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import type { XBookmark } from "@/lib/connector/jobs";
@@ -23,6 +23,8 @@ function syncMetadata(
 
 export function useXBookmarks(links: Link[], onUpdate: (link: Link) => void) {
   const [bookmarks, setBookmarks] = useState(new Map<number, XBookmark>());
+  const pollRef = useRef(() => {});
+  const refresh = useCallback(() => pollRef.current(), []);
   const latest = useRef(links);
   latest.current = links;
   const key = links
@@ -85,13 +87,15 @@ export function useXBookmarks(links: Link[], onUpdate: (link: Link) => void) {
         void poll();
       }
     };
+    pollRef.current = visible;
     void poll();
     document.addEventListener("visibilitychange", visible);
     return () => {
       cancelled = true;
+      pollRef.current = () => {};
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", visible);
     };
   }, [key, onUpdate]);
-  return [bookmarks, setBookmarks] as const;
+  return [bookmarks, setBookmarks, refresh] as const;
 }

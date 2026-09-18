@@ -194,7 +194,7 @@ describe("CreateLinkModal", () => {
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
       const trigger = screen.getByLabelText("文件夹");
-      expect(trigger).toHaveTextContent("Inbox");
+      expect(trigger).toHaveTextContent("未分类");
     });
 
     it("shows selected folder name when folderId is set", () => {
@@ -212,7 +212,7 @@ describe("CreateLinkModal", () => {
       render(<CreateLinkModal {...defaultProps} folders={folders} />);
 
       const trigger = screen.getByLabelText("文件夹");
-      expect(trigger).toHaveTextContent("Inbox");
+      expect(trigger).toHaveTextContent("未分类");
     });
 
     it("calls setFolderId when a folder is selected", async () => {
@@ -236,7 +236,7 @@ describe("CreateLinkModal", () => {
       const trigger = screen.getByLabelText("文件夹");
       fireEvent.click(trigger);
 
-      const inboxOption = screen.getByRole("option", { name: "Inbox" });
+      const inboxOption = screen.getByRole("option", { name: "未分类" });
       fireEvent.click(inboxOption);
 
       expect(mockVm.setFolderId).toHaveBeenCalledWith(undefined);

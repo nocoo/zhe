@@ -276,8 +276,8 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 |-----------|------|
 | `useLinksViewModel` | 链接卡片交互（复制、删除、分析、元数据刷新、截图获取）、创建弹窗状态、内联编辑 + 标签管理、批量自动刷新 |
 | `useFoldersViewModel` | 文件夹 CRUD + dashboard service 同步 + 编辑状态管理 |
-| `useLinkMutations` | 共享标签操作钩子：乐观 add/remove/create-and-assign，供 Inbox 和内联编辑器复用 |
-| `useInboxViewModel` | 收件箱分拣：过滤未分类链接 + 标签操作委托 |
+| `useBulkDelete` | 卡片多选、冻结删除队列、串行删除进度及失败重试 |
+| `useLinkMutations` | 共享标签操作钩子：乐观 add/remove/create-and-assign，供统一编辑器复用 |
 | `useBackyViewModel` | Backy 远程备份：配置加载/保存、连接测试、推送备份、历史查询、pull webhook 管理 |
 | `useXrayViewModel` | Twitter/X 集成：API 配置、推文 ID 提取、推文获取、书签列表、一键书签转短链 |
 | `useOverviewViewModel` | 概览统计 + Worker 健康状态（stale-while-revalidate 缓存） |

@@ -110,6 +110,26 @@ L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`�
 
 ---
 
+## 列表加载与入场
+
+`CardGridSkeleton` / `CardListSkeleton` 使用与内容一致的列数、间距和结构。普通链接加载时读取已保存的 grid/list 偏好，未分类筛选使用相同布局。X 使用 2–6 列瀑布流占位，GitHub 使用与正式卡片相同的 1–4 列容器断点、244px 默认高度与内部信息行。想法分别使用文字卡片和图标列表，上传使用文件图标列表。路由级 loading 与页面内加载遵循相同布局。
+
+骨架容器提供 `role="status"`、`aria-busy` 和加载名称，内部装饰对辅助技术隐藏。骨架使用轻微 pulse；数据到达后卡片通过 `animate-fade-up` 和 `staggerStyle` 依次渐入，延迟最多累计 12 张，稳定 key 避免刷新重播。减少动态效果设置下停用 pulse 和卡片入场，保留正常布局；重排继续使用共享 `AnimatedCardList`。
+
+契约由 `tests/unit/ui/card-skeleton.test.tsx` 与 `tests/playwright/card-reflow.spec.ts` 覆盖，包括保存的视图偏好、未分类布局、加载前后列数与卡片高度、渐入和减少动态效果。
+
+## 多选与批量删除
+
+全部链接、文件夹/未分类筛选、X、GitHub、想法和文件上传的页头右侧提供「多选卡片」。进入后保留当前布局和卡片高度，用统一 Checkbox、整卡点击区域与选中描边表达状态；卡片内容暂时 inert，键盘仍可通过 Checkbox 选择。工具栏显示选择数、全选当前列表、删除和退出。筛选后隐藏的内容不保留选择。
+
+多选时，顶部操作栏滚出视口后才显示屏幕底部居中的浮动操作栏；回到顶部或退出多选即隐藏。使用 IntersectionObserver 兼容页面内滚动容器，浮层通过 portal 避免被容器裁切，保留移动设备底部安全间距。两处共用选择状态与删除弹窗，取消弹窗后焦点返回当前浮动操作，保持滚动位置。
+
+删除前展示所选名称并确认。执行时使用模态进度条冻结本次队列，逐项 await 现有删除流程；处理中阻止关闭弹窗与重复提交。全部成功后展示结果 1 秒，自动关闭弹窗并退出多选；有失败时保留结果，继续处理后续内容，重试只处理失败项。链接/文件删除沿用 ScopedDB 的所有权校验、关联附件级联与持久化 R2 清理队列；每项等待清理尝试返回，暂时失败的对象仍由既有队列重试。文件批次识别已被级联删除的附件，不重复报错。
+
+Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链接保留普通筛选和 grid/list 展示，旧 `?folder=uncategorized` 地址使用同一列表；内容整理通过统一 AI 整理与编辑弹窗完成。CLI 的 inbox 查询保持兼容。
+
+验证：`tests/unit/bulk-delete.test.tsx`、`tests/unit/upload-viewmodel.test.ts` 与 `tests/playwright/card-reflow.spec.ts` 覆盖串行、取消、筛选、失败重试、模态进度和关联 R2 文件删除。
+
 ## 6. 字号语义（Dashboard）
 
 | 角色 | 类 | 说明 |

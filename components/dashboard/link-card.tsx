@@ -19,7 +19,7 @@ import {
   Pencil,
   Sparkles,
 } from "lucide-react";
-import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import {
   DropdownMenu,
@@ -28,7 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
-import { destroyCard } from "@/lib/motion";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
@@ -37,7 +36,6 @@ import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
-import { InlineEditArea } from "./link-card-parts/inline-edit-area";
 import { ListView } from "./link-card-parts/list-view";
 import { TagBadge } from "./shared-link-components";
 import {
@@ -58,8 +56,6 @@ interface LinkCardProps {
   tags?: Tag[];
   linkTags?: LinkTag[];
   folders?: Folder[];
-  /** When true the inline edit area is shown immediately (e.g. Inbox page). */
-  defaultEditing?: boolean;
   /** Callbacks for syncing edit mutations to the parent service. */
   editCallbacks?: EditLinkCallbacks;
   onSuggest?: () => void;
@@ -95,33 +91,20 @@ export const LinkCard = memo(function LinkCard({
   tags = [],
   linkTags = [],
   folders = [],
-  defaultEditing = false,
   editCallbacks,
   onSuggest,
   suggestDisabled,
 }: LinkCardProps) {
   const card = useRef<HTMLDivElement | null>(null);
   const [deleted, setDeleted] = useState(false);
-  const handleDeleted = useCallback(
-    async (id: number) => {
-      if (defaultEditing) {
-        await destroyCard(card.current);
-        onDelete(id);
-      } else {
-        setDeleted(true);
-      }
-    },
-    [defaultEditing, onDelete],
-  );
-  const vm = useLinkCardViewModel(link, siteUrl, handleDeleted, onUpdate);
+  const vm = useLinkCardViewModel(link, siteUrl, () => setDeleted(true), onUpdate);
   const xBookmarks = useContext(XBookmarksContext);
   const xPost = canonicalXPost(link.originalUrl);
   const xBookmark = getXBookmarkForLink(link, xBookmarks.get(link.id));
   const isXFeed = viewMode === "feed" && !!xPost;
-  const panelClassName = isXFeed ? "p-3" : undefined;
-  const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "Inbox";
+  const folderName = folders.find((folder) => folder.id === link.folderId)?.name ?? "未分类";
 
-  const [isEditing, setIsEditing] = useState(defaultEditing);
+  const [isEditing, setIsEditing] = useState(false);
   const editTrigger = useRef<HTMLElement | null>(null);
   const cardMenuTrigger = useRef<HTMLButtonElement | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -139,7 +122,7 @@ export const LinkCard = memo(function LinkCard({
   };
 
   const handleToggleEdit = () => {
-    if (defaultEditing || !editCallbacks) return;
+    if (!editCallbacks) return;
     editTrigger.current =
       cardMenuTrigger.current ??
       card.current?.querySelector<HTMLElement>('[aria-label="Edit link"]') ??
@@ -192,27 +175,8 @@ export const LinkCard = memo(function LinkCard({
     ...(xPost ? { xBookmark, onOpenDetails: openDetails } : {}),
   };
 
-  const editArea =
-    defaultEditing && editCallbacks ? (
-      <InlineEditArea
-        className={panelClassName}
-        link={link}
-        tags={tags}
-        linkTags={linkTags}
-        folders={folders}
-        editCallbacks={editCallbacks}
-        isDeleting={vm.isDeleting}
-        handleDelete={vm.handleDelete}
-        defaultEditing={defaultEditing}
-        onCloseEdit={() => {
-          setIsEditing(false);
-          editTrigger.current?.focus();
-        }}
-      />
-    ) : null;
-
   const editDialog =
-    isEditing && !defaultEditing && editCallbacks ? (
+    isEditing && editCallbacks ? (
       <CardEditDialog
         source={card}
         trigger={editTrigger}
@@ -372,7 +336,6 @@ export const LinkCard = memo(function LinkCard({
             analyticsStats={vm.analyticsStats}
             isLoadingAnalytics={vm.isLoadingAnalytics}
           />
-          {editArea}
         </LayerCard>
         {detailsDialog}
         {editDialog}
@@ -391,7 +354,6 @@ export const LinkCard = memo(function LinkCard({
           className="group @container h-full overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
         >
           <GridView {...sharedViewProps} />
-          {editArea}
         </LayerCard>
         {detailsDialog}
         {editDialog}
@@ -422,7 +384,6 @@ export const LinkCard = memo(function LinkCard({
           analyticsStats={vm.analyticsStats}
           isLoadingAnalytics={vm.isLoadingAnalytics}
         />
-        {editArea}
       </LayerCard>
       {detailsDialog}
       {editDialog}

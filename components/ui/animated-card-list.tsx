@@ -4,13 +4,40 @@ import { Children, Component, type ComponentPropsWithoutRef, createRef } from "r
 import { CARD_MOTION_EASING, canAnimate } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-type Props = ComponentPropsWithoutRef<"div"> & { itemClassName?: string };
+type Props = ComponentPropsWithoutRef<"div"> & { itemClassName?: string; masonry?: boolean };
 type Positions = Map<HTMLElement, DOMRect>;
 
 /** Snapshot before React removes a card, then slide the survivors into place. */
 export class AnimatedCardList extends Component<Props, unknown, Positions | null> {
   private container = createRef<HTMLDivElement>();
   private animations = new Set<Animation>();
+  private resizeObserver: ResizeObserver | undefined;
+
+  /** Keep DOM/date order while packing cards into the next available grid slot. */
+  private layoutMasonry = () => {
+    const container = this.container.current;
+    if (!container || !this.props.masonry) return;
+    const gap = Number.parseFloat(getComputedStyle(container).columnGap) || 0;
+    const sizes = Array.from(container.children, (child) => {
+      const card = (child.firstElementChild ?? child) as HTMLElement;
+      return { item: child as HTMLElement, span: Math.ceil(card.offsetHeight + gap) };
+    });
+    for (const { item, span } of sizes) item.style.gridRowEnd = `span ${Math.max(1, span)}`;
+  };
+
+  private observeMasonry() {
+    this.resizeObserver?.disconnect();
+    if (!this.props.masonry) return;
+    this.resizeObserver ??= new ResizeObserver(this.layoutMasonry);
+    for (const child of this.container.current?.children ?? []) {
+      this.resizeObserver.observe(child.firstElementChild ?? child);
+    }
+    this.layoutMasonry();
+  }
+
+  componentDidMount() {
+    this.observeMasonry();
+  }
 
   private measure(): Positions {
     return new Map(
@@ -35,6 +62,7 @@ export class AnimatedCardList extends Component<Props, unknown, Positions | null
 
   componentDidUpdate(_previous: Props, _state: unknown, snapshot: Positions | null) {
     this.stopAnimations();
+    this.observeMasonry();
     if (!snapshot) return;
     // Finish all layout reads before starting animations on the independent wrappers.
     for (const [element, destination] of this.measure()) {
@@ -64,13 +92,18 @@ export class AnimatedCardList extends Component<Props, unknown, Positions | null
   }
 
   componentWillUnmount() {
+    this.resizeObserver?.disconnect();
     this.stopAnimations();
   }
 
   render() {
-    const { children, itemClassName, ...props } = this.props;
+    const { children, itemClassName, className, masonry, ...props } = this.props;
     return (
-      <div {...props} ref={this.container}>
+      <div
+        {...props}
+        ref={this.container}
+        className={cn(className, masonry && "auto-rows-[1px] items-start gap-y-0")}
+      >
         {Children.map(children, (child) => (
           <div className={cn("min-w-0", itemClassName)} data-card-layout-item="">
             {child}

@@ -201,7 +201,7 @@ describe("Sidebar", () => {
 
       // Overview, ideas, todos and X library, plus folder and static navigation.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(16);
+      expect(navLinks.length).toBe(15);
     });
 
     it("marks the current page on the matching collapsed nav link", () => {
@@ -243,7 +243,7 @@ describe("Sidebar", () => {
 
       // Should display nav item text labels
       expect(screen.getByText("全部链接")).toBeInTheDocument();
-      expect(screen.getByText("Inbox")).toBeInTheDocument();
+      expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
     });
 
     it("displays brand name ZHE.TO", () => {
@@ -408,16 +408,14 @@ describe("Sidebar", () => {
   });
 
   describe("folder nav items as links", () => {
-    it('renders "全部链接" and "Inbox" as links not buttons', () => {
+    it("renders all links without the retired Inbox entry", () => {
       renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText("全部链接").closest("a");
       expect(allLinksAnchor).toBeInTheDocument();
       expect(allLinksAnchor?.getAttribute("href")).toBe("/dashboard");
 
-      const uncategorizedAnchor = screen.getByText("Inbox").closest("a");
-      expect(uncategorizedAnchor).toBeInTheDocument();
-      expect(uncategorizedAnchor?.getAttribute("href")).toBe("/dashboard?folder=uncategorized");
+      expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
     });
 
     it('highlights "全部链接" when no folder param in URL', () => {
@@ -427,18 +425,6 @@ describe("Sidebar", () => {
       const allLinksAnchor = screen.getByText("全部链接").closest("a");
       expect(allLinksAnchor?.className).toContain("bg-primary/10");
       expect(allLinksAnchor?.className).toContain("text-primary");
-    });
-
-    it('highlights "Inbox" when folder=uncategorized in URL', () => {
-      mockSearchParamsFolder = "uncategorized";
-      renderSidebar({ collapsed: false });
-
-      const uncategorizedAnchor = screen.getByText("Inbox").closest("a");
-      expect(uncategorizedAnchor?.className).toContain("bg-primary/10");
-      expect(uncategorizedAnchor?.className).toContain("text-primary");
-
-      const allLinksAnchor = screen.getByText("全部链接").closest("a");
-      expect(allLinksAnchor?.className).toContain("text-muted-foreground");
     });
   });
 
@@ -545,7 +531,7 @@ describe("Sidebar", () => {
 
       // Static items still exist
       expect(screen.getByText("全部链接")).toBeInTheDocument();
-      expect(screen.getByText("Inbox")).toBeInTheDocument();
+      expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
     });
 
     it("shows folder icons in collapsed mode as tooltip links", () => {
@@ -554,7 +540,7 @@ describe("Sidebar", () => {
 
       // All static links plus the two dynamic folders.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(18);
+      expect(navLinks.length).toBe(17);
     });
 
     it('renders "新建文件夹" button in expanded mode', () => {
@@ -770,7 +756,7 @@ describe("Sidebar", () => {
 
       // Includes the X library alongside the existing sections.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(16);
+      expect(navLinks.length).toBe(15);
     });
   });
 
@@ -825,19 +811,6 @@ describe("Sidebar", () => {
       expect(allLinksItem.textContent).toContain("3");
     });
 
-    it('shows uncategorized link count next to "Inbox"', () => {
-      mockLinks = [
-        makeLink({ id: 1, folderId: null }),
-        makeLink({ id: 2, folderId: null }),
-        makeLink({ id: 3, folderId: "f1" }),
-      ];
-      resetMockFoldersVm({ folders: mockFolders });
-      renderSidebar({ collapsed: false });
-
-      const uncategorizedItem = unwrap(screen.getByText("Inbox").closest("a"));
-      expect(uncategorizedItem.textContent).toContain("2");
-    });
-
     it("shows per-folder link count next to folder name", () => {
       mockLinks = [
         makeLink({ id: 1, folderId: "f1" }),
@@ -867,7 +840,7 @@ describe("Sidebar", () => {
       expect(personalItem.textContent).toContain("0");
     });
 
-    it('wraps "全部链接" and "Inbox" counts in a fixed-width w-5 container', () => {
+    it('wraps "全部链接" count in a fixed-width w-5 container', () => {
       mockLinks = [makeLink({ id: 1, folderId: null }), makeLink({ id: 2, folderId: null })];
       resetMockFoldersVm({ folders: [] });
       renderSidebar({ collapsed: false });
@@ -877,12 +850,6 @@ describe("Sidebar", () => {
       const allContainer = unwrap(allCount.parentElement);
       expect(allContainer.className).toContain("w-5");
       expect(allContainer.className).toContain("shrink-0");
-
-      const uncategorizedItem = unwrap(screen.getByText("Inbox").closest("a"));
-      const uncatCount = unwrap(uncategorizedItem.querySelector(".tabular-nums"));
-      const uncatContainer = unwrap(uncatCount.parentElement);
-      expect(uncatContainer.className).toContain("w-5");
-      expect(uncatContainer.className).toContain("shrink-0");
     });
 
     it("does not show count badges in collapsed mode", () => {

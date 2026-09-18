@@ -3,6 +3,7 @@
 import { toast } from "@nocoo/basalt/components/toast";
 import { Link2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { deleteLink } from "@/actions/links";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,11 +12,12 @@ import { useDashboardService } from "@/contexts/dashboard-service";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { staggerStyle } from "@/lib/motion";
 import type { Folder, Link, Tag } from "@/models/types";
+import { type BulkDeleteState, useBulkDelete } from "@/viewmodels/useBulkDelete";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
 import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
 import { CreateLinkModal } from "./create-link-modal";
-import { InboxTriage } from "./inbox-triage";
 import { LinkCard } from "./link-card";
 import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 import { useLinksListFilters } from "./links-list-parts/useLinksListFilters";
@@ -29,16 +31,17 @@ function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   return <CardListSkeleton />;
 }
 
-function LoadingState({ viewMode }: { viewMode: ViewMode }) {
+function LoadingState({ viewMode, ready }: { viewMode: ViewMode; ready: boolean }) {
   return (
     <div>
       <PageHeaderSkeleton />
-      <LinksListSkeleton viewMode={viewMode} />
+      {ready && <LinksListSkeleton viewMode={viewMode} />}
     </div>
   );
 }
 
 interface LinksContentProps {
+  selection: BulkDeleteState;
   filteredLinks: Link[];
   linkTagsByLinkId: ReturnType<typeof useLinksListFilters>["linkTagsByLinkId"];
   emptyLinkTags: ReturnType<typeof useLinksListFilters>["emptyLinkTags"];
@@ -56,6 +59,7 @@ interface LinksContentProps {
 
 function LinksContent(props: LinksContentProps) {
   const {
+    selection,
     filteredLinks,
     linkTagsByLinkId,
     emptyLinkTags,
@@ -88,7 +92,14 @@ function LinksContent(props: LinksContentProps) {
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
       {filteredLinks.map((link, i) => (
-        <div key={link.id} className="animate-fade-up" style={staggerStyle(i)}>
+        <SelectableCard
+          selection={selection}
+          itemId={link.id}
+          label={link.title || link.metaTitle || link.originalUrl}
+          key={link.id}
+          className="animate-fade-up motion-reduce:animate-none"
+          style={staggerStyle(i)}
+        >
           <LinkCard
             link={link}
             siteUrl={siteUrl}
@@ -102,7 +113,7 @@ function LinksContent(props: LinksContentProps) {
             {...(onSuggest ? { onSuggest: () => onSuggest(link.id) } : {})}
             {...(suggestDisabled !== undefined ? { suggestDisabled } : {})}
           />
-        </div>
+        </SelectableCard>
       ))}
     </AnimatedCardList>
   );
@@ -141,7 +152,7 @@ export function LinksList() {
 
   const isMobile = useIsMobile();
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useViewMode("list");
+  const [viewMode, setViewMode, viewReady] = useViewMode("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filters = useLinksListFilters({ links, linkTags, folders });
@@ -160,8 +171,18 @@ export function LinksList() {
     }
   }, [refreshLinks]);
 
-  if (loading) return <LoadingState viewMode={viewMode} />;
-  if (filters.selectedFolderId === "uncategorized") return <InboxTriage />;
+  const selection = useBulkDelete(
+    filters.filteredLinks.map((link) => ({
+      id: link.id,
+      label: link.title || link.metaTitle || link.originalUrl,
+    })),
+    async (id) => {
+      const result = await deleteLink(id);
+      if (result.success) handleLinkDeleted(id);
+      return result;
+    },
+  );
+  if (loading || !viewReady) return <LoadingState viewMode={viewMode} ready={viewReady} />;
 
   const createButton = (
     <CreateLinkModal
@@ -185,6 +206,8 @@ export function LinksList() {
         isMobile={isMobile}
         mobileFilterOpen={mobileFilterOpen}
         setMobileFilterOpen={setMobileFilterOpen}
+        selecting={selection.active}
+        selectionActions={<BulkDeleteActions selection={selection} />}
         createButton={createButton}
         folders={folders}
         tags={tags}
@@ -201,6 +224,7 @@ export function LinksList() {
       />
 
       <LinksContent
+        selection={selection}
         filteredLinks={filters.filteredLinks}
         linkTagsByLinkId={filters.linkTagsByLinkId}
         emptyLinkTags={filters.emptyLinkTags}

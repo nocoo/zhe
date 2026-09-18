@@ -6,7 +6,7 @@ import type { Link, LinkTag, Tag } from "@/models/types";
 
 /**
  * Shared callback interface for link mutation operations.
- * Used by both Inbox triage and the inline link editor.
+ * Used by the shared link editor.
  */
 export interface LinkMutationCallbacks {
   onLinkUpdated: (link: Link) => void;
@@ -21,7 +21,7 @@ export interface LinkMutationCallbacks {
  * Provides optimistic add/remove/create-and-assign tag helpers,
  * plus tag lookup utilities (assigned IDs / assigned Tag objects).
  *
- * Both `useInboxViewModel` and `useInlineLinkEditViewModel` delegate here
+ * `useInlineLinkEditViewModel` delegates here
  * to eliminate duplicated tag logic.
  */
 export function useLinkMutations(

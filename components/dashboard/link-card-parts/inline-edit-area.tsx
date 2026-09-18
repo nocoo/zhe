@@ -84,14 +84,12 @@ function EditToolbar({
   onSave,
   onDelete,
   onClose,
-  modal,
 }: {
   isSaving: boolean;
   isDeleting: boolean;
   onSave: () => void;
   onDelete: () => void;
   onClose?: (() => void) | undefined;
-  modal: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
@@ -99,7 +97,7 @@ function EditToolbar({
         trigger={
           <Button
             type="button"
-            size={modal ? "lg" : "sm"}
+            size="lg"
             variant="ghost"
             aria-label="Delete link"
             className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
@@ -114,21 +112,11 @@ function EditToolbar({
       />
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
         {onClose && (
-          <Button
-            size={modal ? "lg" : "sm"}
-            variant="ghost"
-            onClick={onClose}
-            disabled={isSaving || isDeleting}
-          >
+          <Button size="lg" variant="ghost" onClick={onClose} disabled={isSaving || isDeleting}>
             收起
           </Button>
         )}
-        <Button
-          size={modal ? "lg" : "sm"}
-          onClick={onSave}
-          loading={isSaving}
-          disabled={isDeleting}
-        >
+        <Button size="lg" onClick={onSave} loading={isSaving} disabled={isDeleting}>
           {isSaving ? "保存中" : "保存"}
         </Button>
       </div>
@@ -144,14 +132,12 @@ export interface InlineEditAreaProps {
   editCallbacks: EditLinkCallbacks;
   isDeleting: boolean;
   handleDelete: () => void;
-  defaultEditing: boolean;
   onCloseEdit: () => void;
   onSaved?: () => void;
   className?: string | undefined;
-  modal?: boolean;
 }
 
-/** Shared edit form for the card's back face and the always-open Inbox editor. */
+/** Shared edit form for the card editing dialog. */
 export function InlineEditArea({
   link,
   tags,
@@ -160,11 +146,9 @@ export function InlineEditArea({
   editCallbacks,
   isDeleting,
   handleDelete,
-  defaultEditing,
   onCloseEdit,
   onSaved,
   className,
-  modal = false,
 }: InlineEditAreaProps) {
   const editVm = useInlineLinkEditViewModel(link, tags, linkTags, editCallbacks);
   const bookmarks = useContext(XBookmarksContext);
@@ -173,8 +157,6 @@ export function InlineEditArea({
   const [mediaRatios, setMediaRatios] = useState<Record<string, string>>({});
   const [savingMedia, setSavingMedia] = useState(false);
   const [mediaError, setMediaError] = useState("");
-  const Heading = modal ? DialogTitle : "h3";
-  const fieldSize = modal ? "default" : "sm";
 
   const handleSave = async () => {
     if (savingMedia || editVm.isSaving) return;
@@ -223,7 +205,7 @@ export function InlineEditArea({
           return next;
         });
       }
-      if (!defaultEditing) (onSaved ?? onCloseEdit)();
+      (onSaved ?? onCloseEdit)();
     } catch {
       setMediaError("保存失败，请重试");
     } finally {
@@ -233,29 +215,20 @@ export function InlineEditArea({
 
   return (
     <section
-      className={cn(
-        "@container/edit space-y-4 border-t border-border/60 bg-background/30 p-4",
-        modal && "border-0 bg-transparent p-5 sm:p-6",
-        className,
-      )}
+      className={cn("@container/edit space-y-4 border-0 bg-transparent p-5 sm:p-6", className)}
       aria-label="编辑收藏"
       aria-busy={editVm.isSaving || savingMedia || isDeleting}
       data-testid="edit-area"
     >
-      <Heading
-        className={cn(
-          "flex items-center gap-2 text-xs font-semibold",
-          modal && "text-lg leading-6",
-        )}
-      >
+      <DialogTitle className="flex items-center gap-2">
         <Pencil className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
         编辑收藏
-      </Heading>
+      </DialogTitle>
       <div className="grid grid-cols-1 gap-3 @xs/edit:grid-cols-2">
         <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="@xs/edit:col-span-2">
           <Input
             id={`edit-url-${link.id}`}
-            size={fieldSize}
+            size="default"
             type="url"
             value={editVm.editUrl}
             onChange={(e) => editVm.setEditUrl(e.target.value)}
@@ -265,7 +238,7 @@ export function InlineEditArea({
         <LabelledField id={`edit-slug-${link.id}`} label="短链接">
           <Input
             id={`edit-slug-${link.id}`}
-            size={fieldSize}
+            size="default"
             type="text"
             value={editVm.editSlug}
             onChange={(e) => editVm.setEditSlug(e.target.value)}
@@ -279,13 +252,13 @@ export function InlineEditArea({
           >
             <SelectTrigger
               id={`edit-folder-${link.id}`}
-              size={fieldSize}
+              size="default"
               className="w-full min-w-0 gap-2 text-left [&>span]:truncate [&>svg]:shrink-0"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__inbox__">Inbox</SelectItem>
+              <SelectItem value="__inbox__">未分类</SelectItem>
               {folders.map((folder) => (
                 <SelectItem key={folder.id} value={folder.id}>
                   {folder.name}
@@ -297,7 +270,7 @@ export function InlineEditArea({
         <LabelledField id={`edit-title-${link.id}`} label="标题" className="@xs/edit:col-span-2">
           <Input
             id={`edit-title-${link.id}`}
-            size={fieldSize}
+            size="default"
             value={editVm.editTitle}
             onChange={(e) => editVm.setEditTitle(e.target.value)}
             placeholder="标题（可选）"
@@ -319,7 +292,7 @@ export function InlineEditArea({
         >
           <Input
             id={`edit-screenshot-${link.id}`}
-            size={fieldSize}
+            size="default"
             type="url"
             value={editVm.editScreenshotUrl}
             onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
@@ -342,7 +315,7 @@ export function InlineEditArea({
             >
               <Input
                 id={`edit-media-${link.id}-${media.id}`}
-                size={fieldSize}
+                size="default"
                 value={
                   mediaRatios[media.id] ??
                   (media.width && media.height ? `${media.width}:${media.height}` : "16:9")
@@ -378,12 +351,11 @@ export function InlineEditArea({
       )}
 
       <EditToolbar
-        modal={modal}
         isSaving={editVm.isSaving || savingMedia}
         isDeleting={isDeleting}
         onSave={handleSave}
         onDelete={handleDelete}
-        onClose={defaultEditing ? undefined : onCloseEdit}
+        onClose={onCloseEdit}
       />
     </section>
   );

@@ -49,7 +49,7 @@ export function getAppHeaderTrail(
   if (pathname === "/dashboard" && folder === "uncategorized") {
     return {
       breadcrumbs: [{ href: "/dashboard", label: "链接管理" }],
-      title: "Inbox",
+      title: "未分类",
     };
   }
   return PAGE_TRAILS[pathname] ?? { breadcrumbs: [], title: "链接管理" };

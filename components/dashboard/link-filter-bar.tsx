@@ -43,7 +43,7 @@ export function LinkFilterBar({
   const hasActiveFilters = filterFolderId !== null || filterTagIds.size > 0 || hasAdditionalFilters;
   const selectedFolder = filterFolderId
     ? filterFolderId === "uncategorized"
-      ? { name: "Inbox" }
+      ? { name: "未分类" }
       : folders.find((f) => f.id === filterFolderId)
     : null;
 
@@ -167,7 +167,7 @@ function FolderFilter({
                     selectedFolderId === "uncategorized" ? "opacity-100" : "opacity-0",
                   )}
                 />
-                <span>Inbox</span>
+                <span>未分类</span>
               </CommandItem>
               {folders.map((folder) => (
                 <CommandItem

@@ -7,13 +7,15 @@ import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/component
 import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import { staggerStyle } from "@/lib/motion";
+import type { BulkDeleteState } from "@/viewmodels/useBulkDelete";
 import type { IdeasViewMode, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { SelectableCard } from "../bulk-delete";
 
 function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
   if (viewMode === "grid") {
-    return <CardGridSkeleton aspectClass="aspect-square" />;
+    return <CardGridSkeleton variant="idea" />;
   }
-  return <CardListSkeleton />;
+  return <CardListSkeleton variant="idea" />;
 }
 
 function IdeasEmpty({ vm, filtered }: { vm: IdeasViewModel; filtered: boolean }) {
@@ -36,8 +38,10 @@ function IdeasEmpty({ vm, filtered }: { vm: IdeasViewModel; filtered: boolean })
 export function IdeasContent({
   vm,
   onNavigateToIdea,
+  selection,
 }: {
   vm: IdeasViewModel;
+  selection: BulkDeleteState;
   onNavigateToIdea: (idea: IdeaListItem) => void;
 }) {
   if (vm.loading) return <IdeasSkeleton viewMode={vm.viewMode} />;
@@ -51,7 +55,14 @@ export function IdeasContent({
     return (
       <div className={CARD_GRID_CLASS} data-testid="card-grid">
         {vm.ideas.map((idea, i) => (
-          <div key={idea.id} className="animate-fade-up" style={staggerStyle(i)}>
+          <SelectableCard
+            selection={selection}
+            itemId={idea.id}
+            label={idea.title || idea.excerpt || "未命名想法"}
+            key={idea.id}
+            className="animate-fade-up motion-reduce:animate-none"
+            style={staggerStyle(i)}
+          >
             <IdeaCard
               idea={idea}
               tags={vm.tags}
@@ -59,7 +70,7 @@ export function IdeasContent({
               onDelete={vm.confirmDelete}
               onClick={onNavigateToIdea}
             />
-          </div>
+          </SelectableCard>
         ))}
       </div>
     );
@@ -68,7 +79,14 @@ export function IdeasContent({
   return (
     <div className="space-y-2" data-testid="card-list">
       {vm.ideas.map((idea, i) => (
-        <div key={idea.id} className="animate-fade-up" style={staggerStyle(i)}>
+        <SelectableCard
+          selection={selection}
+          itemId={idea.id}
+          label={idea.title || idea.excerpt || "未命名想法"}
+          key={idea.id}
+          className="animate-fade-up motion-reduce:animate-none"
+          style={staggerStyle(i)}
+        >
           <IdeaRow
             idea={idea}
             tags={vm.tags}
@@ -76,7 +94,7 @@ export function IdeasContent({
             onDelete={vm.confirmDelete}
             onClick={onNavigateToIdea}
           />
-        </div>
+        </SelectableCard>
       ))}
     </div>
   );

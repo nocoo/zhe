@@ -6,7 +6,7 @@ import { islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
 test.describe.configure({ mode: "serial" });
-for (const width of [1920, 1365, 390]) {
+for (const width of [1920, 1365, 390, 320]) {
   test(`source filters and GitHub README at ${width}px`, async ({ page, context, baseURL }) => {
     test.setTimeout(90_000);
     assert(baseURL === "http://localhost:27006");
@@ -97,6 +97,7 @@ for (const width of [1920, 1365, 390]) {
       await expect(page.getByTestId("link-card")).toHaveCount(2);
       await page.goto("/dashboard?folder=uncategorized");
       await expect(page.getByTestId("link-card")).toHaveCount(1);
+      if (width < 768) await page.getByRole("button", { name: "筛选与视图" }).click();
       await page.getByLabel("特殊来源", { exact: true }).click();
       await expect(page.getByRole("checkbox", { name: "GitHub", exact: true })).toBeChecked();
       await expect(page.getByRole("checkbox", { name: "X（全部内容）" })).not.toBeChecked();
@@ -171,6 +172,19 @@ for (const width of [1920, 1365, 390]) {
           ],
         );
         assert(extra);
+        if (index === 1) {
+          for (let tagIndex = 0; tagIndex < 5; tagIndex++) {
+            const extraTag = randomUUID();
+            await executeD1(
+              "INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)",
+              [extraTag, owner, `收藏标签 ${tagIndex + 1}`, "primary", Date.now()],
+            );
+            await executeD1("INSERT INTO link_tags(link_id,tag_id) VALUES(?,?)", [
+              extra.id,
+              extraTag,
+            ]);
+          }
+        }
         if (index === 5) continue;
         await executeD1(
           "INSERT INTO github_bookmarks(link_id,user_id,source_url,state,result_json,error_code,captured_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
@@ -188,7 +202,19 @@ for (const width of [1920, 1365, 390]) {
               ),
               topics: Array.from({ length: 12 }, (_, topic) => `topic-${topic}-with-long-label`),
               archived: index === 2,
-              ...(index === 3 ? { analysis } : {}),
+              ...(index === 2
+                ? {
+                    stars: 1234567,
+                    commits: 23456789,
+                    forks: 12345,
+                    language: "A very long language name",
+                    defaultBranch: "a-very-long-default-branch-name",
+                    license: "A very long license name",
+                  }
+                : {}),
+              ...(index === 3
+                ? { analysis, language: null, license: "NOASSERTION", topics: [] }
+                : {}),
             }),
             index === 4 ? "github_rate_limited" : null,
             Date.now(),
@@ -203,14 +229,16 @@ for (const width of [1920, 1365, 390]) {
         const heading = await islandHeading(page, "GitHub 收藏").boundingBox();
         const filter = await page.getByRole("combobox", { name: "仓库排序" }).boundingBox();
         assert(heading && filter);
-        expect(Math.abs(heading.y - filter.y)).toBeLessThan(2);
+        expect(
+          Math.abs(heading.y + heading.height / 2 - filter.y - filter.height / 2),
+        ).toBeLessThan(2);
         expect(filter.x).toBeGreaterThan(heading.x);
       }
       const cards = page.getByTestId("github-repository");
       await expect(cards).toHaveCount(6);
       const card = page.locator(`[data-testid="github-repository"][data-link-id="${ids[0]}"]`);
-      await expect(card.getByTitle("GitHub stars")).toContainText("1,250");
-      await expect(card.getByTitle("默认分支 main 的 commit 总数")).toContainText("321");
+      await expect(card.getByTitle("GitHub stars · 1,250")).toContainText("1.3K");
+      await expect(card.getByTitle("默认分支 main 的 commit 总数 · 321")).toContainText("321");
       await expect(card.getByText("开发收藏", { exact: true })).toBeVisible();
       await expect(card.getByTestId("tag-badge")).toHaveText("待读");
       await expect(cards.getByText(analysis.summary, { exact: true })).toHaveCount(1);
@@ -218,28 +246,125 @@ for (const width of [1920, 1365, 390]) {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
+      // Metadata loading moves cards; measure the settled layout, not a reflow frame.
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all(
+          document
+            .getAnimations()
+            .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+            .map((animation) => animation.finished.catch(() => {})),
+        );
+      });
       const geometry = await cards.evaluateAll((elements) =>
         elements.map((element) => {
           const rect = element.getBoundingClientRect();
-          return { height: rect.height, top: Math.round(rect.top) };
+          return { height: rect.height, left: rect.left, top: rect.top, bottom: rect.bottom };
         }),
       );
       const heights = geometry.map((box) => box.height);
-      // Dense cards size each row to its own content instead of padding every row.
-      for (const top of new Set(geometry.map((box) => box.top))) {
-        const rowHeights = geometry.filter((box) => box.top === top).map((box) => box.height);
-        expect(Math.max(...rowHeights) - Math.min(...rowHeights)).toBeLessThanOrEqual(1);
+      // Each column stays compact even when neighboring cards have more content.
+      for (const box of geometry) {
+        const above = geometry
+          .filter((other) => Math.abs(other.left - box.left) < 1 && other.top < box.top)
+          .sort((a, b) => b.top - a.top)[0];
+        if (above) expect(Math.abs(box.top - above.bottom - 12)).toBeLessThan(1);
       }
-      expect(Math.max(...heights)).toBeLessThan(410);
+      expect(Math.max(...heights)).toBeLessThan(260);
+      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+      const rowGeometry = await cards.evaluateAll((elements) =>
+        elements.map((element) => {
+          const top = element.getBoundingClientRect().top;
+          return [
+            "h2",
+            '[data-testid="github-card-tags"]',
+            '[data-testid="github-card-description"]',
+            '[data-testid="github-card-metrics"]',
+            '[data-testid="github-card-metadata"]',
+            '[data-testid="github-card-footer"]',
+          ].map((selector) => {
+            const row = element.querySelector(selector);
+            if (!row) throw new Error(`Missing card row: ${selector}`);
+            const box = row.getBoundingClientRect();
+            return { top: box.top - top, height: box.height };
+          });
+        }),
+      );
+      for (const rows of rowGeometry) expect(rows).toEqual(rowGeometry[0]);
+      expect(
+        await cards.evaluateAll((elements) =>
+          elements.every((element) => {
+            const metadata = element.querySelector('[data-testid="github-card-metadata"]');
+            if (metadata?.getAttribute("role") === "status") return true;
+            const metrics = element.querySelector('[data-testid="github-card-metrics"]');
+            return Array.from(metadata?.children ?? []).every((cell, index) => {
+              const metric = metrics?.children[index];
+              return (
+                metric &&
+                Math.abs(cell.getBoundingClientRect().left - metric.getBoundingClientRect().left) <
+                  1
+              );
+            });
+          }),
+        ),
+      ).toBe(true);
+      for (const metric of await cards.getByTestId("github-card-metrics").all()) {
+        expect(await metric.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+          true,
+        );
+        const items = await metric.locator(":scope > div").evaluateAll((elements) =>
+          elements.map((element) => {
+            const { top, height } = element.getBoundingClientRect();
+            return { top, height, fits: element.scrollWidth <= element.clientWidth };
+          }),
+        );
+        expect(
+          items.every((item) => item.top === items[0]?.top && item.height === 20 && item.fits),
+          JSON.stringify(items),
+        ).toBe(true);
+      }
       const rows = geometry.reduce<Record<number, number>>((counts, box) => {
         counts[box.top] = (counts[box.top] ?? 0) + 1;
         return counts;
       }, {});
       expect(Math.max(...Object.values(rows))).toBeLessThanOrEqual(4);
       if (width === 1920) expect(Math.max(...Object.values(rows))).toBe(4);
-      if (width === 390) expect(Math.max(...Object.values(rows))).toBe(1);
+      if (width <= 390) expect(Math.max(...Object.values(rows))).toBe(1);
+      const footer = card.getByTestId("github-card-footer");
+      await expect(footer.getByTestId("tag-badge")).toHaveCount(0);
+      const brand = await card.getByTitle("来源：GitHub").boundingBox();
+      const title = await card.getByRole("heading").boundingBox();
+      const tags = await card.getByTestId("github-card-tags").boundingBox();
+      assert(brand && title && tags);
+      expect(brand.x).toBeGreaterThan(title.x + title.width);
+      expect(tags.y).toBeGreaterThan(title.y + title.height);
+      const labels = cards
+        .filter({ hasText: "fixture/repository-1-with-a-long-name" })
+        .getByTestId("github-card-tags");
+      await expect(labels.getByTestId("github-repository-label")).toHaveCount(12);
+      await expect(labels.getByTestId("tag-badge")).toHaveCount(5);
+      await labels.focus();
+      await page.keyboard.press("ArrowRight");
+      await expect.poll(() => labels.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+      await labels.getByTestId("github-repository-label").last().scrollIntoViewIfNeeded();
+      await expect(labels.getByTestId("github-repository-label").last()).toBeInViewport();
+      await labels.evaluate((element) => {
+        element.scrollLeft = 0;
+      });
+      const readButton = footer.getByRole("button", { name: "阅读 README" });
+      const moreButton = footer.getByRole("button", { name: "更多收藏操作" });
+      const readBox = await readButton.boundingBox();
+      const moreBox = await moreButton.boundingBox();
+      assert(readBox && moreBox);
+      expect(Math.abs(readBox.y - moreBox.y)).toBeLessThan(1);
+      expect(moreBox.x).toBeGreaterThan(readBox.x);
       const cardHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
-      await card.getByRole("button", { name: "编辑 GitHub 收藏" }).click();
+      await moreButton.click();
+      await expect(page.getByRole("menuitem", { name: "打开原仓库" })).toHaveAttribute(
+        "href",
+        urls[0] as string,
+      );
+      await page.getByRole("menuitem", { name: "编辑收藏" }).click();
       await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
       expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
         cardHeight,
@@ -247,6 +372,8 @@ for (const width of [1920, 1365, 390]) {
       );
       await page.getByRole("button", { name: "收起", exact: true }).click();
       await expect(page.getByTestId("card-edit-dialog")).not.toBeAttached();
+      await expect(moreButton).toBeFocused();
+      await islandHeading(page, "GitHub 收藏").scrollIntoViewIfNeeded();
       await page.screenshot({
         path: `.artifacts/github-library-${width}.png`,
         animations: "disabled",

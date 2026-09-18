@@ -380,7 +380,7 @@ describe("AppShell", () => {
 
       // Includes the X library alongside the existing navigation and one folder.
       const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(17);
+      expect(navLinks.length).toBe(16);
     });
 
     it("passes folders to mobile sidebar when open", async () => {

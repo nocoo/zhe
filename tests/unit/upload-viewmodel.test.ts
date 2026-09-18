@@ -326,9 +326,11 @@ describe("useUploadsViewModel", () => {
 
       await act(async () => {
         expect(await result.current.handleDelete(video.id)).toBe(true);
+        expect(await result.current.handleDelete(poster.id)).toBe(true);
       });
 
       expect(result.current.uploads).toEqual([unrelated]);
+      expect(mockDeleteUploadAction).toHaveBeenCalledTimes(1);
     });
 
     it("removes upload from list on success", async () => {

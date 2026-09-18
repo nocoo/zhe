@@ -48,7 +48,7 @@ function prepareFront(source: HTMLElement, front: HTMLElement, frame: HTMLElemen
   return `translate3d(${x}px, ${y}px, 0) rotateY(0deg) scale(${width / (destination.width || width)}, ${height / (destination.height || height)})`;
 }
 
-interface CardEditDialogProps extends Omit<InlineEditAreaProps, "defaultEditing" | "onCloseEdit"> {
+interface CardEditDialogProps extends Omit<InlineEditAreaProps, "onCloseEdit"> {
   source: RefObject<HTMLDivElement | null>;
   trigger: RefObject<HTMLElement | null>;
   animated?: boolean;
@@ -286,8 +286,6 @@ export function CardEditDialog({
               linkTags={editorLinkTags}
               editCallbacks={callbacks}
               isDeleting={editProps.isDeleting || deleted}
-              defaultEditing={false}
-              modal
               onCloseEdit={() => void finish()}
               onSaved={() => void finish("save")}
             />

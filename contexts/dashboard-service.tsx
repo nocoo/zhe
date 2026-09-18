@@ -45,6 +45,8 @@ export interface DashboardActions {
   /** Re-fetch all links from the server. Resolves to a result so callers
    *  can show success/failure feedback (e.g. a toast). */
   refreshLinks: () => Promise<{ success: boolean; error?: string }>;
+  /** Refresh captured X content immediately, without waiting for the next poll. */
+  refreshXBookmarks: () => void;
 
   // Folders — call after server action succeeds to sync memory
   handleFolderCreated: (folder: Folder) => void;
@@ -101,7 +103,10 @@ export function DashboardServiceProvider({
   children,
 }: DashboardServiceProviderProps) {
   const core = useDashboardCore(initialFolders);
-  const [xBookmarks, setXBookmarks] = useXBookmarks(core.links, core.handleLinkUpdated);
+  const [xBookmarks, setXBookmarks, refreshXBookmarks] = useXBookmarks(
+    core.links,
+    core.handleLinkUpdated,
+  );
   useScreenshotPreviews(core.links, core.handleLinkUpdated);
   const ideasSlice = useIdeasSlice();
   const todosSlice = useTodosSlice();
@@ -142,6 +147,7 @@ export function DashboardServiceProvider({
       handleLinkDeleted: core.handleLinkDeleted,
       handleLinkUpdated: core.handleLinkUpdated,
       refreshLinks: core.refreshLinks,
+      refreshXBookmarks,
       handleFolderCreated: core.handleFolderCreated,
       handleFolderDeleted: core.handleFolderDeleted,
       handleFolderUpdated: core.handleFolderUpdated,
@@ -161,7 +167,7 @@ export function DashboardServiceProvider({
       handleTodoDeleted: todosSlice.handleTodoDeleted,
       handleTodoUpdated: todosSlice.handleTodoUpdated,
     }),
-    [core, ideasSlice, todosSlice],
+    [core, ideasSlice, todosSlice, refreshXBookmarks],
   );
 
   return (

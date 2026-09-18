@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import type { Locator, Page } from "@playwright/test";
+import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
 import { test as base, expect } from "./fixtures";
 import { executeD1, queryD1 } from "./helpers/d1";
 
@@ -32,7 +33,7 @@ const test = base.extend<{ owner: string }>({
   },
 });
 
-type Collection = "grid" | "list" | "github" | "x" | "inbox";
+type Collection = "grid" | "list" | "github" | "x" | "uncategorized";
 
 async function seedCollection(page: Page, owner: string, collection: Collection) {
   const now = Date.now();
@@ -51,7 +52,9 @@ async function seedCollection(page: Page, owner: string, collection: Collection)
         `${owner}-${index}`,
         url,
         `Saved link ${index + 1}`,
-        "A useful reference.",
+        collection === "x" && index % 2
+          ? "A longer saved post that takes several lines in the card. ".repeat(8)
+          : "A useful reference.",
         "/logo-24.png",
         "/logo-80.png",
         now - index * 1000,
@@ -60,7 +63,7 @@ async function seedCollection(page: Page, owner: string, collection: Collection)
   }
   await page.addInitScript((view) => localStorage.setItem("zhe_links_view_mode", view), collection);
   const path =
-    collection === "inbox"
+    collection === "uncategorized"
       ? "?folder=uncategorized"
       : collection === "grid" || collection === "list"
         ? ""
@@ -95,21 +98,20 @@ async function positions(cards: Locator) {
 }
 
 async function openEditor(page: Page, card: Locator, collection: Collection) {
-  if (collection === "inbox") return card;
-  if (collection === "x") {
+  if (collection === "x" || collection === "github") {
     await card.getByRole("button", { name: "更多收藏操作" }).click();
     await page.getByRole("menuitem", { name: "编辑收藏" }).click();
   } else {
     await card
       .getByRole("button", {
-        name: collection === "github" ? "编辑 GitHub 收藏" : "Edit link",
+        name: "Edit link",
         exact: true,
       })
       .click();
   }
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
-  if (collection === "list") {
+  if (collection === "list" || collection === "uncategorized") {
     await expect(dialog.locator(".link-card-flight")).toHaveCount(0);
     await expect(card).toBeVisible();
     await dialog.evaluate(async (element) => {
@@ -175,7 +177,143 @@ function expectSamePositions(
   }
 }
 
-for (const collection of ["grid", "list", "github", "x", "inbox"] as const) {
+for (const collection of ["grid", "list", "uncategorized", "x", "github"] as const) {
+  test(`${collection}: matching skeleton transitions into animated cards`, async ({
+    page,
+    owner,
+  }) => {
+    await page.setViewportSize({ width: 1365, height: 1000 });
+    const cards = await seedCollection(page, owner, collection);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/dashboard**", async (route) => {
+      if (route.request().method() === "POST" && route.request().headers()["next-action"])
+        await gate;
+      await route.continue();
+    });
+    try {
+      await page.reload({ waitUntil: "domcontentloaded" });
+      const skeleton = page.locator('[aria-busy="true"][data-testid^="card-"]');
+      await expect(skeleton).toBeVisible();
+      const before = await skeleton.evaluate((element) => ({
+        columns: getComputedStyle(element).gridTemplateColumns,
+        height: (
+          element.querySelector(".animate-pulse") ?? element.firstElementChild
+        )?.getBoundingClientRect().height,
+      }));
+      if (collection === "list" || collection === "uncategorized")
+        expect(before.columns).toBe("none");
+      if (collection === "github") expect(before.height).toBe(244);
+      if (collection === "x")
+        expect(await skeleton.getAttribute("class")).toContain("auto-rows-[1px]");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      expect(
+        await skeleton
+          .locator(".animate-pulse")
+          .first()
+          .evaluate((element) => getComputedStyle(element).animationName),
+      ).toBe("none");
+      await page.screenshot({
+        path: `.artifacts/loading-${collection}.png`,
+        animations: "disabled",
+      });
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      const entrances = await page.evaluateHandle(() => {
+        const names: string[] = [];
+        document.addEventListener("animationstart", (event) => {
+          if (event.animationName === "fade-up") names.push(event.animationName);
+        });
+        return names;
+      });
+      release();
+      await expect(cards).toHaveCount(8);
+      await expect
+        .poll(() => entrances.evaluate((names) => names.length))
+        .toBeGreaterThanOrEqual(8);
+      await settle(page);
+      const container = page.getByTestId(
+        collection === "github"
+          ? "github-repositories"
+          : collection === "x"
+            ? "x-feed"
+            : collection === "grid"
+              ? "card-grid"
+              : "card-list",
+      );
+      expect(
+        await container.evaluate((element) => getComputedStyle(element).gridTemplateColumns),
+      ).toBe(before.columns);
+      if (collection === "github" || collection === "grid") {
+        expect(
+          await cards.first().evaluate((element) => element.getBoundingClientRect().height),
+        ).toBeCloseTo(before.height ?? 0, 0);
+      }
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      expect(
+        await cards
+          .first()
+          .evaluate(
+            (element) =>
+              getComputedStyle(element.closest(".animate-fade-up") as HTMLElement).animationName,
+          ),
+      ).toBe("none");
+    } finally {
+      release();
+    }
+  });
+}
+
+test("x: masonry keeps newest cards across the top and repacks on resize", async ({
+  page,
+  owner,
+}) => {
+  const cards = await seedCollection(page, owner, "x");
+  for (let index = 0; index < 8; index++) {
+    await expect(cards.nth(index)).toContainText(`Saved link ${index + 1}`);
+  }
+  for (const [width, columns] of [
+    [1280, 6],
+    [1920, 6],
+    [768, 4],
+    [375, 2],
+  ] as const) {
+    await page.setViewportSize({ width, height: 1000 });
+    await expect
+      .poll(async () => {
+        const boxes = await cards.evaluateAll((elements) =>
+          elements.map((element) => {
+            const { x, y, bottom } = element.getBoundingClientRect();
+            return { x, y, bottom };
+          }),
+        );
+        const first = boxes[0];
+        const nextRow = boxes[columns];
+        assert(first && nextRow);
+        const firstRow = boxes.filter((box) => Math.abs(box.y - first.y) < 1);
+        const ordered = boxes.every((box, index) => {
+          const previous = boxes[index - 1];
+          return !previous || box.y > previous.y || (box.y === previous.y && box.x > previous.x);
+        });
+        return {
+          columns: firstRow.length,
+          ordered,
+          packed: Math.abs(nextRow.y - first.bottom - 12) < 1,
+          staggered: nextRow.y < Math.max(...firstRow.map((box) => box.bottom)),
+        };
+      })
+      .toEqual({ columns, ordered: true, packed: true, staggered: true });
+  }
+  // Media loading and expanded text can change heights without a React list update.
+  const before = await positions(cards);
+  await cards.first().evaluate((element) => {
+    element.style.minHeight = `${element.getBoundingClientRect().height + 120}px`;
+  });
+  await expect.poll(async () => (await positions(cards))[2]?.y).toBeGreaterThan(before[2]?.y ?? 0);
+});
+
+for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
   test(`${collection}: deletion smoothly fills the vacancy`, async ({ page, owner }, info) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     const errors: string[] = [];
@@ -211,7 +349,7 @@ for (const collection of ["grid", "list", "github", "x", "inbox"] as const) {
 
     // A second deletion while the first movement is unfinished must start where
     // the cards are currently drawn, rather than jumping to an old destination.
-    if (collection === "list") {
+    if (collection === "list" || collection === "uncategorized") {
       const nextId = await cards.first().getAttribute("data-link-id");
       const nextCard = cards.and(page.locator(`[data-link-id="${nextId}"]`));
       await confirmDelete(page, await openEditor(page, nextCard, collection));
@@ -243,7 +381,7 @@ for (const collection of ["grid", "list", "github", "x", "inbox"] as const) {
       ).toBe(true);
     }
     expect(await queryD1("SELECT id FROM links WHERE user_id = ?", [owner])).toHaveLength(
-      collection === "list" ? 6 : 7,
+      collection === "list" || collection === "uncategorized" ? 6 : 7,
     );
     expect(
       await page
@@ -273,3 +411,229 @@ test("reduced motion fills the vacancy immediately on a narrow screen", async ({
   expect(after[0]?.x).toBeCloseTo(before[0]?.x ?? 0, 0);
   expect(after[0]?.y).toBeCloseTo(before[0]?.y ?? 0, 0);
 });
+
+for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
+  test(`${collection}: bulk selection deletes sequentially with modal progress`, async ({
+    page,
+    owner,
+  }) => {
+    await page.setViewportSize({ width: collection === "x" ? 390 : 1365, height: 1000 });
+    const cards = await seedCollection(page, owner, collection);
+    const rows = await queryD1<{ id: number; original_url: string }>(
+      "SELECT id,original_url FROM links WHERE user_id=? ORDER BY created_at DESC",
+      [owner],
+    );
+    const targets = rows.slice(0, 2);
+    const assets: string[] = [];
+    if (collection === "x") {
+      assert(process.env.LOCAL_R2 === "1");
+      for (const link of targets) {
+        const postId = link.original_url.split("/").at(-1);
+        await executeD1(
+          "INSERT INTO x_bookmarks(link_id,user_id,source_url,post_id,state,updated_at) VALUES(?,?,?,?,'pending',?) ON CONFLICT(link_id) DO NOTHING",
+          [link.id, owner, link.original_url, postId, Date.now()],
+        );
+        for (const kind of ["video", "poster"] as const) {
+          const key = `fixture/${owner}/${link.id}-${kind}`;
+          const bytes = Buffer.from(`synthetic ${kind}`);
+          await uploadBufferToR2(key, bytes, "application/octet-stream");
+          const url = `http://127.0.0.1:18788/r2/${key}`;
+          assets.push(url);
+          const [upload] = await queryD1<{ id: number }>(
+            "INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at) VALUES(?,?,?,'application/octet-stream',?,?,?) RETURNING id",
+            [owner, key, `${kind}.bin`, bytes.length, url, Date.now()],
+          );
+          assert(upload);
+          await executeD1(
+            "INSERT INTO x_media(id,link_id,user_id,media_id,kind,r2_key,mime,size,sha256,lease_token,state,upload_id,created_at) VALUES(?,?,?,?,?,?,'application/octet-stream',?,?,'fixture','published',?,?)",
+            [
+              randomUUID(),
+              link.id,
+              owner,
+              "same-media",
+              kind,
+              key,
+              bytes.length,
+              createHash("sha256").update(bytes).digest("hex"),
+              upload.id,
+              Date.now(),
+            ],
+          );
+        }
+      }
+    }
+    const height = await cards
+      .first()
+      .evaluate((element) => element.getBoundingClientRect().height);
+    await page.getByRole("button", { name: "多选卡片" }).click();
+    const choices = page.getByRole("checkbox", { name: /^选择 / });
+    await expect(choices).toHaveCount(8);
+    await choices.first().check();
+    await page
+      .locator("label")
+      .filter({ has: page.getByRole("checkbox", { name: /^选择 / }) })
+      .nth(1)
+      .click({ position: { x: 70, y: 40 } });
+    await expect(choices.nth(1)).toBeChecked();
+    expect(await cards.first().evaluate((element) => element.getBoundingClientRect().height)).toBe(
+      height,
+    );
+    expect(await cards.first().evaluate((element) => !!element.closest("[inert]"))).toBe(true);
+    await page.getByRole("button", { name: "删除所选" }).scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: `.artifacts/bulk-selection-${collection}.png`,
+      animations: "disabled",
+    });
+    await page.getByRole("button", { name: "删除所选" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByRole("heading", { name: "删除 2 项内容？" })).toBeVisible();
+    await dialog.getByRole("button", { name: "取消" }).click();
+    expect(await queryD1("SELECT id FROM links WHERE user_id=?", [owner])).toHaveLength(8);
+    await page.getByRole("button", { name: "删除所选" }).click();
+    let release: () => void = () => {};
+    let releaseSecond: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const secondGate = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const requests: number[] = [];
+    await page.route("**/dashboard**", async (route) => {
+      const target = targets.find(({ id }) => route.request().postData() === JSON.stringify([id]));
+      if (route.request().headers()["next-action"] && target) {
+        requests.push(target.id);
+        if (requests.length === 1) await gate;
+        if (requests.length === 2) {
+          if (assets[0]) expect((await fetch(assets[0])).status).toBe(404);
+          await secondGate;
+        }
+      }
+      await route.continue();
+    });
+    try {
+      await dialog.getByRole("button", { name: "确认删除" }).click();
+      await expect.poll(() => requests.length).toBe(1);
+      await expect(dialog.getByRole("progressbar")).toHaveAttribute("value", "0");
+      await expect(dialog.getByRole("button", { name: "取消" })).toBeDisabled();
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeVisible();
+      release();
+      await expect.poll(() => requests.length).toBe(2);
+      await expect(dialog.getByRole("progressbar")).toHaveAttribute("value", "1");
+      await page.screenshot({
+        path: `.artifacts/bulk-progress-${collection}.png`,
+        animations: "disabled",
+      });
+      releaseSecond();
+      await expect(dialog.getByRole("status")).toContainText("已删除 2 项");
+      expect(requests).toEqual(targets.map(({ id }) => id));
+      await expect(dialog.getByRole("progressbar")).toHaveAttribute("value", "2");
+      await expect(dialog).not.toBeVisible({ timeout: 3000 });
+      await expect(cards).toHaveCount(6);
+      await expect(page.getByRole("button", { name: "多选卡片" })).toBeFocused();
+      expect(await queryD1("SELECT id FROM links WHERE user_id=?", [owner])).toHaveLength(6);
+      for (const url of assets) expect((await fetch(url)).status).toBe(404);
+      if (assets.length) {
+        expect(await queryD1("SELECT id FROM x_media WHERE user_id=?", [owner])).toEqual([]);
+        expect(await queryD1("SELECT id FROM uploads WHERE user_id=?", [owner])).toEqual([]);
+        expect(await queryD1("SELECT key FROM r2_deletions WHERE user_id=?", [owner])).toEqual([]);
+      }
+    } finally {
+      release();
+      releaseSecond();
+    }
+  });
+}
+
+for (const [collection, width] of [
+  ["github", 1365],
+  ["x", 320],
+] as const) {
+  test(`${collection}: bulk toolbar appears only when the header scrolls out of view`, async ({
+    page,
+    owner,
+  }) => {
+    await page.setViewportSize({ width, height: 680 });
+    const cards = await seedCollection(page, owner, collection);
+    const floating = page.getByRole("group", { name: "浮动多选操作", exact: true });
+    await expect(floating).toHaveCount(0);
+    await page.getByRole("button", { name: "多选卡片" }).click();
+    const top = page.getByRole("group", { name: "多选操作", exact: true });
+    await expect(top).toBeInViewport();
+    await expect(floating).toHaveCount(0);
+    await top.getByRole("button", { name: "全选当前列表" }).click();
+    await cards.last().scrollIntoViewIfNeeded();
+    await expect(top).not.toBeInViewport();
+    await expect(floating).toBeVisible();
+    await expect(floating.getByRole("status")).toHaveText("已选 8 项");
+    const box = await floating.boundingBox();
+    assert(box);
+    expect(box.x + box.width / 2).toBeCloseTo(width / 2, 0);
+    expect(box.y + box.height).toBeLessThan(680);
+    expect(box.width).toBeLessThan(width);
+    await floating.getByRole("button", { name: "取消全选" }).click();
+    await expect(top.getByRole("status")).toHaveText("已选 0 项");
+    await expect(floating.getByRole("button", { name: "删除所选" })).toBeDisabled();
+    await floating.getByRole("button", { name: "全选当前列表" }).click();
+    await floating.getByRole("button", { name: "删除所选" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog.getByRole("heading", { name: "删除 8 项内容？" })).toBeVisible();
+    await dialog.getByRole("button", { name: "取消" }).click();
+    await expect(floating.getByRole("button", { name: "删除所选" })).toBeFocused();
+    await expect(top).not.toBeInViewport();
+    await page.screenshot({
+      path: `.artifacts/bulk-floating-${collection}-${width}.png`,
+      animations: "disabled",
+    });
+    await top.scrollIntoViewIfNeeded();
+    await expect(floating).toHaveCount(0);
+    await expect(top.getByRole("status")).toHaveText("已选 8 项");
+    await cards.last().scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
+    await floating.getByRole("button", { name: "退出多选" }).click();
+    await expect(floating).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(0);
+    expect(await queryD1("SELECT id FROM links WHERE user_id=?", [owner])).toHaveLength(8);
+  });
+}
+
+for (const collection of ["ideas", "uploads"] as const) {
+  test(`${collection}: bulk deletion uses the collection's existing deletion flow`, async ({
+    page,
+    owner,
+  }) => {
+    assert(process.env.LOCAL_R2 === "1");
+    const assets: string[] = [];
+    for (let index = 0; index < 3; index++) {
+      if (collection === "ideas") {
+        await executeD1(
+          "INSERT INTO ideas(user_id,title,content,excerpt,created_at,updated_at) VALUES(?,?,?,?,?,?)",
+          [owner, `Idea ${index}`, "Saved content", "Saved content", Date.now(), Date.now()],
+        );
+      } else {
+        const key = `fixture/${owner}/file-${index}.txt`;
+        const url = `http://127.0.0.1:18788/r2/${key}`;
+        await uploadBufferToR2(key, Buffer.from("saved file"), "text/plain");
+        assets.push(url);
+        await executeD1(
+          "INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at) VALUES(?,?,?,'text/plain',10,?,?)",
+          [owner, key, `File ${index}`, url, Date.now()],
+        );
+      }
+    }
+    await page.goto(`/dashboard/${collection}`);
+    await expect(page.getByRole("button", { name: "多选卡片" })).toBeEnabled();
+    await page.getByRole("button", { name: "多选卡片" }).click();
+    await page.getByRole("button", { name: "全选当前列表" }).click();
+    await expect(page.getByRole("checkbox", { name: /^选择 / }).first()).toBeChecked();
+    await page.getByRole("button", { name: "删除所选" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await dialog.getByRole("button", { name: "确认删除" }).click();
+    await expect(dialog.getByRole("status")).toContainText("已删除 3 项");
+    await expect(dialog).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole("button", { name: "多选卡片" })).toBeDisabled();
+    expect(await queryD1(`SELECT id FROM ${collection} WHERE user_id=?`, [owner])).toEqual([]);
+    for (const url of assets) expect((await fetch(url)).status).toBe(404);
+  });
+}

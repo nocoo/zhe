@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { deleteUpload as deleteUploadAction } from "@/actions/upload";
 import { getUploads as fetchUploads } from "@/actions/upload-read";
 import type { Upload } from "@/lib/db/schema";
@@ -19,6 +19,8 @@ const JPEG_QUALITY_KEY = "jpegQuality";
 /** ViewModel for the uploads list page — fetches data client-side on mount */
 export function useUploadsViewModel(initialUploads?: Upload[]) {
   const [uploads, setUploads] = useState<Upload[]>(initialUploads ?? []);
+  const latestUploads = useRef(uploads);
+  latestUploads.current = uploads;
   const [loading, setLoading] = useState(!initialUploads);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -64,13 +66,16 @@ export function useUploadsViewModel(initialUploads?: Upload[]) {
 
   /** Delete an upload from R2 + DB */
   const handleDelete = useCallback(async (uploadId: number) => {
+    // A preceding deletion in a batch may already have removed this video's poster.
+    if (!latestUploads.current.some((upload) => upload.id === uploadId)) return true;
     const result = await deleteUploadAction(uploadId);
     if (result.success) {
       setUploads((prev) => prev.filter((u) => u.id !== uploadId));
       // A video deletion also removes its poster on the server.
       const refreshed = await fetchUploads().catch(() => null);
       if (refreshed?.success && refreshed.data) {
-        setUploads(refreshed.data.filter((u) => u.id !== uploadId));
+        latestUploads.current = refreshed.data.filter((u) => u.id !== uploadId);
+        setUploads(latestUploads.current);
       }
       return true;
     }

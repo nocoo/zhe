@@ -111,6 +111,8 @@ interface ToolbarProps extends FilterControlsProps {
   mobileFilterOpen: boolean;
   setMobileFilterOpen: (open: boolean) => void;
   createButton: React.ReactNode;
+  selectionActions?: React.ReactNode;
+  selecting?: boolean;
 }
 
 export function LinksListToolbar(props: ToolbarProps) {
@@ -124,6 +126,8 @@ export function LinksListToolbar(props: ToolbarProps) {
     mobileFilterOpen,
     setMobileFilterOpen,
     createButton,
+    selectionActions,
+    selecting,
     ...controls
   } = props;
 
@@ -156,8 +160,13 @@ export function LinksListToolbar(props: ToolbarProps) {
       }
       actions={
         <>
-          {isMobile ? filterTrigger : <FilterControls {...controls} />}
-          {createButton}
+          {!selecting && (
+            <>
+              {isMobile ? filterTrigger : <FilterControls {...controls} />}
+              {createButton}
+            </>
+          )}
+          {selectionActions}
         </>
       }
     />

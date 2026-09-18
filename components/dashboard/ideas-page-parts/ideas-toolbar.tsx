@@ -108,7 +108,15 @@ function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
   );
 }
 
-export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
+export function IdeasToolbar({
+  vm,
+  selectionActions,
+  selecting,
+}: {
+  vm: IdeasViewModel;
+  selectionActions?: React.ReactNode;
+  selecting?: boolean;
+}) {
   const filtered = Boolean(vm.searchQuery || vm.selectedTagId);
   return (
     <PageHeader
@@ -120,19 +128,24 @@ export function IdeasToolbar({ vm }: { vm: IdeasViewModel }) {
       }
       actions={
         <>
-          <SearchBox vm={vm} />
-          <TagFilter vm={vm} />
-          <SortSelect vm={vm} />
-          <ViewModeToggle vm={vm} />
-          {filtered ? (
-            <Button type="button" variant="ghost" size="sm" onClick={vm.clearFilters}>
-              清除
-            </Button>
-          ) : null}
-          <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
-            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-            新想法
-          </Button>
+          {!selecting && (
+            <>
+              <SearchBox vm={vm} />
+              <TagFilter vm={vm} />
+              <SortSelect vm={vm} />
+              <ViewModeToggle vm={vm} />
+              {filtered ? (
+                <Button type="button" variant="ghost" size="sm" onClick={vm.clearFilters}>
+                  清除
+                </Button>
+              ) : null}
+              <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
+                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                新想法
+              </Button>
+            </>
+          )}
+          {selectionActions}
         </>
       }
     />

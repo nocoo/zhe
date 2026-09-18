@@ -92,6 +92,7 @@ const mockService: DashboardService = {
   handleLinkDeleted: vi.fn(),
   handleLinkUpdated: vi.fn(),
   refreshLinks: vi.fn().mockResolvedValue({ success: true }),
+  refreshXBookmarks: vi.fn(),
   handleFolderCreated: vi.fn(),
   handleFolderDeleted: vi.fn(),
   handleFolderUpdated: vi.fn(),
@@ -288,9 +289,9 @@ describe("LinksList", () => {
     mockSearchParamsFolder = "uncategorized";
     render(<LinksList />);
 
-    // InboxTriage is rendered — header is an h2
-    expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
-    expect(screen.getByText("共 1 条待整理链接")).toBeInTheDocument();
+    // Unclassified links use the regular list layout.
+    expect(screen.getByRole("heading", { name: "未分类" })).toBeInTheDocument();
+    expect(screen.getByText("共 1 条链接")).toBeInTheDocument();
     // Only link with folderId=null (InboxItem shows metaTitle, not slug)
     expect(screen.getByText("Example 3")).toBeInTheDocument();
     expect(screen.queryByText("Example 1")).not.toBeInTheDocument();
@@ -459,7 +460,7 @@ describe("LinksList", () => {
       render(<LinksList />);
 
       fireEvent.click(screen.getByText("文件夹"));
-      fireEvent.click(screen.getByText("Inbox"));
+      fireEvent.click(screen.getByText("未分类"));
 
       // Should show only link 3 (ghi) which has folderId=null
       expect(screen.getByText("ghi")).toBeInTheDocument();

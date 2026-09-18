@@ -8,7 +8,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { staggerStyle } from "@/lib/motion";
+import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
+import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
 import { UploadItem, UploadingItem } from "./upload-item";
 import { UploadZone } from "./upload-zone";
 
@@ -17,12 +19,12 @@ function UploadListSkeleton() {
     <div>
       <PageHeader title="文件上传" description="加载中…" />
       <div className="mb-6 flex items-center gap-4">
-        <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse" />
+        <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <div className="mb-6">
-        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary animate-pulse" />
+        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary animate-pulse motion-reduce:animate-none" />
       </div>
-      <CardListSkeleton rows={4} />
+      <CardListSkeleton rows={4} variant="upload" />
     </div>
   );
 }
@@ -92,6 +94,11 @@ export function UploadList({
     dismissUploadingFile,
   } = useUploadsViewModel(initialUploads);
 
+  const selection = useBulkDelete(
+    uploads.map((upload) => ({ id: upload.id, label: upload.fileName })),
+    async (id) => ({ success: await handleDelete(id) }),
+  );
+
   if (loading) {
     return <UploadListSkeleton />;
   }
@@ -102,6 +109,7 @@ export function UploadList({
       <PageHeader
         title="文件上传"
         description={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
+        actions={<BulkDeleteActions selection={selection} />}
       />
 
       {/* Options */}
@@ -121,7 +129,11 @@ export function UploadList({
       {uploadingFiles.length > 0 && (
         <div className="space-y-2 mb-4">
           {uploadingFiles.map((file, i) => (
-            <div key={file.id} className="animate-fade-up" style={staggerStyle(i)}>
+            <div
+              key={file.id}
+              className="animate-fade-up motion-reduce:animate-none"
+              style={staggerStyle(i)}
+            >
               <UploadingItem file={file} onDismiss={dismissUploadingFile} />
             </div>
           ))}
@@ -139,9 +151,16 @@ export function UploadList({
       ) : (
         <div className="space-y-2" data-testid="card-list">
           {uploads.map((upload, i) => (
-            <div key={upload.id} className="animate-fade-up" style={staggerStyle(i)}>
+            <SelectableCard
+              selection={selection}
+              itemId={upload.id}
+              label={upload.fileName}
+              key={upload.id}
+              className="animate-fade-up motion-reduce:animate-none"
+              style={staggerStyle(i)}
+            >
               <UploadItem upload={upload} onDelete={handleDelete} />
-            </div>
+            </SelectableCard>
           ))}
         </div>
       )}

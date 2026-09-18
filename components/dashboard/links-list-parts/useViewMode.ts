@@ -8,12 +8,17 @@ export type ViewMode = "list" | "grid";
 /** Track grid/list view-mode with localStorage persistence (SSR-safe). */
 export function useViewMode(initial: ViewMode = "list") {
   const [viewMode, setViewMode] = useState<ViewMode>(initial);
+  const [ready, setReady] = useState(false);
 
   // Sync from localStorage AFTER hydration to avoid SSR mismatch.
   useEffect(() => {
-    const stored = localStorage.getItem(VIEW_MODE_KEY);
-    if (stored === "grid" || stored === "list") {
-      setViewMode(stored);
+    try {
+      const stored = localStorage.getItem(VIEW_MODE_KEY);
+      if (stored === "grid" || stored === "list") setViewMode(stored);
+    } catch {
+      // Private browsing may deny storage; keep the default layout.
+    } finally {
+      setReady(true);
     }
   }, []);
 
@@ -26,5 +31,5 @@ export function useViewMode(initial: ViewMode = "list") {
     }
   }, []);
 
-  return [viewMode, setAndPersist] as const;
+  return [viewMode, setAndPersist, ready] as const;
 }

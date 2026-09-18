@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { IdeaListItem } from "@/lib/db/scoped";
+import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { BulkDeleteActions } from "./bulk-delete";
 import { CreateIdeaModal, DeleteIdeaConfirm, ErrorToast } from "./ideas-page-parts/dialogs";
 import { IdeasContent } from "./ideas-page-parts/ideas-content";
 import { IdeasToolbar } from "./ideas-page-parts/ideas-toolbar";
@@ -11,6 +13,10 @@ import { IdeasToolbar } from "./ideas-page-parts/ideas-toolbar";
 export function IdeasPage() {
   const vm = useIdeasViewModel();
   const router = useRouter();
+  const selection = useBulkDelete(
+    vm.ideas.map((idea) => ({ id: idea.id, label: idea.title || idea.excerpt || "未命名想法" })),
+    async (id) => ({ success: await vm.handleDeleteIdea(id) }),
+  );
 
   // Create modal state
   const [newTitle, setNewTitle] = useState("");
@@ -42,8 +48,12 @@ export function IdeasPage() {
 
   return (
     <div>
-      <IdeasToolbar vm={vm} />
-      <IdeasContent vm={vm} onNavigateToIdea={handleNavigateToIdea} />
+      <IdeasToolbar
+        vm={vm}
+        selecting={selection.active}
+        selectionActions={<BulkDeleteActions selection={selection} />}
+      />
+      <IdeasContent selection={selection} vm={vm} onNavigateToIdea={handleNavigateToIdea} />
 
       <CreateIdeaModal
         vm={vm}

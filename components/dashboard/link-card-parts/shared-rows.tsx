@@ -4,6 +4,7 @@ import { Check, Copy, Link2 } from "lucide-react";
 import Image from "next/image";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { XIcon } from "@/components/x-icon";
+import { cn } from "@/lib/utils";
 import { linkPresentation } from "@/models/link-presentation";
 import type { Link } from "@/models/types";
 import { CardText, CardTitleText } from "./curated-text";
@@ -176,17 +177,24 @@ export function Description({
   const display = linkPresentation(link);
   if (display.description)
     return (
-      <div className="min-w-0 space-y-1">
+      <div
+        className={cn(
+          "min-w-0 space-y-1",
+          variant === "grid" && "[&>details:first-child>summary]:min-h-10",
+        )}
+      >
         <CardText
           text={display.description}
           singleLine={variant === "list"}
-          code={Boolean(display.note && canonicalXPost(link.originalUrl))}
+          code={Boolean(variant === "list" && display.note && canonicalXPost(link.originalUrl))}
         />
-        {display.originalDescription && <CardText text={display.originalDescription} auxiliary />}
+        {variant === "list" && display.originalDescription && (
+          <CardText text={display.originalDescription} auxiliary />
+        )}
       </div>
     );
   return (
-    <p className="text-xs text-muted-foreground/60">
+    <p className={cn("text-xs text-muted-foreground/60", variant === "grid" && "min-h-10")}>
       未抓取描述 ·{" "}
       <button
         type="button"

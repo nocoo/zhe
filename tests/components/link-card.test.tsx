@@ -920,24 +920,6 @@ describe("LinkCard", () => {
 
   // --- Inline edit mode ---
 
-  it("shows defaultEditing cards with edit area always open", () => {
-    render(<LinkCard {...defaultProps} defaultEditing />);
-
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "收起" })).not.toBeInTheDocument();
-  });
-
-  it("defaultEditing cards cannot collapse edit area via edit button", async () => {
-    render(<LinkCard {...defaultProps} defaultEditing />);
-
-    // Edit area is open
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-
-    // Click edit button — should NOT close
-    fireEvent.click(screen.getByTitle("Edit link"));
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-  });
-
   it("does not show edit area when editCallbacks is not provided", () => {
     const { editCallbacks: _, ...propsWithoutCallbacks } = defaultProps;
     render(<LinkCard {...propsWithoutCallbacks} />);
@@ -1047,13 +1029,6 @@ describe("LinkCard", () => {
     );
     await userEvent.setup().keyboard("{Escape}");
     expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
-  });
-
-  it("keeps the Inbox editor open after saving", async () => {
-    render(<LinkCard {...defaultProps} defaultEditing />);
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(mockEditVm.saveEdit).toHaveBeenCalled());
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
   });
 
   // --- Edit form inputs ---

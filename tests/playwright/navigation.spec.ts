@@ -74,7 +74,7 @@ test.describe("Dashboard navigation", () => {
 
     // Nav items (links)
     await expect(sidebar.locator('a:has-text("全部链接")')).toBeVisible();
-    await expect(sidebar.locator('a:has-text("Inbox")')).toBeVisible();
+    await expect(sidebar.locator('a:has-text("Inbox")')).toHaveCount(0);
     await expect(sidebar.locator('a:has-text("文件上传")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Backy")')).toBeVisible();
     await expect(sidebar.locator('a:has-text("Xray")')).toBeVisible();
@@ -193,13 +193,11 @@ test.describe("Dashboard navigation", () => {
     await expect(appTitle(page, "链接管理")).toBeVisible();
   });
 
-  test("navigate to Inbox", async ({ page }) => {
-    await page.goto("/dashboard");
-
-    await page.locator('a:has-text("Inbox")').click();
-    await page.waitForURL("**/dashboard?folder=uncategorized");
-
-    await expect(appTitle(page, "Inbox")).toBeVisible();
+  test("old Inbox URLs use the ordinary unclassified list", async ({ page }) => {
+    await page.goto("/dashboard?folder=uncategorized");
+    await expect(appTitle(page, "未分类")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inbox", exact: true })).toHaveCount(0);
+    await expect(page.getByTestId("edit-area")).toHaveCount(0);
   });
 
   test("collapse and expand sidebar", async ({ page }) => {

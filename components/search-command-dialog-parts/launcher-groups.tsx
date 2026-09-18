@@ -13,7 +13,7 @@ import { normalizeSearchText, searchIncludes } from "@/models/search";
 /**
  * Flatten the sidebar nav config into a single list of jump-to-page
  * destinations. Folder filters are included so the launcher can take
- * users straight to "全部链接" / "Inbox" too.
+ * users straight to "全部链接" too.
  */
 export interface PageDestination {
   title: string;

@@ -425,7 +425,11 @@ function Quote({ tweet, compact = false }: { tweet: XPost; compact?: boolean }) 
     >
       <div className="flex min-w-0 items-center gap-2">
         <Avatar className="size-6">
-          <AvatarImage src={tweet.author.profile_image_url} alt="" />
+          <AvatarImage
+            src={tweet.author.profile_image_url}
+            alt=""
+            className="[dynamic-range-limit:standard]"
+          />
           <AvatarFallback>{tweet.author.name.slice(0, 1)}</AvatarFallback>
         </Avatar>
         <a
@@ -499,7 +503,11 @@ export function XBookmarkContent({
       )}
       <div className={cn("flex items-center", compact ? "gap-2" : "gap-2.5")}>
         <Avatar className={cn("shrink-0 ring-1 ring-border/60", compact && "size-7")}>
-          <AvatarImage src={tweet.author.profile_image_url} alt={tweet.author.name} />
+          <AvatarImage
+            src={tweet.author.profile_image_url}
+            alt={tweet.author.name}
+            className="[dynamic-range-limit:standard]"
+          />
           <AvatarFallback>{tweet.author.name.slice(0, 1) || "X"}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1 space-y-0.5">

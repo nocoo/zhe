@@ -6,7 +6,6 @@ import {
   Database,
   FileUp,
   HardDrive,
-  Inbox,
   Key,
   Lightbulb,
   Link2,
@@ -48,12 +47,6 @@ export function isStaticNavActive(pathname: string, href: string): boolean {
 
 export const FOLDER_NAV_ITEMS: FolderNavItem[] = [
   { title: "全部链接", icon: Link2, href: "/dashboard", folderParam: null },
-  {
-    title: "Inbox",
-    icon: Inbox,
-    href: "/dashboard?folder=uncategorized",
-    folderParam: "uncategorized",
-  },
 ];
 
 /** Nav groups rendered ABOVE the 链接管理 section. */

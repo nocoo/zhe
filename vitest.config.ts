@@ -64,7 +64,6 @@ export default defineConfig({
         "components/dashboard/api-keys-page.tsx",
         "components/dashboard/todos-page.tsx",
         "components/dashboard/links-list.tsx",
-        "components/dashboard/inbox-triage.tsx",
         "components/dashboard/ai-settings-page.tsx",
         "components/dashboard/suggest-link-org-dialog.tsx",
         "components/dashboard/link-card.tsx",

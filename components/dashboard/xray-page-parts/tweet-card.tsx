@@ -35,7 +35,7 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
         <img
           src={tweet.author.profile_image_url}
           alt={tweet.author.name}
-          className="h-10 w-10 rounded-full transition-opacity hover:opacity-80"
+          className="h-10 w-10 rounded-full transition-opacity hover:opacity-80 [dynamic-range-limit:standard]"
         />
       </a>
       <div className="flex-1 min-w-0">

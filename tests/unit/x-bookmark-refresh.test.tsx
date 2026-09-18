@@ -60,6 +60,20 @@ describe("automatic X card refresh", () => {
     });
     expect(loadXBookmarks).toHaveBeenCalledTimes(2);
   });
+  it("refreshes immediately on demand and continues the regular polling schedule", async () => {
+    const update = vi.fn();
+    const { result, unmount } = renderHook(() => useXBookmarks([link], update));
+    await act(async () => {});
+    await act(async () => {
+      result.current[2]();
+    });
+    expect(loadXBookmarks).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(loadXBookmarks).toHaveBeenCalledTimes(3);
+    unmount();
+  });
   it("ignores late responses after unmount and does not resurrect deleted cards", async () => {
     let finish: (value: { success: boolean; data: XBookmark[] }) => void = () => {};
     vi.mocked(loadXBookmarks).mockReturnValue(

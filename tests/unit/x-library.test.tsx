@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
 vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
+vi.mock("@/actions/links", () => ({ createLink: vi.fn() }));
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createLink } from "@/actions/links";
 import { normalizeXPost, type XPost } from "@/cli/src/connector/core";
 import { XLibraryPage } from "@/components/dashboard/x-library-page";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -14,6 +16,9 @@ import type { Folder, Link } from "@/models/types";
 import { getXBookmarkForLink, getXContentTypes, getXPostPresentation } from "@/models/x-bookmarks";
 import { makeTag } from "../fixtures";
 
+vi.mock("@/viewmodels/useLinksViewModel", async () =>
+  vi.importActual("@/viewmodels/useCreateLinkViewModel"),
+);
 vi.mock("@/contexts/dashboard-service", () => ({ useDashboardService: vi.fn() }));
 vi.mock("@/components/dashboard/link-card", () => ({
   LinkCard: ({ link, viewMode }: { link: Link; viewMode: string }) => (
@@ -110,6 +115,9 @@ beforeEach(() => {
     linkTags: [{ linkId: 1, tagId: "tag", createdAt: new Date() }],
     loading: false,
     siteUrl: "https://zhe.to",
+    handleLinkCreated: vi.fn(),
+    refreshLinks: vi.fn().mockResolvedValue({ success: true }),
+    refreshXBookmarks: vi.fn(),
     handleLinkDeleted: vi.fn(),
     handleLinkUpdated: vi.fn(),
     handleTagCreated: vi.fn(),
@@ -229,7 +237,7 @@ describe("X library", () => {
     await user.click(screen.getAllByRole("button", { name: "清除筛选" })[0] as HTMLElement);
     expect(screen.getAllByRole("article")).toHaveLength(6);
     await user.click(screen.getByRole("combobox", { name: "筛选分类" }));
-    await user.click(screen.getByRole("option", { name: "Inbox · 未分类" }));
+    await user.click(screen.getByRole("option", { name: "未分类" }));
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(screen.getByRole("article", { name: "Simple note" })).toBeInTheDocument();
   });
@@ -280,6 +288,26 @@ describe("X library", () => {
     expect(screen.queryByRole("article", { name: "Waiting" })).not.toBeInTheDocument();
     await selectType("文字");
     expect(screen.getByRole("article", { name: "Waiting" })).toBeInTheDocument();
+  });
+  it("opens the unrestricted create dialog and refreshes links plus X snapshots", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createLink).mockResolvedValue({ success: true, data: links[0] });
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "新建链接" }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(
+      within(dialog).getByLabelText("原始链接"),
+      "https://github.com/example/project",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "创建链接" }));
+    expect(createLink).toHaveBeenCalledWith(
+      expect.objectContaining({ originalUrl: "https://github.com/example/project" }),
+    );
+    expect(service.handleLinkCreated).toHaveBeenCalledWith(links[0]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "刷新链接" }));
+    await waitFor(() => expect(service.refreshXBookmarks).toHaveBeenCalledOnce());
+    expect(service.refreshLinks).toHaveBeenCalledOnce();
   });
   it("shows initial loading and an actionable empty state", () => {
     vi.mocked(useDashboardService).mockReturnValue({

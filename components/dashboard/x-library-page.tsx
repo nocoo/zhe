@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
+import { deleteLink } from "@/actions/links";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { TwitterIcon } from "@/components/site-icons";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
-import { CardGridSkeleton } from "@/components/ui/card-skeleton";
+import { CARD_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
+import { staggerStyle } from "@/lib/motion";
 import { sortLinksByDate } from "@/models/links";
 import type { LinkTag } from "@/models/types";
 import {
@@ -36,8 +38,11 @@ import {
   X_CONTENT_TYPES,
   type XContentType,
 } from "@/models/x-bookmarks";
+import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
+import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
+import { LibraryActions } from "./library-actions";
 import { LinkCard } from "./link-card";
 import { TagFilter } from "./link-filter-bar";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
@@ -52,8 +57,6 @@ const contentIcons = {
   pending: Clock3,
 };
 
-const X_FEED_CLASS = "gap-3 [column-count:8] [column-width:11rem]";
-
 export function XLibraryPage() {
   const {
     links,
@@ -67,6 +70,7 @@ export function XLibraryPage() {
     handleTagCreated,
     handleLinkTagAdded,
     handleLinkTagRemoved,
+    refreshXBookmarks,
   } = useDashboardService();
   const bookmarks = useContext(XBookmarksContext);
   const [folderId, setFolderId] = useState("all");
@@ -124,15 +128,22 @@ export function XLibraryPage() {
     setSelectedTagIds(new Set());
   };
 
+  const selection = useBulkDelete(
+    visible.map(({ link }) => ({
+      id: link.id,
+      label: link.title || link.metaTitle || link.originalUrl,
+    })),
+    async (id) => {
+      const result = await deleteLink(id);
+      if (result.success) handleLinkDeleted(id);
+      return result;
+    },
+  );
   if (loading)
     return (
       <>
-        <PageHeaderSkeleton hasActions={false} />
-        <CardGridSkeleton
-          count={16}
-          aspectClass="aspect-[4/5]"
-          gridClass={`${X_FEED_CLASS} [&>div]:mb-3 [&>div]:break-inside-avoid`}
-        />
+        <PageHeaderSkeleton />
+        <CardGridSkeleton variant="x" />
       </>
     );
 
@@ -152,63 +163,71 @@ export function XLibraryPage() {
         }
         actions={
           <>
-            <Select
-              value={contentType}
-              onValueChange={(value) => setContentType(value as XContentType)}
-            >
-              <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="内容类型">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="min-w-40">
-                {X_CONTENT_TYPES.map(({ value, label }) => {
-                  const Icon = contentIcons[value];
-                  const count =
-                    value === "all"
-                      ? scoped.length
-                      : scoped.filter(({ types }) => types.includes(value)).length;
-                  return (
-                    <SelectItem key={value} value={value}>
-                      <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-                        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        <span>{label}</span>
-                        <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <Select value={folderId} onValueChange={setFolderId}>
-              <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="筛选分类">
-                <SelectValue placeholder="全部分类" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部分类</SelectItem>
-                <SelectItem value="uncategorized">Inbox · 未分类</SelectItem>
-                {folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <TagFilter
-              tags={tags}
-              selectedTagIds={selectedTagIds}
-              onToggle={(id) =>
-                setSelectedTagIds((current) => {
-                  const next = new Set(current);
-                  if (next.has(id)) next.delete(id);
-                  else next.add(id);
-                  return next;
-                })
-              }
-            />
-            {filtered && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                清除筛选
-              </Button>
+            {!selection.active && (
+              <>
+                <Select
+                  value={contentType}
+                  onValueChange={(value) => setContentType(value as XContentType)}
+                >
+                  <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="内容类型">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-40">
+                    {X_CONTENT_TYPES.map(({ value, label }) => {
+                      const Icon = contentIcons[value];
+                      const count =
+                        value === "all"
+                          ? scoped.length
+                          : scoped.filter(({ types }) => types.includes(value)).length;
+                      return (
+                        <SelectItem key={value} value={value}>
+                          <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                            <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                            <span>{label}</span>
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {count}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <Select value={folderId} onValueChange={setFolderId}>
+                  <SelectTrigger size="sm" className="w-28 sm:w-40" aria-label="筛选分类">
+                    <SelectValue placeholder="全部分类" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部分类</SelectItem>
+                    <SelectItem value="uncategorized">未分类</SelectItem>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <TagFilter
+                  tags={tags}
+                  selectedTagIds={selectedTagIds}
+                  onToggle={(id) =>
+                    setSelectedTagIds((current) => {
+                      const next = new Set(current);
+                      if (next.has(id)) next.delete(id);
+                      else next.add(id);
+                      return next;
+                    })
+                  }
+                />
+                {filtered && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    清除筛选
+                  </Button>
+                )}
+                <LibraryActions onRefresh={refreshXBookmarks} />
+              </>
             )}
+            <BulkDeleteActions selection={selection} />
           </>
         }
       />
@@ -234,25 +253,29 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <AnimatedCardList
-          className={X_FEED_CLASS}
-          itemClassName="mb-3 break-inside-avoid pt-px"
-          data-testid="x-feed"
-        >
-          {visible.map(({ link }) => (
-            <LinkCard
+        <AnimatedCardList className={CARD_GRID_CLASS} masonry data-testid="x-feed">
+          {visible.map(({ link }, index) => (
+            <SelectableCard
+              selection={selection}
+              itemId={link.id}
+              label={link.title || link.metaTitle || link.originalUrl}
               key={link.id}
-              link={link}
-              onSuggest={() => void suggestVm.openForLink(link.id)}
-              siteUrl={siteUrl}
-              onDelete={handleLinkDeleted}
-              onUpdate={handleLinkUpdated}
-              viewMode="feed"
-              tags={tags}
-              linkTags={linkTagsById.get(link.id) ?? []}
-              folders={folders}
-              editCallbacks={editCallbacks}
-            />
+              className="animate-fade-up motion-reduce:animate-none"
+              style={staggerStyle(index)}
+            >
+              <LinkCard
+                link={link}
+                onSuggest={() => void suggestVm.openForLink(link.id)}
+                siteUrl={siteUrl}
+                onDelete={handleLinkDeleted}
+                onUpdate={handleLinkUpdated}
+                viewMode="feed"
+                tags={tags}
+                linkTags={linkTagsById.get(link.id) ?? []}
+                folders={folders}
+                editCallbacks={editCallbacks}
+              />
+            </SelectableCard>
           ))}
         </AnimatedCardList>
       )}

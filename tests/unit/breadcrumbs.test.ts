@@ -44,7 +44,7 @@ describe("getAppHeaderTrail", () => {
   it("nests Inbox under 链接管理", () => {
     expect(getAppHeaderTrail("/dashboard", "uncategorized")).toEqual({
       breadcrumbs: [{ href: "/dashboard", label: "链接管理" }],
-      title: "Inbox",
+      title: "未分类",
     });
   });
 });

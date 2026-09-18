@@ -203,7 +203,7 @@ test("changing folders waits for the return flight before removing a filtered ca
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
   await dialog.getByLabel("文件夹", { exact: true }).click();
-  await page.getByRole("option", { name: "Inbox", exact: true }).click();
+  await page.getByRole("option", { name: "未分类", exact: true }).click();
   await dialog.getByRole("button", { name: "保存", exact: true }).click();
   await expect(dialog).toHaveAttribute("data-phase", "returning");
   await freezeFlight(dialog, 250);

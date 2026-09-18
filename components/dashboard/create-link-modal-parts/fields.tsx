@@ -97,7 +97,7 @@ export function FolderSelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__inbox__">Inbox</SelectItem>
+          <SelectItem value="__inbox__">未分类</SelectItem>
           {folders.map((folder) => (
             <SelectItem key={folder.id} value={folder.id}>
               {folder.name}
