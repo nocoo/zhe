@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.0.0] - 2026-09-18
+
+### Added
+- Unify multi-field search and compact source-aware results
+- Autoplay visible GIFs and display small media sizes in KB
+- Unify AI bookmark organization and add adaptive X video archiving
+
+### Changed
+- Update sidebar search navigation assertion
+- Compact collection headers and align filter options
+
+### Fixed
+- Show GIF badges consistently and loop archived animations
+
 ## [v1.26.2] - 2026-09-17
 
 ### Added
