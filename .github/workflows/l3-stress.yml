@@ -117,9 +117,11 @@ jobs:
         run: |
           # steps.l3.outcome reflects success/failure/skipped regardless of
           # this outer step's own `if: always()`; captured for the summary.
-          echo "run_index=${{ matrix.run_index }}" >> artifacts/outcome.txt
-          echo "wrangler=${{ matrix.wrangler }}" >> artifacts/outcome.txt
-          echo "conclusion=${{ steps.l3.outcome }}" >> artifacts/outcome.txt
+          {
+            echo "run_index=${{ matrix.run_index }}"
+            echo "wrangler=${{ matrix.wrangler }}"
+            echo "conclusion=${{ steps.l3.outcome }}"
+          } >> artifacts/outcome.txt
 
       - name: "Upload wrangler-dev tee log"
         if: always()
@@ -173,13 +175,15 @@ jobs:
 
       - name: "Aggregate outcomes"
         run: |
-          echo "## L3 stress reproduction — outcome distribution" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| wrangler | run | conclusion |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-----|------------|" >> $GITHUB_STEP_SUMMARY
-          for f in outcomes/*/outcome.txt; do
-            wr=$(grep '^wrangler=' "$f" | cut -d= -f2)
-            ri=$(grep '^run_index=' "$f" | cut -d= -f2)
-            co=$(grep '^conclusion=' "$f" | cut -d= -f2)
-            echo "| $wr | $ri | $co |" >> $GITHUB_STEP_SUMMARY
-          done
+          {
+            echo "## L3 stress reproduction — outcome distribution"
+            echo ""
+            echo "| wrangler | run | conclusion |"
+            echo "|----------|-----|------------|"
+            for f in outcomes/*/outcome.txt; do
+              wr=$(grep '^wrangler=' "$f" | cut -d= -f2)
+              ri=$(grep '^run_index=' "$f" | cut -d= -f2)
+              co=$(grep '^conclusion=' "$f" | cut -d= -f2)
+              echo "| $wr | $ri | $co |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
