@@ -102,7 +102,8 @@ for (const scenario of [
     try {
       await page.goto(scenario.path);
       const card = page.locator(`[data-link-id="${linkId}"]`).first();
-      await expect(card).toBeVisible();
+      // Allow the isolated dev server to compile the collection and finish its initial load.
+      await expect(card).toBeVisible({ timeout: 15_000 });
       if (scenario.source === "x" || scenario.source === "github") {
         await card.getByRole("button", { name: "更多收藏操作" }).click();
         await page.getByRole("menuitem", { name: "AI 整理" }).click();
