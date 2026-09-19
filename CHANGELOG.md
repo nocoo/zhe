@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.1.1] - 2026-09-19
+
+### Changed
+- Allow an isolated local Worker port for release checks
+- Allow local UI assertions to wait for busy dev servers
+- Serialize local browser runs on shared development machines
+- Budget cold route compilation and bound API workers
+- Cache connector scheduling in KV and discover jobs incrementally
+
 ## [v2.1.0] - 2026-09-19
 
 ### Added
