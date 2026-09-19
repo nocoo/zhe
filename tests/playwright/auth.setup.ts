@@ -7,6 +7,8 @@ import { TEST_USER } from "./helpers/d1";
 const authFile = "tests/playwright/.auth/user.json";
 
 setup("authenticate", async ({ page, context }) => {
+  // Authentication plus eight cold route compilations needs its own setup budget.
+  setup.setTimeout(120_000);
   // Step 1: Get CSRF token from the auth endpoint
   const csrfRes = await page.request.get("/api/auth/csrf");
   expect(csrfRes.ok()).toBeTruthy();

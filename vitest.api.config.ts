@@ -17,6 +17,8 @@ export default defineConfig({
     include: ["tests/api/**/*.test.ts"],
     testTimeout: 15_000, // real HTTP can be slower
     fileParallelism: true,
+    // Share one Turbopack dev server without a cold-compilation stampede.
+    maxWorkers: 2,
     maxConcurrency: 4,
     isolate: false,
   },
