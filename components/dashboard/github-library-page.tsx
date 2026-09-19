@@ -108,7 +108,7 @@ export function GitHubLibraryPage() {
     <div className="@container/github">
       <PageHeader
         title={
-          <span className="inline-flex items-center gap-2">
+          <span className="flex items-center gap-2">
             <GithubIcon className="size-6" strokeWidth={1.5} aria-hidden />
             GitHub 收藏
           </span>
