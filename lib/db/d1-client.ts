@@ -7,6 +7,8 @@
  * than the deprecated HTTP API path.
  */
 
+import type { ConnectorCacheOptions } from "@/models/connector-cache";
+
 /** Timeout for Worker proxy requests (ms). */
 const PROXY_FETCH_TIMEOUT_MS = 10_000;
 
@@ -51,7 +53,7 @@ async function fetchWithRetry(url: string, init: RequestInit, label: string): Pr
 }
 
 /** Request/response format for Worker D1 proxy. */
-interface D1ProxyRequest {
+interface D1ProxyRequest extends ConnectorCacheOptions {
   sql: string;
   params: unknown[];
 }
@@ -64,7 +66,7 @@ interface D1ProxyResponse {
 }
 
 /** Request/response format for batch endpoint. */
-interface D1BatchRequest {
+interface D1BatchRequest extends ConnectorCacheOptions {
   statements: Array<{ sql: string; params?: unknown[] }>;
 }
 
@@ -99,7 +101,11 @@ function getProxyCredentials(): { url: string; secret: string } {
  * - UNIQUE constraint errors → "UNIQUE constraint failed" (for caller detection)
  * - All other errors → "D1 query failed" (sanitized)
  */
-export async function executeD1Query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+export async function executeD1Query<T>(
+  sql: string,
+  params: unknown[] = [],
+  options: ConnectorCacheOptions = {},
+): Promise<T[]> {
   const { url, secret } = getProxyCredentials();
   const endpoint = url.endsWith("/") ? `${url}api/d1-query` : `${url}/api/d1-query`;
 
@@ -111,7 +117,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ sql, params } satisfies D1ProxyRequest),
+      body: JSON.stringify({ sql, params, ...options } satisfies D1ProxyRequest),
       signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
     },
     "D1 query",
@@ -142,7 +148,10 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
  *
  * Returns an array of result arrays, one per statement.
  */
-export async function executeD1Batch<T>(statements: D1Statement[]): Promise<T[][]> {
+export async function executeD1Batch<T>(
+  statements: D1Statement[],
+  options: Pick<ConnectorCacheOptions, "connectorUserId"> = {},
+): Promise<T[][]> {
   if (statements.length === 0) {
     return [];
   }
@@ -158,7 +167,7 @@ export async function executeD1Batch<T>(statements: D1Statement[]): Promise<T[][
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ statements } satisfies D1BatchRequest),
+      body: JSON.stringify({ statements, ...options } satisfies D1BatchRequest),
       signal: AbortSignal.timeout(PROXY_FETCH_TIMEOUT_MS),
     },
     "D1 batch",

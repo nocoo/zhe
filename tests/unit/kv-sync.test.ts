@@ -206,7 +206,16 @@ describe("performKVSync", () => {
     ]);
     mockKvBulkPutLinks.mockResolvedValue({ success: 1, failed: 0 });
     // KV has 'abc' (in D1) and 'orphan1', 'orphan2' (not in D1)
-    mockKvListKeys.mockResolvedValue({ keys: ["abc", "orphan1", "orphan2"], error: false });
+    mockKvListKeys.mockResolvedValue({
+      keys: [
+        "abc",
+        "orphan1",
+        "__connector/version/owner",
+        "__connector/cache/snapshot",
+        "orphan2",
+      ],
+      error: false,
+    });
     mockKvBulkDeleteLinks.mockResolvedValue({ success: 2, failed: 0 });
 
     const result = await performKVSync();

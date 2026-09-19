@@ -193,6 +193,71 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("incremental Connector scheduling", () => {
+  it("consumes each source's changes once and skips discovery/history on empty polls", async () => {
+    link("https://example.com/article");
+    const query = vi.spyOn(d1, "executeD1Query");
+    const batch = vi.spyOn(d1, "executeD1Batch");
+    const job = required(await claimConnectorJob(identity, ["x", "github", "screenshot"]));
+    expect(job.source).toBe("screenshot");
+    expect(rows("connector_discovery")).toEqual([]);
+    await writeScreenshot(identity, job.linkId, job.leaseToken, screenshotDigest, screenshotBody());
+    query.mockClear();
+    batch.mockClear();
+    expect(await claimConnectorJob(identity, ["x", "github", "screenshot"])).toBeNull();
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(batch).not.toHaveBeenCalled();
+    expect(query.mock.calls[0]?.[2]).toEqual({
+      connectorUserId: "owner",
+      connectorCache: { key: "readiness" },
+    });
+  });
+
+  it("finds a changed old link without rescanning unaffected links", async () => {
+    const id = link("https://example.com/article");
+    const first = required(await claimScreenshot(identity));
+    await writeScreenshot(identity, id, first.leaseToken, screenshotDigest, screenshotBody());
+    await claimXBookmark(identity);
+    await claimGitHubBookmark(identity);
+    expect(rows("connector_discovery")).toEqual([]);
+    await scopedUpdateLink("owner", id, { originalUrl: source });
+    expect(rows("connector_discovery")).toHaveLength(3);
+    const batch = vi.spyOn(d1, "executeD1Batch");
+    expect((await claimConnectorJob(identity, ["x"]))?.linkId).toBe(id);
+    const statement = required(batch.mock.calls[0]?.[0][0]);
+    const plan = db
+      .prepare(`EXPLAIN QUERY PLAN ${statement.sql}`)
+      .all(...((statement.params ?? []) as SQLInputValue[]));
+    expect(
+      plan.some((step) => String(step.detail).includes("SEARCH l USING INTEGER PRIMARY KEY")),
+    ).toBe(true);
+    expect(plan.some((step) => String(step.detail).includes("SCAN l"))).toBe(false);
+  });
+
+  it("retains incremental work if creating jobs fails", async () => {
+    const id = link();
+    db.exec(
+      "CREATE TRIGGER fail_discovery BEFORE INSERT ON x_bookmarks BEGIN SELECT RAISE(ABORT,'failed discovery'); END",
+    );
+    await expect(claimXBookmark(identity)).rejects.toThrow("failed discovery");
+    expect(rows("connector_discovery")).toHaveLength(3);
+    db.exec("DROP TRIGGER fail_discovery");
+    expect((await claimXBookmark(identity))?.linkId).toBe(id);
+    expect(rows("connector_discovery").filter((row) => row.source === "x")).toEqual([]);
+  });
+
+  it("uses indexed history seeks instead of scanning completed jobs", async () => {
+    for (const table of ["x_bookmarks", "github_bookmarks", "screenshot_jobs"]) {
+      const plan = db
+        .prepare(
+          `EXPLAIN QUERY PLAN SELECT MAX(updated_at) FROM ${table} WHERE user_id=? AND attempts>0`,
+        )
+        .all("owner");
+      expect(plan.some((step) => String(step.detail).includes(`idx_${table}_last_run`))).toBe(true);
+    }
+  });
+});
+
 describe("serialized webpage previews", () => {
   it("discovers missing previews, excluding entire special sites and existing screenshots", async () => {
     const excluded = [

@@ -15,8 +15,13 @@ export async function authorizeConnector(request: NextRequest) {
   const now = Date.now();
   await executeD1Query(
     `INSERT INTO x_connector_presence(key_id,user_id,last_seen_at) SELECT ?,?,? WHERE ${ACTIVE_KEY_SQL}
-    ON CONFLICT(key_id) DO UPDATE SET last_seen_at=excluded.last_seen_at`,
+    ON CONFLICT(key_id) DO UPDATE SET last_seen_at=excluded.last_seen_at
+      WHERE x_connector_presence.last_seen_at <= excluded.last_seen_at-60000`,
     [result.auth.keyId, result.auth.userId, now, ...activeKeyParams(result.auth, now)],
+    {
+      connectorUserId: result.auth.userId,
+      connectorCache: { key: `presence:${result.auth.keyId}`, ttl: 60 },
+    },
   );
   return result.auth;
 }

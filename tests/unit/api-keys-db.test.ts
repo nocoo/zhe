@@ -23,6 +23,27 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("verifyApiKeyAndGetUser — explicit expiry", () => {
   const now = Date.UTC(2026, 8, 14, 2, 3, 26);
+  it.each([0, 59, 60])("throttles usage writes when last used %s seconds ago", async (age) => {
+    vi.clearAllMocks();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    mockHashApiKey.mockReturnValue("test-hash");
+    mockVerifyApiKey.mockReturnValue(true);
+    mockParseScopes.mockReturnValue(["connector:write"]);
+    mockExecuteD1Query.mockResolvedValue([
+      {
+        id: "key-1",
+        prefix: "test-prefix",
+        user_id: "owner",
+        scopes: "connector:write",
+        revoked_at: null,
+        expires_at: null,
+        key_hash: "test-hash",
+        last_used_at: now / 1000 - age,
+      },
+    ]);
+    expect(await verifyApiKeyAndGetUser("test-key")).not.toBeNull();
+    expect(mockExecuteD1Query).toHaveBeenCalledTimes(age < 60 ? 1 : 2);
+  });
   it.each([
     ["permanent", null, true],
     ["before expiry", now / 1000 + 1, true],

@@ -32,7 +32,7 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
 
   // Look up by hash (indexed column)
   const rows = await executeD1Query<Record<string, unknown>>(
-    `SELECT id, prefix, user_id, scopes, revoked_at, key_hash, expires_at
+    `SELECT id, prefix, user_id, scopes, revoked_at, key_hash, expires_at, last_used_at
      FROM api_keys
      WHERE key_hash = ?
      LIMIT 1`,
@@ -65,10 +65,12 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
   const userId = row.user_id as string;
   const scopes = parseScopes(row.scopes as string);
 
-  // Update last_used_at (fire-and-forget, don't block the response)
-  updateApiKeyLastUsedAt(keyId).catch(() => {
-    // Silently ignore errors — this is non-critical
-  });
+  // Connector polling must not write usage metadata on every request.
+  if (row.last_used_at == null || Number(row.last_used_at) <= Math.floor(Date.now() / 1000) - 60) {
+    updateApiKeyLastUsedAt(keyId).catch(() => {
+      // Silently ignore errors — this is non-critical
+    });
+  }
 
   return { userId, keyId, keyPrefix, scopes };
 }
@@ -79,5 +81,8 @@ export async function verifyApiKeyAndGetUser(key: string): Promise<ApiKeyVerifyR
  */
 async function updateApiKeyLastUsedAt(keyId: string): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
-  await executeD1Query(`UPDATE api_keys SET last_used_at = ? WHERE id = ?`, [now, keyId]);
+  await executeD1Query(
+    `UPDATE api_keys SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at <= ?-60)`,
+    [now, keyId, now],
+  );
 }

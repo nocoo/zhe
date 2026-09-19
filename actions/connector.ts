@@ -123,6 +123,7 @@ export async function retryXBookmarkAction(id: number): Promise<{ success: boole
       `UPDATE x_bookmarks SET state='pending', attempts=0, next_attempt_at=0, lease_until=0, draft_json=NULL, error_code=NULL
       WHERE link_id=? AND user_id=? AND (state <> 'running' OR lease_until <= ?) RETURNING link_id`,
       [id, userId, Date.now()],
+      { connectorUserId: userId },
     );
     return { success: rows.length > 0 };
   } catch {

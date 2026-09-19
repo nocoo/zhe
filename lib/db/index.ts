@@ -59,6 +59,7 @@ export async function createLink(data: Omit<NewLink, "id" | "createdAt">): Promi
       data.metaFavicon ?? null,
       now,
     ],
+    { connectorUserId: data.userId },
   );
 
   const row = rows[0];

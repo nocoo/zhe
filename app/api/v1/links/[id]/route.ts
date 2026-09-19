@@ -136,7 +136,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     });
 
     if (statements.length > 0) {
-      await executeD1Batch(statements);
+      await executeD1Batch(statements, { connectorUserId: userId });
     }
 
     const updatedLink = await db.getLinkById(linkId);

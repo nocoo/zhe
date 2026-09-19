@@ -11,6 +11,7 @@ import { uploadBufferToR2 } from "@/lib/r2/client";
 import { enqueueR2Deletion } from "@/lib/r2/gc";
 import { buildPublicUrl, generateObjectKey, hashUserId } from "@/models/upload";
 import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth";
+import { discoverConnectorLinks } from "./discovery";
 import {
   CONNECTOR_IDLE_SQL,
   connectorIdleParams,
@@ -41,10 +42,12 @@ export async function claimScreenshot(
 ): Promise<ScreenshotJob | null> {
   // Discover the existing backlog and every save entry point. The URL parser below
   // is authoritative; this host filter keeps special sites out of the preview queue.
-  await executeD1Query(
+  await discoverConnectorLinks(
+    auth,
+    "screenshot",
     `WITH candidates AS (
       SELECT id,user_id,original_url,lower(substr(original_url,instr(original_url,'://')+3)) AS authority
-      FROM links WHERE user_id=? AND ${MISSING_PREVIEW_SQL}
+      FROM links WHERE id IN (SELECT link_id FROM connector_discovery WHERE user_id=? AND source='screenshot') AND ${MISSING_PREVIEW_SQL}
         AND (original_url LIKE 'https://%' OR original_url LIKE 'http://%')
     ), addresses AS (
       SELECT *,rtrim(substr(authority,1,instr(replace(replace(authority,'?','/'),'#','/') || '/','/')-1),'.') AS host
@@ -57,11 +60,13 @@ export async function claimScreenshot(
         AND hostname NOT LIKE '%.x.com' AND hostname NOT LIKE '%.twitter.com' AND hostname NOT LIKE '%.github.com'
         AND NOT EXISTS(SELECT 1 FROM screenshot_jobs WHERE link_id=targets.id) AND ${ACTIVE_KEY_SQL}`,
     [auth.userId, now, ...activeKeyParams(auth, now)],
+    now,
   );
   await executeD1Query(
     `UPDATE screenshot_jobs SET state='failed',error_code='interrupted',lease_until=0,r2_key=NULL,public_url=NULL,sha256=NULL,updated_at=?
       WHERE user_id=? AND state='running' AND attempts>=5 AND lease_until<=? AND ${ACTIVE_KEY_SQL}`,
     [now, auth.userId, now, ...activeKeyParams(auth, now)],
+    { connectorUserId: auth.userId },
   );
   for (let i = 0; i < 20; i++) {
     const [candidate] = await executeD1Query<ScreenshotRow>(
@@ -100,6 +105,7 @@ export async function claimScreenshot(
         ...activeKeyParams(auth, now),
         ...connectorIdleParams(auth, now),
       ],
+      { connectorUserId: auth.userId },
     );
     if (!row) return null;
     if (target)
@@ -127,6 +133,7 @@ export async function renewScreenshot(
       await executeD1Query(
         `UPDATE screenshot_jobs SET lease_until=?,updated_at=? WHERE ${LIVE_LEASE_SQL} RETURNING link_id`,
         [now + LEASE_MS, now, ...leaseParams(auth, id, token, now)],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );
@@ -160,6 +167,7 @@ export async function failScreenshot(
           now,
           ...leaseParams(auth, id, token, now),
         ],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );
@@ -229,27 +237,30 @@ export async function writeScreenshot(
     await enqueueR2Deletion(job.r2_key, auth.userId, now);
     await uploadBufferToR2(job.r2_key, bytes, "image/webp");
     const finished = Math.max(now, Date.now());
-    const result = await executeD1Batch([
-      {
-        sql: `UPDATE links SET screenshot_url=? WHERE id=? AND user_id=? AND original_url=? AND ${MISSING_PREVIEW_SQL}
+    const result = await executeD1Batch(
+      [
+        {
+          sql: `UPDATE links SET screenshot_url=? WHERE id=? AND user_id=? AND original_url=? AND ${MISSING_PREVIEW_SQL}
           AND EXISTS(SELECT 1 FROM screenshot_jobs WHERE ${LIVE_LEASE_SQL} AND sha256=?) RETURNING id`,
-        params: [
-          job.public_url,
-          id,
-          auth.userId,
-          job.source_url,
-          ...leaseParams(auth, id, token, finished),
-          digest,
-        ],
-      },
-      {
-        sql: `UPDATE screenshot_jobs SET state='complete',error_code=NULL,lease_until=0,updated_at=?
+          params: [
+            job.public_url,
+            id,
+            auth.userId,
+            job.source_url,
+            ...leaseParams(auth, id, token, finished),
+            digest,
+          ],
+        },
+        {
+          sql: `UPDATE screenshot_jobs SET state='complete',error_code=NULL,lease_until=0,updated_at=?
           WHERE ${LEASE_SQL} AND sha256=?
           AND EXISTS(SELECT 1 FROM links WHERE id=screenshot_jobs.link_id AND user_id=screenshot_jobs.user_id
             AND original_url=screenshot_jobs.source_url AND screenshot_url=screenshot_jobs.public_url) RETURNING link_id`,
-        params: [finished, ...leaseParams(auth, id, token, finished), digest],
-      },
-    ]);
+          params: [finished, ...leaseParams(auth, id, token, finished), digest],
+        },
+      ],
+      { connectorUserId: auth.userId },
+    );
     if ((result[1]?.length ?? 0) > 0) return true;
     await enqueueR2Deletion(job.r2_key, auth.userId);
     return false;

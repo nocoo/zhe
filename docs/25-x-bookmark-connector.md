@@ -84,6 +84,16 @@ sequenceDiagram
 
 ## 验证与部署
 
+### Connector 调度缓存
+
+Worker 复用 `LINKS_KV` 的 `__connector/` 命名空间，缓存每个用户的待处理来源、重试／租约绝对时间、历史调度顺序和队列统计，最长 5 分钟。新增链接、修改 URL／截图、删除、领取、完成、失败和手工重试在 D1 成功写入后更新该用户的 KV 版本；下一次轮询重新建立缓存。KV 跨位置传播可能延迟，写入失败时由缓存到期后的读取恢复。KV 故障回退 D1，不回滚已保存的链接。短链全量同步保留此命名空间。
+
+迁移 `0033_incremental_connector_discovery.sql` 一次性登记存量链接；此后由链接变更触发器记录各来源的增量补任务清单。补任务与清单确认在同一 D1 batch 内完成，不再逐轮扫描全部链接；最后执行时间走各来源的局部索引。直接 SQL 写入同样进入清单，但没有应用层 KV 版本通知，需要等待缓存到期。
+
+空闲轮询命中 KV 后跳过任务发现、队列表查询和历史统计。API Key 认证仍实时读取 D1；Key 最近使用时间和 Connector 心跳最多每分钟写入一次。CLI 请求和响应格式保持兼容，无需升级 Connector。
+
+部署顺序：先应用 `0033`，再部署 Worker 和 Web。仅部署 Web 到旧 Worker 时，缓存提示会被忽略，功能仍可运行，但无法获得 KV 缓存收益。
+
 自动化门禁包括主应用和 CLI 覆盖率、真实本地 D1 / HTTP / R2、桌面与手机浏览器实际播放、Worker、类型、Biome、构建及安全检查。测试媒体由 FFmpeg 临时生成；日志、会话和媒体位于 ignored 目录。
 
 生产部署前执行 `drizzle/migrations/0024_add_x_connector.sql`，确认新增表和触发器存在。API Key 有效期更新需先执行 `0025_add_api_key_expiry.sql`，再部署通过 CI 的源提交；已有 Key 的有效期为空（永久），创建时间与撤销记录保持不变。Zhe 保留 Auth.js / Google 登录与 D1 Worker proxy；Snail 的 Access 配置不替代 Zhe 的认证。

@@ -53,6 +53,7 @@ export async function retryGitHubBookmarkAction(id: number): Promise<{ success: 
         WHERE github_bookmarks.user_id=excluded.user_id AND github_bookmarks.source_url=excluded.source_url
           AND (github_bookmarks.state<>'running' OR github_bookmarks.lease_until<=?) RETURNING link_id`,
       [now, id, userId, link.original_url, now],
+      { connectorUserId: userId },
     );
     return { success: rows.length > 0 };
   } catch {

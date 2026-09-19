@@ -3,6 +3,13 @@
 // Endpoints called by the Railway origin to execute D1 queries via the Worker's
 // native binding (much faster than the Cloudflare REST API).
 
+import type { ConnectorCacheOptions } from "../../models/connector-cache";
+import {
+  connectorCacheKey,
+  invalidateConnectorCache,
+  readConnectorCache,
+  writeConnectorCache,
+} from "./connector-cache";
 import type { Env } from "./types";
 
 export function timingSafeEqual(a: string, b: string): boolean {
@@ -13,7 +20,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return crypto.subtle.timingSafeEqual(aBytes, bBytes);
 }
 
-interface D1ProxyRequest {
+interface D1ProxyRequest extends ConnectorCacheOptions {
   sql: string;
   params?: unknown[];
 }
@@ -25,7 +32,7 @@ interface D1ProxyResponse {
   error?: string;
 }
 
-interface D1BatchRequest {
+interface D1BatchRequest extends Pick<ConnectorCacheOptions, "connectorUserId"> {
   statements: Array<{ sql: string; params?: unknown[] }>;
 }
 
@@ -79,13 +86,24 @@ export async function handleD1Query(request: Request, env: Env): Promise<Respons
   }
 
   try {
+    const cacheKey = await connectorCacheKey(env, sql, parsed);
+    if (cacheKey) {
+      const cached = await readConnectorCache(env, cacheKey);
+      if (cached) return Response.json(cached);
+    }
     const stmt = env.DB.prepare(sql).bind(...params);
     const result = await stmt.all();
-    return Response.json({
+    const response = {
       success: true,
       results: result.results,
       meta: { changes: result.meta.changes, last_row_id: result.meta.last_row_id },
-    } satisfies D1ProxyResponse);
+    } satisfies D1ProxyResponse;
+    if (cacheKey) {
+      await writeConnectorCache(env, cacheKey, response, parsed.connectorCache?.ttl ?? 300);
+    } else if (parsed.connectorUserId && result.meta.changes > 0) {
+      await invalidateConnectorCache(env, parsed.connectorUserId);
+    }
+    return Response.json(response);
   } catch (err) {
     return buildErrorResponse(err, "D1 query failed");
   }
@@ -120,6 +138,9 @@ export async function handleD1Batch(request: Request, env: Env): Promise<Respons
 
   try {
     const results = await env.DB.batch(preparedStatements);
+    if (parsed.connectorUserId && results.some((r) => r.meta.changes > 0)) {
+      await invalidateConnectorCache(env, parsed.connectorUserId);
+    }
     return Response.json({
       success: true,
       results: results.map((r) => ({

@@ -47,6 +47,29 @@ describe("executeD1Query", () => {
     clearEnv();
   });
 
+  it("forwards Connector cache and mutation hints to the Worker", async () => {
+    setProxyEnv();
+    mockProxyResponse([]);
+    await executeD1Query("SELECT state FROM jobs WHERE user_id=?", ["owner"], {
+      connectorUserId: "owner",
+      connectorCache: { key: "states" },
+    });
+    expect(JSON.parse(mockFetch.mock.calls[0]?.[1].body)).toMatchObject({
+      connectorUserId: "owner",
+      connectorCache: { key: "states" },
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, results: [] }),
+    });
+    await executeD1Batch([{ sql: "UPDATE jobs SET state='pending'" }], {
+      connectorUserId: "owner",
+    });
+    expect(JSON.parse(mockFetch.mock.calls[1]?.[1].body)).toMatchObject({
+      connectorUserId: "owner",
+    });
+  });
+
   it("throws when D1_PROXY_URL is missing", async () => {
     process.env.D1_PROXY_SECRET = "secret";
 

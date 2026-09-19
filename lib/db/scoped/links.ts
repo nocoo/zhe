@@ -144,6 +144,7 @@ export async function createLink(
       data.metaFavicon ?? null,
       now,
     ],
+    { connectorUserId: userId },
   );
   const row = rows[0];
   if (!row) throw new Error("INSERT RETURNING * returned no rows");
@@ -154,6 +155,7 @@ export async function deleteLink(userId: string, id: number): Promise<boolean> {
   const rows = await executeD1Query<Record<string, unknown>>(
     "DELETE FROM links WHERE id = ? AND user_id = ? RETURNING id",
     [id, userId],
+    { connectorUserId: userId },
   );
   if (rows.length) await drainR2Deletions(userId).catch(() => {});
   return rows.length > 0;
@@ -222,6 +224,9 @@ export async function updateLink(
   const rows = await executeD1Query<Record<string, unknown>>(
     `UPDATE links SET ${setClauses.join(", ")} WHERE id = ? AND user_id = ? RETURNING *`,
     params,
+    data.originalUrl !== undefined || data.screenshotUrl !== undefined
+      ? { connectorUserId: userId }
+      : {},
   );
   if (rows.length && (data.originalUrl !== undefined || data.screenshotUrl !== undefined))
     await drainR2Deletions(userId).catch(() => {});
@@ -273,6 +278,7 @@ export async function updateLinkScreenshot(
   const rows = await executeD1Query<Record<string, unknown>>(
     "UPDATE links SET screenshot_url = ? WHERE id = ? AND user_id = ? RETURNING *",
     [screenshotUrl, id, userId],
+    { connectorUserId: userId },
   );
   return rows[0] ? rowToLink(rows[0]) : null;
 }
@@ -301,6 +307,7 @@ export async function deleteLinkScreenshot(
   await executeD1Query(
     "UPDATE links SET screenshot_url = NULL WHERE id = ? AND user_id = ? AND screenshot_url = ?",
     [id, userId, screenshotUrl],
+    { connectorUserId: userId },
   );
   // Existing triggers retire the old Connector job, making this link discoverable again.
   await drainR2Deletions(userId).catch(() => {});

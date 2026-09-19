@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { canonicalXPost, type XCapture, type XMedia, type XPost } from "@/cli/src/connector/core";
 import { executeD1Batch, executeD1Query } from "@/lib/db/d1-client";
 import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth";
+import { discoverConnectorLinks } from "./discovery";
 import { validateCapture } from "./validation";
 
 export const LEASE_MS = 180_000;
@@ -71,9 +72,11 @@ export async function claimXBookmark(
     "www.twitter.com",
     "mobile.twitter.com",
   ];
-  await executeD1Query(
+  await discoverConnectorLinks(
+    auth,
+    "x",
     `INSERT OR IGNORE INTO x_bookmarks(link_id,user_id,source_url,updated_at)
-    SELECT id,user_id,original_url,? FROM links l WHERE user_id = ?
+    SELECT id,user_id,original_url,? FROM links l WHERE id IN (SELECT link_id FROM connector_discovery WHERE user_id=? AND source='x')
       AND (${hosts.map(() => "original_url LIKE ?").join(" OR ")})
       AND NOT EXISTS(SELECT 1 FROM x_bookmarks x WHERE x.link_id = l.id)
       AND ${ACTIVE_KEY_SQL}`,
@@ -83,12 +86,14 @@ export async function claimXBookmark(
       ...hosts.map((h) => `https://${h}/%/status/%`),
       ...activeKeyParams(auth, now),
     ],
+    now,
   );
   await executeD1Query(
     `UPDATE x_bookmarks SET state=CASE WHEN result_json IS NULL THEN 'failed' ELSE 'partial' END,
       error_code='interrupted', lease_until=0, updated_at=?
       WHERE user_id=? AND state='running' AND attempts >= 5 AND lease_until <= ? AND ${ACTIVE_KEY_SQL}`,
     [now, auth.userId, now, ...activeKeyParams(auth, now)],
+    { connectorUserId: auth.userId },
   );
   // Bounded work per poll; malformed saved URLs are retired so they cannot starve valid work.
   for (let i = 0; i < 20; i++) {
@@ -119,6 +124,7 @@ export async function claimXBookmark(
         ...activeKeyParams(auth, now),
         ...connectorIdleParams(auth, now),
       ],
+      { connectorUserId: auth.userId },
     );
     const row = rows[0];
     if (!row && !(await connectorIsIdle(auth, now))) return null;
@@ -148,6 +154,7 @@ export async function renewXBookmark(
       await executeD1Query(
         `UPDATE x_bookmarks SET lease_until=?, updated_at=? WHERE ${LEASE_SQL} RETURNING link_id`,
         [now + LEASE_MS, now, ...leaseParams(auth, id, token, now)],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );
@@ -208,49 +215,52 @@ export async function completeXBookmark(
   );
   const state = complete ? "complete" : "partial";
   now = Math.max(now, Date.now());
-  const results = await executeD1Batch<{ link_id: number }>([
-    {
-      sql: `INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at)
+  const results = await executeD1Batch<{ link_id: number }>(
+    [
+      {
+        sql: `INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at)
         SELECT user_id,r2_key,media_id || CASE mime WHEN 'video/mp4' THEN '.mp4' WHEN 'image/png' THEN '.png' WHEN 'image/webp' THEN '.webp' ELSE '.jpg' END,mime,size,? || '/' || r2_key,?
         FROM x_media WHERE link_id=? AND user_id=? AND state='verified'
           AND EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL})
         ON CONFLICT(key) DO NOTHING`,
-      params: [
-        (process.env.R2_PUBLIC_DOMAIN ?? "").replace(/\/$/, ""),
-        now,
-        id,
-        auth.userId,
-        ...leaseParams(auth, id, token, now),
-      ],
-    },
-    {
-      sql: `UPDATE x_media SET state='published', upload_id=(SELECT id FROM uploads WHERE key=x_media.r2_key AND user_id=x_media.user_id)
+        params: [
+          (process.env.R2_PUBLIC_DOMAIN ?? "").replace(/\/$/, ""),
+          now,
+          id,
+          auth.userId,
+          ...leaseParams(auth, id, token, now),
+        ],
+      },
+      {
+        sql: `UPDATE x_media SET state='published', upload_id=(SELECT id FROM uploads WHERE key=x_media.r2_key AND user_id=x_media.user_id)
         WHERE link_id=? AND user_id=? AND state='verified' AND EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL})`,
-      params: [id, auth.userId, ...leaseParams(auth, id, token, now)],
-    },
-    {
-      sql: `UPDATE links SET meta_title=?, meta_description=? WHERE id=? AND user_id=?
+        params: [id, auth.userId, ...leaseParams(auth, id, token, now)],
+      },
+      {
+        sql: `UPDATE links SET meta_title=?, meta_description=? WHERE id=? AND user_id=?
         AND EXISTS(SELECT 1 FROM x_bookmarks WHERE ${LEASE_SQL})`,
-      params: [
-        `${capture.tweet.author.name} (@${capture.tweet.author.username})`,
-        capture.tweet.text,
-        id,
-        auth.userId,
-        ...leaseParams(auth, id, token, now),
-      ],
-    },
-    {
-      sql: `UPDATE x_bookmarks SET result_json=draft_json, draft_json=NULL, state=?, error_code=?, lease_until=0, next_attempt_at=?, updated_at=?
+        params: [
+          `${capture.tweet.author.name} (@${capture.tweet.author.username})`,
+          capture.tweet.text,
+          id,
+          auth.userId,
+          ...leaseParams(auth, id, token, now),
+        ],
+      },
+      {
+        sql: `UPDATE x_bookmarks SET result_json=draft_json, draft_json=NULL, state=?, error_code=?, lease_until=0, next_attempt_at=?, updated_at=?
         WHERE ${LEASE_SQL} RETURNING link_id`,
-      params: [
-        state,
-        complete ? null : (failedMedia?.archiveError ?? "media_incomplete"),
-        now + 300_000,
-        now,
-        ...leaseParams(auth, id, token, now),
-      ],
-    },
-  ]);
+        params: [
+          state,
+          complete ? null : (failedMedia?.archiveError ?? "media_incomplete"),
+          now + 300_000,
+          now,
+          ...leaseParams(auth, id, token, now),
+        ],
+      },
+    ],
+    { connectorUserId: auth.userId },
+  );
   return (results[3]?.length ?? 0) > 0;
 }
 
@@ -281,6 +291,7 @@ export async function failXBookmark(
     error_code=?, next_attempt_at=? + MIN(3600000, 60000 * (1 << attempts)), lease_until=0, updated_at=?
     WHERE ${LEASE_SQL} RETURNING link_id`,
         [safeCode, now, now, ...leaseParams(auth, id, token, now)],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );

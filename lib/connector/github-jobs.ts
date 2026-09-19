@@ -11,6 +11,7 @@ import type { GitHubJob } from "@/cli/src/connector/types";
 import { executeD1Batch, executeD1Query } from "@/lib/db/d1-client";
 import type { GitHubAnalysis } from "@/models/ai-github-analysis";
 import { ACTIVE_KEY_SQL, activeKeyParams, type ConnectorIdentity } from "./auth";
+import { discoverConnectorLinks } from "./discovery";
 import {
   CONNECTOR_IDLE_SQL,
   connectorIdleParams,
@@ -54,18 +55,22 @@ export async function claimGitHubBookmark(
   auth: ConnectorIdentity,
   now = Date.now(),
 ): Promise<GitHubJob | null> {
-  await executeD1Query(
+  await discoverConnectorLinks(
+    auth,
+    "github",
     `INSERT OR IGNORE INTO github_bookmarks(link_id,user_id,source_url,updated_at)
-      SELECT id,user_id,original_url,? FROM links l WHERE user_id=?
+      SELECT id,user_id,original_url,? FROM links l WHERE id IN (SELECT link_id FROM connector_discovery WHERE user_id=? AND source='github')
       AND (lower(original_url) LIKE 'https://github.com/%/%' OR lower(original_url) LIKE 'http://github.com/%/%'
         OR lower(original_url) LIKE 'https://www.github.com/%/%' OR lower(original_url) LIKE 'http://www.github.com/%/%')
       AND NOT EXISTS(SELECT 1 FROM github_bookmarks g WHERE g.link_id=l.id) AND ${ACTIVE_KEY_SQL}`,
     [now, auth.userId, ...activeKeyParams(auth, now)],
+    now,
   );
   await executeD1Query(
     `UPDATE github_bookmarks SET state='failed',error_code='interrupted',lease_until=0,updated_at=?
       WHERE user_id=? AND state='running' AND attempts>=5 AND lease_until<=? AND ${ACTIVE_KEY_SQL}`,
     [now, auth.userId, now, ...activeKeyParams(auth, now)],
+    { connectorUserId: auth.userId },
   );
   for (let i = 0; i < 20; i++) {
     const [candidate] = await executeD1Query<JobRow>(
@@ -94,6 +99,7 @@ export async function claimGitHubBookmark(
         ...activeKeyParams(auth, now),
         ...connectorIdleParams(auth, now),
       ],
+      { connectorUserId: auth.userId },
     );
     if (!row && !(await connectorIsIdle(auth, now))) return null;
     if (row && repository)
@@ -122,6 +128,7 @@ export async function renewGitHubBookmark(
       await executeD1Query(
         `UPDATE github_bookmarks SET lease_until=?,updated_at=? WHERE ${LEASE_SQL} RETURNING link_id`,
         [now + LEASE_MS, now, ...leaseParams(auth, id, token, now)],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );
@@ -149,27 +156,30 @@ export async function completeGitHubBookmark(
   if (Buffer.byteLength(result) > MAX_GITHUB_CAPTURE_BYTES)
     throw new ConnectorError("github_content_too_large", 413);
   now = Math.max(now, Date.now());
-  const results = await executeD1Batch([
-    {
-      sql: `UPDATE links SET meta_title=?,meta_description=? WHERE id=? AND user_id=?
+  const results = await executeD1Batch(
+    [
+      {
+        sql: `UPDATE links SET meta_title=?,meta_description=? WHERE id=? AND user_id=?
         AND EXISTS(SELECT 1 FROM github_bookmarks WHERE ${LEASE_SQL})`,
-      params: [
-        repository.fullName,
-        repository.description,
-        id,
-        auth.userId,
-        ...leaseParams(auth, id, token, now),
-      ],
-    },
-    {
-      sql: `UPDATE github_bookmarks SET result_json=CASE
+        params: [
+          repository.fullName,
+          repository.description,
+          id,
+          auth.userId,
+          ...leaseParams(auth, id, token, now),
+        ],
+      },
+      {
+        sql: `UPDATE github_bookmarks SET result_json=CASE
           WHEN json_type(result_json,'$.analysis')='object' AND json_extract(result_json,'$.readme')=?
           THEN json_set(?,'$.analysis',json_extract(result_json,'$.analysis')) ELSE ? END,
         state='complete',error_code=NULL,lease_until=0,captured_at=?,updated_at=?
         WHERE ${LEASE_SQL} RETURNING link_id`,
-      params: [repository.readme, result, result, now, now, ...leaseParams(auth, id, token, now)],
-    },
-  ]);
+        params: [repository.readme, result, result, now, now, ...leaseParams(auth, id, token, now)],
+      },
+    ],
+    { connectorUserId: auth.userId },
+  );
   return (results[1]?.length ?? 0) > 0;
 }
 
@@ -201,6 +211,7 @@ export async function failGitHubBookmark(
           now,
           ...leaseParams(auth, id, token, now),
         ],
+        { connectorUserId: auth.userId },
       )
     ).length > 0
   );

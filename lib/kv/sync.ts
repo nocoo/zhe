@@ -14,6 +14,7 @@ import { recordCronResult } from "@/lib/cron-history";
 import { getAllLinksForKV } from "@/lib/db";
 import { isKVConfigured, kvBulkDeleteLinks, kvBulkPutLinks, kvListKeys } from "@/lib/kv/client";
 import { clearKVDirty, isKVDirty } from "@/lib/kv/dirty";
+import { CONNECTOR_KV_PREFIX } from "@/models/connector-cache";
 
 export { clearKVDirty, isKVDirty, markKVDirty } from "@/lib/kv/dirty";
 
@@ -69,7 +70,9 @@ async function deleteOrphanedSlugs(
     console.log("sync-kv: skipped orphan deletion due to list failure");
     return { deleted: 0, deleteFailed: 0, listFailed: true };
   }
-  const orphanedSlugs = listResult.keys.filter((key) => !d1Slugs.has(key));
+  const orphanedSlugs = listResult.keys.filter(
+    (key) => !key.startsWith(CONNECTOR_KV_PREFIX) && !d1Slugs.has(key),
+  );
   if (orphanedSlugs.length === 0) {
     return { deleted: 0, deleteFailed: 0, listFailed: false };
   }
