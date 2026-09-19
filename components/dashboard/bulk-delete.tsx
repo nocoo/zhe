@@ -40,7 +40,8 @@ export function BulkDeleteActions({ selection }: { selection: BulkDeleteState })
         ) : (
           <Button
             ref={trigger}
-            size="icon"
+            size="sm"
+            className="w-8 shrink-0 px-0"
             variant="outline"
             aria-label="多选卡片"
             title="多选卡片"
@@ -109,7 +110,13 @@ function SelectionControls({
         <Trash2 aria-hidden />
         {floating ? "删除" : "删除所选"}
       </Button>
-      <Button size="icon" variant="ghost" aria-label="退出多选" onClick={selection.exit}>
+      <Button
+        size="sm"
+        className="w-8 shrink-0 px-0"
+        variant="ghost"
+        aria-label="退出多选"
+        onClick={selection.exit}
+      >
         <X aria-hidden />
       </Button>
     </fieldset>

@@ -57,7 +57,7 @@
 | **default** | 36px (`h-9`) | `text-sm` | `size="default"` | `size="default"` | 设置页、API Keys、Backy 等 **表单次要按钮** |
 | **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`size="sm"`** | **`size="sm"`** | PageHeader 工具栏、FilterBar、Panel 内联字段 |
 
-图标按钮：`size="icon"`（36×36）。不要再发明 `xs` / `icon-sm`。
+独立图标按钮：`size="icon"`（36×36）。与 32px 筛选框同排的工具栏图标按钮使用 `size="sm" className="w-8 shrink-0 px-0"`，高度仍由原语控制。不要再发明 `xs` / `icon-sm`。
 
 菜单项统一使用 `components/ui/dropdown-menu` / `context-menu`：最小行高 36px、正文 `text-sm`、图文间距 8px，图标固定 16×16px、1.5px 描边且不收缩。业务菜单直接放 Lucide 图标，不再单独设置尺寸或 `mr-2`；说明性图标使用 `aria-hidden`。卡片内的辅助信息图标使用 14×14px、1.5px 描边。
 
