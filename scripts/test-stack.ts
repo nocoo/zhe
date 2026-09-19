@@ -45,7 +45,7 @@ export const WRANGLER_INTERNAL_LOGS_DIR = pathResolve(STACK_DIR, "wrangler-inter
 export const WORKER_CONFIG = pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml");
 export const MIGRATIONS_DIR = pathResolve(PROJECT_ROOT, "drizzle/migrations");
 
-export const WORKER_PORT = 8788;
+export const WORKER_PORT = Number(process.env.ZHE_TEST_WORKER_PORT ?? 8788);
 export const R2_PORT = 18788;
 export const WORKER_URL = `http://127.0.0.1:${WORKER_PORT}`;
 export const R2_URL = `http://127.0.0.1:${R2_PORT}`;
