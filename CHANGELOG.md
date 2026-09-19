@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.1.0] - 2026-09-19
+
+### Added
+- Refine bookmark cards and add sequential bulk deletion across collections
+
+### Changed
+- Allow initial collection loading in AI editor journeys
+- Match X collection browser checks to the six-column layout
+
+### Fixed
+- Remove inline baseline spacing from collection headings
+- Use compact icon controls in collection toolbars
+- Align collection controls and refresh browser journeys for shared menus
+
 ## [v2.0.1] - 2026-09-18
 
 ### Fixed
