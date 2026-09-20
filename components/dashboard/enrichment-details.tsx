@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadXBookmarks } from "@/actions/connector";
 import { loadEnrichmentEventsAction } from "@/actions/enrichment";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ export function EnrichmentDetails({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [bookmark, setBookmark] = useState<XBookmark>();
+  const loadedOlder = useRef(false);
   useEffect(() => {
     let active = true;
     void loadEnrichmentEventsAction(linkId)
@@ -41,7 +42,7 @@ export function EnrichmentDetails({
             (a, b) => b.id - a.id,
           ),
         );
-        setMore(Boolean(result.more));
+        if (!loadedOlder.current) setMore(Boolean(result.more));
         setError(false);
       })
       .catch(() => {
@@ -74,6 +75,7 @@ export function EnrichmentDetails({
         ),
       );
       setMore(Boolean(result.more));
+      loadedOlder.current = true;
       setError(false);
     } catch {
       setError(true);

@@ -206,6 +206,20 @@ describe("enrichment operations dialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "加载更早记录" }));
     expect(await screen.findByText("截图 1 张")).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    vi.mocked(loadEnrichmentEventsAction).mockResolvedValueOnce({
+      success: true,
+      events: [event(6)],
+      more: true,
+    });
+    view.rerender(
+      <EnrichmentDetails
+        linkId={3}
+        task={task(3, { source: "screenshot", previewUrl: "https://cdn.example.com/site.webp" })}
+        link={undefined}
+      />,
+    );
+    await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(6));
+    expect(screen.queryByRole("button", { name: "加载更早记录" })).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "已保存的网站截图" })).toHaveAttribute(
       "src",
       "https://cdn.example.com/site.webp",

@@ -46,7 +46,7 @@ export function EnrichmentTaskStatus({ task }: { task: EnrichmentTask }) {
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <Badge variant="secondary">{ENRICHMENT_STATES[task.state]}</Badge>
       <span className="text-muted-foreground">
-        尝试 {task.attempts} 次 · 重试 {Math.max(0, task.attempts - 1)} 次
+        本轮尝试 {task.attempts} 次 · 重试 {Math.max(0, task.attempts - 1)} 次
         {task.recordedFailures > 0 && ` · 已记录失败 ${task.recordedFailures} 次`}
       </span>
       {["failed", "partial"].includes(task.state) && (
@@ -155,7 +155,12 @@ export function EnrichmentDialog({
                   正在读取补全记录…
                 </p>
               ) : (
-                <EnrichmentDetails key={vm.detailId} linkId={vm.detailId} task={task} link={link} />
+                <EnrichmentDetails
+                  key={`${vm.detailId}:${task?.url ?? link?.originalUrl ?? ""}`}
+                  linkId={vm.detailId}
+                  task={task}
+                  link={link}
+                />
               )}
             </div>
           </>
