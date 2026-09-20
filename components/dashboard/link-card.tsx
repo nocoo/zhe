@@ -275,10 +275,10 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkPending link={link} compact />
           )}
           <LayerCard.Footer
-            className="flex-wrap gap-2 border-border/60 bg-background/40 px-3 py-2"
+            className="flex-wrap gap-x-2 gap-y-0 border-border/60 bg-background/40 px-3 py-1.5"
             data-testid="x-card-footer"
           >
-            <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex min-w-16 flex-1 items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex min-w-0 items-center gap-1.5">
                 <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
                 <span className="truncate" title={folderName}>
@@ -286,7 +286,7 @@ export const LinkCard = memo(function LinkCard({
                 </span>
               </span>
             </div>
-            <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
+            <div className="ml-auto flex shrink-0 items-center gap-1 text-muted-foreground">
               {visibilityAction}
               <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
               <DropdownMenu>
