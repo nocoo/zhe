@@ -27,6 +27,7 @@ export function rowToLink(row: Record<string, unknown>): Link {
     originalUrl: row.original_url as string,
     slug: row.slug as string,
     isCustom: Boolean(row.is_custom),
+    isHidden: Boolean(row.is_hidden),
     expiresAt: row.expires_at ? new Date(row.expires_at as number) : null,
     clicks: row.clicks as number,
     title: (row.title as string) ?? null,

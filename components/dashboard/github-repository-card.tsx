@@ -57,6 +57,7 @@ import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
+import { LinkVisibilityButton } from "./link-visibility";
 import { TagBadge } from "./shared-link-components";
 
 function Readme({ link }: { link: Link }) {
@@ -459,6 +460,11 @@ export function GitHubRepositoryCard({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            <LinkVisibilityButton
+              hidden={link.isHidden}
+              pending={vm.isSavingVisibility}
+              onToggle={vm.handleToggleHidden}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

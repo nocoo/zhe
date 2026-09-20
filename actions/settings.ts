@@ -45,6 +45,7 @@ export async function importLinks(
           originalUrl: entry.originalUrl,
           slug: entry.slug,
           isCustom: entry.isCustom,
+          isHidden: entry.isHidden,
           clicks: entry.clicks,
           title: entry.title,
           note: entry.note,

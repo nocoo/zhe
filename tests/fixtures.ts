@@ -14,6 +14,7 @@ export function makeLink(overrides: Partial<Link> = {}): Link {
     originalUrl: "https://example.com",
     slug: "abc123",
     isCustom: false,
+    isHidden: false,
     expiresAt: null,
     clicks: 0,
     title: null,

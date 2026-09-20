@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { LinkFilterBar } from "../link-filter-bar";
+import { ShowHiddenButton } from "../link-visibility";
 import { SpecialSourceFilter } from "../special-source-filter";
 import type { useSpecialSources } from "./useSpecialSources";
 
@@ -102,6 +103,8 @@ function FilterControls(props: FilterControlsProps) {
 }
 
 interface ToolbarProps extends FilterControlsProps {
+  showHidden: boolean;
+  onToggleHidden: () => void;
   headerTitle: string;
   linkCount: number;
   totalCount: number;
@@ -117,6 +120,8 @@ interface ToolbarProps extends FilterControlsProps {
 
 export function LinksListToolbar(props: ToolbarProps) {
   const {
+    showHidden,
+    onToggleHidden,
     headerTitle,
     linkCount,
     totalCount,
@@ -163,6 +168,7 @@ export function LinksListToolbar(props: ToolbarProps) {
           {!selecting && (
             <>
               {isMobile ? filterTrigger : <FilterControls {...controls} />}
+              <ShowHiddenButton showHidden={showHidden} onToggle={onToggleHidden} />
               {createButton}
             </>
           )}

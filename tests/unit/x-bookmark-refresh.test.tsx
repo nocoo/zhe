@@ -13,6 +13,7 @@ const link: Link = {
   userId: "owner",
   originalUrl: "https://x.com/example/status/12345",
   slug: "test",
+  isHidden: false,
   isCustom: false,
   clicks: 0,
   createdAt: new Date(),

@@ -45,6 +45,7 @@ import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
 import { LibraryActions } from "./library-actions";
 import { LinkCard } from "./link-card";
 import { TagFilter } from "./link-filter-bar";
+import { ShowHiddenButton } from "./link-visibility";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 const contentIcons = {
@@ -73,6 +74,7 @@ export function XLibraryPage() {
     refreshXBookmarks,
   } = useDashboardService();
   const bookmarks = useContext(XBookmarksContext);
+  const [showHidden, setShowHidden] = useState(false);
   const [folderId, setFolderId] = useState("all");
   const [contentType, setContentType] = useState<XContentType>("all");
   const [selectedTagIds, setSelectedTagIds] = useState(new Set<string>());
@@ -108,6 +110,7 @@ export function XLibraryPage() {
     [links, bookmarks],
   );
   const scoped = entries.filter(({ link }) => {
+    if (!showHidden && link.isHidden) return false;
     if (
       folderId !== "all" &&
       (folderId === "uncategorized" ? link.folderId !== null : link.folderId !== folderId)
@@ -157,7 +160,8 @@ export function XLibraryPage() {
         }
         description={
           <span role="status">
-            共 {entries.length} 条收藏{filtered ? ` · 显示 ${visible.length} 条` : ""}
+            共 {entries.length} 条收藏
+            {filtered || visible.length !== entries.length ? ` · 显示 ${visible.length} 条` : ""}
             {contentType === "article" ? " · 包含长文和带外部链接的帖子" : ""}
           </span>
         }
@@ -224,6 +228,10 @@ export function XLibraryPage() {
                     清除筛选
                   </Button>
                 )}
+                <ShowHiddenButton
+                  showHidden={showHidden}
+                  onToggle={() => setShowHidden((value) => !value)}
+                />
                 <LibraryActions onRefresh={refreshXBookmarks} />
               </>
             )}

@@ -45,6 +45,7 @@ function makeLink(overrides: Partial<Link> = {}): Link {
     folderId: null,
     originalUrl: "https://example.com",
     slug: "abc123",
+    isHidden: false,
     isCustom: false,
     expiresAt: null,
     clicks: 0,

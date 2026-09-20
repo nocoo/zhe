@@ -46,6 +46,7 @@ export interface ExportedLink {
   originalUrl: string;
   slug: string;
   isCustom: boolean;
+  isHidden: boolean;
   clicks: number;
   createdAt: string; // ISO 8601
   folderId: string | null;
@@ -80,6 +81,7 @@ export function serializeLinksForExport(links: Link[]): ExportedLink[] {
     originalUrl: link.originalUrl,
     slug: link.slug,
     isCustom: link.isCustom ?? false,
+    isHidden: link.isHidden,
     clicks: link.clicks ?? 0,
     createdAt: new Date(link.createdAt).toISOString(),
     folderId: link.folderId ?? null,
@@ -145,6 +147,7 @@ export function parseImportPayload(payload: unknown): ParseResult {
       originalUrl: entry.originalUrl,
       slug: entry.slug,
       isCustom: typeof entry.isCustom === "boolean" ? entry.isCustom : false,
+      isHidden: entry.isHidden === true,
       clicks: typeof entry.clicks === "number" ? entry.clicks : 0,
       createdAt: entry.createdAt ?? new Date().toISOString(),
       folderId: typeof entry.folderId === "string" ? entry.folderId : null,

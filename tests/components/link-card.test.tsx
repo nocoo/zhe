@@ -94,6 +94,7 @@ const baseLink: Link = {
   userId: "user-1",
   slug: "abc123",
   originalUrl: "https://example.com/very-long-url",
+  isHidden: false,
   isCustom: false,
   clicks: 42,
   createdAt: new Date("2026-01-15"),

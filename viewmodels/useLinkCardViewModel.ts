@@ -2,7 +2,7 @@
 
 import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useState } from "react";
-import { deleteLink, getAnalyticsStats } from "@/actions/links";
+import { deleteLink, getAnalyticsStats, setLinkHidden } from "@/actions/links";
 import { refreshLinkMetadata } from "@/actions/links/metadata";
 import { deleteScreenshot } from "@/actions/links/screenshot";
 import { getSpecialSource } from "@/cli/src/connector/sources";
@@ -145,6 +145,23 @@ export function useLinkCardViewModel(
   const faviconUrl =
     isGitHubRepo || displayScreenshotUrl ? null : buildFaviconUrl(link.originalUrl);
 
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const handleToggleHidden = async () => {
+    if (isSavingVisibility) return;
+    setIsSavingVisibility(true);
+    try {
+      const result = await setLinkHidden(link.id, !link.isHidden);
+      if (result.success && result.data) {
+        onUpdate(result.data);
+        toast.success(result.data.isHidden ? "帖子已隐藏" : "已取消隐藏");
+      } else toast.error(result.error || "保存隐藏状态失败");
+    } catch {
+      toast.error("保存隐藏状态失败，请稍后重试");
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
+
   const [isDeleting, setIsDeleting] = useState(false);
   const handleDelete = useCallback(async () => {
     if (isDeleting) return;
@@ -162,6 +179,8 @@ export function useLinkCardViewModel(
 
   return {
     shortUrl,
+    isSavingVisibility,
+    handleToggleHidden,
     copied,
     copiedOriginalUrl,
     isDeleting,

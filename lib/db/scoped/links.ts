@@ -125,8 +125,8 @@ export async function createLink(
 ): Promise<Link> {
   const now = Date.now();
   const rows = await executeD1Query<Record<string, unknown>>(
-    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, title, meta_title, meta_description, meta_favicon, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO links (user_id, folder_id, original_url, slug, is_custom, expires_at, clicks, note, screenshot_url, title, meta_title, meta_description, meta_favicon, is_hidden, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      RETURNING *`,
     [
       userId,
@@ -142,6 +142,7 @@ export async function createLink(
       data.metaTitle ?? null,
       data.metaDescription ?? null,
       data.metaFavicon ?? null,
+      data.isHidden ? 1 : 0,
       now,
     ],
     { connectorUserId: userId },
@@ -162,6 +163,7 @@ export async function deleteLink(userId: string, id: number): Promise<boolean> {
 }
 
 export interface UpdateLinkData {
+  isHidden?: boolean;
   title?: string | null;
   note?: string | null;
   originalUrl?: string;
@@ -196,6 +198,10 @@ function buildUpdateSet(data: UpdateLinkData): { setClauses: string[]; params: u
   if (data.slug !== undefined) {
     setClauses.push("slug = ?");
     params.push(data.slug);
+  }
+  if (data.isHidden !== undefined) {
+    setClauses.push("is_hidden = ?");
+    params.push(data.isHidden ? 1 : 0);
   }
   if (data.isCustom !== undefined) {
     setClauses.push("is_custom = ?");

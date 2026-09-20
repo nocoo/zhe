@@ -245,3 +245,12 @@ describe("shared source context and atomic organization", () => {
     expect(doc.fields).toContainEqual({ label: "原始标题", value: "a/b", group: "title" });
   });
 });
+
+it("persists visibility per owner without changing the saved link", async () => {
+  expect((await db.getLinkById(1))?.isHidden).toBe(false);
+  expect(await new ScopedDB("other").updateLink(1, { isHidden: true })).toBeNull();
+  expect((await db.updateLink(1, { isHidden: true }))?.isHidden).toBe(true);
+  expect((await db.getLinkById(1))?.isHidden).toBe(true);
+  expect((await db.updateLink(1, { isHidden: false }))?.isHidden).toBe(false);
+  expect((await db.getLinkById(1))?.originalUrl).toBe("https://github.com/a/b");
+});

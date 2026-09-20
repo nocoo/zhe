@@ -51,6 +51,7 @@ function link(id: number, note: string, folderId: string | null = "design"): Lin
     slug: `x-${id}`,
     note,
     folderId,
+    isHidden: false,
     isCustom: false,
     clicks: 0,
     createdAt: new Date(2026, 8, id),

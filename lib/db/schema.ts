@@ -81,6 +81,7 @@ export const links = sqliteTable("links", {
   originalUrl: text("original_url").notNull(),
   slug: text("slug").notNull().unique(),
   isCustom: integer("is_custom", { mode: "boolean" }).default(false),
+  isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   clicks: integer("clicks").default(0),
   title: text("title"),

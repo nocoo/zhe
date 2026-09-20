@@ -37,6 +37,7 @@ import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
 import { ListView } from "./link-card-parts/list-view";
+import { LinkVisibilityButton } from "./link-visibility";
 import { TagBadge } from "./shared-link-components";
 import {
   XBookmarkContent,
@@ -150,8 +151,17 @@ export const LinkCard = memo(function LinkCard({
       "查看帖子与全部附件"
     : link.metaDescription || pendingDescription;
 
+  const visibilityAction = (
+    <LinkVisibilityButton
+      hidden={link.isHidden}
+      pending={vm.isSavingVisibility}
+      onToggle={vm.handleToggleHidden}
+    />
+  );
+
   // Bundle the common view props once — grid/list share most of them.
   const sharedViewProps = {
+    visibilityAction,
     link: { ...link, metaDescription: description },
     titleText: tweet ? `${tweet.author.name} (@${tweet.author.username})` : titleText,
     showFaviconImage,
@@ -277,6 +287,7 @@ export const LinkCard = memo(function LinkCard({
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
+              {visibilityAction}
               <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

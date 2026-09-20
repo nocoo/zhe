@@ -66,6 +66,7 @@ function makeExportedLink(overrides: Partial<ExportedLink> = {}): ExportedLink {
     originalUrl: "https://example.com",
     slug: "test-slug",
     isCustom: false,
+    isHidden: false,
     clicks: 0,
     createdAt: "2026-01-15T00:00:00.000Z",
     folderId: null,
@@ -270,6 +271,7 @@ describe("Data Import/Export + Preview Style E2E", () => {
         {
           slug: "test",
           isCustom: false,
+          isHidden: false,
           clicks: 0,
           createdAt: "2026-01-01T00:00:00Z",
         } as unknown as ExportedLink,
@@ -287,6 +289,7 @@ describe("Data Import/Export + Preview Style E2E", () => {
         {
           originalUrl: "https://example.com",
           isCustom: false,
+          isHidden: false,
           clicks: 0,
           createdAt: "2026-01-01T00:00:00Z",
         } as unknown as ExportedLink,

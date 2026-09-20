@@ -104,6 +104,7 @@ import {
   deleteLink,
   getAnalyticsStats,
   getLinks,
+  setLinkHidden,
   updateLink,
   updateLinkNote,
 } from "@/actions/links";
@@ -451,6 +452,30 @@ describe("actions/links — uncovered paths", () => {
   // ====================================================================
   // updateLink
   // ====================================================================
+  describe("setLinkHidden", () => {
+    it("requires authentication and validates the state", async () => {
+      mockAuth.mockResolvedValue(null);
+      expect(await setLinkHidden(1, true)).toEqual({ success: false, error: "Unauthorized" });
+      expect((await setLinkHidden(1, "true" as unknown as boolean)).success).toBe(false);
+      expect((await setLinkHidden(-1, true)).success).toBe(false);
+      expect(mockUpdateLink).not.toHaveBeenCalled();
+    });
+
+    it("saves only the visibility field and handles inaccessible links", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLink.mockResolvedValue({ id: 1, isHidden: true });
+      expect(await setLinkHidden(1, true)).toEqual({
+        success: true,
+        data: { id: 1, isHidden: true },
+      });
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, { isHidden: true });
+      mockUpdateLink.mockResolvedValue(null);
+      expect((await setLinkHidden(2, false)).success).toBe(false);
+      mockUpdateLink.mockRejectedValue(new Error("offline"));
+      expect((await setLinkHidden(1, false)).success).toBe(false);
+    });
+  });
+
   describe("updateLink", () => {
     it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
