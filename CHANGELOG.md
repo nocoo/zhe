@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.1.2] - 2026-09-20
+
+### Added
+- Add persistent post visibility toggles
+
+### Fixed
+- Preserve categories in narrow x cards
+- Disable worker default and preview urls
+
 ## [v2.1.1] - 2026-09-19
 
 ### Changed
