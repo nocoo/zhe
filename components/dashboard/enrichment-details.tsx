@@ -113,7 +113,7 @@ export function EnrichmentDetails({
                         ? "开始执行"
                         : ENRICHMENT_STATES[event.state]}
                 </span>
-                <span>本轮第 {event.attempts} 次尝试</span>
+                <span>{event.attempts ? `本轮第 ${event.attempts} 次尝试` : "等待执行"}</span>
                 {event.connectorName && (
                   <span className="text-muted-foreground">{event.connectorName}</span>
                 )}

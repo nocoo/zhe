@@ -119,3 +119,13 @@ Capture diagnostics retain each attempted resolution and size; the server expose
 GIF 补全识别 X 的 `animated_gif`，保留 GIF 类型并归档 X 提供的 MP4 动图源。封面与播放器均在左上角显示 GIF 标识，进入可视区域后静音循环播放，离开可视区域或切换到后台标签页时暂停；不可见的动图不加载视频文件。GIF 与视频共用 100 MB 上限、完整解码校验及归档大小展示。
 
 文件大小按十进制显示：小于 1 MB 用整数 KB，小于 1 KB 用 B，其他用 MB（最多一位小数）。
+
+## Enrichment activity dialog
+
+Every collection toolbar and link card exposes the same enrichment dialog. It lists X, GitHub and webpage screenshot jobs, including newly discovered links waiting for their first claim. Users can filter by source or state, search by title/URL/ID, inspect the saved content, and requeue one or multiple failed, partial, unavailable or expired jobs. Selection is limited to the current page. Active leases and completed jobs are excluded from batch retries; the server checks ownership and current state again inside an atomic D1 batch. Existing captures survive requeueing, and the Connector cache generation advances after the batch.
+
+Migration `0035_add_connector_events.sql` must be applied before using this UI. Database triggers record queue admission, attempt starts, completion/failure, and expired attempts reclaimed by another worker. Heartbeat-only updates do not create events. Events retain the Connector key's display name, safe error code, attempt number and saved content counts, without credentials or upstream response bodies. Deleting a link or changing its source URL removes the corresponding history.
+
+Existing jobs become one `snapshot` event each. A snapshot preserves the latest state and attempt counter; it cannot reconstruct earlier failures. The dialog labels this gap and counts only observed failure events. Attempts include the initial execution, so attempt 5 means four retries. Manual requeue resets the current attempt counter while retaining the prior events. X counts include published attachments and their archived bytes; GitHub reports README characters and UTF-8 bytes. Historical screenshot sizes were not recorded, so the UI reports the available screenshot count.
+
+The dialog refreshes while open and visible and fetches older events in pages of 50. Tests use isolated local D1 and synthetic records; they do not requeue production jobs.

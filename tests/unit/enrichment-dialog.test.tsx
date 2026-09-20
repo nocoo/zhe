@@ -111,7 +111,8 @@ afterEach(() => vi.useRealTimers());
 
 describe("enrichment operations dialog", () => {
   it("selects only retryable tasks and confirms the actual requeue count", async () => {
-    render(<EnrichmentDialog scope={{}} onClose={vi.fn()} />);
+    const close = vi.fn();
+    render(<EnrichmentDialog scope={{}} onClose={close} />);
     expect(await screen.findByText("Post 1")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "选择 Post 4" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "选择 Repository" })).toBeDisabled();
@@ -132,6 +133,8 @@ describe("enrichment operations dialog", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "全部记录" }));
     expect(screen.getByRole("textbox", { name: "搜索补全记录" })).toHaveValue("Repository");
+    fireEvent.click(screen.getByRole("button", { name: "关闭补全记录" }));
+    expect(close).toHaveBeenCalledOnce();
   });
 
   it("opens one task, shows historical uncertainty, and retries with visible buttons", async () => {

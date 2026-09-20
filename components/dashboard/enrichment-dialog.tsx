@@ -7,12 +7,14 @@ import {
   ExternalLink,
   Loader2,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -47,7 +49,7 @@ export function EnrichmentTaskStatus({ task }: { task: EnrichmentTask }) {
         尝试 {task.attempts} 次 · 重试 {Math.max(0, task.attempts - 1)} 次
         {task.recordedFailures > 0 && ` · 已记录失败 ${task.recordedFailures} 次`}
       </span>
-      {task.state === "failed" && (
+      {["failed", "partial"].includes(task.state) && (
         <span className="text-warning">
           {task.attempts >= 5
             ? "已达自动重试上限"
@@ -83,6 +85,16 @@ export function EnrichmentDialog({
         data-testid="enrichment-dialog"
       >
         <DialogHeader className="border-b border-border px-5 py-4 pr-12">
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3"
+              aria-label="关闭补全记录"
+            >
+              <X />
+            </Button>
+          </DialogClose>
           <DialogTitle>补全记录</DialogTitle>
           <DialogDescription>
             X 正文与附件、GitHub 仓库、网站截图的排队情况和采集结果
