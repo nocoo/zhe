@@ -156,6 +156,9 @@ export const LinkCard = memo(function LinkCard({
       hidden={link.isHidden}
       pending={vm.isSavingVisibility}
       onToggle={vm.handleToggleHidden}
+      {...(viewMode === "grid"
+        ? { className: "text-white/90 hover:bg-white/15 hover:text-white" }
+        : {})}
     />
   );
 

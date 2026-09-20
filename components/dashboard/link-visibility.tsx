@@ -2,15 +2,18 @@
 
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function LinkVisibilityButton({
   hidden,
   pending,
   onToggle,
+  className,
 }: {
   hidden: boolean;
   pending: boolean;
   onToggle: () => void;
+  className?: string;
 }) {
   const Icon = pending ? Loader2 : hidden ? EyeOff : Eye;
   const label = hidden ? "取消隐藏" : "隐藏帖子";
@@ -18,7 +21,7 @@ export function LinkVisibilityButton({
     <Button
       variant="ghost"
       size="icon"
-      className="pointer-events-auto text-inherit"
+      className={cn("pointer-events-auto text-muted-foreground hover:text-foreground", className)}
       aria-label={label}
       aria-pressed={hidden}
       title={label}
