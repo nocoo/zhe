@@ -43,3 +43,7 @@ Adding a visibility button consumed the remaining width in the six-column X card
 The release worktree copied dependencies without running package preparation, leaving the ignored `.husky/_` wrappers absent. Git therefore created the local layout-fix commit without hooks. Before any push, initialize Husky, return only that unpublished commit to the index, and recreate it through the normal hooks. Run package preparation when creating a worktree with copied dependencies, and verify the generated hook entrypoints before committing.
 
 During recovery, starting the commit while the mobile browser check was still running triggered the hook's typecheck rebuild, which cleared Next.js output and invalidated active Server Actions. The mobile result was therefore discarded. Run browser checks and hooks sequentially in a shared checkout; typechecking can include a production build even when its name suggests a read-only check.
+
+## 2026-09-21 — Reused an existing model filename during Connector UI work
+
+An Add File patch replaced `models/enrichment.ts` before checking whether the path already existed. Type checking caught the missing `LinkEnrichmentStrategy` export before commit or deployment. The original file was restored byte for byte, and the Connector task models moved to `models/connector-activity.ts`. Check exact target paths and tracked contents before adding a file, even when the patch tool accepts Add File.

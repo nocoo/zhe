@@ -55,12 +55,13 @@ import { linkPresentation } from "@/models/link-presentation";
 import { getTagStyles } from "@/models/tags";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { EnrichmentButton } from "./enrichment-button";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
 import { LinkVisibilityButton } from "./link-visibility";
 import { TagBadge } from "./shared-link-components";
 
-function Readme({ link }: { link: Link }) {
+export function GitHubReadme({ link }: { link: Link }) {
   const [repository, setRepository] = useState<GitHubRepository | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -465,6 +466,10 @@ export function GitHubRepositoryCard({
               pending={vm.isSavingVisibility}
               onToggle={vm.handleToggleHidden}
             />
+            <EnrichmentButton
+              linkId={link.id}
+              className="text-muted-foreground hover:text-foreground"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -594,7 +599,9 @@ export function GitHubRepositoryCard({
                 ))}
               </div>
             </div>
-            {reading && <Readme key={`${link.originalUrl}:${bookmark?.capturedAt}`} link={link} />}
+            {reading && (
+              <GitHubReadme key={`${link.originalUrl}:${bookmark?.capturedAt}`} link={link} />
+            )}
           </div>
         </DialogContent>
       </Dialog>

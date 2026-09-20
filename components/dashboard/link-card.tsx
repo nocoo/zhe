@@ -33,6 +33,7 @@ import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
+import { EnrichmentButton } from "./enrichment-button";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
@@ -152,14 +153,24 @@ export const LinkCard = memo(function LinkCard({
     : link.metaDescription || pendingDescription;
 
   const visibilityAction = (
-    <LinkVisibilityButton
-      hidden={link.isHidden}
-      pending={vm.isSavingVisibility}
-      onToggle={vm.handleToggleHidden}
-      {...(viewMode === "grid"
-        ? { className: "text-white/90 hover:bg-white/15 hover:text-white" }
-        : {})}
-    />
+    <>
+      <LinkVisibilityButton
+        hidden={link.isHidden}
+        pending={vm.isSavingVisibility}
+        onToggle={vm.handleToggleHidden}
+        {...(viewMode === "grid"
+          ? { className: "text-white/90 hover:bg-white/15 hover:text-white" }
+          : {})}
+      />
+      <EnrichmentButton
+        linkId={link.id}
+        className={
+          viewMode === "grid"
+            ? "pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
+            : "text-muted-foreground hover:text-foreground"
+        }
+      />
+    </>
   );
 
   // Bundle the common view props once — grid/list share most of them.
@@ -234,13 +245,18 @@ export const LinkCard = memo(function LinkCard({
             <XBookmarkPending link={link} />
           )}
           <LayerCard.Footer className="flex-wrap gap-3 border-border/60 bg-background/40 px-5">
-            <XBookmarkStatus bookmark={xBookmark} linkId={link.id} />
-            <Button variant="outline" size="sm" className="ml-auto" asChild>
-              <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink />
-                打开原帖
-              </a>
-            </Button>
+            <XBookmarkStatus
+              bookmark={xBookmark}
+              linkId={link.id}
+              actions={
+                <Button variant="outline" size="sm" asChild>
+                  <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink />
+                    打开原帖
+                  </a>
+                </Button>
+              }
+            />
             {cardTags.length > 0 && (
               <div className="flex w-full flex-wrap gap-1">
                 {cardTags.map((tag) => (

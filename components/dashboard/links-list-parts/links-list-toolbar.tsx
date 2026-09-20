@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
+import { EnrichmentButton } from "../enrichment-button";
 import { LinkFilterBar } from "../link-filter-bar";
 import { ShowHiddenButton } from "../link-visibility";
 import { SpecialSourceFilter } from "../special-source-filter";
@@ -169,6 +170,7 @@ export function LinksListToolbar(props: ToolbarProps) {
             <>
               {isMobile ? filterTrigger : <FilterControls {...controls} />}
               <ShowHiddenButton showHidden={showHidden} onToggle={onToggleHidden} />
+              <EnrichmentButton />
               {createButton}
             </>
           )}

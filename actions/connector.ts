@@ -120,9 +120,9 @@ export async function retryXBookmarkAction(id: number): Promise<{ success: boole
   if (!userId || !Number.isSafeInteger(id) || id <= 0) return { success: false };
   try {
     const rows = await executeD1Query(
-      `UPDATE x_bookmarks SET state='pending', attempts=0, next_attempt_at=0, lease_until=0, draft_json=NULL, error_code=NULL
+      `UPDATE x_bookmarks SET state='pending', attempts=0, next_attempt_at=0, lease_until=0, draft_json=NULL, error_code=NULL,updated_at=?
       WHERE link_id=? AND user_id=? AND (state <> 'running' OR lease_until <= ?) RETURNING link_id`,
-      [id, userId, Date.now()],
+      [Date.now(), id, userId, Date.now()],
       { connectorUserId: userId },
     );
     return { success: rows.length > 0 };

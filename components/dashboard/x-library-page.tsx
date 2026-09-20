@@ -232,7 +232,7 @@ export function XLibraryPage() {
                   showHidden={showHidden}
                   onToggle={() => setShowHidden((value) => !value)}
                 />
-                <LibraryActions onRefresh={refreshXBookmarks} />
+                <LibraryActions onRefresh={refreshXBookmarks} source="x" />
               </>
             )}
             <BulkDeleteActions selection={selection} />

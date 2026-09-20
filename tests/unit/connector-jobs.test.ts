@@ -14,6 +14,11 @@ import {
   updateXMediaDimensionsAction,
 } from "@/actions/connector";
 import {
+  loadEnrichmentEventsAction,
+  loadEnrichmentTasksAction,
+  retryEnrichmentTasksAction,
+} from "@/actions/enrichment";
+import {
   loadGitHubBookmarks,
   loadGitHubReadme,
   retryGitHubBookmarkAction,
@@ -185,6 +190,131 @@ beforeEach(() => {
       "links:read,connector:write",
       Math.floor(now / 1000),
     );
+});
+
+describe("enrichment activity and retry", () => {
+  it("surfaces database outages and rejects unsupported retry targets", async () => {
+    const id = link("http://localhost/private");
+    expect(await retryEnrichmentTasksAction([id])).toEqual({ success: true, queued: [] });
+    vi.spyOn(d1, "executeD1Query").mockRejectedValue(new Error("offline"));
+    expect(await loadEnrichmentTasksAction()).toEqual({ success: false });
+    expect(await loadEnrichmentEventsAction(id)).toEqual({ success: false });
+    expect(await retryEnrichmentTasksAction([id])).toEqual({ success: false });
+  });
+
+  it("marks pre-existing jobs as snapshots without inventing historical failures", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await failXBookmark(identity, id, job.leaseToken, "opencli_unavailable", now + 1);
+    for (const source of ["x", "github", "screenshot"]) {
+      db.exec(
+        `DROP TRIGGER ${source}_connector_event_insert; DROP TRIGGER ${source}_connector_event_update`,
+      );
+    }
+    db.exec("DROP TRIGGER connector_history_url_changed; DROP TABLE connector_events");
+    db.exec(readFileSync("drizzle/migrations/0035_add_connector_events.sql", "utf8"));
+    expect((await loadEnrichmentEventsAction(id)).events).toMatchObject([
+      { kind: "snapshot", attempts: 1, state: "failed" },
+    ]);
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      recordedFailures: 0,
+      historyComplete: false,
+    });
+  });
+
+  it("records expired attempts and success with captured content, and removes stale URL history", async () => {
+    const id = link();
+    const first = required(await claimXBookmark(identity, now));
+    const retryTime = first.leaseUntil + 1;
+    const second = required(await claimXBookmark(identity, retryTime));
+    expect(second.attempts).toBe(2);
+    await stageXCapture(identity, id, second.leaseToken, capture, retryTime);
+    await completeXBookmark(identity, id, second.leaseToken, retryTime);
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      state: "complete",
+      attempts: 2,
+      recordedFailures: 1,
+      textChars: capture.tweet.text.length,
+    });
+    const events = (await loadEnrichmentEventsAction(id)).events;
+    expect(events?.some((event) => event.errorCode === "interrupted")).toBe(true);
+    db.prepare("UPDATE links SET original_url=? WHERE id=?").run("https://example.com/changed", id);
+    expect((await loadEnrichmentEventsAction(id)).events).toEqual([]);
+  });
+
+  it("records attempts without heartbeat noise and keeps failure history after requeue", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await renewXBookmark(identity, id, job.leaseToken, now + 1);
+    await failXBookmark(identity, id, job.leaseToken, "opencli_unavailable", now + 2);
+    const activity = await loadEnrichmentEventsAction(id);
+    expect(activity.events?.map((event) => event.kind)).toEqual(["finished", "started", "queued"]);
+    expect(activity.events?.[0]).toMatchObject({
+      state: "failed",
+      attempts: 1,
+      connectorName: "Existing CLI",
+    });
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      recordedFailures: 1,
+      historyComplete: true,
+    });
+    expect(await retryEnrichmentTasksAction([id, id])).toEqual({ success: true, queued: [id] });
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      attempts: 0,
+      recordedFailures: 1,
+      state: "pending",
+    });
+    expect((await loadEnrichmentEventsAction(id)).events).toHaveLength(4);
+  });
+
+  it("requeues mixed sources while preserving captures and isolating owners and live leases", async () => {
+    const x = link();
+    const github = link("https://github.com/octocat/Hello-World");
+    const web = link("https://example.com/article");
+    const foreign = link(source, "other");
+    for (const [table, id, owner] of [
+      ["x_bookmarks", x, "owner"],
+      ["github_bookmarks", github, "owner"],
+      ["screenshot_jobs", web, "owner"],
+      ["x_bookmarks", foreign, "other"],
+    ] as const) {
+      db.prepare(
+        `INSERT INTO ${table}(link_id,user_id,source_url,state,attempts,updated_at) SELECT id,user_id,original_url,'failed',5,? FROM links WHERE id=? AND user_id=?`,
+      ).run(now, id, owner);
+    }
+    db.prepare("UPDATE x_bookmarks SET result_json=? WHERE link_id=?").run(
+      JSON.stringify(capture),
+      x,
+    );
+    db.prepare("UPDATE github_bookmarks SET state='running',lease_until=? WHERE link_id=?").run(
+      now + 1000,
+      github,
+    );
+    expect(await retryEnrichmentTasksAction([x, github, web, foreign])).toEqual({
+      success: true,
+      queued: [x, web],
+    });
+    expect(
+      db.prepare("SELECT result_json FROM x_bookmarks WHERE link_id=?").get(x)?.result_json,
+    ).toBe(JSON.stringify(capture));
+    expect(
+      db.prepare("SELECT attempts FROM x_bookmarks WHERE link_id=?").get(foreign)?.attempts,
+    ).toBe(5);
+    expect((await loadEnrichmentTasksAction()).tasks?.map((task) => task.linkId)).not.toContain(
+      foreign,
+    );
+    expect((await loadEnrichmentEventsAction(foreign)).events).toEqual([]);
+  });
+
+  it("rejects invalid batches and unauthenticated access", async () => {
+    for (const ids of [[], [0], [-1], [1.5], Array.from({ length: 81 }, (_, index) => index + 1)]) {
+      expect(await retryEnrichmentTasksAction(ids)).toEqual({ success: false });
+    }
+    vi.spyOn(authContext, "requireAuth").mockResolvedValue(null);
+    expect(await loadEnrichmentTasksAction()).toEqual({ success: false });
+    expect(await loadEnrichmentEventsAction(1)).toEqual({ success: false });
+    expect(await retryEnrichmentTasksAction([1])).toEqual({ success: false });
+  });
 });
 afterEach(() => {
   db.close();

@@ -161,7 +161,7 @@ export function GitHubLibraryPage() {
                   showHidden={showHidden}
                   onToggle={() => setShowHidden((value) => !value)}
                 />
-                <LibraryActions onRefresh={refresh} />
+                <LibraryActions onRefresh={refresh} source="github" />
               </>
             )}
             <BulkDeleteActions selection={selection} />
