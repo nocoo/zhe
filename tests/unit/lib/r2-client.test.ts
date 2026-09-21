@@ -99,6 +99,7 @@ describe("r2 client — LOCAL_R2 mode", () => {
     await uploadStreamToR2("streamed.txt", stream);
     const content = await fs.readFile(keyToPath("streamed.txt"), "utf-8");
     expect(content).toBe("stream-chunk-1stream-chunk-2");
+    await expect(fs.access(keyToPath("streamed.txt.partial"))).rejects.toThrow();
 
     const failingStream = new Readable({
       read() {
@@ -106,6 +107,8 @@ describe("r2 client — LOCAL_R2 mode", () => {
       },
     });
     await expect(uploadStreamToR2("failed.txt", failingStream)).rejects.toThrow("stream failure");
+    await expect(fs.access(keyToPath("failed.txt"))).rejects.toThrow();
+    await expect(fs.access(keyToPath("failed.txt.partial"))).rejects.toThrow();
   });
 
   it("handles empty key array in deleteR2Objects", async () => {
@@ -118,6 +121,7 @@ describe("r2 client — LOCAL_R2 mode", () => {
     delete process.env.LOCAL_R2_DIR;
     const url = await createPresignedUploadUrl("default.png", "image/png");
     expect(url.startsWith("http://127.0.0.1:18788/upload?")).toBe(true);
+    expect(keyToPath("default.png")).toBe(resolve(process.cwd(), ".test-storage/r2/default.png"));
   });
 });
 

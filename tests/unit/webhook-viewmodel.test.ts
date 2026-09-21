@@ -576,4 +576,45 @@ describe("useWebhookViewModel", () => {
     expect(result.current.migratedApiKey).toBeNull();
     expect(result.current.isMigrating).toBe(false);
   });
+
+  it("handles empty error fallback in all action failure notifications", async () => {
+    const { result } = renderHook(() => useWebhookViewModel());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
+
+    // handleGenerate failure with empty error
+    mockCreateWebhookToken.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+
+    // handleRevoke failure with empty error
+    mockRevokeWebhookToken.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleRevoke();
+    });
+
+    // handleRateLimitChange failure with empty error
+    mockUpdateWebhookRateLimit.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleRateLimitChange(10);
+    });
+
+    // handleMigrate failure with empty error
+    mockMigrateFromWebhookAction.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleMigrate();
+    });
+
+    // unmount while mount load in flight
+    let resolveMount: ((v: unknown) => void) | undefined;
+    mockGetWebhookToken.mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolveMount = r;
+        }),
+    );
+    const unmountedHook = renderHook(() => useWebhookViewModel());
+    unmountedHook.unmount();
+    resolveMount?.({ success: true, data: { token: "late", createdAt: "now" } });
+  });
 });
