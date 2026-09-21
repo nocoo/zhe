@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ---------------------------------------------------------------------------
@@ -404,5 +404,43 @@ describe("useOverviewViewModel", () => {
     );
 
     expect(result.current.workerHealth).toBeNull();
+  });
+
+  it("handles cancelled async responses on unmount and default error message", async () => {
+    let resolveHealth: ((v: any) => void) | undefined;
+    let resolveStats: ((v: any) => void) | undefined;
+
+    vi.mocked(getWorkerHealth).mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolveHealth = r;
+        }),
+    );
+    vi.mocked(getOverviewStats).mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolveStats = r;
+        }),
+    );
+
+    const { result, unmount } = renderHook(() => useOverviewViewModel());
+    expect(result.current.loading).toBe(true);
+    expect(result.current.workerHealthLoading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      resolveHealth?.({ success: true, data: makeWorkerHealth() });
+      resolveStats?.({ success: true, data: makeStats() });
+    });
+
+    expect(result.current.stats).toBeNull();
+    expect(result.current.workerHealth).toBeNull();
+
+    // Default error message when result.error is omitted
+    vi.mocked(getOverviewStats).mockResolvedValueOnce({ success: false });
+    const hook2 = renderHook(() => useOverviewViewModel());
+    await waitFor(() => expect(hook2.result.current.loading).toBe(false), { interval: 5 });
+    expect(hook2.result.current.error).toBe("加载概览数据失败");
   });
 });
