@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.1.4] - 2026-09-21
+
+### Fixed
+- Keep grid preview centers clickable when card actions wrap.
+- Show eight columns on large external displays and six at MacBook widths in X and grid collections, including loading placeholders.
+
 ## [v2.1.3] - 2026-09-21
 
 ### Added
