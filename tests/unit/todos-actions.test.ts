@@ -405,6 +405,14 @@ describe("moveTodo", () => {
 describe("reorderTodoSiblings", () => {
   beforeEach(() => mockAuth.mockResolvedValue(authed()));
 
+  it("rejects non-integer parentId in reorderTodoSiblings", async () => {
+    expect(await reorderTodoSiblings(1.5 as unknown as number, [1, 2])).toEqual({
+      success: false,
+      error: "Parent id must be an integer or null",
+    });
+    expect(mockReorderSiblings).not.toHaveBeenCalled();
+  });
+
   it("rejects a non-integer id in the list without touching the DB", async () => {
     expect(await reorderTodoSiblings(null, [1, 2.5 as unknown as number])).toEqual({
       success: false,
@@ -449,6 +457,50 @@ describe("deleteTodo", () => {
       success: false,
       error: "Todo not found",
     });
+  });
+
+  it("validates and parses emoji in createTodo and updateTodo", async () => {
+    mockCreateTodo.mockResolvedValue(FAKE_DETAIL);
+    mockUpdateTodo.mockResolvedValue(FAKE_DETAIL);
+
+    // Emoji valid in create
+    const createRes = await createTodo({ title: "with emoji", emoji: "🔥" });
+    expect(createRes.success).toBe(true);
+    expect(mockCreateTodo).toHaveBeenCalledWith(expect.objectContaining({ emoji: "🔥" }));
+
+    // Emoji null clears in create
+    await createTodo({ title: "null emoji", emoji: null });
+    expect(mockCreateTodo).toHaveBeenCalledWith(expect.objectContaining({ emoji: null }));
+
+    // Invalid emoji (too long)
+    const invalidRes = await createTodo({ title: "bad emoji", emoji: "1234567890" });
+    expect(invalidRes).toEqual({ success: false, error: "Emoji must be a short string or null" });
+
+    // Invalid emoji (not a string/null)
+    const invalidTypeRes = await createTodo({
+      title: "bad emoji",
+      emoji: 123 as unknown as string,
+    });
+    expect(invalidTypeRes).toEqual({
+      success: false,
+      error: "Emoji must be a short string or null",
+    });
+
+    // Emoji valid in update
+    const updateRes = await updateTodo(1, { emoji: "🎯" });
+    expect(updateRes.success).toBe(true);
+    expect(mockUpdateTodo).toHaveBeenCalledWith(1, expect.objectContaining({ emoji: "🎯" }));
+
+    // Invalid emoji in update
+    const updateInvalid = await updateTodo(1, { emoji: "too-long-emoji" });
+    expect(updateInvalid).toEqual({
+      success: false,
+      error: "Emoji must be a short string or null",
+    });
+
+    // Invalid dueAtMs in update
+    const invalidDue = await updateTodo(1, { dueAtMs: "not-a-number" as unknown as number });
+    expect(invalidDue).toEqual({ success: false, error: "Due date must be a finite timestamp" });
   });
 
   it("returns generic failure on unexpected throws", async () => {
