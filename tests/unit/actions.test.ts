@@ -212,6 +212,45 @@ describe("actions/links — uncovered paths", () => {
       expect(mockCreateLink).not.toHaveBeenCalled();
     });
 
+    it("rejects title longer than 32 characters or invalid type", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const resLong = await createLink({
+        originalUrl: "https://example.com",
+        title: "a".repeat(33),
+      });
+      expect(resLong).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resType = await createLink({
+        originalUrl: "https://example.com",
+        title: 123 as any,
+      });
+      expect(resType).toEqual({ success: false, error: "标题最多 32 个字符" });
+    });
+
+    it("creates link with trimmed title and note", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGenerateUniqueSlug.mockResolvedValue("slug123");
+      mockCreateLink.mockResolvedValue({
+        ...FAKE_LINK,
+        title: "My Title",
+        note: "My Note",
+      });
+
+      const res = await createLink({
+        originalUrl: "https://example.com",
+        title: "  My Title  ",
+        note: "My Note",
+      });
+      expect(res.success).toBe(true);
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "My Title",
+          note: "My Note",
+        }),
+      );
+    });
+
     it("returns error when custom slug is invalid (sanitizeSlug returns null)", async () => {
       mockAuth.mockResolvedValue(authenticatedSession());
       mockSanitizeSlug.mockReturnValue(null);
@@ -477,6 +516,41 @@ describe("actions/links — uncovered paths", () => {
   });
 
   describe("updateLink", () => {
+    it("rejects title longer than 32 characters or invalid note type", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const resLong = await updateLink(1, { title: "x".repeat(33) });
+      expect(resLong).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resTitleType = await updateLink(1, { title: 123 as any });
+      expect(resTitleType).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resNoteType = await updateLink(1, { note: 123 as any });
+      expect(resNoteType).toEqual({ success: false, error: "备注格式无效" });
+    });
+
+    it("updates title and note successfully", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLink.mockResolvedValue({
+        ...FAKE_LINK,
+        title: "Updated Title",
+        note: "Updated Note",
+      });
+
+      const res = await updateLink(1, {
+        title: "Updated Title",
+        note: "Updated Note",
+      });
+      expect(res.success).toBe(true);
+      expect(mockUpdateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          title: "Updated Title",
+          note: "Updated Note",
+        }),
+      );
+    });
+
     it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 
