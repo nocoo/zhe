@@ -87,22 +87,25 @@ it("never presents a response that settles after unmount", async () => {
   vi.useFakeTimers();
   try {
     let resolveFetch: (value: Response) => void = () => {};
-    fetcher.mockImplementationOnce(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        }),
-    );
+    let captured: { signal: AbortSignal } | undefined;
+    fetcher.mockImplementationOnce((_url: string, options: { signal: AbortSignal }) => {
+      captured = options;
+      return new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      });
+    });
     const { result, unmount } = renderHook(() => useSearch("late"));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(181);
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
     unmount();
+    expect(captured?.signal.aborted).toBe(true);
     await act(async () => {
       resolveFetch(Response.json({ items: [], total: 9 }));
     });
     expect(result.current.data).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
   } finally {
     vi.useRealTimers();
   }
@@ -126,6 +129,7 @@ it("does not schedule an index-update retry after unmount", async () => {
     await act(async () => {
       resolveFetch(Response.json({ code: "index_updating" }, { status: 503 }));
     });
+    expect(vi.getTimerCount()).toBe(0);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1200);
     });
