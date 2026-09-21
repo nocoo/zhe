@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OverviewPage } from "@/components/dashboard/overview-page";
+import { Sparkline } from "@/components/dashboard/overview-page-parts/charts";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -330,6 +331,11 @@ describe("OverviewPage", () => {
     // (other SVGs may exist from icons, but sparkline-specific ones won't)
     const statCards = screen.getAllByTestId("stat-card");
     expect(statCards.length).toBeGreaterThan(0);
+  });
+
+  it("handles Sparkline when max is zero or all data points are 0", () => {
+    const { container: sparklineZero } = render(<Sparkline data={[0, 0]} />);
+    expect(sparklineZero.querySelector("svg")).toBeInTheDocument();
   });
 
   it("renders KV cache with null values as dashes", () => {
