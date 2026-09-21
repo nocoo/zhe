@@ -155,7 +155,7 @@ function GridScreenshot({
       )}
 
       {/* Sibling actions stay clear of the preview and remain visible on touch. */}
-      <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+      <div className="pointer-events-none absolute right-2 top-2 z-20 flex max-w-[calc(100%-var(--spacing)*4)] flex-wrap items-center justify-end gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
         {visibilityAction}
         {onOpenDetails && (
           <XBookmarkDetailsButton

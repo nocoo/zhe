@@ -164,11 +164,12 @@ export function LinksListToolbar(props: ToolbarProps) {
       description={
         hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`
       }
+      filters={!selecting && !isMobile ? <FilterControls {...controls} /> : undefined}
       actions={
         <>
           {!selecting && (
             <>
-              {isMobile ? filterTrigger : <FilterControls {...controls} />}
+              {isMobile && filterTrigger}
               <ShowHiddenButton showHidden={showHidden} onToggle={onToggleHidden} />
               <EnrichmentButton />
               {createButton}

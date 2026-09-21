@@ -47,3 +47,7 @@ During recovery, starting the commit while the mobile browser check was still ru
 ## 2026-09-21 — Reused an existing model filename during Connector UI work
 
 An Add File patch replaced `models/enrichment.ts` before checking whether the path already existed. Type checking caught the missing `LinkEnrichmentStrategy` export before commit or deployment. The original file was restored byte for byte, and the Connector task models moved to `models/connector-activity.ts`. Check exact target paths and tracked contents before adding a file, even when the patch tool accepts Add File.
+
+## 2026-09-21 — Enrichment actions exceeded collection layout limits
+
+The new enrichment button made the grid action strip wider than a narrow card, placing the hide control outside its clickable area. Added header actions also let active filters collapse the page heading. The complete release preflight caught both regressions before publication; focused dialog checks did not cover these existing flows. Bound and wrap the grid actions, and use Basalt's existing filter row for desktop filters. Progress updates initially missed failures embedded earlier in the test log; use the final report or inspect the complete failure list before stating that a run has no failures.

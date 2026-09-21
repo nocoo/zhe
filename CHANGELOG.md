@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - Match the hide button hover to other card actions and align enrichment retry with the original-post link.
 - Preserve loaded enrichment history while polling for new events.
+- Keep grid card actions within narrow cards and prevent filters from squeezing page headings.
 
 ## [v2.1.2] - 2026-09-20
 
