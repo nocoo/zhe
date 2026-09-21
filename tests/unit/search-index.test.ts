@@ -302,4 +302,57 @@ describe("migrated search index with real SQL", () => {
       batchSpy.mockRestore();
     }
   });
+
+  it("deletes confirmed orphan search documents during rebuild", async () => {
+    // A dirty document whose source idea vanished must be removed, not rebuilt.
+    database
+      .prepare(
+        "INSERT INTO search_documents(user_id,kind,resource_id,revision,indexed_revision,created_at,source,search_text,titles,identities,metadata,summaries) VALUES ('owner','idea',4242,2,1,1,'idea','orphan body','orphan','{}','{}','{}')",
+      )
+      .run();
+
+    await ensureSearchIndex("owner");
+
+    const remaining = database
+      .prepare("SELECT COUNT(*) AS n FROM search_documents WHERE resource_id = 4242")
+      .get() as { n: number };
+    expect(remaining.n).toBe(0);
+  });
+
+  it("returns a zeroed payload when the search batch loses its result sets", async () => {
+    link(1, "Batchless");
+    await ensureSearchIndex("owner");
+    const batchSpy = vi
+      .spyOn(d1, "executeD1Batch")
+      .mockImplementation(async () => [] as unknown[][]);
+
+    try {
+      const res = await searchResources("owner", "batchless");
+      expect(res.items).toEqual([]);
+      expect(res.total).toBe(0);
+    } finally {
+      batchSpy.mockRestore();
+    }
+  });
+
+  it("surfaces a pending error when a selected document disappears before hydration", async () => {
+    link(1, "Hydrated");
+    await ensureSearchIndex("owner");
+    // The selected row references an idea that no longer exists, so
+    // loadSearchDocuments cannot hydrate it and the page must not silently
+    // drop the row.
+    const batchSpy = vi
+      .spyOn(d1, "executeD1Batch")
+      .mockImplementation(
+        async () => [[], [{ kind: "idea", resource_id: 424242, rank: 0 }], []] as unknown[][],
+      );
+
+    try {
+      await expect(searchResources("owner", "hydrated", "all", 20, 0, 0)).rejects.toBeInstanceOf(
+        SearchIndexPendingError,
+      );
+    } finally {
+      batchSpy.mockRestore();
+    }
+  });
 });

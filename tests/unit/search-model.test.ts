@@ -254,3 +254,24 @@ describe("verified search fields and literal semantics", () => {
     expect(searchProjection(docRepoPushed).text).toContain("readme-tail");
   });
 });
+
+describe("search edge fallbacks", () => {
+  it("falls back to an empty url for link inputs without one", () => {
+    const { url: _omitted, ...noUrl } = base;
+    const doc = buildSearchDocument(noUrl);
+    expect(doc.url).toBe("");
+  });
+
+  it("returns a single unhighlighted segment for empty input text", () => {
+    expect(searchHighlight("", "needle")).toEqual([{ text: "", highlight: false }]);
+  });
+
+  it("wraps a term longer than the excerpt window with visible evidence and ellipses", () => {
+    const term = "longterm".repeat(32); // 288 chars
+    const value = `${"x ".repeat(60)}${term}${" y".repeat(80)}`;
+    const segments = searchSnippet(value, term);
+    expect(segments[0]).toEqual({ text: "…", highlight: false });
+    expect(segments.at(-1)).toEqual({ text: "…", highlight: false });
+    expect(segments.some((s) => s.highlight)).toBe(true);
+  });
+});
