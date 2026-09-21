@@ -657,7 +657,10 @@ for (const viewport of [
         animations: "disabled",
       });
       if (viewport.width > 600) {
-        for (const width of [1920, 2560]) {
+        for (const [width, columns] of [
+          [1920, 6],
+          [2560, 8],
+        ] as const) {
           await page.setViewportSize({ width, height: viewport.height });
           await expect
             .poll(() =>
@@ -668,7 +671,7 @@ for (const viewport of [
                     new Set(cards.map((card) => Math.round(card.getBoundingClientRect().x))).size,
                 ),
             )
-            .toBe(6);
+            .toBe(columns);
           expect(
             await feed
               .locator('[data-testid="link-card"], [data-testid="x-card-footer"]')
