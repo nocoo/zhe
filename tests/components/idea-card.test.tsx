@@ -70,6 +70,12 @@ describe("IdeaCard", () => {
       expect(screen.getByText("Just now")).toBeInTheDocument();
     });
 
+    it("renders minutes ago for ideas updated within the hour", () => {
+      const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+      render(<IdeaCard {...defaultProps} idea={makeIdea({ updatedAt: threeMinutesAgo })} />);
+      expect(screen.getByText("3m ago")).toBeInTheDocument();
+    });
+
     it("renders 'Yesterday' for ideas updated yesterday", () => {
       const yesterday = new Date(Date.now() - 26 * 60 * 60 * 1000);
       render(<IdeaCard {...defaultProps} idea={makeIdea({ updatedAt: yesterday })} />);
