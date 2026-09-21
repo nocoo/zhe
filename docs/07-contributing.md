@@ -62,7 +62,7 @@
 
 - 全仓统一使用 **Biome**（主应用、`worker/`、`cli/`），配置入口 `biome.json`
 - 零警告策略：`bun run lint` → `biome check --error-on-warnings .`
-- Pre-commit 通过 `lint-staged` 只检查暂存文件
+- Pre-commit 对 `git checkout-index` 导出的暂存树快照运行全量 Biome，而非只检查暂存文件
 - 测试文件禁用 `*.skip` / `*.only`（`noSkippedTests` / `noFocusedTests`）
 - `noUnusedVariables` 为 error；业务代码 `noExplicitAny` 为 error，测试目录放宽
 - Formatter：2 spaces、double quotes、semicolons（与历史主应用风格一致）
@@ -71,7 +71,7 @@
 
 | Hook | 层级 | 运行内容 |
 |------|------|----------|
-| `pre-commit` | L1 + G1 + G2 | `test:unit:coverage` + `test:integration` + `typecheck` + `lint-staged`（Biome）+ gitleaks |
+| `pre-commit` | L1 + G1 + G2 | 暂存树快照上的 `test:unit:coverage` + `test:integration` + `typecheck`（`next typegen` + `tsc`）+ `lint`（Biome）+ gitleaks |
 | `pre-push` | L2 + G2 | `bun run test:api`（API E2E）+ osv-scanner |
 | 按需手动 | L3 | `bun run test:e2e:pw`（Playwright BDD E2E） |
 
