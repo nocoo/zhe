@@ -219,4 +219,38 @@ describe("verified search fields and literal semantics", () => {
     expect(hit?.match.label).toBe("README");
     expect(hit?.metadata).toMatchObject({ stars: 42, commits: 100, forks: 4, archived: true });
   });
+
+  it("indexes retweet and quote tweet types, favicon, publishedAt from tweet/repo, and surrogate pairs", () => {
+    const rtTweet = {
+      ...tweet,
+      is_retweet: true,
+      is_quote: true,
+      created_at: "2026-09-01T00:00:00Z",
+    };
+    const docWithFavicon = buildSearchDocument({
+      ...base,
+      favicon: "https://example.com/fav.png",
+      tweet: rtTweet,
+    });
+    expect(docWithFavicon.favicon).toBe("https://example.com/fav.png");
+    expect(docWithFavicon.metadata?.publishedAt).toBe("2026-09-01T00:00:00Z");
+
+    const hitRetweet = toSearchHit(docWithFavicon, "转发");
+    expect(hitRetweet).not.toBeNull();
+    const hitQuote = toSearchHit(docWithFavicon, "引用");
+    expect(hitQuote).not.toBeNull();
+
+    // Repo with pushedAt
+    const repoWithPushed = { ...repository, pushedAt: "2026-08-01T00:00:00Z" };
+    const docRepoPushed = buildSearchDocument({ ...base, repository: repoWithPushed });
+    expect(docRepoPushed.metadata?.publishedAt).toBe("2026-08-01T00:00:00Z");
+
+    // Surrogate pair boundary snippet check
+    const emojiStr = `prefix ${"𠮷".repeat(10)} target ${"𠮷".repeat(10)}`;
+    const snip = searchSnippet(emojiStr, "target", 40);
+    expect(snip.some((s) => s.highlight && s.text === "target")).toBe(true);
+
+    // searchProjection returns document projection text
+    expect(searchProjection(docRepoPushed).text).toContain("readme-tail");
+  });
 });
