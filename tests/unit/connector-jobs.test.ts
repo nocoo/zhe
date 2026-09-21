@@ -1655,6 +1655,149 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     expect(rows("r2_deletions")).toEqual([]);
     expect(await r2.listR2Objects()).toEqual([]);
   });
+
+  it("resolves a reservation to null when the job has no staged draft", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    expect(await reserveXMedia(identity, id, job.leaseToken, descriptor, now)).toBeNull();
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("rejects a descriptor that provides only one of the two dimensions", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    const { width: _omitted, ...heightOnly } = descriptor;
+    await expect(
+      reserveXMedia(identity, id, job.leaseToken, heightOnly, now),
+    ).rejects.toMatchObject({ code: "invalid_media", status: 400 });
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("rejects reservations while storage secrets are unconfigured", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    vi.stubEnv("R2_USER_HASH_SALT", "");
+    try {
+      await expect(
+        reserveXMedia(identity, id, job.leaseToken, descriptor, now),
+      ).rejects.toMatchObject({ code: "storage_unavailable", status: 503 });
+    } finally {
+      vi.stubEnv("R2_USER_HASH_SALT", "connector-test-salt");
+    }
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("reports size_mismatch and cleans up when the stream exceeds the reserved size", async () => {
+    const { id, job, asset } = await prepare();
+    await expect(
+      writeXMedia(
+        identity,
+        id,
+        job.leaseToken,
+        asset.id,
+        stream(new Uint8Array(bytes.length * 2)),
+        now,
+      ),
+    ).rejects.toMatchObject({ code: "size_mismatch", status: 400 });
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("wraps unexpected upload failures as connector 502 errors", async () => {
+    const { id, job, asset } = await prepare();
+    vi.spyOn(r2, "uploadStreamToR2").mockRejectedValueOnce(new Error("disk exploded"));
+    await expect(
+      writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now),
+    ).rejects.toMatchObject({ code: "upload_failed", status: 502 });
+    expect(rows("x_media")).toEqual([]);
+    expect(await drainR2Deletions("owner", now)).toBe(1);
+  });
+
+  it("maps published video and photo attachments without inventing resolution", async () => {
+    // Video publish keeps its resolution; photo publish has none.
+    const videoJob = await prepare();
+    await writeXMedia(
+      identity,
+      videoJob.id,
+      videoJob.job.leaseToken,
+      videoJob.asset.id,
+      stream(),
+      now,
+    );
+    expect(await completeXBookmark(identity, videoJob.id, videoJob.job.leaseToken, now)).toBe(true);
+    const videoTweet = (await getXBookmarks("owner", [videoJob.id]))[0]?.tweet;
+    expect(videoTweet?.media[0]).toMatchObject({
+      size: bytes.length,
+      resolution: "720p",
+    });
+    expect(videoTweet?.media[0]?.url).toContain("https://cdn.example.com/");
+
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    const photoCapture = structuredClone(capture);
+    photoCapture.tweet.media = [
+      { id: mediaId, type: "PHOTO", url: "https://pbs.twimg.com/media/test.png" },
+    ];
+    await stageXCapture(identity, id, job.leaseToken, photoCapture, now);
+    const imageBytes = new Uint8Array(32);
+    imageBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
+    const photoDescriptor = {
+      mediaId,
+      kind: "photo" as const,
+      mime: "image/png",
+      size: imageBytes.length,
+      sha256: createHash("sha256").update(imageBytes).digest("hex"),
+    };
+    const photo = required(await reserveXMedia(identity, id, job.leaseToken, photoDescriptor, now));
+    await writeXMedia(identity, id, job.leaseToken, photo.id, stream(imageBytes), now);
+    expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(true);
+    const photoTweet = (await getXBookmarks("owner", [id]))[0]?.tweet;
+    expect(photoTweet?.media[0]).toMatchObject({ size: imageBytes.length });
+    expect(photoTweet?.media[0]?.url).toContain(".png");
+    expect("resolution" in required(photoTweet?.media[0])).toBe(false);
+  });
+
+  it("returns an empty bookmark list without querying for empty ids", async () => {
+    expect(await getXBookmarks("owner", [])).toEqual([]);
+  });
+
+  it("stores the generic connector failure code for unknown CLI codes", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    expect(await failXBookmark(identity, id, job.leaseToken, "totally_unknown_code", now + 1)).toBe(
+      true,
+    );
+    expect(rows("x_bookmarks")[0]).toMatchObject({
+      state: "failed",
+      error_code: "connector_error",
+    });
+  });
+
+  it("records a relative public URL when the CDN domain is unconfigured", async () => {
+    const { id, job, asset } = await prepare();
+    await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
+    vi.stubEnv("R2_PUBLIC_DOMAIN", "");
+    try {
+      expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(true);
+    } finally {
+      vi.stubEnv("R2_PUBLIC_DOMAIN", "https://cdn.example.com");
+    }
+    expect(required(rows("uploads")[0]).public_url).toBe(`/${asset.key}`);
+  });
+
+  it("resolves a lost reservation race to null for a client refetch", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    const original = d1.executeD1Query;
+    vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+      if (sql.includes("INSERT INTO x_media")) return [];
+      return original(sql, params);
+    });
+    expect(await reserveXMedia(identity, id, job.leaseToken, descriptor, now)).toBeNull();
+    expect(rows("x_media")).toEqual([]);
+  });
 });
 
 describe("discover saved bookmarks, then enrich", () => {
