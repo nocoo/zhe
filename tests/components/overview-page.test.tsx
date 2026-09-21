@@ -336,6 +336,11 @@ describe("OverviewPage", () => {
   it("handles Sparkline when max is zero or all data points are 0", () => {
     const { container: sparklineZero } = render(<Sparkline data={[0, 0]} />);
     expect(sparklineZero.querySelector("svg")).toBeInTheDocument();
+    const polyline = sparklineZero.querySelector("polyline");
+    const polygon = sparklineZero.querySelector("polygon");
+    expect(polyline).toHaveAttribute("points", "0,24 80,24");
+    expect(polygon).toHaveAttribute("points", "0,24 0,24 80,24 80,24");
+    expect(polyline?.getAttribute("points")).not.toMatch(/NaN|Infinity/);
   });
 
   it("renders KV cache with null values as dashes", () => {
