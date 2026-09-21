@@ -6,12 +6,13 @@ vi.mock("@/actions/connector", () => ({ retryXBookmarkAction: vi.fn() }));
 
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img {...props} />;
+    return <img alt="" {...props} />;
   },
 }));
 
+import { normalizeXPost } from "@/cli/src/connector/core";
 import { GridView } from "@/components/dashboard/link-card-parts/grid-view";
+import type { XBookmark } from "@/lib/connector/jobs";
 import type { Link, Tag } from "@/models/types";
 
 afterEach(() => {
@@ -169,17 +170,57 @@ describe("GridView", () => {
 
   it("handles X bookmark details, media preview, badges and attachments count", () => {
     const onOpenDetails = vi.fn();
-    const xBookmark = {
-      tweet: {
-        id: "123",
-        text: "Tweet with video",
-        entities: { urls: [] },
-        media: [
-          { type: "VIDEO", url: "https://example.com/v.mp4" },
-          { type: "PHOTO", url: "https://example.com/p.jpg" },
-        ],
+    const rawTweet = normalizeXPost(
+      {
+        rest_id: "123",
+        legacy: {
+          full_text: "Tweet with video",
+          created_at: "2026-09-12T00:00:00Z",
+          entities: { urls: [] },
+          extended_entities: {
+            media: [
+              {
+                id_str: "1001",
+                type: "video",
+                media_url_https: "https://pbs.twimg.com/tweet_video_thumb/thumb.jpg",
+                video_info: {
+                  aspect_ratio: [16, 9],
+                  variants: [
+                    {
+                      content_type: "video/mp4",
+                      url: "https://video.twimg.com/tweet_video/test.mp4",
+                    },
+                  ],
+                },
+              },
+              {
+                id_str: "1002",
+                type: "photo",
+                media_url_https: "https://pbs.twimg.com/media/test.jpg",
+              },
+            ],
+          },
+        },
+        core: {
+          user_results: {
+            result: {
+              rest_id: "u1",
+              legacy: { screen_name: "testuser", name: "Test User" },
+            },
+          },
+        },
       },
-    } as any;
+      "123",
+    )?.tweet;
+    if (!rawTweet) throw new Error("Expected valid normalized tweet");
+
+    const xBookmark: XBookmark = {
+      linkId: 1,
+      state: "complete",
+      tweet: rawTweet,
+      errorCode: null,
+      updatedAt: Date.now(),
+    };
 
     renderGridView({
       onOpenDetails,

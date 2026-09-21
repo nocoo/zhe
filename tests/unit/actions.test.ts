@@ -223,9 +223,10 @@ describe("actions/links — uncovered paths", () => {
 
       const resType = await createLink({
         originalUrl: "https://example.com",
-        title: 123 as any,
+        title: 123 as unknown as string,
       });
       expect(resType).toEqual({ success: false, error: "标题最多 32 个字符" });
+      expect(mockCreateLink).not.toHaveBeenCalled();
     });
 
     it("creates link with trimmed title and note", async () => {
@@ -522,11 +523,12 @@ describe("actions/links — uncovered paths", () => {
       const resLong = await updateLink(1, { title: "x".repeat(33) });
       expect(resLong).toEqual({ success: false, error: "标题最多 32 个字符" });
 
-      const resTitleType = await updateLink(1, { title: 123 as any });
+      const resTitleType = await updateLink(1, { title: 123 as unknown as string });
       expect(resTitleType).toEqual({ success: false, error: "标题最多 32 个字符" });
 
-      const resNoteType = await updateLink(1, { note: 123 as any });
+      const resNoteType = await updateLink(1, { note: 123 as unknown as string });
       expect(resNoteType).toEqual({ success: false, error: "备注格式无效" });
+      expect(mockUpdateLink).not.toHaveBeenCalled();
     });
 
     it("updates title and note successfully", async () => {

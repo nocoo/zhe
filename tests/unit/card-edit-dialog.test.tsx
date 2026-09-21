@@ -189,6 +189,8 @@ describe("CardEditDialog", () => {
 
     activeCallbacks?.onLinkUpdated(baseLink);
     activeCallbacks?.onTagCreated(tag);
+    activeCallbacks?.onLinkTagAdded({ linkId: 10, tagId: "t-new" });
+    activeCallbacks?.onLinkTagRemoved(10, "t-new");
 
     // Callbacks must NOT fire while dialog is open (deferred)
     expect(onLinkUpdated).not.toHaveBeenCalled();
@@ -201,6 +203,80 @@ describe("CardEditDialog", () => {
       expect(onTagCreated).toHaveBeenCalledWith(tag);
       expect(onClose).toHaveBeenCalled();
     });
+
+    // Callbacks after dialog was closed flush immediately
+    activeCallbacks?.onLinkUpdated(baseLink);
+    expect(onLinkUpdated).toHaveBeenCalledTimes(2);
+    activeCallbacks?.onTagCreated(tag);
+    expect(onTagCreated).toHaveBeenCalledTimes(2);
+    activeCallbacks?.onLinkTagAdded({ linkId: 10, tagId: "t-new" });
+    activeCallbacks?.onLinkTagRemoved(10, "t-new");
+  });
+
+  it("prevents close when editProps.isDeleting or panel is aria-busy", async () => {
+    const onClose = vi.fn();
+    const cardEl = document.createElement("div");
+    cardEl.setAttribute("data-link-id", "10");
+    document.body.appendChild(cardEl);
+    domCleanups.push(() => cardEl.remove());
+
+    const { rerender } = render(
+      <CardEditDialog
+        source={{ current: cardEl }}
+        trigger={{ current: null }}
+        animated={false}
+        deleted={false}
+        onClose={onClose}
+        onDeleted={vi.fn()}
+        link={baseLink}
+        tags={[]}
+        linkTags={[]}
+        folders={[]}
+        editCallbacks={{
+          onLinkUpdated: vi.fn(),
+          onTagCreated: vi.fn(),
+          onLinkTagAdded: vi.fn(),
+          onLinkTagRemoved: vi.fn(),
+        }}
+        isDeleting={true}
+        handleDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Now busy element inside panel
+    rerender(
+      <CardEditDialog
+        source={{ current: cardEl }}
+        trigger={{ current: null }}
+        animated={false}
+        deleted={false}
+        onClose={onClose}
+        onDeleted={vi.fn()}
+        link={baseLink}
+        tags={[]}
+        linkTags={[]}
+        folders={[]}
+        editCallbacks={{
+          onLinkUpdated: vi.fn(),
+          onTagCreated: vi.fn(),
+          onLinkTagAdded: vi.fn(),
+          onLinkTagRemoved: vi.fn(),
+        }}
+        isDeleting={false}
+        handleDelete={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByTestId("card-edit-dialog");
+    const busyChild = document.createElement("div");
+    busyChild.setAttribute("aria-busy", "true");
+    dialog.appendChild(busyChild);
+
+    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("handles deleted prop triggering card destruction transition and onDeleted callback", async () => {
