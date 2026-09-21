@@ -249,9 +249,11 @@ describe("enrichment operations dialog", () => {
 
   it("handles loadMore error branch in EnrichmentDetails", async () => {
     let rejectLoadMore!: (err: Error) => void;
-    const loadMorePromise = new Promise<{ success: boolean; events: any[] }>((_, reject) => {
-      rejectLoadMore = reject;
-    });
+    const loadMorePromise = new Promise<Awaited<ReturnType<typeof loadEnrichmentEventsAction>>>(
+      (_, reject) => {
+        rejectLoadMore = reject;
+      },
+    );
 
     vi.mocked(loadEnrichmentEventsAction)
       .mockResolvedValueOnce({
@@ -259,7 +261,7 @@ describe("enrichment operations dialog", () => {
         events: [event(1)],
         more: true,
       })
-      .mockReturnValueOnce(loadMorePromise as any);
+      .mockReturnValueOnce(loadMorePromise);
 
     render(<EnrichmentDetails linkId={1} task={task(1)} link={undefined} />);
     const loadMoreBtn = await screen.findByRole("button", { name: "加载更早记录" });
