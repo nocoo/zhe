@@ -576,4 +576,27 @@ describe("useBackyViewModel", () => {
     expect(result.current.pullKey).toBeNull();
     expect(result.current.isRevokingPull).toBe(false);
   });
+
+  it("handles test, push, and load history errors with fallback messages", async () => {
+    const { result } = renderHook(() => useBackyViewModel());
+    await act(async () => {});
+
+    mockTestBackyConnection.mockResolvedValueOnce({ success: false, error: undefined });
+    await act(async () => {
+      await result.current.handleTest();
+    });
+    expect(result.current.testResult).toEqual({ ok: false, message: "连接失败" });
+
+    mockPushBackup.mockResolvedValueOnce({ success: false, error: undefined });
+    await act(async () => {
+      await result.current.handlePush();
+    });
+    expect(result.current.pushResult).toEqual({ ok: false, message: "推送失败" });
+
+    mockFetchBackyHistory.mockResolvedValueOnce({ success: false, error: undefined });
+    await act(async () => {
+      await result.current.handleLoadHistory();
+    });
+    expect(result.current.error).toBe("获取历史失败");
+  });
 });
