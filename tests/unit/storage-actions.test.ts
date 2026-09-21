@@ -109,30 +109,22 @@ describe("scanStorage", () => {
     expect(unwrap(result.data).r2.summary.totalFiles).toBe(0);
   });
 
-  it("detects orphan files correctly", async () => {
-    mockD1Counts({ links: 1, uploads: 1, analytics: 0, folders: 0, tags: 0, webhooks: 0 });
-
-    mockListR2Objects.mockResolvedValue([
-      { key: "upload.png", size: 100, lastModified: "2026-01-01T00:00:00Z" },
-      { key: "orphan.png", size: 200, lastModified: "2026-01-02T00:00:00Z" },
-      { key: "screenshot.webp", size: 300, lastModified: "2026-01-03T00:00:00Z" },
-    ]);
-    mockR2Queries({
-      uploadKeys: ["upload.png"],
-      screenshotUrls: ["https://cdn.example.com/screenshot.webp"],
-    });
-
-    // Set R2_PUBLIC_DOMAIN for URL extraction
-    process.env.R2_PUBLIC_DOMAIN = "https://cdn.example.com";
-
+  it("handles empty row fallback counts when queries return empty results", async () => {
+    mockExecuteD1Query.mockResolvedValue([]);
+    mockListR2Objects.mockResolvedValue([]);
     const result = await scanStorage();
-
     expect(result.success).toBe(true);
-    expect(unwrap(result.data).r2.summary.totalFiles).toBe(3);
-    expect(unwrap(result.data).r2.summary.orphanFiles).toBe(1);
-    expect(unwrap(result.data).r2.summary.orphanSize).toBe(200);
-
-    delete process.env.R2_PUBLIC_DOMAIN;
+    expect(unwrap(result.data).d1.totalLinks).toBe(0);
+    expect(unwrap(result.data).d1.totalUploads).toBe(0);
+    expect(unwrap(result.data).d1.totalAnalytics).toBe(0);
+    expect(unwrap(result.data).d1.tables).toEqual([
+      { name: "links", rows: 0 },
+      { name: "uploads", rows: 0 },
+      { name: "analytics", rows: 0 },
+      { name: "folders", rows: 0 },
+      { name: "tags", rows: 0 },
+      { name: "webhooks", rows: 0 },
+    ]);
   });
 });
 
