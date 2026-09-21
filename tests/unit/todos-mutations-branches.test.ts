@@ -56,6 +56,21 @@ function detail(id: number): TodoDetail {
   };
 }
 
+function useTodosMutationsWithState(
+  initial: TodoTreeNode[],
+  initialDetail: TodoDetail | null = null,
+) {
+  const [todos, setTodos] = useState<TodoTreeNode[]>(initial);
+  const [detailState, setDetailState] = useState<TodoDetail | null>(initialDetail);
+  const detailRef = { current: detailState };
+  detailRef.current = detailState;
+  const mutations = useTodosMutations(setTodos, {
+    get: () => detailRef.current,
+    set: setDetailState,
+  });
+  return { todos, detail: detailState, ...mutations };
+}
+
 describe("applyUpdateInputToDetail", () => {
   it("patches all input fields including null resets and empty content", () => {
     const base = detail(1);
@@ -177,5 +192,114 @@ describe("useTodosMutations edge branches", () => {
     });
     expect(result.current.todos[0]?.position).toBe(0);
     expect(result.current.todos[1]?.position).toBe(1);
+  });
+
+  it("handles handleMoveTodo server failure and exception branches", async () => {
+    const { result } = renderHook(() => {
+      const [todos, setTodos] = useState<TodoTreeNode[]>([node({ id: 1 })]);
+      return { todos, ...useTodosMutations(setTodos) };
+    });
+
+    // 1. Server returns success: false with custom error
+    mockMoveTodo.mockResolvedValueOnce({ success: false, error: "Cycle detected" });
+    await act(async () => {
+      const res = await result.current.handleMoveTodo(1, { parentId: null, position: 0 });
+      expect(res).toBeNull();
+    });
+    expect(result.current.error).toBe("Cycle detected");
+
+    // 2. Server returns success: false with default error
+    mockMoveTodo.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      const res = await result.current.handleMoveTodo(1, { parentId: null, position: 0 });
+      expect(res).toBeNull();
+    });
+    expect(result.current.error).toBe("Failed to move todo");
+
+    // 3. Network throws exception
+    mockMoveTodo.mockRejectedValueOnce(new Error("offline"));
+    await act(async () => {
+      const res = await result.current.handleMoveTodo(1, { parentId: null, position: 0 });
+      expect(res).toBeNull();
+    });
+    expect(result.current.error).toBe("Failed to move todo");
+  });
+
+  it("handles handleReorderSiblings failure and exception with snapshot rollback", async () => {
+    const { result } = renderHook(() => {
+      const [todos, setTodos] = useState<TodoTreeNode[]>([
+        node({ id: 1, parentId: null, position: 0 }),
+        node({ id: 2, parentId: null, position: 1 }),
+      ]);
+      return { todos, ...useTodosMutations(setTodos) };
+    });
+
+    // 1. Failure response with custom error
+    mockReorderTodoSiblings.mockResolvedValueOnce({ success: false, error: "Custom reorder fail" });
+    await act(async () => {
+      const res = await result.current.handleReorderSiblings(null, [2, 1]);
+      expect(res).toBe(false);
+    });
+    expect(result.current.error).toBe("Custom reorder fail");
+    expect(result.current.todos[0]?.id).toBe(1);
+    expect(result.current.todos[0]?.position).toBe(0);
+
+    // 2. Failure response without error string
+    mockReorderTodoSiblings.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      const res = await result.current.handleReorderSiblings(null, [2, 1]);
+      expect(res).toBe(false);
+    });
+    expect(result.current.error).toBe("Failed to reorder todos");
+
+    // 3. Exception thrown
+    mockReorderTodoSiblings.mockRejectedValueOnce(new Error("network"));
+    await act(async () => {
+      const res = await result.current.handleReorderSiblings(null, [2, 1]);
+      expect(res).toBe(false);
+    });
+    expect(result.current.error).toBe("Failed to reorder todos");
+  });
+
+  it("handles handleUpdateTodo failure without error text and exception branch", async () => {
+    const { result } = renderHook(() =>
+      useTodosMutationsWithState([node({ id: 1, title: "orig" })]),
+    );
+
+    // 1. Failure without error string -> fallback to "Failed to update todo"
+    mockUpdateTodo.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      const res = await result.current.handleUpdateTodo(1, { title: "new" });
+      expect(res).toBeNull();
+    });
+    expect(result.current.error).toBe("Failed to update todo");
+    expect(result.current.todos[0]?.title).toBe("orig");
+
+    // 2. Exception thrown
+    const { result: result2 } = renderHook(() =>
+      useTodosMutationsWithState([node({ id: 1, title: "orig" })]),
+    );
+    mockUpdateTodo.mockRejectedValueOnce(new Error("fail"));
+    await act(async () => {
+      const res = await result2.current.handleUpdateTodo(1, { title: "new" });
+      expect(res).toBeNull();
+    });
+    expect(result2.current.error).toBe("Failed to update todo");
+    expect(result2.current.todos[0]?.title).toBe("orig");
+  });
+
+  it("handles handleDeleteTodo failure without error string", async () => {
+    const { result } = renderHook(() => {
+      const [todos, setTodos] = useState<TodoTreeNode[]>([node({ id: 1 })]);
+      return { todos, ...useTodosMutations(setTodos) };
+    });
+
+    mockDeleteTodo.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      const res = await result.current.handleDeleteTodo(1);
+      expect(res).toBe(false);
+    });
+    expect(result.current.error).toBe("Failed to delete todo");
+    expect(result.current.todos).toHaveLength(1);
   });
 });
