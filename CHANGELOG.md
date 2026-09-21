@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Removed
-- Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
+## [v2.1.5] - 2026-09-22
+
+### Fixed
+- Validate the staged Git snapshot before committing, including when the working tree contains an unstaged correction.
+- Preserve pre-commit failures and clean up temporary checks and interrupted child processes.
+
+### Changed
+- Enforce at least 95% statements, branches, functions and lines within the existing unit coverage scope.
+- Expand regression tests for data failures, connector behavior, asynchronous cleanup, filtering and UI edge states.
 
 ## [v2.1.4] - 2026-09-21
 
