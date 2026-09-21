@@ -247,6 +247,36 @@ describe("enrichment operations dialog", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("暂时无法读取");
   });
 
+  it("handles loadMore error branch in EnrichmentDetails", async () => {
+    let rejectLoadMore!: (err: Error) => void;
+    const loadMorePromise = new Promise<{ success: boolean; events: any[] }>((_, reject) => {
+      rejectLoadMore = reject;
+    });
+
+    vi.mocked(loadEnrichmentEventsAction)
+      .mockResolvedValueOnce({
+        success: true,
+        events: [event(1)],
+        more: true,
+      })
+      .mockReturnValueOnce(loadMorePromise as any);
+
+    render(<EnrichmentDetails linkId={1} task={task(1)} link={undefined} />);
+    const loadMoreBtn = await screen.findByRole("button", { name: "加载更早记录" });
+    fireEvent.click(loadMoreBtn);
+
+    // Assert busy state
+    expect(loadMoreBtn).toBeDisabled();
+
+    // Settle promise with rejection
+    act(() => {
+      rejectLoadMore(new Error("loadMore network error"));
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("暂时无法读取");
+    expect(loadMoreBtn).not.toBeDisabled();
+  });
+
   it("offers source and per-card entries to the same dialog", () => {
     render(
       <>
