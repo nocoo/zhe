@@ -483,5 +483,31 @@ describe("useInlineLinkEditViewModel", () => {
       expect(cbs.onTagCreated).not.toHaveBeenCalled();
       expect(cbs.onLinkTagAdded).not.toHaveBeenCalled();
     });
+
+    it("handles saveEdit fallback error message when updateLink returns empty error", async () => {
+      const link = makeLink({ id: 1, folderId: "f1", title: null });
+      const cbs = makeCallbacks();
+
+      vi.mocked(updateLink).mockResolvedValueOnce({ success: false, error: "" });
+
+      const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], cbs));
+
+      act(() => {
+        result.current.setEditFolderId(null);
+        result.current.setEditTitle("New Title");
+      });
+
+      let saveOk: boolean | undefined;
+      await act(async () => {
+        saveOk = await result.current.saveEdit();
+      });
+
+      expect(saveOk).toBe(false);
+      expect(result.current.error).toBe("Failed to update link");
+      expect(updateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ folderId: null, title: "New Title" }),
+      );
+    });
   });
 });
