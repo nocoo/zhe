@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Removed
 - Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
 
+## [v2.1.3] - 2026-09-21
+
+### Added
+- Add shared enrichment records across link, X, and GitHub collections, with queue status, content previews, and single or bulk retry.
+- Record future connector attempts and capture counts, preserving existing jobs as explicitly labeled snapshots.
+
+### Fixed
+- Match the hide button hover to other card actions and align enrichment retry with the original-post link.
+- Preserve loaded enrichment history while polling for new events.
+
 ## [v2.1.2] - 2026-09-20
 
 ### Added
