@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
+import { formatDate } from "@/lib/utils";
 import { makeIdea, makeTag } from "../fixtures";
 
 // Mock tag styles
@@ -73,6 +74,18 @@ describe("IdeaCard", () => {
       const yesterday = new Date(Date.now() - 26 * 60 * 60 * 1000);
       render(<IdeaCard {...defaultProps} idea={makeIdea({ updatedAt: yesterday })} />);
       expect(screen.getByText("Yesterday")).toBeInTheDocument();
+    });
+
+    it("renders days ago for ideas updated within a week", () => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      render(<IdeaCard {...defaultProps} idea={makeIdea({ updatedAt: threeDaysAgo })} />);
+      expect(screen.getByText("3d ago")).toBeInTheDocument();
+    });
+
+    it("falls back to formatDate for ideas older than a week", () => {
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+      render(<IdeaCard {...defaultProps} idea={makeIdea({ updatedAt: tenDaysAgo })} />);
+      expect(screen.getByText(formatDate(tenDaysAgo))).toBeInTheDocument();
     });
   });
 
