@@ -147,6 +147,30 @@ describe("useIdeasViewModel", () => {
       expect(unwrap(result.current.ideas[0]).title).toBe("React hooks");
     });
 
+    it("matches search against whichever of title or excerpt exists", async () => {
+      const ideas = [
+        makeIdea({ id: 1, title: null, excerpt: "Needle in excerpt" }),
+        makeIdea({ id: 2, title: "Needle in title", excerpt: null }),
+        makeIdea({ id: 3, title: null, excerpt: null }),
+      ];
+      mockGetIdeas.mockResolvedValue({ success: true, data: ideas });
+
+      const { result } = renderHook(() => useIdeasViewModel());
+
+      await waitFor(
+        () => {
+          expect(result.current.loading).toBe(false);
+        },
+        { interval: 5 },
+      );
+
+      act(() => {
+        result.current.setSearchQuery("needle");
+      });
+
+      expect(result.current.ideas.map((idea) => unwrap(idea).id)).toEqual([1, 2]);
+    });
+
     it("filters ideas by tag", async () => {
       const ideas = [
         makeIdea({ id: 1, tagIds: ["tag-1"] }),
@@ -346,6 +370,20 @@ describe("useIdeasViewModel", () => {
       expect(success).toBe(false);
       expect(result.current.error).toBe("Failed to create");
     });
+
+    it("reports the fallback message when create succeeds without data", async () => {
+      mockCreateIdea.mockResolvedValue({ success: true });
+
+      const { result } = renderHook(() => useIdeasViewModel());
+
+      let success = true;
+      await act(async () => {
+        success = await result.current.handleCreateIdea({ content: "Test" });
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to create idea");
+    });
   });
 
   describe("update idea", () => {
@@ -393,6 +431,20 @@ describe("useIdeasViewModel", () => {
 
       expect(success).toBe(false);
       expect(result.current.error).toBe("Not found");
+    });
+
+    it("reports the fallback message when update succeeds without data", async () => {
+      mockUpdateIdea.mockResolvedValue({ success: true });
+
+      const { result } = renderHook(() => useIdeasViewModel());
+
+      let success = true;
+      await act(async () => {
+        success = await result.current.handleUpdateIdea(1, { title: "New" });
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to update idea");
     });
   });
 
@@ -443,6 +495,20 @@ describe("useIdeasViewModel", () => {
 
       expect(success).toBe(false);
       expect(result.current.error).toBe("Cannot delete");
+    });
+
+    it("reports the fallback message when delete fails without an error", async () => {
+      mockDeleteIdea.mockResolvedValue({ success: false });
+
+      const { result } = renderHook(() => useIdeasViewModel());
+
+      let success = true;
+      await act(async () => {
+        success = await result.current.handleDeleteIdea(1);
+      });
+
+      expect(success).toBe(false);
+      expect(result.current.error).toBe("Failed to delete idea");
     });
   });
 
