@@ -318,6 +318,61 @@ describe("XBookmarkStatus compact & action branches", () => {
     expect(screen.getByRole("status")).toHaveTextContent("本地浏览器尚未登录 X");
   });
 
+  it("exercises PostLinks branches: multiple links, X article, non-root URL, headline presence", () => {
+    // 1. Full mode without headline: X article and ordinary non-root URL
+    const { rerender } = render(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              text: "Check these articles",
+              entities: {
+                hashtags: [],
+                mentioned_users: [],
+                urls: ["https://x.com/i/article/999", "https://example.com/deep/page"],
+              },
+              media: [],
+            },
+          }}
+          compact={false}
+        />
+      </LayerCard>,
+    );
+
+    const previews = screen.getAllByTestId("x-link-preview");
+    expect(previews).toHaveLength(2);
+    expect(screen.getByText("X 文章")).toBeInTheDocument();
+    expect(screen.getByText("阅读 X 文章")).toBeInTheDocument();
+    expect(screen.getAllByText("阅读全文")).toHaveLength(2);
+    expect(screen.getByText("/deep/page")).toBeInTheDocument();
+
+    // 2. Compact mode with multiple links: only displays the first link
+    rerender(
+      <LayerCard>
+        <XBookmarkContent
+          bookmark={{
+            ...bookmark,
+            tweet: {
+              ...tweet,
+              text: "Check these articles",
+              entities: {
+                hashtags: [],
+                mentioned_users: [],
+                urls: ["https://x.com/i/article/999", "https://example.com/deep/page"],
+              },
+              media: [],
+            },
+          }}
+          compact={true}
+        />
+      </LayerCard>,
+    );
+    expect(screen.getAllByTestId("x-link-preview")).toHaveLength(1);
+    expect(screen.queryByText("打开链接")).not.toBeInTheDocument(); // compact hides CTA text
+  });
+
   it("renders compact partial status as 媒体待补全", () => {
     render(
       <XBookmarkStatus
@@ -327,6 +382,17 @@ describe("XBookmarkStatus compact & action branches", () => {
       />,
     );
     expect(screen.getByRole("status")).toHaveTextContent("媒体待补全");
+  });
+
+  it("exercises compact XBookmarkStatus without error in non-partial state (line 699)", () => {
+    render(
+      <XBookmarkStatus
+        bookmark={{ ...bookmark, state: "complete", errorCode: null }}
+        linkId={1}
+        compact={true}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("已补全");
   });
 
   it("renders action buttons in full status and lets caller pass custom actions", () => {
@@ -340,5 +406,55 @@ describe("XBookmarkStatus compact & action branches", () => {
     );
     expect(screen.getByText("CustomAction")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重新补全" })).toBeInTheDocument();
+  });
+
+  it("handles retry click success feedback in full status mode", async () => {
+    vi.mocked(retryXBookmarkAction).mockResolvedValueOnce({ success: true });
+    render(
+      <XBookmarkStatus
+        bookmark={{ ...bookmark, state: "failed", errorCode: "fetch_failed" }}
+        linkId={1}
+        compact={false}
+      />,
+    );
+
+    const retryBtn = screen.getByRole("button", { name: "重新补全" });
+    fireEvent.click(retryBtn);
+
+    expect(await screen.findByText("已重新排队")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "重新补全" })).not.toBeInTheDocument();
+  });
+
+  it("handles retry click failure and exception feedback in full status mode", async () => {
+    // 1. Returns { success: false }
+    vi.mocked(retryXBookmarkAction).mockResolvedValueOnce({ success: false });
+    const { rerender } = render(
+      <XBookmarkStatus
+        bookmark={{ ...bookmark, state: "failed", errorCode: "fetch_failed" }}
+        linkId={1}
+        compact={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "重新补全" }));
+    expect(await screen.findByText("暂时无法重试")).toBeInTheDocument();
+
+    // 2. Re-render with new updatedAt/version to reset feedback, and throw
+    vi.mocked(retryXBookmarkAction).mockRejectedValueOnce(new Error("offline"));
+    rerender(
+      <XBookmarkStatus
+        bookmark={{
+          ...bookmark,
+          state: "failed",
+          errorCode: "fetch_failed",
+          updatedAt: Date.now() + 1000,
+        }}
+        linkId={1}
+        compact={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "重新补全" }));
+    expect(await screen.findByText("暂时无法重试")).toBeInTheDocument();
   });
 });
