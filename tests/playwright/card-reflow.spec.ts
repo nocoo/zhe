@@ -35,6 +35,14 @@ const test = base.extend<{ owner: string }>({
 
 type Collection = "grid" | "list" | "github" | "x" | "uncategorized";
 
+const desktopColumns = [
+  [1728, 6],
+  [2056, 6],
+  [2559, 6],
+  [2560, 8],
+  [3360, 8],
+] as const;
+
 async function seedCollection(page: Page, owner: string, collection: Collection) {
   const now = Date.now();
   for (let index = 0; index < 8; index++) {
@@ -197,6 +205,19 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
       await page.reload({ waitUntil: "domcontentloaded" });
       const skeleton = page.locator('[aria-busy="true"][data-testid^="card-"]');
       await expect(skeleton).toBeVisible();
+      if (collection === "grid" || collection === "x") {
+        for (const [width, columns] of desktopColumns) {
+          await page.setViewportSize({ width, height: 1000 });
+          await expect
+            .poll(() =>
+              skeleton.evaluate(
+                (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+              ),
+            )
+            .toBe(columns);
+        }
+        await page.setViewportSize({ width: 1365, height: 1000 });
+      }
       const before = await skeleton.evaluate((element) => ({
         columns: getComputedStyle(element).gridTemplateColumns,
         height: (
@@ -261,6 +282,34 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
       ).toBe("none");
     } finally {
       release();
+    }
+  });
+}
+
+for (const collection of ["grid", "x"] as const) {
+  test(`${collection}: uses six columns on MacBook and eight on large displays`, async ({
+    page,
+    owner,
+  }, info) => {
+    const cards = await seedCollection(page, owner, collection);
+    for (const [width, columns] of desktopColumns) {
+      await page.setViewportSize({ width, height: 1117 });
+      await expect
+        .poll(() =>
+          cards.evaluateAll((elements) => {
+            const first = elements[0]?.getBoundingClientRect();
+            return elements.filter(
+              (element) => Math.abs(element.getBoundingClientRect().y - (first?.y ?? 0)) < 1,
+            ).length;
+          }),
+        )
+        .toBe(columns);
+      if (width === 1728 || width === 3360) {
+        await page.screenshot({
+          path: info.outputPath(`${collection}-${width}.png`),
+          animations: "disabled",
+        });
+      }
     }
   });
 }
