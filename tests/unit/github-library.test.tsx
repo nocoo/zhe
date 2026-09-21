@@ -449,4 +449,30 @@ describe("shared AI organization entry", () => {
       mock.mockRestore();
     }
   });
+
+  it("renders repository metadata fallbacks when language, defaultBranch and pushedAt are missing", () => {
+    const incompleteBookmark: GitHubBookmark = {
+      ...bookmark,
+      state: "complete",
+      repository: {
+        ...repository,
+        language: null,
+        defaultBranch: null as unknown as string,
+        pushedAt: null,
+      },
+    };
+    renderCard(incompleteBookmark);
+    expect(screen.getAllByText("未标注").length).toBeGreaterThan(0);
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("handles unknown bookmark error code gracefully", () => {
+    const errorBookmark: GitHubBookmark = {
+      ...bookmark,
+      state: "failed",
+      errorCode: "unrecognized_error_code" as unknown as typeof bookmark.errorCode,
+    };
+    renderCard(errorBookmark);
+    expect(screen.getByText("稍后重试，已有内容会保留")).toBeInTheDocument();
+  });
 });
