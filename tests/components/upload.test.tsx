@@ -153,6 +153,51 @@ describe("UploadZone", () => {
 
     expect(mockOnFiles).toHaveBeenCalled();
   });
+
+  it("does not upload files dropped while disabled", () => {
+    render(
+      <UploadZone isDragOver={false} onDragOver={mockOnDragOver} onFiles={mockOnFiles} disabled />,
+    );
+
+    const zone = screen.getByTestId("upload-zone");
+    const file = new File(["test"], "test.png", { type: "image/png" });
+    fireEvent.drop(zone, { dataTransfer: { files: [file] } });
+
+    expect(mockOnFiles).not.toHaveBeenCalled();
+    expect(mockOnDragOver).toHaveBeenCalledWith(false);
+  });
+
+  it("ignores drops that carry no files", () => {
+    render(<UploadZone isDragOver={false} onDragOver={mockOnDragOver} onFiles={mockOnFiles} />);
+
+    const zone = screen.getByTestId("upload-zone");
+    fireEvent.drop(zone, { dataTransfer: { files: [] } });
+
+    expect(mockOnFiles).not.toHaveBeenCalled();
+    expect(mockOnDragOver).toHaveBeenCalledWith(false);
+  });
+
+  it("ignores input changes without selected files", () => {
+    render(<UploadZone isDragOver={false} onDragOver={mockOnDragOver} onFiles={mockOnFiles} />);
+
+    const input = screen.getByTestId("upload-input");
+    fireEvent.change(input, { target: { files: [] } });
+    fireEvent.change(input, { target: { files: null } });
+
+    expect(mockOnFiles).not.toHaveBeenCalled();
+  });
+
+  it("opens file picker on Space key", () => {
+    render(<UploadZone isDragOver={false} onDragOver={mockOnDragOver} onFiles={mockOnFiles} />);
+
+    const input = screen.getByTestId("upload-input");
+    const clickSpy = vi.spyOn(input, "click");
+
+    const zone = screen.getByTestId("upload-zone");
+    fireEvent.keyDown(zone, { key: " " });
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
