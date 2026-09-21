@@ -52,11 +52,14 @@
 
 ### 测试覆盖率
 
+All four metrics (statements, branches, functions, lines) must stay ≥ 95%, enforced by the `vitest.config.ts` thresholds on every coverage run:
+
 | 维度 | 阈值 |
 |------|------|
-| 语句 / 行 | ≥ 90% |
-| 函数 | ≥ 85% |
-| 分支 | ≥ 80% |
+| 语句 | ≥ 95% |
+| 行 | ≥ 95% |
+| 函数 | ≥ 95% |
+| 分支 | ≥ 95% |
 
 ### Biome
 
@@ -71,7 +74,7 @@
 
 | Hook | 层级 | 运行内容 |
 |------|------|----------|
-| `pre-commit` | L1 + G1 + G2 | 暂存树快照上的 `test:unit:coverage` + `test:integration` + `typecheck`（`next typegen` + `tsc`）+ `lint`（Biome）+ gitleaks |
+| `pre-commit` | L1 + G2 | 暂存树快照上的 `test:unit:coverage`（all four ≥95% floors enforced）+ `test:integration` + `typecheck`（`next typegen` + `tsc`）+ `lint`（Biome）+ gitleaks |
 | `pre-push` | L2 + G2 | `bun run test:api`（API E2E）+ osv-scanner |
 | 按需手动 | L3 | `bun run test:e2e:pw`（Playwright BDD E2E） |
 
