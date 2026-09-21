@@ -137,7 +137,13 @@ describe("GitHub collection", () => {
     await user.click(screen.getByRole("button", { name: "文件夹" }));
     await user.click(screen.getByRole("option", { name: "工具" }));
     expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
-    await user.click(screen.getByRole("button", { name: "工具" }));
+    await user.click(screen.getByRole("button", { name: "标签" }));
+    await user.click(screen.getByRole("option", { name: "已读" }));
+    await user.keyboard("{Escape}");
+    expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(screen.getAllByTestId("github-repository")).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "文件夹" }));
     await user.click(screen.getByRole("option", { name: "未分类" }));
     expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "标签" }));
