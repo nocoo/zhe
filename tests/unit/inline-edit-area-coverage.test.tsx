@@ -171,29 +171,28 @@ describe("InlineEditArea", () => {
     );
   }
 
-  it("modifies text fields and calls ViewModel setters", async () => {
-    const user = userEvent.setup();
+  it("modifies text fields and calls ViewModel setters", () => {
     renderArea();
 
     const urlInput = screen.getByPlaceholderText("https://example.com");
-    await user.type(urlInput, "a");
-    expect(mockSetEditUrl).toHaveBeenCalled();
+    fireEvent.change(urlInput, { target: { value: "https://new-url.com" } });
+    expect(mockSetEditUrl).toHaveBeenLastCalledWith("https://new-url.com");
 
     const slugInput = screen.getByPlaceholderText("custom-slug");
-    await user.type(slugInput, "b");
-    expect(mockSetEditSlug).toHaveBeenCalled();
+    fireEvent.change(slugInput, { target: { value: "new-slug" } });
+    expect(mockSetEditSlug).toHaveBeenLastCalledWith("new-slug");
 
     const titleInput = screen.getByPlaceholderText("标题（可选）");
-    await user.type(titleInput, "c");
-    expect(mockSetEditTitle).toHaveBeenCalled();
+    fireEvent.change(titleInput, { target: { value: "New Title" } });
+    expect(mockSetEditTitle).toHaveBeenLastCalledWith("New Title");
 
     const noteInput = screen.getByPlaceholderText("添加备注...");
-    await user.type(noteInput, "d");
-    expect(mockSetEditNote).toHaveBeenCalled();
+    fireEvent.change(noteInput, { target: { value: "New note text" } });
+    expect(mockSetEditNote).toHaveBeenLastCalledWith("New note text");
 
     const shotInput = screen.getByPlaceholderText("https://example.com/screenshot.png");
-    await user.type(shotInput, "e");
-    expect(mockSetEditScreenshotUrl).toHaveBeenCalled();
+    fireEvent.change(shotInput, { target: { value: "https://new-shot.png" } });
+    expect(mockSetEditScreenshotUrl).toHaveBeenLastCalledWith("https://new-shot.png");
   });
 
   it("selects folders including unclassified __inbox__ option", async () => {
@@ -289,13 +288,17 @@ describe("InlineEditArea", () => {
     };
 
     vi.mocked(updateXMediaDimensionsAction).mockResolvedValueOnce({ success: false });
+    const onSaved = vi.fn();
+    const mockSetBookmarks = vi.fn();
 
-    renderArea({ bookmark: bookmarkWithMedia });
+    renderArea({ bookmark: bookmarkWithMedia, onSaved, setBookmarks: mockSetBookmarks });
     const ratioInput = screen.getByPlaceholderText("16:9");
     fireEvent.change(ratioInput, { target: { value: "1:1" } });
 
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("媒体比例未保存，请稍后重试");
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(mockSetBookmarks).not.toHaveBeenCalled();
   });
 
   it("handles exception thrown during save", async () => {

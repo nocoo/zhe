@@ -743,6 +743,30 @@ describe("reorderSiblings", () => {
     await expect(reorderSiblings("u1", root, [])).rejects.toBeInstanceOf(TodoMoveConflictError);
   });
 
+  it("runs moveTodo same-parent reorder within parent", async () => {
+    const root = await makeRoot("u1", "root");
+    const a = await makeChild("u1", root, "a");
+    const b = await makeChild("u1", root, "b");
+    const c = await makeChild("u1", root, "c");
+
+    const res = await moveTodo("u1", c, { parentId: root, position: 0 });
+    expect(res.oldParentId).toBe(root);
+    expect(res.newParentId).toBe(root);
+    expect(res.movedId).toBe(c);
+    expect(res.newParentSiblings).toEqual([c, a, b]);
+  });
+
+  it("handles updateTodo with empty trimmed title throwing error", async () => {
+    const root = await makeRoot("u1", "root");
+    await expect(updateTodo("u1", root, { title: "   " })).rejects.toThrow(
+      "Todo title cannot be empty",
+    );
+  });
+
+  it("returns null when getTodoById does not find row", async () => {
+    expect(await getTodoById("u1", 999999)).toBeNull();
+  });
+
   it("accepts an empty orderedIds when the parent has no siblings (no-op)", async () => {
     const root = await makeRoot("u1", "root"); // leaf; no children
     await expect(reorderSiblings("u1", root, [])).resolves.toEqual([]);
