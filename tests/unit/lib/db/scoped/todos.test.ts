@@ -767,6 +767,61 @@ describe("reorderSiblings", () => {
     expect(await getTodoById("u1", 999999)).toBeNull();
   });
 
+  it("handles updateTodo with no-op done flag without changing done_at", async () => {
+    const root = await makeRoot("u1", "root");
+    const done1 = await updateTodo("u1", root, { done: true });
+    expect(done1?.done).toBe(true);
+    expect(done1?.doneAt).toBeInstanceOf(Date);
+    const origDoneAt = done1?.doneAt?.getTime();
+
+    // No-op done update (done: true when already done)
+    const done2 = await updateTodo("u1", root, { done: true, title: "still done" });
+    expect(done2?.done).toBe(true);
+    expect(done2?.doneAt?.getTime()).toBe(origDoneAt);
+
+    // Toggle to false clears done_at
+    const undone = await updateTodo("u1", root, { done: false });
+    expect(undone?.done).toBe(false);
+    expect(undone?.doneAt).toBeNull();
+  });
+
+  it("handles updateTodo returning null when id does not exist", async () => {
+    expect(await updateTodo("u1", 999999, { title: "none" })).toBeNull();
+  });
+
+  it("handles createTodo with empty tagNames skipping tag insertion batch and sets dueAt", async () => {
+    const dueDate = new Date(1700000000000);
+    const res = await createTodo("u1", { title: "With Due", dueAt: dueDate, tagNames: [] });
+    expect(res.tagNames).toEqual([]);
+    expect(res.dueAt?.getTime()).toBe(1700000000000);
+  });
+
+  it("handles moveTodo to tail position without opening slot", async () => {
+    const root = await makeRoot("u1", "root");
+    const c1 = await makeChild("u1", root, "c1");
+    const c2 = await makeChild("u1", root, "c2");
+
+    // Move c1 to position 1 (which is tail of 2 items [c2, c1])
+    const res = await moveTodo("u1", c1, { parentId: root, position: 1 });
+    expect(res.movedId).toBe(c1);
+    expect(res.newParentSiblings).toEqual([c2, c1]);
+  });
+
+  it("handles moveTodo no-op same position within parent", async () => {
+    const root = await makeRoot("u1", "root");
+    const c1 = await makeChild("u1", root, "c1");
+
+    const res = await moveTodo("u1", c1, { parentId: root, position: 0 });
+    expect(res.movedId).toBe(c1);
+    expect(res.newParentSiblings).toEqual([c1]);
+  });
+
+  it("rejects moveTodo when id does not exist", async () => {
+    await expect(moveTodo("u1", 999999, { parentId: null, position: 0 })).rejects.toBeInstanceOf(
+      TodoNotFoundError,
+    );
+  });
+
   it("accepts an empty orderedIds when the parent has no siblings (no-op)", async () => {
     const root = await makeRoot("u1", "root"); // leaf; no children
     await expect(reorderSiblings("u1", root, [])).resolves.toEqual([]);
