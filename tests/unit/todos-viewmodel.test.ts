@@ -165,4 +165,85 @@ describe("useTodosViewModel", () => {
     expect(result.current.detail).toBeNull();
     expect(result.current.detailLoading).toBe(false);
   });
+
+  it("handles initial fetch failure and refreshTodos failure or success", async () => {
+    // Initial fetch failure
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetTodos.mockRejectedValueOnce(new Error("fetch error"));
+    const { result } = renderHook(() => useTodosViewModel());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.todos).toEqual([]);
+
+    // refreshTodos success
+    mockGetTodos.mockResolvedValueOnce({ success: true, data: TREE });
+    await act(async () => {
+      await result.current.refreshTodos();
+    });
+    expect(result.current.todos).toHaveLength(2);
+
+    // refreshTodos failure (e.g. success: false)
+    mockGetTodos.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      await result.current.refreshTodos();
+    });
+    expect(result.current.todos).toHaveLength(2);
+    consoleError.mockRestore();
+  });
+
+  it("handles getTodo failure or empty data by setting detail to null", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { result } = renderHook(() => useTodosViewModel());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // getTodo returns success: false
+    mockGetTodo.mockResolvedValueOnce({ success: false });
+    act(() => result.current.setSelectedId(1));
+    await waitFor(() => expect(result.current.detailLoading).toBe(false));
+    expect(result.current.detail).toBeNull();
+
+    // getTodo throws error
+    mockGetTodo.mockRejectedValueOnce(new Error("network"));
+    act(() => result.current.setSelectedId(2));
+    await waitFor(() => expect(result.current.detailLoading).toBe(false));
+    expect(result.current.detail).toBeNull();
+    consoleError.mockRestore();
+  });
+
+  it("supports deleteConfirm cancelDelete and executeDelete without selected target", async () => {
+    const { result } = renderHook(() => useTodosViewModel());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const root = TREE[0];
+    if (!root) throw new Error("test fixture missing");
+
+    act(() => result.current.confirmDelete(root));
+    expect(result.current.isDeleteConfirmOpen).toBe(true);
+    expect(result.current.todoToDelete?.id).toBe(root.id);
+
+    act(() => result.current.cancelDelete());
+    expect(result.current.isDeleteConfirmOpen).toBe(false);
+    expect(result.current.todoToDelete).toBeNull();
+
+    await act(async () => {
+      await result.current.executeDelete();
+    });
+    expect(mockDeleteTodo).not.toHaveBeenCalled();
+  });
+
+  it("drops late initial fetch response after unmount without updating state", async () => {
+    let resolveInitial: ((value: unknown) => void) | undefined;
+    mockGetTodos.mockImplementationOnce(
+      () =>
+        new Promise((res) => {
+          resolveInitial = res;
+        }),
+    );
+    const { result, unmount } = renderHook(() => useTodosViewModel());
+    expect(result.current.loading).toBe(true);
+    unmount();
+    await act(async () => {
+      resolveInitial?.({ success: true, data: TREE });
+    });
+    expect(result.current.todos).toEqual([]);
+  });
 });
