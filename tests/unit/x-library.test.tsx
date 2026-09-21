@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
 vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
-vi.mock("@/actions/links", () => ({ createLink: vi.fn() }));
+vi.mock("@/actions/links", () => ({ createLink: vi.fn(), deleteLink: vi.fn() }));
 
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLink } from "@/actions/links";
+import { createLink, deleteLink } from "@/actions/links";
 import { normalizeXPost, type XPost } from "@/cli/src/connector/core";
 import { XLibraryPage } from "@/components/dashboard/x-library-page";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -21,9 +21,20 @@ vi.mock("@/viewmodels/useLinksViewModel", async () =>
 );
 vi.mock("@/contexts/dashboard-service", () => ({ useDashboardService: vi.fn() }));
 vi.mock("@/components/dashboard/link-card", () => ({
-  LinkCard: ({ link, viewMode }: { link: Link; viewMode: string }) => (
+  LinkCard: ({
+    link,
+    viewMode,
+    onSuggest,
+  }: {
+    link: Link;
+    viewMode: string;
+    onSuggest?: () => void;
+  }) => (
     <article aria-label={link.note ?? ""} data-view={viewMode}>
       {link.note}
+      <button type="button" aria-label="AI 整理" onClick={onSuggest}>
+        AI
+      </button>
     </article>
   ),
 }));
@@ -309,6 +320,60 @@ describe("X library", () => {
     await user.click(screen.getByRole("button", { name: "刷新链接" }));
     await waitFor(() => expect(service.refreshXBookmarks).toHaveBeenCalledOnce());
     expect(service.refreshLinks).toHaveBeenCalledOnce();
+  });
+  it("keeps an in-flight capture pending while its text stays readable", async () => {
+    const processing = new Map(bookmarks);
+    processing.set(5, {
+      linkId: 5,
+      tweet: post(5),
+      state: "running",
+      errorCode: null,
+      updatedAt: 2,
+    });
+    renderPage(processing);
+    await selectType("待补全");
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("article", { name: "Waiting" })).toBeInTheDocument();
+    await selectType("文字");
+    expect(screen.getByRole("article", { name: "Waiting" })).toBeInTheDocument();
+  });
+  it("reveals hidden links only after the visibility toggle", async () => {
+    vi.mocked(useDashboardService).mockReturnValue({
+      ...service,
+      links: [...links, { ...link(8, "Secret stash"), isHidden: true }],
+    });
+    const user = userEvent.setup();
+    renderPage();
+    expect(screen.getByRole("status")).toHaveTextContent("共 7 条收藏 · 显示 6 条");
+    expect(screen.queryByRole("article", { name: "Secret stash" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "展示隐藏" }));
+    expect(screen.getByRole("status")).toHaveTextContent("共 7 条收藏");
+    expect(screen.getByRole("article", { name: "Secret stash" })).toBeInTheDocument();
+  });
+  it("deletes selected cards through the dashboard service", async () => {
+    vi.mocked(deleteLink).mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "多选卡片" }));
+    await user.click(screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/1" }));
+    await user.click(screen.getByRole("button", { name: "删除所选" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(service.handleLinkDeleted).toHaveBeenCalledWith(1));
+    expect(deleteLink).toHaveBeenCalledWith(1);
+  });
+  it("opens the AI organizer from a card action", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json({ error: "AI 未配置" }, { status: 500 })),
+    );
+    try {
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getAllByRole("button", { name: "AI 整理" })[0] as HTMLElement);
+      expect(await screen.findByTestId("suggest-link-org-dialog")).toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it("shows initial loading and an actionable empty state", () => {
     vi.mocked(useDashboardService).mockReturnValue({
