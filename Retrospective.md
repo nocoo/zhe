@@ -71,6 +71,10 @@ CLI validation on 17063945 exposed a fake-clock race in the OpenCLI contract sui
 
 The link-card motion L3 test captured its origin while the parent was still 12px below its final position. `seedCard` waited on the card's immediate inner wrapper, but `animate-fade-up` belongs to an outer ancestor. Resolve and await the actual animated ancestor before measuring geometry; keep all motion assertions and tolerances unchanged.
 
+## 2026-09-23 — Linux skeleton geometry sampled during loading handoff
+
+PR #944's GitHub skeleton check observed the visible loading container, then a separate geometry read sampled a pulse-card height of zero; the retry showed the expected skeleton. Poll columns and height together until one sample has positive height, then use that same sample for the original exact geometry checks. The first-attempt DOM transition was not traced, so the handoff is a supported diagnosis rather than a directly observed replacement. Keep wrong nonzero geometry failing and preserve all collection, motion and entrance assertions.
+
 ## 2026-09-23 — url-metadata security upgrade
 
 `url-metadata` 5.x pins the vulnerable `request-filtering-agent` 2.0.1; the reviewed 6.0.0 release updates that protection and requires Node `^20.19.0 || >=22.12.0`. Keep real-library localhost coverage for default private-IP blocking as well as the explicit allow-list used by the parsing smoke test. Install with lifecycle scripts disabled in this checkout; never run Husky preparation or alter shared Git hook configuration.
