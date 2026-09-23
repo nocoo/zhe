@@ -17,17 +17,20 @@
  *      `undici.request()` is exercised against the same fixture — locks
  *      the override in against a silent downgrade below 8.9.0.
  */
-import { createServer, type Server } from "node:http";
+import { createServer, get as httpGet, type Server } from "node:http";
 import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
+import { pathToFileURL } from "node:url";
 import * as cheerio from "cheerio";
 import { request as undiciRequest } from "undici";
 import urlMetadata from "url-metadata";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const undiciPkg = createRequire(import.meta.url)("undici/package.json") as {
-  version: string;
-};
+const require = createRequire(import.meta.url);
+const undiciPkg = require("undici/package.json") as { version: string };
+const metadataRequire = createRequire(require.resolve("url-metadata"));
+const filteringAgentPath = metadataRequire.resolve("request-filtering-agent");
+const { RequestFilteringHttpAgent } = await import(pathToFileURL(filteringAgentPath).href);
 
 const HTML_FIXTURE = `<!DOCTYPE html>
 <html lang="en">
@@ -47,9 +50,11 @@ const HTML_FIXTURE = `<!DOCTYPE html>
 describe("metadata smoke — real url-metadata / cheerio / undici", () => {
   let server: Server;
   let baseUrl: string;
+  let requestCount = 0;
 
   beforeAll(async () => {
     server = createServer((_req, res) => {
+      requestCount += 1;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(HTML_FIXTURE);
     });
@@ -62,6 +67,17 @@ describe("metadata smoke — real url-metadata / cheerio / undici", () => {
     await new Promise<void>((resolve, reject) =>
       server.close((err) => (err ? reject(err) : resolve())),
     );
+  });
+
+  it("rejects private IP connections asynchronously without a synchronous throw", async () => {
+    const requestsBefore = requestCount;
+    const agent = new RequestFilteringHttpAgent();
+    const request = httpGet(baseUrl, { agent });
+
+    await expect(
+      new Promise<never>((_resolve, reject) => request.once("error", reject)),
+    ).rejects.toThrow(/private IP address/i);
+    expect(requestCount).toBe(requestsBefore);
   });
 
   it("url-metadata fetches (via node-fetch) and parses (via cheerio) a real page end-to-end", async () => {

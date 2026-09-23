@@ -70,3 +70,7 @@ The zero-retry local L3 run on 4ff825e timed out in the X skeleton's five-width 
 CLI validation on 17063945 exposed a fake-clock race in the OpenCLI contract suite: the bridge connects before asynchronous adapter imports register the 1200ms delay, so advancing time immediately after connection can leave the later delay pending until the unchanged 5s test timeout. Two runs failed in different cases sharing that helper. Wait for timer registration or early cleanup before advancing the clock; retain the main-flow assertions and production behavior. A diagnostic invocation appended a test filename to the compound package script and therefore ran the full suite; use the installed Vitest binary for file-filtered runs.
 
 The link-card motion L3 test captured its origin while the parent was still 12px below its final position. `seedCard` waited on the card's immediate inner wrapper, but `animate-fade-up` belongs to an outer ancestor. Resolve and await the actual animated ancestor before measuring geometry; keep all motion assertions and tolerances unchanged.
+
+## 2026-09-23 — url-metadata security upgrade
+
+`url-metadata` 5.x pins the vulnerable `request-filtering-agent` 2.0.1; the reviewed 6.0.0 release updates that protection and requires Node `^20.19.0 || >=22.12.0`. Keep real-library localhost coverage for default private-IP blocking as well as the explicit allow-list used by the parsing smoke test. Install with lifecycle scripts disabled in this checkout; never run Husky preparation or alter shared Git hook configuration.
