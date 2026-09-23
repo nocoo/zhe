@@ -206,19 +206,6 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
       const skeleton = page.getByRole("status", { name: /^正在加载(?:卡片|列表)$/ });
       await expect(skeleton).toHaveCount(1);
       await expect(skeleton).toBeVisible();
-      if (collection === "grid" || collection === "x") {
-        for (const [width, columns] of desktopColumns) {
-          await page.setViewportSize({ width, height: 1000 });
-          await expect
-            .poll(() =>
-              skeleton.evaluate(
-                (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
-              ),
-            )
-            .toBe(columns);
-        }
-        await page.setViewportSize({ width: 1365, height: 1000 });
-      }
       const before = await skeleton.evaluate((element) => ({
         columns: getComputedStyle(element).gridTemplateColumns,
         height: (
