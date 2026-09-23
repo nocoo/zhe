@@ -443,7 +443,7 @@ export function todoTagColor(name: string): { bg: string; fg: string; border: st
 
 Todos follow the **site-wide** contract; do not invent module-local sizes.
 
-- **Canonical**: [22-design-tokens.md](22-design-tokens.md) · agent summary in root `CLAUDE.md`
+- **Canonical**: [22-design-tokens.md](22-design-tokens.md) · agent summary in root `AGENTS.md`
 - **CSS**: `app/globals.css` · **tests**: `tests/unit/ui/control-density.test.tsx`
 - In this module: FilterBar / detail use Button `size="sm"` + field `size="sm"`; Checkbox from `components/ui`; title row is `items-center` with emoji + title both `h-8`.
 

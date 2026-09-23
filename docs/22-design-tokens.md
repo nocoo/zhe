@@ -1,6 +1,6 @@
 # Design Tokens & UI Control Contract
 
-> 返回 [README](../README.md) · Agent 入口见根目录 `CLAUDE.md`（与 `Claude.md` 硬链）
+> 返回 [README](../README.md) · Agent 入口见根目录 `AGENTS.md`
 
 本文档是 **Dashboard UI 控件与 Design Token 的唯一权威约定**。  
 实现新页面 / 工具栏 / Panel 时 **必须复用** `components/ui/*` 的 `size` 与 token，**禁止**在 call site 重新堆砌高度、字号、圆角。
@@ -180,7 +180,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 1. 改 `app/globals.css` 注释 + 变量（如需要）
 2. 改 `components/ui/*` 的 cva / size map
 3. 更新 `tests/unit/ui/control-density.test.tsx`
-4. 同步本文件与 `CLAUDE.md` 中的摘要表
+4. 同步本文件与 `AGENTS.md` 中的摘要表
 5. 原子 commit：`feat`/`fix` 原语与 `docs` 可分提交
 
 X 收藏与 GitHub 收藏复用 PageHeader.actions：短筛选组在标题/副标题右侧居右排列，窄屏自然换行。页面不设独立内容搜索框，搜索统一从 sidebar 进入；结果数量合并到副标题。X 内容类型使用含数量的下拉筛选。

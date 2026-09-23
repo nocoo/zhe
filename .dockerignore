@@ -9,7 +9,7 @@ drizzle
 playwright.config.ts
 vitest.config.ts
 CHANGELOG.md
-CLAUDE.md
+AGENTS.md
 README.md
 worker
 logo.png

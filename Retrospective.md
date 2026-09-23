@@ -1,6 +1,6 @@
 # Retrospective
 
-Historical accident narratives and project lessons. Current requirements live in [CLAUDE.md](CLAUDE.md). Preserve original dates and wording; deterministic follow-ups belong in tests/hooks and cross-project lessons in global rules/nmem.
+Historical accident narratives and project lessons. Current requirements live in [AGENTS.md](AGENTS.md). Preserve original dates and wording; deterministic follow-ups belong in tests/hooks and cross-project lessons in global rules/nmem.
 
 ## Undated collection — migrated from the previous handbook
 

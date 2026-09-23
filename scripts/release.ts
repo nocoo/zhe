@@ -347,7 +347,7 @@ function bumpVersionField(filePath: string, newVersion: string): void {
 
 function updatePackageJson(newVersion: string): void {
   bumpVersionField(PACKAGE_JSON, newVersion);
-  // Keep the monorepo CLI version in lockstep with root (CLAUDE.md versioning
+  // Keep the monorepo CLI version in lockstep with root (AGENTS.md versioning
   // rule). The CLI is published to npm as @nocoo/zhe and must match root.
   if (existsSync(CLI_PACKAGE_JSON)) {
     bumpVersionField(CLI_PACKAGE_JSON, newVersion);

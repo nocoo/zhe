@@ -473,7 +473,7 @@ L2/L3 均使用 `scripts/test-stack.ts` 管理的本地栈，不能创建或部�
 
 `.github/workflows/ci.yml` 是当前执行依据：共享 quality 跑 web L1/G1/G2/build，CLI job 跑 build/lint/coverage/Python unittest，Worker job 跑单元测试，API/browser job 跑本地 L2/L3。Wrangler matrix 的实验版本允许失败，稳定行才是硬结果。
 
-CI 当前还传递 `AUTH_SECRET` 和 `WORKER_SECRET` 名称，但远端 Cloudflare 测试资源已经退役；本地 runner 的测试覆写不应依赖生产值。完整 CLI/Worker G1/G2、四指标 coverage、push-ref 扫描和每次运行隔离的现状见根 [CLAUDE.md](../CLAUDE.md)。
+CI 当前还传递 `AUTH_SECRET` 和 `WORKER_SECRET` 名称，但远端 Cloudflare 测试资源已经退役；本地 runner 的测试覆写不应依赖生产值。完整 CLI/Worker 质量门、四指标 coverage、push-ref 扫描和每次运行隔离的现状见根 [AGENTS.md](../AGENTS.md)。
 
 ## 九、Git Hook 绕过禁令
 

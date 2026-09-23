@@ -5,7 +5,7 @@
 > **Status**: Implemented (v1.5) · Codex Sign Off on design; implementation pending code review  
 > **Date**: 2026-08-23  
 > **Related**: gecko `apps/web-dashboard` AI settings + `analyze-core.ts`; `@nocoo/next-ai` `^0.4.0`; `docs/22-design-tokens.md`  
-> **Agent entry**: `CLAUDE.md`
+> **Agent entry**: `AGENTS.md`
 
 ---
 

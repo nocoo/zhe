@@ -3,7 +3,7 @@
 > 状态：历史规划；当前实现与验收以 [收藏搜索](30-enriched-search.md) 为准
 > 日期：2026-07-24  
 > 关联：原 Todo 模块任务 #2「合并搜索功能」；现有实现 `components/search-command-dialog.tsx`  
-> 权威 UI 契约：`docs/22-design-tokens.md` · Agent 入口：`CLAUDE.md`
+> 权威 UI 契约：`docs/22-design-tokens.md` · Agent 入口：`AGENTS.md`
 
 ---
 

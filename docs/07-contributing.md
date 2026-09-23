@@ -88,7 +88,7 @@ All four metrics (statements, branches, functions, lines) must stay ≥ 95%, enf
 
 ```
 README.md              — 项目入口（概览 + Agent 指南）
-CLAUDE.md              — AI Agent 开发指南
+AGENTS.md              — AI Agent 开发指南
 docs/
 ├── 01-architecture.md — 架构与数据流
 ├── 02-getting-started.md — 环境搭建
@@ -116,13 +116,13 @@ docs/
 | 测试策略变更 | `05-testing.md` |
 | 开发流程变更 | `07-contributing.md` |
 | 备份功能变更 | `10-backy.md` |
-| UI / Design Token / 控件密度 | `22-design-tokens.md`、`CLAUDE.md`（摘要）、`app/globals.css` |
+| UI / Design Token / 控件密度 | `22-design-tokens.md`、`AGENTS.md`（摘要）、`app/globals.css` |
 
 ## UI 控件约定（摘要）
 
 Dashboard **工具栏** 用 `Button size="sm"` + 字段 `size="sm"`（32px compact）。**表单/设置** 次要按钮用 `Button size="default"`（36px）。禁止 call site 堆 `h-8 text-xs rounded-lg` 或原生 checkbox。
 
-完整契约：[22-design-tokens.md](22-design-tokens.md) · Agent 硬规则见根目录 `CLAUDE.md` → **Design Tokens & UI Controls**。
+完整契约：[22-design-tokens.md](22-design-tokens.md) · Agent 硬规则见根目录 `AGENTS.md` → **Project Invariants**。
 
 ## 技术栈
 

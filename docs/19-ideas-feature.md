@@ -190,7 +190,7 @@ async createIdea(data: { content: string; title?: string; tagIds?: string[] }): 
 > table. With 2+ child INSERTs, the second child's `last_insert_rowid()` resolves to the
 > first child's rowid — causing FOREIGN KEY constraint failures. Always use
 > `RETURNING *` on the parent INSERT as a separate query, then pass the concrete ID to
-> the child batch. See `CLAUDE.md` Retrospective for details.
+> the child batch. See `AGENTS.md` Retrospective for details.
 
 **Key design points**:
 

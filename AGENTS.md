@@ -2,7 +2,7 @@
 
 Short links, bookmarks, ideas, tasks and personal integrations, with a web app, edge Worker and CLI.
 Profile: `ts-worker-web` with a `cli-library` lane.
-Direction: [architecture](docs/01-architecture.md), [maintainer operations](docs/29-maintainer-operations.md). Frameworks must preserve this handbook.
+Human overview: [README.md](README.md). Direction: [architecture](docs/01-architecture.md), [maintainer operations](docs/29-maintainer-operations.md). Frameworks must preserve this handbook. Maintain this root `AGENTS.md` as the only project handbook; do not create a `CLAUDE.md` alias, copy or import.
 
 ## Sources of Truth
 
@@ -61,29 +61,27 @@ The test runners own local env overrides, migrations, readiness and cleanup; no 
 
 ## Verification
 
-6DQ = L1/L2/L3 + G1/G2 + D1 isolation. Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
+6DQ = L1/L2/L3 + G2 + D1 isolation; the former G1 dimension was merged into L1 on 2026-09-21, per lane. Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
 
 | Piece | Required proof and current reality | Status | Evidence / gap |
 |---|---|---|---|
-| L1 web | Statements/branches/functions/lines each ≥95%; current config is 95/85/90/95 respectively | planned | `vitest.config.ts`; hooks/CI enforce the weaker scoped values, not this contract |
-| L1 CLI / Worker | Four metrics each ≥95% in both lanes, including Python helper behavior | planned | CLI branches 90 with command exclusions; Python unittest runs without coverage; Worker has no coverage threshold |
+| L1 web (incl. former G1 web static) | Statements/branches/functions/lines each ≥95%; strict types and lint/format with zero errors/warnings; current coverage config is 95/85/90/95 respectively | planned | Achieved static subchecks run today (pre-commit types/full Biome; CI quality) via `vitest.config.ts`; hooks/CI enforce the weaker scoped coverage values, not this contract, the hook checks an exported index snapshot and blocks failed stages; its <30s budget and independent rejection proof remain unverified |
+| L1 CLI / Worker (incl. former G1 CLI/Worker static) | Four metrics each ≥95% in both lanes, including Python helper behavior; all executable lanes have strict types/lint and zero warnings | planned | CLI branches 90 with command exclusions; Python unittest runs without coverage; Worker has no coverage threshold. CLI CI runs types/Biome but lacks warning-as-error; Worker CI currently runs tests only |
 | L2 | Real HTTP for every endpoint/method, SQL and tenant behavior | planned | `test:api` enforced by pre-push/CI; completeness of endpoint/method inventory still needs a gate |
 | L3 | Real browser journeys and isolated CLI process workflows | planned | Browser suite runs in CI/release preflight; CLI command workflow coverage is incomplete |
-| G1 web | Strict types and lint/format, zero errors/warnings | enforced | Pre-commit types/staged Biome; CI quality |
-| G1 CLI / Worker | All executable lanes have strict types/lint and zero warnings | planned | CLI CI runs types/Biome but lacks warning-as-error; Worker CI currently runs tests only |
 | G2 | Required dependency + secret scanners across all lockfiles and pushed commits | planned | Root staged gitleaks + root OSV and CI exist; CLI/Worker lockfile and push-ref coverage remain gaps |
 | D1 | Per-run local persistence; guards/marker before fixtures and cleanup | planned | Local stack and marker checks exist, but fixed `.test-storage` is deleted before marker validation and shared between lanes |
 | Build | Web and CLI bundles | enforced | CI builds both; `typecheck` is not a build |
 | Docs | Current tests, design contracts and migrations documented | manual | [Testing](docs/05-testing.md), full diff review |
 
-Pre-commit runs coverage, in-process integration, types, staged lint and gitleaks in parallel on working files. Target: all L1/G1 on an index snapshot, <30s.
+Pre-commit exports the index with `git checkout-index`, verifies installed manifests match, generates route types and sequentially runs coverage, in-process integration, types and full lint in that snapshot, then staged gitleaks; failures cancel the owned child and clean the snapshot. Target: unified L1 (types, check-only lint, coverage) on an index snapshot, <30s.
 Pre-push runs local L2 and root OSV in parallel; it does not use stdin push refs for secret scanning. Target: L2/G2 over exact pushed refs, <3min.
 Hooks are check-only; never use `--no-verify`, disable gates or run autofix as a gate.
 
 ## Resources / Isolation
 
 Dev: 7006 behind Caddy with `.next/dev`. L2: 17006; L3: 27006; test Next output: `.next/test`. Keep daily dev alive and serialize L2/L3 until their shared paths are per-run.
-`scripts/test-stack.ts` owns local Worker 8788 and R2 HTTP shim 18788, SQLite/KV under `.test-storage/wrangler` and filesystem R2 under `.test-storage/r2`.
+`scripts/test-stack.ts` owns local Worker 8788 by default (`ZHE_TEST_WORKER_PORT` can select an isolated port, e.g. 28788) and R2 HTTP shim 18788, SQLite/KV under `.test-storage/wrangler` and filesystem R2 under `.test-storage/r2`.
 The shim is test-only. Use local Wrangler/Miniflare, fresh per-run directories, loopback/test guards and `_test_marker`; never deploy remote `-test` resources or use production/daily-dev data for E2E.
 
 ## Operations / Release
