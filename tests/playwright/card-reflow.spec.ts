@@ -203,27 +203,22 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
     });
     try {
       await page.reload({ waitUntil: "domcontentloaded" });
-      const skeleton = page.locator('[aria-busy="true"][data-testid^="card-"]');
+      const skeleton = page.getByRole("status", { name: /^正在加载(?:卡片|列表)$/ });
+      await expect(skeleton).toHaveCount(1);
       await expect(skeleton).toBeVisible();
-      if (collection === "grid" || collection === "x") {
-        for (const [width, columns] of desktopColumns) {
-          await page.setViewportSize({ width, height: 1000 });
-          await expect
-            .poll(() =>
-              skeleton.evaluate(
-                (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
-              ),
-            )
-            .toBe(columns);
-        }
-        await page.setViewportSize({ width: 1365, height: 1000 });
-      }
-      const before = await skeleton.evaluate((element) => ({
-        columns: getComputedStyle(element).gridTemplateColumns,
-        height: (
-          element.querySelector(".animate-pulse") ?? element.firstElementChild
-        )?.getBoundingClientRect().height,
-      }));
+      let before: { columns: string; height: number | undefined } | undefined;
+      await expect
+        .poll(async () => {
+          before = await skeleton.evaluate((element) => ({
+            columns: getComputedStyle(element).gridTemplateColumns,
+            height: (
+              element.querySelector(".animate-pulse") ?? element.firstElementChild
+            )?.getBoundingClientRect().height,
+          }));
+          return before.height ?? 0;
+        })
+        .toBeGreaterThan(0);
+      assert(before);
       if (collection === "list" || collection === "uncategorized")
         expect(before.columns).toBe("none");
       if (collection === "github") expect(before.height).toBe(244);

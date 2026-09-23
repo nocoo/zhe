@@ -133,7 +133,7 @@ async function captureChild() {
     (value) => ({ value }),
     (error: unknown) => ({ error }),
   );
-  await vi.waitFor(() => expect(state.options).toBeDefined());
+  await vi.waitFor(() => expect(vi.getTimerCount() > 0 || state.closed > 0).toBe(true));
   await vi.advanceTimersByTimeAsync(1200);
   const output = await settled;
   if ("error" in output) throw output.error;
@@ -247,7 +247,7 @@ describe("pinned OpenCLI adapter contract", () => {
     process.send = send;
     process.disconnect = vi.fn();
     const result = runIsolated(postId);
-    await vi.waitFor(() => expect(state.options).toBeDefined());
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
     await vi.advanceTimersByTimeAsync(1200);
     await result;
     expect(send.mock.calls[0]?.[0]).toMatchObject({ ok: true, capture: { tweet: { id: postId } } });

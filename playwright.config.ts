@@ -36,6 +36,7 @@ export default defineConfig({
   globalTeardown: "./tests/playwright/global-teardown.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
+  failOnFlakyTests: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // Local runs share the machine with daily development and other builds.
   // Serialize browsers locally; dedicated CI runners retain four workers.
