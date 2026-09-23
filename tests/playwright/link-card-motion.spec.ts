@@ -28,9 +28,9 @@ async function seedCard(page: Page, mode: "grid" | "list") {
     await document.fonts.ready;
   });
   await card.evaluate(async (element) => {
-    await Promise.all(
-      element.parentElement?.getAnimations().map((animation) => animation.finished) ?? [],
-    );
+    const animatedAncestor = element.closest<HTMLElement>(".animate-fade-up");
+    if (!animatedAncestor) throw new Error("Expected the card's fade-up wrapper");
+    await Promise.all(animatedAncestor.getAnimations().map((animation) => animation.finished));
   });
   return { card, slug };
 }
