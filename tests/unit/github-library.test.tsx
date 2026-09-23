@@ -143,6 +143,15 @@ describe("GitHub collection", () => {
     expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "清除筛选" }));
     expect(screen.getAllByTestId("github-repository")).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "文件夹" }));
+    await user.click(screen.getByRole("option", { name: "未分类" }));
+    expect(screen.getAllByTestId("github-repository")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "标签" }));
+    await user.click(screen.getByRole("option", { name: "已读" }));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByTestId("github-repository")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(screen.getAllByTestId("github-repository")).toHaveLength(2);
     await user.click(screen.getByRole("combobox", { name: "仓库排序" }));
     await user.click(screen.getByRole("option", { name: "最多 stars" }));
     expect(screen.getAllByTestId("github-repository")[0]).toHaveAttribute("data-link-id", "1");
@@ -448,5 +457,61 @@ describe("shared AI organization entry", () => {
     } finally {
       mock.mockRestore();
     }
+  });
+
+  it("renders repository metadata fallbacks when language, defaultBranch and pushedAt are missing", () => {
+    const incompleteBookmark: GitHubBookmark = {
+      ...bookmark,
+      state: "complete",
+      repository: {
+        ...repository,
+        language: null,
+        defaultBranch: null as unknown as string,
+        pushedAt: null,
+      },
+    };
+    renderCard(incompleteBookmark);
+    expect(screen.getAllByText("未标注").length).toBeGreaterThan(0);
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("renders status badge when state is running and toggles markdown source view in readme", async () => {
+    vi.mocked(loadGitHubReadme).mockResolvedValueOnce({
+      success: true,
+      data: {
+        ...repository,
+        readme: "# Markdown Content\nSome text",
+      },
+    });
+
+    renderCard({
+      ...bookmark,
+      state: "running",
+      errorCode: null,
+      capturedAt: Date.parse("2026-09-12T00:00:00Z"),
+    });
+
+    // Verify running indicator in card
+    expect(screen.getByText("正在补全")).toBeInTheDocument();
+
+    // Open README dialog
+    fireEvent.click(screen.getByRole("button", { name: "阅读 README" }));
+    expect(await screen.findByText("Markdown Content")).toBeVisible();
+
+    // Toggle Markdown source view
+    const toggleBtn = screen.getByRole("button", { name: "Markdown 原文" });
+    fireEvent.click(toggleBtn);
+    expect(screen.getByText("# Markdown Content Some text")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "阅读视图" })).toBeInTheDocument();
+  });
+
+  it("handles unknown bookmark error code gracefully", () => {
+    const errorBookmark: GitHubBookmark = {
+      ...bookmark,
+      state: "failed",
+      errorCode: "unrecognized_error_code" as unknown as typeof bookmark.errorCode,
+    };
+    renderCard(errorBookmark);
+    expect(screen.getByText("稍后重试，已有内容会保留")).toBeInTheDocument();
   });
 });

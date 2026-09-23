@@ -1,4 +1,10 @@
 name = "zhe-edge"
+routes = [
+  { pattern = "zhe.to/*", zone_name = "zhe.to" },
+  { pattern = "zhe-edge.worker.hexly.ai", custom_domain = true }
+]
+workers_dev = false
+preview_urls = false
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 

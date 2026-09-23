@@ -197,6 +197,8 @@ export function LinksList() {
   return (
     <div>
       <LinksListToolbar
+        showHidden={filters.showHidden}
+        onToggleHidden={() => filters.setShowHidden((value) => !value)}
         specialSources={filters.specialSources}
         headerTitle={filters.headerTitle}
         linkCount={filters.filteredLinks.length}

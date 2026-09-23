@@ -23,6 +23,7 @@ describe("models/settings", () => {
       const link = makeLink({
         originalUrl: "https://example.com/page",
         slug: "my-slug",
+        isHidden: false,
         isCustom: true,
         clicks: 42,
         createdAt: new Date("2026-02-01T12:00:00.000Z"),
@@ -40,6 +41,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://example.com/page",
           slug: "my-slug",
+          isHidden: false,
           isCustom: true,
           clicks: 42,
           createdAt: "2026-02-01T12:00:00.000Z",
@@ -104,6 +106,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://example.com",
           slug: "abc",
+          isHidden: false,
           isCustom: false,
           clicks: 10,
           createdAt: "2026-01-15T00:00:00.000Z",
@@ -145,6 +148,7 @@ describe("models/settings", () => {
         {
           originalUrl: "not-a-url",
           slug: "abc",
+          isHidden: false,
           isCustom: false,
           clicks: 0,
           createdAt: "2026-01-01",
@@ -160,6 +164,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://example.com",
           slug: "abc",
+          isHidden: false,
           isCustom: true,
           createdAt: "2026-01-01",
         },
@@ -224,6 +229,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://good.com",
           slug: "ok",
+          isHidden: false,
           isCustom: false,
           clicks: 0,
           createdAt: "2026-01-01",
@@ -240,6 +246,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://a.com",
           slug: "a",
+          isHidden: false,
           isCustom: false,
           clicks: 1,
           createdAt: "2026-01-01",
@@ -255,6 +262,7 @@ describe("models/settings", () => {
         {
           originalUrl: "https://b.com",
           slug: "b",
+          isHidden: false,
           isCustom: true,
           clicks: 2,
           createdAt: "2026-02-01",
@@ -351,4 +359,9 @@ describe("models/settings", () => {
       expect(BACKUP_SCHEMA_VERSION).toBe(3);
     });
   });
+});
+
+it("preserves hidden state through export and import", () => {
+  const exported = serializeLinksForExport([makeLink({ isHidden: true })]);
+  expect(parseImportPayload(exported).data?.[0]?.isHidden).toBe(true);
 });

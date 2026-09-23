@@ -51,6 +51,7 @@ function makeExportedLink(overrides: Partial<ExportedLink> = {}): ExportedLink {
   return {
     originalUrl: "https://example.com",
     slug: "abc123",
+    isHidden: false,
     isCustom: false,
     clicks: 0,
     createdAt: "2026-01-15T00:00:00.000Z",
@@ -64,6 +65,7 @@ const FAKE_LINK = {
   folderId: null,
   originalUrl: "https://example.com",
   slug: "abc123",
+  isHidden: false,
   isCustom: false,
   expiresAt: null,
   clicks: 0,
@@ -137,6 +139,7 @@ describe("actions/settings", () => {
       expect(mockCreateLink).toHaveBeenCalledWith({
         originalUrl: "https://new.com",
         slug: "new-slug",
+        isHidden: false,
         isCustom: false,
         clicks: 0,
         title: null,
@@ -183,6 +186,7 @@ describe("actions/settings", () => {
 
       expect(mockCreateLink).toHaveBeenCalledWith(
         expect.objectContaining({
+          isHidden: false,
           isCustom: true,
           clicks: 42,
         }),
@@ -209,6 +213,7 @@ describe("actions/settings", () => {
           ...FAKE_LINK,
           originalUrl: "https://example.com",
           slug: "test",
+          isHidden: false,
           isCustom: true,
           clicks: 5,
           createdAt: new Date("2026-01-15T00:00:00.000Z"),
@@ -222,6 +227,7 @@ describe("actions/settings", () => {
         {
           originalUrl: "https://example.com",
           slug: "test",
+          isHidden: false,
           isCustom: true,
           clicks: 5,
           createdAt: "2026-01-15T00:00:00.000Z",

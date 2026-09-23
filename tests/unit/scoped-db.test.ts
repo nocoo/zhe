@@ -1948,6 +1948,80 @@ describe("ScopedDB", () => {
       expect(unwrap(updated).screenshotUrl).toBe("https://img.example.com/new.png");
     });
 
+    it("deleteLinkScreenshot early returns when link does not exist or url does not match", async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({
+        originalUrl: "https://a.com",
+        slug: "del-ss",
+        screenshotUrl: "https://img.example.com/current.png",
+      });
+
+      // Non-existent link
+      expect(
+        await db.deleteLinkScreenshot(999999, "https://img.example.com/current.png"),
+      ).toBeNull();
+
+      // Empty string url
+      const notCleared1 = await db.deleteLinkScreenshot(link.id, "   ");
+      expect(unwrap(notCleared1).screenshotUrl).toBe("https://img.example.com/current.png");
+
+      // Mismatched screenshotUrl
+      const notCleared2 = await db.deleteLinkScreenshot(
+        link.id,
+        "https://img.example.com/other.png",
+      );
+      expect(unwrap(notCleared2).screenshotUrl).toBe("https://img.example.com/current.png");
+    });
+
+    it("deleteLinkScreenshot throws if R2 env is not configured, or enqueues and clears when configured", async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({
+        originalUrl: "https://a.com",
+        slug: "del-ss-r2",
+        screenshotUrl: "https://r2.example.com/shot.png",
+      });
+
+      const oldDomain = process.env.R2_PUBLIC_DOMAIN;
+      const oldSalt = process.env.R2_USER_HASH_SALT;
+
+      try {
+        delete process.env.R2_PUBLIC_DOMAIN;
+        await expect(
+          db.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png"),
+        ).rejects.toThrow("R2 screenshot storage is not configured");
+
+        process.env.R2_PUBLIC_DOMAIN = "r2.example.com";
+        process.env.R2_USER_HASH_SALT = "testsalt";
+
+        const cleared = await db.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png");
+        expect(unwrap(cleared).screenshotUrl).toBeNull();
+      } finally {
+        if (oldDomain !== undefined) process.env.R2_PUBLIC_DOMAIN = oldDomain;
+        else delete process.env.R2_PUBLIC_DOMAIN;
+        if (oldSalt !== undefined) process.env.R2_USER_HASH_SALT = oldSalt;
+        else delete process.env.R2_USER_HASH_SALT;
+      }
+    });
+
+    it("updateLink with originalUrl returns latest link", async () => {
+      const db = new ScopedDB(USER_A);
+      const link = await db.createLink({ originalUrl: "https://old.com", slug: "link-orig-url" });
+      const updated = await db.updateLink(link.id, { originalUrl: "https://new-url.com" });
+      expect(unwrap(updated).originalUrl).toBe("https://new-url.com");
+    });
+
+    it("getLinksPage with query filters items", async () => {
+      const db = new ScopedDB(USER_A);
+      await db.createLink({
+        originalUrl: "https://searchpage.com",
+        slug: "sp-link",
+        note: "unique-kw",
+      });
+      const res = await db.getLinksPage({ query: "unique-kw", limit: 10, offset: 0 });
+      expect(res.total).toBe(1);
+      expect(res.items[0]?.slug).toBe("sp-link");
+    });
+
     it("updateLinkScreenshot returns null for other user link", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);

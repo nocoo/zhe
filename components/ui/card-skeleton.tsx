@@ -1,9 +1,8 @@
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { cn } from "@/lib/utils";
 
-/** Shared card-grid track — max 6 columns so tiles stay compact. */
 export const CARD_GRID_CLASS =
-  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3";
+  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 min-[160rem]:grid-cols-8 gap-3";
 export const GITHUB_CARD_GRID_CLASS =
   "grid grid-cols-1 gap-3 @2xl/github:grid-cols-2 @5xl/github:grid-cols-3 @7xl/github:grid-cols-4";
 

@@ -534,13 +534,26 @@ vi.mock("@/lib/db/d1-client", async () => {
 
     // UPDATE links SET ... WHERE id = ? AND user_id = ? (scoped update)
     if (sqlLower.startsWith("update links set") && sqlLower.includes("where id = ?")) {
-      // Extract id and userId from end of params
-      const id = params[params.length - 2];
-      const userId = params[params.length - 1];
+      let id: unknown;
+      let userId: unknown;
+      let targetScreenshotUrl: unknown;
+
+      if (sqlLower.includes("and screenshot_url = ?")) {
+        targetScreenshotUrl = params[params.length - 1];
+        userId = params[params.length - 2];
+        id = params[params.length - 3];
+      } else {
+        id = params[params.length - 2];
+        userId = params[params.length - 1];
+      }
 
       for (const [_slug, link] of mockLinks.entries()) {
         const rawLink = link as unknown as Record<string, unknown>;
-        if (rawLink.id === id && rawLink.user_id === userId) {
+        if (
+          rawLink.id === id &&
+          rawLink.user_id === userId &&
+          (targetScreenshotUrl === undefined || rawLink.screenshot_url === targetScreenshotUrl)
+        ) {
           // Parse SET clause to update fields
           const setMatch = sql.match(/set\s+(.+?)\s+where/i);
           if (setMatch?.[1]) {
@@ -548,27 +561,29 @@ vi.mock("@/lib/db/d1-client", async () => {
             let paramIndex = 0;
             for (const clause of setClauses) {
               const field = (clause.split("=")[0] ?? "").trim();
+              const isNullAssignment = clause.toLowerCase().includes("= null");
+              const value = isNullAssignment ? null : params[paramIndex];
               if (field === "original_url") {
-                rawLink.original_url = params[paramIndex];
+                rawLink.original_url = value;
               } else if (field === "folder_id") {
-                rawLink.folder_id = params[paramIndex];
+                rawLink.folder_id = value;
               } else if (field === "expires_at") {
-                rawLink.expires_at = params[paramIndex];
+                rawLink.expires_at = value;
               } else if (field === "meta_title") {
-                rawLink.meta_title = params[paramIndex];
+                rawLink.meta_title = value;
               } else if (field === "meta_description") {
-                rawLink.meta_description = params[paramIndex];
+                rawLink.meta_description = value;
               } else if (field === "meta_favicon") {
-                rawLink.meta_favicon = params[paramIndex];
+                rawLink.meta_favicon = value;
               } else if (field === "screenshot_url") {
-                rawLink.screenshot_url = params[paramIndex];
+                rawLink.screenshot_url = value;
               } else if (field === "title") {
-                rawLink.title = params[paramIndex];
+                rawLink.title = value;
               } else if (field === "note") {
-                rawLink.note = params[paramIndex];
+                rawLink.note = value;
               } else if (field === "slug") {
                 const oldSlug = rawLink.slug as string;
-                const newSlug = params[paramIndex] as string;
+                const newSlug = value as string;
                 // Re-key the mockLinks map since it's keyed by slug
                 if (oldSlug !== newSlug) {
                   // Enforce UNIQUE constraint on slug (matches real D1 behaviour)
@@ -582,7 +597,7 @@ vi.mock("@/lib/db/d1-client", async () => {
                   rawLink.slug = newSlug;
                 }
               } else if (field === "is_custom") {
-                rawLink.is_custom = params[paramIndex];
+                rawLink.is_custom = value;
               } else if (field === "clicks") {
                 // Handle increment: clicks = clicks + 1
                 if (clause.includes("clicks + 1")) {
@@ -590,7 +605,7 @@ vi.mock("@/lib/db/d1-client", async () => {
                   continue; // Don't increment paramIndex
                 }
               }
-              paramIndex++;
+              if (!isNullAssignment) paramIndex++;
             }
           }
           return [rawLink] as T[];

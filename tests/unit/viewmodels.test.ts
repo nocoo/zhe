@@ -20,6 +20,7 @@ vi.mock("@/actions/links", () => ({
   createLink: vi.fn(),
   deleteLink: vi.fn(),
   updateLink: vi.fn(),
+  setLinkHidden: vi.fn(),
   updateLinkNote: vi.fn(),
   getAnalyticsStats: vi.fn(),
 }));
@@ -59,7 +60,13 @@ vi.mock("@/hooks/use-mobile", () => ({
   useIsMobile: () => mockIsMobile,
 }));
 
-import { createLink, deleteLink, getAnalyticsStats, updateLink } from "@/actions/links";
+import {
+  createLink,
+  deleteLink,
+  getAnalyticsStats,
+  setLinkHidden,
+  updateLink,
+} from "@/actions/links";
 import { batchRefreshLinkMetadata, refreshLinkMetadata } from "@/actions/links/metadata";
 import { deleteScreenshot } from "@/actions/links/screenshot";
 import { copyToClipboard } from "@/lib/utils";
@@ -1303,4 +1310,63 @@ describe("useInlineLinkEditViewModel", () => {
     expect(result.current.editNote).toBe("new note");
     expect(callbacks.onLinkUpdated).not.toHaveBeenCalled();
   });
+});
+
+describe("link visibility", () => {
+  it("keeps the card unchanged until saved and reports failures", async () => {
+    const onUpdate = vi.fn();
+    const link = makeLink();
+    let finish!: (value: { success: true; data: typeof link }) => void;
+    vi.mocked(setLinkHidden).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useLinkCardViewModel(link, SITE_URL, vi.fn(), onUpdate));
+    let request!: Promise<void>;
+    act(() => {
+      request = result.current.handleToggleHidden();
+    });
+    expect(result.current.isSavingVisibility).toBe(true);
+    await act(async () => {
+      await result.current.handleToggleHidden();
+    });
+    expect(onUpdate).not.toHaveBeenCalled();
+    await act(async () => {
+      finish({ success: true, data: { ...link, isHidden: true } });
+      await request;
+    });
+    expect(onUpdate).toHaveBeenCalledWith({ ...link, isHidden: true });
+    expect(mockToast.success).toHaveBeenCalledWith("帖子已隐藏");
+    onUpdate.mockClear();
+    vi.mocked(setLinkHidden).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => {
+      await result.current.handleToggleHidden();
+    });
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(mockToast.error).toHaveBeenCalledWith("保存隐藏状态失败，请稍后重试");
+    expect(result.current.isSavingVisibility).toBe(false);
+  });
+});
+
+it("reports rejected visibility saves and supports unhiding", async () => {
+  const onUpdate = vi.fn();
+  const hidden = makeLink({ isHidden: true });
+  const { result } = renderHook(() => useLinkCardViewModel(hidden, SITE_URL, vi.fn(), onUpdate));
+  vi.mocked(setLinkHidden).mockResolvedValueOnce({ success: false, error: "Not allowed" });
+  await act(async () => {
+    await result.current.handleToggleHidden();
+  });
+  expect(onUpdate).not.toHaveBeenCalled();
+  expect(mockToast.error).toHaveBeenCalledWith("Not allowed");
+  vi.mocked(setLinkHidden).mockResolvedValueOnce({
+    success: true,
+    data: { ...hidden, isHidden: false },
+  });
+  await act(async () => {
+    await result.current.handleToggleHidden();
+  });
+  expect(onUpdate).toHaveBeenCalledWith({ ...hidden, isHidden: false });
+  expect(mockToast.success).toHaveBeenCalledWith("已取消隐藏");
 });

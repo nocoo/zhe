@@ -14,6 +14,11 @@ import {
   updateXMediaDimensionsAction,
 } from "@/actions/connector";
 import {
+  loadEnrichmentEventsAction,
+  loadEnrichmentTasksAction,
+  retryEnrichmentTasksAction,
+} from "@/actions/enrichment";
+import {
   loadGitHubBookmarks,
   loadGitHubReadme,
   retryGitHubBookmarkAction,
@@ -185,6 +190,131 @@ beforeEach(() => {
       "links:read,connector:write",
       Math.floor(now / 1000),
     );
+});
+
+describe("enrichment activity and retry", () => {
+  it("surfaces database outages and rejects unsupported retry targets", async () => {
+    const id = link("http://localhost/private");
+    expect(await retryEnrichmentTasksAction([id])).toEqual({ success: true, queued: [] });
+    vi.spyOn(d1, "executeD1Query").mockRejectedValue(new Error("offline"));
+    expect(await loadEnrichmentTasksAction()).toEqual({ success: false });
+    expect(await loadEnrichmentEventsAction(id)).toEqual({ success: false });
+    expect(await retryEnrichmentTasksAction([id])).toEqual({ success: false });
+  });
+
+  it("marks pre-existing jobs as snapshots without inventing historical failures", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await failXBookmark(identity, id, job.leaseToken, "opencli_unavailable", now + 1);
+    for (const source of ["x", "github", "screenshot"]) {
+      db.exec(
+        `DROP TRIGGER ${source}_connector_event_insert; DROP TRIGGER ${source}_connector_event_update`,
+      );
+    }
+    db.exec("DROP TRIGGER connector_history_url_changed; DROP TABLE connector_events");
+    db.exec(readFileSync("drizzle/migrations/0035_add_connector_events.sql", "utf8"));
+    expect((await loadEnrichmentEventsAction(id)).events).toMatchObject([
+      { kind: "snapshot", attempts: 1, state: "failed" },
+    ]);
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      recordedFailures: 0,
+      historyComplete: false,
+    });
+  });
+
+  it("records expired attempts and success with captured content, and removes stale URL history", async () => {
+    const id = link();
+    const first = required(await claimXBookmark(identity, now));
+    const retryTime = first.leaseUntil + 1;
+    const second = required(await claimXBookmark(identity, retryTime));
+    expect(second.attempts).toBe(2);
+    await stageXCapture(identity, id, second.leaseToken, capture, retryTime);
+    await completeXBookmark(identity, id, second.leaseToken, retryTime);
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      state: "complete",
+      attempts: 2,
+      recordedFailures: 1,
+      textChars: capture.tweet.text.length,
+    });
+    const events = (await loadEnrichmentEventsAction(id)).events;
+    expect(events?.some((event) => event.errorCode === "interrupted")).toBe(true);
+    db.prepare("UPDATE links SET original_url=? WHERE id=?").run("https://example.com/changed", id);
+    expect((await loadEnrichmentEventsAction(id)).events).toEqual([]);
+  });
+
+  it("records attempts without heartbeat noise and keeps failure history after requeue", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await renewXBookmark(identity, id, job.leaseToken, now + 1);
+    await failXBookmark(identity, id, job.leaseToken, "opencli_unavailable", now + 2);
+    const activity = await loadEnrichmentEventsAction(id);
+    expect(activity.events?.map((event) => event.kind)).toEqual(["finished", "started", "queued"]);
+    expect(activity.events?.[0]).toMatchObject({
+      state: "failed",
+      attempts: 1,
+      connectorName: "Existing CLI",
+    });
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      recordedFailures: 1,
+      historyComplete: true,
+    });
+    expect(await retryEnrichmentTasksAction([id, id])).toEqual({ success: true, queued: [id] });
+    expect((await loadEnrichmentTasksAction()).tasks?.[0]).toMatchObject({
+      attempts: 0,
+      recordedFailures: 1,
+      state: "pending",
+    });
+    expect((await loadEnrichmentEventsAction(id)).events).toHaveLength(4);
+  });
+
+  it("requeues mixed sources while preserving captures and isolating owners and live leases", async () => {
+    const x = link();
+    const github = link("https://github.com/octocat/Hello-World");
+    const web = link("https://example.com/article");
+    const foreign = link(source, "other");
+    for (const [table, id, owner] of [
+      ["x_bookmarks", x, "owner"],
+      ["github_bookmarks", github, "owner"],
+      ["screenshot_jobs", web, "owner"],
+      ["x_bookmarks", foreign, "other"],
+    ] as const) {
+      db.prepare(
+        `INSERT INTO ${table}(link_id,user_id,source_url,state,attempts,updated_at) SELECT id,user_id,original_url,'failed',5,? FROM links WHERE id=? AND user_id=?`,
+      ).run(now, id, owner);
+    }
+    db.prepare("UPDATE x_bookmarks SET result_json=? WHERE link_id=?").run(
+      JSON.stringify(capture),
+      x,
+    );
+    db.prepare("UPDATE github_bookmarks SET state='running',lease_until=? WHERE link_id=?").run(
+      now + 1000,
+      github,
+    );
+    expect(await retryEnrichmentTasksAction([x, github, web, foreign])).toEqual({
+      success: true,
+      queued: [x, web],
+    });
+    expect(
+      db.prepare("SELECT result_json FROM x_bookmarks WHERE link_id=?").get(x)?.result_json,
+    ).toBe(JSON.stringify(capture));
+    expect(
+      db.prepare("SELECT attempts FROM x_bookmarks WHERE link_id=?").get(foreign)?.attempts,
+    ).toBe(5);
+    expect((await loadEnrichmentTasksAction()).tasks?.map((task) => task.linkId)).not.toContain(
+      foreign,
+    );
+    expect((await loadEnrichmentEventsAction(foreign)).events).toEqual([]);
+  });
+
+  it("rejects invalid batches and unauthenticated access", async () => {
+    for (const ids of [[], [0], [-1], [1.5], Array.from({ length: 81 }, (_, index) => index + 1)]) {
+      expect(await retryEnrichmentTasksAction(ids)).toEqual({ success: false });
+    }
+    vi.spyOn(authContext, "requireAuth").mockResolvedValue(null);
+    expect(await loadEnrichmentTasksAction()).toEqual({ success: false });
+    expect(await loadEnrichmentEventsAction(1)).toEqual({ success: false });
+    expect(await retryEnrichmentTasksAction([1])).toEqual({ success: false });
+  });
 });
 afterEach(() => {
   db.close();
@@ -1524,6 +1654,149 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     expect(await drainR2Deletions("owner", now)).toBe(1);
     expect(rows("r2_deletions")).toEqual([]);
     expect(await r2.listR2Objects()).toEqual([]);
+  });
+
+  it("resolves a reservation to null when the job has no staged draft", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    expect(await reserveXMedia(identity, id, job.leaseToken, descriptor, now)).toBeNull();
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("rejects a descriptor that provides only one of the two dimensions", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    const { width: _omitted, ...heightOnly } = descriptor;
+    await expect(
+      reserveXMedia(identity, id, job.leaseToken, heightOnly, now),
+    ).rejects.toMatchObject({ code: "invalid_media", status: 400 });
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("rejects reservations while storage secrets are unconfigured", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    vi.stubEnv("R2_USER_HASH_SALT", "");
+    try {
+      await expect(
+        reserveXMedia(identity, id, job.leaseToken, descriptor, now),
+      ).rejects.toMatchObject({ code: "storage_unavailable", status: 503 });
+    } finally {
+      vi.stubEnv("R2_USER_HASH_SALT", "connector-test-salt");
+    }
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("reports size_mismatch and cleans up when the stream exceeds the reserved size", async () => {
+    const { id, job, asset } = await prepare();
+    await expect(
+      writeXMedia(
+        identity,
+        id,
+        job.leaseToken,
+        asset.id,
+        stream(new Uint8Array(bytes.length * 2)),
+        now,
+      ),
+    ).rejects.toMatchObject({ code: "size_mismatch", status: 400 });
+    expect(rows("x_media")).toEqual([]);
+  });
+
+  it("wraps unexpected upload failures as connector 502 errors", async () => {
+    const { id, job, asset } = await prepare();
+    vi.spyOn(r2, "uploadStreamToR2").mockRejectedValueOnce(new Error("disk exploded"));
+    await expect(
+      writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now),
+    ).rejects.toMatchObject({ code: "upload_failed", status: 502 });
+    expect(rows("x_media")).toEqual([]);
+    expect(await drainR2Deletions("owner", now)).toBe(1);
+  });
+
+  it("maps published video and photo attachments without inventing resolution", async () => {
+    // Video publish keeps its resolution; photo publish has none.
+    const videoJob = await prepare();
+    await writeXMedia(
+      identity,
+      videoJob.id,
+      videoJob.job.leaseToken,
+      videoJob.asset.id,
+      stream(),
+      now,
+    );
+    expect(await completeXBookmark(identity, videoJob.id, videoJob.job.leaseToken, now)).toBe(true);
+    const videoTweet = (await getXBookmarks("owner", [videoJob.id]))[0]?.tweet;
+    expect(videoTweet?.media[0]).toMatchObject({
+      size: bytes.length,
+      resolution: "720p",
+    });
+    expect(videoTweet?.media[0]?.url).toContain("https://cdn.example.com/");
+
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    const photoCapture = structuredClone(capture);
+    photoCapture.tweet.media = [
+      { id: mediaId, type: "PHOTO", url: "https://pbs.twimg.com/media/test.png" },
+    ];
+    await stageXCapture(identity, id, job.leaseToken, photoCapture, now);
+    const imageBytes = new Uint8Array(32);
+    imageBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
+    const photoDescriptor = {
+      mediaId,
+      kind: "photo" as const,
+      mime: "image/png",
+      size: imageBytes.length,
+      sha256: createHash("sha256").update(imageBytes).digest("hex"),
+    };
+    const photo = required(await reserveXMedia(identity, id, job.leaseToken, photoDescriptor, now));
+    await writeXMedia(identity, id, job.leaseToken, photo.id, stream(imageBytes), now);
+    expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(true);
+    const photoTweet = (await getXBookmarks("owner", [id]))[0]?.tweet;
+    expect(photoTweet?.media[0]).toMatchObject({ size: imageBytes.length });
+    expect(photoTweet?.media[0]?.url).toContain(".png");
+    expect("resolution" in required(photoTweet?.media[0])).toBe(false);
+  });
+
+  it("returns an empty bookmark list without querying for empty ids", async () => {
+    expect(await getXBookmarks("owner", [])).toEqual([]);
+  });
+
+  it("stores the generic connector failure code for unknown CLI codes", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    expect(await failXBookmark(identity, id, job.leaseToken, "totally_unknown_code", now + 1)).toBe(
+      true,
+    );
+    expect(rows("x_bookmarks")[0]).toMatchObject({
+      state: "failed",
+      error_code: "connector_error",
+    });
+  });
+
+  it("records a relative public URL when the CDN domain is unconfigured", async () => {
+    const { id, job, asset } = await prepare();
+    await writeXMedia(identity, id, job.leaseToken, asset.id, stream(), now);
+    vi.stubEnv("R2_PUBLIC_DOMAIN", "");
+    try {
+      expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(true);
+    } finally {
+      vi.stubEnv("R2_PUBLIC_DOMAIN", "https://cdn.example.com");
+    }
+    expect(required(rows("uploads")[0]).public_url).toBe(`/${asset.key}`);
+  });
+
+  it("resolves a lost reservation race to null for a client refetch", async () => {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    await stageXCapture(identity, id, job.leaseToken, videoCapture, now);
+    const original = d1.executeD1Query;
+    vi.spyOn(d1, "executeD1Query").mockImplementation(async (sql, params) => {
+      if (sql.includes("INSERT INTO x_media")) return [];
+      return original(sql, params);
+    });
+    expect(await reserveXMedia(identity, id, job.leaseToken, descriptor, now)).toBeNull();
+    expect(rows("x_media")).toEqual([]);
   });
 });
 

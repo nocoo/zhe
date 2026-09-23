@@ -5,10 +5,18 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
+import type { EnrichmentSource } from "@/models/connector-activity";
 import { CreateLinkModal } from "./create-link-modal";
+import { EnrichmentButton } from "./enrichment-button";
 
 /** Source collections share the same unrestricted creation flow as all links. */
-export function LibraryActions({ onRefresh }: { onRefresh: () => void }) {
+export function LibraryActions({
+  onRefresh,
+  source,
+}: {
+  onRefresh: () => void;
+  source: EnrichmentSource;
+}) {
   const { siteUrl, folders, tags, handleLinkCreated, handleTagCreated, refreshLinks } =
     useDashboardService();
   const [refreshing, setRefreshing] = useState(false);
@@ -28,6 +36,7 @@ export function LibraryActions({ onRefresh }: { onRefresh: () => void }) {
   };
   return (
     <div className="flex shrink-0 items-center gap-2">
+      <EnrichmentButton source={source} />
       <Button
         variant="outline"
         size="sm"

@@ -90,6 +90,39 @@ describe("r2 client — LOCAL_R2 mode", () => {
   it("rejects keys that escape the storage root", async () => {
     expect(() => keyToPath("../escape.txt")).toThrow(/escapes storage root/);
   });
+
+  it("handles uploadStreamToR2 stream write and error cleanup", async () => {
+    const { uploadStreamToR2 } = await import("@/lib/r2/local-fs-backend");
+    const { Readable } = await import("node:stream");
+
+    const stream = Readable.from(["stream-chunk-1", "stream-chunk-2"]);
+    await uploadStreamToR2("streamed.txt", stream);
+    const content = await fs.readFile(keyToPath("streamed.txt"), "utf-8");
+    expect(content).toBe("stream-chunk-1stream-chunk-2");
+    await expect(fs.access(keyToPath("streamed.txt.partial"))).rejects.toThrow();
+
+    const failingStream = new Readable({
+      read() {
+        this.destroy(new Error("stream failure"));
+      },
+    });
+    await expect(uploadStreamToR2("failed.txt", failingStream)).rejects.toThrow("stream failure");
+    await expect(fs.access(keyToPath("failed.txt"))).rejects.toThrow();
+    await expect(fs.access(keyToPath("failed.txt.partial"))).rejects.toThrow();
+  });
+
+  it("handles empty key array in deleteR2Objects", async () => {
+    const count = await deleteR2Objects([]);
+    expect(count).toBe(0);
+  });
+
+  it("defaults port and directory when env vars are unset", async () => {
+    delete process.env.LOCAL_R2_PORT;
+    delete process.env.LOCAL_R2_DIR;
+    const url = await createPresignedUploadUrl("default.png", "image/png");
+    expect(url.startsWith("http://127.0.0.1:18788/upload?")).toBe(true);
+    expect(keyToPath("default.png")).toBe(resolve(process.cwd(), ".test-storage/r2/default.png"));
+  });
 });
 
 describe("r2 client — production mode unchanged", () => {

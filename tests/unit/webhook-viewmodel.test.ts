@@ -13,6 +13,15 @@ const mockRevokeWebhookToken = vi.fn();
 const mockUpdateWebhookRateLimit = vi.fn();
 const mockMigrateFromWebhookAction = vi.fn();
 
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
+vi.mock("@nocoo/basalt/components/toast", () => ({
+  toast: {
+    success: (...args: unknown[]) => mockToastSuccess(...args),
+    error: (...args: unknown[]) => mockToastError(...args),
+  },
+}));
+
 vi.mock("@/actions/webhook", () => ({
   getWebhookToken: (...args: unknown[]) => mockGetWebhookToken(...args),
   createWebhookToken: (...args: unknown[]) => mockCreateWebhookToken(...args),
@@ -575,5 +584,62 @@ describe("useWebhookViewModel", () => {
 
     expect(result.current.migratedApiKey).toBeNull();
     expect(result.current.isMigrating).toBe(false);
+  });
+
+  it("handles empty error fallback in all action failure notifications", async () => {
+    const { result } = renderHook(() => useWebhookViewModel());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
+
+    mockCreateWebhookToken.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleGenerate();
+    });
+    expect(mockToastError).toHaveBeenCalledWith("生成失败");
+    expect(result.current.isGenerating).toBe(false);
+    expect(result.current.token).toBeNull();
+
+    mockRevokeWebhookToken.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleRevoke();
+    });
+    expect(mockToastError).toHaveBeenCalledWith("撤销失败");
+    expect(result.current.isRevoking).toBe(false);
+
+    mockUpdateWebhookRateLimit.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleRateLimitChange(10);
+    });
+    expect(mockToastError).toHaveBeenCalledWith("更新速率限制失败");
+
+    mockMigrateFromWebhookAction.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await result.current.handleMigrate();
+    });
+    expect(mockToastError).toHaveBeenCalledWith("迁移失败");
+    expect(result.current.isMigrating).toBe(false);
+    expect(result.current.migratedApiKey).toBeNull();
+  });
+
+  it("drops late mount-load response when unmounted before fetch completes", async () => {
+    let resolveMount: ((v: unknown) => void) | undefined;
+    mockGetWebhookToken.mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolveMount = r;
+        }),
+    );
+    const { result, unmount } = renderHook(() => useWebhookViewModel());
+    expect(result.current.isLoading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      resolveMount?.({
+        success: true,
+        data: { token: "late-token", createdAt: "2026-01-15", rateLimit: 10 },
+      });
+    });
+
+    expect(result.current.token).toBeNull();
   });
 });

@@ -104,6 +104,7 @@ import {
   deleteLink,
   getAnalyticsStats,
   getLinks,
+  setLinkHidden,
   updateLink,
   updateLinkNote,
 } from "@/actions/links";
@@ -209,6 +210,46 @@ describe("actions/links — uncovered paths", () => {
 
       expect(result).toEqual({ success: false, error: "URL must use http or https protocol" });
       expect(mockCreateLink).not.toHaveBeenCalled();
+    });
+
+    it("rejects title longer than 32 characters or invalid type", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const resLong = await createLink({
+        originalUrl: "https://example.com",
+        title: "a".repeat(33),
+      });
+      expect(resLong).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resType = await createLink({
+        originalUrl: "https://example.com",
+        title: 123 as unknown as string,
+      });
+      expect(resType).toEqual({ success: false, error: "标题最多 32 个字符" });
+      expect(mockCreateLink).not.toHaveBeenCalled();
+    });
+
+    it("creates link with trimmed title and note", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGenerateUniqueSlug.mockResolvedValue("slug123");
+      mockCreateLink.mockResolvedValue({
+        ...FAKE_LINK,
+        title: "My Title",
+        note: "My Note",
+      });
+
+      const res = await createLink({
+        originalUrl: "https://example.com",
+        title: "  My Title  ",
+        note: "My Note",
+      });
+      expect(res.success).toBe(true);
+      expect(mockCreateLink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "My Title",
+          note: "My Note",
+        }),
+      );
     });
 
     it("returns error when custom slug is invalid (sanitizeSlug returns null)", async () => {
@@ -451,7 +492,67 @@ describe("actions/links — uncovered paths", () => {
   // ====================================================================
   // updateLink
   // ====================================================================
+  describe("setLinkHidden", () => {
+    it("requires authentication and validates the state", async () => {
+      mockAuth.mockResolvedValue(null);
+      expect(await setLinkHidden(1, true)).toEqual({ success: false, error: "Unauthorized" });
+      expect((await setLinkHidden(1, "true" as unknown as boolean)).success).toBe(false);
+      expect((await setLinkHidden(-1, true)).success).toBe(false);
+      expect(mockUpdateLink).not.toHaveBeenCalled();
+    });
+
+    it("saves only the visibility field and handles inaccessible links", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLink.mockResolvedValue({ id: 1, isHidden: true });
+      expect(await setLinkHidden(1, true)).toEqual({
+        success: true,
+        data: { id: 1, isHidden: true },
+      });
+      expect(mockUpdateLink).toHaveBeenCalledWith(1, { isHidden: true });
+      mockUpdateLink.mockResolvedValue(null);
+      expect((await setLinkHidden(2, false)).success).toBe(false);
+      mockUpdateLink.mockRejectedValue(new Error("offline"));
+      expect((await setLinkHidden(1, false)).success).toBe(false);
+    });
+  });
+
   describe("updateLink", () => {
+    it("rejects title longer than 32 characters or invalid note type", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+
+      const resLong = await updateLink(1, { title: "x".repeat(33) });
+      expect(resLong).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resTitleType = await updateLink(1, { title: 123 as unknown as string });
+      expect(resTitleType).toEqual({ success: false, error: "标题最多 32 个字符" });
+
+      const resNoteType = await updateLink(1, { note: 123 as unknown as string });
+      expect(resNoteType).toEqual({ success: false, error: "备注格式无效" });
+      expect(mockUpdateLink).not.toHaveBeenCalled();
+    });
+
+    it("updates title and note successfully", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockUpdateLink.mockResolvedValue({
+        ...FAKE_LINK,
+        title: "Updated Title",
+        note: "Updated Note",
+      });
+
+      const res = await updateLink(1, {
+        title: "Updated Title",
+        note: "Updated Note",
+      });
+      expect(res.success).toBe(true);
+      expect(mockUpdateLink).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          title: "Updated Title",
+          note: "Updated Note",
+        }),
+      );
+    });
+
     it("returns Unauthorized when not authenticated", async () => {
       mockAuth.mockResolvedValue(null);
 

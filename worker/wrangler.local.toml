@@ -9,6 +9,8 @@
 # --local mode and uses the binding name to derive an on-disk sqlite path.
 
 name = "zhe-edge-local"
+workers_dev = false
+preview_urls = false
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 

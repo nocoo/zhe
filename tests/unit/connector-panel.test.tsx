@@ -71,6 +71,24 @@ describe("shared installation and storage", () => {
     fireEvent.click(screen.getByRole("button", { name: "刷新 Connector 状态" }));
     await waitFor(() => expect(loadConnectorSummary).toHaveBeenCalledTimes(2));
   });
+  it("shows an unreadable status when the connector summary request fails", async () => {
+    vi.mocked(loadConnectorSummary).mockRejectedValueOnce(new Error("connector offline"));
+    render(<ConnectorPanel />);
+    expect(await screen.findByText("状态暂时无法读取")).toBeInTheDocument();
+  });
+  it("reports never connected when the connector has no last seen timestamp", async () => {
+    vi.mocked(loadConnectorSummary).mockResolvedValueOnce({ states: [], lastSeenAt: null });
+    render(<ConnectorPanel />);
+    expect(await screen.findByText("尚未连接")).toBeInTheDocument();
+  });
+  it("falls back to raw names for unknown queue states", async () => {
+    vi.mocked(loadConnectorSummary).mockResolvedValueOnce({
+      states: [{ state: "syncing", count: 2 }],
+      lastSeenAt: Date.now(),
+    });
+    render(<ConnectorPanel />);
+    expect(await screen.findByText("syncing 2")).toBeInTheDocument();
+  });
   it("classifies stored videos separately from documents", () => {
     expect(getFileCategory("user/x/123/1/file.mp4")).toBe("video");
     expect(getFileCategory("user/x/123/1/file.webm")).toBe("video");

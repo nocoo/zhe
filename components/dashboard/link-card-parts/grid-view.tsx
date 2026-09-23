@@ -26,6 +26,7 @@ import { XBookmarkDetailsButton, XSourceBadge } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
+  visibilityAction?: React.ReactNode;
   link: Link;
   titleText: string;
   showFaviconImage: boolean;
@@ -51,6 +52,7 @@ interface GridViewProps {
 }
 
 function GridScreenshot({
+  visibilityAction,
   link,
   screenshotUrl,
   faviconUrl,
@@ -64,6 +66,7 @@ function GridScreenshot({
   onOpenDetails,
 }: Pick<
   GridViewProps,
+  | "visibilityAction"
   | "link"
   | "screenshotUrl"
   | "faviconUrl"
@@ -152,7 +155,8 @@ function GridScreenshot({
       )}
 
       {/* Sibling actions stay clear of the preview and remain visible on touch. */}
-      <div className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+      <div className="pointer-events-none absolute right-2 top-2 z-20 flex max-w-[calc(100%-var(--spacing)*4)] flex-wrap items-center justify-between gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        {visibilityAction}
         {onOpenDetails && (
           <XBookmarkDetailsButton
             bookmark={xBookmark}
@@ -308,6 +312,7 @@ export function GridView(props: GridViewProps) {
   return (
     <>
       <GridScreenshot
+        visibilityAction={props.visibilityAction}
         link={link}
         screenshotUrl={props.screenshotUrl}
         faviconUrl={props.faviconUrl}

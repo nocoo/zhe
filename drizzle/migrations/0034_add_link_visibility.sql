@@ -1,0 +1,1 @@
+ALTER TABLE links ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0 CHECK (is_hidden IN (0, 1));

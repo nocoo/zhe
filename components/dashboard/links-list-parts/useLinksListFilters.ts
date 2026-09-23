@@ -34,6 +34,12 @@ export function useLinksListFilters({
 
   const searchParams = useSearchParams();
   const selectedFolderId = searchParams.get("folder") ?? null;
+  const [showHidden, setShowHidden] = useState(false);
+  const [previousFolderId, setPreviousFolderId] = useState(selectedFolderId);
+  if (previousFolderId !== selectedFolderId) {
+    setPreviousFolderId(selectedFolderId);
+    setShowHidden(false);
+  }
 
   // Pre-group linkTags by linkId so each LinkCard receives only its own
   // tags — O(M) once instead of O(N×M) when every card filters the entire
@@ -51,8 +57,10 @@ export function useLinksListFilters({
   const emptyLinkTags = useMemo<LinkTag[]>(() => [], []);
 
   const filteredLinks = useMemo(() => {
-    let result = links.filter((link) =>
-      matchesSpecialSources(link.originalUrl, specialSources.sources),
+    let result = links.filter(
+      (link) =>
+        (showHidden || !link.isHidden) &&
+        matchesSpecialSources(link.originalUrl, specialSources.sources),
     );
 
     // 1. Sidebar folder filter (URL param) takes precedence.
@@ -85,6 +93,7 @@ export function useLinksListFilters({
     return result;
   }, [
     links,
+    showHidden,
     selectedFolderId,
     filterFolderId,
     filterTagIds,
@@ -125,6 +134,8 @@ export function useLinksListFilters({
   }, [specialSources.reset]);
 
   return {
+    showHidden,
+    setShowHidden,
     specialSources,
     selectedFolderId,
     filterFolderId,

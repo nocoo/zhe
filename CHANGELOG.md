@@ -7,8 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Removed
-- Drop unused root `brace-expansion` dependency (fixes GHSA-mh99-v99m-4gvg without pulling the package)
+## [v2.1.5] - 2026-09-22
+
+### Fixed
+- Validate the staged Git snapshot before committing, including when the working tree contains an unstaged correction.
+- Preserve pre-commit failures and clean up temporary checks and interrupted child processes.
+
+### Changed
+- Enforce at least 95% statements, branches, functions and lines within the existing unit coverage scope.
+- Expand regression tests for data failures, connector behavior, asynchronous cleanup, filtering and UI edge states.
+
+## [v2.1.4] - 2026-09-21
+
+### Fixed
+- Keep grid preview centers clickable when card actions wrap.
+- Show eight columns on large external displays and six at MacBook widths in X and grid collections, including loading placeholders.
+
+## [v2.1.3] - 2026-09-21
+
+### Added
+- Add shared enrichment records across link, X, and GitHub collections, with queue status, content previews, and single or bulk retry.
+- Record future connector attempts and capture counts, preserving existing jobs as explicitly labeled snapshots.
+
+### Fixed
+- Match the hide button hover to other card actions and align enrichment retry with the original-post link.
+- Preserve loaded enrichment history while polling for new events.
+- Keep grid card actions within narrow cards and prevent filters from squeezing page headings.
+
+## [v2.1.2] - 2026-09-20
+
+### Added
+- Add persistent post visibility toggles
+
+### Fixed
+- Preserve categories in narrow x cards
+- Disable worker default and preview urls
 
 ## [v2.1.1] - 2026-09-19
 

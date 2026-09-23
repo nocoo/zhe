@@ -71,6 +71,74 @@ it("times out and permits retry", async () => {
   vi.useRealTimers();
 });
 
+it("falls back to the generic message when the API fails without an error field", async () => {
+  fetcher.mockResolvedValueOnce(Response.json({}, { status: 502 }));
+  const { result } = renderHook(() => useSearch("generic"));
+  await waitFor(() => expect(result.current.error).toBe("暂时无法搜索，请重试"));
+});
+
+it("reports the generic message when fetch rejects with a non-Error value", async () => {
+  fetcher.mockRejectedValueOnce("network down");
+  const { result } = renderHook(() => useSearch("nonerror"));
+  await waitFor(() => expect(result.current.error).toBe("暂时无法搜索，请重试"));
+});
+
+it("never presents a response that settles after unmount", async () => {
+  vi.useFakeTimers();
+  try {
+    let resolveFetch: (value: Response) => void = () => {};
+    let captured: { signal: AbortSignal } | undefined;
+    fetcher.mockImplementationOnce((_url: string, options: { signal: AbortSignal }) => {
+      captured = options;
+      return new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      });
+    });
+    const { result, unmount } = renderHook(() => useSearch("late"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(181);
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(captured?.signal.aborted).toBe(true);
+    await act(async () => {
+      resolveFetch(Response.json({ items: [], total: 9 }));
+    });
+    expect(result.current.data).toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("does not schedule an index-update retry after unmount", async () => {
+  vi.useFakeTimers();
+  try {
+    let resolveFetch: (value: Response) => void = () => {};
+    fetcher.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const { unmount } = renderHook(() => useSearch("latepending"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(181);
+    });
+    unmount();
+    await act(async () => {
+      resolveFetch(Response.json({ code: "index_updating" }, { status: 503 }));
+    });
+    expect(vi.getTimerCount()).toBe(0);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1200);
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("continues index preparation without presenting an error or stale results", async () => {
   vi.useFakeTimers();
   try {

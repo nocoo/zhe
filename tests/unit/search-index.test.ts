@@ -240,4 +240,119 @@ describe("migrated search index with real SQL", () => {
       )[0]?.size,
     ).toBeLessThan(2_000_000);
   });
+
+  it("loadSearchDocuments returns empty array when ids array is empty", async () => {
+    const docs = await loadSearchDocuments("owner", "link", []);
+    expect(docs).toEqual([]);
+  });
+
+  it("loadSearchDocuments handles corrupt or non-string tags and result json gracefully", async () => {
+    vi.spyOn(d1, "executeD1Query").mockResolvedValueOnce([
+      {
+        id: 101,
+        created_at: 1,
+        title: "Corrupt Link",
+        meta_title: "Orig",
+        original_url: "https://example.com",
+        slug: "corrupt",
+        meta_description: null,
+        note: null,
+        meta_favicon: null,
+        folder_name: null,
+        folder_id: null,
+        x_json: "invalid-json{{",
+        x_state: null,
+        github_json: 12345,
+        github_state: null,
+        tags_json: "not-json-array",
+      } as unknown as Record<string, unknown>,
+    ]);
+
+    const docs = await loadSearchDocuments("owner", "link", [101]);
+    expect(docs).toHaveLength(1);
+    expect(docs[0]?.title).toBe("Corrupt Link");
+    expect(docs[0]?.tags).toEqual([]);
+    expect(docs[0]?.source).toBe("web");
+  });
+
+  it("searchResources returns empty payload when query has no normalized search text", async () => {
+    const res = await searchResources("owner", "   ");
+    expect(res.items).toEqual([]);
+    expect(res.total).toBe(0);
+    expect(res.query).toBe("   ");
+  });
+
+  it("throws SearchIndexPendingError when retries are exhausted on dirty results", async () => {
+    link(999, "retries-exhausted");
+    await ensureSearchIndex("owner");
+
+    const batchSpy = vi.spyOn(d1, "executeD1Batch").mockImplementation(async (statements) => {
+      const results = statements.map((statement) => query(statement.sql, statement.params));
+      if (statements.some((s) => s.sql.includes("indexed_revision<>revision"))) {
+        results[2] = [{ dirty: 1 }];
+      }
+      return results;
+    });
+
+    try {
+      await expect(
+        searchResources("owner", "retries-exhausted", "all", 20, 0, 0),
+      ).rejects.toBeInstanceOf(SearchIndexPendingError);
+    } finally {
+      batchSpy.mockRestore();
+    }
+  });
+
+  it("deletes confirmed orphan search documents during rebuild", async () => {
+    // A dirty document whose source idea vanished must be removed, not rebuilt.
+    database
+      .prepare(
+        "INSERT INTO search_documents(user_id,kind,resource_id,revision,indexed_revision,created_at,source,search_text,titles,identities,metadata,summaries) VALUES ('owner','idea',4242,2,1,1,'idea','orphan body','orphan','{}','{}','{}')",
+      )
+      .run();
+
+    await ensureSearchIndex("owner");
+
+    const remaining = database
+      .prepare("SELECT COUNT(*) AS n FROM search_documents WHERE resource_id = 4242")
+      .get() as { n: number };
+    expect(remaining.n).toBe(0);
+  });
+
+  it("returns a zeroed payload when the search batch loses its result sets", async () => {
+    link(1, "Batchless");
+    await ensureSearchIndex("owner");
+    const batchSpy = vi
+      .spyOn(d1, "executeD1Batch")
+      .mockImplementation(async () => [] as unknown[][]);
+
+    try {
+      const res = await searchResources("owner", "batchless");
+      expect(res.items).toEqual([]);
+      expect(res.total).toBe(0);
+    } finally {
+      batchSpy.mockRestore();
+    }
+  });
+
+  it("surfaces a pending error when a selected document disappears before hydration", async () => {
+    link(1, "Hydrated");
+    await ensureSearchIndex("owner");
+    // The selected row references an idea that no longer exists, so
+    // loadSearchDocuments cannot hydrate it and the page must not silently
+    // drop the row.
+    const batchSpy = vi
+      .spyOn(d1, "executeD1Batch")
+      .mockImplementation(
+        async () => [[], [{ kind: "idea", resource_id: 424242, rank: 0 }], []] as unknown[][],
+      );
+
+    try {
+      await expect(searchResources("owner", "hydrated", "all", 20, 0, 0)).rejects.toBeInstanceOf(
+        SearchIndexPendingError,
+      );
+    } finally {
+      batchSpy.mockRestore();
+    }
+  });
 });

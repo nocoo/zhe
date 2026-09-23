@@ -112,7 +112,7 @@ L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`�
 
 ## 列表加载与入场
 
-`CardGridSkeleton` / `CardListSkeleton` 使用与内容一致的列数、间距和结构。普通链接加载时读取已保存的 grid/list 偏好，未分类筛选使用相同布局。X 使用 2–6 列瀑布流占位，GitHub 使用与正式卡片相同的 1–4 列容器断点、244px 默认高度与内部信息行。想法分别使用文字卡片和图标列表，上传使用文件图标列表。路由级 loading 与页面内加载遵循相同布局。
+`CardGridSkeleton` / `CardListSkeleton` share their column counts, spacing, and structure with the loaded collections. Link loading respects the saved grid/list preference, including uncategorized links. X masonry and shared card grids use 2–6 columns below a 2560px viewport and 8 columns from 2560px, preserving 6 columns at the 16-inch MacBook's standard 1728px logical width and using 8 on the local 3360px external desktop. Breakpoints use CSS viewport widths, not panel pixels. GitHub keeps its 1–4 container-based columns and 244px default card height. Ideas use text cards or icon rows; uploads use file icon rows. Route and in-page placeholders follow the same layout.
 
 骨架容器提供 `role="status"`、`aria-busy` 和加载名称，内部装饰对辅助技术隐藏。骨架使用轻微 pulse；数据到达后卡片通过 `animate-fade-up` 和 `staggerStyle` 依次渐入，延迟最多累计 12 张，稳定 key 避免刷新重播。减少动态效果设置下停用 pulse 和卡片入场，保留正常布局；重排继续使用共享 `AnimatedCardList`。
 

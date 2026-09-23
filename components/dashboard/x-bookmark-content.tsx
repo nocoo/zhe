@@ -651,10 +651,12 @@ export function XBookmarkStatus({
   bookmark,
   linkId,
   compact = false,
+  actions,
 }: {
   bookmark: XBookmark | undefined;
   linkId: number;
   compact?: boolean;
+  actions?: React.ReactNode;
 }) {
   const [retrying, setRetrying] = useState(false);
   const [feedback, setFeedback] = useState<{ version: string; success: boolean } | null>(null);
@@ -709,25 +711,32 @@ export function XBookmarkStatus({
     }
   };
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="status">
-      {icon}
-      <span>
-        {currentFeedback
-          ? currentFeedback.success
-            ? "已重新排队"
-            : "暂时无法重试"
-          : statusLabels[state]}
-      </span>
+    <div className="w-full space-y-3 text-sm text-muted-foreground" role="status">
+      <div className="flex items-center gap-2">
+        {icon}
+        <span>
+          {currentFeedback
+            ? currentFeedback.success
+              ? "已重新排队"
+              : "暂时无法重试"
+            : statusLabels[state]}
+        </span>
+      </div>
       {errorMessage &&
         ["failed", "partial", "unavailable"].includes(state) &&
-        !currentFeedback?.success && (
-          <span className="basis-full text-warning">{errorMessage}</span>
+        !currentFeedback?.success && <p className="text-sm text-warning">{errorMessage}</p>}
+      <div className="flex flex-wrap items-center gap-2">
+        {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
+          <Button size="sm" onClick={retry} disabled={retrying}>
+            <RefreshCw
+              className={retrying ? "animate-spin motion-reduce:animate-none" : ""}
+              aria-hidden
+            />
+            重新补全
+          </Button>
         )}
-      {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
-        <Button size="sm" variant="ghost" onClick={retry} disabled={retrying}>
-          重新补全
-        </Button>
-      )}
+        <div className="ml-auto flex items-center gap-2">{actions}</div>
+      </div>
     </div>
   );
 }

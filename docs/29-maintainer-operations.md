@@ -148,7 +148,7 @@ bun run dev       # wrangler dev (local testing)
 bun run tail      # wrangler tail (live logs)
 ```
 
-Workers.dev URL: `https://zhe-edge.<your-subdomain>.workers.dev`
+Custom domains: `https://zhe.to` and `https://zhe-edge.worker.hexly.ai`. The D1 proxy uses the latter. Both `workers.dev` and version preview URLs are disabled.
 KV Namespace: `zhe` (ID in `worker/wrangler.toml`)
 
 ### Geo Header Mapping

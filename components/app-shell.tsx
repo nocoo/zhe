@@ -17,6 +17,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
+import { EnrichmentProvider } from "@/contexts/enrichment";
 import type { Folder } from "@/models/types";
 import { HeaderTooltip, HexlyLink } from "./header-links";
 import { ThemeToggle } from "./theme-toggle";
@@ -38,9 +39,11 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
       <TooltipProvider>
         <SidebarProvider>
           <SearchProvider>
-            <AppShellInner user={user} signOutAction={signOutAction}>
-              {children}
-            </AppShellInner>
+            <EnrichmentProvider>
+              <AppShellInner user={user} signOutAction={signOutAction}>
+                {children}
+              </AppShellInner>
+            </EnrichmentProvider>
           </SearchProvider>
         </SidebarProvider>
       </TooltipProvider>

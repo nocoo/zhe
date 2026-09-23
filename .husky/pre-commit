@@ -1,43 +1,120 @@
-# Run independent stages in parallel; fail fast on any non-zero exit.
-# Each stage's stdout/stderr is buffered to a tempfile and replayed in order
-# so logs stay readable.
-set -o pipefail
+# L1 + G1 against the Git index snapshot.
+# Every repo check runs inside a `git checkout-index` export of the staged
+# tree, so a staged bug fails even when the working tree holds an unstaged
+# fix. Route declarations are generated from the staged sources by
+# `next typegen` during preparation, before any reader starts. Stages run
+# sequentially: each failing or interrupted stage cancels exactly one owned
+# child, then the snapshot is removed.
+set -eu
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$HOOK_DIR/../scripts/ensure-tools.sh"
+. "$HOOK_DIR/../scripts/ensure-tools.sh"
 require_tool gitleaks "secrets scanning"
+require_tool bun "pre-commit checks"
 
-TMPDIR_HOOK=$(mktemp -d -t zhe-precommit-XXXXXX)
-trap 'rm -rf "$TMPDIR_HOOK"' EXIT
+REPO="$(git rev-parse --show-toplevel)"
+ROOT="$(mktemp -d -t zhe-precommit-XXXXXX)"
+SNAP="$ROOT/tree"
+LOGS="$ROOT/logs"
+mkdir "$SNAP" "$LOGS"
 
-run_bg() {
-  local name="$1"; shift
-  ( "$@" >"$TMPDIR_HOOK/$name.log" 2>&1; echo $? >"$TMPDIR_HOOK/$name.exit" ) &
-  eval "PID_$name=$!"
+CURRENT_PID=
+kill_tree() {
+  local pid=$1 sig=$2 children child
+  children=$(pgrep -P "$pid" 2>/dev/null || true)
+  for child in $children; do
+    kill_tree "$child" "$sig"
+  done
+  kill -"$sig" "$pid" 2>/dev/null || true
 }
 
-wait_stage() {
-  local name="$1" pid_var="PID_$1" pid status
-  pid=${!pid_var}
-  wait "$pid" 2>/dev/null || true
-  status=$(cat "$TMPDIR_HOOK/$name.exit" 2>/dev/null || echo 1)
-  echo "━━━ $name (exit=$status) ━━━"
-  cat "$TMPDIR_HOOK/$name.log"
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM HUP
+  if [ -n "$CURRENT_PID" ]; then
+    kill_tree "$CURRENT_PID" TERM
+    i=0
+    while kill -0 "$CURRENT_PID" 2>/dev/null && [ "$i" -lt 20 ]; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+    kill_tree "$CURRENT_PID" KILL
+    wait "$CURRENT_PID" 2>/dev/null || true
+  fi
+  rm -rf "$ROOT"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+
+run_stage() {
+  local name="$1" dir="$2" status
+  shift 2
+  echo "━━━ $name ━━━"
+  (
+    cd "$dir" || exit 1
+    exec "$@"
+  ) >"$LOGS/$name.log" 2>&1 &
+  CURRENT_PID=$!
+  status=0
+  wait "$CURRENT_PID" || status=$?
+  CURRENT_PID=
+  cat "$LOGS/$name.log"
   if [ "$status" -ne 0 ]; then
     echo "❌ pre-commit stage '$name' failed" >&2
     exit "$status"
   fi
 }
 
-# Launch all four stages concurrently.
-run_bg unit_cov   bun run test:unit:coverage
-run_bg integ      bun run test:integration
-run_bg typecheck  bun run typecheck
-run_bg lint       bunx lint-staged --no-stash
-run_bg gitleaks   gitleaks protect --staged --no-banner
+# Export the staged tree; any preparation failure must abort the commit.
+git checkout-index --all --prefix="$SNAP/"
 
-# Wait in declaration order so logs print deterministically.
-wait_stage unit_cov
-wait_stage integ
-wait_stage typecheck
-wait_stage lint
-wait_stage gitleaks
+# Checks reuse the installed dependencies, so the staged manifests must match
+# the worktree copies they were installed from.
+if [ ! -d "$REPO/node_modules" ]; then
+  echo "❌ node_modules is required — run: bun install --frozen-lockfile" >&2
+  exit 1
+fi
+for manifest in package.json bun.lock; do
+  if [ ! -f "$SNAP/$manifest" ] || ! cmp -s "$SNAP/$manifest" "$REPO/$manifest"; then
+    echo "❌ staged $manifest must match the worktree copy installed into node_modules" >&2
+    exit 1
+  fi
+done
+
+# node_modules: symlink top-level entries so subprocesses resolve the installed
+# toolchain; writable runner caches stay inside the snapshot.
+mkdir "$SNAP/node_modules"
+for entry in "$REPO/node_modules"/* "$REPO/node_modules/.bin"; do
+  [ -e "$entry" ] || continue
+  ln -s "$entry" "$SNAP/node_modules/${entry##*/}"
+done
+mkdir -p "$SNAP/node_modules/.vite" "$SNAP/node_modules/.vitest" "$ROOT/cache"
+
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
+export XDG_CACHE_HOME="$ROOT/cache"
+export XDG_STATE_HOME="$ROOT/cache"
+PATH="$SNAP/node_modules/.bin:$PATH"
+export PATH
+
+# `bun x` must never fall back to fetching tools: everything it invokes has to
+# resolve from the snapshot's linked node_modules.
+for tool in next tsc vitest biome; do
+  if [ ! -x "$SNAP/node_modules/.bin/$tool" ]; then
+    echo "❌ $tool must resolve from node_modules — run: bun install --frozen-lockfile" >&2
+    exit 1
+  fi
+done
+
+# Generate route declarations from the staged app/ sources before any reader:
+# scripts/typecheck.sh's full `next build` rebuild stays for dev/CI; the
+# snapshot is always fresh, so declarations come straight from `next typegen`.
+run_stage prepare "$SNAP" bun x next typegen
+
+run_stage unit_cov "$SNAP" bun run test:unit:coverage
+run_stage integ "$SNAP" bun run test:integration
+run_stage typecheck "$SNAP" bun x tsc --noEmit
+run_stage lint "$SNAP" bun run lint
+run_stage gitleaks "$REPO" gitleaks protect --staged --no-banner

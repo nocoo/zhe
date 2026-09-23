@@ -4,6 +4,7 @@ import { Badge, Button, LayerCard } from "@nocoo/basalt";
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadConnectorSummary } from "@/actions/connector";
+import { EnrichmentButton } from "./enrichment-button";
 
 const labels: Record<string, string> = {
   pending: "等待补全",
@@ -46,15 +47,18 @@ export function ConnectorPanel() {
     <LayerCard padding="none">
       <LayerCard.Header className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">本机 Connector</h2>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={refresh}
-          disabled={loading}
-          aria-label="刷新 Connector 状态"
-        >
-          <RefreshCw className={loading ? "animate-spin" : ""} />
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <EnrichmentButton />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={refresh}
+            disabled={loading}
+            aria-label="刷新 Connector 状态"
+          >
+            <RefreshCw className={loading ? "animate-spin" : ""} />
+          </Button>
+        </div>
       </LayerCard.Header>
       <LayerCard.Body className="space-y-4">
         <p className="text-sm leading-6 text-muted-foreground">

@@ -35,6 +35,14 @@ const test = base.extend<{ owner: string }>({
 
 type Collection = "grid" | "list" | "github" | "x" | "uncategorized";
 
+const desktopColumns = [
+  [1728, 6],
+  [2056, 6],
+  [2559, 6],
+  [2560, 8],
+  [3360, 8],
+] as const;
+
 async function seedCollection(page: Page, owner: string, collection: Collection) {
   const now = Date.now();
   for (let index = 0; index < 8; index++) {
@@ -197,6 +205,19 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
       await page.reload({ waitUntil: "domcontentloaded" });
       const skeleton = page.locator('[aria-busy="true"][data-testid^="card-"]');
       await expect(skeleton).toBeVisible();
+      if (collection === "grid" || collection === "x") {
+        for (const [width, columns] of desktopColumns) {
+          await page.setViewportSize({ width, height: 1000 });
+          await expect
+            .poll(() =>
+              skeleton.evaluate(
+                (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+              ),
+            )
+            .toBe(columns);
+        }
+        await page.setViewportSize({ width: 1365, height: 1000 });
+      }
       const before = await skeleton.evaluate((element) => ({
         columns: getComputedStyle(element).gridTemplateColumns,
         height: (
@@ -261,6 +282,34 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
       ).toBe("none");
     } finally {
       release();
+    }
+  });
+}
+
+for (const collection of ["grid", "x"] as const) {
+  test(`${collection}: uses six columns on MacBook and eight on large displays`, async ({
+    page,
+    owner,
+  }, info) => {
+    const cards = await seedCollection(page, owner, collection);
+    for (const [width, columns] of desktopColumns) {
+      await page.setViewportSize({ width, height: 1117 });
+      await expect
+        .poll(() =>
+          cards.evaluateAll((elements) => {
+            const first = elements[0]?.getBoundingClientRect();
+            return elements.filter(
+              (element) => Math.abs(element.getBoundingClientRect().y - (first?.y ?? 0)) < 1,
+            ).length;
+          }),
+        )
+        .toBe(columns);
+      if (width === 1728 || width === 3360) {
+        await page.screenshot({
+          path: info.outputPath(`${collection}-${width}.png`),
+          animations: "disabled",
+        });
+      }
     }
   });
 }
@@ -638,5 +687,58 @@ for (const collection of ["ideas", "uploads"] as const) {
     await expect(page.getByRole("button", { name: "多选卡片" })).toBeDisabled();
     expect(await queryD1(`SELECT id FROM ${collection} WHERE user_id=?`, [owner])).toEqual([]);
     for (const url of assets) expect((await fetch(url)).status).toBe(404);
+  });
+}
+
+for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
+  test(`${collection}: hidden posts persist while the reveal toggle resets`, async ({
+    page,
+    owner,
+  }) => {
+    const cards = await seedCollection(page, owner, collection);
+    const path = page.url();
+    const id = await cards.first().getAttribute("data-link-id");
+    const card = cards.and(page.locator(`[data-link-id="${id}"]`));
+    const toggle = page.getByRole("button", { name: "展示隐藏", exact: true });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await card.getByRole("button", { name: "隐藏帖子", exact: true }).click();
+    await expect(cards).toHaveCount(7);
+    await expect(page.getByText("帖子已隐藏", { exact: true })).toBeVisible();
+    expect(
+      await queryD1("SELECT is_hidden FROM links WHERE id=? AND user_id=?", [Number(id), owner]),
+    ).toEqual([{ is_hidden: 1 }]);
+    await settle(page);
+    const restore = await pauseReflows(page);
+    await toggle.click();
+    await expect(cards).toHaveCount(8);
+    await expect(card.getByRole("button", { name: "取消隐藏", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await seekReflows(page, 100);
+    await seekReflows(page, 400);
+    await restore.evaluate((reset) => reset());
+    await page.reload();
+    await expect(cards).toHaveCount(7);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await toggle.click();
+    await expect(cards).toHaveCount(8);
+    const destination = collection === "github" ? "X 收藏" : "GitHub 收藏";
+    await page.getByRole("link", { name: destination, exact: true }).first().click();
+    await expect(page).toHaveURL(
+      collection === "github" ? /\/dashboard\/x$/ : /\/dashboard\/github$/,
+    );
+    await page.goBack();
+    await expect(page).toHaveURL(path);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(cards).toHaveCount(7);
+    await toggle.click();
+    await card.getByRole("button", { name: "取消隐藏", exact: true }).click();
+    await expect(page.getByText("已取消隐藏", { exact: true })).toBeVisible();
+    await toggle.click();
+    await expect(cards).toHaveCount(8);
+    expect(
+      await queryD1("SELECT is_hidden FROM links WHERE id=? AND user_id=?", [Number(id), owner]),
+    ).toEqual([{ is_hidden: 0 }]);
   });
 }

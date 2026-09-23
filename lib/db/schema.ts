@@ -1,3 +1,4 @@
+import { desc } from "drizzle-orm";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import {
   index,
@@ -81,6 +82,7 @@ export const links = sqliteTable("links", {
   originalUrl: text("original_url").notNull(),
   slug: text("slug").notNull().unique(),
   isCustom: integer("is_custom", { mode: "boolean" }).default(false),
+  isHidden: integer("is_hidden", { mode: "boolean" }).notNull().default(false),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   clicks: integer("clicks").default(0),
   title: text("title"),
@@ -244,6 +246,31 @@ export const xConnectorPresence = sqliteTable("x_connector_presence", {
     .references(() => users.id, { onDelete: "cascade" }),
   lastSeenAt: integer("last_seen_at").notNull(),
 });
+
+export const connectorEvents = sqliteTable(
+  "connector_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    linkId: integer("link_id")
+      .notNull()
+      .references(() => links.id, { onDelete: "cascade" }),
+    source: text("source", { enum: ["x", "github", "screenshot"] }).notNull(),
+    kind: text("kind", { enum: ["snapshot", "queued", "started", "finished"] }).notNull(),
+    state: text("state").notNull(),
+    attempts: integer("attempts").notNull(),
+    errorCode: text("error_code"),
+    connectorName: text("connector_name"),
+    textChars: integer("text_chars").notNull().default(0),
+    mediaCount: integer("media_count").notNull().default(0),
+    mediaTotal: integer("media_total").notNull().default(0),
+    archivedBytes: integer("archived_bytes").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("idx_connector_events_link").on(table.userId, table.linkId, desc(table.id))],
+);
 
 export const githubBookmarks = sqliteTable(
   "github_bookmarks",

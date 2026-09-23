@@ -35,6 +35,7 @@ interface ListViewProps {
   cardTags: Tag[];
   copied: boolean;
   copiedOriginalUrl: boolean;
+  visibilityAction?: React.ReactNode;
   isEditing: boolean;
   canDeleteScreenshot: boolean;
   isDeletingScreenshot: boolean;
@@ -181,6 +182,7 @@ function ListMetaRow({
 }
 
 function ListActions({
+  visibilityAction,
   isEditing,
   canDeleteScreenshot,
   isDeletingScreenshot,
@@ -193,6 +195,7 @@ function ListActions({
   onOpenDetails,
   xBookmark,
 }: {
+  visibilityAction?: React.ReactNode;
   isEditing: boolean;
   canDeleteScreenshot: boolean;
   isDeletingScreenshot: boolean;
@@ -207,6 +210,7 @@ function ListActions({
 }) {
   return (
     <div className="flex items-center gap-0.5">
+      {visibilityAction}
       {onOpenDetails ? (
         <XBookmarkDetailsButton bookmark={xBookmark} onClick={onOpenDetails} />
       ) : (
@@ -347,6 +351,7 @@ export function ListView(props: ListViewProps) {
       </div>
 
       <ListActions
+        visibilityAction={props.visibilityAction}
         isEditing={isEditing}
         canDeleteScreenshot={canDeleteScreenshot}
         isDeletingScreenshot={isDeletingScreenshot}

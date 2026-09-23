@@ -321,3 +321,21 @@ export async function getAnalyticsStats(linkId: number): Promise<ActionResult<An
     return { success: false, error: "Failed to get analytics" };
   }
 }
+
+export async function setLinkHidden(
+  linkId: number,
+  isHidden: boolean,
+): Promise<ActionResult<Link>> {
+  if (!Number.isSafeInteger(linkId) || linkId <= 0 || typeof isHidden !== "boolean")
+    return { success: false, error: "隐藏状态无效" };
+  try {
+    const db = await getScopedDB();
+    if (!db) return { success: false, error: "Unauthorized" };
+    const link = await db.updateLink(linkId, { isHidden });
+    return link
+      ? { success: true, data: link }
+      : { success: false, error: "Link not found or access denied" };
+  } catch {
+    return { success: false, error: "保存隐藏状态失败，请稍后重试" };
+  }
+}

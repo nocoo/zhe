@@ -116,6 +116,123 @@ describe("shared AI editor state", () => {
     expect(callbacks.onLinkUpdated).toHaveBeenCalled();
     expect(result.current.open).toBe(false);
   });
+  it("regenerates suggestions and handles empty folders fallback", async () => {
+    const noFoldersResult = {
+      ...resultEvent,
+      result: {
+        ...resultEvent.result,
+        folders: [],
+        newTags: undefined,
+      },
+    };
+    vi.mocked(fetch).mockResolvedValue(response([context, noFoldersResult]));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.selectedFolderId).toBe("old-folder");
+    expect(result.current.newTagSuggestions).toEqual([]);
+
+    // Test regenerate callback
+    vi.mocked(fetch).mockResolvedValue(response());
+    await act(() => result.current.regenerate());
+    expect(result.current.selectedFolderId).toBeNull();
+
+    let resolveCreate: ((value: unknown) => void) | undefined;
+    create.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    let pendingAddTag: Promise<boolean> | undefined;
+    act(() => {
+      pendingAddTag = result.current.addTag("pending-tag");
+    });
+    expect(result.current.creatingTag).toBe(true);
+
+    const addTagResult = await act(async () => result.current.addTag("another-one"));
+    expect(addTagResult).toBe(false);
+
+    act(() => {
+      result.current.close();
+    });
+    expect(result.current.open).toBe(true);
+
+    await act(async () => {
+      resolveCreate?.({ success: true, data: { id: "p1", name: "pending-tag" } });
+      await pendingAddTag;
+    });
+    expect(result.current.creatingTag).toBe(false);
+  });
+  it("covers stream parser buffer tail and missing response body error", async () => {
+    // Response without body
+    vi.mocked(fetch).mockResolvedValue(new Response(null));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.error).toBe("无法读取整理进度");
+
+    // Event with trailing un-newline-terminated json buffer and stage rawText
+    const stream = new ReadableStream({
+      start(controller) {
+        const text = `${JSON.stringify({ type: "stage", stage: "prepare", message: "prep", rawText: "raw1" })}\n${JSON.stringify({ type: "stage", stage: "request", message: "req", rawText: "raw2" })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+        controller.close();
+      },
+    });
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(stream, { headers: { "content-type": "application/x-ndjson" } }),
+    );
+    await act(() => result.current.openForLink(1));
+    expect(result.current.rawText).toBe("raw2");
+  });
+  it("handles missing context when result event arrives prematurely", async () => {
+    vi.mocked(fetch).mockResolvedValue(response([resultEvent]));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.error).toBe("缺少来源资料状态，请重试");
+  });
+  it("guards apply and close while busy or not ready", async () => {
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    // Not ready and linkId null
+    await act(() => result.current.apply());
+    expect(save).not.toHaveBeenCalled();
+
+    // Open link
+    await act(() => result.current.openForLink(1));
+    expect(result.current.ready).toBe(true);
+
+    // Apply error rejection branch
+    save.mockRejectedValueOnce(new Error("network error"));
+    await act(() => result.current.apply());
+    expect(result.current.error).toBe("保存失败，当前编辑内容已保留，请重试");
+    expect(result.current.applying).toBe(false);
+
+    // Close while open
+    act(() => result.current.close());
+    expect(result.current.open).toBe(false);
+  });
+  it("handles non-Error objects in fetch catch and default error message on bad response", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({}), { status: 500 }));
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    expect(result.current.error).toBe("获取建议失败");
+
+    vi.mocked(fetch).mockRejectedValue("string error");
+    await act(() => result.current.openForLink(1));
+    expect(result.current.error).toBe("网络错误");
+  });
+  it("preserves draft title and note when regenerating", async () => {
+    const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
+    await act(() => result.current.openForLink(1));
+    act(() => {
+      result.current.setDraftTitle("自定义标题");
+      result.current.setDraftNote("自定义备注");
+    });
+    // regenerate with context event only
+    vi.mocked(fetch).mockResolvedValue(response([context]));
+    await act(() => result.current.openForLink(1, true));
+    expect(result.current.draftTitle).toBe("自定义标题");
+    expect(result.current.draftNote).toBe("自定义备注");
+  });
   it("preserves the draft when a save fails", async () => {
     const { result } = renderHook(() => useSuggestLinkOrgViewModel(callbacks));
     await act(() => result.current.openForLink(1));

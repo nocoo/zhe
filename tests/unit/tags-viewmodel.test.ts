@@ -170,4 +170,93 @@ describe("useTagsViewModel", () => {
     });
     expect(mockToastError).toHaveBeenCalledWith("Failed to create tag");
   });
+
+  it("handles default error fallback when create fails without error message", async () => {
+    mockCreateTag.mockResolvedValue({ success: false, error: "" });
+    const { result } = renderHook(() => useTagsViewModel());
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = (await result.current.handleCreate("brandnew", "red")).success;
+    });
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("创建标签失败");
+  });
+
+  it("validates rename input and handles duplicate or error states", async () => {
+    const { result } = renderHook(() => useTagsViewModel());
+
+    // Invalid empty name
+    let ok = (await act(async () => result.current.handleRename("t1", "   "))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("标签名无效");
+
+    // Duplicate name (existing tag "home")
+    ok = (await act(async () => result.current.handleRename("t1", "home"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("标签名已存在");
+
+    // Server returns failure with custom error
+    mockUpdateTag.mockResolvedValue({ success: false, error: "Database lock" });
+    ok = (await act(async () => result.current.handleRename("t1", "renamed"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("Database lock");
+
+    // Server returns failure with empty error fallback
+    mockUpdateTag.mockResolvedValue({ success: false });
+    ok = (await act(async () => result.current.handleRename("t1", "renamed2"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("重命名失败");
+  });
+
+  it("handles recolor and delete error states with fallbacks", async () => {
+    const { result } = renderHook(() => useTagsViewModel());
+
+    // Recolor with custom error
+    mockUpdateTag.mockResolvedValue({ success: false, error: "Color conflict" });
+    let ok = (await act(async () => result.current.handleRecolor("t1", "sky"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("Color conflict");
+
+    // Recolor with empty error fallback
+    mockUpdateTag.mockResolvedValue({ success: false });
+    ok = (await act(async () => result.current.handleRecolor("t1", "sky"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("更新颜色失败");
+
+    // Delete with custom error
+    mockDeleteTag.mockResolvedValue({ success: false, error: "Foreign key constraint" });
+    ok = (await act(async () => result.current.handleDelete("t1"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("Foreign key constraint");
+
+    // Delete with empty error fallback
+    mockDeleteTag.mockResolvedValue({ success: false });
+    ok = (await act(async () => result.current.handleDelete("t1"))).success;
+    expect(ok).toBe(false);
+    expect(mockToastError).toHaveBeenCalledWith("删除标签失败");
+  });
+
+  it("supports cancelCreate and default color generation from tag name", async () => {
+    const created = makeTag({ id: "t4", name: "autocolor", color: "sky" });
+    mockCreateTag.mockResolvedValue({ success: true, data: created });
+    const { result } = renderHook(() => useTagsViewModel());
+
+    act(() => {
+      result.current.startCreate();
+    });
+    expect(result.current.creating).toBe(true);
+    act(() => {
+      result.current.cancelCreate();
+    });
+    expect(result.current.creating).toBe(false);
+
+    await act(async () => {
+      await result.current.handleCreate("autocolor");
+    });
+    expect(mockCreateTag).toHaveBeenCalledWith({
+      name: "autocolor",
+      color: "red",
+    });
+  });
 });

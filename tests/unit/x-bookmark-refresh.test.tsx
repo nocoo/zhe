@@ -13,6 +13,7 @@ const link: Link = {
   userId: "owner",
   originalUrl: "https://x.com/example/status/12345",
   slug: "test",
+  isHidden: false,
   isCustom: false,
   clicks: 0,
   createdAt: new Date(),
@@ -125,5 +126,81 @@ describe("automatic X card refresh", () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
     expect(loadXBookmarks).toHaveBeenCalledOnce();
+  });
+
+  it("handles empty link list, unmatching tweets, and already matching metadata", async () => {
+    const update = vi.fn();
+    const { result, unmount } = renderHook(() => useXBookmarks([] as Link[], update));
+    expect(result.current[0].size).toBe(0);
+    unmount();
+
+    const matchingLink: Link = {
+      ...link,
+      id: 2,
+      originalUrl: "https://x.com/example/status/12345",
+      metaTitle: "Example (@example)",
+      metaDescription: "Ready after the poll",
+    };
+    const matchingBookmark: XBookmark = {
+      linkId: 2,
+      state: "complete",
+      tweet,
+      errorCode: null,
+      updatedAt: 1,
+    };
+    vi.mocked(loadXBookmarks).mockResolvedValueOnce({
+      success: true,
+      data: [matchingBookmark],
+    });
+
+    const hook2 = renderHook(() => useXBookmarks([matchingLink], update));
+    await act(async () => {});
+    expect(loadXBookmarks).toHaveBeenCalledWith([2]);
+    expect(hook2.result.current[0].get(2)?.tweet?.text).toBe("Ready after the poll");
+    expect(update).not.toHaveBeenCalled();
+
+    const mismatchBookmark: XBookmark = {
+      linkId: 2,
+      state: "complete",
+      tweet: { ...tweet, id: "99999" },
+      errorCode: null,
+      updatedAt: 2,
+    };
+    vi.mocked(loadXBookmarks).mockResolvedValueOnce({
+      success: true,
+      data: [mismatchBookmark],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(loadXBookmarks).toHaveBeenCalledWith([2]);
+    expect(hook2.result.current[0].has(2)).toBe(false);
+    expect(update).not.toHaveBeenCalled();
+    hook2.unmount();
+  });
+
+  it("handles poll failure or loadXBookmarks unsuccessful response", async () => {
+    const update = vi.fn();
+    vi.mocked(loadXBookmarks).mockResolvedValueOnce({ success: false, data: [] });
+    const { result } = renderHook(() => useXBookmarks([link], update));
+    await act(async () => {});
+    expect(result.current[0].size).toBe(0);
+
+    // Poll throws network error
+    vi.mocked(loadXBookmarks).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(result.current[0].size).toBe(0);
+
+    // loadXBookmarks returns undefined data
+    vi.mocked(loadXBookmarks).mockResolvedValueOnce({
+      success: true,
+      data: undefined as unknown as XBookmark[],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(result.current[0].size).toBe(0);
   });
 });

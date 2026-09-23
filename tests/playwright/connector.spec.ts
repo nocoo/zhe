@@ -395,9 +395,24 @@ for (const viewport of [
           .getByRole("button", { name: "Edit link", exact: true })
           .boundingBox();
         assert(detailsBox && editBox && sourceBox);
-        expect(Math.abs(detailsBox.y - editBox.y)).toBeLessThan(1);
         expect(detailsBox.height).toBe(editBox.height);
-        expect(sourceBox.y).toBeGreaterThanOrEqual(detailsBox.y + detailsBox.height);
+        for (const box of [detailsBox, editBox]) {
+          expect(box.x).toBeGreaterThanOrEqual(completedBox.x);
+          expect(box.x + box.width).toBeLessThanOrEqual(completedBox.x + completedBox.width);
+          expect(sourceBox.y).toBeGreaterThanOrEqual(box.y + box.height);
+        }
+        await card.getByRole("button", { name: "查看帖子详情" }).click({ trial: true });
+        await card.getByRole("button", { name: "Edit link", exact: true }).click({ trial: true });
+      }
+      if (viewport.width >= 600) {
+        for (const width of [768, 1024, 1280, 1365, 1728, 2560, 3360]) {
+          await page.setViewportSize({ ...viewport, width });
+          await card.hover();
+          await card
+            .getByRole("button", { name: "查看 X 帖子", exact: true })
+            .click({ trial: true });
+        }
+        await page.setViewportSize(viewport);
       }
       await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
       const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
@@ -642,7 +657,10 @@ for (const viewport of [
         animations: "disabled",
       });
       if (viewport.width > 600) {
-        for (const width of [1920, 2560]) {
+        for (const [width, columns] of [
+          [1920, 6],
+          [2560, 8],
+        ] as const) {
           await page.setViewportSize({ width, height: viewport.height });
           await expect
             .poll(() =>
@@ -653,7 +671,7 @@ for (const viewport of [
                     new Set(cards.map((card) => Math.round(card.getBoundingClientRect().x))).size,
                 ),
             )
-            .toBe(6);
+            .toBe(columns);
           expect(
             await feed
               .locator('[data-testid="link-card"], [data-testid="x-card-footer"]')

@@ -26,6 +26,7 @@ import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
 import { GitHubRepositoryCard } from "./github-repository-card";
 import { LibraryActions } from "./library-actions";
 import { LinkFilterBar } from "./link-filter-bar";
+import { ShowHiddenButton } from "./link-visibility";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 export function GitHubLibraryPage() {
@@ -44,6 +45,7 @@ export function GitHubLibraryPage() {
     handleLinkTagRemoved,
   } = service;
   const { bookmarks, refresh } = useGitHubBookmarks(links, handleLinkUpdated);
+  const [showHidden, setShowHidden] = useState(false);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [tagIds, setTagIds] = useState(new Set<string>());
   const [sort, setSort] = useState("saved");
@@ -70,6 +72,7 @@ export function GitHubLibraryPage() {
     });
   const visible = entries
     .filter(({ link }) => {
+      if (!showHidden && link.isHidden) return false;
       if (
         folderId &&
         (folderId === "uncategorized" ? link.folderId !== null : link.folderId !== folderId)
@@ -154,7 +157,11 @@ export function GitHubLibraryPage() {
                     <SelectItem value="commits">最多 commits</SelectItem>
                   </SelectContent>
                 </Select>
-                <LibraryActions onRefresh={refresh} />
+                <ShowHiddenButton
+                  showHidden={showHidden}
+                  onToggle={() => setShowHidden((value) => !value)}
+                />
+                <LibraryActions onRefresh={refresh} source="github" />
               </>
             )}
             <BulkDeleteActions selection={selection} />

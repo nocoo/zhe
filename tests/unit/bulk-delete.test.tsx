@@ -235,4 +235,50 @@ describe("bulk deletion", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(screen.getByRole("button", { name: "多选卡片" })).toHaveFocus();
   });
+
+  it("renders floating controls when toolbar scrolled offscreen", async () => {
+    let observerCallback: IntersectionObserverCallback | undefined;
+    class MockIntersectionObserver {
+      constructor(cb: IntersectionObserverCallback) {
+        observerCallback = cb;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
+    function Collection() {
+      const selection = useBulkDelete(items, vi.fn());
+      return <BulkDeleteActions selection={selection} />;
+    }
+    const user = userEvent.setup();
+    render(<Collection />);
+
+    await user.click(screen.getByRole("button", { name: "多选卡片" }));
+
+    // Trigger offscreen
+    act(() => {
+      observerCallback?.(
+        [{ isIntersecting: false } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+
+    const floating = screen.getByRole("group", { name: "浮动多选操作" });
+    expect(floating).toBeInTheDocument();
+    expect(within(floating).getByRole("button", { name: "全选当前列表" })).toHaveTextContent(
+      "全选",
+    );
+    expect(within(floating).getByRole("button", { name: "删除所选" })).toHaveTextContent("删除");
+
+    // Cancel offscreen
+    act(() => {
+      observerCallback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+    expect(screen.queryByRole("group", { name: "浮动多选操作" })).toBeNull();
+    vi.unstubAllGlobals();
+  });
 });

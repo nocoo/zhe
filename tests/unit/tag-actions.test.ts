@@ -476,5 +476,49 @@ describe("actions/tags", () => {
       const result = await ensureTagOnLink(1, "work");
       expect(result).toEqual({ success: false, error: "Failed to add tag to link" });
     });
+
+    it("handles concurrent tag creation race in ensureTagOnLink", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      // First getTags returns empty; second getTags returns the tag created concurrently
+      mockGetTags
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([FAKE_TAG])
+        .mockResolvedValueOnce([FAKE_TAG]);
+      mockCreateTag.mockRejectedValueOnce(new Error("duplicate key"));
+      mockAddTagToLink.mockResolvedValue(true);
+
+      const result = await ensureTagOnLink(1, "work");
+      expect(result.success).toBe(true);
+      expect(unwrap(result.data)).toMatchObject({
+        tag: { id: "tag-uuid-1" },
+        created: false,
+        attached: true,
+      });
+    });
+
+    it("handles already attached tag correctly reporting attached false", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([FAKE_TAG]);
+      mockGetLinkTags.mockResolvedValue([{ linkId: 1, tagId: FAKE_TAG.id }]);
+      mockAddTagToLink.mockResolvedValue(true);
+
+      const result = await ensureTagOnLink(1, "work");
+      expect(result.success).toBe(true);
+      expect(unwrap(result.data)).toMatchObject({
+        tag: { id: "tag-uuid-1" },
+        created: false,
+        attached: false,
+      });
+    });
+
+    it("returns error when tag creation fails and retry does not find tag", async () => {
+      mockAuth.mockResolvedValue(authenticatedSession());
+      mockGetTags.mockResolvedValue([]);
+      mockCreateTag.mockResolvedValue(null);
+
+      const result = await ensureTagOnLink(1, "work");
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Failed to create tag");
+    });
   });
 });

@@ -122,7 +122,6 @@ describe("scanStorage", () => {
       screenshotUrls: ["https://cdn.example.com/screenshot.webp"],
     });
 
-    // Set R2_PUBLIC_DOMAIN for URL extraction
     process.env.R2_PUBLIC_DOMAIN = "https://cdn.example.com";
 
     const result = await scanStorage();
@@ -133,6 +132,24 @@ describe("scanStorage", () => {
     expect(unwrap(result.data).r2.summary.orphanSize).toBe(200);
 
     delete process.env.R2_PUBLIC_DOMAIN;
+  });
+
+  it("handles empty row fallback counts when queries return empty results", async () => {
+    mockExecuteD1Query.mockResolvedValue([]);
+    mockListR2Objects.mockResolvedValue([]);
+    const result = await scanStorage();
+    expect(result.success).toBe(true);
+    expect(unwrap(result.data).d1.totalLinks).toBe(0);
+    expect(unwrap(result.data).d1.totalUploads).toBe(0);
+    expect(unwrap(result.data).d1.totalAnalytics).toBe(0);
+    expect(unwrap(result.data).d1.tables).toEqual([
+      { name: "links", rows: 0 },
+      { name: "uploads", rows: 0 },
+      { name: "analytics", rows: 0 },
+      { name: "folders", rows: 0 },
+      { name: "tags", rows: 0 },
+      { name: "webhooks", rows: 0 },
+    ]);
   });
 });
 
