@@ -357,6 +357,23 @@ cd worker && bun run test  # Worker 单元测试
 
 ---
 
+### Browser matrix scope
+
+The ordinary L3 suite runs shared workflows once per meaningful UI variant:
+
+- X media deletion and live refresh run on desktop. Mobile X layout, touch interaction,
+  playback and filtering remain covered by the other connector journeys; mobile
+  cross-tab deletion is no longer a separate browser acceptance case.
+- GitHub source filtering and README journeys run at 1365px and 320px. The repeated
+  1920px and 390px full workflows are removed.
+- Card reflow covers grid, list, X and GitHub layouts. Uncategorized links use the
+  same list controls; their route and source-filter behavior remain covered by
+  navigation and GitHub tests instead of repeating four reflow workflows.
+
+This removes seven browser cases. CI still rejects flaky retained cases; security,
+tenant isolation, data deletion assertions, coverage thresholds and retries are unchanged.
+The manual L3 stress workflow remains available for targeted investigation.
+
 ## 三、Git Hooks 执行流程
 
 ### pre-commit（L1 + G1 + G2）

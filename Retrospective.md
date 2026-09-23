@@ -78,3 +78,9 @@ PR #944's GitHub skeleton check observed the visible loading container, then a s
 ## 2026-09-23 — url-metadata security upgrade
 
 `url-metadata` 5.x pins the vulnerable `request-filtering-agent` 2.0.1; the reviewed 6.0.0 release updates that protection and requires Node `^20.19.0 || >=22.12.0`. Keep real-library localhost coverage for default private-IP blocking as well as the explicit allow-list used by the parsing smoke test. Install with lifecycle scripts disabled in this checkout; never run Husky preparation or alter shared Git hook configuration.
+
+## 2026-09-24 — Isolated browser validation needs a test auth secret
+
+The first focused CI-matrix validation started from a clean checkout without an `AUTH_SECRET`. Authentication setup failed and none of the 33 browser cases ran. Unlike the API runner, Playwright does not supply a default secret. Pass a local-only test value in the runner environment before starting the browser stack; never copy production credentials to make isolated tests work.
+
+The first pre-commit then caught stale copied dependencies: matching source manifests did not mean the copied installation matched the lockfile. The installed `url-metadata` 5.12.0 still used `request-filtering-agent` 2.0.1, so the private-IP asynchronous rejection test failed. A frozen install restored the locked versions without changing the lockfile. Run a frozen install after copying dependencies, and repeat affected validation when the installed versions change.

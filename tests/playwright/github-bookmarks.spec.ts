@@ -6,7 +6,7 @@ import { islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
 test.describe.configure({ mode: "serial" });
-for (const width of [1920, 1365, 390, 320]) {
+for (const width of [1365, 320]) {
   test(`source filters and GitHub README at ${width}px`, async ({ page, context, baseURL }) => {
     test.setTimeout(90_000);
     assert(baseURL === "http://localhost:27006");

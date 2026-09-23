@@ -789,83 +789,79 @@ for (const viewport of [
       await expect(feed.getByTestId("link-card")).toContainText("Pending post");
     });
 
-    test("saved X media deletion and live refresh", async ({ page, context, bookmark }) => {
-      const { owner, linkId, headers, endpoint, capture, card, mediaId, photoId } = bookmark;
-      const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
-      const video = post.getByLabel("已归档的 X 视频");
-      await page.goto("/dashboard");
-      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
-        /已补全/,
-      );
-      if (viewport.width > 600) {
+    if (viewport.width > 600) {
+      test("saved X media deletion and live refresh", async ({ page, context, bookmark }) => {
+        const { owner, linkId, headers, endpoint, capture, card, mediaId, photoId } = bookmark;
+        const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
+        const video = post.getByLabel("已归档的 X 视频");
+        await page.goto("/dashboard");
+        await expect(
+          card.getByRole("button", { name: "查看帖子详情" }),
+        ).toHaveAccessibleDescription(/已补全/);
         const before = await page.locator('aside img[alt="Zhe"]').boundingBox();
         await page.getByRole("button", { name: "Collapse sidebar" }).click();
         await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
         const after = await page.locator('aside img[alt="Zhe"]').boundingBox();
         expect(Math.abs((before?.x ?? 0) - (after?.x ?? 0))).toBeLessThan(1);
-      } else {
-        await page.getByRole("button", { name: "Open menu" }).click();
-        await expect(page.getByRole("dialog")).toBeVisible();
-        await page.keyboard.press("Escape");
-      }
-      await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
-      await post.getByRole("button", { name: "播放视频 1" }).click();
-      await expect(video).toBeVisible();
-      const uploads = await queryD1<{ id: number; file_type: string; public_url: string }>(
-        "SELECT * FROM uploads WHERE user_id=?",
-        [owner],
-      );
-      const archived = uploads.find((item) => item.file_type === "video/mp4");
-      assert(archived);
-      const filesPage = await context.newPage();
-      try {
-        await filesPage.setViewportSize(viewport);
-        await filesPage.goto("/dashboard/uploads");
-        await expect(filesPage.getByTestId("upload-item")).toHaveCount(3);
-        const videoFile = filesPage
-          .getByTestId("upload-item")
-          .filter({ hasText: `${mediaId}.mp4` });
-        await videoFile.getByRole("button", { name: "Delete file" }).click();
-        await filesPage.getByTestId("upload-delete-confirm").click();
-        await expect(filesPage.getByTestId("upload-item")).toHaveCount(1);
-        await expect(filesPage.getByTestId("upload-file-name")).toHaveText(`${photoId}.jpg`);
-      } finally {
-        await filesPage.close();
-        await page.bringToFront();
-      }
-      await expect(video).toHaveCount(0, { timeout: 20_000 });
-      expect((await fetch(archived.public_url)).status).toBe(404);
-      expect(
-        await queryD1("SELECT * FROM uploads WHERE user_id=? AND file_type='video/mp4'", [owner]),
-      ).toEqual([]);
-      // A shorter refreshed post must not inherit a clamp without an expand button.
-      await post.getByRole("button", { name: "展开全文" }).click();
-      await post.getByRole("button", { name: "收起全文" }).click();
-      const shortText =
-        viewport.width < 600 ? "移动端短帖子内容。".repeat(30) : "一\n二\n三\n四\n五\n六\n末行";
-      await executeD1(
-        "UPDATE x_bookmarks SET state='pending', attempts=0, next_attempt_at=0 WHERE link_id=? AND user_id=?",
-        [linkId, owner],
-      );
-      const reclaimed = await page.request.post("/api/v1/connector", { headers, data: {} });
-      expect(reclaimed.status()).toBe(200);
-      const nextJob = (await reclaimed.json()).job;
-      expect(nextJob.linkId).toBe(linkId);
-      const nextLease = { ...headers, "x-connector-lease": nextJob.leaseToken };
-      capture.tweet.text = shortText;
-      for (const data of [{ action: "capture", capture }, { action: "complete" }])
-        expect((await page.request.post(endpoint, { headers: nextLease, data })).status()).toBe(
-          200,
+        await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+        await post.getByRole("button", { name: "播放视频 1" }).click();
+        await expect(video).toBeVisible();
+        const uploads = await queryD1<{ id: number; file_type: string; public_url: string }>(
+          "SELECT * FROM uploads WHERE user_id=?",
+          [owner],
         );
-      const text = post.getByTestId("x-bookmark-content").locator("p.whitespace-pre-wrap").first();
-      await expect(text).toHaveText(shortText, { timeout: 20_000 });
-      expect(await text.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(
-        true,
-      );
-      await expect(post.getByRole("button", { name: "展开全文" })).toHaveCount(0);
-    });
+        const archived = uploads.find((item) => item.file_type === "video/mp4");
+        assert(archived);
+        const filesPage = await context.newPage();
+        try {
+          await filesPage.setViewportSize(viewport);
+          await filesPage.goto("/dashboard/uploads");
+          await expect(filesPage.getByTestId("upload-item")).toHaveCount(3);
+          const videoFile = filesPage
+            .getByTestId("upload-item")
+            .filter({ hasText: `${mediaId}.mp4` });
+          await videoFile.getByRole("button", { name: "Delete file" }).click();
+          await filesPage.getByTestId("upload-delete-confirm").click();
+          await expect(filesPage.getByTestId("upload-item")).toHaveCount(1);
+          await expect(filesPage.getByTestId("upload-file-name")).toHaveText(`${photoId}.jpg`);
+        } finally {
+          await filesPage.close();
+          await page.bringToFront();
+        }
+        await expect(video).toHaveCount(0, { timeout: 20_000 });
+        expect((await fetch(archived.public_url)).status).toBe(404);
+        expect(
+          await queryD1("SELECT * FROM uploads WHERE user_id=? AND file_type='video/mp4'", [owner]),
+        ).toEqual([]);
+        // A shorter refreshed post must not inherit a clamp without an expand button.
+        await post.getByRole("button", { name: "展开全文" }).click();
+        await post.getByRole("button", { name: "收起全文" }).click();
+        const shortText = "一\n二\n三\n四\n五\n六\n末行";
+        await executeD1(
+          "UPDATE x_bookmarks SET state='pending', attempts=0, next_attempt_at=0 WHERE link_id=? AND user_id=?",
+          [linkId, owner],
+        );
+        const reclaimed = await page.request.post("/api/v1/connector", { headers, data: {} });
+        expect(reclaimed.status()).toBe(200);
+        const nextJob = (await reclaimed.json()).job;
+        expect(nextJob.linkId).toBe(linkId);
+        const nextLease = { ...headers, "x-connector-lease": nextJob.leaseToken };
+        capture.tweet.text = shortText;
+        for (const data of [{ action: "capture", capture }, { action: "complete" }])
+          expect((await page.request.post(endpoint, { headers: nextLease, data })).status()).toBe(
+            200,
+          );
+        const text = post
+          .getByTestId("x-bookmark-content")
+          .locator("p.whitespace-pre-wrap")
+          .first();
+        await expect(text).toHaveText(shortText, { timeout: 20_000 });
+        expect(await text.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(
+          true,
+        );
+        await expect(post.getByRole("button", { name: "展开全文" })).toHaveCount(0);
+      });
 
-    if (viewport.width > 600) {
       test("saved X photo galleries preserve image shapes", async ({ page, bookmark }) => {
         const { owner, dir, capture, photoPath } = bookmark;
         assert(process.env.LOCAL_R2 === "1");

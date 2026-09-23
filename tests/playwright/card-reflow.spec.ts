@@ -33,7 +33,7 @@ const test = base.extend<{ owner: string }>({
   },
 });
 
-type Collection = "grid" | "list" | "github" | "x" | "uncategorized";
+type Collection = "grid" | "list" | "github" | "x";
 
 const desktopColumns = [
   [1728, 6],
@@ -70,12 +70,7 @@ async function seedCollection(page: Page, owner: string, collection: Collection)
     );
   }
   await page.addInitScript((view) => localStorage.setItem("zhe_links_view_mode", view), collection);
-  const path =
-    collection === "uncategorized"
-      ? "?folder=uncategorized"
-      : collection === "grid" || collection === "list"
-        ? ""
-        : `/${collection}`;
+  const path = collection === "grid" || collection === "list" ? "" : `/${collection}`;
   await page.goto(`/dashboard${path}`);
   const cards = page.getByTestId(collection === "github" ? "github-repository" : "link-card");
   await expect(cards).toHaveCount(8);
@@ -119,7 +114,7 @@ async function openEditor(page: Page, card: Locator, collection: Collection) {
   }
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
-  if (collection === "list" || collection === "uncategorized") {
+  if (collection === "list") {
     await expect(dialog.locator(".link-card-flight")).toHaveCount(0);
     await expect(card).toBeVisible();
     await dialog.evaluate(async (element) => {
@@ -185,7 +180,7 @@ function expectSamePositions(
   }
 }
 
-for (const collection of ["grid", "list", "uncategorized", "x", "github"] as const) {
+for (const collection of ["grid", "list", "x", "github"] as const) {
   test(`${collection}: matching skeleton transitions into animated cards`, async ({
     page,
     owner,
@@ -219,8 +214,7 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
         })
         .toBeGreaterThan(0);
       assert(before);
-      if (collection === "list" || collection === "uncategorized")
-        expect(before.columns).toBe("none");
+      if (collection === "list") expect(before.columns).toBe("none");
       if (collection === "github") expect(before.height).toBe(244);
       if (collection === "x")
         expect(await skeleton.getAttribute("class")).toContain("auto-rows-[1px]");
@@ -357,7 +351,7 @@ test("x: masonry keeps newest cards across the top and repacks on resize", async
   await expect.poll(async () => (await positions(cards))[2]?.y).toBeGreaterThan(before[2]?.y ?? 0);
 });
 
-for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
+for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: deletion smoothly fills the vacancy`, async ({ page, owner }, info) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     const errors: string[] = [];
@@ -393,7 +387,7 @@ for (const collection of ["grid", "list", "github", "x", "uncategorized"] as con
 
     // A second deletion while the first movement is unfinished must start where
     // the cards are currently drawn, rather than jumping to an old destination.
-    if (collection === "list" || collection === "uncategorized") {
+    if (collection === "list") {
       const nextId = await cards.first().getAttribute("data-link-id");
       const nextCard = cards.and(page.locator(`[data-link-id="${nextId}"]`));
       await confirmDelete(page, await openEditor(page, nextCard, collection));
@@ -425,7 +419,7 @@ for (const collection of ["grid", "list", "github", "x", "uncategorized"] as con
       ).toBe(true);
     }
     expect(await queryD1("SELECT id FROM links WHERE user_id = ?", [owner])).toHaveLength(
-      collection === "list" || collection === "uncategorized" ? 6 : 7,
+      collection === "list" ? 6 : 7,
     );
     expect(
       await page
@@ -456,7 +450,7 @@ test("reduced motion fills the vacancy immediately on a narrow screen", async ({
   expect(after[0]?.y).toBeCloseTo(before[0]?.y ?? 0, 0);
 });
 
-for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
+for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: bulk selection deletes sequentially with modal progress`, async ({
     page,
     owner,
@@ -685,7 +679,7 @@ for (const collection of ["ideas", "uploads"] as const) {
   });
 }
 
-for (const collection of ["grid", "list", "github", "x", "uncategorized"] as const) {
+for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: hidden posts persist while the reveal toggle resets`, async ({
     page,
     owner,
