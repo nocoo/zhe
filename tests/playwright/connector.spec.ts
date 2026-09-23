@@ -5,14 +5,258 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { encode } from "@auth/core/jwt";
-import type { APIRequestContext } from "@playwright/test";
+import type { APIRequestContext, BrowserContext, Page, ViewportSize } from "@playwright/test";
 import { normalizeXPost, videoFileSize, videoResolution } from "../../cli/src/connector/core";
 import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
-import { expect, test } from "./fixtures";
+import { test as base, expect } from "./fixtures";
 import { appTitle, islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
-test.describe.configure({ mode: "serial" });
+const test = base.extend<{ bookmark: Awaited<ReturnType<typeof enrichBookmark>> }>({
+  bookmark: async ({ page, context, baseURL, viewport }, use) => {
+    assert(baseURL === "http://localhost:27006");
+    assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
+    assert(viewport);
+    const secret = process.env.AUTH_SECRET;
+    assert(secret);
+    const owner = `connector-browser-${randomUUID()}`;
+    const dir = await mkdtemp(join(tmpdir(), "zhe-browser-media-"));
+    let bookmark: Awaited<ReturnType<typeof enrichBookmark>> | undefined;
+    try {
+      bookmark = await enrichBookmark(page, context, viewport, owner, dir, secret);
+      await use(bookmark);
+      expect(bookmark.errors).toEqual([]);
+    } finally {
+      try {
+        if (bookmark)
+          await page.request.delete(`/api/v1/links/${bookmark.linkId}`, {
+            headers: bookmark.headers,
+          });
+      } finally {
+        await executeD1("DELETE FROM users WHERE id=?", [owner]);
+        await rm(dir, { recursive: true, force: true });
+      }
+    }
+  },
+});
+
+async function enrichBookmark(
+  page: Page,
+  context: BrowserContext,
+  viewport: ViewportSize,
+  owner: string,
+  dir: string,
+  secret: string,
+) {
+  const key = `zhe_${randomUUID().replaceAll("-", "")}`;
+  const keyId = randomUUID();
+  await executeD1("INSERT INTO users(id,name,email) VALUES(?,?,?)", [
+    owner,
+    "Connector Test",
+    `${owner}@test.local`,
+  ]);
+  await executeD1(
+    "INSERT INTO api_keys(id,prefix,key_hash,user_id,name,scopes,created_at) VALUES(?,?,?,?,?,?,?)",
+    [
+      keyId,
+      key.slice(0, 12),
+      createHash("sha256").update(key).digest("hex"),
+      owner,
+      "Synthetic browser CLI",
+      "links:read,links:write,uploads:read,uploads:write,connector:write",
+      Math.floor(Date.now() / 1000),
+    ],
+  );
+  const session = await encode({
+    token: { sub: owner, name: "Connector Test", email: `${owner}@test.local` },
+    secret,
+    salt: "authjs.session-token",
+  });
+  await context.addCookies([
+    {
+      name: "authjs.session-token",
+      value: session,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  const headers = { authorization: `Bearer ${key}`, "content-type": "application/json" };
+  const errors: string[] = [];
+  const mediaRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (request.resourceType() === "media") mediaRequests.push(request.url());
+  });
+  await page.setViewportSize(viewport);
+  if (viewport.width < 600) {
+    const touch = await context.newCDPSession(page);
+    await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  }
+  await page.addInitScript(() => {
+    localStorage.setItem("zhe_links_view_mode", "grid");
+    localStorage.setItem("zhe_special_sources", JSON.stringify({ github: true, x: true }));
+  });
+  await page.goto("/dashboard");
+  await expect(islandHeading(page, "全部链接")).toBeVisible();
+  await expect(appTitle(page, "链接管理")).toBeVisible();
+  await expect(page.getByRole("link", { name: "GitHub", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "切换主题" })).toBeVisible();
+  const postId = "2000000000000000001";
+  const mediaId = "2000000000000000002";
+  const photoId = "2000000000000000003";
+  await page.locator("main").getByRole("button", { name: "新建链接", exact: true }).first().click();
+  await page.locator("#url").fill(`https://x.com/example/status/${postId}`);
+  await page.getByRole("button", { name: "创建链接", exact: true }).click();
+  await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });
+  await expect(
+    page.getByTestId("link-card").getByRole("button", { name: "查看帖子详情" }),
+  ).toHaveAccessibleDescription(/等待补全/);
+  const pendingBox = await page.getByTestId("link-card").boundingBox();
+
+  const claim = await page.request.post("/api/v1/connector", { headers, data: {} });
+  expect(claim.status()).toBe(200);
+  const { job } = await claim.json();
+  expect(job.postId).toBe(postId);
+  const linkId: number = job.linkId;
+  const card = page.locator(`[data-testid="link-card"][data-link-id="${linkId}"]`);
+  const leased = { ...headers, "x-connector-lease": job.leaseToken };
+  const endpoint = `/api/v1/connector/jobs/${linkId}`;
+  const raw = {
+    rest_id: postId,
+    legacy: {
+      full_text: "Professional X bookmark preview. ".repeat(28),
+      created_at: "2026-09-12T00:00:00Z",
+      favorite_count: 7,
+    },
+    core: {
+      user_results: {
+        result: { rest_id: "1", legacy: { name: "Example Author", screen_name: "example" } },
+      },
+    },
+  };
+  const capture = normalizeXPost(raw, postId);
+  assert(capture);
+  const mediaSize =
+    viewport.width < 600 ? { width: 180, height: 320 } : { width: 320, height: 180 };
+  capture.tweet.media = [
+    {
+      id: mediaId,
+      type: "VIDEO",
+      url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/${mediaSize.width}x${mediaSize.height}/test.mp4`,
+      width: 0,
+      height: 0,
+      duration: 1,
+    },
+    {
+      id: photoId,
+      type: "PHOTO",
+      url: "https://pbs.twimg.com/media/test.jpg",
+      ...mediaSize,
+    },
+  ];
+  capture.tweet.quoted_tweet = {
+    ...capture.tweet,
+    id: "99",
+    url: "https://x.com/example/status/99",
+    text: "Context from the quoted post",
+    media: [],
+  };
+  const staged = await page.request.post(endpoint, {
+    headers: leased,
+    data: { action: "capture", capture },
+  });
+  expect(staged.status()).toBe(200);
+  const videoPath = join(dir, "synthetic.mp4");
+  execFileSync(
+    "ffmpeg",
+    [
+      "-nostdin",
+      "-v",
+      "error",
+      "-f",
+      "lavfi",
+      "-i",
+      `testsrc2=size=${mediaSize.width}x${mediaSize.height}:rate=12`,
+      "-t",
+      "1",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      videoPath,
+    ],
+    { stdio: "pipe", timeout: 15_000 },
+  );
+  const photoPath = join(dir, "synthetic.jpg");
+  execFileSync(
+    "ffmpeg",
+    ["-nostdin", "-v", "error", "-i", videoPath, "-frames:v", "1", photoPath],
+    { stdio: "pipe", timeout: 15_000 },
+  );
+  async function upload(
+    request: APIRequestContext,
+    id: string,
+    kind: string,
+    path: string,
+    mime: string,
+  ) {
+    const data = await readFile(path);
+    const reserved = await request.post(endpoint, {
+      headers: leased,
+      data: {
+        action: "reserve",
+        media: {
+          mediaId: id,
+          kind,
+          ...(kind === "video" ? mediaSize : {}),
+          size: data.length,
+          mime,
+          sha256: createHash("sha256").update(data).digest("hex"),
+        },
+      },
+    });
+    expect(reserved.status()).toBe(200);
+    const { asset } = await reserved.json();
+    expect(
+      (
+        await request.put(`${endpoint}/media/${asset.id}`, {
+          headers: { ...leased, "content-type": mime },
+          data,
+        })
+      ).status(),
+    ).toBe(200);
+  }
+  await upload(page.request, mediaId, "video", videoPath, "video/mp4");
+  await upload(page.request, mediaId, "poster", photoPath, "image/jpeg");
+  await upload(page.request, photoId, "photo", photoPath, "image/jpeg");
+  expect(
+    (await page.request.post(endpoint, { headers: leased, data: { action: "complete" } })).status(),
+  ).toBe(200);
+
+  return {
+    owner,
+    dir,
+    headers,
+    linkId,
+    raw,
+    capture,
+    mediaSize,
+    postId,
+    mediaId,
+    photoId,
+    videoPath,
+    photoPath,
+    endpoint,
+    card,
+    pendingBox,
+    mediaRequests,
+    errors,
+  };
+}
 
 test.describe("webpage previews", () => {
   test.use({ deviceScaleFactor: 2 });
@@ -169,216 +413,12 @@ for (const viewport of [
   { width: 1365, height: 960 },
   { width: 390, height: 844 },
 ]) {
-  test(`saved X bookmarks enrich, play and delete at ${viewport.width}px`, async ({
-    page,
-    context,
-    baseURL,
-  }) => {
-    test.setTimeout(90_000);
-    // A signed LOCAL test session keeps this user's uploads isolated from
-    // other concurrent specs. Never mint sessions against a remote host.
-    assert(baseURL === "http://localhost:27006");
-    assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
-    const secret = process.env.AUTH_SECRET;
-    assert(secret);
-    const owner = `connector-browser-${randomUUID()}`;
-    const key = `zhe_${randomUUID().replaceAll("-", "")}`;
-    const keyId = randomUUID();
-    const dir = await mkdtemp(join(tmpdir(), "zhe-browser-media-"));
-    await executeD1("INSERT INTO users(id,name,email) VALUES(?,?,?)", [
-      owner,
-      "Connector Test",
-      `${owner}@test.local`,
-    ]);
-    await executeD1(
-      "INSERT INTO api_keys(id,prefix,key_hash,user_id,name,scopes,created_at) VALUES(?,?,?,?,?,?,?)",
-      [
-        keyId,
-        key.slice(0, 12),
-        createHash("sha256").update(key).digest("hex"),
-        owner,
-        "Synthetic browser CLI",
-        "links:read,links:write,uploads:read,uploads:write,connector:write",
-        Math.floor(Date.now() / 1000),
-      ],
-    );
-    const session = await encode({
-      token: { sub: owner, name: "Connector Test", email: `${owner}@test.local` },
-      secret,
-      salt: "authjs.session-token",
-    });
-    await context.addCookies([
-      {
-        name: "authjs.session-token",
-        value: session,
-        domain: "localhost",
-        path: "/",
-        httpOnly: true,
-        sameSite: "Lax",
-      },
-    ]);
-    const headers = { authorization: `Bearer ${key}`, "content-type": "application/json" };
-    let linkId: number | undefined;
-    const errors: string[] = [];
-    const mediaRequests: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    page.on("request", (request) => {
-      if (request.resourceType() === "media") mediaRequests.push(request.url());
-    });
-    try {
-      await page.setViewportSize(viewport);
-      if (viewport.width < 600) {
-        const touch = await context.newCDPSession(page);
-        await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
-      }
-      await page.addInitScript(() => {
-        localStorage.setItem("zhe_links_view_mode", "grid");
-        localStorage.setItem("zhe_special_sources", JSON.stringify({ github: true, x: true }));
-      });
-      await page.goto("/dashboard");
-      await expect(islandHeading(page, "全部链接")).toBeVisible();
-      await expect(appTitle(page, "链接管理")).toBeVisible();
-      await expect(page.getByRole("link", { name: "GitHub", exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "切换主题" })).toBeVisible();
-      const postId = "2000000000000000001";
-      const mediaId = "2000000000000000002";
-      const photoId = "2000000000000000003";
-      await page
-        .locator("main")
-        .getByRole("button", { name: "新建链接", exact: true })
-        .first()
-        .click();
-      await page.locator("#url").fill(`https://x.com/example/status/${postId}`);
-      await page.getByRole("button", { name: "创建链接", exact: true }).click();
-      await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });
-      await expect(
-        page.getByTestId("link-card").getByRole("button", { name: "查看帖子详情" }),
-      ).toHaveAccessibleDescription(/等待补全/);
-      const pendingBox = await page.getByTestId("link-card").boundingBox();
+  test.describe(`${viewport.width}px X bookmarks`, () => {
+    test.use({ viewport });
+    test.describe.configure({ timeout: 90_000 });
 
-      const claim = await page.request.post("/api/v1/connector", { headers, data: {} });
-      expect(claim.status()).toBe(200);
-      const { job } = await claim.json();
-      expect(job.postId).toBe(postId);
-      linkId = job.linkId;
-      const card = page.locator(`[data-testid="link-card"][data-link-id="${linkId}"]`);
-      const leased = { ...headers, "x-connector-lease": job.leaseToken };
-      const endpoint = `/api/v1/connector/jobs/${linkId}`;
-      const raw = {
-        rest_id: postId,
-        legacy: {
-          full_text: "Professional X bookmark preview. ".repeat(28),
-          created_at: "2026-09-12T00:00:00Z",
-          favorite_count: 7,
-        },
-        core: {
-          user_results: {
-            result: { rest_id: "1", legacy: { name: "Example Author", screen_name: "example" } },
-          },
-        },
-      };
-      const capture = normalizeXPost(raw, postId);
-      assert(capture);
-      const mediaSize =
-        viewport.width < 600 ? { width: 180, height: 320 } : { width: 320, height: 180 };
-      capture.tweet.media = [
-        {
-          id: mediaId,
-          type: "VIDEO",
-          url: `https://video.twimg.com/ext_tw_video/${mediaId}/pu/vid/${mediaSize.width}x${mediaSize.height}/test.mp4`,
-          width: 0,
-          height: 0,
-          duration: 1,
-        },
-        {
-          id: photoId,
-          type: "PHOTO",
-          url: "https://pbs.twimg.com/media/test.jpg",
-          ...mediaSize,
-        },
-      ];
-      capture.tweet.quoted_tweet = {
-        ...capture.tweet,
-        id: "99",
-        url: "https://x.com/example/status/99",
-        text: "Context from the quoted post",
-        media: [],
-      };
-      const staged = await page.request.post(endpoint, {
-        headers: leased,
-        data: { action: "capture", capture },
-      });
-      expect(staged.status()).toBe(200);
-      const videoPath = join(dir, "synthetic.mp4");
-      execFileSync(
-        "ffmpeg",
-        [
-          "-nostdin",
-          "-v",
-          "error",
-          "-f",
-          "lavfi",
-          "-i",
-          `testsrc2=size=${mediaSize.width}x${mediaSize.height}:rate=12`,
-          "-t",
-          "1",
-          "-c:v",
-          "libx264",
-          "-pix_fmt",
-          "yuv420p",
-          "-movflags",
-          "+faststart",
-          videoPath,
-        ],
-        { stdio: "pipe", timeout: 15_000 },
-      );
-      const photoPath = join(dir, "synthetic.jpg");
-      execFileSync(
-        "ffmpeg",
-        ["-nostdin", "-v", "error", "-i", videoPath, "-frames:v", "1", photoPath],
-        { stdio: "pipe", timeout: 15_000 },
-      );
-      async function upload(
-        request: APIRequestContext,
-        id: string,
-        kind: string,
-        path: string,
-        mime: string,
-      ) {
-        const data = await readFile(path);
-        const reserved = await request.post(endpoint, {
-          headers: leased,
-          data: {
-            action: "reserve",
-            media: {
-              mediaId: id,
-              kind,
-              ...(kind === "video" ? mediaSize : {}),
-              size: data.length,
-              mime,
-              sha256: createHash("sha256").update(data).digest("hex"),
-            },
-          },
-        });
-        expect(reserved.status()).toBe(200);
-        const { asset } = await reserved.json();
-        expect(
-          (
-            await request.put(`${endpoint}/media/${asset.id}`, {
-              headers: { ...leased, "content-type": mime },
-              data,
-            })
-          ).status(),
-        ).toBe(200);
-      }
-      await upload(page.request, mediaId, "video", videoPath, "video/mp4");
-      await upload(page.request, mediaId, "poster", photoPath, "image/jpeg");
-      await upload(page.request, photoId, "photo", photoPath, "image/jpeg");
-      expect(
-        (
-          await page.request.post(endpoint, { headers: leased, data: { action: "complete" } })
-        ).status(),
-      ).toBe(200);
+    test("saved X bookmarks enrich and play", async ({ page, bookmark }) => {
+      const { card, pendingBox, mediaRequests } = bookmark;
       // The foreground poll updates a fixed-size summary; full media is opened on demand.
       await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
         /已补全/,
@@ -444,7 +484,12 @@ for (const viewport of [
       await page.keyboard.press("Escape");
       await expect(post).toHaveCount(0);
       await expect(card.locator("video")).toHaveCount(0);
+    });
 
+    test("saved X library filters and layouts", async ({ page, bookmark }) => {
+      const { owner, linkId, raw, card, mediaSize, videoPath, mediaRequests, postId } = bookmark;
+      const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
+      const video = post.getByLabel("已归档的 X 视频");
       const design = randomUUID();
       const designName = "Design systems and interaction references";
       const reading = randomUUID();
@@ -742,6 +787,12 @@ for (const viewport of [
       await page.getByRole("option", { name: /^待补全/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
       await expect(feed.getByTestId("link-card")).toContainText("Pending post");
+    });
+
+    test("saved X media deletion and live refresh", async ({ page, context, bookmark }) => {
+      const { owner, linkId, headers, endpoint, capture, card, mediaId, photoId } = bookmark;
+      const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
+      const video = post.getByLabel("已归档的 X 视频");
       await page.goto("/dashboard");
       await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
         /已补全/,
@@ -812,13 +863,17 @@ for (const viewport of [
         true,
       );
       await expect(post.getByRole("button", { name: "展开全文" })).toHaveCount(0);
-      if (viewport.width > 600) {
+    });
+
+    if (viewport.width > 600) {
+      test("saved X photo galleries preserve image shapes", async ({ page, bookmark }) => {
+        const { owner, dir, capture, photoPath } = bookmark;
         assert(process.env.LOCAL_R2 === "1");
         const id = "4000000000000000001";
         const source = `https://x.com/example/status/${id}`;
         const [gallery] = await queryD1<{ id: number }>(
           "INSERT INTO links(user_id,original_url,slug,created_at) VALUES(?,?,?,?) RETURNING id",
-          [owner, source, randomUUID().slice(0, 8), createdAt + 60],
+          [owner, source, randomUUID().slice(0, 8), Date.now()],
         );
         assert(gallery);
         const album = {
@@ -919,12 +974,7 @@ for (const viewport of [
         const photoDialog = page.getByRole("dialog", { name: "图片预览" });
         await expect(photoDialog).toBeVisible();
         await expect(photoDialog.getByRole("img")).toHaveAttribute("src", /\/3\.jpg$/);
-      }
-      expect(errors).toEqual([]);
-    } finally {
-      if (linkId) await page.request.delete(`/api/v1/links/${linkId}`, { headers });
-      await executeD1("DELETE FROM users WHERE id=?", [owner]);
-      await rm(dir, { recursive: true, force: true });
+      });
     }
   });
 }

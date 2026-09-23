@@ -203,7 +203,8 @@ for (const collection of ["grid", "list", "uncategorized", "x", "github"] as con
     });
     try {
       await page.reload({ waitUntil: "domcontentloaded" });
-      const skeleton = page.locator('[aria-busy="true"][data-testid^="card-"]');
+      const skeleton = page.getByRole("status", { name: /^正在加载(?:卡片|列表)$/ });
+      await expect(skeleton).toHaveCount(1);
       await expect(skeleton).toBeVisible();
       if (collection === "grid" || collection === "x") {
         for (const [width, columns] of desktopColumns) {
