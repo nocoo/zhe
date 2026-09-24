@@ -374,7 +374,11 @@ The ordinary L3 suite runs shared workflows once per meaningful UI variant:
   same journey then checks the search page at 390px; a second complete mobile
   keyboard/backend replay is removed.
 
-This removes eight browser cases. CI still rejects flaky retained cases; security,
+- X deletion keeps its bulk-delete and archived-media workflows. The duplicate
+  frame-by-frame deletion animation case is removed; X masonry layout and
+  loading transitions remain covered.
+
+This removes nine browser cases. CI still rejects flaky retained cases; security,
 tenant isolation, data deletion assertions, coverage thresholds and retries are unchanged.
 The manual L3 stress workflow remains available for targeted investigation.
 

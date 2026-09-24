@@ -351,7 +351,7 @@ test("x: masonry keeps newest cards across the top and repacks on resize", async
   await expect.poll(async () => (await positions(cards))[2]?.y).toBeGreaterThan(before[2]?.y ?? 0);
 });
 
-for (const collection of ["grid", "list", "github", "x"] as const) {
+for (const collection of ["grid", "list", "github"] as const) {
   test(`${collection}: deletion smoothly fills the vacancy`, async ({ page, owner }, info) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     const errors: string[] = [];
