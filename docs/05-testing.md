@@ -370,7 +370,11 @@ The ordinary L3 suite runs shared workflows once per meaningful UI variant:
   same list controls; their route and source-filter behavior remain covered by
   navigation and GitHub tests instead of repeating four reflow workflows.
 
-This removes seven browser cases. CI still rejects flaky retained cases; security,
+- Enriched search runs its keyboard, source-filter and backend journey once. The
+  same journey then checks the search page at 390px; a second complete mobile
+  keyboard/backend replay is removed.
+
+This removes eight browser cases. CI still rejects flaky retained cases; security,
 tenant isolation, data deletion assertions, coverage thresholds and retries are unchanged.
 The manual L3 stress workflow remains available for targeted investigation.
 
