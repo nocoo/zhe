@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.1.6] - 2026-09-24
+
+### Changed
+- Upgrade AI SDK providers, AWS S3 SDKs, Next.js, Drizzle and Worker tooling to their latest stable versions.
+- Upgrade url-metadata to 6.1.0 and retain request-filtering-agent 3.2.1 with private-IP rejection regression coverage.
+- Remove registry mirror URLs from the dependency lockfile.
+- Consolidate browser journeys and migrate the project handbook to AGENTS.md.
+
 ## [v2.1.5] - 2026-09-22
 
 ### Fixed
