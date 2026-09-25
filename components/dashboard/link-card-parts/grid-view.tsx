@@ -86,7 +86,7 @@ function GridScreenshot({
 
   return (
     // Full-bleed open control + sibling action buttons (no nested interactives).
-    <div className="relative block w-full aspect-[4/3] border-b border-border/50 bg-background/60">
+    <div className="relative block w-full min-h-28 aspect-[4/3] border-b border-border/50 bg-background/60">
       <button
         type="button"
         className="absolute inset-0 z-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"

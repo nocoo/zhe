@@ -850,7 +850,7 @@ for (const viewport of [
           const videoFile = filesPage
             .getByTestId("upload-item")
             .filter({ hasText: `${mediaId}.mp4` });
-          await (await cardAction(page, videoFile, "Delete file")).click();
+          await (await cardAction(filesPage, videoFile, "Delete file")).click();
           await filesPage.getByTestId("upload-delete-confirm").click();
           await expect(filesPage.getByTestId("upload-item")).toHaveCount(1);
           await expect(filesPage.getByTestId("upload-file-name")).toHaveText(`${photoId}.jpg`);

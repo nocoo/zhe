@@ -153,9 +153,9 @@ test.describe
         timeout: 15_000,
       });
 
-      // The "在新标签页打开" link should have target="_blank"
       const firstItem = page.locator('[data-testid="upload-item"]').first();
-      const externalLink = firstItem.locator('a[title="在新标签页打开"]');
+      await firstItem.getByRole("button", { name: "更多收藏操作" }).click();
+      const externalLink = page.getByRole("menuitem", { name: "在新标签页打开" });
       await expect(externalLink).toHaveAttribute("target", "_blank");
       const href = await externalLink.getAttribute("href");
       expect(href).toBeTruthy();

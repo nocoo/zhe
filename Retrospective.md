@@ -130,3 +130,18 @@ server during an AI tag action. Separate distDir names are insufficient when
 one lives under the other's cleanup root. Production builds must finish before
 L2/L3 begins; the interrupted browser run is not accepted as verification. The
 daily HTTPS development server remained reachable after its automatic recovery.
+
+The full browser suite found two remaining test assumptions: a reveal click was
+followed by action lookup before the list and its responsive controls settled,
+and an upload assertion still searched inside the card for a portaled menu link.
+Wait for the restored card count and reflow completion before interacting; open
+the menu and retain the original link target and URL assertions there.
+
+A clean test cache restored the media upload route after it had returned an HTML
+404 despite its source being present. The resumed journeys exposed a real narrow
+grid issue: the preview center overlapped top-right controls at 768px with the
+sidebar expanded. Shared link previews and their skeletons now retain a 112px
+minimum height. Mobile notifications reserve space above the floating bulk bar
+so a hovered toast cannot indefinitely obstruct its exit control. Browser helpers
+wait for the documented responsive width mode and scope portaled menus to the
+correct page, including secondary tabs.

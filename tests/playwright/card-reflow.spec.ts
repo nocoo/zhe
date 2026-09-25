@@ -725,6 +725,8 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(cards).toHaveCount(7);
     await toggle.click();
+    await expect(cards).toHaveCount(8);
+    await settle(page);
     await (await cardAction(page, card, "取消隐藏")).click();
     await expect(page.getByText("已取消隐藏", { exact: true })).toBeVisible();
     await toggle.click();

@@ -191,6 +191,11 @@ Collection actions use compact 32px Lucide icon buttons with Basalt tooltips and
 
 ## Responsive card actions
 
+Link grid previews and their skeletons retain a `min-h-28` media area so the
+center preview target stays clear of the top-right controls even at narrow
+desktop grid widths. Mobile toasts use a bottom offset of `6rem` plus the safe
+area inset, keeping the floating bulk toolbar reachable.
+
 `CardActions` owns action overflow for links (grid/list), X, GitHub, ideas
 (grid/list), and completed uploads. Each card marks its boundary with
 `data-card-actions-container`; a ResizeObserver uses that card's content width,

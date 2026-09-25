@@ -165,7 +165,7 @@ function GridCardBones({ variant, index }: { variant: GridVariant; index: number
     );
   return (
     <>
-      {variant === "link" && <Bone className="aspect-[4/3] w-full rounded-none" />}
+      {variant === "link" && <Bone className="aspect-[4/3] min-h-28 w-full rounded-none" />}
       <div className="space-y-2 p-4">
         <Bone className="h-5 w-3/4" />
         <TextBones />

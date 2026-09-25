@@ -27,5 +27,10 @@ export function Toaster() {
     return () => observer.disconnect();
   }, [theme]);
 
-  return <BasaltToaster theme={mode} />;
+  return (
+    <BasaltToaster
+      theme={mode}
+      mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 6rem)" }}
+    />
+  );
 }
