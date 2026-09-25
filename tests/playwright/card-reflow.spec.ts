@@ -518,7 +518,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     );
     expect(await cards.first().evaluate((element) => !!element.closest("[inert]"))).toBe(true);
     const deleteSelected = page
-      .getByRole("group", { name: "多选操作", exact: true })
+      .getByRole("group", { name: collection === "x" ? "浮动多选操作" : "多选操作", exact: true })
       .getByRole("button", { name: "删除所选" });
     await deleteSelected.scrollIntoViewIfNeeded();
     await page.screenshot({
