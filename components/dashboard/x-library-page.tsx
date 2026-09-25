@@ -4,8 +4,11 @@ import {
   AlignLeft,
   Bookmark,
   Clock3,
+  Eye,
+  EyeOff,
   FileText,
   Film,
+  FilterX,
   ImageIcon,
   LayoutGrid,
   Play,
@@ -39,9 +42,11 @@ import {
   type XContentType,
 } from "@/models/x-bookmarks";
 import { useBulkDelete } from "@/viewmodels/useBulkDelete";
+import { useBulkLinkVisibility } from "@/viewmodels/useBulkLinkVisibility";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
+import { IconAction } from "./icon-action";
 import { LibraryActions } from "./library-actions";
 import { LinkCard } from "./link-card";
 import { TagFilter } from "./link-filter-bar";
@@ -142,6 +147,11 @@ export function XLibraryPage() {
       return result;
     },
   );
+  const visibility = useBulkLinkVisibility(
+    selection,
+    visible.map(({ link }) => link),
+    handleLinkUpdated,
+  );
   if (loading)
     return (
       <>
@@ -151,7 +161,7 @@ export function XLibraryPage() {
     );
 
   return (
-    <div>
+    <div className={selection.active ? "pb-20" : undefined}>
       <PageHeader
         title={
           <span className="flex items-center gap-2">
@@ -224,9 +234,9 @@ export function XLibraryPage() {
                   }
                 />
                 {filtered && (
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    清除筛选
-                  </Button>
+                  <IconAction label="清除筛选" onClick={clearFilters}>
+                    <FilterX aria-hidden />
+                  </IconAction>
                 )}
                 <ShowHiddenButton
                   showHidden={showHidden}
@@ -235,7 +245,29 @@ export function XLibraryPage() {
                 <LibraryActions onRefresh={refreshXBookmarks} source="x" />
               </>
             )}
-            <BulkDeleteActions selection={selection} />
+            <BulkDeleteActions
+              selection={selection}
+              bottom
+              pending={visibility.pending}
+              actions={
+                <>
+                  <IconAction
+                    label="隐藏所选"
+                    disabled={!selection.count || visibility.pending}
+                    onClick={() => void visibility.update(true)}
+                  >
+                    <EyeOff aria-hidden />
+                  </IconAction>
+                  <IconAction
+                    label="解除隐藏所选"
+                    disabled={!selection.count || visibility.pending}
+                    onClick={() => void visibility.update(false)}
+                  >
+                    <Eye aria-hidden />
+                  </IconAction>
+                </>
+              }
+            />
           </>
         }
       />
@@ -265,6 +297,7 @@ export function XLibraryPage() {
           {visible.map(({ link }, index) => (
             <SelectableCard
               selection={selection}
+              inert={visibility.pending}
               itemId={link.id}
               label={link.title || link.metaTitle || link.originalUrl}
               key={link.id}

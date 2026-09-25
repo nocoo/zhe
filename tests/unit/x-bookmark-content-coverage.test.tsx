@@ -171,7 +171,8 @@ describe("XBookmarkContent branches", () => {
         />
       </LayerCard>,
     );
-    expect(screen.getByText("视频 · 2:05")).toBeInTheDocument();
+    expect(screen.getByTestId("x-media-type-badge")).toHaveTextContent("视频 · 2:05");
+    expect(screen.getByTestId("x-media-type-badge").querySelector("svg")).toBeInTheDocument();
   });
 
   it("renders multiple photo collage in compact mode with overflow count indicator", () => {

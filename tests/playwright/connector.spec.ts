@@ -471,8 +471,19 @@ for (const viewport of [
       await expect
         .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
         .toBeGreaterThan(0.1);
+      const videoDownload = page.waitForEvent("download");
+      await post.getByRole("button", { name: "下载视频 1" }).click();
+      const downloadedVideo = await videoDownload;
+      expect(downloadedVideo.suggestedFilename()).toMatch(/\.mp4$/);
+      expect(await downloadedVideo.failure()).toBeNull();
       await post.getByRole("button", { name: "查看图片 2" }).click();
-      await expect(page.getByRole("dialog", { name: "图片预览", exact: true })).toBeVisible();
+      const imageDialog = page.getByRole("dialog", { name: "图片预览", exact: true });
+      await expect(imageDialog).toBeVisible();
+      const imageDownload = page.waitForEvent("download");
+      await imageDialog.getByRole("button", { name: "下载图片 2" }).click();
+      const downloadedImage = await imageDownload;
+      expect(downloadedImage.suggestedFilename()).toMatch(/\.(png|jpg)$/);
+      expect(await downloadedImage.failure()).toBeNull();
       await page.keyboard.press("Escape");
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -771,6 +782,22 @@ for (const viewport of [
       await expect(page.locator("video")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(details).toBeFocused();
+      await page.getByRole("button", { name: "多选卡片" }).click();
+      const selection = page.getByRole("group", { name: "浮动多选操作" });
+      await expect(selection).toBeInViewport();
+      await feedCard.locator("../..").getByRole("checkbox").check();
+      await selection.getByRole("button", { name: "隐藏所选" }).click();
+      await expect(feedCard).toHaveCount(0);
+      await selection.getByRole("button", { name: "退出多选" }).click();
+      await page.getByRole("button", { name: "展示隐藏" }).click();
+      await expect(feedCard).toBeVisible();
+      await page.getByRole("button", { name: "多选卡片" }).click();
+      await feedCard.locator("../..").getByRole("checkbox").check();
+      await selection.getByRole("button", { name: "解除隐藏所选" }).click();
+      await expect(selection).toContainText("已选 0 项");
+      await selection.getByRole("button", { name: "退出多选" }).click();
+      await page.getByRole("button", { name: "展示隐藏" }).click();
+      await expect(feedCard).toBeVisible();
       await page.getByRole("combobox", { name: "内容类型" }).click();
       await page.getByRole("option", { name: /^图片/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);

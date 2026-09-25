@@ -184,3 +184,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 5. 原子 commit：`feat`/`fix` 原语与 `docs` 可分提交
 
 X 收藏与 GitHub 收藏复用 PageHeader.actions：短筛选组在标题/副标题右侧居右排列，窄屏自然换行。页面不设独立内容搜索框，搜索统一从 sidebar 进入；结果数量合并到副标题。X 内容类型使用含数量的下拉筛选。
+
+### X collection actions
+
+Collection actions use compact 32px Lucide icon buttons with Basalt tooltips and accessible names. Filters retain their selected values. X selection controls stay at the bottom of the viewport and offer hide, unhide and delete; visibility updates disable the batch controls and preserve failed selections for retry. Image previews and expanded video/GIF attachments provide downloads with pending and failure feedback. Video badges use the Lucide video icon while retaining screen-reader text and duration.

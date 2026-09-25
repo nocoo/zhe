@@ -24,6 +24,7 @@ import {
   Check,
   CircleAlert,
   Clock3,
+  Download,
   Eye,
   FileText,
   Heart,
@@ -34,6 +35,7 @@ import {
   Quote as QuoteIcon,
   RefreshCw,
   Repeat2,
+  Video,
 } from "lucide-react";
 import { useState } from "react";
 import { retryXBookmarkAction } from "@/actions/connector";
@@ -52,6 +54,8 @@ import {
 } from "@/models/x-bookmarks";
 import { formatCount, formatTweetDate } from "@/models/xray";
 import { useGifPlayback } from "@/viewmodels/useGifPlayback";
+import { useMediaDownload } from "@/viewmodels/useMediaDownload";
+import { IconAction } from "./icon-action";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
 
 const statusLabels = {
@@ -128,7 +132,14 @@ export function XSourceBadge({
             : "border-l border-background/25 pl-2 text-[11px] font-medium leading-none"
         }
       >
-        {X_CONTENT_TYPES.find((item) => item.value === type)?.label}
+        {type === "video" ? (
+          <>
+            <Video className="size-3.5" strokeWidth={1.5} aria-hidden />
+            <span className="sr-only">视频</span>
+          </>
+        ) : (
+          X_CONTENT_TYPES.find((item) => item.value === type)?.label
+        )}
       </span>
     </span>
   );
@@ -163,6 +174,16 @@ function PostText({ text, compact = false }: { text: string; compact?: boolean }
   );
 }
 
+function MediaDownload({ media, index }: { media: XMedia; index: number }) {
+  const { pending, download } = useMediaDownload(media);
+  const label = `下载${media.type === "PHOTO" ? "图片" : media.type === "GIF" ? "GIF" : "视频"} ${index + 1}`;
+  return (
+    <IconAction label={label} loading={pending} onClick={() => void download()}>
+      <Download aria-hidden />
+    </IconAction>
+  );
+}
+
 function PostMedia({
   media,
   index,
@@ -186,9 +207,16 @@ function PostMedia({
   const mediaBadge = (
     <span
       data-testid="x-media-type-badge"
-      className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+      className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
     >
-      {media.type === "GIF" ? "GIF" : "视频"}
+      {media.type === "GIF" ? (
+        "GIF"
+      ) : (
+        <>
+          <Video className="size-3.5" strokeWidth={1.5} aria-hidden />
+          <span className="sr-only">视频</span>
+        </>
+      )}
       {!!media.duration &&
         ` · ${Math.floor(media.duration / 60)}:${String(Math.floor(media.duration % 60)).padStart(2, "0")}`}
     </span>
@@ -301,6 +329,9 @@ function PostMedia({
           alt={`帖子图片 ${index + 1}`}
           className="max-h-[75dvh] w-full object-contain"
         />
+        <div className="flex justify-end">
+          <MediaDownload media={media} index={index} />
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -337,6 +368,11 @@ function MediaGrid({
             autoPlay={item.id === playMediaId}
             onPlay={onPlayMedia ? () => onPlayMedia(item.id) : undefined}
           />
+          {!compact && item.type !== "PHOTO" && (
+            <div className="mt-2 flex justify-end">
+              <MediaDownload media={item} index={index} />
+            </div>
+          )}
         </div>
       ))}
       {visible.length < media.length && (
@@ -727,13 +763,12 @@ export function XBookmarkStatus({
         !currentFeedback?.success && <p className="text-sm text-warning">{errorMessage}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
-          <Button size="sm" onClick={retry} disabled={retrying}>
+          <IconAction label="重新补全" onClick={retry} disabled={retrying}>
             <RefreshCw
               className={retrying ? "animate-spin motion-reduce:animate-none" : ""}
               aria-hidden
             />
-            重新补全
-          </Button>
+          </IconAction>
         )}
         <div className="ml-auto flex items-center gap-2">{actions}</div>
       </div>

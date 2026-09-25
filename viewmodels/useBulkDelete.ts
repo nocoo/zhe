@@ -103,6 +103,12 @@ export function useBulkDelete(
     selected,
     batch,
     toggle,
+    deselect: (id: number) =>
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      }),
     close,
     execute,
     count: visibleSelection.length,

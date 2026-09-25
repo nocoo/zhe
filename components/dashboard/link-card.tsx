@@ -34,6 +34,7 @@ import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks"
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
 import { EnrichmentButton } from "./enrichment-button";
+import { IconAction } from "./icon-action";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
@@ -249,12 +250,12 @@ export const LinkCard = memo(function LinkCard({
               bookmark={xBookmark}
               linkId={link.id}
               actions={
-                <Button variant="outline" size="sm" asChild>
+                <IconAction label="打开原帖" asChild>
                   <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink />
-                    打开原帖
+                    <span className="sr-only">打开原帖</span>
                   </a>
-                </Button>
+                </IconAction>
               }
             />
             {cardTags.length > 0 && (

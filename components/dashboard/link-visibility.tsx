@@ -1,8 +1,8 @@
 "use client";
 
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { IconAction } from "./icon-action";
 
 export function LinkVisibilityButton({
   hidden,
@@ -18,9 +18,9 @@ export function LinkVisibilityButton({
   const Icon = pending ? Loader2 : hidden ? EyeOff : Eye;
   const label = hidden ? "取消隐藏" : "隐藏帖子";
   return (
-    <Button
+    <IconAction
       variant="ghost"
-      size="icon"
+      label={label}
       className={cn("pointer-events-auto text-muted-foreground hover:text-foreground", className)}
       aria-label={label}
       aria-pressed={hidden}
@@ -33,7 +33,7 @@ export function LinkVisibilityButton({
         strokeWidth={1.5}
         aria-hidden
       />
-    </Button>
+    </IconAction>
   );
 }
 
@@ -45,14 +45,13 @@ export function ShowHiddenButton({
   onToggle: () => void;
 }) {
   return (
-    <Button
+    <IconAction
       variant={showHidden ? "secondary" : "outline"}
-      size="sm"
+      label="展示隐藏"
       aria-pressed={showHidden}
       onClick={onToggle}
     >
       <Eye strokeWidth={1.5} aria-hidden />
-      展示隐藏
-    </Button>
+    </IconAction>
   );
 }

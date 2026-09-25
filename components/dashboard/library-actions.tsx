@@ -3,11 +3,11 @@
 import { toast } from "@nocoo/basalt/components/toast";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentSource } from "@/models/connector-activity";
 import { CreateLinkModal } from "./create-link-modal";
 import { EnrichmentButton } from "./enrichment-button";
+import { IconAction } from "./icon-action";
 
 /** Source collections share the same unrestricted creation flow as all links. */
 export function LibraryActions({
@@ -37,11 +37,11 @@ export function LibraryActions({
   return (
     <div className="flex shrink-0 items-center gap-2">
       <EnrichmentButton source={source} />
-      <Button
+      <IconAction
         variant="outline"
         size="sm"
         className="w-8 shrink-0 px-0"
-        aria-label="刷新链接"
+        label="刷新链接"
         disabled={refreshing}
         onClick={refresh}
       >
@@ -50,7 +50,7 @@ export function LibraryActions({
           strokeWidth={1.5}
           aria-hidden
         />
-      </Button>
+      </IconAction>
       <CreateLinkModal
         siteUrl={siteUrl}
         onSuccess={handleLinkCreated}

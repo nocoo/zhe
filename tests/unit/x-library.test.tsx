@@ -1,12 +1,16 @@
 // @vitest-environment happy-dom
 vi.mock("@/actions/link-organization", () => ({ applyLinkOrganization: vi.fn() }));
 vi.mock("@/actions/tags", () => ({ createTag: vi.fn() }));
-vi.mock("@/actions/links", () => ({ createLink: vi.fn(), deleteLink: vi.fn() }));
+vi.mock("@/actions/links", () => ({
+  createLink: vi.fn(),
+  deleteLink: vi.fn(),
+  setLinkHidden: vi.fn(),
+}));
 
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLink, deleteLink } from "@/actions/links";
+import { createLink, deleteLink, setLinkHidden } from "@/actions/links";
 import { normalizeXPost, type XPost } from "@/cli/src/connector/core";
 import { XLibraryPage } from "@/components/dashboard/x-library-page";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -349,6 +353,54 @@ describe("X library", () => {
     await user.click(screen.getByRole("button", { name: "展示隐藏" }));
     expect(screen.getByRole("status")).toHaveTextContent("共 7 条收藏");
     expect(screen.getByRole("article", { name: "Secret stash" })).toBeInTheDocument();
+  });
+  it("hides and unhides selected posts from the fixed bottom toolbar", async () => {
+    vi.mocked(setLinkHidden).mockImplementation(async (id, hidden) => ({
+      success: true,
+      data: { ...link(id, "Saved"), isHidden: hidden },
+    }));
+    const user = userEvent.setup();
+    const page = renderPage();
+    await user.click(screen.getByRole("button", { name: "多选卡片" }));
+    const toolbar = screen.getByRole("group", { name: "浮动多选操作" });
+    expect(toolbar).toHaveClass("fixed");
+    expect(within(toolbar).getByRole("button", { name: "隐藏所选" })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/1" }));
+    await user.click(within(toolbar).getByRole("button", { name: "隐藏所选" }));
+    await waitFor(() =>
+      expect(service.handleLinkUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, isHidden: true }),
+      ),
+    );
+    expect(
+      screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/1" }),
+    ).not.toBeChecked();
+    page.unmount();
+    service.links = [{ ...link(1, "Saved"), isHidden: true }];
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "展示隐藏" }));
+    await user.click(screen.getByRole("button", { name: "多选卡片" }));
+    await user.click(screen.getByRole("button", { name: "全选当前列表" }));
+    await user.click(screen.getByRole("button", { name: "解除隐藏所选" }));
+    await waitFor(() => expect(setLinkHidden).toHaveBeenLastCalledWith(1, false));
+  });
+  it("retains failed visibility updates for retry while clearing successful selections", async () => {
+    vi.mocked(setLinkHidden).mockImplementation(async (id, hidden) => {
+      if (id === 1) throw new Error("Offline");
+      if (id === 2) return { success: false, error: "Denied" };
+      return { success: true, data: { ...link(id, "Saved"), isHidden: hidden } };
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "多选卡片" }));
+    await user.click(screen.getByRole("button", { name: "全选当前列表" }));
+    await user.click(screen.getByRole("button", { name: "隐藏所选" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "隐藏所选" })).toBeEnabled());
+    expect(screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/1" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/2" })).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "选择 https://x.com/lin/status/3" }),
+    ).not.toBeChecked();
   });
   it("deletes selected cards through the dashboard service", async () => {
     vi.mocked(deleteLink).mockResolvedValue({ success: true });

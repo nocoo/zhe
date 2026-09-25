@@ -266,10 +266,12 @@ describe("bulk deletion", () => {
 
     const floating = screen.getByRole("group", { name: "浮动多选操作" });
     expect(floating).toBeInTheDocument();
-    expect(within(floating).getByRole("button", { name: "全选当前列表" })).toHaveTextContent(
-      "全选",
-    );
-    expect(within(floating).getByRole("button", { name: "删除所选" })).toHaveTextContent("删除");
+    expect(
+      within(floating).getByRole("button", { name: "全选当前列表" }).querySelector("svg"),
+    ).toBeInTheDocument();
+    expect(
+      within(floating).getByRole("button", { name: "删除所选" }).querySelector("svg"),
+    ).toBeInTheDocument();
 
     // Cancel offscreen
     act(() => {

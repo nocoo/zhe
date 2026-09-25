@@ -1,7 +1,15 @@
 "use client";
 
-import { ListChecks, Trash2, X } from "lucide-react";
-import { type ComponentPropsWithoutRef, type Ref, useEffect, useId, useRef, useState } from "react";
+import { ListChecks, ListX, Trash2, X } from "lucide-react";
+import {
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   AlertDialog,
@@ -15,8 +23,19 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { BulkDeleteState } from "@/viewmodels/useBulkDelete";
+import { IconAction } from "./icon-action";
 
-export function BulkDeleteActions({ selection }: { selection: BulkDeleteState }) {
+export function BulkDeleteActions({
+  selection,
+  bottom = false,
+  actions,
+  pending = false,
+}: {
+  selection: BulkDeleteState;
+  bottom?: boolean;
+  actions?: ReactNode;
+  pending?: boolean;
+}) {
   const trigger = useRef<HTMLButtonElement>(null);
   const floatingTrigger = useRef<HTMLButtonElement>(null);
   const toolbar = useRef<HTMLDivElement>(null);
@@ -36,26 +55,30 @@ export function BulkDeleteActions({ selection }: { selection: BulkDeleteState })
     <>
       <div ref={toolbar} className="flex min-w-0">
         {selection.active ? (
-          <SelectionControls selection={selection} deleteRef={trigger} />
+          bottom ? null : (
+            <SelectionControls selection={selection} deleteRef={trigger} />
+          )
         ) : (
-          <Button
+          <IconAction
             ref={trigger}
-            size="sm"
-            className="w-8 shrink-0 px-0"
-            variant="outline"
-            aria-label="多选卡片"
-            title="多选卡片"
+            label="多选卡片"
             onClick={selection.enter}
             disabled={!selection.total}
           >
             <ListChecks aria-hidden />
-          </Button>
+          </IconAction>
         )}
       </div>
       {selection.active &&
-        offscreen &&
+        (bottom || offscreen) &&
         createPortal(
-          <SelectionControls selection={selection} deleteRef={floatingTrigger} floating />,
+          <SelectionControls
+            selection={selection}
+            deleteRef={floatingTrigger}
+            floating
+            actions={actions}
+            pending={pending}
+          />,
           document.body,
         )}
       <BulkDeleteDialog
@@ -72,10 +95,14 @@ function SelectionControls({
   selection,
   deleteRef,
   floating = false,
+  actions,
+  pending = false,
 }: {
   selection: BulkDeleteState;
   deleteRef: Ref<HTMLButtonElement>;
   floating?: boolean;
+  actions?: ReactNode;
+  pending?: boolean;
 }) {
   const allSelected = selection.count === selection.total && selection.total > 0;
   return (
@@ -85,40 +112,33 @@ function SelectionControls({
         floating &&
           "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 justify-center rounded-card border border-border bg-popover p-2 text-popover-foreground shadow-lg",
       )}
+      disabled={pending}
+      aria-busy={pending}
       aria-label={floating ? "浮动多选操作" : "多选操作"}
     >
       <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground" role="status">
         已选 {selection.count} 项
       </span>
-      <Button
-        size="sm"
-        variant="outline"
+      <IconAction
+        label={allSelected ? "取消全选" : "全选当前列表"}
         onClick={selection.selectAll}
-        disabled={!selection.total}
-        aria-label={allSelected ? "取消全选" : "全选当前列表"}
+        disabled={!selection.total || pending}
       >
-        {allSelected ? "取消全选" : floating ? "全选" : "全选当前列表"}
-      </Button>
-      <Button
+        {allSelected ? <ListX aria-hidden /> : <ListChecks aria-hidden />}
+      </IconAction>
+      {actions}
+      <IconAction
         ref={deleteRef}
-        size="sm"
-        variant="destructive"
-        disabled={!selection.count}
+        label="删除所选"
+        disabled={!selection.count || pending}
         onClick={selection.requestDelete}
-        aria-label="删除所选"
+        className="text-destructive hover:text-destructive"
       >
         <Trash2 aria-hidden />
-        {floating ? "删除" : "删除所选"}
-      </Button>
-      <Button
-        size="sm"
-        className="w-8 shrink-0 px-0"
-        variant="ghost"
-        aria-label="退出多选"
-        onClick={selection.exit}
-      >
+      </IconAction>
+      <IconAction label="退出多选" onClick={selection.exit} disabled={pending}>
         <X aria-hidden />
-      </Button>
+      </IconAction>
     </fieldset>
   );
 }

@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Folder, Link, Tag } from "@/models/types";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { FolderSelect, ModeTabs, SlugInput, TagsField } from "./create-link-modal-parts/fields";
+import { IconAction } from "./icon-action";
 
 interface CreateLinkModalProps {
   siteUrl: string;
@@ -101,9 +102,9 @@ export function CreateLinkModal({
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="w-8 shrink-0 px-0" aria-label="新建链接">
+        <IconAction label="新建链接">
           <Plus className="w-4 h-4" strokeWidth={1.5} />
-        </Button>
+        </IconAction>
       </DialogTrigger>
       <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto rounded-card border-0">
         <DialogHeader>
