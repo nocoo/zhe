@@ -118,3 +118,8 @@ is retained; only coarse-pointer layouts grow to fit 44px touch targets. The
 reflow test also has to finish its deliberately paused overlapping animation
 before clicking a new menu, rather than treating a read-only state assertion as
 an interaction during the overlap.
+
+The complete connector journeys also exposed an inventory omission: X bookmarks
+appear in the generic link grid/list, not only in the dedicated X feed. Their
+primary action must remain the details control, including its enrichment status
+description. Editing moves to More for those records; normal links keep Edit.

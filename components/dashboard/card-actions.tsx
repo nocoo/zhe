@@ -55,7 +55,7 @@ export function CardActions({
       data-card-actions
       data-compact={compact}
       className={cn(
-        "relative flex shrink-0 items-center gap-1 pointer-events-auto [&_svg]:stroke-[1.5] [&_button]:shrink-0 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11",
+        "relative flex shrink-0 items-center gap-1 pointer-events-auto [&_svg]:stroke-[1.5] [&_button]:h-8 [&_button]:w-8 [&_button]:shrink-0 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11",
         className,
       )}
     >

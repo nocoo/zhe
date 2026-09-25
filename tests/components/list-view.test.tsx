@@ -55,8 +55,7 @@ describe("ListView", () => {
     render(<ListView {...baseProps()} onOpenDetails={vi.fn()} xBookmark={xBookmark} />);
     expect(screen.getByRole("button", { name: "查看 X 帖子" })).toBeInTheDocument();
     expect(screen.queryByAltText("X 帖子预览")).not.toBeInTheDocument();
-    await userEvent.setup().click(screen.getByRole("button", { name: "更多收藏操作" }));
-    expect(screen.getByRole("menuitem", { name: "查看帖子详情" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看帖子详情" })).toBeInTheDocument();
   });
 
   it("renders zero clicks for links without click data", () => {

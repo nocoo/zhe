@@ -432,18 +432,20 @@ for (const viewport of [
       if (viewport.width < 600) {
         const detailsBox = await card.getByRole("button", { name: "查看帖子详情" }).boundingBox();
         const sourceBox = await card.locator('[title="来源：X"]').boundingBox();
-        const editBox = await card
-          .getByRole("button", { name: "Edit link", exact: true })
+        const moreBox = await card
+          .getByRole("button", { name: "更多收藏操作", exact: true })
           .boundingBox();
-        assert(detailsBox && editBox && sourceBox);
-        expect(detailsBox.height).toBe(editBox.height);
-        for (const box of [detailsBox, editBox]) {
+        assert(detailsBox && moreBox && sourceBox);
+        expect(detailsBox.height).toBe(moreBox.height);
+        for (const box of [detailsBox, moreBox]) {
           expect(box.x).toBeGreaterThanOrEqual(completedBox.x);
           expect(box.x + box.width).toBeLessThanOrEqual(completedBox.x + completedBox.width);
           expect(sourceBox.y).toBeGreaterThanOrEqual(box.y + box.height);
         }
         await card.getByRole("button", { name: "查看帖子详情" }).click({ trial: true });
-        await card.getByRole("button", { name: "Edit link", exact: true }).click({ trial: true });
+        await card
+          .getByRole("button", { name: "更多收藏操作", exact: true })
+          .click({ trial: true });
       }
       if (viewport.width >= 600) {
         for (const width of [768, 1024, 1280, 1365, 1728, 2560, 3360]) {

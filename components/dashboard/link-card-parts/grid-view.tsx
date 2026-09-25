@@ -21,7 +21,7 @@ import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { getXContentTypes } from "@/models/x-bookmarks";
 import { type CardAction, CardActions } from "../card-actions";
-import { XSourceBadge } from "../x-bookmark-content";
+import { XBookmarkDetailsButton, XSourceBadge } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
@@ -156,19 +156,28 @@ function GridScreenshot({
       <CardActions
         className="absolute right-2 top-2 z-20 rounded-widget bg-black/55 text-white shadow-xs backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
         primary={
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onToggleEdit}
-            aria-label="Edit link"
-            title="Edit link"
-            className="w-8 px-0 text-white/90 hover:bg-white/15 hover:text-white"
-          >
-            <Pencil aria-hidden />
-          </Button>
+          onOpenDetails ? (
+            <XBookmarkDetailsButton
+              bookmark={xBookmark}
+              onClick={onOpenDetails}
+              className="text-white/90 hover:bg-white/15 hover:text-white"
+            />
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onToggleEdit}
+              aria-label="Edit link"
+              title="Edit link"
+              className="w-8 px-0 text-white/90 hover:bg-white/15 hover:text-white"
+            >
+              <Pencil aria-hidden />
+            </Button>
+          )
         }
         secondary={[
           ...secondaryActions,
+          ...(onOpenDetails ? [{ label: "Edit link", icon: Pencil, onSelect: onToggleEdit }] : []),
           ...(!onOpenDetails && canDeleteScreenshot
             ? [
                 {

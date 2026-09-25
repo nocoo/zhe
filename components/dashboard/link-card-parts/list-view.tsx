@@ -2,7 +2,6 @@
 
 import {
   BarChart3,
-  BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
@@ -22,6 +21,7 @@ import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { type CardAction, CardActions } from "../card-actions";
+import { XBookmarkDetailsButton } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface ListViewProps {
@@ -192,6 +192,7 @@ function ListActions({
   onSuggest,
   suggestDisabled,
   onOpenDetails,
+  xBookmark,
 }: {
   secondaryActions?: CardAction[] | undefined;
   isEditing: boolean;
@@ -209,17 +210,21 @@ function ListActions({
   return (
     <CardActions
       primary={
-        <Button
-          size="sm"
-          variant="ghost"
-          className="w-8 px-0"
-          onClick={onToggleEdit}
-          aria-label="Edit link"
-          title="Edit link"
-          aria-pressed={isEditing}
-        >
-          <Pencil aria-hidden />
-        </Button>
+        onOpenDetails ? (
+          <XBookmarkDetailsButton bookmark={xBookmark} onClick={onOpenDetails} />
+        ) : (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-8 px-0"
+            onClick={onToggleEdit}
+            aria-label="Edit link"
+            title="Edit link"
+            aria-pressed={isEditing}
+          >
+            <Pencil aria-hidden />
+          </Button>
+        )
       }
       secondary={[
         ...secondaryActions,
@@ -233,7 +238,7 @@ function ListActions({
                 pending: isRefreshingMetadata,
               },
             ]
-          : [{ label: "查看帖子详情", icon: BookOpen, onSelect: onOpenDetails }]),
+          : [{ label: "Edit link", icon: Pencil, onSelect: onToggleEdit }]),
         ...(!onOpenDetails && canDeleteScreenshot
           ? [
               {

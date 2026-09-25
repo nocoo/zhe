@@ -229,27 +229,14 @@ describe("X bookmark presentation", () => {
         expect(screen.getByRole("menuitem", { name: "复制短链接" })).toBeInTheDocument();
         await user.keyboard("{Escape}");
       } else {
-        expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+        expect(screen.getByRole("menuitem", { name: "Edit link" })).toBeInTheDocument();
+        await user.keyboard("{Escape}");
       }
       expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
-      const trigger = screen.getByRole("button", {
-        name:
-          viewMode === "feed"
-            ? "查看帖子详情"
-            : viewMode === "grid"
-              ? "查看 X 帖子"
-              : "更多收藏操作",
-      });
-      if (viewMode === "feed") {
-        const trigger = screen.getByRole("button", { name: "查看帖子详情" });
-        expect(trigger).toHaveAccessibleDescription("已补全");
-        await user.click(trigger);
-      } else if (viewMode === "grid") {
-        await user.click(screen.getByRole("button", { name: "查看 X 帖子" }));
-      } else {
-        await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-        await user.click(screen.getByRole("menuitem", { name: "查看帖子详情" }));
-      }
+      const trigger = screen.getByRole("button", { name: "查看帖子详情" });
+      expect(trigger).toHaveAccessibleDescription("已补全");
+      await user.click(trigger);
       const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
       expect(within(dialog).getByTestId("x-bookmark-content")).toBeInTheDocument();
       expect(within(dialog).getByText("喜欢 7")).toBeInTheDocument();

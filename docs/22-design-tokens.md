@@ -199,7 +199,8 @@ only the primary action and More remain visible. Wider cards expose secondary
 actions directly; existing persistent menu entries remain in More. The breakpoint
 reserves room for content alongside six controls, including coarse-pointer targets.
 
-Core actions are edit for links/ideas, details for X, README for GitHub, video
+Core actions are edit for ordinary links/ideas, details for X in every layout,
+README for GitHub, video
 preview for video uploads, and copy for other uploads. Secondary actions keep
 the same ViewModel callbacks, pending state, confirmation dialogs and ownership.
 Basalt dropdowns provide portal positioning, keyboard navigation, accessible
