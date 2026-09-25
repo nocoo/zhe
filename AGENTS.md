@@ -80,7 +80,7 @@ Hooks are check-only; never use `--no-verify`, disable gates or run autofix as a
 
 ## Resources / Isolation
 
-Dev: 7006 behind Caddy with `.next/dev`. L2: 17006; L3: 27006; test Next output: `.next/test`. Keep daily dev alive and serialize L2/L3 until their shared paths are per-run.
+Dev: 7006 behind Caddy with `.next/dev`. L2: 17006; L3: 27006; test Next output: `.next/test`. Keep daily dev alive and serialize L2/L3 until their shared paths are per-run. Finish production builds before L2/L3: `next build` cleans the parent `.next` directory, including `.next/test`, and restarts a running test server.
 `scripts/test-stack.ts` owns local Worker 8788 by default (`ZHE_TEST_WORKER_PORT` can select an isolated port, e.g. 28788) and R2 HTTP shim 18788, SQLite/KV under `.test-storage/wrangler` and filesystem R2 under `.test-storage/r2`.
 The shim is test-only. Use local Wrangler/Miniflare, fresh per-run directories, loopback/test guards and `_test_marker`; never deploy remote `-test` resources or use production/daily-dev data for E2E.
 

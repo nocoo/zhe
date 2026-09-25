@@ -123,3 +123,10 @@ The complete connector journeys also exposed an inventory omission: X bookmarks
 appear in the generic link grid/list, not only in the dedicated X feed. Their
 primary action must remain the details control, including its enrichment status
 description. Editing moves to More for those records; normal links keep Edit.
+
+A validation scheduling mistake ran `next build` alongside Playwright. Production
+build cleanup removed the nested `.next/test/dev` directory, restarting the test
+server during an AI tag action. Separate distDir names are insufficient when
+one lives under the other's cleanup root. Production builds must finish before
+L2/L3 begins; the interrupted browser run is not accepted as verification. The
+daily HTTPS development server remained reachable after its automatic recovery.
