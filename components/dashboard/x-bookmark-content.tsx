@@ -178,9 +178,12 @@ function MediaDownload({ media, index }: { media: XMedia; index: number }) {
   const { pending, download } = useMediaDownload(media);
   const label = `下载${media.type === "PHOTO" ? "图片" : media.type === "GIF" ? "GIF" : "视频"} ${index + 1}`;
   return (
-    <IconAction label={label} loading={pending} onClick={() => void download()}>
-      <Download aria-hidden />
-    </IconAction>
+    <IconAction
+      label={label}
+      loading={pending}
+      icon={<Download aria-hidden />}
+      onClick={() => void download()}
+    />
   );
 }
 
