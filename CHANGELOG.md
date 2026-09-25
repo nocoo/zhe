@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.1.7] - 2026-09-25
+
+### Added
+- Add x media downloads and bulk visibility
+
+### Changed
+- Target bottom toolbar for x bulk deletion
+- Disambiguate bulk visibility action
+- Verify fixed x selection toolbar
+
+### Fixed
+- Keep media download spinner compact
+
 ## [v2.1.6] - 2026-09-24
 
 ### Changed
