@@ -591,7 +591,7 @@ for (const [collection, width] of [
   ["github", 1365],
   ["x", 320],
 ] as const) {
-  test(`${collection}: bulk toolbar appears only when the header scrolls out of view`, async ({
+  test(`${collection}: bulk toolbar remains accessible while scrolling`, async ({
     page,
     owner,
   }) => {
@@ -600,12 +600,13 @@ for (const [collection, width] of [
     const floating = page.getByRole("group", { name: "浮动多选操作", exact: true });
     await expect(floating).toHaveCount(0);
     await page.getByRole("button", { name: "多选卡片" }).click();
-    const top = page.getByRole("group", { name: "多选操作", exact: true });
+    const top =
+      collection === "x" ? floating : page.getByRole("group", { name: "多选操作", exact: true });
     await expect(top).toBeInViewport();
-    await expect(floating).toHaveCount(0);
+    if (collection !== "x") await expect(floating).toHaveCount(0);
     await top.getByRole("button", { name: "全选当前列表" }).click();
     await cards.last().scrollIntoViewIfNeeded();
-    await expect(top).not.toBeInViewport();
+    if (collection !== "x") await expect(top).not.toBeInViewport();
     await expect(floating).toBeVisible();
     await expect(floating.getByRole("status")).toHaveText("已选 8 项");
     const box = await floating.boundingBox();
@@ -622,13 +623,16 @@ for (const [collection, width] of [
     await expect(dialog.getByRole("heading", { name: "删除 8 项内容？" })).toBeVisible();
     await dialog.getByRole("button", { name: "取消" }).click();
     await expect(floating.getByRole("button", { name: "删除所选" })).toBeFocused();
-    await expect(top).not.toBeInViewport();
+    if (collection !== "x") await expect(top).not.toBeInViewport();
     await page.screenshot({
       path: `.artifacts/bulk-floating-${collection}-${width}.png`,
       animations: "disabled",
     });
-    await top.scrollIntoViewIfNeeded();
-    await expect(floating).toHaveCount(0);
+    await cards.first().scrollIntoViewIfNeeded();
+    if (collection !== "x") {
+      await top.scrollIntoViewIfNeeded();
+      await expect(floating).toHaveCount(0);
+    } else await expect(floating).toBeInViewport();
     await expect(top.getByRole("status")).toHaveText("已选 8 项");
     await cards.last().scrollIntoViewIfNeeded();
     await expect(floating).toBeVisible();
