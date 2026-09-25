@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import "../helpers/card-width";
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";

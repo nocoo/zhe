@@ -9,6 +9,7 @@ import type { APIRequestContext, BrowserContext, Page, ViewportSize } from "@pla
 import { normalizeXPost, videoFileSize, videoResolution } from "../../cli/src/connector/core";
 import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
 import { test as base, expect } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { appTitle, islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
@@ -377,7 +378,7 @@ test.describe("webpage previews", () => {
       expect((await next.json()).job).toBeNull();
 
       await card.hover();
-      await card.getByRole("button", { name: "删除截图" }).click();
+      await (await cardAction(page, card, "删除截图")).click();
       await expect(image).toHaveCount(0);
       await expect(card.getByRole("button", { name: "删除截图" })).toHaveCount(0);
       const [cleared] = await queryD1<{ screenshot_url: string | null }>(
@@ -847,7 +848,7 @@ for (const viewport of [
           const videoFile = filesPage
             .getByTestId("upload-item")
             .filter({ hasText: `${mediaId}.mp4` });
-          await videoFile.getByRole("button", { name: "Delete file" }).click();
+          await (await cardAction(page, videoFile, "Delete file")).click();
           await filesPage.getByTestId("upload-delete-confirm").click();
           await expect(filesPage.getByTestId("upload-item")).toHaveCount(1);
           await expect(filesPage.getByTestId("upload-file-name")).toHaveText(`${photoId}.jpg`);

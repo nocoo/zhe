@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 
 for (const scenario of [
@@ -107,7 +108,7 @@ for (const scenario of [
       if (scenario.source === "x" || scenario.source === "github") {
         await card.getByRole("button", { name: "更多收藏操作" }).click();
         await page.getByRole("menuitem", { name: "AI 整理" }).click();
-      } else await card.getByRole("button", { name: "AI 整理" }).click();
+      } else await (await cardAction(page, card, "AI 整理")).click();
       const dialog = page.getByTestId("suggest-link-org-dialog");
       await expect(page.getByTestId("suggest-title")).toHaveValue("整理后的短标题");
       await expect(page.getByTestId("suggest-step-ready")).toHaveAttribute("data-state", "done");

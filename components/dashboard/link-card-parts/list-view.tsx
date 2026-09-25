@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
@@ -9,7 +10,6 @@ import {
   ImageIcon,
   ImageOff,
   Link2,
-  Loader2,
   Pencil,
   RefreshCw,
   Sparkles,
@@ -17,12 +17,11 @@ import {
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
-import { XBookmarkDetailsButton } from "../x-bookmark-content";
+import { type CardAction, CardActions } from "../card-actions";
 import { Description, TitleRow } from "./shared-rows";
 
 interface ListViewProps {
@@ -35,7 +34,7 @@ interface ListViewProps {
   cardTags: Tag[];
   copied: boolean;
   copiedOriginalUrl: boolean;
-  visibilityAction?: React.ReactNode;
+  secondaryActions?: CardAction[] | undefined;
   isEditing: boolean;
   canDeleteScreenshot: boolean;
   isDeletingScreenshot: boolean;
@@ -134,14 +133,14 @@ function ListMetaRow({
   onToggleAnalytics: () => void;
 }) {
   return (
-    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+      <span className="flex min-w-0 max-w-full items-center gap-1">
         <Link2 className="w-3 h-3" strokeWidth={1.5} />
         <a
           href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-foreground transition-colors"
+          className="truncate hover:text-foreground transition-colors"
         >
           {link.slug}
         </a>
@@ -162,7 +161,7 @@ function ListMetaRow({
       <button
         type="button"
         onClick={onToggleAnalytics}
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
+        className="flex shrink-0 items-center gap-1 hover:text-foreground transition-colors"
       >
         <BarChart3 className="w-3 h-3" strokeWidth={1.5} />
         <span>
@@ -182,7 +181,7 @@ function ListMetaRow({
 }
 
 function ListActions({
-  visibilityAction,
+  secondaryActions = [],
   isEditing,
   canDeleteScreenshot,
   isDeletingScreenshot,
@@ -193,9 +192,8 @@ function ListActions({
   onSuggest,
   suggestDisabled,
   onOpenDetails,
-  xBookmark,
 }: {
-  visibilityAction?: React.ReactNode;
+  secondaryActions?: CardAction[] | undefined;
   isEditing: boolean;
   canDeleteScreenshot: boolean;
   isDeletingScreenshot: boolean;
@@ -209,82 +207,58 @@ function ListActions({
   xBookmark?: XBookmark | undefined;
 }) {
   return (
-    <div className="flex items-center gap-0.5">
-      {visibilityAction}
-      {onOpenDetails ? (
-        <XBookmarkDetailsButton bookmark={xBookmark} onClick={onOpenDetails} />
-      ) : (
-        <>
-          <button
-            type="button"
-            onClick={onRefreshMetadata}
-            disabled={isRefreshingMetadata}
-            aria-label="Refresh metadata"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="刷新元数据"
-          >
-            {isRefreshingMetadata ? (
-              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-            ) : (
-              <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
-            )}
-          </button>
-          {canDeleteScreenshot && (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={onDeleteScreenshot}
-              disabled={isDeletingScreenshot}
-              aria-label="删除截图"
-              className="text-muted-foreground hover:text-destructive"
-              title="删除截图"
-            >
-              {isDeletingScreenshot ? (
-                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-              ) : (
-                <ImageOff className="w-4 h-4" strokeWidth={1.5} />
-              )}
-            </Button>
-          )}
-        </>
-      )}
-      {onSuggest && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={onSuggest}
-                  disabled={suggestDisabled}
-                  aria-label="AI 整理"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Sparkles strokeWidth={1.5} />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 整理"}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-      <button
-        type="button"
-        onClick={onToggleEdit}
-        aria-label="Edit link"
-        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-          isEditing
-            ? "text-foreground bg-accent"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent"
-        }`}
-        title="Edit link"
-      >
-        <Pencil className="w-4 h-4" strokeWidth={1.5} />
-      </button>
-    </div>
+    <CardActions
+      primary={
+        <Button
+          size="sm"
+          variant="ghost"
+          className="w-8 px-0"
+          onClick={onToggleEdit}
+          aria-label="Edit link"
+          title="Edit link"
+          aria-pressed={isEditing}
+        >
+          <Pencil aria-hidden />
+        </Button>
+      }
+      secondary={[
+        ...secondaryActions,
+        ...(!onOpenDetails
+          ? [
+              {
+                label: "Refresh metadata",
+                icon: RefreshCw,
+                onSelect: onRefreshMetadata,
+                disabled: isRefreshingMetadata,
+                pending: isRefreshingMetadata,
+              },
+            ]
+          : [{ label: "查看帖子详情", icon: BookOpen, onSelect: onOpenDetails }]),
+        ...(!onOpenDetails && canDeleteScreenshot
+          ? [
+              {
+                label: "删除截图",
+                icon: ImageOff,
+                onSelect: onDeleteScreenshot,
+                disabled: isDeletingScreenshot,
+                pending: isDeletingScreenshot,
+                destructive: true,
+              },
+            ]
+          : []),
+        ...(onSuggest
+          ? [
+              {
+                label: "AI 整理",
+                icon: Sparkles,
+                onSelect: onSuggest,
+                disabled: suggestDisabled,
+                description: suggestDisabled ? "请先在设置中配置 AI" : undefined,
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }
 
@@ -351,7 +325,7 @@ export function ListView(props: ListViewProps) {
       </div>
 
       <ListActions
-        visibilityAction={props.visibilityAction}
+        secondaryActions={props.secondaryActions}
         isEditing={isEditing}
         canDeleteScreenshot={canDeleteScreenshot}
         isDeletingScreenshot={isDeletingScreenshot}

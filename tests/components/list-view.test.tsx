@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { XBookmark } from "@/lib/connector/jobs";
@@ -51,11 +51,12 @@ function baseProps() {
 }
 
 describe("ListView", () => {
-  it("falls back to the X icon when a captured post has no screenshot", () => {
+  it("falls back to the X icon when a captured post has no screenshot", async () => {
     render(<ListView {...baseProps()} onOpenDetails={vi.fn()} xBookmark={xBookmark} />);
     expect(screen.getByRole("button", { name: "查看 X 帖子" })).toBeInTheDocument();
     expect(screen.queryByAltText("X 帖子预览")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看帖子详情" })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "更多收藏操作" }));
+    expect(screen.getByRole("menuitem", { name: "查看帖子详情" })).toBeInTheDocument();
   });
 
   it("renders zero clicks for links without click data", () => {
@@ -67,10 +68,10 @@ describe("ListView", () => {
     const onSuggest = vi.fn();
     const user = userEvent.setup();
     render(<ListView {...baseProps()} onSuggest={onSuggest} suggestDisabled={true} />);
-    const suggest = screen.getByRole("button", { name: "AI 整理" });
-    expect(suggest).toBeDisabled();
-    await user.hover(suggest);
-    await waitFor(() => expect(screen.getByText("请先在设置中配置 AI")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    const suggest = screen.getByRole("menuitem", { name: /AI 整理/ });
+    expect(suggest).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("请先在设置中配置 AI")).toBeInTheDocument();
     expect(onSuggest).not.toHaveBeenCalled();
   });
 
@@ -78,7 +79,8 @@ describe("ListView", () => {
     const onSuggest = vi.fn();
     const user = userEvent.setup();
     render(<ListView {...baseProps()} onSuggest={onSuggest} />);
-    const suggest = screen.getByRole("button", { name: "AI 整理" });
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    const suggest = screen.getByRole("menuitem", { name: /AI 整理/ });
     expect(suggest).toBeEnabled();
     await user.click(suggest);
     expect(onSuggest).toHaveBeenCalledTimes(1);

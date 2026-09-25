@@ -56,7 +56,7 @@ jobs:
           install-policy: "blocked"
 
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium webkit
 
       - name: Install video verification tools
         run: |

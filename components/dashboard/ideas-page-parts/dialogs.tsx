@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useDialogReturnFocus } from "@/hooks/use-dialog-return-focus";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 
@@ -106,9 +107,10 @@ export function CreateIdeaModal({
 }
 
 export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
+  const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isDeleteConfirmOpen} onOpenChange={vm.cancelDelete}>
-      <DialogContent>
+      <DialogContent {...focusReturn}>
         <DialogHeader>
           <DialogTitle>删除想法</DialogTitle>
           <DialogDescription>确定要删除这个想法吗？此操作无法撤销。</DialogDescription>

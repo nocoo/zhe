@@ -1,3 +1,4 @@
+import { cardAction } from "./helpers/card-actions";
 /**
  * E2E: Upload UI — file upload via browser, delete, copy link, PNG convert toggle.
  *
@@ -170,7 +171,7 @@ test.describe
 
       // Click delete on the first item (newest)
       const firstItem = page.locator('[data-testid="upload-item"]').first();
-      await firstItem.getByRole("button", { name: "Delete file" }).click();
+      await (await cardAction(page, firstItem, "Delete file")).click();
 
       // AlertDialog should appear
       await expect(page.getByText("确认删除")).toBeVisible();
@@ -191,7 +192,7 @@ test.describe
 
       // Click delete
       const firstItem = page.locator('[data-testid="upload-item"]').first();
-      await firstItem.getByRole("button", { name: "Delete file" }).click();
+      await (await cardAction(page, firstItem, "Delete file")).click();
 
       // Click cancel
       await page.getByRole("button", { name: "取消" }).click();

@@ -96,3 +96,18 @@ CI 35936672879 on `758a6842` then passed 202 cases and rejected the X deletion-a
 During the X toolbar conversion, an inherited `aria-label={undefined}` could override the new icon action's label after its visible text was removed. Review caught this before publication. Apply the required accessible name after forwarded props, and retain the enrichment toolbar's accessible-name test when changing shared controls. A separate local typecheck encountered a malformed generated Next.js validator; asking the running dev server to regenerate it restored validation without changing application code or stopping daily development.
 
 The first browser run exposed an ambiguous new test locator: Playwright substring matching selected both hide and unhide buttons. Use exact accessible-name matching for opposing actions whose labels overlap; preserve both actions and their end-to-end assertions. The full suite also retained a header-only locator in the X bulk-delete journey; update every toolbar consumer when changing its placement, including deletion and focus-restoration checks.
+
+### 2026-09-25 — Card overflow and menu focus
+
+The iPhone-width list reproduction showed six independent action controls
+compressing the content below 80px while metadata overlapped them. A viewport-only
+fix would miss the equally narrow cards in desktop multi-column grids. Shared
+card-width observation now controls secondary action overflow across layouts.
+
+During verification, moving the X details action into a portal menu exposed a
+focus-return assumption: the saved active menu item disappears when the menu
+closes. The shared action menu now closes and restores its stable trigger before
+invoking a selected secondary action, so dialogs inherit a valid return target. Tests also distinguish the temporarily aria-hidden
+background trigger from the exposed menu instead of querying it as an accessible
+button while the modal menu is open. Verify the whole menu-to-dialog round trip
+whenever an action changes its presentation.

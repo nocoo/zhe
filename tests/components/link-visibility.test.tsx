@@ -1,38 +1,7 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { LinkVisibilityButton, ShowHiddenButton } from "@/components/dashboard/link-visibility";
-
-describe("LinkVisibilityButton", () => {
-  it("offers hiding with an unpressed state when the post is visible", () => {
-    const onToggle = vi.fn();
-    render(<LinkVisibilityButton hidden={false} pending={false} onToggle={onToggle} />);
-    const button = screen.getByRole("button", { name: "隐藏帖子" });
-    expect(button).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(button);
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it("offers unhiding with a pressed state when the post is hidden", () => {
-    const onToggle = vi.fn();
-    render(<LinkVisibilityButton hidden={true} pending={false} onToggle={onToggle} />);
-    const button = screen.getByRole("button", { name: "取消隐藏" });
-    expect(button).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(button);
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it("spins the loader and blocks toggling while pending", () => {
-    const onToggle = vi.fn();
-    render(<LinkVisibilityButton hidden={true} pending={true} onToggle={onToggle} />);
-    const button = screen.getByRole("button", { name: "取消隐藏" });
-    expect(button).toBeDisabled();
-    const icon = button.querySelector("svg");
-    expect(icon).toHaveClass("animate-spin");
-    fireEvent.click(button);
-    expect(onToggle).not.toHaveBeenCalled();
-  });
-});
+import { ShowHiddenButton } from "@/components/dashboard/link-visibility";
 
 describe("ShowHiddenButton", () => {
   it("reflects the pressed state and toggles hidden post display", () => {
@@ -48,4 +17,24 @@ describe("ShowHiddenButton", () => {
     fireEvent.click(button);
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
+});
+
+const openEnrichment = vi.fn();
+vi.mock("@/contexts/enrichment", () => ({ useOpenEnrichment: () => openEnrichment }));
+
+import { useLinkSecondaryActions } from "@/components/dashboard/use-link-secondary-actions";
+
+it("shares visibility and enrichment callbacks without changing link ownership", () => {
+  const toggle = vi.fn();
+  const { result, rerender } = renderHook(
+    ({ hidden, pending }) => useLinkSecondaryActions({ id: 7, isHidden: hidden }, pending, toggle),
+    { initialProps: { hidden: false, pending: false } },
+  );
+  expect(result.current[0]).toMatchObject({ label: "隐藏帖子", disabled: false });
+  result.current[0]?.onSelect();
+  result.current[1]?.onSelect();
+  expect(toggle).toHaveBeenCalledTimes(1);
+  expect(openEnrichment).toHaveBeenCalledWith({ linkId: 7 });
+  rerender({ hidden: true, pending: true });
+  expect(result.current[0]).toMatchObject({ label: "取消隐藏", disabled: true, pending: true });
 });

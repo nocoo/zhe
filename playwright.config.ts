@@ -65,6 +65,15 @@ export default defineConfig({
       },
       dependencies: ["setup"],
     },
+    {
+      name: "iphone",
+      testMatch: /card-actions\.spec\.ts/,
+      use: {
+        ...devices["iPhone 13"],
+        storageState: "tests/playwright/.auth/user.json",
+      },
+      dependencies: ["setup"],
+    },
   ],
 
   webServer: {

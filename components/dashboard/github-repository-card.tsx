@@ -14,7 +14,6 @@ import {
   GitBranch,
   GitCommitHorizontal,
   GitFork,
-  MoreHorizontal,
   Pencil,
   RefreshCw,
   Scale,
@@ -37,12 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { GitHubBookmark } from "@/lib/connector/github-jobs";
 import { cn, formatNumber } from "@/lib/utils";
@@ -55,11 +49,11 @@ import { linkPresentation } from "@/models/link-presentation";
 import { getTagStyles } from "@/models/tags";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
-import { EnrichmentButton } from "./enrichment-button";
+import { CardActions } from "./card-actions";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
-import { LinkVisibilityButton } from "./link-visibility";
 import { TagBadge } from "./shared-link-components";
+import { useLinkSecondaryActions } from "./use-link-secondary-actions";
 
 export function GitHubReadme({ link }: { link: Link }) {
   const [repository, setRepository] = useState<GitHubRepository | null>(null);
@@ -308,6 +302,11 @@ export function GitHubRepositoryCard({
     () => setDeleted(true),
     editCallbacks.onLinkUpdated,
   );
+  const secondaryActions = useLinkSecondaryActions(
+    link,
+    vm.isSavingVisibility,
+    vm.handleToggleHidden,
+  );
   const repository = bookmark?.repository;
   const name =
     repository?.fullName ?? canonicalGitHubRepo(link.originalUrl)?.fullName ?? link.metaTitle;
@@ -346,6 +345,7 @@ export function GitHubRepositoryCard({
         padding="none"
         className="group @container/repository min-w-0 overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
         data-testid="github-repository"
+        data-card-actions-container
         data-link-id={link.id}
       >
         <div className="space-y-2 p-3">
@@ -417,7 +417,7 @@ export function GitHubRepositoryCard({
           />
         </div>
         <LayerCard.Footer
-          className="h-11 gap-2 border-border/60 bg-background/40 px-3 py-1"
+          className="min-h-11 gap-2 border-border/60 bg-background/40 px-3 py-1"
           data-testid="github-card-footer"
         >
           <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
@@ -426,63 +426,48 @@ export function GitHubRepositoryCard({
               <span className="truncate">{folder}</span>
             </span>
           </div>
-          <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="阅读 README"
-                      aria-description={statusText}
-                      disabled={!repository}
-                      onClick={() => setReading(true)}
-                      className="relative"
-                    >
-                      <BookOpen strokeWidth={1.5} aria-hidden />
-                      {state !== "complete" && (
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "absolute right-1.5 top-1.5 size-1.5 rounded-full bg-muted-foreground",
-                            state === "running" &&
-                              "bg-primary animate-pulse motion-reduce:animate-none",
-                            ["failed", "unavailable"].includes(state) && "bg-warning",
-                          )}
-                        />
-                      )}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  阅读 README · {statusText}
-                  {capturedAt ? ` · 采集于 ${capturedAt}` : ""}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <LinkVisibilityButton
-              hidden={link.isHidden}
-              pending={vm.isSavingVisibility}
-              onToggle={vm.handleToggleHidden}
-            />
-            <EnrichmentButton
-              linkId={link.id}
-              className="text-muted-foreground hover:text-foreground"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  ref={editTrigger}
-                  variant="ghost"
-                  size="icon"
-                  aria-label="更多收藏操作"
-                  className="data-[state=open]:bg-accent data-[state=open]:text-foreground"
-                >
-                  <MoreHorizontal strokeWidth={1.5} aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" collisionPadding={8} className="w-44">
+          <CardActions
+            className="text-muted-foreground"
+            triggerRef={editTrigger}
+            secondary={secondaryActions}
+            primary={
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="阅读 README"
+                        aria-description={statusText}
+                        disabled={!repository}
+                        onClick={() => setReading(true)}
+                        className="relative"
+                      >
+                        <BookOpen strokeWidth={1.5} aria-hidden />
+                        {state !== "complete" && (
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "absolute right-1.5 top-1.5 size-1.5 rounded-full bg-muted-foreground",
+                              state === "running" &&
+                                "bg-primary animate-pulse motion-reduce:animate-none",
+                              ["failed", "unavailable"].includes(state) && "bg-warning",
+                            )}
+                          />
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    阅读 README · {statusText}
+                    {capturedAt ? ` · 采集于 ${capturedAt}` : ""}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            }
+            menuItems={
+              <>
                 <DropdownMenuItem onSelect={vm.handleCopy}>
                   {vm.copied ? (
                     <Check className="text-success" aria-hidden />
@@ -514,9 +499,9 @@ export function GitHubRepositoryCard({
                   />
                   重新采集 GitHub 仓库
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              </>
+            }
+          />
         </LayerCard.Footer>
       </LayerCard>
       {editing && (

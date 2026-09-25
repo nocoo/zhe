@@ -7,7 +7,6 @@ import {
   ImageIcon,
   ImageOff,
   Link2,
-  Loader2,
   Pencil,
   Play,
   Sparkles,
@@ -16,17 +15,17 @@ import {
 import Image from "next/image";
 import { TagBadge } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { formatDate, formatNumber } from "@/lib/utils";
 import type { Link, Tag } from "@/models/types";
 import { getXContentTypes } from "@/models/x-bookmarks";
-import { XBookmarkDetailsButton, XSourceBadge } from "../x-bookmark-content";
+import { type CardAction, CardActions } from "../card-actions";
+import { XSourceBadge } from "../x-bookmark-content";
 import { Description, TitleRow } from "./shared-rows";
 
 interface GridViewProps {
-  visibilityAction?: React.ReactNode;
+  secondaryActions?: CardAction[] | undefined;
   link: Link;
   titleText: string;
   showFaviconImage: boolean;
@@ -52,7 +51,7 @@ interface GridViewProps {
 }
 
 function GridScreenshot({
-  visibilityAction,
+  secondaryActions = [],
   link,
   screenshotUrl,
   faviconUrl,
@@ -66,7 +65,7 @@ function GridScreenshot({
   onOpenDetails,
 }: Pick<
   GridViewProps,
-  | "visibilityAction"
+  | "secondaryActions"
   | "link"
   | "screenshotUrl"
   | "faviconUrl"
@@ -154,68 +153,47 @@ function GridScreenshot({
         </span>
       )}
 
-      {/* Sibling actions stay clear of the preview and remain visible on touch. */}
-      <div className="pointer-events-none absolute right-2 top-2 z-20 flex max-w-[calc(100%-var(--spacing)*4)] flex-wrap items-center justify-between gap-0.5 rounded-widget bg-black/55 text-white opacity-0 shadow-xs backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-        {visibilityAction}
-        {onOpenDetails && (
-          <XBookmarkDetailsButton
-            bookmark={xBookmark}
-            onClick={onOpenDetails}
-            className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
-          />
-        )}
-        {!onOpenDetails && canDeleteScreenshot && (
+      <CardActions
+        className="absolute right-2 top-2 z-20 rounded-widget bg-black/55 text-white shadow-xs backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
+        primary={
           <Button
-            type="button"
-            size="icon"
+            size="sm"
             variant="ghost"
-            onClick={onDeleteScreenshot}
-            disabled={isDeletingScreenshot}
-            aria-label="删除截图"
-            className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
-            title="删除截图"
+            onClick={onToggleEdit}
+            aria-label="Edit link"
+            title="Edit link"
+            className="w-8 px-0 text-white/90 hover:bg-white/15 hover:text-white"
           >
-            {isDeletingScreenshot ? (
-              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-            ) : (
-              <ImageOff className="w-4 h-4" strokeWidth={1.5} />
-            )}
+            <Pencil aria-hidden />
           </Button>
-        )}
-        {onSuggest && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="pointer-events-auto inline-flex">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={onSuggest}
-                    disabled={suggestDisabled}
-                    aria-label="AI 整理"
-                    className="text-white/90 hover:bg-white/15 hover:text-white disabled:opacity-40"
-                  >
-                    <Sparkles strokeWidth={1.5} />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{suggestDisabled ? "请先在设置中配置 AI" : "AI 整理"}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={onToggleEdit}
-          aria-label="Edit link"
-          className="pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
-          title="编辑收藏"
-        >
-          <Pencil className="w-4 h-4" strokeWidth={1.5} />
-        </Button>
-      </div>
+        }
+        secondary={[
+          ...secondaryActions,
+          ...(!onOpenDetails && canDeleteScreenshot
+            ? [
+                {
+                  label: "删除截图",
+                  icon: ImageOff,
+                  onSelect: onDeleteScreenshot,
+                  disabled: isDeletingScreenshot,
+                  pending: isDeletingScreenshot,
+                  destructive: true,
+                },
+              ]
+            : []),
+          ...(onSuggest
+            ? [
+                {
+                  label: "AI 整理",
+                  icon: Sparkles,
+                  onSelect: onSuggest,
+                  disabled: suggestDisabled,
+                  description: suggestDisabled ? "请先在设置中配置 AI" : undefined,
+                },
+              ]
+            : []),
+        ]}
+      />
     </div>
   );
 }
@@ -312,7 +290,7 @@ export function GridView(props: GridViewProps) {
   return (
     <>
       <GridScreenshot
-        visibilityAction={props.visibilityAction}
+        secondaryActions={props.secondaryActions}
         link={link}
         screenshotUrl={props.screenshotUrl}
         faviconUrl={props.faviconUrl}

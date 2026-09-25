@@ -4,6 +4,7 @@ import { encode } from "@auth/core/jwt";
 import type { Locator, Page } from "@playwright/test";
 import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
 import { test as base, expect } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { executeD1, queryD1 } from "./helpers/d1";
 
 const test = base.extend<{ owner: string }>({
@@ -694,7 +695,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     const card = cards.and(page.locator(`[data-link-id="${id}"]`));
     const toggle = page.getByRole("button", { name: "展示隐藏", exact: true });
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
-    await card.getByRole("button", { name: "隐藏帖子", exact: true }).click();
+    await (await cardAction(page, card, "隐藏帖子")).click();
     await expect(cards).toHaveCount(7);
     await expect(page.getByText("帖子已隐藏", { exact: true })).toBeVisible();
     expect(
@@ -704,10 +705,8 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     const restore = await pauseReflows(page);
     await toggle.click();
     await expect(cards).toHaveCount(8);
-    await expect(card.getByRole("button", { name: "取消隐藏", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(await cardAction(page, card, "取消隐藏")).toBeVisible();
+    await page.keyboard.press("Escape");
     await seekReflows(page, 100);
     await seekReflows(page, 400);
     await restore.evaluate((reset) => reset());
@@ -726,7 +725,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(cards).toHaveCount(7);
     await toggle.click();
-    await card.getByRole("button", { name: "取消隐藏", exact: true }).click();
+    await (await cardAction(page, card, "取消隐藏")).click();
     await expect(page.getByText("已取消隐藏", { exact: true })).toBeVisible();
     await toggle.click();
     await expect(cards).toHaveCount(8);

@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import "../helpers/card-width";
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -447,16 +448,15 @@ describe("LinkCard", () => {
   it("shows refresh metadata button", () => {
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.getByTitle("刷新元数据")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh metadata" })).toBeInTheDocument();
   });
 
   it("shows spinner on refresh metadata button when refreshing", () => {
     mockVm.isRefreshingMetadata = true;
     render(<LinkCard {...defaultProps} />);
 
-    const refreshBtn = screen.getByTitle("刷新元数据");
-    const spinner = refreshBtn.querySelector(".animate-spin");
-    expect(spinner).toBeInTheDocument();
+    const refreshBtn = screen.getByRole("button", { name: "Refresh metadata" });
+    expect(refreshBtn).toHaveAttribute("aria-busy", "true");
   });
 
   // --- Delete confirmation (inside edit mode) ---
@@ -691,7 +691,7 @@ describe("LinkCard", () => {
       render(<LinkCard {...defaultProps} viewMode={viewMode} />);
       const button = screen.getByRole("button", { name: "删除截图" });
       expect(button).toBeDisabled();
-      expect(button.querySelector(".animate-spin")).toBeInTheDocument();
+      expect(button).toHaveAttribute("aria-busy", "true");
       fireEvent.click(button);
       expect(mockVm.handleDeleteScreenshot).not.toHaveBeenCalled();
     },
@@ -751,7 +751,7 @@ describe("LinkCard", () => {
   it("shows Refresh metadata button with correct title in list mode", () => {
     render(<LinkCard {...defaultProps} />);
 
-    expect(screen.getByTitle("刷新元数据")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh metadata" })).toBeInTheDocument();
     expect(screen.queryByTitle("刷新预览图")).not.toBeInTheDocument();
   });
 
@@ -794,7 +794,7 @@ describe("LinkCard", () => {
   it("calls handleRefreshMetadata when refresh metadata button is clicked", async () => {
     render(<LinkCard {...defaultProps} />);
 
-    fireEvent.click(screen.getByTitle("刷新元数据"));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh metadata" }));
 
     expect(mockVm.handleRefreshMetadata).toHaveBeenCalledTimes(1);
   });

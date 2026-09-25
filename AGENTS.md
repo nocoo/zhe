@@ -49,7 +49,7 @@ bun run build
 bun run test:unit:coverage
 bun run test:integration
 bun run test:api
-bunx playwright install chromium
+bunx playwright install chromium webkit
 bun run test:e2e:pw
 (cd worker && bun run test)
 (cd worker && bun x tsc --noEmit)

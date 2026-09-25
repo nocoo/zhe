@@ -97,7 +97,7 @@ bun run start
 | Worker 单元测试 | `bun run --cwd worker test` |
 | CLI 单元测试 | `bun run --cwd cli test` |
 
-浏览器测试前执行 `bunx playwright install chromium`。API 与浏览器测试分别使用端口 `17006`、`27006`，并自动启动本地 D1 / KV Worker（`8788`）与 R2 文件服务（`18788`），数据保存在 `.test-storage/`。两组端到端测试共用这些本地资源，应分别运行；不需要远端 D1、KV、R2 测试账号或凭据。具体启动与清理逻辑见 [scripts/test-stack.ts](scripts/test-stack.ts)。
+浏览器测试前执行 `bunx playwright install chromium webkit`。API 与浏览器测试分别使用端口 `17006`、`27006`，并自动启动本地 D1 / KV Worker（`8788`）与 R2 文件服务（`18788`），数据保存在 `.test-storage/`。两组端到端测试共用这些本地资源，应分别运行；不需要远端 D1、KV、R2 测试账号或凭据。具体启动与清理逻辑见 [scripts/test-stack.ts](scripts/test-stack.ts)。
 
 浏览器测试仍需在环境或 `.env.local` 中提供非空 `AUTH_SECRET`；API runner 会在未配置时提供测试值。登录使用测试 Credentials provider，不会验证真实 Google OAuth。
 

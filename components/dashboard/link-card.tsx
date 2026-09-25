@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -9,38 +8,24 @@ import {
   DialogTitle,
   LayerCard,
 } from "@nocoo/basalt";
-import {
-  BarChart3,
-  Check,
-  Copy,
-  ExternalLink,
-  FolderOpen,
-  MoreHorizontal,
-  Pencil,
-  Sparkles,
-} from "lucide-react";
+import { BarChart3, Check, Copy, ExternalLink, FolderOpen, Pencil, Sparkles } from "lucide-react";
 import { memo, useContext, useMemo, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
-import { EnrichmentButton } from "./enrichment-button";
+import { CardActions } from "./card-actions";
 import { IconAction } from "./icon-action";
 import { AnalyticsPanel } from "./link-card-parts/analytics-panel";
 import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
 import { GridView } from "./link-card-parts/grid-view";
 import { ListView } from "./link-card-parts/list-view";
-import { LinkVisibilityButton } from "./link-visibility";
 import { TagBadge } from "./shared-link-components";
+import { useLinkSecondaryActions } from "./use-link-secondary-actions";
 import {
   XBookmarkContent,
   XBookmarkDetailsButton,
@@ -153,30 +138,15 @@ export const LinkCard = memo(function LinkCard({
       "查看帖子与全部附件"
     : link.metaDescription || pendingDescription;
 
-  const visibilityAction = (
-    <>
-      <LinkVisibilityButton
-        hidden={link.isHidden}
-        pending={vm.isSavingVisibility}
-        onToggle={vm.handleToggleHidden}
-        {...(viewMode === "grid"
-          ? { className: "text-white/90 hover:bg-white/15 hover:text-white" }
-          : {})}
-      />
-      <EnrichmentButton
-        linkId={link.id}
-        className={
-          viewMode === "grid"
-            ? "pointer-events-auto text-white/90 hover:bg-white/15 hover:text-white"
-            : "text-muted-foreground hover:text-foreground"
-        }
-      />
-    </>
+  const secondaryActions = useLinkSecondaryActions(
+    link,
+    vm.isSavingVisibility,
+    vm.handleToggleHidden,
   );
 
   // Bundle the common view props once — grid/list share most of them.
   const sharedViewProps = {
-    visibilityAction,
+    secondaryActions,
     link: { ...link, metaDescription: description },
     titleText: tweet ? `${tweet.author.name} (@${tweet.author.username})` : titleText,
     showFaviconImage,
@@ -279,6 +249,7 @@ export const LinkCard = memo(function LinkCard({
           padding="none"
           className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
           data-testid="link-card"
+          data-card-actions-container
           data-link-id={link.id}
           data-view="feed"
         >
@@ -298,7 +269,7 @@ export const LinkCard = memo(function LinkCard({
             className="flex-wrap gap-x-2 gap-y-0 border-border/60 bg-background/40 px-3 py-1.5"
             data-testid="x-card-footer"
           >
-            <div className="flex min-w-16 flex-1 items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex min-w-0 items-center gap-1.5">
                 <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
                 <span className="truncate" title={folderName}>
@@ -306,22 +277,13 @@ export const LinkCard = memo(function LinkCard({
                 </span>
               </span>
             </div>
-            <div className="ml-auto flex shrink-0 items-center gap-1 text-muted-foreground">
-              {visibilityAction}
-              <XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    ref={cardMenuTrigger}
-                    size="icon"
-                    variant="ghost"
-                    aria-label="更多收藏操作"
-                    className="data-[state=open]:bg-accent data-[state=open]:text-foreground"
-                  >
-                    <MoreHorizontal strokeWidth={1.5} aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" collisionPadding={8} className="w-44">
+            <CardActions
+              className="ml-auto text-muted-foreground"
+              triggerRef={cardMenuTrigger}
+              primary={<XBookmarkDetailsButton bookmark={xBookmark} onClick={openDetails} />}
+              secondary={secondaryActions}
+              menuItems={
+                <>
                   <DropdownMenuItem onSelect={vm.handleCopy}>
                     {vm.copied ? (
                       <Check className="text-success" aria-hidden />
@@ -350,9 +312,9 @@ export const LinkCard = memo(function LinkCard({
                     <Pencil aria-hidden />
                     {isEditing ? "收起编辑" : "编辑收藏"}
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                </>
+              }
+            />
             {cardTags.length > 0 && (
               <div className="flex w-full flex-wrap gap-1" data-testid="x-card-tags">
                 {cardTags.map((tag) => (
@@ -380,6 +342,7 @@ export const LinkCard = memo(function LinkCard({
           ref={card}
           padding="none"
           data-testid="link-card"
+          data-card-actions-container
           data-link-id={link.id}
           data-view="grid"
           className="group @container h-full overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
@@ -398,6 +361,7 @@ export const LinkCard = memo(function LinkCard({
         ref={card}
         padding="none"
         data-testid="link-card"
+        data-card-actions-container
         data-link-id={link.id}
         data-view={viewMode}
         className="group overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"

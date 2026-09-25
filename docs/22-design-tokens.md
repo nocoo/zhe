@@ -188,3 +188,32 @@ X 收藏与 GitHub 收藏复用 PageHeader.actions：短筛选组在标题/副�
 ### X collection actions
 
 Collection actions use compact 32px Lucide icon buttons with Basalt tooltips and accessible names. Filters retain their selected values. X selection controls stay at the bottom of the viewport and offer hide, unhide and delete; visibility updates disable the batch controls and preserve failed selections for retry. Image previews and expanded video/GIF attachments provide downloads with pending and failure feedback. Video badges use the Lucide video icon while retaining screen-reader text and duration.
+
+## Responsive card actions
+
+`CardActions` owns action overflow for links (grid/list), X, GitHub, ideas
+(grid/list), and completed uploads. Each card marks its boundary with
+`data-card-actions-container`; a ResizeObserver uses that card's content width,
+not the viewport or the action strip's own changing width. Below 480 CSS pixels,
+only the primary action and More remain visible. Wider cards expose secondary
+actions directly; existing persistent menu entries remain in More. The breakpoint
+reserves room for content alongside six controls, including coarse-pointer targets.
+
+Core actions are edit for links/ideas, details for X, README for GitHub, video
+preview for video uploads, and copy for other uploads. Secondary actions keep
+the same ViewModel callbacks, pending state, confirmation dialogs and ownership.
+Basalt dropdowns provide portal positioning, keyboard navigation, accessible
+menu semantics, Escape/outside dismissal and focus return. Menu labels wrap
+within the viewport. Coarse-pointer card controls and menu rows are at least
+44 CSS pixels; desktop controls retain the existing compact density. No global
+Button sizing defaults change.
+
+The existing todo tree already uses one More menu; feature/summary/Xray read-only
+cards and storage rows do not have competing action strips. List metadata wraps,
+while long identifiers and card headings truncate without shrinking actions.
+
+Evidence: `tests/playwright/card-actions.spec.ts` exercises rendered cards at
+320/375/390/430 CSS pixels in Chromium touch emulation and iPhone WebKit, with
+1365px desktop resizing. These are browser device emulations, not physical-device
+or VoiceOver certification. Shared component tests cover adaptive actions,
+disabled/pending behavior and focus after resizing an open menu.

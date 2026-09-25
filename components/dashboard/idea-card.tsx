@@ -8,6 +8,7 @@ import type { IdeaListItem } from "@/lib/db/scoped";
 import { cn, formatDate } from "@/lib/utils";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
+import { CardActions } from "./card-actions";
 
 /**
  * Format date for display. Falls back to formatDate for full date.
@@ -79,6 +80,7 @@ export const IdeaCard = memo(function IdeaCard({
 
   return (
     <div
+      data-card-actions-container
       className={cn(
         "group relative flex flex-col rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 p-4 transition-shadow hover:shadow-card-hover text-left w-full",
         className,
@@ -126,26 +128,28 @@ export const IdeaCard = memo(function IdeaCard({
           <span className="text-xs text-muted-foreground">
             {formatRelativeDate(idea.updatedAt)}
           </span>
-          <div className="pointer-events-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => onEdit(idea)}
-              aria-label="编辑想法"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive hover:text-destructive"
-              onClick={() => onDelete(idea)}
-              aria-label="删除想法"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <CardActions
+            className="relative z-10"
+            primary={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-8 px-0"
+                onClick={() => onEdit(idea)}
+                aria-label="编辑想法"
+              >
+                <Pencil aria-hidden />
+              </Button>
+            }
+            secondary={[
+              {
+                label: "删除想法",
+                icon: Trash2,
+                destructive: true,
+                onSelect: () => onDelete(idea),
+              },
+            ]}
+          />
         </div>
       </div>
     </div>
@@ -183,6 +187,7 @@ export const IdeaRow = memo(function IdeaRow({
 
   return (
     <div
+      data-card-actions-container
       className={cn(
         "group relative flex items-center gap-4 rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 px-4 py-3 transition-shadow hover:shadow-card-hover text-left w-full",
         className,
@@ -236,26 +241,23 @@ export const IdeaRow = memo(function IdeaRow({
         {formatRelativeDate(idea.updatedAt)}
       </span>
 
-      <div className="relative z-10 pointer-events-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => onEdit(idea)}
-          aria-label="编辑想法"
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-destructive hover:text-destructive"
-          onClick={() => onDelete(idea)}
-          aria-label="删除想法"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+      <CardActions
+        className="relative z-10"
+        primary={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-8 px-0"
+            onClick={() => onEdit(idea)}
+            aria-label="编辑想法"
+          >
+            <Pencil aria-hidden />
+          </Button>
+        }
+        secondary={[
+          { label: "删除想法", icon: Trash2, destructive: true, onSelect: () => onDelete(idea) },
+        ]}
+      />
     </div>
   );
 });

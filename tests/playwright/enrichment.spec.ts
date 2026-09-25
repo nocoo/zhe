@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import { normalizeXPost } from "../../cli/src/connector/core";
 import { test as base, expect } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { executeD1, queryD1 } from "./helpers/d1";
 
 const test = base.extend<{ owner: string }>({
@@ -200,11 +201,13 @@ for (const width of [1440, 390]) {
     const postDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });
     await expect(postDialog.getByRole("link", { name: "打开原帖" })).toBeVisible();
     await page.keyboard.press("Escape");
-    await page
-      .getByTestId(`link-card`)
-      .filter({ hasText: "X failed demo" })
-      .getByRole("button", { name: "查看补全记录" })
-      .click();
+    await (
+      await cardAction(
+        page,
+        page.getByTestId("link-card").filter({ hasText: "X failed demo" }),
+        "查看补全记录",
+      )
+    ).click();
     await expect(dialog.getByRole("region", { name: "执行记录" })).toContainText("已加入队列");
     await page.keyboard.press("Escape");
     await page.goto("/dashboard/github");

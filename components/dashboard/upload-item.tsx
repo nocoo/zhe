@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   LayerCard,
 } from "@nocoo/basalt";
 import {
@@ -21,6 +20,7 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,8 +30,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useDialogReturnFocus } from "@/hooks/use-dialog-return-focus";
 import type { Upload } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";
 import type { UploadingFile } from "@/models/upload";
@@ -40,6 +41,7 @@ import {
   isImageType,
   useUploadItemViewModel,
 } from "@/viewmodels/useUploadViewModel";
+import { CardActions } from "./card-actions";
 
 // ---------------------------------------------------------------------------
 // UploadItem — a completed upload in the list
@@ -54,19 +56,19 @@ function DeleteUploadDialog({
   isDeleting,
   onDelete,
   archived,
+  open,
+  onOpenChange,
 }: {
   isDeleting: boolean;
   onDelete: () => void;
   archived: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
+  const focusReturn = useDialogReturnFocus();
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Delete file" disabled={isDeleting}>
-          <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent {...focusReturn}>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
           <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
@@ -95,12 +97,16 @@ function DeleteUploadDialog({
 export function UploadItem({ upload, onDelete }: UploadItemProps) {
   const { copied, isDeleting, handleCopy, handleDelete } = useUploadItemViewModel(upload, onDelete);
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const previewFocusReturn = useDialogReturnFocus();
   const isImage = isImageType(upload.fileType);
   const isVideo = upload.fileType.startsWith("video/");
 
   return (
     <LayerCard
       data-testid="upload-item"
+      data-card-actions-container
       padding="none"
       className="rounded-card p-4 shadow-card ring-1 ring-border/40"
     >
@@ -137,7 +143,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
             </a>
 
             {/* Meta row */}
-            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 break-all text-xs text-muted-foreground">
               <span>{formatFileSize(upload.fileSize)}</span>
               <span>{upload.fileType}</span>
               <span>{formatDate(upload.createdAt)}</span>
@@ -145,63 +151,78 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-0.5">
-          {isVideo && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="预览视频">
-                  <Video className="size-4" strokeWidth={1.5} />
-                </Button>
-              </DialogTrigger>
-              <DialogContent size="xl">
-                <DialogHeader>
-                  <DialogTitle>{upload.fileName}</DialogTitle>
-                  <DialogDescription>已保存在您的 Zhe 存储</DialogDescription>
-                </DialogHeader>
-                <video
-                  src={upload.publicUrl}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  aria-label="文件视频预览"
-                  className="max-h-[70dvh] w-full rounded-widget bg-black"
-                >
-                  <track kind="captions" />
-                </video>
-              </DialogContent>
-            </Dialog>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCopy}
-            aria-label="Copy link"
-            title="复制链接"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-success" strokeWidth={1.5} />
-            ) : (
-              <Copy className="w-4 h-4" strokeWidth={1.5} />
-            )}
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <a
-              href={upload.publicUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="在新标签页打开"
-              aria-label="在新标签页打开"
+        <CardActions
+          primary={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-8 px-0"
+              onClick={(event) => {
+                if (isVideo) {
+                  event.currentTarget.focus();
+                  setPreview(true);
+                } else handleCopy();
+              }}
+              aria-label={isVideo ? "预览视频" : "Copy link"}
+              title={isVideo ? "预览视频" : "复制链接"}
             >
-              <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
-            </a>
-          </Button>
-          <DeleteUploadDialog
-            isDeleting={isDeleting}
-            onDelete={handleDelete}
-            archived={upload.key.split("/")[1] === "x"}
-          />
-        </div>
+              {isVideo ? (
+                <Video aria-hidden />
+              ) : copied ? (
+                <Check className="text-success" aria-hidden />
+              ) : (
+                <Copy aria-hidden />
+              )}
+            </Button>
+          }
+          secondary={[
+            ...(isVideo
+              ? [{ label: "Copy link", icon: copied ? Check : Copy, onSelect: handleCopy }]
+              : []),
+            {
+              label: "Delete file",
+              icon: Trash2,
+              destructive: true,
+              disabled: isDeleting,
+              onSelect: () => setConfirmDelete(true),
+            },
+          ]}
+          menuItems={
+            <DropdownMenuItem asChild>
+              <a href={upload.publicUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink aria-hidden />
+                在新标签页打开
+              </a>
+            </DropdownMenuItem>
+          }
+        />
+        <DeleteUploadDialog
+          isDeleting={isDeleting}
+          onDelete={handleDelete}
+          archived={upload.key.split("/")[1] === "x"}
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+        />
+        {isVideo && (
+          <Dialog open={preview} onOpenChange={setPreview}>
+            <DialogContent size="xl" {...previewFocusReturn}>
+              <DialogHeader>
+                <DialogTitle>{upload.fileName}</DialogTitle>
+                <DialogDescription>已保存在您的 Zhe 存储</DialogDescription>
+              </DialogHeader>
+              <video
+                src={upload.publicUrl}
+                controls
+                playsInline
+                preload="metadata"
+                aria-label="文件视频预览"
+                className="max-h-[70dvh] w-full rounded-widget bg-black"
+              >
+                <track kind="captions" />
+              </video>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </LayerCard>
   );

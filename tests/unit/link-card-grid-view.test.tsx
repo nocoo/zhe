@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import "../helpers/card-width";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -61,7 +62,9 @@ function renderGridView(overrides: Partial<React.ComponentProps<typeof GridView>
     onRefreshMetadata: vi.fn(),
   };
 
-  return render(<GridView {...defaultProps} {...overrides} />);
+  return render(<GridView {...defaultProps} {...overrides} />, {
+    wrapper: ({ children }) => <div data-card-actions-container>{children}</div>,
+  });
 }
 
 describe("GridView", () => {

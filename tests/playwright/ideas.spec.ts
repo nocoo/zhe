@@ -6,6 +6,7 @@
  * cleans up via beforeAll to avoid cross-spec pollution.
  */
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { islandHeading } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
@@ -278,7 +279,7 @@ test.describe("Ideas", () => {
 
       // Open delete action (hover card shell so action buttons become visible)
       await hoverIdeaCard(page, "Idea to delete");
-      await ideaCard(page, "Idea to delete").getByRole("button", { name: "删除想法" }).click();
+      await (await cardAction(page, ideaCard(page, "Idea to delete"), "删除想法")).click();
 
       // Verify dialog
       await expect(page.getByRole("dialog")).toBeVisible();
@@ -296,7 +297,7 @@ test.describe("Ideas", () => {
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
 
       await hoverIdeaCard(page, "Idea to keep");
-      await ideaCard(page, "Idea to keep").getByRole("button", { name: "删除想法" }).click();
+      await (await cardAction(page, ideaCard(page, "Idea to keep"), "删除想法")).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       // Cancel
@@ -321,7 +322,7 @@ test.describe("Ideas", () => {
 
       // Delete
       await hoverIdeaCard(page, content);
-      await ideaCard(page, content).getByRole("button", { name: "删除想法" }).click();
+      await (await cardAction(page, ideaCard(page, content), "删除想法")).click();
       await page.getByRole("dialog").getByRole("button", { name: "删除" }).click();
 
       // Idea should be removed
