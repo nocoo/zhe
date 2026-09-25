@@ -111,3 +111,10 @@ invoking a selected secondary action, so dialogs inherit a valid return target. 
 background trigger from the exposed menu instead of querying it as an accessible
 button while the modal menu is open. Verify the whole menu-to-dialog round trip
 whenever an action changes its presentation.
+
+Full regression caught a desktop sizing detail: replacing a fixed 44px footer
+with min-height allowed its border to add one pixel. The original desktop height
+is retained; only coarse-pointer layouts grow to fit 44px touch targets. The
+reflow test also has to finish its deliberately paused overlapping animation
+before clicking a new menu, rather than treating a read-only state assertion as
+an interaction during the overlap.

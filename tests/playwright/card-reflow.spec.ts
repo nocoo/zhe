@@ -705,11 +705,11 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     const restore = await pauseReflows(page);
     await toggle.click();
     await expect(cards).toHaveCount(8);
-    await expect(await cardAction(page, card, "取消隐藏")).toBeVisible();
-    await page.keyboard.press("Escape");
     await seekReflows(page, 100);
     await seekReflows(page, 400);
     await restore.evaluate((reset) => reset());
+    await expect(await cardAction(page, card, "取消隐藏")).toBeVisible();
+    await page.keyboard.press("Escape");
     await page.reload();
     await expect(cards).toHaveCount(7);
     await expect(toggle).toHaveAttribute("aria-pressed", "false");

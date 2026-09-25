@@ -417,7 +417,7 @@ export function GitHubRepositoryCard({
           />
         </div>
         <LayerCard.Footer
-          className="min-h-11 gap-2 border-border/60 bg-background/40 px-3 py-1"
+          className="h-11 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-11 gap-2 border-border/60 bg-background/40 px-3 py-1"
           data-testid="github-card-footer"
         >
           <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
