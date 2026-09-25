@@ -786,7 +786,7 @@ for (const viewport of [
       const selection = page.getByRole("group", { name: "浮动多选操作" });
       await expect(selection).toBeInViewport();
       await feedCard.locator("../..").getByRole("checkbox").check();
-      await selection.getByRole("button", { name: "隐藏所选" }).click();
+      await selection.getByRole("button", { name: "隐藏所选", exact: true }).click();
       await expect(feedCard).toHaveCount(0);
       await selection.getByRole("button", { name: "退出多选" }).click();
       await page.getByRole("button", { name: "展示隐藏" }).click();

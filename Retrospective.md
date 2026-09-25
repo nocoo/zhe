@@ -94,3 +94,5 @@ CI 35936672879 on `758a6842` then passed 202 cases and rejected the X deletion-a
 ## 2026-09-25 — Icon actions must preserve their accessible names
 
 During the X toolbar conversion, an inherited `aria-label={undefined}` could override the new icon action's label after its visible text was removed. Review caught this before publication. Apply the required accessible name after forwarded props, and retain the enrichment toolbar's accessible-name test when changing shared controls. A separate local typecheck encountered a malformed generated Next.js validator; asking the running dev server to regenerate it restored validation without changing application code or stopping daily development.
+
+The first browser run exposed an ambiguous new test locator: Playwright substring matching selected both hide and unhide buttons. Use exact accessible-name matching for opposing actions whose labels overlap; preserve both actions and their end-to-end assertions.
