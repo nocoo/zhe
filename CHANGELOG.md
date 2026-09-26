@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.1.8] - 2026-09-26
+
+### Added
+- Unify dashboard action interactions
+
+### Changed
+- Align creation journeys with global fab
+- Serialize builds with browser verification
+
+### Fixed
+- Test builds and batch local migrations
+- Stabilize and streamline release gates
+- Keep compact card controls reachable
+- Retain primary x details across card layouts
+- Preserve desktop card sizing and motion
+- Adapt card actions to narrow containers
+
 ## [v2.1.7] - 2026-09-25
 
 ### Added
