@@ -21,7 +21,6 @@ test.describe("Link CRUD", () => {
       await waitForLinksPage(page);
 
       const main = page.locator("main");
-      // "新建链接" may appear twice (header + empty-state) — verify at least one
       await expect(main.getByRole("button", { name: "新建链接" }).first()).toBeVisible();
       await expect(main.getByRole("button", { name: "刷新链接" })).toBeVisible();
       await expect(main.getByRole("button", { name: "List view" })).toBeVisible();

@@ -15,6 +15,7 @@ import { createLink } from "@/actions/links";
 import type { GitHubRepository } from "@/cli/src/connector/github-core";
 import { GitHubLibraryPage } from "@/components/dashboard/github-library-page";
 import { GitHubRepositoryCard } from "@/components/dashboard/github-repository-card";
+import { GlobalCreateAction } from "@/components/global-create-action";
 import { type DashboardService, useDashboardService } from "@/contexts/dashboard-service";
 import type { GitHubBookmark } from "@/lib/connector/github-jobs";
 import { githubReadmeUrl } from "@/models/github-bookmarks";
@@ -161,7 +162,12 @@ describe("GitHub collection", () => {
   });
   it("creates an ordinary URL from the shared dialog and refreshes links plus repository snapshots", async () => {
     const user = userEvent.setup();
-    render(<GitHubLibraryPage />);
+    render(
+      <>
+        <GitHubLibraryPage />
+        <GlobalCreateAction />
+      </>,
+    );
     await screen.findByText("1.2K");
     await user.click(screen.getByRole("button", { name: "新建链接" }));
     const dialog = screen.getByRole("dialog");

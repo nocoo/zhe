@@ -21,6 +21,10 @@ vi.mock("@/viewmodels/useFoldersViewModel", () => ({
   useFoldersViewModel: () => mockFoldersVm,
 }));
 
+vi.mock("@/components/global-create-action", () => ({
+  GlobalCreateAction: () => <div data-testid="global-create" />,
+}));
+
 // Mock getLinks for DashboardServiceProvider
 vi.mock("@/actions/links", () => ({
   getLinks: vi.fn().mockResolvedValue({ success: true, data: [] }),

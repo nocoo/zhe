@@ -94,7 +94,7 @@ describe("IdeasToolbar", () => {
     expect(vm.setSortBy).toHaveBeenCalledWith("createdAt");
   });
 
-  it("switches view modes and opens the create modal", async () => {
+  it("switches view modes without duplicating global creation", async () => {
     const vm = vmStub({ viewMode: "list" });
     const user = userEvent.setup();
     render(<IdeasToolbar vm={vm} />);
@@ -102,8 +102,7 @@ describe("IdeasToolbar", () => {
     expect(vm.setViewMode).toHaveBeenCalledWith("grid");
     await user.click(screen.getByRole("button", { name: "List view" }));
     expect(vm.setViewMode).toHaveBeenCalledWith("list");
-    await user.click(screen.getByRole("button", { name: "新想法" }));
-    expect(vm.setIsCreateModalOpen).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole("button", { name: "新想法" })).not.toBeInTheDocument();
   });
 
   it("replaces the toolbar with selection actions while selecting", () => {

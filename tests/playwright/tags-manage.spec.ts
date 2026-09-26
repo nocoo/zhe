@@ -13,7 +13,7 @@ test.describe("Tags management", () => {
     await page.goto("/dashboard/tags");
     await expect(page.locator('[data-testid="tags-page"]')).toBeVisible();
 
-    await page.locator('[data-testid="tag-create-btn"]').click();
+    await page.getByRole("button", { name: "新建标签" }).click();
     const createForm = page.locator('[data-testid="tag-create-form"]');
     await expect(createForm).toBeVisible();
     await expect(createForm).toHaveAttribute("data-basalt-surface", "");

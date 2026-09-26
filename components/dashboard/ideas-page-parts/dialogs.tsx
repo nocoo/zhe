@@ -39,9 +39,10 @@ export function CreateIdeaModal({
   toggleTag,
   onCreate,
 }: CreateIdeaModalProps) {
+  const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>
-      <DialogContent size="xl">
+      <DialogContent size="xl" className="create-dialog" {...focusReturn}>
         <DialogHeader>
           <DialogTitle>新想法</DialogTitle>
           <DialogDescription>记录新的想法，支持 Markdown 格式。</DialogDescription>

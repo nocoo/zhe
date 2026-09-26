@@ -178,3 +178,7 @@ the full local schema is exercised by HTTP/browser gates.
 The pre-commit cancellation regression combined TERM, INT and HUP fixtures under one 30-second deadline. Full-suite contention exhausted that shared budget even though each case passed alone. Split the signals into independently timed cases and subscribe to child exit before sending the signal, preserving every exit-code, child-termination and snapshot-cleanup assertion. Keep the Next-generated test development type include so complete test builds do not dirty the maintained configuration.
 
 The next full run exposed a separate three-second child-readiness deadline under concurrent repository builds. Cap Vitest at four workers to reduce process and memory contention; allow ten seconds for fixture startup and clear readiness timers immediately on success/error. Shutdown escalation and completion deadlines remain unchanged.
+
+### 2026-09-26 — Creation entry focus and shell fixture boundaries
+
+The shared creation FAB introduced a dialog child into the shell's unit fixture. That fixture mocked its previous server boundaries but loaded the new child's Auth.js dependency under Node, failing before tests ran. Mock the creation child at the shell boundary; exercise its real dialog in the dedicated component and browser suites. WebKit additionally showed that tapping a button does not necessarily focus it. Focus the FAB with `preventScroll` before invoking its action so programmatic dialogs capture a valid return target on iPhone.

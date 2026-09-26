@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { usePageCreateAction } from "@/contexts/create-action";
 import { useCoarsePointer, useNarrowViewport } from "@/hooks/use-media-query";
 import type { TodoForestNode } from "@/models/todos";
 import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
@@ -97,6 +98,8 @@ export function TodosPage() {
     else if (vm.error) setCreateError(vm.error);
   }, [vm]);
 
+  usePageCreateAction({ label: "新建待办", onClick: onCreateRoot, disabled: vm.isSaving });
+
   const onAddChild = useCallback(
     async (parentId: number) => {
       const detail = await vm.handleCreateTodo({ title: "新建待办", parentId });
@@ -169,35 +172,28 @@ export function TodosPage() {
         title="待办"
         description={vm.loading ? "加载中…" : countLabel}
         actions={
-          <>
-            {narrow ? (
-              <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" aria-label="筛选与搜索">
-                    <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    <span>筛选</span>
-                    {activeFilterCount > 0 && (
-                      <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <TodosFilterBar {...filterProps} />
-                  </div>
-                </PopoverContent>
-              </Popover>
-            ) : (
-              <TodosFilterBar {...filterProps} />
-            )}
-
-            <Button size="sm" onClick={onCreateRoot} disabled={vm.isSaving}>
-              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-              <span>新建待办</span>
-            </Button>
-          </>
+          narrow ? (
+            <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="筛选与搜索">
+                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <span>筛选</span>
+                  {activeFilterCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <TodosFilterBar {...filterProps} />
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <TodosFilterBar {...filterProps} />
+          )
         }
       />
 

@@ -12,10 +12,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { GithubIcon } from "@/components/github-icon";
+import { GlobalCreateAction } from "@/components/global-create-action";
 import { SearchProvider, useOpenSearch } from "@/components/search-provider";
 import { Sidebar } from "@/components/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CreateActionProvider } from "@/contexts/create-action";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { EnrichmentProvider } from "@/contexts/enrichment";
 import type { Folder } from "@/models/types";
@@ -40,9 +42,11 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
         <SidebarProvider>
           <SearchProvider>
             <EnrichmentProvider>
-              <AppShellInner user={user} signOutAction={signOutAction}>
-                {children}
-              </AppShellInner>
+              <CreateActionProvider>
+                <AppShellInner user={user} signOutAction={signOutAction}>
+                  {children}
+                </AppShellInner>
+              </CreateActionProvider>
             </EnrichmentProvider>
           </SearchProvider>
         </SidebarProvider>
@@ -140,8 +144,9 @@ function AppShellInner({
           }
         />
         <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 md:px-3 md:pb-3">
-          <ContentIsland className="rounded-island">{children}</ContentIsland>
+          <ContentIsland className="rounded-island pb-24">{children}</ContentIsland>
         </div>
+        <GlobalCreateAction />
       </AppMain>
     </BasaltAppShell>
   );

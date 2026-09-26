@@ -1,10 +1,11 @@
 "use client";
 
-import { Plus, Tags } from "lucide-react";
+import { Tags } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { usePageCreateAction } from "@/contexts/create-action";
 import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
 import { useTagsViewModel } from "@/viewmodels/useTagsViewModel";
@@ -13,6 +14,7 @@ import { TagManageRow } from "./tags-page-parts/tag-manage-row";
 
 export function TagsPage() {
   const vm = useTagsViewModel();
+  usePageCreateAction({ label: "新建标签", onClick: vm.startCreate, disabled: vm.creating });
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState<TagPaletteColor>(tagColorFromName(""));
   const [colorTouched, setColorTouched] = useState(false);
@@ -35,21 +37,7 @@ export function TagsPage() {
 
   return (
     <div data-testid="tags-page">
-      <PageHeader
-        title="标签"
-        description={`共 ${vm.rows.length} 个`}
-        actions={
-          <Button
-            size="sm"
-            onClick={vm.startCreate}
-            disabled={vm.creating}
-            data-testid="tag-create-btn"
-          >
-            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-            新建标签
-          </Button>
-        }
-      />
+      <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
         <div

@@ -52,6 +52,25 @@ export function useBulkDelete(
     return () => window.clearTimeout(timer);
   }, [batch]);
 
+  useEffect(() => {
+    if (!active || batch) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || event.isComposing) return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest(
+          '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]',
+        )
+      )
+        return;
+      event.preventDefault();
+      setActive(false);
+      setSelected(new Set());
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [active, batch]);
+
   const toggle = (id: number) => {
     if (running.current) return;
     setSelected((current) => {

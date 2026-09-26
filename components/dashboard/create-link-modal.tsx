@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
-import { useCallback } from "react";
+import { Loader2 } from "lucide-react";
+import { type ReactNode, type Ref, useCallback, useRef } from "react";
 import { createTag } from "@/actions/tags";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Folder, Link, Tag } from "@/models/types";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { FolderSelect, ModeTabs, SlugInput, TagsField } from "./create-link-modal-parts/fields";
-import { IconAction } from "./icon-action";
 
 interface CreateLinkModalProps {
+  trigger: ReactNode;
   siteUrl: string;
   onSuccess: (link: Link) => void;
   folders?: Folder[];
@@ -35,6 +35,7 @@ function LabelledInput({
   value,
   onChange,
   required,
+  inputRef,
 }: {
   id: string;
   label: string;
@@ -43,6 +44,7 @@ function LabelledInput({
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   return (
     <div className="space-y-1.5">
@@ -50,6 +52,7 @@ function LabelledInput({
         {label}
       </Label>
       <Input
+        ref={inputRef}
         id={id}
         size="default"
         type={type}
@@ -79,12 +82,14 @@ function SubmitButton({ isLoading }: { isLoading: boolean }) {
 
 export function CreateLinkModal({
   siteUrl,
+  trigger,
   onSuccess,
   folders = [],
   tags = [],
   onTagCreated,
 }: CreateLinkModalProps) {
   const vm = useCreateLinkViewModel(siteUrl, onSuccess);
+  const urlInput = useRef<HTMLInputElement>(null);
 
   const assignedTags = tags.filter((t) => vm.selectedTagIds.has(t.id));
 
@@ -101,12 +106,15 @@ export function CreateLinkModal({
 
   return (
     <Dialog open={vm.isOpen} onOpenChange={vm.setIsOpen}>
-      <DialogTrigger asChild>
-        <IconAction label="新建链接">
-          <Plus className="w-4 h-4" strokeWidth={1.5} />
-        </IconAction>
-      </DialogTrigger>
-      <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto rounded-card border-0">
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent
+        size="lg"
+        className="create-dialog max-h-[90dvh] overflow-y-auto rounded-card border-0"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          urlInput.current?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>创建短链接</DialogTitle>
         </DialogHeader>
@@ -115,6 +123,7 @@ export function CreateLinkModal({
           <ModeTabs mode={vm.mode} setMode={vm.setMode} />
 
           <LabelledInput
+            inputRef={urlInput}
             id="url"
             label="原始链接"
             type="url"

@@ -46,8 +46,7 @@ describe("bulk deletion", () => {
     const { rerender } = render(<Collection loading ideas={[]} />);
     expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     rerender(<Collection loading={false} ideas={[]} />);
-    await user.click(screen.getByRole("button", { name: "新想法" }));
-    expect(create).toHaveBeenCalledWith(true);
+    expect(screen.getByText("点击右下角加号记录您的第一个想法")).toBeVisible();
     rerender(<Collection loading={false} ideas={[idea]} />);
     await user.click(screen.getByRole("button", { name: "打开想法 Saved idea" }));
     expect(navigate).toHaveBeenCalledWith(idea);
@@ -283,4 +282,83 @@ describe("bulk deletion", () => {
     expect(screen.queryByRole("group", { name: "浮动多选操作" })).toBeNull();
     vi.unstubAllGlobals();
   });
+});
+
+it("exits selection with Escape, clears choices and leaves dialog Escape to the dialog", () => {
+  const { result } = renderHook(() => useBulkDelete(items, vi.fn()));
+  act(() => {
+    result.current.enter();
+    result.current.toggle(1);
+  });
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+  });
+  expect(result.current.active).toBe(false);
+  expect(result.current.count).toBe(0);
+  act(() => {
+    result.current.enter();
+    result.current.toggle(1);
+  });
+  act(() => result.current.requestDelete());
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+  });
+  expect(result.current.active).toBe(true);
+  expect(result.current.batch?.phase).toBe("confirm");
+});
+
+it("preserves selection when Escape belongs to an overlay, composition or another handler", () => {
+  const { result } = renderHook(() => useBulkDelete(items, vi.fn()));
+  act(() => result.current.enter());
+  for (const init of [{ key: "Enter" }, { key: "Escape", isComposing: true }]) {
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", init)));
+    expect(result.current.active).toBe(true);
+  }
+  const handled = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+  handled.preventDefault();
+  act(() => window.dispatchEvent(handled));
+  expect(result.current.active).toBe(true);
+  const { unmount } = render(
+    <div role="dialog" aria-label="Create">
+      <input aria-label="Draft" />
+    </div>,
+  );
+  act(() =>
+    screen
+      .getByLabelText("Draft")
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+  );
+  expect(result.current.active).toBe(true);
+  unmount();
+});
+
+it("focuses a card checkbox without scrolling when its body is clicked", async () => {
+  function Collection() {
+    const selection = useBulkDelete(items, vi.fn());
+    return (
+      <>
+        <BulkDeleteActions selection={selection} />
+        <SelectableCard selection={selection} itemId={1} label="Tall card">
+          <article>Content</article>
+        </SelectableCard>
+      </>
+    );
+  }
+  const user = userEvent.setup();
+  render(<Collection />);
+  await user.click(screen.getByRole("button", { name: "多选卡片" }));
+  const checkbox = screen.getByRole("checkbox", { name: "选择 Tall card" });
+  const focus = vi.spyOn(checkbox, "focus");
+  const label = checkbox.closest("label");
+  if (!label) throw new Error("Missing selection label");
+  await user.click(label);
+  expect(checkbox).toBeChecked();
+  expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  await user.keyboard("{Enter}");
+  expect(checkbox).not.toBeChecked();
+  await user.keyboard(" ");
+  expect(checkbox).toBeChecked();
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.getByRole("button", { name: "多选卡片" })).toHaveFocus();
 });

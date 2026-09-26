@@ -40,6 +40,12 @@ export function BulkDeleteActions({
   const floatingTrigger = useRef<HTMLButtonElement>(null);
   const toolbar = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
+  const wasSelecting = useRef(selection.active);
+
+  useEffect(() => {
+    if (wasSelecting.current && !selection.active) trigger.current?.focus({ preventScroll: true });
+    wasSelecting.current = selection.active;
+  }, [selection.active]);
 
   useEffect(() => {
     setOffscreen(false);
@@ -107,6 +113,7 @@ function SelectionControls({
   const allSelected = selection.count === selection.total && selection.total > 0;
   return (
     <fieldset
+      data-floating-selection={floating ? "" : undefined}
       className={cn(
         "flex min-w-0 flex-wrap items-center justify-end gap-2",
         floating &&
@@ -156,6 +163,7 @@ export function SelectableCard({
   label: string;
 }) {
   const id = useId();
+  const checkbox = useRef<HTMLButtonElement>(null);
   const checked = selection.selected.has(itemId);
   return (
     <div
@@ -173,10 +181,23 @@ export function SelectableCard({
       {selection.active && (
         <label
           htmlFor={id}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              selection.toggle(itemId);
+            }
+          }}
+          onClick={(event) => {
+            if (checkbox.current?.contains(event.target as Node)) return;
+            event.preventDefault();
+            checkbox.current?.focus({ preventScroll: true });
+            selection.toggle(itemId);
+          }}
           className="absolute inset-0 z-10 cursor-pointer rounded-card has-focus-visible:ring-2 has-focus-visible:ring-ring"
         >
           <span className="absolute -left-1.5 -top-1.5 flex rounded-widget bg-card p-1.5 shadow-sm ring-1 ring-border">
             <Checkbox
+              ref={checkbox}
               id={id}
               checked={checked}
               onCheckedChange={() => selection.toggle(itemId)}

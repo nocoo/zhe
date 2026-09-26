@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, LayoutGrid, List, Plus, Search, X } from "lucide-react";
+import { Filter, LayoutGrid, List, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -139,10 +139,6 @@ export function IdeasToolbar({
                   清除
                 </Button>
               ) : null}
-              <Button size="sm" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
-                <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-                新想法
-              </Button>
             </>
           )}
           {selectionActions}

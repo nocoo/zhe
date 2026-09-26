@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLink, deleteLink, setLinkHidden } from "@/actions/links";
 import { normalizeXPost, type XPost } from "@/cli/src/connector/core";
 import { XLibraryPage } from "@/components/dashboard/x-library-page";
+import { GlobalCreateAction } from "@/components/global-create-action";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import type { XBookmark } from "@/lib/connector/jobs";
@@ -309,6 +310,7 @@ describe("X library", () => {
     const user = userEvent.setup();
     vi.mocked(createLink).mockResolvedValue({ success: true, data: links[0] });
     renderPage();
+    render(<GlobalCreateAction />);
     await user.click(screen.getByRole("button", { name: "新建链接" }));
     const dialog = screen.getByRole("dialog");
     await user.type(

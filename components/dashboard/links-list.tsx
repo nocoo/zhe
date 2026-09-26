@@ -17,7 +17,6 @@ import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { useAutoRefreshMetadata } from "@/viewmodels/useLinksViewModel";
 import { useSuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgViewModel";
 import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
-import { CreateLinkModal } from "./create-link-modal";
 import { LinkCard } from "./link-card";
 import { LinksListToolbar } from "./links-list-parts/links-list-toolbar";
 import { useLinksListFilters } from "./links-list-parts/useLinksListFilters";
@@ -52,7 +51,6 @@ interface LinksContentProps {
   handleLinkDeleted: (id: number) => void;
   handleLinkUpdated: (link: Link) => void;
   editCallbacks: EditLinkCallbacks;
-  createButton: React.ReactNode;
   onSuggest?: (linkId: number) => void;
   suggestDisabled?: boolean;
 }
@@ -70,19 +68,13 @@ function LinksContent(props: LinksContentProps) {
     handleLinkDeleted,
     handleLinkUpdated,
     editCallbacks,
-    createButton,
     onSuggest,
     suggestDisabled,
   } = props;
 
   if (filteredLinks.length === 0) {
     return (
-      <EmptyState
-        icon={Link2}
-        title="暂无链接"
-        description="点击上方按钮创建您的第一个短链接"
-        action={createButton}
-      />
+      <EmptyState icon={Link2} title="暂无链接" description="点击右下角加号创建您的第一个短链接" />
     );
   }
 
@@ -126,7 +118,6 @@ export function LinksList() {
     tags,
     linkTags,
     loading,
-    handleLinkCreated,
     handleLinkDeleted,
     handleLinkUpdated,
     handleTagCreated,
@@ -184,16 +175,6 @@ export function LinksList() {
   );
   if (loading || !viewReady) return <LoadingState viewMode={viewMode} ready={viewReady} />;
 
-  const createButton = (
-    <CreateLinkModal
-      siteUrl={siteUrl}
-      onSuccess={handleLinkCreated}
-      folders={folders}
-      tags={tags}
-      onTagCreated={handleTagCreated}
-    />
-  );
-
   return (
     <div>
       <LinksListToolbar
@@ -210,7 +191,6 @@ export function LinksList() {
         setMobileFilterOpen={setMobileFilterOpen}
         selecting={selection.active}
         selectionActions={<BulkDeleteActions selection={selection} />}
-        createButton={createButton}
         folders={folders}
         tags={tags}
         filterFolderId={filters.filterFolderId}
@@ -237,7 +217,6 @@ export function LinksList() {
         handleLinkDeleted={handleLinkDeleted}
         handleLinkUpdated={handleLinkUpdated}
         editCallbacks={editCallbacks}
-        createButton={createButton}
         onSuggest={(id) => {
           void suggestVm.openForLink(id);
         }}

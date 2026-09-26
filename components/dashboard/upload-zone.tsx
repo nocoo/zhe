@@ -2,6 +2,7 @@
 
 import { FileUp } from "lucide-react";
 import { useCallback, useRef } from "react";
+import { usePageCreateAction } from "@/contexts/create-action";
 import { cn } from "@/lib/utils";
 
 interface UploadZoneProps {
@@ -47,6 +48,8 @@ export function UploadZone({ isDragOver, onDragOver, onFiles, disabled }: Upload
   const handleClick = useCallback(() => {
     if (!disabled) inputRef.current?.click();
   }, [disabled]);
+
+  usePageCreateAction({ label: "上传文件", onClick: handleClick, disabled });
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

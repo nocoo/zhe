@@ -42,7 +42,7 @@ export default defineConfig({
   // Local runs share the machine with daily development and other builds.
   // Serialize browsers locally; dedicated CI runners retain four workers.
   workers: process.env.CI ? 4 : 1,
-  // Local Turbopack compilation and competing builds can delay UI updates.
+  // Local runs share the machine with daily development.
   expect: { timeout: process.env.CI ? 5_000 : 15_000 },
   reporter: "html",
   timeout: 30_000,
@@ -68,7 +68,7 @@ export default defineConfig({
     },
     {
       name: "iphone",
-      testMatch: /card-actions\.spec\.ts/,
+      testMatch: /(?:card-actions|global-create)\.spec\.ts/,
       use: {
         ...devices["iPhone 13"],
         storageState: "tests/playwright/.auth/user.json",

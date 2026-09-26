@@ -194,3 +194,45 @@ test.describe("desktop", () => {
     await expect(edit).toBeFocused();
   });
 });
+
+test("selection keeps a tall card stationary and Escape exits without scrolling", async ({
+  page,
+  owner,
+}) => {
+  await executeD1(
+    "INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES(?,?,?,?,?)",
+    [owner, owner, "https://example.com", "Tall selection card", Date.now()],
+  );
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: "多选卡片" }).click();
+  const choice = page.getByRole("checkbox", { name: "选择 Tall selection card" });
+  await expect(choice).toBeVisible();
+  const overlay = page.locator("label").filter({ has: choice });
+  const point = await overlay.evaluate((el) => {
+    const wrapper = el.parentElement;
+    if (!wrapper) throw new Error("Missing selection wrapper");
+    wrapper.style.minHeight = "1400px";
+    let scroller = wrapper.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))
+      scroller = scroller.parentElement;
+    if (!scroller) throw new Error("Missing page scroller");
+    scroller.scrollTop = 450;
+    const box = el.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: 350 };
+  });
+  const positions = () =>
+    page.evaluate(() =>
+      Array.from(document.querySelectorAll("*"))
+        .filter((el) => el.scrollTop > 0)
+        .map((el) => el.scrollTop),
+    );
+  const before = await positions();
+  expect(before.length).toBeGreaterThan(0);
+  await page.touchscreen.tap(point.x, point.y);
+  await expect(choice).toBeChecked();
+  expect(await positions()).toEqual(before);
+  await page.keyboard.press("Escape");
+  await expect(choice).toHaveCount(0);
+  expect(await positions()).toEqual(before);
+  await expect(page.getByRole("button", { name: "多选卡片" })).toBeFocused();
+});

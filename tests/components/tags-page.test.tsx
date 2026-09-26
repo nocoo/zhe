@@ -3,6 +3,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TagsPage } from "@/components/dashboard/tags-page";
+import { CreateActionProvider, useCurrentCreateAction } from "@/contexts/create-action";
 
 const mockVm = {
   rows: [] as {
@@ -26,6 +27,15 @@ vi.mock("@/viewmodels/useTagsViewModel", () => ({
   useTagsViewModel: () => mockVm,
 }));
 
+function CreateTrigger() {
+  const action = useCurrentCreateAction();
+  return (
+    <button type="button" onClick={action?.onClick}>
+      {action?.label}
+    </button>
+  );
+}
+
 describe("TagsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,9 +54,14 @@ describe("TagsPage", () => {
     expect(screen.getByText("共 0 个")).toBeInTheDocument();
   });
 
-  it("opens the create form from the header action", () => {
-    render(<TagsPage />);
-    fireEvent.click(screen.getByTestId("tag-create-btn"));
+  it("registers its create form with the global action", () => {
+    render(
+      <CreateActionProvider>
+        <TagsPage />
+        <CreateTrigger />
+      </CreateActionProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "新建标签" }));
     expect(mockVm.startCreate).toHaveBeenCalled();
   });
 

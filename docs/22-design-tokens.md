@@ -223,3 +223,9 @@ Evidence: `tests/playwright/card-actions.spec.ts` exercises rendered cards at
 1365px desktop resizing. These are browser device emulations, not physical-device
 or VoiceOver certification. Shared component tests cover adaptive actions,
 disabled/pending behavior and focus after resizing an open menu.
+
+### Global creation
+
+The dashboard shell owns one 56px bottom-right creation FAB with a Lucide Plus, accessible action label and tooltip. Page actions register through `CreateActionProvider`: ideas, todos, tags and uploads keep their existing workflows; other routes open the shared short-link dialog. Page toolbars and empty link/idea states no longer duplicate creation buttons. The shell reserves bottom content space and the FAB respects safe-area insets and moves above floating selection controls. Dialogs use a short scale/fade entrance with reduced-motion support. Opening a short-link dialog focuses its URL field; closing creation dialogs returns focus to the FAB.
+
+Selection overlays focus their checkbox with `preventScroll` when the card body is activated, so tall cards stay stationary even when the checkbox is above the viewport. Escape leaves selection and clears choices; open menus/dialogs retain their own Escape behavior, and active deletion cannot be interrupted. Exiting restores the selection-entry focus without scrolling.

@@ -1,8 +1,7 @@
 "use client";
 
-import { Lightbulb, Plus } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
-import { Button } from "@/components/ui/button";
 import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
@@ -18,19 +17,12 @@ function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
   return <CardListSkeleton variant="idea" />;
 }
 
-function IdeasEmpty({ vm, filtered }: { vm: IdeasViewModel; filtered: boolean }) {
+function IdeasEmpty({ filtered }: { filtered: boolean }) {
   return (
     <EmptyState
       icon={Lightbulb}
       title={filtered ? "未找到想法" : "暂无想法"}
-      description={filtered ? "试试调整筛选条件" : "点击上方按钮记录您的第一个想法"}
-      {...(!filtered && {
-        action: (
-          <Button size="icon" onClick={() => vm.setIsCreateModalOpen(true)} aria-label="新想法">
-            <Plus className="w-4 h-4" strokeWidth={1.5} />
-          </Button>
-        ),
-      })}
+      description={filtered ? "试试调整筛选条件" : "点击右下角加号记录您的第一个想法"}
     />
   );
 }
@@ -48,7 +40,7 @@ export function IdeasContent({
 
   if (vm.ideas.length === 0) {
     const filtered = !!(vm.searchQuery || vm.selectedTagId);
-    return <IdeasEmpty vm={vm} filtered={filtered} />;
+    return <IdeasEmpty filtered={filtered} />;
   }
 
   if (vm.viewMode === "grid") {

@@ -5,7 +5,6 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentSource } from "@/models/connector-activity";
-import { CreateLinkModal } from "./create-link-modal";
 import { EnrichmentButton } from "./enrichment-button";
 import { IconAction } from "./icon-action";
 
@@ -17,8 +16,7 @@ export function LibraryActions({
   onRefresh: () => void;
   source: EnrichmentSource;
 }) {
-  const { siteUrl, folders, tags, handleLinkCreated, handleTagCreated, refreshLinks } =
-    useDashboardService();
+  const { refreshLinks } = useDashboardService();
   const [refreshing, setRefreshing] = useState(false);
   const refresh = async () => {
     setRefreshing(true);
@@ -51,13 +49,6 @@ export function LibraryActions({
           aria-hidden
         />
       </IconAction>
-      <CreateLinkModal
-        siteUrl={siteUrl}
-        onSuccess={handleLinkCreated}
-        folders={folders}
-        tags={tags}
-        onTagCreated={handleTagCreated}
-      />
     </div>
   );
 }

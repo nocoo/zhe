@@ -44,6 +44,7 @@ import { createTag } from "@/actions/tags";
 
 describe("CreateLinkModal", () => {
   const defaultProps = {
+    trigger: <button type="button">新建链接</button>,
     siteUrl: "https://zhe.to",
     onSuccess: vi.fn(),
   };
@@ -88,6 +89,7 @@ describe("CreateLinkModal", () => {
     render(<CreateLinkModal {...defaultProps} />);
 
     expect(screen.getByLabelText("原始链接")).toBeInTheDocument();
+    expect(screen.getByLabelText("原始链接")).toHaveFocus();
     expect(screen.getByPlaceholderText("https://example.com/very-long-url")).toBeInTheDocument();
   });
 

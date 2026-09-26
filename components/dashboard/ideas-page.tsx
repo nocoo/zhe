@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { usePageCreateAction } from "@/contexts/create-action";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import { useIdeasViewModel } from "@/viewmodels/useIdeasViewModel";
@@ -12,6 +13,11 @@ import { IdeasToolbar } from "./ideas-page-parts/ideas-toolbar";
 
 export function IdeasPage() {
   const vm = useIdeasViewModel();
+  usePageCreateAction({
+    label: "新想法",
+    onClick: () => vm.setIsCreateModalOpen(true),
+    expanded: vm.isCreateModalOpen,
+  });
   const router = useRouter();
   const selection = useBulkDelete(
     vm.ideas.map((idea) => ({ id: idea.id, label: idea.title || idea.excerpt || "未命名想法" })),
