@@ -107,7 +107,7 @@ async function enrichBookmark(
   const postId = "2000000000000000001";
   const mediaId = "2000000000000000002";
   const photoId = "2000000000000000003";
-  await page.locator("main").getByRole("button", { name: "新建链接", exact: true }).first().click();
+  await page.locator("main").getByRole("button", { name: "新建链接", exact: true }).click();
   await page.locator("#url").fill(`https://x.com/example/status/${postId}`);
   await page.getByRole("button", { name: "创建链接", exact: true }).click();
   await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });

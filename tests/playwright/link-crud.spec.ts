@@ -16,12 +16,12 @@ async function waitForLinksPage(page: import("@playwright/test").Page): Promise<
 
 test.describe("Link CRUD", () => {
   test.describe("header UI", () => {
-    test("shows links list header with create button", async ({ page }) => {
+    test("shows links list with one global create button", async ({ page }) => {
       await page.goto("/dashboard");
       await waitForLinksPage(page);
 
       const main = page.locator("main");
-      await expect(main.getByRole("button", { name: "新建链接" }).first()).toBeVisible();
+      await expect(main.getByRole("button", { name: "新建链接", exact: true })).toBeVisible();
       await expect(main.getByRole("button", { name: "刷新链接" })).toBeVisible();
       await expect(main.getByRole("button", { name: "List view" })).toBeVisible();
       await expect(main.getByRole("button", { name: "Grid view" })).toBeVisible();
@@ -36,7 +36,7 @@ test.describe("Link CRUD", () => {
       const main = page.locator("main");
 
       // Open create dialog — use .first() because empty-state also has this button
-      await main.getByRole("button", { name: "新建链接" }).first().click();
+      await main.getByRole("button", { name: "新建链接", exact: true }).click();
       await expect(page.getByText("创建短链接")).toBeVisible();
 
       // Simple mode should be selected by default
@@ -69,7 +69,7 @@ test.describe("Link CRUD", () => {
       const main = page.locator("main");
 
       // Open create dialog
-      await main.getByRole("button", { name: "新建链接" }).first().click();
+      await main.getByRole("button", { name: "新建链接", exact: true }).click();
 
       // Switch to custom slug mode
       await page.locator('button:has-text("自定义 slug")').click();
@@ -108,7 +108,7 @@ test.describe("Link CRUD", () => {
         const main = page.locator("main");
 
         // Open create dialog
-        await main.getByRole("button", { name: "新建链接" }).first().click();
+        await main.getByRole("button", { name: "新建链接", exact: true }).click();
         await expect(page.getByText("创建短链接")).toBeVisible();
 
         // Fill URL
@@ -168,7 +168,7 @@ test.describe("Link CRUD", () => {
       const main = page.locator("main");
 
       // Create a link via UI
-      await main.getByRole("button", { name: "新建链接" }).first().click();
+      await main.getByRole("button", { name: "新建链接", exact: true }).click();
       await page.locator('button:has-text("自定义 slug")').click();
       await page.locator("#url").fill("https://github.com/microsoft/playwright");
       await page.locator("#slug").fill(testSlug);

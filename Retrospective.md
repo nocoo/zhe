@@ -182,3 +182,7 @@ The next full run exposed a separate three-second child-readiness deadline under
 ### 2026-09-26 — Creation entry focus and shell fixture boundaries
 
 The shared creation FAB introduced a dialog child into the shell's unit fixture. That fixture mocked its previous server boundaries but loaded the new child's Auth.js dependency under Node, failing before tests ran. Mock the creation child at the shell boundary; exercise its real dialog in the dedicated component and browser suites. WebKit additionally showed that tapping a button does not necessarily focus it. Focus the FAB with `preventScroll` before invoking its action so programmatic dialogs capture a valid return target on iPhone.
+
+### 2026-09-26 — Update existing creation journeys with the FAB
+
+The new FAB browser regression passed, but the full gate caught an existing Ideas empty-state test still expecting the former top-button instructions. Audit existing copy assertions and creation locators whenever moving a shared entry point. Update the empty-state contract and remove `.first()` from creation locators so duplicate creation buttons fail instead of being hidden by the tests.

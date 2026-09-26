@@ -78,15 +78,14 @@ test.describe("Ideas", () => {
       await waitForIdeasPage(page);
 
       await expect(page.getByText("暂无想法")).toBeVisible();
-      await expect(page.getByText("点击上方按钮记录您的第一个想法")).toBeVisible();
+      await expect(page.getByText("点击右下角加号记录您的第一个想法")).toBeVisible();
     });
 
-    test("shows create button in header", async ({ page }) => {
+    test("shows one global create button", async ({ page }) => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      // Empty state shows two create buttons (header + empty-state), verify at least one
-      await expect(page.getByRole("button", { name: "新想法" }).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: "新想法", exact: true })).toBeVisible();
     });
   });
 
@@ -103,8 +102,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      // Use .first() because empty state shows two create buttons
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
 
       await expect(page.getByRole("dialog")).toBeVisible();
       await expect(page.getByRole("dialog").getByRole("heading", { name: "新想法" })).toBeVisible();
@@ -115,7 +113,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
 
       // Title is optional, but content is required
       await page.locator("#new-title").fill("Test Title");
@@ -127,7 +125,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       await page.getByRole("button", { name: "取消" }).click();
@@ -141,7 +139,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill(content);
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
 
@@ -159,7 +157,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-title").fill(title);
       await page.locator("#new-content").fill(content);
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
@@ -272,7 +270,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill("Idea to delete");
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -291,7 +289,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill("Idea to keep");
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -314,7 +312,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill(content);
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -344,7 +342,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill("Idea to edit");
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -366,7 +364,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill("Idea for back button test");
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -394,7 +392,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill(originalContent);
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
@@ -431,7 +429,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "新想法" }).first().click();
+      await page.getByRole("button", { name: "新想法", exact: true }).click();
       await page.locator("#new-content").fill("Content for dirty test");
       await page.getByRole("dialog").getByRole("button", { name: "创建" }).click();
       await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });

@@ -27,7 +27,7 @@ async function createLink(
   url: string,
 ): Promise<void> {
   const main = page.locator("main");
-  await main.getByRole("button", { name: "新建链接" }).first().click();
+  await main.getByRole("button", { name: "新建链接", exact: true }).click();
   await page.locator('button:has-text("自定义 slug")').click();
   await page.locator("#url").fill(url);
   await page.locator("#slug").fill(slug);
