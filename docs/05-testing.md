@@ -122,7 +122,7 @@ bun run test:integration    # 集成测试（Server Actions）
 
 `bun run test:api` 调用 `scripts/run-api-e2e.ts`，启动本地 Worker/SQLite/KV/R2 与 Next.js 17006，通过真实 HTTP 断言响应和数据副作用。导入 handler 的 mock 测试属于 L1。
 
-`test-stack.ts` 在本地应用全部 migrations，注入测试 env，校验 `_test_marker`，并负责 readiness、退出和清理。Worker 8788、R2 shim 18788；应用使用 `.next/test`。生产 Cloudflare 凭据和旧的远端 `*_TEST_*` 资源变量均不需要。
+`test-stack.ts` 在本地应用全部 migrations，注入测试 env，校验 `_test_marker`，并负责 readiness、退出和清理。Worker 8788、R2 shim 18788；应用使用 `.next-test`。生产 Cloudflare 凭据和旧的远端 `*_TEST_*` 资源变量均不需要。
 
 L2 是 pre-push/CI 的硬检查。完整 endpoint/method 100% 清单覆盖、每次运行独立目录，以及清理前的目录/marker 检查仍是质量差距；不要把当前固定 `.test-storage` 描述成完整 per-run 隔离。不得使用生产或日常开发存储。
 
@@ -175,7 +175,7 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 
 **`playwright.config.ts`**：
 - 端口：27006（与开发 7006、API E2E 17006 完全隔离）
-- 服务器：`PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next dev --turbopack -p 27006`
+- 服务器：`PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next dev --webpack -p 27006`
 - `reuseExistingServer: false`：每次都启动全新实例
 - 串行执行：`fullyParallel: false`, `workers: 1`（避免数据竞争）
 - 浏览器：Chromium（Desktop Chrome）
@@ -488,7 +488,7 @@ L2/L3 均使用 `scripts/test-stack.ts` 管理的本地栈，不能创建或部�
 |---|---|---|
 | D1 / KV | Wrangler + SQLite，`.test-storage/wrangler`，Worker 8788 | 固定目录改为每次运行独立目录 |
 | R2 | `.test-storage/r2` + test-only HTTP shim 18788 | 每次运行隔离；禁止作为生产 shim |
-| Next | L2 17006、L3 27006，`.next/test` | 两层仍共享存储/输出，当前必须串行 |
+| Next | L2 17006、L3 27006，`.next-test` | 两层仍共享存储/输出，当前必须串行 |
 | 数据 guard | Loopback D1 proxy、`_test_marker(env=test)` 和测试 env 覆盖 | 首次删除目录前验证本地目录归属与 marker |
 
 测试入口会覆盖本地资源变量并清除生产 Cloudflare 资源身份；测试不需要 `CLOUDFLARE_API_TOKEN` 或旧远端 test 资源变量。不要为了运行测试复制生产 secrets。
@@ -559,3 +559,15 @@ git push --no-verify
 - [质量体系升级设计](13-quality-system-upgrade.md)
 - [Cloudflare 资源清单与测试隔离](14-cloudflare-resource-inventory.md)
 - [E2E 覆盖分析](09-e2e-coverage-analysis.md)
+
+## Release gate reliability
+
+L2/L3 use Webpack because Next 16.3.6 Turbopack can return HTML 404 for
+`/api/v1/connector/jobs/[id]/media/[assetId]` after compiling its parent route.
+The browser setup checks parent-first unauthenticated requests before UI tests,
+requiring the real 401 JSON response. A failed test stops the run; a retry-only
+pass still fails the gate. Touch dimensions are rounded to 0.001 CSS pixels to
+ignore floating-point measurement noise while rejecting undersized controls.
+
+Release pushes the branch and the single release tag atomically. Normal pre-push
+L2 and dependency checks run once for those refs; a failed check publishes neither.

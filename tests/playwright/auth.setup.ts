@@ -6,6 +6,21 @@ import { TEST_USER } from "./helpers/d1";
 
 const authFile = "tests/playwright/.auth/user.json";
 
+setup(
+  "nested connector routes reject unauthenticated requests in parent-first order",
+  async ({ request }) => {
+    for (const [method, path] of [
+      ["POST", "/api/v1/connector"],
+      ["POST", "/api/v1/connector/jobs/1"],
+      ["PUT", "/api/v1/connector/jobs/1/media/12345678-1234-1234-1234-123456789012"],
+    ] as const) {
+      const response = await request.fetch(path, { method });
+      expect(response.status(), `${method} ${path}`).toBe(401);
+      expect(await response.json()).toEqual({ error: "Missing Authorization header" });
+    }
+  },
+);
+
 setup("authenticate", async ({ page, context }) => {
   // Authentication plus eight cold route compilations needs its own setup budget.
   setup.setTimeout(120_000);
@@ -38,7 +53,7 @@ setup("authenticate", async ({ page, context }) => {
   // Save signed-in state
   await context.storageState({ path: authFile });
 
-  // Warm up Turbopack JIT compilation for high-traffic routes.
+  // Warm up development compilation for high-traffic routes.
   // This serializes compilation before parallel workers fan out,
   // preventing cold-start stampede that causes intermittent failures.
   const warmupRoutes = [

@@ -74,7 +74,7 @@ async function verifyTestMarker(): Promise<boolean> {
 
 function startServer(): ChildProcess {
   console.log(`[api-e2e] Starting Next.js dev server on port ${API_E2E_PORT}...`);
-  const child = spawn("bun", ["run", "next", "dev", "--turbopack", "-p", String(API_E2E_PORT)], {
+  const child = spawn("bun", ["run", "next", "dev", "--webpack", "-p", String(API_E2E_PORT)], {
     env: {
       ...process.env,
       PLAYWRIGHT: "1",

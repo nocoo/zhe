@@ -573,9 +573,8 @@ async function main(): Promise<void> {
   console.log("🚀 Phase 5: Push, tag & release\n");
 
   console.log("   The following actions will be performed:");
-  console.log(`     • git push`);
   console.log(`     • git tag -a v${newVersion} -m "v${newVersion}"`);
-  console.log(`     • git push --tags`);
+  console.log(`     • git push --atomic origin HEAD:refs/heads/${branch} refs/tags/v${newVersion}`);
   if (ghAuthed) {
     console.log(`     • gh release create v${newVersion} --title "v${newVersion}"`);
   }
@@ -586,20 +585,6 @@ async function main(): Promise<void> {
     console.log(`\n✅ Dry run complete for v${newVersion}`);
     process.exit(0);
   }
-
-  // Push
-  console.log("\n   🔄 Pushing...");
-  const pushResult = await run("git", ["push"], { inherit: true });
-  if (pushResult.code !== 0) {
-    console.error("❌ git push failed");
-    console.error("   Recovery commands:");
-    console.error(`     git push`);
-    console.error(`     git tag -a v${newVersion} -m "v${newVersion}"`);
-    console.error(`     git push --tags`);
-    console.error(`     gh release create v${newVersion} --title "v${newVersion}" --notes "..."`);
-    process.exit(1);
-  }
-  console.log("   ✅ Pushed");
 
   // Tag
   console.log(`   🔄 Creating tag v${newVersion}...`);
@@ -612,17 +597,21 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Push tags
-  console.log("   🔄 Pushing tags...");
-  const pushTagResult = await run("git", ["push", "--tags"], {
-    inherit: true,
-  });
-  if (pushTagResult.code !== 0) {
-    console.error("❌ git push --tags failed");
-    console.error("   Recovery: git push --tags");
+  const pushArgs = [
+    "push",
+    "--atomic",
+    "origin",
+    `HEAD:refs/heads/${branch}`,
+    `refs/tags/v${newVersion}`,
+  ];
+  console.log("   🔄 Pushing branch and release tag together...");
+  const pushResult = await run("git", pushArgs, { inherit: true });
+  if (pushResult.code !== 0) {
+    console.error("❌ Atomic release push failed; neither remote ref was updated");
+    console.error(`   Recovery: git ${pushArgs.join(" ")}`);
     process.exit(1);
   }
-  console.log(`   ✅ Tag v${newVersion} pushed`);
+  console.log(`   ✅ Branch and tag v${newVersion} pushed`);
 
   // GitHub Release
   if (ghAuthed) {

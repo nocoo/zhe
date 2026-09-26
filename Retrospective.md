@@ -145,3 +145,19 @@ minimum height. Mobile notifications reserve space above the floating bulk bar
 so a hovered toast cannot indefinitely obstruct its exit control. Browser helpers
 wait for the documented responsive width mode and scope portaled menus to the
 correct page, including secondary tabs.
+
+## 2026-09-26 — Release gate routing and duplicate work
+
+Repeated full runs misdiagnosed a Next development routing defect as stale cache.
+A three-request reproduction showed that compiling the dynamic connector parent
+first makes Turbopack return HTML 404 for its media child; reversing request order
+returns 401. Webpack returns the expected 401 in parent-first order. L2/L3 now
+use Webpack and setup checks that order before browser journeys. Production
+continues to use its existing compiler. The test output is a sibling of `.next`
+so production cleanup cannot remove it. A 43.999938px measurement also failed an
+exact 44px assertion; geometry checks now round only sub-millipixel noise.
+
+Separate branch/tag pushes ran the same HTTP and dependency gates twice. One
+atomic push retains the normal pre-push hook and publishes both refs together.
+Failed or retry-only browser runs block publication and stop promptly. Diagnose
+with the smallest failing request sequence before repeating the complete suite.

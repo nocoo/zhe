@@ -36,7 +36,8 @@ export default defineConfig({
   globalTeardown: "./tests/playwright/global-teardown.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  failOnFlakyTests: !!process.env.CI,
+  failOnFlakyTests: true,
+  maxFailures: 1,
   retries: process.env.CI ? 2 : 0,
   // Local runs share the machine with daily development and other builds.
   // Serialize browsers locally; dedicated CI runners retain four workers.
@@ -77,7 +78,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `bun run next dev --turbopack -p ${E2E_PORT}`,
+    command: `bun run next dev --webpack -p ${E2E_PORT}`,
     url: E2E_BASE,
     reuseExistingServer: false,
     timeout: 60_000,

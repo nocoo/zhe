@@ -83,8 +83,8 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       });
       expect(geometry).toHaveLength(2);
       for (const button of geometry) {
-        expect(button.width).toBeGreaterThanOrEqual(44);
-        expect(button.height).toBeGreaterThanOrEqual(44);
+        expect(Number(button.width.toFixed(3))).toBeGreaterThanOrEqual(44);
+        expect(Number(button.height.toFixed(3))).toBeGreaterThanOrEqual(44);
         expect(button.fits).toBe(true);
       }
       await more.tap();
@@ -148,7 +148,7 @@ for (const collection of ["ideas", "uploads"] as const) {
         name: collection === "ideas" ? "删除想法" : "Delete file",
       });
       await expect(remove).toBeVisible();
-      expect((await remove.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      expect(Number((await remove.boundingBox())?.height.toFixed(3))).toBeGreaterThanOrEqual(44);
       await remove.tap();
       const dialog = page.getByRole(collection === "ideas" ? "dialog" : "alertdialog");
       await expect(dialog).toBeVisible();

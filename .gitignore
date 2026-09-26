@@ -17,6 +17,7 @@ tests/playwright/.auth/
 
 # Next.js
 .next/
+.next-test/
 out/
 
 # Production
