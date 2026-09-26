@@ -78,10 +78,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `bun run next dev --webpack -p ${E2E_PORT}`,
+    command: `bun run next build && bun run next start -p ${E2E_PORT}`,
     url: E2E_BASE,
     reuseExistingServer: false,
-    timeout: 60_000,
+    timeout: 180_000,
+    stdout: "pipe",
     env: {
       PLAYWRIGHT: "1",
       AUTH_URL: E2E_BASE,

@@ -12,6 +12,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     pool: "vmThreads",
+    maxWorkers: 4,
     isolate: true,
     setupFiles: ["./tests/basalt-theme-mock.ts", "./tests/setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],

@@ -56,16 +56,19 @@ async function spawnLongLivedChild(sigtermExitCode = 0): Promise<ReturnType<type
   });
   CHILDREN.push(child);
   await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("child never signalled ready")), 10_000);
     const onData = (chunk: Buffer): void => {
       if (chunk.toString().includes("ready")) {
         child.stdout?.off("data", onData);
+        clearTimeout(timer);
         resolve();
       }
     };
     child.stdout?.on("data", onData);
-    child.once("error", reject);
-    // Safety cap so a broken stub cannot hang the entire suite.
-    setTimeout(() => reject(new Error("child never signalled ready")), 3_000);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
   });
   return child;
 }
@@ -82,15 +85,19 @@ async function spawnStubbornChild(): Promise<ReturnType<typeof spawn>> {
   });
   CHILDREN.push(child);
   await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("child never signalled ready")), 10_000);
     const onData = (chunk: Buffer): void => {
       if (chunk.toString().includes("ready")) {
         child.stdout?.off("data", onData);
+        clearTimeout(timer);
         resolve();
       }
     };
     child.stdout?.on("data", onData);
-    child.once("error", reject);
-    setTimeout(() => reject(new Error("child never signalled ready")), 3_000);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
   });
   return child;
 }

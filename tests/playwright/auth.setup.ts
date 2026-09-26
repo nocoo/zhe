@@ -1,5 +1,5 @@
-// Auth setup: Playwright authenticates via the Credentials provider
-// (activated by PLAYWRIGHT=1) and saves the session cookie for reuse.
+import assert from "node:assert/strict";
+import { encode } from "@auth/core/jwt";
 import { expect, test as setup } from "@playwright/test";
 import { islandHeading } from "./helpers/chrome";
 import { TEST_USER } from "./helpers/d1";
@@ -21,53 +21,19 @@ setup(
   },
 );
 
-setup("authenticate", async ({ page, context }) => {
-  // Authentication plus eight cold route compilations needs its own setup budget.
-  setup.setTimeout(120_000);
-  // Step 1: Get CSRF token from the auth endpoint
-  const csrfRes = await page.request.get("/api/auth/csrf");
-  expect(csrfRes.ok()).toBeTruthy();
-  const { csrfToken } = await csrfRes.json();
-
-  // Step 2: POST to the credentials callback. This returns a 302
-  // redirect with Set-Cookie for the session token. We use fetch
-  // with redirect: 'manual' to capture the cookie without following
-  // the redirect (which may point to a production hostname).
-  const callbackRes = await page.request.post("/api/auth/callback/e2e-credentials", {
-    form: {
-      csrfToken,
-      email: TEST_USER.email,
-      name: TEST_USER.name,
-    },
-    maxRedirects: 0,
+setup("authenticate", async ({ page, context, baseURL }) => {
+  assert(baseURL === "http://localhost:27006");
+  const secret = process.env.AUTH_SECRET;
+  assert(secret);
+  const value = await encode({
+    token: { sub: TEST_USER.id, name: TEST_USER.name, email: TEST_USER.email },
+    secret,
+    salt: "authjs.session-token",
   });
-
-  // The response should be a 302 redirect
-  expect(callbackRes.status()).toBe(302);
-
-  // Step 3: Navigate to dashboard — the session cookie should be set
-  // from the POST response above
+  await context.addCookies([
+    { name: "authjs.session-token", value, url: baseURL, httpOnly: true, sameSite: "Lax" },
+  ]);
   await page.goto("/dashboard");
-  await expect(islandHeading(page, "全部链接")).toBeVisible({ timeout: 15_000 });
-
-  // Save signed-in state
+  await expect(islandHeading(page, "全部链接")).toBeVisible();
   await context.storageState({ path: authFile });
-
-  // Warm up development compilation for high-traffic routes.
-  // This serializes compilation before parallel workers fan out,
-  // preventing cold-start stampede that causes intermittent failures.
-  const warmupRoutes = [
-    "/dashboard/overview",
-    "/dashboard/ideas",
-    "/dashboard/backy",
-    "/dashboard/api-keys",
-    "/dashboard/tags",
-    "/dashboard/data-management",
-    "/dashboard/settings/ai",
-    "/dashboard/webhook",
-  ];
-  for (const route of warmupRoutes) {
-    await page.goto(route);
-    await page.waitForLoadState("domcontentloaded");
-  }
 });

@@ -22,6 +22,7 @@ import {
   type WriteStream,
 } from "node:fs";
 import { resolve as pathResolve } from "node:path";
+import { migrationBatches, OPTIONAL_LOCAL_MIGRATIONS } from "./lib/migration-batches";
 
 import { type LocalR2Server, startLocalR2Server, stopLocalR2Server } from "./local-r2-server";
 
@@ -114,8 +115,7 @@ function applyMigration(file: string): void {
   // in prod and never appear in any "ADD COLUMN" migration, so they fail on a
   // clean local database with "no such column". Skip the SQLite error — the
   // resulting schema matches prod after all migrations apply.
-  const tolerateMissingColumn =
-    file === "0014_drop_discord_bot_settings.sql" || file === "0016_drop_backy_pull_secret.sql";
+  const tolerateMissingColumn = OPTIONAL_LOCAL_MIGRATIONS.has(file);
 
   const result = spawnSync(
     "wrangler",
@@ -383,8 +383,17 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     throw new Error(`No migrations found in ${MIGRATIONS_DIR}`);
   }
   console.log(`[test-stack] Applying ${migrations.length} migration(s) to local D1...`);
-  for (const file of migrations) {
-    applyMigration(file);
+  for (const [index, files] of migrationBatches(migrations).entries()) {
+    if (files.length === 1 && files[0]) {
+      applyMigration(files[0]);
+    } else {
+      const batchPath = pathResolve(STACK_DIR, `migration-batch-${index}.sql`);
+      await fs.writeFile(
+        batchPath,
+        files.map((file) => readFileSync(pathResolve(MIGRATIONS_DIR, file), "utf8")).join("\n"),
+      );
+      applyMigration(batchPath);
+    }
   }
   seedTestMarker();
   applySchemaFixups();

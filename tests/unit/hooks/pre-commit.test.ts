@@ -167,12 +167,13 @@ describe("pre-commit index snapshot", () => {
     expect(git(repo, ["rev-parse", "HEAD"], env).trim()).toBe(seed);
   }, 30000);
 
-  it("exits nonzero on interruption, terminating the stage tree before cleanup", async () => {
-    for (const [signal, code] of [
-      ["SIGTERM", 143],
-      ["SIGINT", 130],
-      ["SIGHUP", 129],
-    ] as const) {
+  it.each([
+    ["SIGTERM", 143],
+    ["SIGINT", 130],
+    ["SIGHUP", 129],
+  ] as const)(
+    "cleans the stage tree on %s and exits with %i",
+    async (signal, code) => {
       const { repo, env, tmp } = createFixture();
       const marker = join(repo, "..", "child-start");
       const manifest = JSON.parse(readFileSync(join(repo, "package.json"), "utf8"));
@@ -187,10 +188,11 @@ describe("pre-commit index snapshot", () => {
       });
       await waitUntil(() => existsSync(marker), 5000);
       const stagePid = Number.parseInt(readFileSync(marker, "utf8"), 10);
-      child.kill(signal);
-      const status = await new Promise<number | null>((resolve) => {
+      const exited = new Promise<number | null>((resolve) => {
         child.once("exit", (exitCode) => resolve(exitCode));
       });
+      child.kill(signal);
+      const status = await exited;
       expect(status, signal).toBe(code);
       let alive = true;
       try {
@@ -208,6 +210,7 @@ describe("pre-commit index snapshot", () => {
       }
       expect(alive, signal).toBe(false);
       expect(snapshots(tmp), signal).toEqual([]);
-    }
-  }, 30000);
+    },
+    30000,
+  );
 });

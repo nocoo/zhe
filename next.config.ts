@@ -2,7 +2,7 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  ...(process.env.PLAYWRIGHT === "1" ? {} : { output: "standalone" as const }),
   // L2/L3 run beside the user's dev server without sharing its cache or lock.
   distDir: process.env.PLAYWRIGHT === "1" ? ".next-test" : ".next",
   allowedDevOrigins: ["zhe.dev.hexly.ai"],

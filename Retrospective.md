@@ -161,3 +161,20 @@ Separate branch/tag pushes ran the same HTTP and dependency gates twice. One
 atomic push retains the normal pre-push hook and publishes both refs together.
 Failed or retry-only browser runs block publication and stop promptly. Diagnose
 with the smallest failing request sequence before repeating the complete suite.
+
+The isolated three-request Webpack probe passed, but full startup still omitted
+the media route from generated route types. That falsified the narrower
+Turbopack-only diagnosis. L2/L3 now use a complete build and `next start`, with
+the same parent-first regression check. Browser setup signs loopback-only test
+sessions; production authentication code and its bypass prohibition stay intact.
+
+Startup also spawned Wrangler once per migration. Ordered batching cuts those
+36 processes to five without combining either tolerated missing-column migration
+with strict migrations. Tests assert the real migration list is preserved exactly;
+the full local schema is exercised by HTTP/browser gates.
+
+### 2026-09-26 — Bound interruption checks independently
+
+The pre-commit cancellation regression combined TERM, INT and HUP fixtures under one 30-second deadline. Full-suite contention exhausted that shared budget even though each case passed alone. Split the signals into independently timed cases and subscribe to child exit before sending the signal, preserving every exit-code, child-termination and snapshot-cleanup assertion. Keep the Next-generated test development type include so complete test builds do not dirty the maintained configuration.
+
+The next full run exposed a separate three-second child-readiness deadline under concurrent repository builds. Cap Vitest at four workers to reduce process and memory contention; allow ten seconds for fixture startup and clear readiness timers immediately on success/error. Shutdown escalation and completion deadlines remain unchanged.

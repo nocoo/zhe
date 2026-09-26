@@ -175,7 +175,7 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 
 **`playwright.config.ts`**：
 - 端口：27006（与开发 7006、API E2E 17006 完全隔离）
-- 服务器：`PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next dev --webpack -p 27006`
+- 服务器：`PLAYWRIGHT=1 bun run next build`, then `PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next start -p 27006`
 - `reuseExistingServer: false`：每次都启动全新实例
 - 串行执行：`fullyParallel: false`, `workers: 1`（避免数据竞争）
 - 浏览器：Chromium（Desktop Chrome）
@@ -562,7 +562,7 @@ git push --no-verify
 
 ## Release gate reliability
 
-L2/L3 use Webpack because Next 16.3.6 Turbopack can return HTML 404 for
+L2/L3 run complete builds because Next 16.3.6 development route discovery can return HTML 404 for
 `/api/v1/connector/jobs/[id]/media/[assetId]` after compiling its parent route.
 The browser setup checks parent-first unauthenticated requests before UI tests,
 requiring the real 401 JSON response. A failed test stops the run; a retry-only
@@ -571,3 +571,13 @@ ignore floating-point measurement noise while rejecting undersized controls.
 
 Release pushes the branch and the single release tag atomically. Normal pre-push
 L2 and dependency checks run once for those refs; a failed check publishes neither.
+
+Browser setup signs a session with the local test secret after asserting the
+loopback origin. The production build keeps the Credentials bypass disabled.
+Full route compilation also removes per-page JIT warmup from the browser gate.
+
+Local migration startup groups consecutive strict migrations into five Wrangler
+invocations instead of 36, preserving order. The two historical missing-column
+exceptions each remain isolated, so a strict migration error cannot be swallowed.
+
+Vitest uses at most four workers so local coverage does not saturate the machine alongside other repositories. Process fixture startup waits up to ten seconds, independently of the stricter shutdown timing assertions.

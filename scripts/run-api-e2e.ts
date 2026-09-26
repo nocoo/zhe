@@ -73,12 +73,12 @@ async function verifyTestMarker(): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 function startServer(): ChildProcess {
-  console.log(`[api-e2e] Starting Next.js dev server on port ${API_E2E_PORT}...`);
-  const child = spawn("bun", ["run", "next", "dev", "--webpack", "-p", String(API_E2E_PORT)], {
+  console.log(`[api-e2e] Starting built Next.js server on port ${API_E2E_PORT}...`);
+  const child = spawn("bun", ["run", "next", "start", "-p", String(API_E2E_PORT)], {
     env: {
       ...process.env,
       PLAYWRIGHT: "1",
-      NODE_ENV: "development",
+      NODE_ENV: "production",
     },
     stdio: ["ignore", "pipe", "pipe"],
     cwd: PROJECT_ROOT,
@@ -194,6 +194,8 @@ async function main(): Promise<void> {
     // routes can be exercised by the test suite.
     if (!process.env.AUTH_SECRET) process.env.AUTH_SECRET = "api-e2e-test-auth-secret";
 
+    const build = await runCommand(["run", "next", "build"], { PLAYWRIGHT: "1" });
+    if (build !== 0) throw new Error("Test server build failed");
     server = startServer();
     const ready = await waitForHealth();
     if (!ready) {
