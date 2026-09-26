@@ -1,15 +1,6 @@
-/**
- * L2 API E2E Tests for /api/auth/[...nextauth]
- *
- * Tests the NextAuth.js endpoints via real HTTP.
- * Validates CSRF token endpoint, providers list, and e2e-credentials login flow.
- *
- * The dev server runs with PLAYWRIGHT=1, which enables the e2e-credentials
- * provider alongside Google OAuth.
- */
 import { describe, expect, it } from "vitest";
 import { unwrap } from "../test-utils";
-import { apiGet, jsonResponse } from "./helpers/http";
+import { apiGet, apiGetAuth, getSessionCookie, jsonResponse } from "./helpers/http";
 
 describe("GET /api/auth", () => {
   it("GET /api/auth/csrf returns a csrfToken", async () => {
@@ -22,7 +13,7 @@ describe("GET /api/auth", () => {
     expect(body.csrfToken.length).toBeGreaterThan(0);
   });
 
-  it("GET /api/auth/providers lists available providers including e2e-credentials", async () => {
+  it("GET /api/auth/providers lists Google without a test login bypass", async () => {
     const res = await apiGet("/api/auth/providers");
     const { status, body } =
       await jsonResponse<
@@ -39,15 +30,25 @@ describe("GET /api/auth", () => {
 
     expect(status).toBe(200);
 
-    // Google should always be present
     expect(body.google).toBeDefined();
     expect(unwrap(body.google).id).toBe("google");
     expect(unwrap(body.google).type).toBe("oidc");
 
-    // e2e-credentials should be present because dev server runs with PLAYWRIGHT=1
-    expect(body["e2e-credentials"]).toBeDefined();
-    expect(unwrap(body["e2e-credentials"]).id).toBe("e2e-credentials");
-    expect(unwrap(body["e2e-credentials"]).type).toBe("credentials");
+    expect(body["e2e-credentials"]).toBeUndefined();
+  });
+
+  it("GET /api/auth/session verifies the signed local session", async () => {
+    const res = await apiGetAuth("/api/auth/session");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      user: { id: "e2e-test-user-id", email: "e2e@test.local" },
+    });
+  });
+
+  it("rejects a tampered session cookie", async () => {
+    const cookie = await getSessionCookie();
+    const res = await apiGet("/api/worker-status", { Cookie: `${cookie}tampered` });
+    expect(res.status).toBe(401);
   });
 
   it("GET /api/auth/session returns empty/null session for unauthenticated request", async () => {

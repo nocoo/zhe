@@ -184,7 +184,7 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 
 ```
 1. global-setup.ts    → 向 D1 插入测试用户，验证 _test_marker
-2. auth.setup.ts      → 通过 CredentialsProvider 登录，保存 session cookie
+2. auth.setup.ts      → Sign a guarded loopback session and save its cookie
 3. *.spec.ts          → 各场景测试（使用已认证的 storageState）
 4. global-teardown.ts → 清理测试数据
 ```
@@ -572,8 +572,10 @@ ignore floating-point measurement noise while rejecting undersized controls.
 Release pushes the branch and the single release tag atomically. Normal pre-push
 L2 and dependency checks run once for those refs; a failed check publishes neither.
 
-Browser setup signs a session with the local test secret after asserting the
-loopback origin. The production build keeps the Credentials bypass disabled.
+Browser and HTTP setup sign sessions with the local test secret after asserting
+their exact loopback origins (27006 and 17006). The production build keeps the
+Credentials bypass disabled; HTTP tests verify its absence, valid sessions and
+rejection of tampered cookies.
 Full route compilation also removes per-page JIT warmup from the browser gate.
 
 Local migration startup groups consecutive strict migrations into five Wrangler

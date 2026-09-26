@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Serialize builds with browser verification
 
 ### Fixed
+- Authenticate built HTTP tests with guarded local sessions
 - Test builds and batch local migrations
 - Stabilize and streamline release gates
 - Keep compact card controls reachable

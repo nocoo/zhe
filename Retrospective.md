@@ -186,3 +186,7 @@ The shared creation FAB introduced a dialog child into the shell's unit fixture.
 ### 2026-09-26 — Update existing creation journeys with the FAB
 
 The new FAB browser regression passed, but the full gate caught an existing Ideas empty-state test still expecting the former top-button instructions. Audit existing copy assertions and creation locators whenever moving a shared entry point. Update the empty-state contract and remove `.first()` from creation locators so duplicate creation buttons fail instead of being hidden by the tests.
+
+### 2026-09-26 — Migrate both test authentication clients
+
+Switching L2/L3 from development servers to production builds disabled the development-only Credentials provider as intended. Browser setup was updated, but the HTTP helper still called that provider and its provider-list test still required the bypass. The pre-push gate rejected five tests before either remote ref was published. Use signed sessions only after asserting the exact loopback origin in both test clients; verify production providers exclude the test login and real HTTP rejects tampered sessions. Audit all authentication callers when changing test server mode.
