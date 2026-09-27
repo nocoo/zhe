@@ -5,12 +5,10 @@
  * filesystem shim live for the entire Playwright session; global-teardown
  * (same Node process) stops them.
  */
-import { resolve } from "node:path";
 import { shutdownL3 } from "../../scripts/lib/crash-shutdown";
 import {
   applyLocalStackEnv,
   type LocalStack,
-  loadEnvFile,
   setWorkerCrashHandler,
   startLocalStack,
   WRANGLER_LOG_PATH,
@@ -22,8 +20,6 @@ declare global {
 }
 
 export default async function globalSetup(): Promise<void> {
-  loadEnvFile(resolve(process.cwd(), ".env.local"));
-
   // Fail fast on wrangler crash — delegates the ordered shutdown to the
   // covered helper in scripts/lib/crash-shutdown.ts (see shutdownL3). The
   // helper flushes the tee log, sets process.exitCode = 1, and sends SIGINT

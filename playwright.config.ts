@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { localRunId, runDirectory } from "./scripts/lib/local-run";
+import { prepareTestEnvironment } from "./scripts/lib/test-environment";
 
 /**
  * Playwright E2E configuration.
@@ -21,6 +22,7 @@ import { localRunId, runDirectory } from "./scripts/lib/local-run";
  * and stable; keep them in sync with the same constants in
  * scripts/test-stack.ts.
  */
+prepareTestEnvironment();
 const E2E_PORT = 27006;
 const E2E_BASE = `http://localhost:${E2E_PORT}`;
 
@@ -86,6 +88,10 @@ export default defineConfig({
     stdout: "pipe",
     env: {
       PLAYWRIGHT: "1",
+      AUTH_SECRET: process.env.AUTH_SECRET ?? "",
+      AUTH_GOOGLE_ID: "",
+      AUTH_GOOGLE_SECRET: "",
+      AUTH_ALLOWED_EMAILS: "e2e@test.local",
       AUTH_URL: E2E_BASE,
       D1_PROXY_URL: WORKER_URL,
       D1_PROXY_SECRET,

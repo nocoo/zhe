@@ -7,13 +7,12 @@
  * "not logged in" and the tests still pass. See scripts/test-stack.ts.
  */
 import { type ChildProcess, spawn } from "node:child_process";
-import { resolve as pathResolve } from "node:path";
 import { shutdownL2, terminateChild } from "./lib/crash-shutdown";
+import { prepareTestEnvironment } from "./lib/test-environment";
 import {
   applyLocalStackEnv,
   D1_PROXY_SECRET,
   type LocalStack,
-  loadEnvFile,
   setWorkerCrashHandler,
   startLocalStack,
   stopLocalStack,
@@ -136,7 +135,7 @@ async function runHttpTests(): Promise<number> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  loadEnvFile(pathResolve(PROJECT_ROOT, ".env.local"));
+  prepareTestEnvironment();
   // Daily dev uses HTTPS cookies; this isolated HTTP stack must use its own origin.
   process.env.AUTH_URL = BASE_URL;
 
@@ -207,7 +206,7 @@ async function main(): Promise<void> {
     exitCode = 1;
   } finally {
     if (server) await killServer(server);
-    if (stack) await stopLocalStack(stack);
+    if (stack) await stopLocalStack(stack, exitCode === 0);
   }
 
   process.exit(exitCode);

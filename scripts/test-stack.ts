@@ -45,7 +45,7 @@ export const WRANGLER_LOG_PATH = pathResolve(STACK_DIR, "wrangler-dev.log");
  * an artifact. The env-var name here is Wrangler's, NOT our tee path constant.
  */
 export const WRANGLER_INTERNAL_LOGS_DIR = pathResolve(STACK_DIR, "wrangler-internal-logs");
-export const WORKER_CONFIG = pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml");
+export const WORKER_CONFIG = pathResolve(STACK_DIR, "wrangler.toml");
 export const MIGRATIONS_DIR = pathResolve(PROJECT_ROOT, "drizzle/migrations");
 
 export const WORKER_PORT = Number(process.env.ZHE_TEST_WORKER_PORT ?? 8788);
@@ -374,6 +374,14 @@ export interface StartOptions {
 
 export async function startLocalStack(opts: StartOptions = {}): Promise<LocalStack> {
   await createRun(PROJECT_ROOT, RUN_ID);
+  const config = readFileSync(
+    pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml"),
+    "utf8",
+  ).replace(
+    'main = "src/index.ts"',
+    `main = ${JSON.stringify(pathResolve(PROJECT_ROOT, "worker/src/index.ts"))}`,
+  );
+  await fs.writeFile(WORKER_CONFIG, config);
   await fs.mkdir(WRANGLER_PERSIST_DIR, { recursive: true });
   await fs.mkdir(R2_DIR, { recursive: true });
   await fs.mkdir(WRANGLER_INTERNAL_LOGS_DIR, { recursive: true });
