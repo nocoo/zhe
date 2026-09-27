@@ -124,6 +124,7 @@ bun run start
 - [统一搜索](docs/23-global-search-unification.md)
 - [AI 链接整理建议](docs/24-ai-link-suggestions.md)
 - [X 书签与 Connector](docs/25-x-bookmark-connector.md)
+- [Mainland Douyin and Instagram Media Connectors (proposed)](docs/32-douyin-instagram-media-connectors.md)
 - [特殊来源与 GitHub 收藏](docs/27-github-bookmarks.md)
 - [网页预览图补全](docs/28-webpage-previews.md)
 - [Eagle 图片旁路](docs/26-eagle-sidecar.md)

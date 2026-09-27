@@ -2,6 +2,8 @@
 
 Zhe 先按原流程保存链接。网页、Webhook、REST API 和 CLI 创建的 X 帖子链接都会被本机 Connector 发现；本机在线时，正文和媒体会在几分钟内出现在原来的链接卡片中。Connector 是 `@nocoo/zhe` 的子命令，复用 `zhe login`，不需要 LLM。
 
+Proposed extension: [Mainland Douyin and Instagram media connectors](32-douyin-instagram-media-connectors.md) describes how these sources would share the existing scheduler, leases, media lifecycle and UI. It is not implemented and does not establish live parsing or download success.
+
 ## 安装与使用
 
 需要 Node.js ≥ 22.16、FFmpeg / ffprobe，以及已连接 OpenCLI 扩展并登录 X 的浏览器。OpenCLI 作为固定版本依赖随 CLI 安装。

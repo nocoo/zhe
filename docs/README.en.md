@@ -117,6 +117,7 @@ Browser tests still need a nonempty `AUTH_SECRET` in the environment or `.env.lo
 
 ## Documentation
 
+- [Mainland Douyin and Instagram Media Connectors (proposed)](32-douyin-instagram-media-connectors.md)
 - [Ideas](19-ideas-feature.md)
 - [Todos](21-todos-feature.md)
 - [Unified search](23-global-search-unification.md)

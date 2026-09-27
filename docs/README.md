@@ -34,3 +34,4 @@ Numbered design and reference documents. Newest feature plans sit at the end of 
 | 28 | [Webpage Previews](28-webpage-previews.md) |
 | 30 | [Enriched Search: fields, semantics and release](30-enriched-search.md) |
 | 31 | [Unified Link Organization](31-unified-link-organization.md) |
+| 32 | [Mainland Douyin and Instagram Media Connectors (proposed)](32-douyin-instagram-media-connectors.md) |
