@@ -7,6 +7,7 @@
  * exercise the production code path end-to-end.
  */
 import { nanoid } from "nanoid";
+import { assertLocalOrigin } from "../../../scripts/lib/local-run";
 import { unwrap } from "../../test-utils";
 
 // ---------------------------------------------------------------------------
@@ -21,12 +22,7 @@ function proxyCredentials(): { url: string; secret: string } {
       "D1_PROXY_URL / D1_PROXY_SECRET not set. The L2 runner (scripts/run-api-e2e.ts) must call applyLocalStackEnv() first.",
     );
   }
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) {
-    throw new Error(
-      `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
-        "Refusing to run destructive seed/teardown against a remote target.",
-    );
-  }
+  assertLocalOrigin(url);
   return { url, secret };
 }
 

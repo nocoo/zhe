@@ -22,6 +22,7 @@ import {
   type WriteStream,
 } from "node:fs";
 import { resolve as pathResolve } from "node:path";
+import { createRun, localRunId, removeRun, runDirectory } from "./lib/local-run";
 import { migrationBatches, OPTIONAL_LOCAL_MIGRATIONS } from "./lib/migration-batches";
 
 import { type LocalR2Server, startLocalR2Server, stopLocalR2Server } from "./local-r2-server";
@@ -31,7 +32,8 @@ import { type LocalR2Server, startLocalR2Server, stopLocalR2Server } from "./loc
 // project root, so this is stable. Avoids `import.meta.url`, which forces
 // Node to treat this file as ESM and breaks Playwright's CJS TS loader.
 export const PROJECT_ROOT = process.cwd();
-export const STACK_DIR = pathResolve(PROJECT_ROOT, ".test-storage");
+export const RUN_ID = localRunId();
+export const STACK_DIR = runDirectory(PROJECT_ROOT, RUN_ID);
 export const WRANGLER_PERSIST_DIR = pathResolve(STACK_DIR, "wrangler");
 export const R2_DIR = pathResolve(STACK_DIR, "r2");
 /** Our own tee of wrangler stdout/stderr — captured by piping from the child. */
@@ -371,8 +373,7 @@ export interface StartOptions {
 }
 
 export async function startLocalStack(opts: StartOptions = {}): Promise<LocalStack> {
-  // 1. Clean previous state
-  await fs.rm(STACK_DIR, { recursive: true, force: true });
+  await createRun(PROJECT_ROOT, RUN_ID);
   await fs.mkdir(WRANGLER_PERSIST_DIR, { recursive: true });
   await fs.mkdir(R2_DIR, { recursive: true });
   await fs.mkdir(WRANGLER_INTERNAL_LOGS_DIR, { recursive: true });
@@ -504,7 +505,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
   return stack;
 }
 
-export async function stopLocalStack(stack: LocalStack | null): Promise<void> {
+export async function stopLocalStack(stack: LocalStack | null, cleanup = false): Promise<void> {
   if (!stack) return;
   console.log("[test-stack] Stopping local stack...");
   stack.intentionalShutdown = true;
@@ -531,6 +532,7 @@ export async function stopLocalStack(stack: LocalStack | null): Promise<void> {
     await flushLogStream(stream);
     delete stack.wranglerLogStream;
   }
+  if (cleanup) await removeRun(PROJECT_ROOT, RUN_ID);
 }
 
 /**

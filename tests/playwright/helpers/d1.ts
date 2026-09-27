@@ -1,3 +1,4 @@
+import { assertLocalOrigin } from "../../../scripts/lib/local-run";
 /**
  * Shared D1 helpers for Playwright global setup/teardown.
  *
@@ -29,12 +30,7 @@ function proxyCredentials(softFail = false): { url: string; secret: string } | n
     }
     throw new Error(msg);
   }
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) {
-    throw new Error(
-      `D1_PROXY_URL must point to the local wrangler dev (127.0.0.1/localhost). Got: ${url}. ` +
-        "Refusing to run destructive operations against a remote target.",
-    );
-  }
+  assertLocalOrigin(url);
   return { url, secret };
 }
 

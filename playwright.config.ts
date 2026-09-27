@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { localRunId, runDirectory } from "./scripts/lib/local-run";
 
 /**
  * Playwright E2E configuration.
@@ -26,7 +27,7 @@ const E2E_BASE = `http://localhost:${E2E_PORT}`;
 const WORKER_PORT = Number(process.env.ZHE_TEST_WORKER_PORT ?? 8788);
 const R2_PORT = 18788;
 const WORKER_URL = `http://127.0.0.1:${WORKER_PORT}`;
-const R2_DIR = ".test-storage/r2";
+const R2_DIR = `${runDirectory(process.cwd(), localRunId())}/r2`;
 const D1_PROXY_SECRET = "local-d1-proxy-secret";
 const WORKER_SECRET = "local-worker-secret";
 
