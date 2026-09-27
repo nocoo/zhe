@@ -29,7 +29,13 @@ export function TopRightControls() {
  * Inner content of the visitor badge: logo, greeting, Google sign-in form,
  * and terms blurb.
  */
-export function BadgeContent({ signInAction }: { signInAction: () => Promise<void> }) {
+export function BadgeContent({
+  signInAction,
+  localIdentity = false,
+}: {
+  signInAction: () => Promise<void>;
+  localIdentity?: boolean;
+}) {
   return (
     <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
       <div className="h-24 w-24 overflow-hidden rounded-full bg-basalt-secondary p-2.5 ring-1 ring-basalt-border">
@@ -51,7 +57,7 @@ export function BadgeContent({ signInAction }: { signInAction: () => Promise<voi
 
       <form action={signInAction}>
         <Button type="submit" variant="secondary" className="w-full" icon={<GoogleIcon />}>
-          Continue with Google
+          {localIdentity ? "Continue with fixture account" : "Continue with Google"}
         </Button>
       </form>
 

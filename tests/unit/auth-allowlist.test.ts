@@ -102,13 +102,13 @@ describe("signInCallback (NextAuth boundary)", () => {
     expect(result).toBe(true);
   });
 
-  it("always permits the e2e-credentials provider, regardless of allowlist", () => {
+  it("applies the allowlist to local fixture identities", () => {
     process.env[KEY] = "owner@example.com";
     const result = signInCallback({
       user: { email: "e2e@test.local" },
-      account: { provider: "e2e-credentials" },
+      account: { provider: "local-fixture" },
     });
-    expect(result).toBe(true);
+    expect(result).toBe(false);
   });
 
   it("rejects unknown provider with non-allowlisted email when allowlist is set", () => {

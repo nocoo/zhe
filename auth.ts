@@ -6,42 +6,25 @@ import { D1Adapter } from "@/lib/auth-adapter";
 import { signInCallback } from "@/lib/auth-allowlist";
 import { isD1Configured } from "@/lib/db/d1-client";
 
-// Build the providers list. In Playwright E2E mode, add a Credentials
-// provider so tests can authenticate without Google OAuth.
+import { authorizeLocalIdentity, localIdentityEnabled } from "@/lib/local-identity";
+
 const providers: Provider[] = [
   Google({
     clientId: process.env.AUTH_GOOGLE_ID ?? "",
     clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
   }),
 ];
-
-if (process.env.PLAYWRIGHT === "1" && process.env.NODE_ENV !== "production") {
+if (localIdentityEnabled()) {
   providers.push(
     Credentials({
-      id: "e2e-credentials",
-      name: "E2E Test Login",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        name: { label: "Name", type: "text" },
-      },
-      async authorize(credentials) {
-        // Only accept the exact E2E test email — defense-in-depth
-        if (credentials?.email !== "e2e@test.local") return null;
-        return {
-          id: "e2e-test-user-id",
-          name: (credentials.name as string) || "E2E Test User",
-          email: credentials.email as string,
-          image: null,
-        };
-      },
+      id: "local-fixture",
+      name: "Local fixture account",
+      credentials: { token: { type: "password" } },
+      authorize: (credentials) => authorizeLocalIdentity(credentials.token),
     }),
   );
 }
-
-// When PLAYWRIGHT=1 is set, skip adapter so tests run without D1.
-// The adapter is still used in production for OAuth user creation/linking,
-// but session strategy is always JWT to avoid per-request D1 session lookups.
-const useAdapter = isD1Configured() && process.env.PLAYWRIGHT !== "1";
+const useAdapter = isD1Configured();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,

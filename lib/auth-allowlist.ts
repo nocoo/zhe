@@ -11,13 +11,7 @@
  * only safe for personal / single-tenant deployments. Production
  * deployments are expected to set the env var.
  *
- * The E2E credentials provider is permitted unconditionally (the
- * provider itself already pins the test email and is only loaded when
- * PLAYWRIGHT=1, so adding it to the allowlist would force every dev
- * to know the magic value).
  */
-
-const E2E_PROVIDER_ID = "e2e-credentials";
 
 export type SignInUser = {
   email?: string | null;
@@ -54,7 +48,6 @@ export function signInCallback(args: {
   user?: SignInUser;
   account?: SignInAccount | null | undefined;
 }): boolean {
-  if (args.account?.provider === E2E_PROVIDER_ID) return true;
   const allow = parseAllowedEmails(process.env.AUTH_ALLOWED_EMAILS);
   return isEmailAllowed(args.user?.email, allow);
 }

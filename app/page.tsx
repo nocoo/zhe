@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
+import { localIdentityEnabled } from "@/lib/local-identity";
 import { resolvePublicOriginFromHeaders } from "@/lib/url";
 import { BadgeFooter, BadgeHeader, RadialGlow } from "./page-parts/badge-chrome";
 import { BadgeContent, TopRightControls } from "./page-parts/badge-content";
@@ -30,6 +31,10 @@ async function signInWithGoogle(): Promise<void> {
   // localhost is only a final guard for completely empty environments.
   const origin = resolvePublicOriginFromHeaders(h) || "http://localhost:7006";
   const redirectTo = `${origin}/dashboard/overview`;
+  if (localIdentityEnabled()) {
+    await signIn("local-fixture", { token: process.env.ZHE_LOCAL_AUTH_TOKEN, redirectTo });
+    return;
+  }
   await signIn("google", { redirectTo });
 }
 
@@ -53,7 +58,7 @@ export default async function Home() {
           style={{ boxShadow: BADGE_SHADOW }}
         >
           <BadgeHeader dateStr={dateStr} />
-          <BadgeContent signInAction={signInWithGoogle} />
+          <BadgeContent signInAction={signInWithGoogle} localIdentity={localIdentityEnabled()} />
           <BadgeFooter />
         </div>
       </div>

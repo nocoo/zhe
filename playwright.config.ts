@@ -88,6 +88,8 @@ export default defineConfig({
     stdout: "pipe",
     env: {
       PLAYWRIGHT: "1",
+      ZHE_ENVIRONMENT: "e2e",
+      ZHE_LOCAL_AUTH_TOKEN: process.env.ZHE_LOCAL_AUTH_TOKEN ?? "",
       AUTH_SECRET: process.env.AUTH_SECRET ?? "",
       AUTH_GOOGLE_ID: "",
       AUTH_GOOGLE_SECRET: "",

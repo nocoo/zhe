@@ -31,6 +31,7 @@ export function prepareTestEnvironment(): void {
     }
   }
   process.env.AUTH_SECRET = randomBytes(32).toString("hex");
+  process.env.ZHE_LOCAL_AUTH_TOKEN = randomBytes(32).toString("hex");
   process.env.AUTH_GOOGLE_ID = "";
   process.env.AUTH_GOOGLE_SECRET = "";
   process.env.AUTH_ALLOWED_EMAILS = "e2e@test.local";

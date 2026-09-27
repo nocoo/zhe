@@ -1,8 +1,5 @@
-import assert from "node:assert/strict";
-import { encode } from "@auth/core/jwt";
 import { expect, test as setup } from "@playwright/test";
 import { islandHeading } from "./helpers/chrome";
-import { TEST_USER } from "./helpers/d1";
 
 const authFile = "tests/playwright/.auth/user.json";
 
@@ -22,17 +19,10 @@ setup(
 );
 
 setup("authenticate", async ({ page, context, baseURL }) => {
-  assert(baseURL === "http://localhost:27006");
-  const secret = process.env.AUTH_SECRET;
-  assert(secret);
-  const value = await encode({
-    token: { sub: TEST_USER.id, name: TEST_USER.name, email: TEST_USER.email },
-    secret,
-    salt: "authjs.session-token",
-  });
-  await context.addCookies([
-    { name: "authjs.session-token", value, url: baseURL, httpOnly: true, sameSite: "Lax" },
-  ]);
+  expect(baseURL).toBe("http://localhost:27006");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Continue with fixture account" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/overview/);
   await page.goto("/dashboard");
   await expect(islandHeading(page, "全部链接")).toBeVisible();
   await context.storageState({ path: authFile });
