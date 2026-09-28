@@ -12,6 +12,8 @@ coverage-tmp/
 /blob-report/
 tests/playwright/.auth/
 .test-storage/
+.demo-storage/
+.next-local/
 .artifacts/
 .connector/
 

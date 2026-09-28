@@ -1,35 +1,10 @@
-import { cardAction } from "./helpers/card-actions";
-/**
- * E2E: Upload UI — file upload via browser, delete, copy link, PNG convert toggle.
- *
- * The upload flow involves presigned R2 URLs. To avoid actual R2 uploads and
- * orphan objects, we intercept PUT requests to *.r2.cloudflarestorage.com and
- * return a mock 200 response. The D1 record flow (via server actions) runs
- * against the real database.
- *
- * Tests run serially; global-teardown cleans up uploads for the test user.
- */
-
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { islandHeading } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 const UPLOADS_URL = "/dashboard/uploads";
-
-/**
- * Intercept R2 presigned-URL PUT requests and return 200.
- * This prevents actual file uploads to R2 while letting the server-action
- * flow (getPresignedUploadUrl → recordUpload) work against real D1.
- */
-async function interceptR2Puts(page: Page): Promise<void> {
-  await page.route("**/*r2.cloudflarestorage.com/**", (route) => {
-    if (route.request().method() === "PUT") {
-      return route.fulfill({ status: 200, body: "" });
-    }
-    return route.continue();
-  });
-}
 
 /** Navigate to uploads page and wait for it to be ready. */
 async function goToUploads(page: Page): Promise<void> {
@@ -44,7 +19,7 @@ async function goToUploads(page: Page): Promise<void> {
 test.describe
   .serial("Upload UI", () => {
     // CI runners cold-compile /dashboard/uploads while turbopack is also
-    // compiling other dashboard routes and the local R2 shim is warming up;
+    // compiling other dashboard routes and native local R2 is warming up;
     // the upload flow occasionally exceeds the default 30s budget. Same
     // remedy as navigation.spec.ts — give every test 60s and one retry.
     test.describe.configure({ timeout: 60_000, retries: 1 });
@@ -74,7 +49,6 @@ test.describe
     });
 
     test("upload a file via file input", async ({ page }) => {
-      await interceptR2Puts(page);
       await goToUploads(page);
 
       // Upload a small text file
@@ -102,7 +76,6 @@ test.describe
     });
 
     test("upload a second file and verify ordering (newest first)", async ({ page }) => {
-      await interceptR2Puts(page);
       await goToUploads(page);
 
       // Wait for existing uploads to load

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import type { Locator, Page } from "@playwright/test";
-import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
+import { uploadBufferToR2 } from "../../lib/r2/local-binding";
 import { test as base, expect } from "./fixtures";
 import { cardAction } from "./helpers/card-actions";
 import { executeD1, queryD1 } from "./helpers/d1";
@@ -476,7 +476,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
           const key = `fixture/${owner}/${link.id}-${kind}`;
           const bytes = Buffer.from(`synthetic ${kind}`);
           await uploadBufferToR2(key, bytes, "application/octet-stream");
-          const url = `http://127.0.0.1:18788/r2/${key}`;
+          const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
           assets.push(url);
           const [upload] = await queryD1<{ id: number }>(
             "INSERT INTO uploads(user_id,key,file_name,file_type,file_size,public_url,created_at) VALUES(?,?,?,'application/octet-stream',?,?,?) RETURNING id",
@@ -659,7 +659,7 @@ for (const collection of ["ideas", "uploads"] as const) {
         );
       } else {
         const key = `fixture/${owner}/file-${index}.txt`;
-        const url = `http://127.0.0.1:18788/r2/${key}`;
+        const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
         await uploadBufferToR2(key, Buffer.from("saved file"), "text/plain");
         assets.push(url);
         await executeD1(

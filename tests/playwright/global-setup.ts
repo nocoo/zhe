@@ -1,10 +1,4 @@
-/**
- * Playwright global setup — start the local stack and verify test marker.
- *
- * No remote Cloudflare resources required. The wrangler dev subprocess and R2
- * filesystem shim live for the entire Playwright session; global-teardown
- * (same Node process) stops them.
- */
+import { seedCatalog } from "../../scripts/fixtures-catalog";
 import { shutdownL3 } from "../../scripts/lib/crash-shutdown";
 import {
   applyLocalStackEnv,
@@ -41,7 +35,7 @@ export default async function globalSetup(): Promise<void> {
     });
   });
 
-  console.log("[pw:global-setup] Starting local stack (wrangler dev + R2 shim)...");
+  console.log("[pw:global-setup] Starting local stack (wrangler dev + native D1/KV/R2)...");
   const stack = await startLocalStack();
   globalThis.__LOCAL_STACK__ = stack;
 
@@ -62,5 +56,6 @@ export default async function globalSetup(): Promise<void> {
     [TEST_USER.id, TEST_USER.name, TEST_USER.email],
   );
 
+  if (process.env.ZHE_DATASET === "demo") await seedCatalog();
   console.log("[pw:global-setup] Done.");
 }

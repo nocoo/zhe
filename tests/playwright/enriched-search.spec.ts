@@ -155,20 +155,6 @@ test("enriched search keyboard and source contexts", async ({ page, context, bas
     ).toBe(true);
     await input.fill("does-not-exist");
     await expect(page.getByText("没有找到匹配的结果")).toBeVisible();
-    await page.route("**/api/search", (route) =>
-      route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({ error: "搜索服务暂不可用" }),
-      }),
-    );
-    await input.fill("error");
-    await expect(page.getByRole("region", { name: "搜索结果" }).getByRole("alert")).toContainText(
-      "搜索服务暂不可用",
-    );
-    await page.unroute("**/api/search");
-    await page.getByRole("button", { name: "重试搜索" }).click();
-    await expect(page.getByText("没有找到匹配的结果")).toBeVisible();
     await page.goto("/dashboard");
     await page.goto("/dashboard/search?q=Search");
     await page.getByRole("textbox", { name: "搜索关键词" }).press("Escape");

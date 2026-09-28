@@ -1,4 +1,5 @@
 import { Button } from "@nocoo/basalt";
+import { EnvironmentControl } from "@/components/environment-control";
 import { GithubIcon } from "@/components/github-icon";
 import { GoogleIcon } from "@/components/google-icon";
 import { HeaderTooltip, HexlyLink } from "../../components/header-links";
@@ -19,6 +20,7 @@ export function TopRightControls() {
           </a>
         </Button>
       </HeaderTooltip>
+      <EnvironmentControl />
       <HexlyLink />
       <ThemeToggle aria-label="切换主题" />
     </div>

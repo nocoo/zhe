@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -83,7 +81,25 @@ function required<T>(value: T | null | undefined): T {
 }
 
 let db: DatabaseSync;
-let storageDir: string;
+const objects = new Map<string, { key: string; size: number; lastModified: string }>();
+vi.mock("@/lib/r2/client", () => ({
+  uploadBufferToR2: async (key: string, body: Uint8Array) => {
+    objects.set(key, { key, size: body.byteLength, lastModified: new Date().toISOString() });
+  },
+  uploadStreamToR2: async (key: string, body: import("node:stream").Readable) => {
+    let size = 0;
+    for await (const chunk of body) size += chunk.length;
+    objects.set(key, { key, size, lastModified: new Date().toISOString() });
+  },
+  listR2Objects: async () => [...objects.values()],
+  deleteR2Object: async (key: string) => {
+    objects.delete(key);
+  },
+  deleteR2Objects: async (keys: string[]) => {
+    for (const key of keys) objects.delete(key);
+    return keys.length;
+  },
+}));
 vi.mock("@/lib/db/d1-client", () => ({
   executeD1Query: async (sql: string, params: SQLInputValue[] = []) =>
     db.prepare(sql).all(...params),
@@ -162,9 +178,7 @@ function rows(table: string) {
 
 beforeEach(() => {
   vi.spyOn(Date, "now").mockReturnValue(now);
-  storageDir = mkdtempSync(join(tmpdir(), "zhe-connector-test-"));
-  vi.stubEnv("LOCAL_R2", "1");
-  vi.stubEnv("LOCAL_R2_DIR", storageDir);
+  objects.clear();
   vi.stubEnv("R2_USER_HASH_SALT", "connector-test-salt");
   vi.stubEnv("R2_PUBLIC_DOMAIN", "https://cdn.example.com");
   db = new DatabaseSync(":memory:");
@@ -318,7 +332,6 @@ describe("enrichment activity and retry", () => {
 });
 afterEach(() => {
   db.close();
-  rmSync(storageDir, { recursive: true, force: true });
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });

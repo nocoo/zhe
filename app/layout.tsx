@@ -3,6 +3,7 @@ import { DM_Sans, Inter } from "next/font/google";
 import { BasaltProviders } from "@/components/basalt-providers";
 import { Toaster } from "@/components/ui/sonner";
 import { THEME_INIT_SCRIPT } from "@/lib/theme-init";
+import { localClientScript } from "@/scripts/lib/local-client-script";
 import "./globals.css";
 
 const inter = Inter({
@@ -36,6 +37,12 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
+        {localClientScript() && (
+          <script
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: launcher-owned configuration only
+            dangerouslySetInnerHTML={{ __html: localClientScript() }}
+          />
+        )}
         <script
           // biome-ignore lint/security/noDangerouslySetInnerHtml: static theme IIFE, no user input
           dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}

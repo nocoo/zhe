@@ -55,51 +55,11 @@ for (const scenario of [
     if (!seeded) throw new Error("Missing fixture");
     const linkId = seeded.id;
     await page.setViewportSize({ width: scenario.width, height: 844 });
-    await page.route("**/api/settings/ai", (route) =>
-      route.fulfill({ contentType: "application/json", body: '{"hasApiKey":true}' }),
+    await executeD1(
+      "INSERT INTO user_settings(user_id,ai_provider,ai_api_key,ai_model) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET ai_provider=excluded.ai_provider,ai_api_key=excluded.ai_api_key,ai_model=excluded.ai_model",
+      [TEST_USER.id, "aihubmix", "fixture-key", `fixture:${folderId}:${tagId}:${newTagName}`],
     );
-    await page.route("**/api/ai/suggest-link-org", async (route) => {
-      const [row] = await queryD1<{ revision: number }>(
-        "SELECT revision FROM search_documents WHERE resource_id=? AND kind='link'",
-        [linkId],
-      );
-      const events = [
-        { type: "stage", stage: "prepare", message: "读取已有资料" },
-        {
-          type: "context",
-          revision: row?.revision,
-          supplied: ["URL", "原始标题", "原始简介"],
-          notices: scenario.source === "github" ? ["README 未收录，本次使用已有资料整理"] : [],
-          current: { title: "", note: "旧备注", folderId: null, tagIds: [] },
-          catalogs: {
-            folders: [{ id: folderId, name: "开发资料" }],
-            tags: [{ id: tagId, name: tagName }],
-          },
-          historicalAnalysis: null,
-          prompt: `url: ${scenario.url}`,
-          model: "test-model",
-          provider: "custom",
-        },
-        { type: "stage", stage: "request", message: "等待模型" },
-        { type: "stage", stage: "parse", message: "校验结果" },
-        {
-          type: "result",
-          result: {
-            title: "整理后的短标题",
-            note: "便于检索和阅读的开发资料。",
-            folders: [{ folderId, name: "开发资料", reason: "开发相关" }],
-            tags: [{ tagId, name: tagName, reason: "检索" }],
-            newTags: [{ name: newTagName, reason: "可复用主题" }],
-          },
-          durationMs: 1200,
-          rawText: "model output",
-        },
-      ];
-      await route.fulfill({
-        contentType: "application/x-ndjson",
-        body: events.map((e) => JSON.stringify(e)).join("\n"),
-      });
-    });
+
     try {
       await page.goto(scenario.path);
       const card = page.locator(`[data-link-id="${linkId}"]`).first();

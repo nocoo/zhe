@@ -34,7 +34,7 @@ test.describe("Dashboard navigation", () => {
     // Base URL must match `playwright.config.ts` (E2E_PORT = 27006).
     const req = await playwrightRequest.newContext({
       baseURL: "http://localhost:27006",
-      storageState: "tests/playwright/.auth/user.json",
+      storageState: process.env.ZHE_AUTH_STATE as string,
     });
     try {
       const routes = [

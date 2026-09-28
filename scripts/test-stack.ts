@@ -1,18 +1,3 @@
-/**
- * Local test stack launcher — replaces the remote zhe-edge-test + zhe-db-test
- * pair with `wrangler dev --local`, a Miniflare-managed SQLite/KV store, and
- * the local R2 filesystem shim.
- *
- * Layout (under .test-storage/):
- *   .test-storage/
- *     ├── wrangler/          # Miniflare persistence (D1 SQLite + KV)
- *     └── r2/                # filesystem R2 backend
- *
- * Exposes startLocalStack() / stopLocalStack() for callers (L2 runner and
- * Playwright globalSetup). The wrangler subprocess is reused for the entire
- * test session and torn down once on stop.
- */
-
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import {
   createWriteStream,
@@ -22,20 +7,21 @@ import {
   type WriteStream,
 } from "node:fs";
 import { resolve as pathResolve } from "node:path";
+import { lockDemo, unlockDemo } from "./lib/demo-storage";
 import { createRun, localRunId, removeRun, runDirectory } from "./lib/local-run";
 import { migrationBatches, OPTIONAL_LOCAL_MIGRATIONS } from "./lib/migration-batches";
 
-import { type LocalR2Server, startLocalR2Server, stopLocalR2Server } from "./local-r2-server";
-
 // Always resolved from cwd. The test harness (run-api-e2e.ts, Playwright
-// globalSetup, manual `bun run scripts/test-stack.ts`) all launch from the
+// globalSetup and the interactive launcher) all launch from the
 // project root, so this is stable. Avoids `import.meta.url`, which forces
 // Node to treat this file as ESM and breaks Playwright's CJS TS loader.
 export const PROJECT_ROOT = process.cwd();
 export const RUN_ID = localRunId();
-export const STACK_DIR = runDirectory(PROJECT_ROOT, RUN_ID);
+export const DEMO_MODE = process.env.ZHE_ENVIRONMENT === "demo";
+export const STACK_DIR = DEMO_MODE
+  ? pathResolve(PROJECT_ROOT, ".demo-storage")
+  : runDirectory(PROJECT_ROOT, RUN_ID);
 export const WRANGLER_PERSIST_DIR = pathResolve(STACK_DIR, "wrangler");
-export const R2_DIR = pathResolve(STACK_DIR, "r2");
 /** Our own tee of wrangler stdout/stderr — captured by piping from the child. */
 export const WRANGLER_LOG_PATH = pathResolve(STACK_DIR, "wrangler-dev.log");
 /**
@@ -49,7 +35,7 @@ export const WORKER_CONFIG = pathResolve(STACK_DIR, "wrangler.toml");
 export const MIGRATIONS_DIR = pathResolve(PROJECT_ROOT, "drizzle/migrations");
 
 export const WORKER_PORT = Number(process.env.ZHE_TEST_WORKER_PORT ?? 8788);
-export const R2_PORT = 18788;
+export const R2_PORT = WORKER_PORT;
 export const WORKER_URL = `http://127.0.0.1:${WORKER_PORT}`;
 export const R2_URL = `http://127.0.0.1:${R2_PORT}`;
 export const WORKER_SECRET = "local-worker-secret";
@@ -59,35 +45,6 @@ export const LOCAL_DB_NAME = "zhe-db-local";
 
 const HEALTH_TIMEOUT_MS = 30_000;
 const HEALTH_POLL_MS = 200;
-
-export function loadEnvFile(filePath: string): void {
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf-8");
-  } catch {
-    return;
-  }
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx < 0) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    let value = trimmed.slice(eqIdx + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    } else {
-      const commentIdx = value.indexOf(" #");
-      if (commentIdx >= 0) value = value.slice(0, commentIdx).trim();
-    }
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
 
 // ─── Migration loader ───────────────────────────────────────────────────────
 
@@ -171,47 +128,10 @@ function seedTestMarker(): void {
   ]);
 }
 
-/**
- * Apply schema fixups for columns that exist in lib/db/schema.ts and in prod
- * but were added by hand and never written into drizzle/migrations/. Each
- * statement is idempotent (column-already-exists is swallowed).
- *
- * If a new prod-only column shows up: add it here AND open a migration so
- * `bun run release` (which diffs migration parity) stops yelling.
- */
-function applySchemaFixups(): void {
-  const fixups: string[] = ["ALTER TABLE analytics ADD COLUMN source TEXT"];
-  for (const sql of fixups) {
-    const result = spawnSync(
-      "wrangler",
-      [
-        "d1",
-        "execute",
-        LOCAL_DB_NAME,
-        "--local",
-        `--persist-to=${WRANGLER_PERSIST_DIR}`,
-        `--config=${WORKER_CONFIG}`,
-        `--command=${sql}`,
-      ],
-      {
-        cwd: PROJECT_ROOT,
-        stdio: ["ignore", "pipe", "pipe"],
-        env: process.env,
-      },
-    );
-    if (result.status !== 0) {
-      const out = (result.stderr?.toString() ?? "") + (result.stdout?.toString() ?? "");
-      if (/duplicate column name/i.test(out)) continue;
-      throw new Error(`Schema fixup failed: ${sql}\n${out}`);
-    }
-  }
-}
-
 // ─── Stack lifecycle ────────────────────────────────────────────────────────
 
 export interface LocalStack {
   worker: ChildProcess;
-  r2: LocalR2Server;
   /** Set by stopLocalStack() before SIGTERM so the exit handler stays quiet. */
   intentionalShutdown?: boolean;
   /** Absolute path to the full wrangler-dev.log for this run. */
@@ -230,7 +150,7 @@ const STDERR_TAIL_LINES = 80;
  * subprocesses have time to flush / be killed. Synchronous handlers work but
  * are treated as fire-and-forget.
  *
- * When left unset (e.g. CLI `bun run scripts/test-stack.ts`), the exit report
+ * When left unset, the exit report
  * is still printed but the process is not killed.
  */
 let workerCrashHandler: ((message: string) => void | Promise<void>) | null = null;
@@ -373,22 +293,42 @@ export interface StartOptions {
 }
 
 export async function startLocalStack(opts: StartOptions = {}): Promise<LocalStack> {
-  await createRun(PROJECT_ROOT, RUN_ID);
-  const config = readFileSync(
-    pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml"),
-    "utf8",
-  ).replace(
-    'main = "src/index.ts"',
-    `main = ${JSON.stringify(pathResolve(PROJECT_ROOT, "worker/src/index.ts"))}`,
+  const production = readFileSync(pathResolve(PROJECT_ROOT, "worker/wrangler.toml"), "utf8");
+  const local = readFileSync(pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml"), "utf8");
+  for (const key of ["compatibility_date", "compatibility_flags"]) {
+    const pattern = new RegExp(`^${key}\\s*=\\s*("[^"\\n]*"|\\[[\\s\\S]*?\\])`, "m");
+    if (production.match(pattern)?.[1] !== local.match(pattern)?.[1])
+      throw new Error(`Local Worker ${key} differs from production`);
+  }
+  if (DEMO_MODE) await lockDemo(PROJECT_ROOT, RUN_ID);
+  else await createRun(PROJECT_ROOT, RUN_ID);
+  const config = local
+    .replace(
+      'main = "src/index.ts"',
+      `main = ${JSON.stringify(pathResolve(PROJECT_ROOT, "worker/src/local-resources.ts"))}`,
+    )
+    .replace(
+      'ORIGIN_URL = "http://127.0.0.1:17006"',
+      `ORIGIN_URL = "http://127.0.0.1:${process.env.ZHE_LOCAL_APP_PORT || process.env.ZHE_TEST_APP_PORT || 17006}"`,
+    );
+  await fs.writeFile(
+    WORKER_CONFIG,
+    `${config}\n[[r2_buckets]]\nbinding = "LOCAL_BUCKET"\nbucket_name = "zhe-local"\n`,
   );
-  await fs.writeFile(WORKER_CONFIG, config);
   await fs.mkdir(WRANGLER_PERSIST_DIR, { recursive: true });
-  await fs.mkdir(R2_DIR, { recursive: true });
   await fs.mkdir(WRANGLER_INTERNAL_LOGS_DIR, { recursive: true });
 
   // 2. Apply migrations
-  const migrations = listMigrations();
-  if (migrations.length === 0) {
+  const allMigrations = listMigrations();
+  const ledger = pathResolve(STACK_DIR, "migrations.json");
+  let applied: string[] = [];
+  try {
+    applied = JSON.parse(await fs.readFile(ledger, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const migrations = allMigrations.filter((file) => !applied.includes(file));
+  if (allMigrations.length === 0) {
     throw new Error(`No migrations found in ${MIGRATIONS_DIR}`);
   }
   console.log(`[test-stack] Applying ${migrations.length} migration(s) to local D1...`);
@@ -405,13 +345,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     }
   }
   seedTestMarker();
-  applySchemaFixups();
-
-  // 3. Start R2 shim
-  console.log(`[test-stack] Starting local R2 shim on ${R2_URL}...`);
-  process.env.LOCAL_R2_DIR = R2_DIR;
-  process.env.LOCAL_R2_PORT = String(R2_PORT);
-  const r2 = await startLocalR2Server(R2_PORT);
+  await fs.writeFile(ledger, JSON.stringify(allMigrations));
 
   // 4. Start wrangler dev
   console.log(`[test-stack] Starting wrangler dev on ${WORKER_URL}...`);
@@ -424,6 +358,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
     "wrangler",
     [
       "dev",
+      "--local",
       `--config=${WORKER_CONFIG}`,
       `--persist-to=${WRANGLER_PERSIST_DIR}`,
       `--port=${WORKER_PORT}`,
@@ -448,7 +383,7 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
 
   const logTag = "[wrangler]";
   const stderrTail: string[] = [];
-  const stack: LocalStack = { worker, r2, wranglerLogPath: WRANGLER_LOG_PATH, wranglerLogStream };
+  const stack: LocalStack = { worker, wranglerLogPath: WRANGLER_LOG_PATH, wranglerLogStream };
   worker.stdout?.on("data", (chunk: Buffer) => {
     const text = chunk.toString();
     wranglerLogStream.write(text);
@@ -517,11 +452,6 @@ export async function stopLocalStack(stack: LocalStack | null, cleanup = false):
   if (!stack) return;
   console.log("[test-stack] Stopping local stack...");
   stack.intentionalShutdown = true;
-  try {
-    await stopLocalR2Server(stack.r2);
-  } catch (err) {
-    console.error("[test-stack] R2 shutdown error:", err);
-  }
   if (stack.worker.exitCode === null) {
     stack.worker.kill("SIGTERM");
     await new Promise<void>((resolve) => {
@@ -540,7 +470,16 @@ export async function stopLocalStack(stack: LocalStack | null, cleanup = false):
     await flushLogStream(stream);
     delete stack.wranglerLogStream;
   }
-  if (cleanup) await removeRun(PROJECT_ROOT, RUN_ID);
+  if (!DEMO_MODE) {
+    const evidence = pathResolve(PROJECT_ROOT, ".artifacts/e2e", RUN_ID);
+    await fs.mkdir(evidence, { recursive: true });
+    await fs.copyFile(WRANGLER_LOG_PATH, pathResolve(evidence, "wrangler.log"));
+    await fs.cp(WRANGLER_INTERNAL_LOGS_DIR, pathResolve(evidence, "wrangler-internal-logs"), {
+      recursive: true,
+    });
+  }
+  if (DEMO_MODE) await unlockDemo(PROJECT_ROOT, RUN_ID);
+  if (cleanup && !DEMO_MODE) await removeRun(PROJECT_ROOT, RUN_ID);
 }
 
 /**
@@ -548,10 +487,8 @@ export async function stopLocalStack(stack: LocalStack | null, cleanup = false):
  * point at the local stack. Returns nothing — mutates process.env in place.
  */
 export function applyLocalStackEnv(): void {
-  // R2: filesystem backend + local public domain
+  // Local provider boundary backed by native R2 bindings.
   process.env.LOCAL_R2 = "1";
-  process.env.LOCAL_R2_DIR = R2_DIR;
-  process.env.LOCAL_R2_PORT = String(R2_PORT);
   process.env.R2_BUCKET_NAME = "zhe-local";
   process.env.R2_PUBLIC_DOMAIN = `${R2_URL}/r2`;
   // Dummy R2 creds — getR2Config() throws on missing values even though the
@@ -569,45 +506,15 @@ export function applyLocalStackEnv(): void {
   process.env.D1_PROXY_URL = WORKER_URL;
   process.env.D1_PROXY_SECRET = D1_PROXY_SECRET;
 
-  // KV: disable HTTP API (worker owns the local KV store; business code is a
-  // no-op when CLOUDFLARE_KV_NAMESPACE_ID is unset). Worker KV correctness is
-  // covered by worker/test/index.test.ts and L3 redirect specs.
-  delete process.env.CLOUDFLARE_KV_NAMESPACE_ID;
+  process.env.CLOUDFLARE_KV_NAMESPACE_ID = "local";
   // D1 REST API creds — only seed/teardown used these; the new helpers use
   // the worker proxy. Clear to surface any straggler that still calls the
   // REST API path.
   delete process.env.CLOUDFLARE_D1_DATABASE_ID;
-  delete process.env.CLOUDFLARE_ACCOUNT_ID;
-  delete process.env.CLOUDFLARE_API_TOKEN;
+  process.env.CLOUDFLARE_ACCOUNT_ID = "local";
+  process.env.CLOUDFLARE_API_BASE_URL = WORKER_URL;
+  process.env.CLOUDFLARE_API_TOKEN = D1_PROXY_SECRET;
 
   // Shared worker secret
   process.env.WORKER_SECRET = WORKER_SECRET;
-}
-
-// ─── CLI entry ──────────────────────────────────────────────────────────────
-function runningAsScript(): boolean {
-  return !!process.argv[1] && process.argv[1].endsWith("test-stack.ts");
-}
-
-if (runningAsScript()) {
-  loadEnvFile(pathResolve(PROJECT_ROOT, ".env.local"));
-  setWorkerCrashHandler(defaultWorkerCrashHandler);
-  startLocalStack({ verbose: true })
-    .then(() => {
-      applyLocalStackEnv();
-      console.log("");
-      console.log(`  Worker:     ${WORKER_URL}`);
-      console.log(`  D1 proxy:   ${WORKER_URL}/api/d1-query`);
-      console.log(`  R2 shim:    ${R2_URL}/r2`);
-      console.log(`  Persisted:  ${STACK_DIR}`);
-      console.log("");
-      console.log("Press Ctrl-C to stop.");
-    })
-    .catch((err) => {
-      console.error("[test-stack] start failed:", err);
-      process.exit(1);
-    });
-  const shutdown = () => process.exit(0);
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
 }

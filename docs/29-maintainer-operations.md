@@ -3,7 +3,7 @@
 [AGENTS.md](../AGENTS.md) 是当前质量契约；本文保留版本、边缘 Worker 和界面的详细约束。下列源码路径均相对仓库根目录。发布必须有当前任务授权，文档修改不需要主动升版或发布。L2/L3 使用本地隔离栈，不能创建远端 test 资源。
 
 ## Versioning
-本地测试的 Worker 默认使用 8788；与其他项目冲突时，可通过 `ZHE_TEST_WORKER_PORT=37006` 运行 L2、L3 或发布命令，测试服务器与 D1 代理会使用同一端口。日常开发和生产部署不受影响。
+Local automated launchers allocate the Worker port and own per-run persistence/builds. `ZHE_TEST_APP_PORT` selects another app port. See [local environments](33-local-environments.md) for commands and isolation limits.
 
 ### Single Source of Truth
 

@@ -1,13 +1,4 @@
-# Local test stack — used by L2 (run-api-e2e.ts) and L3 (Playwright globalSetup)
-# to run Worker code against a local Miniflare D1 + KV instead of remote
-# zhe-edge-test / zhe-db-test. Run via:
-#
-#   wrangler dev --config worker/wrangler.local.toml --persist-to .test-storage/wrangler --port 8788
-#
-# Migrations are applied externally by scripts/test-stack.ts before this is
-# started. The database_id is a stable placeholder — Miniflare ignores it in
-# --local mode and uses the binding name to derive an on-disk sqlite path.
-
+# Resource template consumed by scripts/test-stack.ts; launch with bun run dev or test scripts.
 name = "zhe-edge-local"
 workers_dev = false
 preview_urls = false

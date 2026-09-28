@@ -122,9 +122,9 @@ bun run test:integration    # 集成测试（Server Actions）
 
 `bun run test:api` 调用 `scripts/run-api-e2e.ts`，启动本地 Worker/SQLite/KV/R2 与 Next.js 17006，通过真实 HTTP 断言响应和数据副作用。导入 handler 的 mock 测试属于 L1。
 
-`test-stack.ts` 在本地应用全部 migrations，注入测试 env，校验 `_test_marker`，并负责 readiness、退出和清理。Worker 8788、R2 shim 18788；应用使用 `.next-test`。生产 Cloudflare 凭据和旧的远端 `*_TEST_*` 资源变量均不需要。
+`test-stack.ts` 在本地应用全部 migrations，注入测试 env，校验 `_test_marker`，并负责 readiness、退出和清理。Worker/D1/KV/R2 share a per-run loopback port; app builds use `.next-test/<uuid>`.生产 Cloudflare 凭据和旧的远端 `*_TEST_*` 资源变量均不需要。
 
-L2 是 pre-push/CI 的硬检查。完整 endpoint/method 100% 清单覆盖、每次运行独立目录，以及清理前的目录/marker 检查仍是质量差距；不要把当前固定 `.test-storage` 描述成完整 per-run 隔离。不得使用生产或日常开发存储。
+L2 remains enforced by pre-push/CI. The endpoint/method completeness gate remains pending. Launchers now use owned per-run directories with guarded cleanup; see [environment evidence](33-local-environments.md). Never use production or daily development storage.
 
 #### 测试文件
 
@@ -486,8 +486,8 @@ L2/L3 均使用 `scripts/test-stack.ts` 管理的本地栈，不能创建或部�
 
 | 组件 | 当前本地实现 | 尚需完善 |
 |---|---|---|
-| D1 / KV | Wrangler + SQLite，`.test-storage/wrangler`，Worker 8788 | 固定目录改为每次运行独立目录 |
-| R2 | `.test-storage/r2` + test-only HTTP shim 18788 | 每次运行隔离；禁止作为生产 shim |
+| D1 / KV | Wrangler + SQLite, `.test-storage/runs/<uuid>/wrangler` | Owned per-run persistence |
+| R2 | Native Wrangler R2 in the owned run directory | No filesystem business shim |
 | Next | L2 17006、L3 27006，`.next-test` | 两层仍共享存储/输出，当前必须串行 |
 | 数据 guard | Loopback D1 proxy、`_test_marker(env=test)` 和测试 env 覆盖 | 首次删除目录前验证本地目录归属与 marker |
 

@@ -6,7 +6,7 @@
  *   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET_NAME
  *
  * When LOCAL_R2=1 is set, every operation is routed through
- * `local-fs-backend.ts` instead — used by L2/L3 tests to avoid the network.
+ * `local-binding.ts` instead — used by L2/L3 tests to avoid the network.
  * The remote S3Client is never constructed in that mode.
  */
 
@@ -20,7 +20,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import * as localBackend from "./local-fs-backend";
+import * as localBackend from "./local-binding";
 
 /** Presigned URL expiration in seconds (5 minutes). */
 const PRESIGN_EXPIRES_IN = 300;
@@ -125,7 +125,7 @@ export async function uploadStreamToR2(
   size: number,
   sha256: string,
 ): Promise<void> {
-  if (isLocalMode()) return localBackend.uploadStreamToR2(key, body);
+  if (isLocalMode()) return localBackend.uploadStreamToR2(key, body, contentType, size);
   const { bucket } = getR2Config();
   await getR2Client().send(
     new PutObjectCommand({

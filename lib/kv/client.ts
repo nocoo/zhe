@@ -47,7 +47,7 @@ function getKVCredentials(): KVCredentials | null {
 
 /** Build the KV REST API base URL for a given key. */
 function kvUrl(creds: KVCredentials, key: string): string {
-  return `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/values/${encodeURIComponent(key)}`;
+  return `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com"}/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/values/${encodeURIComponent(key)}`;
 }
 
 /** Standard Cloudflare API auth headers. */
@@ -141,7 +141,7 @@ export async function kvListKeys(): Promise<{ keys: string[]; error: boolean }> 
   try {
     do {
       const url = new URL(
-        `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/keys`,
+        `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com"}/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/keys`,
       );
       if (cursor) {
         url.searchParams.set("cursor", cursor);
@@ -207,7 +207,7 @@ export async function kvBulkDeleteLinks(
 
     try {
       const response = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
+        `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com"}/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
         {
           method: "DELETE",
           headers: {
@@ -269,7 +269,7 @@ export async function kvBulkPutLinks(
 
     try {
       const response = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
+        `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com"}/client/v4/accounts/${creds.accountId}/storage/kv/namespaces/${creds.namespaceId}/bulk`,
         {
           method: "PUT",
           headers: {

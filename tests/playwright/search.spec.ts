@@ -52,7 +52,9 @@ test.describe("Cmd+K search", () => {
 
   // Create two links once, before all tests in this describe block
   test.beforeAll(async ({ browser }) => {
-    const context = await browser.newContext({ storageState: "tests/playwright/.auth/user.json" });
+    const context = await browser.newContext({
+      storageState: process.env.ZHE_AUTH_STATE as string,
+    });
     const page = await context.newPage();
 
     await page.goto("/dashboard");

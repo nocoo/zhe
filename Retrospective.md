@@ -190,3 +190,23 @@ The new FAB browser regression passed, but the full gate caught an existing Idea
 ### 2026-09-26 — Migrate both test authentication clients
 
 Switching L2/L3 from development servers to production builds disabled the development-only Credentials provider as intended. Browser setup was updated, but the HTTP helper still called that provider and its provider-list test still required the bypass. The pre-push gate rejected five tests before either remote ref was published. Use signed sessions only after asserting the exact loopback origin in both test clients; verify production providers exclude the test login and real HTTP rejects tampered sessions. Audit all authentication callers when changing test server mode.
+
+
+## 2026-09-28 — Local environment boundary verification
+
+Replacing the filesystem R2 test backend with native R2 exposed missing upload
+lengths: Connector streams failed because workerd requires a known-length body.
+Forwarding the existing MIME and length preserved streaming and allowed the
+100 MB upload, Range and cleanup tests to pass. Fixture review also exposed a
+timestamp mismatch: ordinary Zhe rows use milliseconds while API keys use
+seconds. Row counts and successful SQL inserts did not prove correct pictures.
+The catalog now follows the actual mappers, and capture checks wait for loaded
+content before reviewing dates, images and charts. A first demo seed failure
+also left a Worker alive; startup errors now stop a returned stack before exit.
+Keep future environment migrations anchored in native runtime behavior, existing
+SDK/provider registries and reviewed screenshots, rather than a parallel mock.
+
+The final source audit found that `analytics.source` still existed only as a
+local initialization fixup. Migration 0036 now records it and the script-only
+ALTER path is removed. Verify historical production schema/ledger state before
+any later authorized deployment, especially for columns previously added by hand.

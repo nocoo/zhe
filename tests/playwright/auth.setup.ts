@@ -1,7 +1,8 @@
 import { expect, test as setup } from "@playwright/test";
 import { islandHeading } from "./helpers/chrome";
 
-const authFile = "tests/playwright/.auth/user.json";
+const authFile = process.env.ZHE_AUTH_STATE;
+if (!authFile) throw new Error("Dedicated E2E launcher required");
 
 setup(
   "nested connector routes reject unauthenticated requests in parent-first order",
@@ -19,7 +20,7 @@ setup(
 );
 
 setup("authenticate", async ({ page, context, baseURL }) => {
-  expect(baseURL).toBe("http://localhost:27006");
+  expect(new URL(baseURL ?? "").hostname).toBe("localhost");
   await page.goto("/");
   await page.getByRole("button", { name: "Continue with fixture account" }).click();
   await expect(page).toHaveURL(/\/dashboard\/overview/);

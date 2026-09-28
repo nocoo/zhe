@@ -84,7 +84,7 @@ bun run build
 bun run start
 ```
 
-开发与生产启动端口均为 `7006`。AI 和 Backy 在管理台单独配置；没有配置时仍可使用基础链接、想法和待办功能。
+`bun run dev` opens the local Demo/E2E/Prod launcher on port `7006` through `https://zhe.dev.hexly.ai`. Demo is the default; `--mode e2e` starts switchable manual E2E. `bun run demo:reset` resets stopped, owned Demo fixtures. `bun run start` serves the configured production bundle on `7006`. See [environment commands](docs/33-local-environments.md).
 
 ## 测试
 
@@ -97,9 +97,7 @@ bun run start
 | Worker 单元测试 | `bun run --cwd worker test` |
 | CLI 单元测试 | `bun run --cwd cli test` |
 
-浏览器测试前执行 `bunx playwright install chromium webkit`。API 与浏览器测试分别使用端口 `17006`、`27006`，并自动启动本地 D1 / KV Worker（`8788`）与 R2 文件服务（`18788`），数据保存在 `.test-storage/`。两组端到端测试共用这些本地资源，应分别运行；不需要远端 D1、KV、R2 测试账号或凭据。具体启动与清理逻辑见 [scripts/test-stack.ts](scripts/test-stack.ts)。
-
-浏览器测试仍需在环境或 `.env.local` 中提供非空 `AUTH_SECRET`；API runner 会在未配置时提供测试值。登录使用测试 Credentials provider，不会验证真实 Google OAuth。
+Install browser engines with `bunx playwright install chromium webkit`. API and browser runners use app ports `17006` and `27006`, allocate native Wrangler D1/KV/R2 ports, and own `.test-storage/runs/<uuid>`. Builds and evidence are per-run. No remote test credentials are required; launchers generate fixture credentials and issue normal Auth.js sessions. This does not certify real Google OAuth. See [local environments](docs/33-local-environments.md) for lifecycle and evidence.
 
 ## 技术栈
 

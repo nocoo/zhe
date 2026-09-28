@@ -1,35 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
-import { localRunId, runDirectory } from "./scripts/lib/local-run";
+import { localRunId } from "./scripts/lib/local-run";
 import { prepareTestEnvironment } from "./scripts/lib/test-environment";
 
-/**
- * Playwright E2E configuration.
- *
- * Tests run on a dedicated port (27006) to avoid conflicts with the
- * regular dev server (7006) and API E2E tests (17006).
- *
- * Port convention: dev=7006, API E2E=17006, BDD E2E=27006.
- *
- * Local stack: globalSetup boots scripts/test-stack.ts (wrangler dev on
- * 8788 + R2 fs shim on 18788). The webServer reads the same constants so
- * D1/R2 traffic from Next.js lands on the local stack — no remote
- * Cloudflare resources required at any layer.
- *
- * Local-stack constants are inlined here instead of imported from
- * scripts/test-stack.ts: Playwright loads this config under a CJS TS
- * loader, but Node 22 resolves the script's `.ts` import as ESM, leading
- * to a CJS/ESM mismatch ("exports is not defined"). The values are short
- * and stable; keep them in sync with the same constants in
- * scripts/test-stack.ts.
- */
 prepareTestEnvironment();
-const E2E_PORT = 27006;
+const E2E_PORT = Number(process.env.ZHE_TEST_APP_PORT ?? 27006);
 const E2E_BASE = `http://localhost:${E2E_PORT}`;
 
 const WORKER_PORT = Number(process.env.ZHE_TEST_WORKER_PORT ?? 8788);
-const R2_PORT = 18788;
+const R2_PORT = WORKER_PORT;
 const WORKER_URL = `http://127.0.0.1:${WORKER_PORT}`;
-const R2_DIR = `${runDirectory(process.cwd(), localRunId())}/r2`;
+const runId = localRunId();
+process.env.ZHE_AUTH_STATE = `.artifacts/e2e/${runId}/auth.json`;
 const D1_PROXY_SECRET = "local-d1-proxy-secret";
 const WORKER_SECRET = "local-worker-secret";
 
@@ -42,12 +23,12 @@ export default defineConfig({
   failOnFlakyTests: true,
   maxFailures: 1,
   retries: process.env.CI ? 2 : 0,
-  // Local runs share the machine with daily development and other builds.
-  // Serialize browsers locally; dedicated CI runners retain four workers.
-  workers: process.env.CI ? 4 : 1,
+  // Conflicting browser mutations share one owned run.
+  workers: 1,
   // Local runs share the machine with daily development.
   expect: { timeout: process.env.CI ? 5_000 : 15_000 },
-  reporter: "html",
+  outputDir: `.artifacts/e2e/${runId}/results`,
+  reporter: [["html", { outputFolder: `.artifacts/e2e/${runId}/report`, open: "never" }]],
   timeout: 30_000,
 
   use: {
@@ -61,23 +42,40 @@ export default defineConfig({
       name: "setup",
       testMatch: /.*\.setup\.ts/,
     },
-    {
-      name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        storageState: "tests/playwright/.auth/user.json",
-      },
-      dependencies: ["setup"],
-    },
-    {
-      name: "iphone",
-      testMatch: /(?:card-actions|global-create)\.spec\.ts/,
-      use: {
-        ...devices["iPhone 13"],
-        storageState: "tests/playwright/.auth/user.json",
-      },
-      dependencies: ["setup"],
-    },
+    ...(process.env.ZHE_DATASET === "demo"
+      ? [
+          {
+            name: "capture",
+            testMatch: /capture\.spec\.ts/,
+            use: {
+              ...devices["Desktop Chrome"],
+              storageState: process.env.ZHE_AUTH_STATE,
+              locale: "zh-CN",
+              timezoneId: "Asia/Shanghai",
+            },
+            dependencies: ["setup"],
+          },
+        ]
+      : [
+          {
+            name: "chromium",
+            testIgnore: /capture\.spec\.ts/,
+            use: {
+              ...devices["Desktop Chrome"],
+              storageState: process.env.ZHE_AUTH_STATE,
+            },
+            dependencies: ["setup"],
+          },
+          {
+            name: "iphone",
+            testMatch: /(?:card-actions|global-create)\.spec\.ts/,
+            use: {
+              ...devices["iPhone 13"],
+              storageState: process.env.ZHE_AUTH_STATE,
+            },
+            dependencies: ["setup"],
+          },
+        ]),
   ],
 
   webServer: {
@@ -98,8 +96,6 @@ export default defineConfig({
       D1_PROXY_URL: WORKER_URL,
       D1_PROXY_SECRET,
       LOCAL_R2: "1",
-      LOCAL_R2_DIR: R2_DIR,
-      LOCAL_R2_PORT: String(R2_PORT),
       R2_BUCKET_NAME: "zhe-local",
       R2_PUBLIC_DOMAIN: `http://127.0.0.1:${R2_PORT}/r2`,
       R2_ACCESS_KEY_ID: "local-access-key",
@@ -109,6 +105,10 @@ export default defineConfig({
       // presigned URL without this; without it Upload UI silently never
       // starts a PUT and uploads.spec.ts hangs 30s waiting for upload-item.
       R2_USER_HASH_SALT: "local-test-salt",
+      CLOUDFLARE_API_BASE_URL: WORKER_URL,
+      CLOUDFLARE_ACCOUNT_ID: "local",
+      CLOUDFLARE_KV_NAMESPACE_ID: "local",
+      CLOUDFLARE_API_TOKEN: D1_PROXY_SECRET,
       WORKER_SECRET,
     },
   },

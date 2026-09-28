@@ -28,6 +28,21 @@ const useAdapter = isD1Configured();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
+  ...(process.env.ZHE_LAUNCH_INTENT === "interactive" && process.env.ZHE_LOCAL_INSTANCE
+    ? {
+        cookies: {
+          sessionToken: {
+            name: `zhe.session.${process.env.ZHE_LOCAL_INSTANCE}`,
+            options: {
+              httpOnly: true,
+              sameSite: "lax" as const,
+              path: "/",
+              secure: process.env.AUTH_URL?.startsWith("https:") ?? false,
+            },
+          },
+        },
+      }
+    : {}),
   ...(useAdapter && { adapter: D1Adapter() }),
   session: {
     strategy: "jwt",

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * API E2E test runner — runs all L2 tests via real HTTP against a fully
- * local stack (wrangler dev + Miniflare D1/KV + filesystem R2 shim).
+ * local stack (wrangler dev + Miniflare D1/KV + native R2).
  *
  * No remote Cloudflare resources are required — `wrangler whoami` may report
  * "not logged in" and the tests still pass. See scripts/test-stack.ts.
@@ -21,7 +21,7 @@ import {
 } from "./test-stack";
 
 const PROJECT_ROOT = process.cwd();
-const API_E2E_PORT = 17006;
+const API_E2E_PORT = Number(process.env.ZHE_TEST_APP_PORT ?? 17006);
 const BASE_URL = `http://localhost:${API_E2E_PORT}`;
 const HEALTH_TIMEOUT_MS = 60_000;
 const HEALTH_POLL_MS = 100;

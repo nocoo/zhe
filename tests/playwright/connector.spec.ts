@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { encode } from "@auth/core/jwt";
 import type { APIRequestContext, BrowserContext, Page, ViewportSize } from "@playwright/test";
 import { normalizeXPost, videoFileSize, videoResolution } from "../../cli/src/connector/core";
-import { uploadBufferToR2 } from "../../lib/r2/local-fs-backend";
+import { uploadBufferToR2 } from "../../lib/r2/local-binding";
 import { test as base, expect } from "./fixtures";
 import { cardAction } from "./helpers/card-actions";
 import { appTitle, islandHeading } from "./helpers/chrome";
@@ -946,7 +946,7 @@ for (const viewport of [
               key,
               `${index}.jpg`,
               bytes.length,
-              `http://127.0.0.1:18788/r2/${key}`,
+              `${process.env.R2_PUBLIC_DOMAIN}/${key}`,
               Date.now(),
             ],
           );

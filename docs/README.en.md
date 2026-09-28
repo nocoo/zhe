@@ -82,7 +82,7 @@ bun run build
 bun run start
 ```
 
-Development and production start on port `7006`. Configure AI and Backy separately in the dashboard; basic link, idea, and todo features work without them.
+`bun run dev` opens the local Demo/E2E/Prod launcher on port `7006` through `https://zhe.dev.hexly.ai`. Demo is the default; `--mode e2e` starts switchable manual E2E. `bun run demo:reset` resets stopped, owned Demo fixtures. `bun run start` serves the configured production bundle on `7006`.
 
 ## Tests
 
@@ -95,9 +95,7 @@ Development and production start on port `7006`. Configure AI and Backy separate
 | Worker unit tests | `bun run --cwd worker test` |
 | CLI unit tests | `bun run --cwd cli test` |
 
-Run `bunx playwright install chromium` before browser tests. API and browser tests use ports `17006` and `27006`, respectively, and automatically start a local D1 / KV Worker (`8788`) and an R2 file server (`18788`). Data lives in `.test-storage/`. Run the two end-to-end suites separately because they share these local resources. No remote D1, KV, or R2 test accounts or credentials are required. See [scripts/test-stack.ts](../scripts/test-stack.ts) for startup and cleanup behavior.
-
-Browser tests still need a nonempty `AUTH_SECRET` in the environment or `.env.local`; the API runner supplies a test value when it is absent. Tests sign in through a test Credentials provider and do not verify real Google OAuth.
+Install browser engines with `bunx playwright install chromium webkit`. API and browser runners use app ports `17006` and `27006`, allocate native Wrangler D1/KV/R2 ports, and own `.test-storage/runs/<uuid>`. Builds and evidence are per-run. No remote test credentials are required; launchers generate fixture credentials and issue normal Auth.js sessions. This does not certify real Google OAuth. See [local environments](33-local-environments.md) for lifecycle and evidence.
 
 ## Stack
 

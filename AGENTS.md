@@ -70,7 +70,7 @@ The test runners own local env overrides, migrations, readiness and cleanup; no 
 | L2 | Real HTTP for every endpoint/method, SQL and tenant behavior | planned | `test:api` enforced by pre-push/CI; completeness of endpoint/method inventory still needs a gate |
 | L3 | Real browser journeys and isolated CLI process workflows | planned | Browser suite runs in CI/release preflight; CLI command workflow coverage is incomplete |
 | G2 | Required dependency + secret scanners across all lockfiles and pushed commits | planned | Root staged gitleaks + root OSV and CI exist; CLI/Worker lockfile and push-ref coverage remain gaps |
-| D1 | Per-run local persistence; guards/marker before fixtures and cleanup | planned | Local stack and marker checks exist, but fixed `.test-storage` is deleted before marker validation and shared between lanes |
+| D1 | Per-run local persistence; guards/marker before fixtures and cleanup | planned | Per-run ownership-checked storage and native bindings replace the shared reset path; runtime isolation evidence is tracked in docs/33-local-environments.md |
 | Build | Web and CLI bundles | enforced | CI builds both; `typecheck` is not a build |
 | Docs | Current tests, design contracts and migrations documented | manual | [Testing](docs/05-testing.md), full diff review |
 
@@ -80,9 +80,10 @@ Hooks are check-only; never use `--no-verify`, disable gates or run autofix as a
 
 ## Resources / Isolation
 
-Dev: 7006 behind Caddy with `.next/dev`. L2: 17006; L3: 27006; test Next output: `.next-test`. Keep daily dev alive and serialize L2/L3 until their shared paths are per-run. L2/L3 run a complete Next build with `next start`: Next 16.3.6 development route discovery can lose nested dynamic routes. Browser and HTTP test sessions are signed only for their guarded loopback origins; production auth stays unchanged. The sibling test output survives production build cleanup. Avoid competing builds during browser motion tests.
-`scripts/test-stack.ts` owns local Worker 8788 by default (`ZHE_TEST_WORKER_PORT` can select an isolated port, e.g. 28788) and R2 HTTP shim 18788, SQLite/KV under `.test-storage/wrangler` and filesystem R2 under `.test-storage/r2`.
-The shim is test-only. Use local Wrangler/Miniflare, fresh per-run directories, loopback/test guards and `_test_marker`; never deploy remote `-test` resources or use production/daily-dev data for E2E.
+Dev: `bun run dev` starts the local environment launcher on 7006 behind Caddy; Demo is the default. Use `--mode demo|e2e|prod` for an explicit interactive initial mode and `--build` for a local built bundle. `bun run demo:reset` resets only owned, stopped Demo storage. See [local environments](docs/33-local-environments.md) for lifecycle, fixtures, captures and limitations.
+Demo persists in `.demo-storage`; manual/automated E2E uses `.test-storage/runs/<uuid>` with ownership checks. Historical `.test-storage` is preserved. Local D1, KV and R2 use native Wrangler bindings and the production SQL migrations. The filesystem R2 shim is removed.
+L2 defaults to 17006, L3 to 27006; `ZHE_TEST_APP_PORT` selects another test app port. Automated launchers allocate the Worker port and use per-run `.next-test/<uuid>` builds, TypeScript config and `.artifacts/e2e/<uuid>` evidence. Browser mutations run serially; do not run competing builds during motion tests. Daily local UI uses `.next-local`; hosted Production uses `.next`.
+Automation locks by launch intent, never by `mode === "e2e"`, strips production credentials and ignores interactive preferences. Do not point automated tests at real Production. Preserve the user's running development instance.
 
 ## Operations / Release
 

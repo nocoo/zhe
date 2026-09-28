@@ -4,7 +4,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   ...(process.env.PLAYWRIGHT === "1" ? {} : { output: "standalone" as const }),
   // L2/L3 run beside the user's dev server without sharing its cache or lock.
-  distDir: process.env.PLAYWRIGHT === "1" ? ".next-test" : ".next",
+  distDir:
+    process.env.ZHE_LAUNCH_INTENT === "interactive"
+      ? ".next-local"
+      : process.env.PLAYWRIGHT === "1"
+        ? `.next-test/${process.env.ZHE_RUN_ID}`
+        : ".next",
+  ...(process.env.ZHE_TEST_TSCONFIG
+    ? { typescript: { tsconfigPath: process.env.ZHE_TEST_TSCONFIG } }
+    : {}),
   allowedDevOrigins: ["zhe.dev.hexly.ai"],
 
   // The Worker proxies zhe.to traffic through origin.zhe.to. Railway rewrites

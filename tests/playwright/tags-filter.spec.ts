@@ -22,7 +22,7 @@ test.describe("Tag UI - filter by tag", () => {
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(90_000);
     const context = await browser.newContext({
-      storageState: "tests/playwright/.auth/user.json",
+      storageState: process.env.ZHE_AUTH_STATE as string,
     });
     const page = await context.newPage();
     const ts = Date.now();

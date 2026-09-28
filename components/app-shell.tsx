@@ -11,6 +11,7 @@ import { Menu, Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
+import { EnvironmentControl } from "@/components/environment-control";
 import { GithubIcon } from "@/components/github-icon";
 import { GlobalCreateAction } from "@/components/global-create-action";
 import { SearchProvider, useOpenSearch } from "@/components/search-provider";
@@ -100,6 +101,9 @@ function AppShellInner({
         </Sheet>
       ) : null}
       <AppMain>
+        {isMobile && (
+          <EnvironmentControl className="flex items-center justify-end gap-1 px-3 pt-1" />
+        )}
         <AppHeader
           leading={
             isMobile ? (
@@ -138,6 +142,7 @@ function AppShellInner({
                   </a>
                 </Button>
               </HeaderTooltip>
+              {!isMobile && <EnvironmentControl />}
               <HexlyLink />
               <ThemeToggle aria-label="切换主题" />
             </>
