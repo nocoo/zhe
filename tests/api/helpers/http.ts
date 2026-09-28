@@ -6,7 +6,6 @@
  */
 
 import assert from "node:assert/strict";
-import { encode } from "@auth/core/jwt";
 
 const BASE_URL = process.env.API_E2E_BASE_URL ?? "http://localhost:17006";
 
@@ -81,14 +80,29 @@ let cachedSessionCookie: string | null = null;
 export async function getSessionCookie(): Promise<string> {
   assert.equal(BASE_URL, `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 17006)}`);
   if (cachedSessionCookie) return cachedSessionCookie;
-  const secret = process.env.AUTH_SECRET;
-  assert(secret);
-  const token = await encode({
-    token: { sub: "e2e-test-user-id", name: "E2E Test User", email: "e2e@test.local" },
-    secret,
-    salt: "authjs.session-token",
+  const token = process.env.ZHE_LOCAL_AUTH_TOKEN;
+  assert(token);
+  const csrf = await apiGet("/api/auth/csrf");
+  assert.equal(csrf.status, 200);
+  const { csrfToken } = await csrf.json();
+  const response = await fetch(url("/api/auth/callback/local-fixture"), {
+    method: "POST",
+    redirect: "manual",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: csrf.headers
+        .getSetCookie()
+        .map((cookie) => cookie.split(";")[0])
+        .join("; "),
+    },
+    body: new URLSearchParams({ csrfToken, token, callbackUrl: BASE_URL }),
   });
-  cachedSessionCookie = `authjs.session-token=${token}`;
+  cachedSessionCookie = response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";")[0])
+    .filter((cookie) => cookie?.startsWith("authjs.session-token"))
+    .join("; ");
+  assert(cachedSessionCookie, "Auth.js did not issue a fixture session");
   return cachedSessionCookie;
 }
 

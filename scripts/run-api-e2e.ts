@@ -7,6 +7,7 @@
  * "not logged in" and the tests still pass. See scripts/test-stack.ts.
  */
 import { type ChildProcess, spawn } from "node:child_process";
+import { executeD1, TEST_USER } from "../tests/playwright/helpers/d1";
 import { shutdownL2, terminateChild } from "./lib/crash-shutdown";
 import { prepareTestEnvironment } from "./lib/test-environment";
 import {
@@ -189,9 +190,11 @@ async function main(): Promise<void> {
       );
     }
 
-    // Auth needs SOMETHING — keep a stable test secret so /api/cron/* signed
-    // routes can be exercised by the test suite.
-    if (!process.env.AUTH_SECRET) process.env.AUTH_SECRET = "api-e2e-test-auth-secret";
+    await executeD1("INSERT INTO users (id, name, email) VALUES (?, ?, ?)", [
+      TEST_USER.id,
+      TEST_USER.name,
+      TEST_USER.email,
+    ]);
 
     const build = await runCommand(["run", "next", "build"], { PLAYWRIGHT: "1" });
     if (build !== 0) throw new Error("Test server build failed");

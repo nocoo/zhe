@@ -37,7 +37,7 @@ describe("GET /api/auth", () => {
     expect(body["e2e-credentials"]).toBeUndefined();
   });
 
-  it("GET /api/auth/session verifies the signed local session", async () => {
+  it("GET /api/auth/session verifies the normally issued local session", async () => {
     const res = await apiGetAuth("/api/auth/session");
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({
