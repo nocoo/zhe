@@ -62,6 +62,14 @@ choice and neither reads nor writes that preference. The `Demo | E2E | Prod`
 control has an accessible name without an additional visible label. Cloud CI
 and hosted launches do not render it. Manual E2E is never locked by its mode.
 
+The control precedes GitHub in the login and desktop header actions. Its Basalt
+indicator starts at the selected segment without an entrance transition, then
+slides immediately to a requested mode. A fixed-width progress slot avoids
+moving adjacent actions while the new instance starts. Selection is pending
+until the launcher accepts it; failures restore the current mode and allow retry.
+Browser verification waits for the document's instance mode and a non-busy
+control, rather than treating the pending segment as a ready environment.
+
 Each child process has immutable resource bindings. Browser fetches carry the
 instance ID captured when the document loaded. Mutations without that ID and
 requests with an expired ID are rejected. Switching does not retarget pending
@@ -78,6 +86,11 @@ same frontend against the real, server-configured D1 proxy and real Google
 identity. It has not been exercised with live credentials in this task.
 
 ## Native resources and providers
+
+Local Wrangler subprocesses disable telemetry and the update-check banner so
+offline network timeouts cannot delay local migrations. The marker table and
+its value initialize in one CLI invocation. Schema migrations, storage ownership,
+fresh E2E resources and cleanup checks remain mandatory.
 
 `test-stack.ts` generates configuration inside owned storage, applies the same
 SQL migration files, and runs `wrangler dev --local`. Migration 0036 records

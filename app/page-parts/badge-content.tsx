@@ -8,6 +8,7 @@ import { ThemeToggle } from "../../components/theme-toggle";
 export function TopRightControls() {
   return (
     <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
+      <EnvironmentControl />
       <HeaderTooltip label="GitHub repository">
         <Button variant="ghost" size="icon" asChild>
           <a
@@ -20,7 +21,6 @@ export function TopRightControls() {
           </a>
         </Button>
       </HeaderTooltip>
-      <EnvironmentControl />
       <HexlyLink />
       <ThemeToggle aria-label="切换主题" />
     </div>

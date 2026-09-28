@@ -58,7 +58,7 @@ function runWrangler(args: string[], opts?: { ignoreFailure?: boolean }): void {
   const result = spawnSync("wrangler", args, {
     cwd: PROJECT_ROOT,
     stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
+    env: { ...process.env, WRANGLER_SEND_METRICS: "false", WRANGLER_HIDE_BANNER: "true" },
   });
   if (result.status !== 0 && !opts?.ignoreFailure) {
     const stderr = result.stderr?.toString() ?? "";
@@ -90,7 +90,7 @@ function applyMigration(file: string): void {
     {
       cwd: PROJECT_ROOT,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      env: { ...process.env, WRANGLER_SEND_METRICS: "false", WRANGLER_HIDE_BANNER: "true" },
     },
   );
 
@@ -115,16 +115,7 @@ function seedTestMarker(): void {
     "--local",
     `--persist-to=${WRANGLER_PERSIST_DIR}`,
     `--config=${WORKER_CONFIG}`,
-    "--command=CREATE TABLE IF NOT EXISTS _test_marker (key TEXT PRIMARY KEY, value TEXT NOT NULL);",
-  ]);
-  runWrangler([
-    "d1",
-    "execute",
-    LOCAL_DB_NAME,
-    "--local",
-    `--persist-to=${WRANGLER_PERSIST_DIR}`,
-    `--config=${WORKER_CONFIG}`,
-    "--command=INSERT OR REPLACE INTO _test_marker (key, value) VALUES ('env', 'test');",
+    "--command=CREATE TABLE IF NOT EXISTS _test_marker (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT OR REPLACE INTO _test_marker (key, value) VALUES ('env', 'test');",
   ]);
 }
 
@@ -375,6 +366,8 @@ export async function startLocalStack(opts: StartOptions = {}): Promise<LocalSta
       // post-mortem — it does not affect our warn-level stdout tee.
       env: {
         ...process.env,
+        WRANGLER_SEND_METRICS: "false",
+        WRANGLER_HIDE_BANNER: "true",
         WRANGLER_LOG_PATH: WRANGLER_INTERNAL_LOGS_DIR,
         WRANGLER_LOG: "debug",
       },

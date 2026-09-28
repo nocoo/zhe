@@ -130,6 +130,7 @@ function AppShellInner({
                   <Search className="h-4 w-4" />
                 </Button>
               )}
+              {!isMobile && <EnvironmentControl />}
               <HeaderTooltip label="GitHub repository">
                 <Button variant="ghost" size="icon" asChild>
                   <a
@@ -142,7 +143,6 @@ function AppShellInner({
                   </a>
                 </Button>
               </HeaderTooltip>
-              {!isMobile && <EnvironmentControl />}
               <HexlyLink />
               <ThemeToggle aria-label="切换主题" />
             </>

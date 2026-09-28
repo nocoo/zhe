@@ -252,3 +252,15 @@ and excluded loopback and the local Caddy hostname. A full launcher restart
 also cleared a temporary diagnostic logger retained in the dev runtime after
 its source was reverted. Network probes and redirects are intermediate evidence;
 require an authenticated callback before declaring the login issue resolved.
+
+### 2026-09-28 — Separate pending selection from environment readiness
+
+The environment control kept its old value until the server restarted, then
+remounted the selected indicator. It now uses a pending value for immediate
+motion and a stable progress slot, while preferences remain committed only after
+server acceptance. Initial indicator geometry must render without transition.
+Updated the browser readiness helper to inspect the loaded instance and busy
+state; a selected pending segment is not proof of startup. Development HMR can
+also preserve an Auth.js callback query on the landing page, so navigation checks
+match its origin and pathname. A failed manual verification left its known Demo
+text suffix behind; restored only that suffix before rerunning the check.

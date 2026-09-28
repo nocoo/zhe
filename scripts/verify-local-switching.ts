@@ -15,10 +15,19 @@ if (process.env.ZHE_INITIAL_PREFERENCE) {
 }
 const page = await context.newPage();
 async function ready(mode: string) {
+  await page.waitForFunction(
+    (expected) => window.__ZHE_LOCAL__?.mode === expected,
+    mode.toLowerCase(),
+    { timeout: 120_000 },
+  );
   await expect(page.getByRole("radio", { name: mode, exact: true })).toHaveAttribute(
     "aria-checked",
     "true",
     { timeout: 120_000 },
+  );
+  await expect(page.getByRole("radiogroup", { name: "Environment" })).toHaveAttribute(
+    "aria-busy",
+    "false",
   );
 }
 async function login() {
@@ -52,10 +61,20 @@ try {
   const oldTab = await context.newPage();
   await oldTab.goto(`${origin}/dashboard`);
   await oldTab.getByRole("radio", { name: "Demo", exact: true }).waitFor();
+  const previousId = await oldTab.evaluate(() => window.__ZHE_LOCAL__?.id);
+  assert(previousId);
   await page.getByRole("radio", { name: "E2E", exact: true }).click();
-  await page.waitForURL(`${origin}/`, { timeout: 120_000 });
+  await page.waitForURL((url) => url.origin === origin && url.pathname === "/", {
+    timeout: 120_000,
+  });
   await ready("E2E");
-  assert.equal(await oldTab.evaluate(async () => (await fetch("/api/health")).status), 410);
+  assert.equal(
+    await oldTab.evaluate(
+      async (id) => (await fetch("/api/health", { headers: { "x-zhe-instance": id } })).status,
+      previousId,
+    ),
+    410,
+  );
   const first = await page.evaluate(() => window.__ZHE_LOCAL__?.id);
   assert(first);
   await login();
@@ -84,7 +103,9 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("zhe:environment-mode")), "e2e");
   page.once("dialog", async (dialog) => dialog.accept());
   await page.getByRole("radio", { name: "Demo", exact: true }).click();
-  await page.waitForURL(`${origin}/`, { timeout: 120_000 });
+  await page.waitForURL((url) => url.origin === origin && url.pathname === "/", {
+    timeout: 120_000,
+  });
   await ready("Demo");
   await assert.rejects(access(`.test-storage/runs/${first}`));
   await page.getByRole("radio", { name: "E2E", exact: true }).click();
