@@ -22,7 +22,7 @@ async function ready(mode: string) {
   );
 }
 async function login() {
-  await page.getByRole("button", { name: "Continue with fixture account" }).click();
+  await page.getByRole("button", { name: "Local sign in" }).click();
   await page.waitForURL(/dashboard/);
 }
 try {

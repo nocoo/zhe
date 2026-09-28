@@ -19,7 +19,7 @@ test.describe("Landing page", () => {
     await expect(page.locator("text=Secure authentication")).toBeVisible();
 
     // Local provider through the ordinary sign-in action
-    const signInButton = page.getByRole("button", { name: "Continue with fixture account" });
+    const signInButton = page.getByRole("button", { name: "Local sign in" });
     await expect(signInButton).toBeVisible();
   });
 
@@ -60,9 +60,7 @@ test.describe("Landing page", () => {
     });
     try {
       await page.goto("/", { waitUntil: "commit" });
-      await page
-        .getByRole("button", { name: "Continue with fixture account", exact: true })
-        .waitFor();
+      await page.getByRole("button", { name: "Local sign in", exact: true }).waitFor();
       await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
       await expect(page.locator("html")).toHaveClass(/dark/);
       await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");

@@ -58,8 +58,13 @@ export function BadgeContent({
       <div className="flex-1" />
 
       <form action={signInAction}>
-        <Button type="submit" variant="secondary" className="w-full" icon={<GoogleIcon />}>
-          {localIdentity ? "Continue with fixture account" : "Continue with Google"}
+        <Button
+          type="submit"
+          variant="secondary"
+          className="w-full whitespace-nowrap"
+          icon={<GoogleIcon />}
+        >
+          {localIdentity ? "Local sign in" : "Continue with Google"}
         </Button>
       </form>
 

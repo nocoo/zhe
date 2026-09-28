@@ -22,7 +22,7 @@ setup(
 setup("authenticate", async ({ page, context, baseURL }) => {
   expect(new URL(baseURL ?? "").hostname).toBe("localhost");
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue with fixture account" }).click();
+  await page.getByRole("button", { name: "Local sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard\/overview/);
   await page.goto("/dashboard");
   await expect(islandHeading(page, "全部链接")).toBeVisible();

@@ -233,3 +233,10 @@ existed before removing only the lock, preserving all Demo data. Startup then
 succeeded, and Chrome verified fixture login and `/dashboard/x` through Caddy.
 Future readiness checks must inspect the response and verify the selected mode
 and an application page; the launcher's HTTP status alone is not app health.
+
+### 2026-09-28 — Format changed login labels before staging
+
+Shortening the local login label changed JSX and Playwright line wrapping. The
+normal commit hook rejected two formatting differences. Applied the repository
+formatter to the changed files before restaging; run this targeted check before
+committing even when a change only replaces UI text.
