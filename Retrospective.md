@@ -240,3 +240,15 @@ Shortening the local login label changed JSX and Playwright line wrapping. The
 normal commit hook rejected two formatting differences. Applied the repository
 formatter to the changed files before restaging; run this targeted check before
 committing even when a change only replaces UI text.
+
+### 2026-09-28 — Verify the OAuth callback after local networking changes
+
+Three successful Google login redirects were insufficient to close the local
+Prod authentication failure. The subsequent real callback failed with
+`ECONNRESET`, surfaced by Auth.js as a configuration error. The local Node
+process had no explicit proxy configuration. Configured the existing machine
+proxy in ignored `.env.local`, enabled Node's native environment proxy support,
+and excluded loopback and the local Caddy hostname. A full launcher restart
+also cleared a temporary diagnostic logger retained in the dev runtime after
+its source was reverted. Network probes and redirects are intermediate evidence;
+require an authenticated callback before declaring the login issue resolved.

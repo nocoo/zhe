@@ -29,6 +29,24 @@ Reentry creates a different UUID. Demo catalog upgrades require explicit reset.
 A stale Demo lock after an ungraceful process termination deliberately fails
 closed; inspect its recorded PID and owner before removing that lock file.
 
+When local Prod needs the machine's HTTP proxy for Google OAuth, configure the
+ignored `.env.local` before launching. With the local proxy listening on 7890:
+
+```dotenv
+HTTPS_PROXY=http://127.0.0.1:7890
+HTTP_PROXY=http://127.0.0.1:7890
+NO_PROXY=localhost,127.0.0.1,::1,zhe.dev.hexly.ai
+NODE_USE_ENV_PROXY=1
+```
+
+Use a Node version supporting `--use-env-proxy` (`node --help`). Bun loads these
+values before spawning Node; Node's native fetch needs `NODE_USE_ENV_PROXY` to
+honor proxy variables. Restart the launcher after changing them. Keep machine
+proxy addresses out of hosted configuration. Verify a complete Google callback
+and authenticated dashboard: reaching Google's login page proves only the first
+OAuth request. An `ECONNRESET` during discovery or token exchange can surface as
+Auth.js's generic configuration error even when credentials are configured.
+
 Automated entry points sanitize inherited credentials and mask dotenv keys,
 allocate a local Worker port, select E2E before startup, and produce a separate
 Next build and TypeScript configuration per run. L2 defaults to 17006, L3 to
