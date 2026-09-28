@@ -322,7 +322,6 @@ describe("useXrayViewModel", () => {
     mockFetchTweet.mockResolvedValue({
       success: true,
       data: MOCK_TWEET_RESPONSE,
-      mock: false,
     });
 
     const { result } = renderHook(() =>
@@ -338,7 +337,6 @@ describe("useXrayViewModel", () => {
     });
 
     expect(result.current.tweetResult).toEqual(MOCK_TWEET_RESPONSE);
-    expect(result.current.isMockResult).toBe(false);
     expect(result.current.isFetching).toBe(false);
     expect(result.current.fetchError).toBeNull();
   });
@@ -373,24 +371,6 @@ describe("useXrayViewModel", () => {
     });
 
     expect(result.current.fetchError).toBe("获取失败");
-  });
-
-  it("handleFetchTweet sets isMockResult for mock data", async () => {
-    mockFetchTweet.mockResolvedValue({
-      success: true,
-      data: MOCK_TWEET_RESPONSE,
-      mock: true,
-    });
-
-    const { result } = renderHook(() =>
-      useXrayViewModel({ apiUrl: "https://xray.hexly.ai", maskedToken: "tok" }),
-    );
-
-    await act(async () => {
-      await result.current.handleFetchTweet();
-    });
-
-    expect(result.current.isMockResult).toBe(true);
   });
 
   // ================================================================

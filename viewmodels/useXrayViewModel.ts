@@ -37,7 +37,6 @@ export function useXrayViewModel(initialData?: XrayInitialData) {
     setTweetInput: tweet.setTweetInput,
     extractedId: tweet.extractedId,
     tweetResult: tweet.tweetResult,
-    isMockResult: tweet.isMockResult,
     showRawJson: tweet.showRawJson,
 
     // Errors

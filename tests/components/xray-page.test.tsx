@@ -41,7 +41,6 @@ const mockVm = {
   setTweetInput: vi.fn(),
   extractedId: null as string | null,
   tweetResult: null as XrayTweetResponse | null,
-  isMockResult: false,
   showRawJson: false,
   toggleRawJson: mockToggleRawJson,
   handleFetchTweet: mockHandleFetchTweet,
@@ -120,7 +119,6 @@ describe("XrayPage", () => {
     mockVm.tweetInput = "";
     mockVm.extractedId = null;
     mockVm.tweetResult = null;
-    mockVm.isMockResult = false;
     mockVm.showRawJson = false;
     mockVm.bookmarks = [];
     mockVm.isFetchingBookmarks = false;
@@ -248,7 +246,7 @@ describe("XrayPage", () => {
   it("shows mock data warning when not configured", () => {
     render(<XrayPage />);
 
-    expect(screen.getByText(/未配置 API，将使用 Mock 数据/)).toBeInTheDocument();
+    expect(screen.getByText(/请先配置 Xray API/)).toBeInTheDocument();
   });
 
   it("does not show mock warning when configured", () => {
@@ -324,15 +322,6 @@ describe("XrayPage", () => {
     expect(screen.getByText("Hello World tweet text")).toBeInTheDocument();
     expect(screen.getByText("Test Author")).toBeInTheDocument();
     expect(screen.getByText("@testuser")).toBeInTheDocument();
-  });
-
-  it("shows mock badge when isMockResult", () => {
-    const tweet = makeTweetData();
-    mockVm.tweetResult = { success: true, data: tweet };
-    mockVm.isMockResult = true;
-    render(<XrayPage />);
-
-    expect(screen.getByText("Mock 数据")).toBeInTheDocument();
   });
 
   it("shows verified badge for verified authors", () => {

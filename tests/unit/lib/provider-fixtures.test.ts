@@ -33,3 +33,26 @@ it("leaves hosted production untouched and isolates local external providers", a
   expect(JSON.parse(result.output[0].content[0].text).folders[0].folderId).toBe("folder");
   expect(real).toHaveBeenCalledTimes(1);
 });
+
+it("uses a synthetic Xray boundary for real tweet and bookmark requests", async () => {
+  vi.stubGlobal("fetch", vi.fn());
+  vi.stubEnv("ZHE_LOCAL_AUTH_TOKEN", "fixture");
+  vi.stubEnv("ZHE_ENVIRONMENT", "e2e");
+  installProviderFixtures();
+  const tweet = await fetch("https://xray.example.invalid/api/twitter/tweets/123").then(
+    (response) => response.json(),
+  );
+  expect(tweet.data.id).toBe("123");
+  expect(tweet.data.author.name).toBe("Alex River");
+  const bookmarks = await fetch("https://xray.example.invalid/api/twitter/me/bookmarks").then(
+    (response) => response.json(),
+  );
+  expect(bookmarks.data).toHaveLength(1);
+  expect(
+    (
+      await fetch("https://xray.example.invalid/api/twitter/tweets/123", {
+        headers: { "X-Webhook-Key": "fixture-error" },
+      })
+    ).status,
+  ).toBe(503);
+});

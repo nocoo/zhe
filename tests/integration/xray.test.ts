@@ -275,16 +275,14 @@ describe("Xray Twitter integration (E2E)", () => {
   // 3. fetchTweet
   // =========================================================================
   describe("fetchTweet", () => {
-    it("returns mock data when API is not configured", async () => {
+    it("rejects fetching when API is not configured", async () => {
       authenticatedAs(USER_A);
       const { fetchTweet } = await import("@/actions/xray");
-      const { MOCK_TWEET_RESPONSE } = await import("@/models/xray");
 
       const result = await fetchTweet("https://x.com/karpathy/status/2026360908398862478");
 
-      expect(result.success).toBe(true);
-      expect(result.mock).toBe(true);
-      expect(result.data).toEqual(MOCK_TWEET_RESPONSE);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("请先配置 Xray API");
     });
 
     it("returns error for invalid tweet URL", async () => {
@@ -311,7 +309,6 @@ describe("Xray Twitter integration (E2E)", () => {
         const result = await fetchTweet("https://x.com/testuser/status/9990001111222233334");
 
         expect(result.success).toBe(true);
-        expect(result.mock).toBe(false);
         expect(unwrap(result.data).data.id).toBe("9990001111222233334");
 
         // Verify the correct API URL was called
@@ -350,10 +347,10 @@ describe("Xray Twitter integration (E2E)", () => {
       authenticatedAs(USER_A);
       const { fetchTweet } = await import("@/actions/xray");
 
-      // Without config, returns mock (proves URL was parsed successfully)
+      // Valid IDs reach the configuration guard.
       const result = await fetchTweet("https://twitter.com/elonmusk/status/123456");
-      expect(result.success).toBe(true);
-      expect(result.mock).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("请先配置 Xray API");
     });
 
     it("accepts raw numeric tweet IDs", async () => {
@@ -361,8 +358,8 @@ describe("Xray Twitter integration (E2E)", () => {
       const { fetchTweet } = await import("@/actions/xray");
 
       const result = await fetchTweet("123456789");
-      expect(result.success).toBe(true);
-      expect(result.mock).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("请先配置 Xray API");
     });
   });
 

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { uploadBufferToR2 } from "../lib/r2/local-binding";
 import { executeD1, queryD1 } from "../tests/playwright/helpers/d1";
 
-export const CATALOG_VERSION = 3;
+export const CATALOG_VERSION = 4;
 export const CATALOG_ANCHOR = "2026-09-27T00:00:00Z";
 export const FIXTURE_USER = { id: "e2e-test-user-id", name: "Alex River", email: "e2e@test.local" };
 const time = Date.parse(CATALOG_ANCHOR);
@@ -320,8 +320,15 @@ export async function seedCatalog(): Promise<void> {
     ],
   );
   await executeD1(
-    "INSERT INTO user_settings(user_id,ai_provider,ai_api_key,ai_model) VALUES(?,?,?,?)",
-    [user, "aihubmix", "fixture-key", "fixture-default"],
+    "INSERT INTO user_settings(user_id,ai_provider,ai_api_key,ai_model,xray_api_url,xray_api_token) VALUES(?,?,?,?,?,?)",
+    [
+      user,
+      "aihubmix",
+      "fixture-key",
+      "fixture-default",
+      "https://xray.example.invalid",
+      "fixture-key",
+    ],
   );
   const repository = {
     sourceFullName: "fieldnotes-demo/notebook",

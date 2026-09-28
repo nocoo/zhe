@@ -84,6 +84,9 @@ launcher supplies a fixture capability and Demo/E2E mode. AI responses go throug
 the actual SDK, request construction, parser, authorization and persistence.
 Unknown external fetch targets return a visible 503, never a production fallback.
 The capture test supplies an owned SVG at the exact external favicon boundary.
+The old Xray action-level hardcoded tweet fallback and its UI flag are removed;
+unconfigured Xray returns a configuration error. Synthetic tweet/bookmark
+responses now live exclusively at the local external-provider boundary.
 Business API response interceptors for AI, search and uploads were removed;
 transport-delay tests still forward real requests.
 
@@ -117,7 +120,7 @@ creation is not equivalent to completing every action on that page.
 | API keys / permissions / audit | Read-only and revoked keys, separate owner | Existing scoped API tests and API-key browser workflows | Capture `api-keys` |
 | Webhook / rate limits | Local-only webhook token and rate | Existing webhook and rate-limit HTTP tests | Capture `webhook` |
 | Backy / export / import | Empty integration configuration; local success/error boundary | Existing Backy and data-management workflows | Captures `backy`, `data-management` |
-| Xray | Unconfigured integration and failure scenarios | Existing Xray workflows; no live provider certification | Capture `xray` |
+| Xray | Synthetic provider tweet/bookmarks, unconfigured and failure scenarios | Real fetch/parse/configuration and bookmark import; no live provider certification | Capture `xray` |
 | AI configuration / organization | Fixture provider, structured success and 503 failure | Actual SDK/provider boundary and browser apply workflow | Capture `settings-ai`; AI dialog captures |
 | Themes / density / responsive UI | Shared Basalt control, unchanged product surfaces | Existing browser layouts and theme tests | Local Chrome and focused responsive captures |
 

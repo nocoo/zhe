@@ -8,7 +8,6 @@ import {
   buildTweetApiUrl,
   extractTweetId,
   extractTweetImageUrl,
-  MOCK_TWEET_RESPONSE,
   maskToken,
   validateXrayConfig,
   type XrayBookmarksResponse,
@@ -120,11 +119,10 @@ export async function saveXrayConfig(config: { apiUrl: string; apiToken: string 
   }
 }
 
-/** Fetch a tweet via the xray API. Uses mock data if API is not configured. */
+/** Fetch a tweet via the xray API. */
 export async function fetchTweet(tweetUrl: string): Promise<{
   success: boolean;
   data?: XrayTweetResponse;
-  mock?: boolean;
   error?: string;
 }> {
   try {
@@ -139,14 +137,7 @@ export async function fetchTweet(tweetUrl: string): Promise<{
 
     // Check if API is configured
     const config = await db.getXraySettings();
-    if (!config) {
-      // Return mock data when not configured
-      return {
-        success: true,
-        data: MOCK_TWEET_RESPONSE,
-        mock: true,
-      };
-    }
+    if (!config) return { success: false, error: "请先配置 Xray API" };
 
     // Call the real API
     const apiUrl = buildTweetApiUrl(config.apiUrl, tweetId);
@@ -163,7 +154,6 @@ export async function fetchTweet(tweetUrl: string): Promise<{
     return {
       success: true,
       data,
-      mock: false,
     };
   } catch (error) {
     console.error("Failed to fetch tweet:", error);

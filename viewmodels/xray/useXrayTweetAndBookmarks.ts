@@ -10,7 +10,6 @@ export function useXrayTweetTest() {
   const [tweetInput, setTweetInput] = useState("");
   const [extractedId, setExtractedId] = useState<string | null>(null);
   const [tweetResult, setTweetResult] = useState<XrayTweetResponse | null>(null);
-  const [isMockResult, setIsMockResult] = useState(false);
   const [showRawJson, setShowRawJson] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -23,7 +22,6 @@ export function useXrayTweetTest() {
     setIsFetching(true);
     setFetchError(null);
     setTweetResult(null);
-    setIsMockResult(false);
     try {
       const result = await fetchTweet(tweetInput);
       if (!result.success) {
@@ -32,7 +30,6 @@ export function useXrayTweetTest() {
       }
       if (result.data) {
         setTweetResult(result.data);
-        setIsMockResult(result.mock ?? false);
       }
     } finally {
       setIsFetching(false);
@@ -46,7 +43,6 @@ export function useXrayTweetTest() {
     setTweetInput,
     extractedId,
     tweetResult,
-    isMockResult,
     showRawJson,
     isFetching,
     fetchError,

@@ -54,7 +54,7 @@ import {
   getXrayConfig,
   saveXrayConfig,
 } from "@/actions/xray";
-import { MOCK_TWEET_RESPONSE, type XrayTweetData } from "@/models/xray";
+import type { XrayTweetData } from "@/models/xray";
 import { unwrap } from "../test-utils";
 
 // ---------------------------------------------------------------------------
@@ -261,14 +261,13 @@ describe("fetchTweet", () => {
     expect(result.error).toContain("Tweet ID");
   });
 
-  it("returns mock data when API is not configured", async () => {
+  it("rejects fetching when API is not configured", async () => {
     mockGetXraySettings.mockResolvedValue(null);
 
     const result = await fetchTweet("https://x.com/karpathy/status/2026360908398862478");
 
-    expect(result.success).toBe(true);
-    expect(result.mock).toBe(true);
-    expect(result.data).toEqual(MOCK_TWEET_RESPONSE);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("请先配置 Xray API");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -279,7 +278,6 @@ describe("fetchTweet", () => {
     const result = await fetchTweet("https://x.com/karpathy/status/2026360908398862478");
 
     expect(result.success).toBe(true);
-    expect(result.mock).toBe(false);
     expect(unwrap(result.data).data.id).toBe("2026360908398862478");
     expect(mockFetch).toHaveBeenCalledWith(
       "https://xray.hexly.ai/api/twitter/tweets/2026360908398862478",

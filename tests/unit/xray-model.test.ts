@@ -9,7 +9,6 @@ import {
   formatCount,
   formatTweetDate,
   isValidApiUrl,
-  MOCK_TWEET_RESPONSE,
   maskToken,
   validateXrayConfig,
   XRAY_DEFAULT_URL,
@@ -446,34 +445,6 @@ describe("xray model", () => {
       expect(result).toContain("2026");
       expect(result).toContain("02");
       expect(result).toContain("24");
-    });
-  });
-
-  // ==================================================================
-  // MOCK_TWEET_RESPONSE
-  // ==================================================================
-  describe("MOCK_TWEET_RESPONSE", () => {
-    it("has expected structure", () => {
-      expect(MOCK_TWEET_RESPONSE.success).toBe(true);
-      expect(MOCK_TWEET_RESPONSE.data.id).toBe("2026360908398862478");
-      expect(MOCK_TWEET_RESPONSE.data.author.username).toBe("karpathy");
-      expect(MOCK_TWEET_RESPONSE.data.metrics).toBeDefined();
-      expect(MOCK_TWEET_RESPONSE.data.entities).toBeDefined();
-    });
-
-    it("contains media array", () => {
-      expect(MOCK_TWEET_RESPONSE.data.media).toBeDefined();
-      expect(unwrap(MOCK_TWEET_RESPONSE.data.media).length).toBeGreaterThan(0);
-      expect(unwrap(unwrap(MOCK_TWEET_RESPONSE.data.media)[0]).type).toBe("PHOTO");
-    });
-
-    it("contains quoted_tweet", () => {
-      expect(MOCK_TWEET_RESPONSE.data.quoted_tweet).toBeDefined();
-      expect(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).author.username).toBe("SuhailKakar");
-      expect(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).media).toBeDefined();
-      expect(unwrap(unwrap(unwrap(MOCK_TWEET_RESPONSE.data.quoted_tweet).media)[0]).type).toBe(
-        "VIDEO",
-      );
     });
   });
 });

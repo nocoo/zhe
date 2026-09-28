@@ -7,9 +7,6 @@
  * 3. Bookmarks — load bookmarks (requires configured API)
  *
  * Tests run serially because config state is shared across tests.
- * The test section supports mock data when API is not configured,
- * so we test tweet fetching in the unconfigured (mock) state first,
- * then configure and verify the config flow.
  *
  * Cleanup in afterAll resets xray columns in user_settings.
  */
@@ -72,8 +69,7 @@ test.describe
       await expect(page.getByText("接口测试")).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText("粘贴 Twitter/X 帖子链接")).toBeVisible({ timeout: 15_000 });
 
-      // Mock data warning shown when unconfigured
-      await expect(page.getByText("未配置 API，将使用 Mock 数据")).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("请先配置 Xray API")).toBeVisible({ timeout: 15_000 });
 
       // Tweet URL input
       await expect(page.locator('[data-testid="xray-tweet-input"]')).toBeVisible({
@@ -100,8 +96,6 @@ test.describe
       await expect(loadBtn).toBeVisible();
       await expect(loadBtn).toBeDisabled();
     });
-
-    // ── Test section: mock tweet fetch ────────────────────────
 
     test("entering a tweet URL extracts ID and enables fetch button", async ({ page }) => {
       await goToXray(page);
@@ -135,7 +129,38 @@ test.describe
       await expect(page.getByRole("button", { name: "获取" })).toBeDisabled();
     });
 
-    test("fetching a tweet shows tweet card with mock data", async ({ page }) => {
+    test("saves API config and shows configured state", async ({ page }) => {
+      await goToXray(page);
+
+      // Select Custom URL mode
+      await page.getByRole("button", { name: "Custom" }).click();
+
+      // Fill custom URL
+      const urlInput = page.locator('[data-testid="xray-api-url"]');
+      await expect(urlInput).toBeVisible();
+      await urlInput.fill("https://xray.example.invalid");
+
+      // Fill API key
+      await page.locator('[data-testid="xray-api-token"]').fill("e2e-xray-key-12345");
+
+      // Save
+      await page.getByRole("button", { name: "保存" }).click();
+
+      // Wait for configured state — API URL displayed
+      await expect(page.locator("code").filter({ hasText: "xray.example.invalid" })).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Masked key displayed (uses bullet character • for masking)
+      await expect(page.locator("code").filter({ hasText: /•{4,}/ })).toBeVisible();
+
+      // Edit button
+      await expect(page.getByLabel("编辑配置")).toBeVisible();
+
+      await expect(page.getByText("请先配置 Xray API")).not.toBeVisible();
+    });
+
+    test("fetching a tweet uses the configured provider", async ({ page }) => {
       await goToXray(page);
 
       // Enter a valid tweet URL and fetch
@@ -144,13 +169,11 @@ test.describe
         .fill("https://x.com/user/status/1234567890");
       await page.getByRole("button", { name: "获取" }).click();
 
-      // Wait for tweet card to appear (mock data)
-      // Mock indicator badge should appear — pin to the badge, not the
-      // "未配置 API，将使用 Mock 数据" hint that also matches the substring.
-      await expect(page.getByText("Mock 数据", { exact: true })).toBeVisible({ timeout: 15_000 });
+      await expect(
+        page.getByText("Field notes from a quiet morning", { exact: false }).first(),
+      ).toBeVisible({ timeout: 15_000 });
 
       // Tweet card should show content (author, metrics section)
-      // Mock data may include quoted tweets, so "原帖" can appear multiple times
       await expect(page.getByText("原帖").first()).toBeVisible({ timeout: 10_000 });
 
       // Metric labels should be visible (use .first() — quoted tweets duplicate metrics)
@@ -166,7 +189,9 @@ test.describe
         .locator('[data-testid="xray-tweet-input"]')
         .fill("https://x.com/user/status/1234567890");
       await page.getByRole("button", { name: "获取" }).click();
-      await expect(page.getByText("Mock 数据", { exact: true })).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.getByText("Field notes from a quiet morning", { exact: false }).first(),
+      ).toBeVisible({ timeout: 10_000 });
 
       // Raw JSON toggle button
       const toggleBtn = page.getByRole("button", { name: /原始 JSON/ });
@@ -185,43 +210,29 @@ test.describe
 
     // ── Config section: save config ───────────────────────────
 
-    test("saves API config and shows configured state", async ({ page }) => {
-      await goToXray(page);
-
-      // Select Custom URL mode
-      await page.getByRole("button", { name: "Custom" }).click();
-
-      // Fill custom URL
-      const urlInput = page.locator('[data-testid="xray-api-url"]');
-      await expect(urlInput).toBeVisible();
-      await urlInput.fill("https://xray.example.com/api");
-
-      // Fill API key
-      await page.locator('[data-testid="xray-api-token"]').fill("e2e-xray-key-12345");
-
-      // Save
-      await page.getByRole("button", { name: "保存" }).click();
-
-      // Wait for configured state — API URL displayed
-      await expect(page.locator("code").filter({ hasText: "xray.example.com" })).toBeVisible({
-        timeout: 10_000,
-      });
-
-      // Masked key displayed (uses bullet character • for masking)
-      await expect(page.locator("code").filter({ hasText: /•{4,}/ })).toBeVisible();
-
-      // Edit button
-      await expect(page.getByLabel("编辑配置")).toBeVisible();
-
-      // Mock data warning should be gone
-      await expect(page.getByText("未配置 API，将使用 Mock 数据")).not.toBeVisible();
+    test("provider failures stay visible without fabricated tweets", async ({ page }) => {
+      await executeD1(
+        "UPDATE user_settings SET xray_api_token = 'fixture-error' WHERE user_id = ?",
+        [TEST_USER.id],
+      );
+      try {
+        await goToXray(page);
+        await page.getByTestId("xray-tweet-input").fill("1234567890");
+        await page.getByRole("button", { name: "获取", exact: true }).click();
+        await expect(page.getByText("API 请求失败 (503)", { exact: true })).toBeVisible();
+      } finally {
+        await executeD1(
+          "UPDATE user_settings SET xray_api_token = 'fixture-key' WHERE user_id = ?",
+          [TEST_USER.id],
+        );
+      }
     });
 
     test("bookmarks section enables load button when configured", async ({ page }) => {
       await goToXray(page);
 
       // Wait for config to be loaded
-      await expect(page.locator("code").filter({ hasText: "xray.example.com" })).toBeVisible({
+      await expect(page.locator("code").filter({ hasText: "xray.example.invalid" })).toBeVisible({
         timeout: 10_000,
       });
 
@@ -234,6 +245,12 @@ test.describe
 
       // Empty state message
       await expect(page.getByText("点击「加载书签」获取您的 X 书签列表")).toBeVisible();
+      await loadBtn.click();
+      await expect(
+        page.getByText("Field notes from a quiet morning", { exact: false }).first(),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "收录", exact: true }).click();
+      await expect(page.getByRole("button", { name: "已收录", exact: true })).toBeVisible();
     });
 
     // ── Config section: edit and cancel ───────────────────────
@@ -259,7 +276,7 @@ test.describe
 
       // Click cancel — returns to configured display
       await cancelBtn.click();
-      await expect(page.locator("code").filter({ hasText: "xray.example.com" })).toBeVisible({
+      await expect(page.locator("code").filter({ hasText: "xray.example.invalid" })).toBeVisible({
         timeout: 5_000,
       });
       await expect(tokenInput).not.toBeVisible();

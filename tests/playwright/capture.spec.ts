@@ -35,6 +35,15 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
     await page.goto(`/dashboard${route ? `/${route}` : ""}`);
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator(".animate-pulse:visible, .animate-spin:visible")).toHaveCount(0);
+    if (route === "xray") {
+      await page
+        .getByTestId("xray-tweet-input")
+        .fill("https://x.com/alex_fieldnotes/status/1234567890");
+      await page.getByRole("button", { name: "获取", exact: true }).click();
+      await expect(
+        page.getByText("Field notes from a quiet morning", { exact: false }).first(),
+      ).toBeVisible();
+    }
     if (route === "ideas")
       await expect(page.getByText("A weekly reading ritual", { exact: true })).toBeVisible();
     if (route === "settings/ai")

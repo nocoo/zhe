@@ -1,3 +1,48 @@
+import type { XrayTweetResponse } from "../../models/xray";
+
+export function xrayFixture(id: string): XrayTweetResponse {
+  return {
+    success: true,
+    data: {
+      id,
+      text: "Field notes from a quiet morning. Save useful ideas, then make time to revisit them. #fieldnotes",
+      author: {
+        id: "fixture-author",
+        username: "alex_fieldnotes",
+        name: "Alex River",
+        profile_image_url: "/logo-80.png",
+        followers_count: 128,
+        is_verified: false,
+      },
+      created_at: "2026-09-26T09:00:00Z",
+      url: `https://x.com/alex_fieldnotes/status/${id}`,
+      metrics: {
+        retweet_count: 3,
+        like_count: 24,
+        reply_count: 2,
+        quote_count: 1,
+        view_count: 360,
+        bookmark_count: 8,
+      },
+      is_retweet: false,
+      is_quote: false,
+      is_reply: false,
+      lang: "en",
+      entities: { hashtags: ["fieldnotes"], mentioned_users: [], urls: [] },
+      media:
+        process.env.ZHE_DATASET === "demo" || process.env.ZHE_LAUNCH_INTENT === "interactive"
+          ? [
+              {
+                id: "field-cover",
+                type: "PHOTO",
+                url: `${process.env.R2_PUBLIC_DOMAIN}/demo/field-notes.svg`,
+              },
+            ]
+          : [],
+    },
+  };
+}
+
 export function installProviderFixtures(): void {
   if (
     !process.env.ZHE_LOCAL_AUTH_TOKEN ||
@@ -57,6 +102,14 @@ export function installProviderFixtures(): void {
           output_tokens_details: { reasoning_tokens: 0 },
         },
       });
+    }
+    if (url.hostname === "xray.example.invalid") {
+      if (request.headers.get("X-Webhook-Key") === "fixture-error")
+        return Response.json({ error: "Fixture provider unavailable" }, { status: 503 });
+      const id = url.pathname.match(/^\/api\/twitter\/tweets\/(\d+)$/)?.[1];
+      if (id) return Response.json(xrayFixture(id));
+      if (url.pathname === "/api/twitter/me/bookmarks")
+        return Response.json({ success: true, data: [xrayFixture("1234567890").data] });
     }
     if (url.hostname === "example.com" && request.method === "GET")
       return new Response(

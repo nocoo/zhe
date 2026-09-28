@@ -2,7 +2,6 @@
 
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,7 +75,6 @@ function TweetResultBlock({ vm }: { vm: XrayViewModel }) {
   if (!vm.tweetResult) return null;
   return (
     <div className="mt-4 space-y-3">
-      {vm.isMockResult && <Badge variant="warning">Mock 数据</Badge>}
       <TweetCard tweet={vm.tweetResult.data} />
       <Button
         onClick={vm.toggleRawJson}
@@ -109,9 +107,7 @@ export function TestSection({ vm }: { vm: XrayViewModel }) {
       description={
         <>
           粘贴 Twitter/X 帖子链接，自动提取 ID 并调用 API 获取内容。
-          {!vm.isConfigured && (
-            <span className="ml-1 text-warning">（未配置 API，将使用 Mock 数据）</span>
-          )}
+          {!vm.isConfigured && <span className="ml-1 text-warning">（请先配置 Xray API）</span>}
         </>
       }
     >
