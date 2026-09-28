@@ -222,3 +222,14 @@ normal login instead of inheriting the focused test account's display name.
 The final catalog review also found raw Markdown in seeded excerpts and two
 color names outside the real tag palette. Fixtures now use generateExcerpt and
 validate palette names, so SQL seeding cannot silently rely on UI fallbacks.
+
+### 2026-09-28 — Verify the app behind the local launcher
+
+A dev-start check reported readiness from an HTTP 200 on `/api/live`, but the
+local launcher returned its bootstrap HTML before any application was running.
+The browser then triggered Demo startup and hit a stale `.demo-storage/lock.json`.
+Verified the storage owner matched this repository and the recorded PID no longer
+existed before removing only the lock, preserving all Demo data. Startup then
+succeeded, and Chrome verified fixture login and `/dashboard/x` through Caddy.
+Future readiness checks must inspect the response and verify the selected mode
+and an application page; the launcher's HTTP status alone is not app health.
