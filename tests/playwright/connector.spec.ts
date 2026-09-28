@@ -15,7 +15,7 @@ import { executeD1, queryD1 } from "./helpers/d1";
 
 const test = base.extend<{ bookmark: Awaited<ReturnType<typeof enrichBookmark>> }>({
   bookmark: async ({ page, context, baseURL, viewport }, use) => {
-    assert(baseURL === "http://localhost:27006");
+    assert(baseURL === `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`);
     assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
     assert(viewport);
     const secret = process.env.AUTH_SECRET;
@@ -268,7 +268,7 @@ test.describe("webpage previews", () => {
     baseURL,
   }) => {
     test.setTimeout(90_000);
-    assert(baseURL === "http://localhost:27006");
+    assert(baseURL === `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`);
     assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
     const secret = process.env.AUTH_SECRET;
     assert(secret);

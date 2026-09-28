@@ -9,7 +9,7 @@ test.describe.configure({ mode: "serial" });
 for (const width of [1365, 320]) {
   test(`source filters and GitHub README at ${width}px`, async ({ page, context, baseURL }) => {
     test.setTimeout(90_000);
-    assert(baseURL === "http://localhost:27006");
+    assert(baseURL === `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`);
     assert(process.env.D1_PROXY_URL?.startsWith("http://127.0.0.1:"));
     const secret = process.env.AUTH_SECRET;
     assert(secret);

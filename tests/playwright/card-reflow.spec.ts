@@ -9,7 +9,7 @@ import { executeD1, queryD1 } from "./helpers/d1";
 
 const test = base.extend<{ owner: string }>({
   owner: async ({ context, baseURL }, use) => {
-    assert(baseURL === "http://localhost:27006");
+    assert(baseURL === `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`);
     const secret = process.env.AUTH_SECRET;
     assert(secret);
     const owner = `reflow-${randomUUID()}`;

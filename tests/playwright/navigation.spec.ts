@@ -31,9 +31,9 @@ test.describe("Dashboard navigation", () => {
     // Prewarm may compile several dashboard routes on a busy CI runner;
     // give it 3 minutes instead of the case-scoped 60s ceiling.
     test.setTimeout(180_000);
-    // Base URL must match `playwright.config.ts` (E2E_PORT = 27006).
+    // Use the launcher-selected isolated app port.
     const req = await playwrightRequest.newContext({
-      baseURL: "http://localhost:27006",
+      baseURL: `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`,
       storageState: process.env.ZHE_AUTH_STATE as string,
     });
     try {

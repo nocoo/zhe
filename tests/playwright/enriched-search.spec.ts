@@ -6,7 +6,7 @@ import { executeD1, queryD1 } from "./helpers/d1";
 
 test("enriched search keyboard and source contexts", async ({ page, context, baseURL }) => {
   test.setTimeout(90_000);
-  assert(baseURL === "http://localhost:27006");
+  assert(baseURL === `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 27006)}`);
   assert(process.env.AUTH_SECRET);
   const owner = `search-browser-${randomUUID()}`;
   await executeD1("INSERT INTO users(id,name) VALUES(?,?)", [owner, "Search Test"]);

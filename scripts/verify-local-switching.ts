@@ -102,6 +102,14 @@ try {
     path: ".artifacts/local-verification/x-mobile.png",
     animations: "disabled",
   });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await page.locator("html").evaluate((element) => element.classList.contains("dark"))) break;
+    await page.getByRole("button", { name: "切换主题", exact: true }).click();
+  }
+  await page.screenshot({
+    path: ".artifacts/local-verification/x-mobile-dark.png",
+    animations: "disabled",
+  });
   console.log(
     "Passed: manual E2E entry, cancelled draft discard, owned cleanup, fresh reentry and stale request rejection.",
   );

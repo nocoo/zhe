@@ -79,7 +79,7 @@ export async function jsonResponse<T = Record<string, unknown>>(
 let cachedSessionCookie: string | null = null;
 
 export async function getSessionCookie(): Promise<string> {
-  assert.equal(BASE_URL, "http://localhost:17006");
+  assert.equal(BASE_URL, `http://localhost:${Number(process.env.ZHE_TEST_APP_PORT ?? 17006)}`);
   if (cachedSessionCookie) return cachedSessionCookie;
   const secret = process.env.AUTH_SECRET;
   assert(secret);

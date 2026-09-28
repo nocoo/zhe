@@ -4,8 +4,7 @@
 
 /** Get the base URL for API requests. */
 export function getBaseUrl(): string {
-  const port = process.env.API_E2E_PORT ?? "17006";
-  return `http://localhost:${port}`;
+  return process.env.API_E2E_BASE_URL ?? "http://localhost:17006";
 }
 
 /** Make an authenticated fetch request with Bearer token. */
