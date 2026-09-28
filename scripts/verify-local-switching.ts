@@ -40,6 +40,15 @@ try {
   await mkdir(".artifacts/local-verification", { recursive: true });
   await page.screenshot({ path: ".artifacts/local-verification/login.png" });
   await login();
+  await page.goto(`${origin}/dashboard/ideas/1001`);
+  const demoEditor = page.locator("textarea").first();
+  await demoEditor.waitFor();
+  const originalDemo = await demoEditor.inputValue();
+  const persistedDemo = `${originalDemo}\n\nOwned persistence verification.`;
+  await demoEditor.fill(persistedDemo);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
+  await page.goto(`${origin}/dashboard`);
   const oldTab = await context.newPage();
   await oldTab.goto(`${origin}/dashboard`);
   await oldTab.getByRole("radio", { name: "Demo", exact: true }).waitFor();
@@ -90,6 +99,11 @@ try {
   await ready("Demo");
   await assert.rejects(access(`.test-storage/runs/${second}`));
   await login();
+  await page.goto(`${origin}/dashboard/ideas/1001`);
+  await expect(page.locator("textarea").first()).toHaveValue(persistedDemo);
+  await page.locator("textarea").first().fill(originalDemo);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toBeDisabled();
   await page.goto(`${origin}/dashboard/x`);
   await expect(page.locator(".animate-pulse:visible, .animate-spin:visible")).toHaveCount(0);
   await page.setViewportSize({ width: 1440, height: 1000 });

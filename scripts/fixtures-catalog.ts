@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
+import { generateExcerpt } from "../lib/markdown";
 import { uploadBufferToR2 } from "../lib/r2/local-binding";
+import { isValidTagColor } from "../models/tags";
 import { executeD1, queryD1 } from "../tests/playwright/helpers/d1";
 
-export const CATALOG_VERSION = 4;
+export const CATALOG_VERSION = 5;
 export const CATALOG_ANCHOR = "2026-09-27T00:00:00Z";
 export const FIXTURE_USER = { id: "e2e-test-user-id", name: "Alex River", email: "e2e@test.local" };
 const time = Date.parse(CATALOG_ANCHOR);
@@ -24,10 +26,11 @@ export async function seedCatalog(): Promise<void> {
     "morgan@example.invalid",
   ]);
   for (const [id, name, color] of [
-    ["reading", "Read next", "blue"],
-    ["design", "Design systems", "purple"],
+    ["reading", "Read next", "sky"],
+    ["design", "Design systems", "primary"],
     ["field", "Field research", "green"],
   ]) {
+    if (!isValidTagColor(String(color))) throw new Error("Invalid fixture tag color");
     await executeD1("INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)", [
       `demo-${id}`,
       user,
@@ -226,7 +229,7 @@ export async function seedCatalog(): Promise<void> {
   ]) {
     await executeD1(
       "INSERT INTO ideas(id,user_id,title,content,excerpt,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
-      [id, user, title, content, String(content).slice(0, 160), time, time],
+      [id, user, title, content, generateExcerpt(String(content), 200), time, time],
     );
     await executeD1("INSERT INTO idea_tags(idea_id,tag_id) VALUES(?,?)", [id, "demo-design"]);
   }

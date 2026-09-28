@@ -50,12 +50,12 @@ export default async function globalSetup(): Promise<void> {
     );
   }
 
-  console.log("[pw:global-setup] Ensuring E2E test user exists in D1...");
-  await executeD1(
-    "INSERT OR IGNORE INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
-    [TEST_USER.id, TEST_USER.name, TEST_USER.email],
-  );
-
   if (process.env.ZHE_DATASET === "demo") await seedCatalog();
+  else {
+    await executeD1(
+      "INSERT INTO users (id, name, email, emailVerified, image) VALUES (?, ?, ?, NULL, NULL)",
+      [TEST_USER.id, TEST_USER.name, TEST_USER.email],
+    );
+  }
   console.log("[pw:global-setup] Done.");
 }

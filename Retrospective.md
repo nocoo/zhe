@@ -210,3 +210,15 @@ The final source audit found that `analytics.source` still existed only as a
 local initialization fixup. Migration 0036 now records it and the script-only
 ALTER path is removed. Verify historical production schema/ledger state before
 any later authorized deployment, especially for columns previously added by hand.
+
+A final action/model search caught Xray's unconfigured hardcoded tweet fallback,
+which browser-interceptor searches had missed. It now fails visibly without
+configuration and uses the external provider boundary for fixture responses.
+Capture review also caught frozen chart animations: fixing Date.now prevented
+Recharts from progressing. Captures now advance a deterministic browser clock
+and assert the chart area is visible. Rich captures seed their own account before
+normal login instead of inheriting the focused test account's display name.
+
+The final catalog review also found raw Markdown in seeded excerpts and two
+color names outside the real tag palette. Fixtures now use generateExcerpt and
+validate palette names, so SQL seeding cannot silently rely on UI fallbacks.

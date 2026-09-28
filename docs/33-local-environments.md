@@ -129,3 +129,41 @@ separately in the repository management record. Proposed Douyin/Instagram
 features in document 32 are not implemented product features and are not seeded.
 Production OAuth/MFA, real provider availability, cloud edge delivery and
 production data operations are outside this implementation's verification.
+
+## Verification on 2026-09-28
+
+The normal commit hook passed 3,483 unit/component tests, 197 in-process
+integration tests, types, full staged-tree lint and secret scanning. Scoped
+coverage: statements 98.08%, branches 95.15%, functions 96.62%, lines 98.82%.
+The pre-existing untracked research file is outside this index evidence.
+
+- Full Chromium: 214 passed, followed by 12 setup/Xray checks after replacing
+  its business mock. Real provider success/failure and bookmark import passed.
+- Concurrent L2 on `ZHE_TEST_APP_PORT=17106` and `17206`: both 222 passed with
+  distinct native resources/builds. A subsequent 222-test run passed with
+  normal Auth.js CSRF/callback session issuance.
+- `ZHE_TEST_APP_PORT=27106 bun run test:e2e:pw --project=iphone`: 12 passed.
+- `CI=1 bun run test:e2e:pw --project=chromium tests/playwright/environment.spec.ts`:
+  3 passed locally. This verifies the CI flag behavior, not a hosted CI run.
+- Worker: 80 tests and `bun x tsc --noEmit` passed. CLI source was unchanged;
+  complete CLI process journeys are not certified here.
+
+For interactive built-bundle verification, start `bun run dev --build --mode e2e`,
+then run `ZHE_EXPECT_INITIAL=e2e ZHE_INITIAL_PREFERENCE=demo bun run scripts/verify-local-switching.ts`.
+For remembered E2E, restart with `bun run dev`, then run
+`ZHE_EXPECT_INITIAL=e2e ZHE_INITIAL_PREFERENCE=e2e bun run scripts/verify-local-switching.ts`.
+Both passed through Chrome/Caddy: enabled manual E2E, accepted preferences,
+Demo edit persistence across instance restarts, draft cancellation, native file
+upload, owned cleanup, fresh reentry and expired-tab 410. The script restores its
+Demo edit. Light/dark 390px X screenshots were reviewed. Local `--build` uses
+the repository's `next start` convention, which emits Next's standalone-output
+advisory; this task did not certify a hosted standalone deployment.
+
+Captures use `ZHE_DATASET=demo bun run test:e2e:pw --project=capture` with catalog
+v5, 1440×1000, zh-CN, Asia/Shanghai and the catalog time anchor. The browser clock
+advances to let real chart animations complete. The gallery contains 15 routes;
+contact-sheet inspection and focused full-size review are distinct from the
+business-action assertions in the matrix. Exact run IDs and reviewed artifacts
+are in the shared task's Zhe record. Screenshots do not prove every offscreen
+state or live external integration. YAML syntax parsed locally; actionlint was
+not installed. No hosted CI, push, release, deployment or production write ran.

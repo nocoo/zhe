@@ -12,7 +12,7 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="8" fill="#74918a"/></svg>',
     }),
   );
-  await page.clock.setFixedTime(new Date(CATALOG_ANCHOR));
+  await page.clock.install({ time: new Date(CATALOG_ANCHOR) });
   await page.setViewportSize({ width: 1440, height: 1000 });
   const routes = [
     "overview",
@@ -62,6 +62,9 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
         );
       expect(unloaded).toEqual([]);
     }).toPass({ timeout: 10_000 });
+    await page.clock.runFor(2000);
+    if (route === "overview")
+      await expect(page.locator(".recharts-area-area").first()).toBeVisible();
     await page.screenshot({
       path: info.outputPath(`${route.replaceAll("/", "-") || "links"}.png`),
       animations: "disabled",
