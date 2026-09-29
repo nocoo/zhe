@@ -108,7 +108,14 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.keyboard.press("ArrowDown");
       await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
       await page.keyboard.press("Escape");
+      await expect(menu).not.toBeVisible();
+      await expect(more).toBeFocused();
       await more.tap();
+      await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      await expect(menu).toBeVisible();
       await page.touchscreen.tap(width - 5, 100);
       try {
         await expect(menu).not.toBeVisible();
@@ -118,8 +125,8 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       }
       await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
     }
-    await page.setViewportSize({ width: 1365, height: 1000 });
     if (collection === "list") {
+      await page.setViewportSize({ width: 1365, height: 1000 });
       await expect(card.locator("[data-card-actions]")).toHaveAttribute("data-compact", "false");
       await expect(card.getByRole("button", { name: "隐藏帖子" })).toBeVisible();
       await expect(card.getByRole("button", { name: "更多收藏操作" })).toHaveCount(0);

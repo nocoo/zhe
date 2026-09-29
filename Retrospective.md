@@ -195,8 +195,8 @@ Switching L2/L3 from development servers to production builds disabled the devel
 
 The stress run failed on touch dismissal and a closed dialog that remained
 visible, but tracing only the first retry retained passing traces. A failed
-screenshot can also finish animations before it captures the page. Retain
-failed-attempt traces and attach the overlay's state, focus, computed animation
+screenshot can also finish animations before it captures the page. A diagnostic run retained
+failed-attempt traces and attached the overlay's state, focus, computed animation
 and timeline before the failure screenshot. Keep the original assertion and
 error intact. Local targeted runs passed without reproducing the hosted failure;
 these diagnostics do not constitute a causal repair.
@@ -205,3 +205,13 @@ The normal push hook blocked this diagnostic branch on eleven Undici 8.10.0
 advisories. Pin the existing root override to fixed 8.10.2 and preserve the
 blocking scanner; the isolated HTTP tests and security scan must pass before
 collecting hosted evidence. This dependency repair is not an overlay fix.
+
+The hosted diagnostic trace showed the grid case exhausting its test budget
+after every mobile assertion, during an unused final desktop resize. Only list
+mode has assertions at that viewport, so keep the resize inside that branch.
+The repeated menu cycle also sent its outside tap immediately after reopening
+without confirming the menu had appeared. Assert completed dismissal, restored
+trigger focus and reopened visibility before the next gesture. Preserve all
+viewport assertions and time budgets. Restore the original trace strategy for
+verification: recording every action changes timing and is not a repair. The
+separate dialog exit observation still needs matching first-attempt green proof.
