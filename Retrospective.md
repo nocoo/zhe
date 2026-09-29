@@ -215,3 +215,8 @@ trigger focus and reopened visibility before the next gesture. Preserve all
 viewport assertions and time budgets. Restore the original trace strategy for
 verification: recording every action changes timing and is not a repair. The
 separate dialog exit observation still needs matching first-attempt green proof.
+
+The independent Worker lockfile resolved the same vulnerable Undici 8.10.0
+despite the root patch. Pin that existing override to 8.10.2 as well and verify
+all three lockfiles separately; a green root-only scan does not certify the
+Worker or CLI graph. No scanner exclusions or permissions changed.
