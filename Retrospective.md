@@ -190,3 +190,13 @@ The new FAB browser regression passed, but the full gate caught an existing Idea
 ### 2026-09-26 — Migrate both test authentication clients
 
 Switching L2/L3 from development servers to production builds disabled the development-only Credentials provider as intended. Browser setup was updated, but the HTTP helper still called that provider and its provider-list test still required the bypass. The pre-push gate rejected five tests before either remote ref was published. Use signed sessions only after asserting the exact loopback origin in both test clients; verify production providers exclude the test login and real HTTP rejects tampered sessions. Audit all authentication callers when changing test server mode.
+
+## 2026-09-30: Preserve the original overlay failure
+
+The stress run failed on touch dismissal and a closed dialog that remained
+visible, but tracing only the first retry retained passing traces. A failed
+screenshot can also finish animations before it captures the page. Retain
+failed-attempt traces and attach the overlay's state, focus, computed animation
+and timeline before the failure screenshot. Keep the original assertion and
+error intact. Local targeted runs passed without reproducing the hosted failure;
+these diagnostics do not constitute a causal repair.

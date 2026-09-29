@@ -49,7 +49,7 @@ export default defineConfig({
 
   use: {
     baseURL: E2E_BASE,
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
 

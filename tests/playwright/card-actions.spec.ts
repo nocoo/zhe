@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import { test as base, expect } from "./fixtures";
 import { executeD1 } from "./helpers/d1";
+import { attachOverlayEvidence } from "./helpers/overlay-evidence";
 
 const test = base.extend<{ owner: string }>({
   owner: async ({ context, baseURL }, use) => {
@@ -109,7 +110,12 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.keyboard.press("Escape");
       await more.tap();
       await page.touchscreen.tap(width - 5, 100);
-      await expect(menu).not.toBeVisible();
+      try {
+        await expect(menu).not.toBeVisible();
+      } catch (error) {
+        await attachOverlayEvidence(page, test.info());
+        throw error;
+      }
       await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
     }
     await page.setViewportSize({ width: 1365, height: 1000 });

@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { attachOverlayEvidence } from "./helpers/overlay-evidence";
 
 test("one global creation entry focuses URL and restores keyboard focus at iPhone widths", async ({
   page,
@@ -23,7 +24,12 @@ test("one global creation entry focuses URL and restores keyboard focus at iPhon
     await expect(dialog).toContainText("创建短链接");
     expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true);
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    try {
+      await expect(dialog).toBeHidden();
+    } catch (error) {
+      await attachOverlayEvidence(page, test.info());
+      throw error;
+    }
     await expect(fab).toBeFocused();
   }
   await page.emulateMedia({ reducedMotion: "reduce" });
