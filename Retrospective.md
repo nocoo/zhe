@@ -200,3 +200,8 @@ failed-attempt traces and attach the overlay's state, focus, computed animation
 and timeline before the failure screenshot. Keep the original assertion and
 error intact. Local targeted runs passed without reproducing the hosted failure;
 these diagnostics do not constitute a causal repair.
+
+The normal push hook blocked this diagnostic branch on eleven Undici 8.10.0
+advisories. Pin the existing root override to fixed 8.10.2 and preserve the
+blocking scanner; the isolated HTTP tests and security scan must pass before
+collecting hosted evidence. This dependency repair is not an overlay fix.
