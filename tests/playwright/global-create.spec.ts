@@ -48,6 +48,8 @@ test("one global creation entry focuses URL and restores keyboard focus at iPhon
     await fab.focus();
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute("data-state", "open");
     await expect(dialog.getByLabel("原始链接")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(dialog).toContainText("创建短链接");
@@ -61,9 +63,39 @@ test("one global creation entry focuses URL and restores keyboard focus at iPhon
     }
     await expect(fab).toBeFocused();
   }
+});
+
+test("global creation follows runtime motion preferences after responsive navigation", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  for (const width of [320, 375, 390, 430, 1365]) {
+    await page.setViewportSize({ width, height: 932 });
+  }
+  const fab = page.getByTestId("global-create");
+  const dialog = page.getByRole("dialog");
+  await fab.focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-state", "open");
+  await expect(dialog.getByLabel("原始链接")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(fab).toBeFocused();
+
   await page.emulateMedia({ reducedMotion: "reduce" });
   await fab.click();
-  await expect(page.getByRole("dialog")).toHaveCSS("animation-name", "none");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS("animation-name", "none");
+  await expect(dialog.getByLabel("原始链接")).toBeFocused();
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(dialog).not.toHaveCSS("animation-name", "none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(dialog).toHaveCSS("animation-name", "none");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(fab).toBeFocused();
 });
 
 test("global creation follows page navigation and returns from contextual dialogs", async ({
