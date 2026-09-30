@@ -5,7 +5,8 @@ import { executeD1 } from "./helpers/d1";
 import { attachOverlayEvidence, installOverlayEvidence } from "./helpers/overlay-evidence";
 
 test.afterEach(async ({ page }, info) => {
-  if (info.status !== info.expectedStatus) await attachOverlayEvidence(page, info);
+  if (info.status !== info.expectedStatus)
+    await attachOverlayEvidence(page, info, "after-test-function");
 });
 
 test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
@@ -77,7 +78,7 @@ for (const width of [320, 375, 390, 430]) {
         try {
           await expect(menu).not.toBeVisible();
         } catch (error) {
-          await attachOverlayEvidence(page, test.info());
+          await attachOverlayEvidence(page, test.info(), "assertion-catch");
           throw error;
         }
         await page.screenshot({
@@ -146,11 +147,11 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.touchscreen.tap(width - 5, 100);
       try {
         await expect(menu).not.toBeVisible();
+        await expect(more).toBeFocused();
       } catch (error) {
-        await attachOverlayEvidence(page, test.info());
+        await attachOverlayEvidence(page, test.info(), "assertion-catch");
         throw error;
       }
-      await expect(more).toBeFocused();
     }
   });
 }

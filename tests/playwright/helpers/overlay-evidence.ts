@@ -127,9 +127,12 @@ export async function installOverlayEvidence(context: BrowserContext) {
   });
 }
 
-export async function attachOverlayEvidence(page: Page, info: TestInfo) {
-  if (info.attachments.some((attachment) => attachment.name === "overlay-state-before-screenshot"))
-    return;
+export async function attachOverlayEvidence(
+  page: Page,
+  info: TestInfo,
+  phase: "assertion-catch" | "after-test-function",
+) {
+  if (info.attachments.some((attachment) => attachment.name.startsWith("overlay-state-"))) return;
   try {
     // Style reads can change animation scheduling; collect them only after the original assertion fails.
     const state = await page.evaluate(() => {
@@ -176,8 +179,8 @@ export async function attachOverlayEvidence(page: Page, info: TestInfo) {
         ),
       };
     });
-    await info.attach("overlay-state-before-screenshot", {
-      body: JSON.stringify(state, null, 2),
+    await info.attach(`overlay-state-${phase}`, {
+      body: JSON.stringify({ phase, ...state }, null, 2),
       contentType: "application/json",
     });
   } catch (error) {

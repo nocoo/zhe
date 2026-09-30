@@ -7,7 +7,8 @@ test.beforeEach(async ({ context }) => {
 });
 
 test.afterEach(async ({ page }, info) => {
-  if (info.status !== info.expectedStatus) await attachOverlayEvidence(page, info);
+  if (info.status !== info.expectedStatus)
+    await attachOverlayEvidence(page, info, "after-test-function");
 });
 
 test.beforeEach(async ({ owner }) => {
@@ -57,11 +58,11 @@ test("one global creation entry focuses URL and restores keyboard focus at iPhon
     await page.keyboard.press("Escape");
     try {
       await expect(dialog).toBeHidden();
+      await expect(fab).toBeFocused();
     } catch (error) {
-      await attachOverlayEvidence(page, test.info());
+      await attachOverlayEvidence(page, test.info(), "assertion-catch");
       throw error;
     }
-    await expect(fab).toBeFocused();
   }
 });
 
@@ -80,8 +81,13 @@ test("global creation follows runtime motion preferences after responsive naviga
   await expect(dialog).toHaveAttribute("data-state", "open");
   await expect(dialog.getByLabel("原始链接")).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-  await expect(fab).toBeFocused();
+  try {
+    await expect(dialog).toBeHidden();
+    await expect(fab).toBeFocused();
+  } catch (error) {
+    await attachOverlayEvidence(page, test.info(), "assertion-catch");
+    throw error;
+  }
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await fab.click();
@@ -94,8 +100,13 @@ test("global creation follows runtime motion preferences after responsive naviga
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(dialog).toHaveCSS("animation-name", "none");
   await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-  await expect(fab).toBeFocused();
+  try {
+    await expect(dialog).toBeHidden();
+    await expect(fab).toBeFocused();
+  } catch (error) {
+    await attachOverlayEvidence(page, test.info(), "assertion-catch");
+    throw error;
+  }
 });
 
 test("global creation follows page navigation and returns from contextual dialogs", async ({
