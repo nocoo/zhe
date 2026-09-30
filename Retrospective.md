@@ -234,3 +234,9 @@ The corrected local run passed 51 cases, then an unchanged iPhone selection asse
 The isolated candidate selection check repeated the one-pixel failure. The fixture extraction was then reduced to the original lazy fixture, original user metadata and original authentication ordering; global-create explicitly requests it in beforeEach. An unmodified baseline selection probe and both global-create scenarios passed together; the temporary probe was removed. This comparison does not establish a product scroll fix. The final extracted-fixture candidate still requires its own full local and hosted verification.
 
 The normal commit hook rejected the extracted fixture import order after all behavioral and type checks passed. The import was sorted explicitly and the full normal hook rerun; no check was bypassed.
+
+### 2026-10-01 — Unique owners do not isolate globally unique slugs
+
+A four-worker run selecting card-actions and global-create started Chromium and iPhone card cases together and failed before UI interaction with a D1 UNIQUE constraint. The same head had passed all 255 cases in the full suite, where scheduling separated those cases. Migration 0000 defines links_slug_unique on slug alone; distinct test owners cannot protect the fixed responsive-card slug.
+
+Both responsive and live-resize card fixtures now suffix the long slug with their per-test owner. This preserves long-text layout pressure and all existing assertions while isolating the actual global database key. No schema, timeout, worker count or production behavior changed. Overlay lifecycle diagnostics remain a separate investigation; this collision fix does not establish that the original hosted dialog-close failure recovered.

@@ -15,7 +15,7 @@ for (const width of [320, 375, 390, 430]) {
           "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
           [
             owner,
-            "a-very-long-saved-link-slug-for-small-iphone-screens",
+            `a-very-long-saved-link-slug-for-small-iphone-screens-${owner}`,
             collection === "github"
               ? "https://github.com/example/repository"
               : collection === "x"
@@ -98,7 +98,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
       [
         owner,
-        "a-very-long-saved-link-slug-for-small-iphone-screens",
+        `a-very-long-saved-link-slug-for-small-iphone-screens-${owner}`,
         collection === "github"
           ? "https://github.com/example/repository"
           : collection === "x"
