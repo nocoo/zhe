@@ -1,5 +1,26 @@
-import { expect, test } from "./fixtures";
+import { expect, test } from "./fixtures/owner";
+import { executeD1 } from "./helpers/d1";
 import { attachOverlayEvidence } from "./helpers/overlay-evidence";
+
+test.beforeEach(async ({ owner }) => {
+  const now = Date.now();
+  for (const start of [0, 14]) {
+    const rows = Array.from({ length: 14 }, (_, offset) => {
+      const index = start + offset;
+      return [
+        owner,
+        `${owner}-${index}`,
+        `https://example.com/overlay/${index}`,
+        `Overlay fixture ${index}`,
+        now + index,
+      ];
+    });
+    await executeD1(
+      `INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES ${rows.map(() => "(?,?,?,?,?)").join(",")}`,
+      rows.flat(),
+    );
+  }
+});
 
 test("one global creation entry focuses URL and restores keyboard focus at iPhone widths", async ({
   page,

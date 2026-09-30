@@ -220,3 +220,17 @@ The independent Worker lockfile resolved the same vulnerable Undici 8.10.0
 despite the root patch. Pin that existing override to 8.10.2 as well and verify
 all three lockfiles separately; a green root-only scan does not certify the
 Worker or CLI graph. No scanner exclusions or permissions changed.
+
+### 2026-09-30 — Isolate overlay browser fixtures without dropping resize coverage
+
+The first sequencing correction passed ordinary CI but Stress run 36648405388 still reported a grid case exceeding its 30-second budget and a closed global-create dialog remaining visible. Failure-only evidence captured its exit animation still at time zero after the original five-second assertion. This does not establish a normal exit-duration problem and does not justify a longer timeout or disabled motion.
+
+The card test repeated its complete interaction sequence at four widths inside one case. Each width now has an independent case and browser context, while dedicated same-page resize cases retain touch, geometry, dismissal and focus continuity across all four widths. The complete keyboard sequence still runs at every width. Global-create keeps its existing live-resize and reduced-motion checks, uses a per-test authenticated owner, and seeds 28 links to preserve the observed populated-page workload without another worker mutating that owner's data. Hosted Stress remains required to determine whether this isolation correction resolves the failure. No timeout, retry, worker, motion, workflow or flaky-test gate was relaxed.
+
+The first local continuity test used a role locator for the trigger while its modal menu was open. Radix hides the background from the accessibility tree in this state, so the assertion could not resolve the still-present trigger. The assertion now uses the same scoped DOM locator as the existing interaction test; accessibility locators remain in place for the visible trigger and menu items.
+
+The corrected local run passed 51 cases, then an unchanged iPhone selection assertion observed scroll position 449 instead of 450 after Escape, leaving the final two global-create cases unexecuted under the existing fail-fast limit. This distinct fresh observation is recorded without relaxing the exact scroll assertion or changing selection behavior. A bounded isolated validation covers that observation and the unexecuted global-create cases; full hosted verification remains mandatory.
+
+The isolated candidate selection check repeated the one-pixel failure. The fixture extraction was then reduced to the original lazy fixture, original user metadata and original authentication ordering; global-create explicitly requests it in beforeEach. An unmodified baseline selection probe and both global-create scenarios passed together; the temporary probe was removed. This comparison does not establish a product scroll fix. The final extracted-fixture candidate still requires its own full local and hosted verification.
+
+The normal commit hook rejected the extracted fixture import order after all behavioral and type checks passed. The import was sorted explicitly and the full normal hook rerun; no check was bypassed.

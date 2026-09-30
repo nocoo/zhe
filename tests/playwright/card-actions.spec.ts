@@ -1,41 +1,99 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
-import { encode } from "@auth/core/jwt";
-import { test as base, expect } from "./fixtures";
+import { expect, test } from "./fixtures/owner";
+import { expectMobileCardActions } from "./helpers/card-actions";
 import { executeD1 } from "./helpers/d1";
 import { attachOverlayEvidence } from "./helpers/overlay-evidence";
 
-const test = base.extend<{ owner: string }>({
-  owner: async ({ context, baseURL }, use) => {
-    assert(baseURL === "http://localhost:27006");
-    const secret = process.env.AUTH_SECRET;
-    assert(secret);
-    const owner = `reflow-${randomUUID()}`;
-    await executeD1("INSERT INTO users(id,name,email) VALUES(?,?,?)", [
-      owner,
-      "Card motion test",
-      `${owner}@test.local`,
-    ]);
-    const session = await encode({
-      token: { sub: owner, name: "Card motion test", email: `${owner}@test.local` },
-      secret,
-      salt: "authjs.session-token",
-    });
-    // WebKit keeps host-only and domain cookies separately; replace the setup session.
-    await context.clearCookies();
-    await context.addCookies([{ name: "authjs.session-token", value: session, url: baseURL }]);
-    try {
-      await use(owner);
-    } finally {
-      await executeD1("DELETE FROM users WHERE id = ?", [owner]);
-    }
-  },
-});
-
 test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
+for (const width of [320, 375, 390, 430]) {
+  test.describe(`${width}px viewport`, () => {
+    test.use({ viewport: { width, height: 932 } });
+    for (const collection of ["grid", "list", "github", "x"] as const) {
+      test(`${collection}: responsive card actions`, async ({ page, owner }) => {
+        await executeD1(
+          "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
+          [
+            owner,
+            "a-very-long-saved-link-slug-for-small-iphone-screens",
+            collection === "github"
+              ? "https://github.com/example/repository"
+              : collection === "x"
+                ? "https://x.com/example/status/123456789"
+                : "https://example.com",
+            "Long card title with 中文内容 ".repeat(5),
+            "Long description ".repeat(12),
+            "/logo-80.png",
+            Date.now(),
+          ],
+        );
+        await page.addInitScript(
+          (view) => localStorage.setItem("zhe_links_view_mode", view),
+          collection,
+        );
+        await page.goto(
+          `/dashboard${collection === "github" || collection === "x" ? `/${collection}` : ""}`,
+        );
+        const card = page
+          .getByTestId(collection === "github" ? "github-repository" : "link-card")
+          .first();
+        await expect(card).toBeVisible();
+        await card.scrollIntoViewIfNeeded();
+        const { actions, more } = await expectMobileCardActions(card);
+        await more.tap();
+        await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        const menu = page.getByRole("menu");
+        await expect(menu.getByRole("menuitem", { name: "隐藏帖子" })).toBeVisible();
+        await expect(menu.getByRole("menuitem", { name: "查看补全记录" })).toBeVisible();
+        const box = await menu.boundingBox();
+        assert(box);
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
+        await page.keyboard.press("Escape");
+        await expect(menu).not.toBeVisible();
+        await expect(more).toBeFocused();
+        await more.press("ArrowDown");
+        await expect(menu.getByRole("menuitem").first()).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
+        await page.keyboard.press("Escape");
+        await expect(menu).not.toBeVisible();
+        await expect(more).toBeFocused();
+        await more.tap();
+        await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        await expect(menu).toBeVisible();
+        await page.touchscreen.tap(width - 5, 100);
+        try {
+          await expect(menu).not.toBeVisible();
+        } catch (error) {
+          await attachOverlayEvidence(page, test.info());
+          throw error;
+        }
+        await page.screenshot({
+          path: test.info().outputPath(`card-actions-${collection}-${width}.png`),
+        });
+        if (collection === "list") {
+          await page.setViewportSize({ width: 1365, height: 1000 });
+          await expect(card.locator("[data-card-actions]")).toHaveAttribute(
+            "data-compact",
+            "false",
+          );
+          await expect(card.getByRole("button", { name: "隐藏帖子" })).toBeVisible();
+          await expect(card.getByRole("button", { name: "更多收藏操作" })).toHaveCount(0);
+        }
+      });
+    }
+  });
+}
+
 for (const collection of ["grid", "list", "github", "x"] as const) {
-  test(`${collection}: responsive card actions`, async ({ page, owner }) => {
+  test(`${collection}: live resize preserves touch menus and focus`, async ({ page, owner }) => {
     await executeD1(
       "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
       [
@@ -62,32 +120,11 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     const card = page
       .getByTestId(collection === "github" ? "github-repository" : "link-card")
       .first();
-    await expect(card).toBeVisible();
-    await card.scrollIntoViewIfNeeded();
     for (const width of [320, 375, 390, 430]) {
       await page.setViewportSize({ width, height: 932 });
-      const actions = card.locator("[data-card-actions]");
-      await expect(actions).toHaveAttribute("data-compact", "true");
-      const more = actions.getByRole("button", { name: "更多收藏操作" });
-      await expect(more).toBeVisible();
-      const geometry = await actions.evaluate((el) => {
-        const card = el.closest("[data-card-actions-container]")?.getBoundingClientRect();
-        if (!card) throw new Error("Missing card container");
-        return [...el.querySelectorAll("button")].map((button) => {
-          const box = button.getBoundingClientRect();
-          return {
-            width: box.width,
-            height: box.height,
-            fits: box.left >= card.left && box.right <= card.right,
-          };
-        });
-      });
-      expect(geometry).toHaveLength(2);
-      for (const button of geometry) {
-        expect(Number(button.width.toFixed(3))).toBeGreaterThanOrEqual(44);
-        expect(Number(button.height.toFixed(3))).toBeGreaterThanOrEqual(44);
-        expect(button.fits).toBe(true);
-      }
+      await expect(card).toBeVisible();
+      await card.scrollIntoViewIfNeeded();
+      const { actions, more } = await expectMobileCardActions(card);
       await more.tap();
       await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
         "aria-expanded",
@@ -100,22 +137,6 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       assert(box);
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
-      await page.keyboard.press("Escape");
-      await expect(menu).not.toBeVisible();
-      await expect(more).toBeFocused();
-      await more.press("ArrowDown");
-      await expect(menu.getByRole("menuitem").first()).toBeFocused();
-      await page.keyboard.press("ArrowDown");
-      await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
-      await page.keyboard.press("Escape");
-      await expect(menu).not.toBeVisible();
-      await expect(more).toBeFocused();
-      await more.tap();
-      await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
-        "aria-expanded",
-        "true",
-      );
-      await expect(menu).toBeVisible();
       await page.touchscreen.tap(width - 5, 100);
       try {
         await expect(menu).not.toBeVisible();
@@ -123,13 +144,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
         await attachOverlayEvidence(page, test.info());
         throw error;
       }
-      await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
-    }
-    if (collection === "list") {
-      await page.setViewportSize({ width: 1365, height: 1000 });
-      await expect(card.locator("[data-card-actions]")).toHaveAttribute("data-compact", "false");
-      await expect(card.getByRole("button", { name: "隐藏帖子" })).toBeVisible();
-      await expect(card.getByRole("button", { name: "更多收藏操作" })).toHaveCount(0);
+      await expect(more).toBeFocused();
     }
   });
 }
