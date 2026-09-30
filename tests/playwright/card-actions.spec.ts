@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { expect, test } from "./fixtures/owner";
 import { expectMobileCardActions } from "./helpers/card-actions";
 import { executeD1 } from "./helpers/d1";
-import { attachOverlayEvidence } from "./helpers/overlay-evidence";
+import { attachOverlayEvidence, installOverlayEvidence } from "./helpers/overlay-evidence";
+
+test.afterEach(async ({ page }, info) => {
+  if (info.status !== info.expectedStatus) await attachOverlayEvidence(page, info);
+});
 
 test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
@@ -11,6 +15,7 @@ for (const width of [320, 375, 390, 430]) {
     test.use({ viewport: { width, height: 932 } });
     for (const collection of ["grid", "list", "github", "x"] as const) {
       test(`${collection}: responsive card actions`, async ({ page, owner }) => {
+        await installOverlayEvidence(page.context());
         await executeD1(
           "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
           [
@@ -94,6 +99,7 @@ for (const width of [320, 375, 390, 430]) {
 
 for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: live resize preserves touch menus and focus`, async ({ page, owner }) => {
+    await installOverlayEvidence(page.context());
     await executeD1(
       "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
       [
@@ -151,6 +157,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
 
 for (const collection of ["ideas", "uploads"] as const) {
   test(`${collection}: touch menus and dialogs return focus`, async ({ page, owner }) => {
+    await installOverlayEvidence(page.context());
     const title = "Long saved content 中文 ".repeat(8);
     const now = Date.now();
     if (collection === "ideas") {

@@ -1,6 +1,14 @@
 import { expect, test } from "./fixtures/owner";
 import { executeD1 } from "./helpers/d1";
-import { attachOverlayEvidence } from "./helpers/overlay-evidence";
+import { attachOverlayEvidence, installOverlayEvidence } from "./helpers/overlay-evidence";
+
+test.beforeEach(async ({ context }) => {
+  await installOverlayEvidence(context);
+});
+
+test.afterEach(async ({ page }, info) => {
+  if (info.status !== info.expectedStatus) await attachOverlayEvidence(page, info);
+});
 
 test.beforeEach(async ({ owner }) => {
   const now = Date.now();
