@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, type LucideIcon, MoreHorizontal } from "lucide-react";
-import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useCallback, useEffect, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,17 @@ export function CardActions({
   const [compact, setCompact] = useState(true);
   const [open, setOpen] = useState(false);
   const selectedAction = useRef<(() => void) | null>(null);
+  const pendingTouchDismiss = useRef<(() => void) | null>(null);
+  const clearTouchDismiss = useCallback(() => {
+    pendingTouchDismiss.current?.();
+    pendingTouchDismiss.current = null;
+  }, []);
+  const changeOpen = (nextOpen: boolean) => {
+    clearTouchDismiss();
+    setOpen(nextOpen);
+  };
+
+  useEffect(() => clearTouchDismiss, [clearTouchDismiss]);
 
   useEffect(() => {
     const card = root.current?.closest("[data-card-actions-container]");
@@ -85,7 +96,7 @@ export function CardActions({
           ),
         )}
       {((compact && secondary.length > 0) || menuItems || open) && (
-        <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenu open={open} onOpenChange={changeOpen}>
           <DropdownMenuTrigger asChild>
             <IconAction
               ref={triggerRef}
@@ -97,6 +108,24 @@ export function CardActions({
             </IconAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent
+            onPointerDownOutside={(event) => {
+              const pointer = event.detail.originalEvent;
+              if (pointer.pointerType !== "touch" || pointer.button !== 0) return;
+              const ownerDocument = document;
+              // Closing on touchstart lets the trailing native click steal restored trigger focus.
+              event.preventDefault();
+              clearTouchDismiss();
+              const cancel = (cancelled: PointerEvent) => {
+                if (cancelled.pointerId === pointer.pointerId) clearTouchDismiss();
+              };
+              const finish = () => changeOpen(false);
+              ownerDocument.addEventListener("click", finish, { once: true, capture: true });
+              ownerDocument.addEventListener("pointercancel", cancel, true);
+              pendingTouchDismiss.current = () => {
+                ownerDocument.removeEventListener("click", finish, true);
+                ownerDocument.removeEventListener("pointercancel", cancel, true);
+              };
+            }}
             onCloseAutoFocus={(event) => {
               const action = selectedAction.current;
               selectedAction.current = null;

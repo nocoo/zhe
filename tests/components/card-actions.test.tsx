@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Eye, Trash2 } from "lucide-react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -98,4 +98,76 @@ it("keeps pending and disabled actions inert, with readable menu labels", async 
 it("does not invent a menu for a card with only a primary action", () => {
   render(<CardActions primary={primary} secondary={[]} />);
   expect(screen.queryByRole("button", { name: "更多收藏操作" })).toBeNull();
+});
+
+it("defers outside touch dismissal until click and ignores another pointer's cancellation", async () => {
+  const user = userEvent.setup();
+  render(
+    <CardActions primary={primary} secondary={[{ label: "Hide", icon: Eye, onSelect: vi.fn() }]} />,
+  );
+  const more = screen.getByRole("button", { name: "更多收藏操作" });
+  await user.click(more);
+  fireEvent.pointerDown(document.body, { pointerType: "touch", button: 0, pointerId: 7 });
+  expect(screen.getByRole("menu")).toBeVisible();
+  fireEvent.pointerCancel(document.body, { pointerId: 8 });
+  fireEvent.click(document.body);
+  expect(screen.queryByRole("menu")).toBeNull();
+  await vi.waitFor(() => expect(more).toHaveFocus());
+});
+
+it("preserves immediate dismissal for mouse and non-primary outside pointers", async () => {
+  const user = userEvent.setup();
+  render(
+    <CardActions primary={primary} secondary={[{ label: "Hide", icon: Eye, onSelect: vi.fn() }]} />,
+  );
+  const more = screen.getByRole("button", { name: "更多收藏操作" });
+  for (const pointer of [
+    { pointerType: "mouse", button: 0 },
+    { pointerType: "touch", button: 2 },
+  ]) {
+    await user.click(more);
+    fireEvent.pointerDown(document.body, pointer);
+    expect(screen.queryByRole("menu")).toBeNull();
+  }
+});
+
+it("keeps a cancelled touch open and clears pending dismissal across Escape and reopening", async () => {
+  const user = userEvent.setup();
+  render(
+    <CardActions primary={primary} secondary={[{ label: "Hide", icon: Eye, onSelect: vi.fn() }]} />,
+  );
+  const more = screen.getByRole("button", { name: "更多收藏操作" });
+  await user.click(more);
+  fireEvent.pointerDown(document.body, { pointerType: "touch", button: 0, pointerId: 7 });
+  fireEvent.pointerCancel(document.body, { pointerId: 7 });
+  fireEvent.click(document.body);
+  expect(screen.getByRole("menu")).toBeVisible();
+  fireEvent.pointerDown(document.body, { pointerType: "touch", button: 0, pointerId: 9 });
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("menu")).toBeNull();
+  await user.click(more);
+  fireEvent.click(screen.getByRole("menu"));
+  expect(screen.getByRole("menu")).toBeVisible();
+});
+
+it("replaces pending touch listeners and removes them when the card unmounts", async () => {
+  const user = userEvent.setup();
+  const added = vi.spyOn(document, "addEventListener");
+  const removed = vi.spyOn(document, "removeEventListener");
+  const { unmount } = render(
+    <CardActions primary={primary} secondary={[{ label: "Hide", icon: Eye, onSelect: vi.fn() }]} />,
+  );
+  await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+  const start = added.mock.calls.length;
+  fireEvent.pointerDown(document.body, { pointerType: "touch", button: 0, pointerId: 7 });
+  fireEvent.pointerDown(document.body, { pointerType: "touch", button: 0, pointerId: 9 });
+  const listeners = added.mock.calls
+    .slice(start)
+    .filter(([name]) => name === "click" || name === "pointercancel");
+  expect(listeners).toHaveLength(4);
+  unmount();
+  for (const [name, listener] of listeners)
+    expect(removed).toHaveBeenCalledWith(name, listener, true);
+  added.mockRestore();
+  removed.mockRestore();
 });
