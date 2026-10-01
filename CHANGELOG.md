@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.1.9] - 2026-10-01
+
+### Added
+- Unify local Demo, E2E and Production selection with owned native D1, KV and R2 environments.
+
+### Changed
+- Upgrade AI SDK providers, AWS S3 SDKs, URL metadata, Lucide, OpenCLI, Node types, Biome, Vite, Vitest and Cloudflare tooling.
+- Authenticate local fixtures through Auth.js and isolate automated credentials, ports, builds and storage.
+- Document local environment operation and the shared media connector plan.
+
+### Fixed
+- Upgrade Next.js to 16.3.8 and patch Undici in Web, Worker and CLI dependency trees.
+- Synchronize the OpenCLI adapter version guard with its installed dependency.
+- Use provider-boundary fixtures instead of Xray business mocks and verify environment lifecycle and browser captures.
+- Smooth local environment switching and keep the sign-in label on one line.
+- Record the existing analytics.source schema fix in migration 0036 for fresh databases; production already has the column.
+
+### Removed
+- Remove unused lint-staged and its configuration; retain full staged-snapshot lint checks.
+- Remove the filesystem R2 test backend in favor of native local bindings.
+
 ## [v2.1.8] - 2026-09-26
 
 ### Added
