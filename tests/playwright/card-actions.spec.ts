@@ -107,7 +107,10 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.keyboard.press("ArrowDown");
       await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
       await page.keyboard.press("Escape");
+      await expect(menu).not.toBeVisible();
+      await expect(more).toBeFocused();
       await more.tap();
+      await expect(menu).toBeVisible();
       await page.touchscreen.tap(width - 5, 100);
       await expect(menu).not.toBeVisible();
       await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
