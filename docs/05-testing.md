@@ -257,24 +257,11 @@ exec bun x tsc --noEmit
 | `suspicious/noFocusedTests` / `noSkippedTests` | error（测试） |
 | `complexity/noExcessiveCognitiveComplexity` | warn，max 35（scripts/tests off） |
 
-#### lint-staged 增量 Lint
+#### Index-snapshot lint
 
-pre-commit 使用 **lint-staged** 只检查暂存区文件：
-
-```bash
-# .husky/pre-commit 中
-bunx lint-staged
-```
-
-`package.json` → `lint-staged`：
-
-```json
-{
-  "*.{ts,tsx,js,jsx,json,css,md}": [
-    "biome check --error-on-warnings --no-errors-on-unmatched"
-  ]
-}
-```
+Pre-commit exports the staged tree with `git checkout-index` and runs
+`bun run lint` against the entire snapshot. It does not use `lint-staged`
+or modify source files. The unused dependency and configuration are removed.
 
 #### 命令
 
@@ -388,16 +375,17 @@ The manual L3 stress workflow remains available for targeted investigation.
 
 ```bash
 #!/usr/bin/env bash
-# 5 个任务并行执行，任一失败则阻止提交
-
-run_bg unit_cov   bun run test:unit:coverage   # L1 单元 + 覆盖率门槛
-run_bg integ      bun run test:integration      # L1 集成测试
-run_bg typecheck  bun run typecheck             # G1 tsc --noEmit
-run_bg lint       bunx lint-staged              # G1 Biome（仅变更文件）
-run_bg gitleaks   gitleaks protect --staged     # G2 secrets 扫描
+# Sequential checks inside the exported index snapshot.
+bun x next typegen
+bun run test:unit:coverage
+bun run test:integration
+bun x tsc --noEmit
+bun run lint
+# Secret scanning runs against the original repository index.
+gitleaks protect --staged --no-banner
 ```
 
-**执行时间**：~10 秒
+Target duration: under 30 seconds; current timing is not verified.
 
 ### pre-push（L2 + G2）
 

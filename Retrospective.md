@@ -264,3 +264,13 @@ state; a selected pending segment is not proof of startup. Development HMR can
 also preserve an Auth.js callback query on the landing page, so navigation checks
 match its origin and pathname. A failed manual verification left its known Demo
 text suffix behind; restored only that suffix before rerunning the check.
+
+## 2026-10-01: Reject mirror lockfile churn before staging
+
+During dependency cleanup, a temporary Bun registry override expanded 688 empty
+lockfile resolution URLs into Tencent mirror URLs. I noticed the nonzero URL
+check but incorrectly let the command continue into staging and a commit hook.
+I cancelled that commit before completion, normalized only those registry URL
+fields, and reviewed the resulting dependency diff. Future dependency commits
+must treat a nonzero mirror-URL count as a blocking check before staging, not as
+informational output. Registry normalization must preserve versions and hashes.
