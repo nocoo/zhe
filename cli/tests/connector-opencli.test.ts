@@ -212,7 +212,7 @@ describe("pinned OpenCLI adapter contract", () => {
     expect(state.closeWindow).toBe(1);
     expect(state.closed).toBe(1);
   });
-  it.each(["0.0.0", "1.8.6"])(
+  it.each(["0.0.0", "1.8.6", "1.8.7"])(
     "refuses unsupported adapter version %s before opening the browser",
     async (version) => {
       await writeFile(join(root, "package.json"), JSON.stringify({ version }));
