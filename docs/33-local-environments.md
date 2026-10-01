@@ -102,7 +102,10 @@ imports the unchanged production Worker for business/D1 routes and supplies
 native R2 and KV provider boundaries. It does not implement application CRUD.
 The old filesystem R2 implementation and HTTP shim were removed.
 
-Startup rejects differences in compatibility date/flags. The reviewed production/local compatibility date is `2025-01-01`, with no
+Startup compares compatibility date/flags against the tracked production template
+`worker/wrangler.toml.example`, never the ignored machine-local credentials/config
+file. Deployments must keep their configuration aligned with that template.
+The reviewed production/local compatibility date is `2025-01-01`, with no
 compatibility flags. Both execute the same edge rate-limit and static forwarding
 code. Intentional binding differences are local D1/KV IDs, a local R2 binding,
 loopback origin and fixture secrets. R2's local HTTP transport uses expiring,

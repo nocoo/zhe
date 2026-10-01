@@ -284,7 +284,10 @@ export interface StartOptions {
 }
 
 export async function startLocalStack(opts: StartOptions = {}): Promise<LocalStack> {
-  const production = readFileSync(pathResolve(PROJECT_ROOT, "worker/wrangler.toml"), "utf8");
+  const production = readFileSync(
+    pathResolve(PROJECT_ROOT, "worker/wrangler.toml.example"),
+    "utf8",
+  );
   const local = readFileSync(pathResolve(PROJECT_ROOT, "worker/wrangler.local.toml"), "utf8");
   for (const key of ["compatibility_date", "compatibility_flags"]) {
     const pattern = new RegExp(`^${key}\\s*=\\s*("[^"\\n]*"|\\[[\\s\\S]*?\\])`, "m");

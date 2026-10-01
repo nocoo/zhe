@@ -274,3 +274,16 @@ I cancelled that commit before completion, normalized only those registry URL
 fields, and reviewed the resulting dependency diff. Future dependency commits
 must treat a nonzero mirror-URL count as a blocking check before staging, not as
 informational output. Registry normalization must preserve versions and hashes.
+
+## 2026-10-01: Local success did not prove clean-checkout deployability
+
+Release v2.1.9 passed the local L2/L3 suites but failed both clean GitHub runners
+and the Railway Docker build. The local stack read ignored worker/wrangler.toml
+for compatibility checks; Railway excluded scripts/ even though application
+modules imported three files beneath it. The local checkout masked both missing
+inputs. Production stayed on v2.1.8; the published v2.1.9 tag is not rewritten.
+
+The stack now checks the tracked production template. Docker includes only the
+three runtime-imported helpers, not the local launchers. Verification must use
+an exported tracked tree for L2/L3 and a Docker-context-equivalent source tree
+for builds, in addition to checking the user's ordinary checkout.

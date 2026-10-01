@@ -13,7 +13,12 @@ AGENTS.md
 README.md
 worker
 logo.png
-scripts
+scripts/*
+!scripts/lib
+scripts/lib/*
+!scripts/lib/environment-mode.ts
+!scripts/lib/local-client-script.ts
+!scripts/lib/provider-fixtures.ts
 .artifacts
 .connector
 .test-storage
