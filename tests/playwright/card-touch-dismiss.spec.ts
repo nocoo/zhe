@@ -6,7 +6,7 @@ test.use({ viewport: { width: 375, height: 932 }, isMobile: true, hasTouch: true
 for (const colorScheme of ["light", "dark"] as const) {
   test.describe(colorScheme, () => {
     test.use({ colorScheme });
-    test("outside touch completes before menu dismissal and focus return", async ({
+    test("outside touch preserves restored menu trigger focus after gesture completion", async ({
       page,
       owner,
     }) => {
@@ -28,7 +28,8 @@ for (const colorScheme of ["light", "dark"] as const) {
           type: "touchStart",
           touchPoints: [{ x: 370, y: 100 }],
         });
-        await expect(menu).toBeVisible();
+        await expect(menu).toBeHidden();
+        await expect(more).toBeFocused();
         await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         touching = false;
         await expect(menu).toBeHidden();
@@ -41,9 +42,13 @@ for (const colorScheme of ["light", "dark"] as const) {
           type: "touchStart",
           touchPoints: [{ x: 370, y: 100 }],
         });
-        await expect(menu).toBeVisible();
+        await expect(menu).toBeHidden();
+        await expect(more).toBeFocused();
         await session.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
         touching = false;
+        await expect(menu).toBeHidden();
+        await expect(more).toBeFocused();
+        await more.tap();
         await expect(menu).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(menu).toBeHidden();
