@@ -467,7 +467,7 @@ body:has([data-floating-selection]) .global-create-fab {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .create-dialog[data-state="open"] {
+  .create-dialog[data-state] {
     animation: none;
   }
 }

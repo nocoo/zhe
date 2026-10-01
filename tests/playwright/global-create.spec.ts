@@ -144,3 +144,38 @@ test("global creation follows page navigation and returns from contextual dialog
   await fab.click();
   expect((await chooser).isMultiple()).toBe(true);
 });
+
+test("global creation honors reduced motion for both dialog states", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/dashboard");
+  const fab = page.getByTestId("global-create");
+  const dialog = page.getByRole("dialog");
+  const closedAnimation = () =>
+    dialog.evaluate((element) => {
+      const probe = document.createElement("div");
+      probe.className = element.className;
+      probe.dataset.state = "closed";
+      document.body.append(probe);
+      try {
+        return getComputedStyle(probe).animationName;
+      } finally {
+        probe.remove();
+      }
+    });
+  await fab.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS("animation-name", "none");
+  expect(await closedAnimation()).toBe("none");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(fab).toBeFocused();
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await fab.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toHaveCSS("animation-name", "none");
+  expect(await closedAnimation()).not.toBe("none");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(fab).toBeFocused();
+});
