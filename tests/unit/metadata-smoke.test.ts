@@ -1,22 +1,4 @@
 // @vitest-environment node
-/**
- * Runtime smoke test for the url-metadata / cheerio / undici deps.
- *
- * Purpose: guard against runtime regressions from the `undici` override
- * pinned in package.json (>=8.9.0). The unit-level `metadata.test.ts` mocks
- * `url-metadata`, so nothing there actually exercises the transitive
- * cheerio / undici versions. This spec drives three independent checks:
- *
- *   1. `urlMetadata()` (the real dep, which uses node-fetch internally
- *      to fetch and then cheerio to parse) against a local HTTP fixture —
- *      proves the real application path still works after the override.
- *   2. `cheerio.load()` on a known HTML snippet — proves the pinned
- *      cheerio version still parses correctly.
- *   3. The resolved `undici` package version (read from its package.json)
- *      is unconditionally asserted to satisfy the >=8.9.0 override and
- *      `undici.request()` is exercised against the same fixture — locks
- *      the override in against a silent downgrade below 8.9.0.
- */
 import { createServer, get as httpGet, type Server } from "node:http";
 import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
@@ -102,21 +84,11 @@ describe("metadata smoke — real url-metadata / cheerio / undici", () => {
     expect($("h1").text()).toBe("Hello");
   });
 
-  it("installed undici satisfies the >=8.9.0 override (patches CVEs in 8.5.0) and request() works", async () => {
-    // Read the resolved version from undici's own package.json (the top-level
-    // `undici` export doesn't expose a runtime version field on 8.10.0).
-    // Assert unconditionally: a missing/malformed field, or a version
-    // below >=8.9.0, must fail. This is the guard against a silent
-    // downgrade of the override back to a vulnerable 8.5.x.
-    const version = undiciPkg.version;
-    expect(typeof version).toBe("string");
-    const match = version.match(/^(\d+)\.(\d+)\.(\d+)/);
-    if (!match) throw new Error(`unparseable undici version: ${version}`);
-    const major = Number.parseInt(match[1] ?? "", 10);
-    const minor = Number.parseInt(match[2] ?? "", 10);
-    // Override is `undici >=8.9.0` (open-ended) — anything at or above 8.9.0 clears the CVEs.
-    const satisfies = major > 8 || (major === 8 && minor >= 9);
-    expect(satisfies, `undici must be >=8.9.0, got ${version}`).toBe(true);
+  it("uses a patched undici release and requests the local fixture", async () => {
+    expect(undiciPkg.version).toMatch(/^\d+\.\d+\.\d+$/);
+    const [major = 0, minor = 0, patch = 0] = undiciPkg.version.split(".").map(Number);
+    const patched = major > 8 || (major === 8 && (minor > 11 || (minor === 11 && patch >= 2)));
+    expect(patched, `undici must be >=8.11.2, got ${undiciPkg.version}`).toBe(true);
 
     const { statusCode, body } = await undiciRequest(baseUrl);
     expect(statusCode).toBe(200);
