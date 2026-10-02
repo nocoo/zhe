@@ -107,7 +107,10 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.keyboard.press("ArrowDown");
       await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
       await page.keyboard.press("Escape");
+      await expect(menu).not.toBeVisible();
+      await expect(more).toBeFocused();
       await more.tap();
+      await expect(menu).toBeVisible();
       await page.touchscreen.tap(width - 5, 100);
       await expect(menu).not.toBeVisible();
       await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
@@ -208,9 +211,10 @@ test("selection keeps a tall card stationary and Escape exits without scrolling"
   const choice = page.getByRole("checkbox", { name: "选择 Tall selection card" });
   await expect(choice).toBeVisible();
   const overlay = page.locator("label").filter({ has: choice });
-  const point = await overlay.evaluate((el) => {
+  const point = await overlay.evaluate(async (el) => {
     const wrapper = el.parentElement;
     if (!wrapper) throw new Error("Missing selection wrapper");
+    await Promise.all(wrapper.getAnimations().map((animation) => animation.finished));
     wrapper.style.minHeight = "1400px";
     let scroller = wrapper.parentElement;
     while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))
