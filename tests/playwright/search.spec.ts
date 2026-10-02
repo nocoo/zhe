@@ -157,13 +157,18 @@ test.describe("Cmd+K search", () => {
     await expect(resultItem).toBeVisible({ timeout: 5_000 });
 
     // cmdk fires onSelect on Enter — listen for popup (new tab via window.open)
+    await page.context().route(url1, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<title>Navigation fixture</title>",
+      }),
+    );
     const popupPromise = page.waitForEvent("popup");
     await page.keyboard.press("Enter");
     const popup = await popupPromise;
 
-    // The popup should navigate to the original URL
-    await popup.waitForLoadState();
-    expect(popup.url()).toContain("playwright.dev");
+    await expect(popup).toHaveURL(url1);
     await popup.close();
   });
 
