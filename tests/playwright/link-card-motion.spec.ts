@@ -241,8 +241,9 @@ test("early dismissal and resizing a dark editor still return to the card", asyn
   const trigger = card.getByRole("button", { name: "更多收藏操作", exact: true });
   const dialog = page.getByTestId("card-edit-dialog");
   await (await cardAction(page, card, "修改收藏")).click();
-  await expect(dialog).toBeAttached();
+  await freezeFlight(dialog, 0);
   await page.keyboard.press("Escape");
+  await resumeFlight(dialog);
   await expect(dialog).not.toBeAttached();
   await expect(card).toBeVisible();
   await expect(trigger).toBeFocused();

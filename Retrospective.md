@@ -311,3 +311,5 @@ Basalt's `md:p-5` overrode the shell's unprefixed `pb-24`, leaving only 20px of
 desktop bottom clearance. The floating create button covered the last card's
 More button even at maximum scroll. Restore the intended padding at the desktop
 breakpoint and verify hit testing plus an actual click at the end of the collection.
+For menu-launched editors, test early Escape after the opening flight starts;
+mere DOM attachment can precede the dialog's keyboard listener registration.
