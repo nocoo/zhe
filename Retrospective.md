@@ -305,3 +305,9 @@ accept an intermediate card squeezed to 75px.
 The shared browser action helper must still await the adaptive upload/idea
 toolbar's ResizeObserver; removing that wait for fixed bookmark toolbars made
 an unchanged upload flow look for a menu item that had just moved outside.
+
+The final GitHub journey revealed a real obstruction, not another selector issue:
+Basalt's `md:p-5` overrode the shell's unprefixed `pb-24`, leaving only 20px of
+desktop bottom clearance. The floating create button covered the last card's
+More button even at maximum scroll. Restore the intended padding at the desktop
+breakpoint and verify hit testing plus an actual click at the end of the collection.

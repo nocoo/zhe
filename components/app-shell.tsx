@@ -149,7 +149,7 @@ function AppShellInner({
           }
         />
         <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 md:px-3 md:pb-3">
-          <ContentIsland className="rounded-island pb-24">{children}</ContentIsland>
+          <ContentIsland className="rounded-island pb-24 md:pb-24">{children}</ContentIsland>
         </div>
         <GlobalCreateAction />
       </AppMain>

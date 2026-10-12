@@ -211,6 +211,9 @@ and Delete, with a separator before Delete. Desktop targets are 32px; coarse-poi
 targets are at least 44px. Disabled AI remains in its slot with an explanation.
 Menus return focus before invoking modal actions; pending deletion prevents dismissal
 and duplicate confirmation. Deletion preserves the existing destruction/reflow motion.
+The shell reserves bottom clearance at both base and desktop breakpoints
+(`pb-24 md:pb-24`) so the floating create button cannot block last-row actions
+after scrolling to the end.
 
 Screenshot deletion belongs only in the editor, and uses the existing owned-object
 cleanup action. Data collection and event history share the enrichment dialog,

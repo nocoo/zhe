@@ -191,6 +191,45 @@ for (const collection of ["ideas", "uploads"] as const) {
 
 test.describe("desktop", () => {
   test.use({ isMobile: false, hasTouch: false, viewport: { width: 1365, height: 1000 } });
+  test("last-row actions remain clickable above the floating create button", async ({
+    page,
+    owner,
+  }) => {
+    for (let index = 0; index < 6; index++)
+      await executeD1(
+        "INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES(?,?,?,?,?)",
+        [
+          owner,
+          `${owner}-${index}`,
+          `https://github.com/example/repository-${index}`,
+          `Repository ${index}`,
+          Date.now(),
+        ],
+      );
+    await page.goto("/dashboard/github");
+    const cards = page.getByTestId("github-repository");
+    await expect(cards).toHaveCount(6);
+    const last = cards.last();
+    await last.evaluate((element) => {
+      let scroller = element.parentElement;
+      while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))
+        scroller = scroller.parentElement;
+      if (!scroller) throw new Error("Missing collection scroller");
+      scroller.scrollTop = scroller.scrollHeight;
+    });
+    const more = last.getByRole("button", { name: "更多收藏操作" });
+    await expect
+      .poll(() =>
+        more.evaluate((button) => {
+          const box = button.getBoundingClientRect();
+          const target = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return target !== null && button.contains(target);
+        }),
+      )
+      .toBe(true);
+    await more.click();
+    await expect(page.getByRole("menuitem", { name: "修改收藏" })).toBeVisible();
+  });
   test("wide lists keep secondary actions in more", async ({ page, owner }) => {
     await executeD1(
       "INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES(?,?,?,?,?)",
