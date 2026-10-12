@@ -36,13 +36,7 @@ const test = base.extend<{ owner: string }>({
 
 type Collection = "grid" | "list" | "github" | "x";
 
-const desktopColumns = [
-  [1728, 6],
-  [2056, 6],
-  [2559, 6],
-  [2560, 8],
-  [3360, 8],
-] as const;
+const desktopWidths = [1728, 2056, 2559, 2560, 3360] as const;
 
 async function seedCollection(page: Page, owner: string, collection: Collection) {
   const now = Date.now();
@@ -83,6 +77,7 @@ async function seedCollection(page: Page, owner: string, collection: Collection)
 async function settle(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     await Promise.all(
       document
         .getAnimations()
@@ -102,17 +97,7 @@ async function positions(cards: Locator) {
 }
 
 async function openEditor(page: Page, card: Locator, collection: Collection) {
-  if (collection === "x" || collection === "github") {
-    await card.getByRole("button", { name: "更多收藏操作" }).click();
-    await page.getByRole("menuitem", { name: "编辑收藏" }).click();
-  } else {
-    await card
-      .getByRole("button", {
-        name: "Edit link",
-        exact: true,
-      })
-      .click();
-  }
+  await (await cardAction(page, card, "修改收藏")).click();
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
   if (collection === "list") {
@@ -127,8 +112,8 @@ async function openEditor(page: Page, card: Locator, collection: Collection) {
   return dialog;
 }
 
-async function confirmDelete(page: Page, editor: Locator) {
-  await editor.getByRole("button", { name: "Delete link" }).click();
+async function confirmDelete(page: Page, card: Locator) {
+  await (await cardAction(page, card, "删除收藏")).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "删除", exact: true }).click();
 }
 
@@ -216,9 +201,7 @@ for (const collection of ["grid", "list", "x", "github"] as const) {
         .toBeGreaterThan(0);
       assert(before);
       if (collection === "list") expect(before.columns).toBe("none");
-      if (collection === "github") expect(before.height).toBe(244);
-      if (collection === "x")
-        expect(await skeleton.getAttribute("class")).toContain("auto-rows-[1px]");
+      if (collection !== "list") expect(before.height).toBeCloseTo(384, 2);
       await page.emulateMedia({ reducedMotion: "reduce" });
       expect(
         await skeleton
@@ -256,7 +239,7 @@ for (const collection of ["grid", "list", "x", "github"] as const) {
       expect(
         await container.evaluate((element) => getComputedStyle(element).gridTemplateColumns),
       ).toBe(before.columns);
-      if (collection === "github" || collection === "grid") {
+      if (collection !== "list") {
         expect(
           await cards.first().evaluate((element) => element.getBoundingClientRect().height),
         ).toBeCloseTo(before.height ?? 0, 0);
@@ -276,24 +259,43 @@ for (const collection of ["grid", "list", "x", "github"] as const) {
   });
 }
 
-for (const collection of ["grid", "x"] as const) {
-  test(`${collection}: uses six columns on MacBook and eight on large displays`, async ({
+for (const collection of ["grid", "x", "github"] as const) {
+  test(`${collection}: column count follows available container width`, async ({
     page,
     owner,
   }, info) => {
     const cards = await seedCollection(page, owner, collection);
-    for (const [width, columns] of desktopColumns) {
+    const container = page.getByTestId(
+      collection === "github" ? "github-repositories" : collection === "x" ? "x-feed" : "card-grid",
+    );
+    for (const width of desktopWidths) {
       await page.setViewportSize({ width, height: 1117 });
       await expect
         .poll(() =>
-          cards.evaluateAll((elements) => {
-            const first = elements[0]?.getBoundingClientRect();
-            return elements.filter(
-              (element) => Math.abs(element.getBoundingClientRect().y - (first?.y ?? 0)) < 1,
-            ).length;
+          container.evaluate((element) => {
+            const style = getComputedStyle(element);
+            const available = element.getBoundingClientRect().width;
+            const gap = Number.parseFloat(style.columnGap);
+            const minimum = Math.min(
+              available,
+              18 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+            );
+            const expected = Math.max(1, Math.floor((available + gap) / (minimum + gap)));
+            return style.gridTemplateColumns.split(" ").length === expected;
           }),
         )
-        .toBe(columns);
+        .toBe(true);
+      const columns = await container.evaluate(
+        (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+      );
+      expect(
+        await cards.evaluateAll((elements) => {
+          const first = elements[0]?.getBoundingClientRect();
+          return elements.filter(
+            (element) => Math.abs(element.getBoundingClientRect().y - (first?.y ?? 0)) < 1,
+          ).length;
+        }),
+      ).toBe(Math.min(columns, 8));
       if (width === 1728 || width === 3360) {
         await page.screenshot({
           path: info.outputPath(`${collection}-${width}.png`),
@@ -304,55 +306,77 @@ for (const collection of ["grid", "x"] as const) {
   });
 }
 
-test("x: masonry keeps newest cards across the top and repacks on resize", async ({
-  page,
-  owner,
-}) => {
-  const cards = await seedCollection(page, owner, "x");
-  for (let index = 0; index < 8; index++) {
-    await expect(cards.nth(index)).toContainText(`Saved link ${index + 1}`);
-  }
-  for (const [width, columns] of [
-    [1280, 6],
-    [1920, 6],
-    [768, 4],
-    [375, 2],
-  ] as const) {
-    await page.setViewportSize({ width, height: 1000 });
-    await expect
-      .poll(async () => {
-        const boxes = await cards.evaluateAll((elements) =>
-          elements.map((element) => {
-            const { x, y, bottom } = element.getBoundingClientRect();
-            return { x, y, bottom };
-          }),
-        );
-        const first = boxes[0];
-        const nextRow = boxes[columns];
-        assert(first && nextRow);
-        const firstRow = boxes.filter((box) => Math.abs(box.y - first.y) < 1);
-        const ordered = boxes.every((box, index) => {
-          const previous = boxes[index - 1];
-          return !previous || box.y > previous.y || (box.y === previous.y && box.x > previous.x);
-        });
-        return {
-          columns: firstRow.length,
-          ordered,
-          packed: Math.abs(nextRow.y - first.bottom - 12) < 1,
-          staggered: nextRow.y < Math.max(...firstRow.map((box) => box.bottom)),
-        };
-      })
-      .toEqual({ columns, ordered: true, packed: true, staggered: true });
-  }
-  // Media loading and expanded text can change heights without a React list update.
-  const before = await positions(cards);
-  await cards.first().evaluate((element) => {
-    element.style.minHeight = `${element.getBoundingClientRect().height + 120}px`;
+for (const collection of ["grid", "x", "github"] as const) {
+  test(`${collection}: equal-height cards keep aligned footers and reading order on resize`, async ({
+    page,
+    owner,
+  }) => {
+    const cards = await seedCollection(page, owner, collection);
+    for (let index = 0; index < 8; index++) {
+      await expect(cards.nth(index)).toContainText(
+        collection === "github"
+          ? `motion/repository-${index}`
+          : collection === "x"
+            ? `/${owner}-${index}`
+            : `Saved link ${index + 1}`,
+      );
+    }
+    for (const width of [1280, 1920, 768, 375]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await settle(page);
+      const boxes = await cards.evaluateAll((elements) =>
+        elements.map((element) => {
+          const { x, y, height, bottom } = element.getBoundingClientRect();
+          const footer = element.querySelector("[data-bookmark-footer]");
+          const classification = element.querySelector("[data-bookmark-classification]");
+          const actions = element.querySelector("[data-bookmark-action-row]");
+          if (!footer || !classification || !actions) throw new Error("Missing unified footer");
+          return {
+            x,
+            y,
+            height,
+            bottom,
+            footerTop: footer.getBoundingClientRect().top - y,
+            classificationTop: classification.getBoundingClientRect().top - y,
+            actionsTop: actions.getBoundingClientRect().top - y,
+            widths: [
+              element.clientWidth,
+              element.scrollWidth,
+              footer.clientWidth,
+              footer.scrollWidth,
+            ],
+            fits:
+              element.scrollWidth <= element.clientWidth &&
+              footer.scrollWidth <= footer.clientWidth,
+          };
+        }),
+      );
+      const first = boxes[0];
+      assert(first);
+      for (const [index, box] of boxes.entries()) {
+        expect(box.height).toBeCloseTo(384, 2);
+        expect(box.footerTop).toBeCloseTo(first.footerTop, 0);
+        expect(box.classificationTop).toBeCloseTo(first.classificationTop, 0);
+        expect(box.actionsTop).toBeCloseTo(first.actionsTop, 0);
+        expect(box.actionsTop).toBeGreaterThan(box.classificationTop);
+        expect(box.fits, JSON.stringify({ width, index, box })).toBe(true);
+        const previous = boxes[index - 1];
+        if (previous)
+          expect(
+            box.y > previous.y || (Math.abs(box.y - previous.y) < 1 && box.x > previous.x),
+          ).toBe(true);
+      }
+      const nextRow = boxes.find((box) => box.y > first.y + 1);
+      if (nextRow) expect(nextRow.y - first.bottom).toBeCloseTo(12, 0);
+      await expect(cards.locator("[data-bookmark-action-row] time")).toHaveCount(8);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+    }
   });
-  await expect.poll(async () => (await positions(cards))[2]?.y).toBeGreaterThan(before[2]?.y ?? 0);
-});
+}
 
-for (const collection of ["grid", "list", "github"] as const) {
+for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: deletion smoothly fills the vacancy`, async ({ page, owner }, info) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     const errors: string[] = [];
@@ -360,19 +384,18 @@ for (const collection of ["grid", "list", "github"] as const) {
     const cards = await seedCollection(page, owner, collection);
     const id = await cards.first().getAttribute("data-link-id");
     const card = cards.and(page.locator(`[data-link-id="${id}"]`));
-    let editor = await openEditor(page, card, collection);
     if (collection === "list" || collection === "github") {
+      const editor = await openEditor(page, card, collection);
       await editor.getByLabel("备注", { exact: true }).fill("Saved from the shared editor");
       await page.screenshot({ path: info.outputPath(`${collection}-editor.png`) });
       await editor.getByRole("button", { name: "保存", exact: true }).click();
       await expect(editor).not.toBeAttached();
       await expect(card).toContainText("Saved from the shared editor");
       await settle(page);
-      editor = await openEditor(page, card, collection);
     }
     const before = await positions(cards);
     const restoreAnimations = await pauseReflows(page);
-    await confirmDelete(page, editor);
+    await confirmDelete(page, card);
     await expect(card).not.toBeAttached();
     await seekReflows(page, 0);
     expectSamePositions(await positions(cards), before);
@@ -391,7 +414,7 @@ for (const collection of ["grid", "list", "github"] as const) {
     if (collection === "list") {
       const nextId = await cards.first().getAttribute("data-link-id");
       const nextCard = cards.and(page.locator(`[data-link-id="${nextId}"]`));
-      await confirmDelete(page, await openEditor(page, nextCard, collection));
+      await confirmDelete(page, nextCard);
       await expect(nextCard).not.toBeAttached();
       await seekReflows(page, 0);
       expectSamePositions(await positions(cards), middle);
@@ -407,7 +430,7 @@ for (const collection of ["grid", "list", "github"] as const) {
     const after = await positions(cards);
     expect(after[0]?.x).toBeCloseTo(before[0]?.x ?? 0, 0);
     expect(after[0]?.y).toBeCloseTo(before[0]?.y ?? 0, 0);
-    if (collection === "grid" || collection === "github") {
+    if (collection !== "list") {
       expect(
         after.some((position) => {
           const original = before.find(({ id: previousId }) => previousId === position.id);
@@ -439,7 +462,7 @@ test("reduced motion fills the vacancy immediately on a narrow screen", async ({
   const cards = await seedCollection(page, owner, "grid");
   const before = await positions(cards);
   const card = cards.and(page.locator(`[data-link-id="${before[0]?.id}"]`));
-  await confirmDelete(page, await openEditor(page, card, "grid"));
+  await confirmDelete(page, card);
   await expect(card).not.toBeAttached();
   expect(
     await page.evaluate(

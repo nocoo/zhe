@@ -65,10 +65,7 @@ for (const scenario of [
       const card = page.locator(`[data-link-id="${linkId}"]`).first();
       // Allow the isolated dev server to compile the collection and finish its initial load.
       await expect(card).toBeVisible({ timeout: 15_000 });
-      if (scenario.source === "x" || scenario.source === "github") {
-        await card.getByRole("button", { name: "更多收藏操作" }).click();
-        await page.getByRole("menuitem", { name: "AI 整理" }).click();
-      } else await (await cardAction(page, card, "AI 整理")).click();
+      await (await cardAction(page, card, "AI 整理")).click();
       const dialog = page.getByTestId("suggest-link-org-dialog");
       await expect(page.getByTestId("suggest-title")).toHaveValue("整理后的短标题");
       await expect(page.getByTestId("suggest-step-ready")).toHaveAttribute("data-state", "done");

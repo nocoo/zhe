@@ -60,6 +60,71 @@ export function EnrichmentTaskStatus({ task }: { task: EnrichmentTask }) {
   );
 }
 
+function CreatedTimestamp({ value }: { value: Date | string | number | undefined }) {
+  if (value == null || value === "") return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return (
+    <>
+      {" · "}
+      <time dateTime={date.toISOString()}>{date.toLocaleString("zh-CN")}</time>
+    </>
+  );
+}
+
+function DetailCollectActions({
+  task,
+  link,
+  loading,
+  error,
+  busy,
+  collecting,
+  retrying,
+  collect,
+  retry,
+}: {
+  task: EnrichmentTask | undefined;
+  link: { id: number; originalUrl: string } | undefined;
+  loading: boolean;
+  error: boolean;
+  busy: boolean;
+  collecting: boolean;
+  retrying: boolean;
+  collect: (linkId: number) => Promise<void>;
+  retry: (ids: number[]) => Promise<void>;
+}) {
+  return (
+    <>
+      {!loading && !error && !task && link && (
+        <Button size="sm" disabled={busy} onClick={() => void collect(link.id)}>
+          <RefreshCw className={collecting ? "animate-spin" : ""} />
+          采集
+        </Button>
+      )}
+      {task?.state === "complete" && (
+        <Button size="sm" disabled={busy} onClick={() => void collect(task.linkId)}>
+          <RefreshCw className={collecting ? "animate-spin" : ""} />
+          刷新
+        </Button>
+      )}
+      {task && canRetryEnrichment(task) && (
+        <Button size="sm" disabled={busy} onClick={() => void retry([task.linkId])}>
+          <RefreshCw className={retrying ? "animate-spin" : ""} />
+          重新补全
+        </Button>
+      )}
+      {(task || link) && (
+        <Button variant="outline" size="sm" asChild>
+          <a href={task?.url ?? link?.originalUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink />
+            打开原链接
+          </a>
+        </Button>
+      )}
+    </>
+  );
+}
+
 export function EnrichmentDialog({
   scope,
   onClose,
@@ -71,6 +136,7 @@ export function EnrichmentDialog({
   const { links } = useDashboardService();
   const task = vm.tasks.find((item) => item.linkId === vm.detailId);
   const link = links.find((item) => item.id === vm.detailId);
+  const busy = vm.retrying || vm.collecting || vm.loading || vm.error;
   const allSelected = vm.selectedIds.length > 0 && vm.selectedIds.length === vm.retryable.length;
   return (
     <Dialog
@@ -90,15 +156,13 @@ export function EnrichmentDialog({
               variant="ghost"
               size="icon"
               className="absolute right-3 top-3"
-              aria-label="关闭补全记录"
+              aria-label="关闭数据采集"
             >
               <X />
             </Button>
           </DialogClose>
-          <DialogTitle>补全记录</DialogTitle>
-          <DialogDescription>
-            X 正文与附件、GitHub 仓库、网站截图的排队情况和采集结果
-          </DialogDescription>
+          <DialogTitle>数据采集</DialogTitle>
+          <DialogDescription>查看采集记录，并对单条链接进行首次采集、刷新或重试</DialogDescription>
         </DialogHeader>
         {vm.detailId !== null ? (
           <>
@@ -110,29 +174,19 @@ export function EnrichmentDialog({
               <span className="mr-auto text-xs text-muted-foreground">
                 #{vm.detailId}
                 {task ? ` · ${ENRICHMENT_SOURCES[task.source]}` : ""}
+                <CreatedTimestamp value={link?.createdAt} />
               </span>
-              {task && canRetryEnrichment(task) && (
-                <Button
-                  size="sm"
-                  disabled={vm.retrying}
-                  onClick={() => void vm.retry([task.linkId])}
-                >
-                  <RefreshCw className={vm.retrying ? "animate-spin" : ""} />
-                  重新补全
-                </Button>
-              )}
-              {(task || link) && (
-                <Button variant="outline" size="sm" asChild>
-                  <a
-                    href={task?.url ?? link?.originalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink />
-                    打开原链接
-                  </a>
-                </Button>
-              )}
+              <DetailCollectActions
+                task={task}
+                link={link}
+                loading={vm.loading}
+                error={vm.error}
+                busy={busy}
+                collecting={vm.collecting}
+                retrying={vm.retrying}
+                collect={vm.collect}
+                retry={vm.retry}
+              />
             </div>
             <div className="min-h-0 overflow-y-auto px-5 py-4">
               <h3 className="mb-3 break-words text-base font-medium">
@@ -152,7 +206,7 @@ export function EnrichmentDialog({
               )}
               {vm.loading ? (
                 <p className="py-6 text-sm" role="status">
-                  正在读取补全记录…
+                  正在读取采集记录…
                 </p>
               ) : (
                 <EnrichmentDetails
@@ -172,11 +226,11 @@ export function EnrichmentDialog({
                   value={vm.search}
                   onChange={(event) => vm.setSearch(event.target.value)}
                   placeholder="搜索标题、网址或编号"
-                  aria-label="搜索补全记录"
+                  aria-label="搜索采集记录"
                   className="min-w-40 flex-1"
                 />
                 <Select value={vm.source} onValueChange={vm.setSource}>
-                  <SelectTrigger size="sm" className="w-32" aria-label="补全类型">
+                  <SelectTrigger size="sm" className="w-32" aria-label="采集类型">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -189,7 +243,7 @@ export function EnrichmentDialog({
                   </SelectContent>
                 </Select>
                 <Select value={vm.state} onValueChange={vm.setState}>
-                  <SelectTrigger size="sm" className="w-32" aria-label="补全状态">
+                  <SelectTrigger size="sm" className="w-32" aria-label="采集状态">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -205,7 +259,7 @@ export function EnrichmentDialog({
                 <Button
                   size="icon"
                   variant="outline"
-                  aria-label="刷新补全记录"
+                  aria-label="刷新采集记录"
                   onClick={() => void vm.refresh()}
                 >
                   <RefreshCw />
@@ -225,7 +279,7 @@ export function EnrichmentDialog({
                 <Checkbox
                   aria-label="选择本页可重试任务"
                   checked={allSelected ? true : vm.selectedIds.length ? "indeterminate" : false}
-                  disabled={!vm.retryable.length || vm.retrying}
+                  disabled={!vm.retryable.length || busy}
                   onCheckedChange={vm.toggleAll}
                 />
                 <span className="mr-auto text-xs text-muted-foreground">
@@ -233,7 +287,7 @@ export function EnrichmentDialog({
                 </span>
                 <Button
                   size="sm"
-                  disabled={!vm.selectedIds.length || vm.retrying}
+                  disabled={!vm.selectedIds.length || busy}
                   onClick={() => void vm.retry(vm.selectedIds)}
                 >
                   {vm.retrying ? <Loader2 className="animate-spin" /> : <RefreshCw />}重新补全所选
@@ -244,10 +298,10 @@ export function EnrichmentDialog({
             <div className="min-h-0 overflow-y-auto" data-testid="enrichment-tasks">
               {vm.loading ? (
                 <p className="p-5 text-sm" role="status">
-                  正在读取补全记录…
+                  正在读取采集记录…
                 </p>
               ) : !vm.visible.length ? (
-                <p className="p-5 text-sm text-muted-foreground">没有符合条件的补全记录</p>
+                <p className="p-5 text-sm text-muted-foreground">没有符合条件的采集记录</p>
               ) : (
                 vm.visible.map((item) => (
                   <div
@@ -259,7 +313,7 @@ export function EnrichmentDialog({
                       className="mt-1"
                       aria-label={`选择 ${item.title}`}
                       checked={vm.selectedIds.includes(item.linkId)}
-                      disabled={!canRetryEnrichment(item) || vm.retrying}
+                      disabled={!canRetryEnrichment(item) || busy}
                       onCheckedChange={() => vm.toggle(item.linkId)}
                     />
                     <div className="min-w-0 flex-1 space-y-1.5">
@@ -323,7 +377,7 @@ export function EnrichmentDialog({
         )}
         {vm.error && (
           <p role="alert" className="px-5 py-3 text-sm text-warning">
-            补全记录暂时无法读取，请刷新重试。
+            采集记录暂时无法读取，请刷新重试。
           </p>
         )}
       </DialogContent>

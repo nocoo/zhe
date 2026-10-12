@@ -2,6 +2,7 @@
  * Shared helpers for tag-related E2E specs (tags-create + tags-filter).
  */
 import { expect, type Locator, type Page } from "@playwright/test";
+import { cardAction } from "./card-actions";
 
 /** Wait for link-list page to finish loading inside <main>. */
 export async function waitForLinksPage(page: Page): Promise<void> {
@@ -19,13 +20,15 @@ export async function createLink(page: Page, url: string, slug: string): Promise
   await expect(page.locator('[role="dialog"]:has-text("创建短链接")')).toBeHidden({
     timeout: 30_000,
   });
-  await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: `/${slug}`, exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 /** Enter edit mode for a link card identified by slug text. */
 export async function openEditMode(page: Page, slug: string): Promise<Locator> {
   const card = page.locator(`[data-testid="link-card"]:has-text("${slug}")`).first();
-  await card.getByRole("button", { name: "Edit link" }).first().click();
+  await (await cardAction(page, card, "修改收藏")).click();
   await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
   return card;
 }

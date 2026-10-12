@@ -34,23 +34,24 @@ const test = base.extend<{ owner: string }>({
 test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
 for (const collection of ["grid", "list", "github", "x"] as const) {
-  test(`${collection}: responsive card actions`, async ({ page, owner }) => {
-    await executeD1(
-      "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
-      [
-        owner,
-        "a-very-long-saved-link-slug-for-small-iphone-screens",
-        collection === "github"
-          ? "https://github.com/example/repository"
-          : collection === "x"
-            ? "https://x.com/example/status/123456789"
-            : "https://example.com",
-        "Long card title with 中文内容 ".repeat(5),
-        "Long description ".repeat(12),
-        "/logo-80.png",
-        Date.now(),
-      ],
-    );
+  test(`${collection}: fixed bookmark actions and equal heights`, async ({ page, owner }, info) => {
+    for (const index of [0, 1, 2])
+      await executeD1(
+        "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
+        [
+          owner,
+          `${owner}-${index}`,
+          collection === "github"
+            ? `https://github.com/example/repository-${index}`
+            : collection === "x"
+              ? `https://x.com/example/status/12345678${index}`
+              : `https://example.com/${index}`,
+          index ? "Short title" : "Long card title with 中文内容 ".repeat(8),
+          index ? "Short description" : "Long description ".repeat(40),
+          "/logo-80.png",
+          Date.now(),
+        ],
+      );
     await page.addInitScript(
       (view) => localStorage.setItem("zhe_links_view_mode", view),
       collection,
@@ -58,20 +59,19 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     await page.goto(
       `/dashboard${collection === "github" || collection === "x" ? `/${collection}` : ""}`,
     );
-    const card = page
-      .getByTestId(collection === "github" ? "github-repository" : "link-card")
-      .first();
-    await expect(card).toBeVisible();
-    await card.scrollIntoViewIfNeeded();
-    for (const width of [320, 375, 390, 430]) {
+    const cards = page.getByTestId(collection === "github" ? "github-repository" : "link-card");
+    const card = cards.first();
+    await expect(cards).toHaveCount(3);
+    for (const width of [320, 375, 430, 1365]) {
       await page.setViewportSize({ width, height: 932 });
-      const actions = card.locator("[data-card-actions]");
-      await expect(actions).toHaveAttribute("data-compact", "true");
+      await card.scrollIntoViewIfNeeded();
+      const actions = card.locator("[data-bookmark-actions]");
+      await expect(actions.getByRole("button")).toHaveCount(3);
+      await expect(actions.getByRole("button", { name: "AI 整理" })).toBeVisible();
       const more = actions.getByRole("button", { name: "更多收藏操作" });
-      await expect(more).toBeVisible();
       const geometry = await actions.evaluate((el) => {
         const card = el.closest("[data-card-actions-container]")?.getBoundingClientRect();
-        if (!card) throw new Error("Missing card container");
+        if (!card) throw new Error("Missing card");
         return [...el.querySelectorAll("button")].map((button) => {
           const box = button.getBoundingClientRect();
           return {
@@ -81,46 +81,60 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
           };
         });
       });
-      expect(geometry).toHaveLength(2);
       for (const button of geometry) {
-        expect(Number(button.width.toFixed(3))).toBeGreaterThanOrEqual(44);
-        expect(Number(button.height.toFixed(3))).toBeGreaterThanOrEqual(44);
+        expect(button.width).toBeGreaterThanOrEqual(44);
+        expect(button.height).toBeGreaterThanOrEqual(44);
         expect(button.fits).toBe(true);
       }
-      await more.tap();
-      await expect(actions.locator("button[aria-haspopup=menu]")).toHaveAttribute(
-        "aria-expanded",
-        "true",
+      const heights = await cards.evaluateAll((els) =>
+        els.map((el) => el.getBoundingClientRect().height),
       );
+      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+      expect(await card.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      const row = card.locator("[data-bookmark-action-row]");
+      expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      await more.click();
       const menu = page.getByRole("menu");
-      await expect(menu.getByRole("menuitem", { name: "隐藏帖子" })).toBeVisible();
-      await expect(menu.getByRole("menuitem", { name: "查看补全记录" })).toBeVisible();
+      await expect(menu.getByRole("menuitem")).toHaveText([
+        "修改收藏",
+        "数据采集",
+        "访问统计",
+        "隐藏帖子",
+        "删除收藏",
+      ]);
       const box = await menu.boundingBox();
       assert(box);
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
       await page.keyboard.press("Escape");
-      await expect(menu).not.toBeVisible();
       await expect(more).toBeFocused();
       await more.press("ArrowDown");
       await expect(menu.getByRole("menuitem").first()).toBeFocused();
-      await page.keyboard.press("ArrowDown");
-      await expect(menu.getByRole("menuitem").nth(1)).toBeFocused();
       await page.keyboard.press("Escape");
-      await expect(menu).not.toBeVisible();
-      await expect(more).toBeFocused();
-      await more.tap();
-      await expect(menu).toBeVisible();
-      await page.touchscreen.tap(width - 5, 100);
-      await expect(menu).not.toBeVisible();
-      await page.screenshot({ path: `.artifacts/card-actions-${collection}-${width}.png` });
+      await actions.getByRole("button", { name: "复制链接" }).click();
+      await expect(page.getByRole("menuitem")).toHaveText(["复制原链接", "复制短链接"]);
+      await page.keyboard.press("Escape");
+      await page.screenshot({ path: info.outputPath(`${collection}-${width}.png`) });
     }
-    await page.setViewportSize({ width: 1365, height: 1000 });
-    if (collection === "list") {
-      await expect(card.locator("[data-card-actions]")).toHaveAttribute("data-compact", "false");
-      await expect(card.getByRole("button", { name: "隐藏帖子" })).toBeVisible();
-      await expect(card.getByRole("button", { name: "更多收藏操作" })).toHaveCount(0);
-    }
+    const more = card.getByRole("button", { name: "更多收藏操作" });
+    await more.click();
+    await page.getByRole("menuitem", { name: "访问统计" }).click();
+    await expect(page.getByRole("dialog", { name: "访问统计" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(more).toBeFocused();
+    await more.click();
+    await page.getByRole("menuitem", { name: "修改收藏" }).click();
+    const editor = page.getByTestId("card-edit-dialog");
+    await expect(editor).toHaveAttribute("data-phase", "editing");
+    await expect(editor.getByRole("button", { name: "Delete link" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(editor).not.toBeAttached();
+    await expect(more).toBeFocused();
+    await more.click();
+    await page.getByRole("menuitem", { name: "删除收藏" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "取消" }).click();
+    await expect(cards).toHaveCount(3);
+    await expect(more).toBeFocused();
   });
 }
 
@@ -177,7 +191,7 @@ for (const collection of ["ideas", "uploads"] as const) {
 
 test.describe("desktop", () => {
   test.use({ isMobile: false, hasTouch: false, viewport: { width: 1365, height: 1000 } });
-  test("wide lists retain direct secondary actions", async ({ page, owner }) => {
+  test("wide lists keep secondary actions in more", async ({ page, owner }) => {
     await executeD1(
       "INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES(?,?,?,?,?)",
       [owner, owner, "https://example.com", "Desktop saved link", Date.now()],
@@ -185,16 +199,14 @@ test.describe("desktop", () => {
     await page.addInitScript(() => localStorage.setItem("zhe_links_view_mode", "list"));
     await page.goto("/dashboard");
     const card = page.getByTestId("link-card").first();
-    await expect(card.locator("[data-card-actions]")).toHaveAttribute("data-compact", "false");
-    const edit = card.getByRole("button", { name: "Edit link", exact: true });
-    expect((await edit.boundingBox())?.height).toBeCloseTo(32, 1);
-    await expect(card.getByRole("button", { name: "隐藏帖子", exact: true })).toBeVisible();
-    await expect(card.getByRole("button", { name: "Refresh metadata", exact: true })).toBeVisible();
-    await expect(card.getByRole("button", { name: "更多收藏操作" })).toHaveCount(0);
-    await edit.click();
-    await expect(page.getByTestId("card-edit-dialog")).toBeVisible();
+    const more = card.getByRole("button", { name: "更多收藏操作" });
+    expect((await more.boundingBox())?.height).toBeCloseTo(32, 1);
+    await expect(card.getByRole("button", { name: "隐藏帖子", exact: true })).toHaveCount(0);
+    await more.click();
+    await page.getByRole("menuitem", { name: "修改收藏" }).click();
+    await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
     await page.keyboard.press("Escape");
-    await expect(edit).toBeFocused();
+    await expect(more).toBeFocused();
   });
 });
 

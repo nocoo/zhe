@@ -1,7 +1,11 @@
 "use client";
 
+import { ImageOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { updateLink } from "@/actions/links";
+import { deleteScreenshot } from "@/actions/links/screenshot";
+import { getSpecialSource } from "@/cli/src/connector/sources";
+import type { BookmarkAction } from "@/models/bookmark-actions";
 import type { Link, LinkTag, Tag } from "@/models/types";
 import type { LinkMutationCallbacks } from "@/viewmodels/useLinkMutations";
 import { useLinkMutations } from "@/viewmodels/useLinkMutations";
@@ -97,6 +101,39 @@ export function useInlineLinkEditViewModel(
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [isDeletingScreenshot, setDeletingScreenshot] = useState(false);
+  const [screenshotRemoved, setScreenshotRemoved] = useState(false);
+  const screenshotAction: BookmarkAction | null =
+    link.screenshotUrl?.trim() && !getSpecialSource(link.originalUrl) && !screenshotRemoved
+      ? {
+          id: "delete-screenshot",
+          label: "删除截图",
+          icon: ImageOff,
+          placement: "editor",
+          destructive: true,
+          disabled: isSaving || isDeletingScreenshot,
+          pending: isDeletingScreenshot,
+          run: async () => {
+            if (isSaving || isDeletingScreenshot) return;
+            setDeletingScreenshot(true);
+            setError("");
+            try {
+              const result = await deleteScreenshot(link.id, link.screenshotUrl as string);
+              if (!result.success || !result.data) {
+                setError(result.error || "删除截图失败，请重试");
+                return;
+              }
+              setEditScreenshotUrl("");
+              setScreenshotRemoved(true);
+              callbacks.onLinkUpdated(result.data);
+            } catch {
+              setError("删除截图失败，请重试");
+            } finally {
+              setDeletingScreenshot(false);
+            }
+          },
+        }
+      : null;
 
   const mutations = useLinkMutations(allTags, allLinkTags, callbacks);
 
@@ -107,6 +144,7 @@ export function useInlineLinkEditViewModel(
   );
 
   const saveEdit = useCallback(async () => {
+    if (isSaving || isDeletingScreenshot) return false;
     setIsSaving(true);
     setError("");
     try {
@@ -131,7 +169,18 @@ export function useInlineLinkEditViewModel(
     } finally {
       setIsSaving(false);
     }
-  }, [link, editUrl, editSlug, editFolderId, editTitle, editNote, editScreenshotUrl, callbacks]);
+  }, [
+    link,
+    editUrl,
+    editSlug,
+    editFolderId,
+    editTitle,
+    editNote,
+    editScreenshotUrl,
+    callbacks,
+    isSaving,
+    isDeletingScreenshot,
+  ]);
 
   const addTag = useCallback(
     async (tagId: string) => {
@@ -164,6 +213,8 @@ export function useInlineLinkEditViewModel(
     editScreenshotUrl,
     setEditScreenshotUrl,
     isSaving,
+    isDeletingScreenshot,
+    screenshotAction,
     error,
     assignedTagIds,
     assignedTags,

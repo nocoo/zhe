@@ -33,7 +33,9 @@ async function createLink(
   await page.locator("#slug").fill(slug);
   await page.locator('button:has-text("创建链接")').click();
   await expect(page.getByText("创建短链接")).toBeHidden({ timeout: 15_000 });
-  await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("link", { name: `/${slug}`, exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 /** Helper: open the search dialog with Cmd+K. */

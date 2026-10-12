@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { executeD1, queryD1, TEST_USER } from "./helpers/d1";
 import { waitForLinksPage } from "./helpers/tags";
 
@@ -69,8 +70,8 @@ test("grid: fly, flip, save, return, and destroy only after confirming", async (
   await page.setViewportSize({ width: 1280, height: 900 });
   const { card, slug } = await seedCard(page, mode);
   const origin = await cardBounds(card);
-  const trigger = card.getByRole("button", { name: "Edit link", exact: true });
-  await trigger.click();
+  const trigger = card.getByRole("button", { name: "更多收藏操作", exact: true });
+  await (await cardAction(page, card, "修改收藏")).click();
   const dialog = page.getByTestId("card-edit-dialog");
 
   await freezeFlight(dialog, 0);
@@ -109,12 +110,15 @@ test("grid: fly, flip, save, return, and destroy only after confirming", async (
   await expect(card).toContainText(note);
   await expect(trigger).toBeFocused();
 
-  await trigger.click();
-  await expect(dialog).toHaveAttribute("data-phase", "editing");
-  await dialog.getByRole("button", { name: "Delete link" }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "取消" }).click();
-  await expect(dialog).toHaveAttribute("data-phase", "editing");
-  await dialog.getByRole("button", { name: "Delete link" }).click();
+  await (await cardAction(page, card, "删除收藏")).click();
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation.getByRole("heading", { name: "删除收藏？" })).toBeVisible();
+  await confirmation.getByRole("button", { name: "取消" }).click();
+  await expect(confirmation).not.toBeAttached();
+  await expect(trigger).toBeFocused();
+  await expect(card).toBeVisible();
+  expect(await queryD1("SELECT id FROM links WHERE slug = ?", [slug])).toHaveLength(1);
+  await (await cardAction(page, card, "删除收藏")).click();
   await card.evaluate((element) => {
     const animate = element.animate;
     // Pause as destruction starts, before a slower browser can finish and detach the card.
@@ -125,10 +129,21 @@ test("grid: fly, flip, save, return, and destroy only after confirming", async (
       return animation;
     };
   });
-  await page.getByRole("alertdialog").getByRole("button", { name: "删除", exact: true }).click();
-  await expect(dialog).toHaveAttribute("data-phase", "returning");
+  await confirmation.getByRole("button", { name: "删除", exact: true }).click();
   await expect(card).toBeAttached();
-  await expect(dialog).toHaveAttribute("data-phase", "destroying");
+  await expect(dialog).not.toBeAttached();
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.getByRole("button", { name: "取消" })).toBeDisabled();
+  await expect(confirmation.getByRole("button", { name: "删除中...", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toBeVisible();
+  await expect
+    .poll(() =>
+      card.evaluate((element) =>
+        element.getAnimations().some((animation) => animation.playState === "paused"),
+      ),
+    )
+    .toBe(true);
   await card.evaluate(async (element) => {
     const animation = element.getAnimations().find((item) => item.playState === "paused");
     if (!animation) throw new Error("Expected a destruction animation");
@@ -143,7 +158,7 @@ test("grid: fly, flip, save, return, and destroy only after confirming", async (
       ?.play(),
   );
   await expect(card).not.toBeAttached();
-  await expect(dialog).not.toBeAttached();
+  await expect(confirmation).not.toBeAttached();
   expect(await queryD1("SELECT id FROM links WHERE slug = ?", [slug])).toEqual([]);
 });
 test("narrow screen, reduced motion, and failed requests keep the editor usable", async ({
@@ -152,7 +167,7 @@ test("narrow screen, reduced motion, and failed requests keep the editor usable"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 375, height: 667 });
   const { card, slug } = await seedCard(page, "grid");
-  await card.getByRole("button", { name: "Edit link", exact: true }).click();
+  await (await cardAction(page, card, "修改收藏")).click();
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
   await expect(dialog.locator(".link-card-front")).toBeHidden();
@@ -173,16 +188,21 @@ test("narrow screen, reduced motion, and failed requests keep the editor usable"
   await expect(dialog.getByLabel("备注", { exact: true })).toHaveValue(
     "Keep this draft after a failed save",
   );
-  await dialog.getByRole("button", { name: "Delete link" }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "删除", exact: true }).click();
-  await expect(page.getByText("删除失败", { exact: true })).toBeVisible();
-  await expect(dialog).toHaveAttribute("data-phase", "editing");
-  await expect(dialog.getByRole("button", { name: "Delete link" })).toBeEnabled();
-  expect(await queryD1("SELECT id FROM links WHERE slug = ?", [slug])).toHaveLength(1);
-  await page.unroute("**/dashboard");
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeAttached();
   await expect(card).toBeVisible();
+  await (await cardAction(page, card, "删除收藏")).click();
+  const confirmation = page.getByRole("alertdialog");
+  await confirmation.getByRole("button", { name: "删除", exact: true }).click();
+  await expect(page.getByText("删除失败", { exact: true })).toBeVisible();
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.getByRole("button", { name: "删除", exact: true })).toBeEnabled();
+  await expect(card).toBeAttached();
+  expect(await queryD1("SELECT id FROM links WHERE slug = ?", [slug])).toHaveLength(1);
+  await page.unroute("**/dashboard");
+  await confirmation.getByRole("button", { name: "取消" }).click();
+  await expect(confirmation).not.toBeAttached();
+  await expect(card.getByRole("button", { name: "更多收藏操作" })).toBeFocused();
 });
 
 test("changing folders waits for the return flight before removing a filtered card", async ({
@@ -199,7 +219,7 @@ test("changing folders waits for the return flight before removing a filtered ca
   await executeD1("UPDATE links SET folder_id = ? WHERE slug = ?", [folderId, slug]);
   await page.goto(`/dashboard?folder=${folderId}`);
   await waitForLinksPage(page);
-  await card.getByRole("button", { name: "Edit link", exact: true }).click();
+  await (await cardAction(page, card, "修改收藏")).click();
   const dialog = page.getByTestId("card-edit-dialog");
   await expect(dialog).toHaveAttribute("data-phase", "editing");
   await dialog.getByLabel("文件夹", { exact: true }).click();
@@ -218,15 +238,16 @@ test("early dismissal and resizing a dark editor still return to the card", asyn
 }, info) => {
   await page.emulateMedia({ colorScheme: "dark" });
   const { card } = await seedCard(page, "grid");
-  const trigger = card.getByRole("button", { name: "Edit link", exact: true });
+  const trigger = card.getByRole("button", { name: "更多收藏操作", exact: true });
   const dialog = page.getByTestId("card-edit-dialog");
-  await trigger.click();
+  await (await cardAction(page, card, "修改收藏")).click();
+  await expect(dialog).toBeAttached();
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeAttached();
   await expect(card).toBeVisible();
   await expect(trigger).toBeFocused();
 
-  await trigger.click();
+  await (await cardAction(page, card, "修改收藏")).click();
   await expect(dialog).toHaveAttribute("data-phase", "editing");
   await page.setViewportSize({ width: 640, height: 560 });
   await expect(page.locator('[aria-label="筛选与视图"]')).toBeVisible();

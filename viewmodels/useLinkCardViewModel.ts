@@ -3,9 +3,6 @@
 import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useState } from "react";
 import { deleteLink, getAnalyticsStats, setLinkHidden } from "@/actions/links";
-import { refreshLinkMetadata } from "@/actions/links/metadata";
-import { deleteScreenshot } from "@/actions/links/screenshot";
-import { getSpecialSource } from "@/cli/src/connector/sources";
 import { copyToClipboard } from "@/lib/utils";
 import { buildShortUrl, GITHUB_REPO_PREVIEW_URL, isGitHubRepoUrl } from "@/models/links";
 import { buildFaviconUrl } from "@/models/settings";
@@ -49,64 +46,6 @@ function useLinkAnalyticsToggle(linkId: number) {
   return { showAnalytics, analyticsStats, isLoadingAnalytics, handleToggleAnalytics };
 }
 
-/** Screenshot state — deleting a stored preview lets Connector discover it again. */
-function useScreenshotPreview(link: Link, onUpdate: (link: Link) => void) {
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(link.screenshotUrl ?? null);
-  const [isDeletingScreenshot, setIsDeletingScreenshot] = useState(false);
-
-  useEffect(() => {
-    setScreenshotUrl(link.screenshotUrl ?? null);
-  }, [link.screenshotUrl]);
-
-  const handleDeleteScreenshot = useCallback(async () => {
-    if (isDeletingScreenshot || !screenshotUrl?.trim()) return;
-    setIsDeletingScreenshot(true);
-    try {
-      const result = await deleteScreenshot(link.id, screenshotUrl);
-      if (result.success && result.data) {
-        setScreenshotUrl(result.data.screenshotUrl ?? null);
-        onUpdate(result.data);
-        toast.success("截图已删除");
-      } else {
-        toast.error("删除截图失败", { description: result.error || "请稍后重试" });
-      }
-    } catch (error) {
-      console.error("Failed to delete screenshot:", error);
-      toast.error("删除截图失败", { description: "请稍后重试" });
-    } finally {
-      setIsDeletingScreenshot(false);
-    }
-  }, [link.id, screenshotUrl, isDeletingScreenshot, onUpdate]);
-
-  return { screenshotUrl, isDeletingScreenshot, handleDeleteScreenshot };
-}
-
-/** Metadata-refresh state for a single link. */
-function useMetadataRefresh(linkId: number, onUpdate: (link: Link) => void) {
-  const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
-
-  const handleRefreshMetadata = useCallback(async () => {
-    setIsRefreshingMetadata(true);
-    try {
-      const result = await refreshLinkMetadata(linkId);
-      if (result.success && result.data) {
-        onUpdate(result.data);
-        toast.success("元数据已刷新");
-      } else {
-        toast.error("刷新元数据失败", {
-          description: result.error || "Failed to refresh metadata",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to refresh metadata:", error);
-    } finally {
-      setIsRefreshingMetadata(false);
-    }
-  }, [linkId, onUpdate]);
-
-  return { isRefreshingMetadata, handleRefreshMetadata };
-}
-
 /** Favicon load-failure tracking with reset on URL change. */
 function useFaviconState(_metaFavicon: string | null | undefined) {
   const [faviconError, setFaviconError] = useState(false);
@@ -121,7 +60,7 @@ function useFaviconState(_metaFavicon: string | null | undefined) {
 
 /**
  * ViewModel for a single link card — composes smaller hooks for analytics,
- * preview screenshots, metadata refresh, favicon, copy, and delete.
+ * preview screenshots, favicon, copy, visibility, and delete.
  */
 export function useLinkCardViewModel(
   link: Link,
@@ -134,14 +73,12 @@ export function useLinkCardViewModel(
   const { copied: copiedOriginalUrl, copy: handleCopyOriginalUrl } = useCopyState(link.originalUrl);
 
   const analytics = useLinkAnalyticsToggle(link.id);
-  const preview = useScreenshotPreview(link, onUpdate);
-  const metadata = useMetadataRefresh(link.id, onUpdate);
   const favicon = useFaviconState(link.metaFavicon);
 
   // Display logic: GitHub repos use a fixed preview image; otherwise show
   // screenshotUrl from DB, else favicon.
   const isGitHubRepo = isGitHubRepoUrl(link.originalUrl);
-  const displayScreenshotUrl = isGitHubRepo ? GITHUB_REPO_PREVIEW_URL : preview.screenshotUrl;
+  const displayScreenshotUrl = isGitHubRepo ? GITHUB_REPO_PREVIEW_URL : link.screenshotUrl;
   const faviconUrl =
     isGitHubRepo || displayScreenshotUrl ? null : buildFaviconUrl(link.originalUrl);
 
@@ -191,12 +128,7 @@ export function useLinkCardViewModel(
     handleCopyOriginalUrl,
     handleDelete,
     handleToggleAnalytics: analytics.handleToggleAnalytics,
-    handleRefreshMetadata: metadata.handleRefreshMetadata,
-    isRefreshingMetadata: metadata.isRefreshingMetadata,
     screenshotUrl: displayScreenshotUrl,
-    canDeleteScreenshot: !!preview.screenshotUrl?.trim() && !getSpecialSource(link.originalUrl),
-    isDeletingScreenshot: preview.isDeletingScreenshot,
-    handleDeleteScreenshot: preview.handleDeleteScreenshot,
     faviconUrl,
     faviconError: favicon.faviconError,
     handleFaviconError: favicon.handleFaviconError,

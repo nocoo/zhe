@@ -1,17 +1,14 @@
 // @vitest-environment happy-dom
-
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CardEditDialog } from "@/components/dashboard/link-card-parts/card-edit-dialog";
 import type { Link, LinkTag, Tag } from "@/models/types";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 
-vi.mock("@/actions/connector", () => ({
-  updateXMediaDimensionsAction: vi.fn(),
-}));
+vi.mock("@/actions/connector", () => ({ updateXMediaDimensionsAction: vi.fn() }));
 
 let activeCallbacks: EditLinkCallbacks | undefined;
-
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useInlineLinkEditViewModel: (
     _link: Link,
@@ -40,12 +37,14 @@ vi.mock("@/viewmodels/useLinksViewModel", () => ({
       createAndAssignTag: vi.fn(),
       saveEdit: vi.fn().mockResolvedValue(true),
       isSaving: false,
+      isDeletingScreenshot: false,
+      screenshotAction: null,
       error: "",
     };
   },
 }));
 
-const baseLink: Link = {
+const link: Link = {
   id: 10,
   userId: "user-1",
   originalUrl: "https://example.com",
@@ -64,11 +63,47 @@ const baseLink: Link = {
   metaFavicon: null,
 };
 
-const domCleanups: Array<() => void> = [];
-
+const cleanupFns: Array<() => void> = [];
 afterEach(() => {
-  for (const cleanup of domCleanups.splice(0)) cleanup();
+  for (const cleanup of cleanupFns.splice(0)) cleanup();
 });
+
+function renderDialog({
+  animated = false,
+  onClose = vi.fn(),
+  callbacks = {} as Partial<EditLinkCallbacks>,
+} = {}) {
+  const sourceEl = document.createElement("div");
+  sourceEl.dataset.linkId = "10";
+  sourceEl.style.width = "300px";
+  sourceEl.style.height = "200px";
+  document.body.appendChild(sourceEl);
+  cleanupFns.push(() => sourceEl.remove());
+  const triggerEl = document.createElement("button");
+  triggerEl.setAttribute("aria-label", "更多收藏操作");
+  sourceEl.appendChild(triggerEl);
+  const editCallbacks: EditLinkCallbacks = {
+    onLinkUpdated: vi.fn(),
+    onTagCreated: vi.fn(),
+    onLinkTagAdded: vi.fn(),
+    onLinkTagRemoved: vi.fn(),
+    ...callbacks,
+  };
+  const view = render(
+    <CardEditDialog
+      source={{ current: sourceEl }}
+      trigger={{ current: triggerEl }}
+      animated={animated}
+      onClose={onClose}
+      link={link}
+      tags={[]}
+      linkTags={[]}
+      folders={[]}
+      editCallbacks={editCallbacks}
+    />,
+  );
+  return { ...view, sourceEl, triggerEl, editCallbacks };
+}
 
 describe("CardEditDialog", () => {
   beforeEach(() => {
@@ -80,105 +115,26 @@ describe("CardEditDialog", () => {
     } as unknown as Animation);
   });
 
-  function renderDialog(
-    options: {
-      animated?: boolean;
-      deleted?: boolean;
-      onClose?: () => void;
-      onDeleted?: () => void;
-      customCallbacks?: Partial<EditLinkCallbacks>;
-    } = {},
-  ) {
-    const cardEl = document.createElement("div");
-    cardEl.setAttribute("data-link-id", "10");
-    cardEl.style.width = "300px";
-    cardEl.style.height = "200px";
-    document.body.appendChild(cardEl);
-    domCleanups.push(() => cardEl.remove());
-
-    const triggerEl = document.createElement("button");
-    triggerEl.setAttribute("aria-label", "Edit link");
-    cardEl.appendChild(triggerEl);
-
-    const sourceRef = { current: cardEl };
-    const triggerRef = { current: triggerEl };
-
-    const editCallbacks: EditLinkCallbacks = {
-      onLinkUpdated: vi.fn(),
-      onTagCreated: vi.fn(),
-      onLinkTagAdded: vi.fn(),
-      onLinkTagRemoved: vi.fn(),
-      ...options.customCallbacks,
-    };
-
-    const result = render(
-      <CardEditDialog
-        source={sourceRef}
-        trigger={triggerRef}
-        animated={options.animated ?? false}
-        deleted={options.deleted ?? false}
-        onClose={options.onClose ?? vi.fn()}
-        onDeleted={options.onDeleted ?? vi.fn()}
-        link={baseLink}
-        tags={[]}
-        linkTags={[]}
-        folders={[]}
-        editCallbacks={editCallbacks}
-        isDeleting={false}
-        handleDelete={vi.fn()}
-      />,
-    );
-
-    return { ...result, cardEl, triggerEl, editCallbacks };
-  }
-
-  it("mounts un-animated dialog, auto-focuses input, and closes on button", async () => {
+  it("mounts a plain editor and closes through its close action", async () => {
     const onClose = vi.fn();
-    renderDialog({ animated: false, onClose });
-    const dialog = screen.getByTestId("card-edit-dialog");
-    expect(dialog).toBeInTheDocument();
-
-    await waitFor(() => {
-      const input = dialog.querySelector("input");
-      expect(document.activeElement).toBe(input);
-    });
-
+    renderDialog({ onClose });
+    expect(screen.getByTestId("card-edit-dialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "收起" }));
-    await waitFor(() => {
-      expect(onClose).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("mounts animated dialog with element animation and closes with flight", async () => {
-    const onClose = vi.fn();
-    const animateSpy = vi.spyOn(HTMLElement.prototype, "animate");
-    renderDialog({ animated: true, onClose });
-    const dialog = screen.getByTestId("card-edit-dialog");
-    expect(dialog).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(animateSpy).toHaveBeenCalled();
-    });
-
+  it("runs the animated card flight", async () => {
+    const animate = vi.spyOn(HTMLElement.prototype, "animate");
+    renderDialog({ animated: true });
+    await waitFor(() => expect(animate).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: "收起" }));
-    await waitFor(() => {
-      expect(onClose).toHaveBeenCalled();
-    });
   });
 
-  it("defers callbacks during editing and flushes them when dialog closes", async () => {
+  it("defers editor callbacks until it closes, then forwards later updates immediately", async () => {
     const onLinkUpdated = vi.fn();
     const onTagCreated = vi.fn();
     const onClose = vi.fn();
-
-    renderDialog({
-      animated: false,
-      onClose,
-      customCallbacks: { onLinkUpdated, onTagCreated },
-    });
-
-    expect(activeCallbacks).toBeDefined();
-
+    renderDialog({ onClose, callbacks: { onLinkUpdated, onTagCreated } });
     const tag: Tag = {
       id: "t-new",
       userId: "user-1",
@@ -186,128 +142,98 @@ describe("CardEditDialog", () => {
       color: "#333",
       createdAt: new Date(),
     };
-
-    activeCallbacks?.onLinkUpdated(baseLink);
+    activeCallbacks?.onLinkUpdated(link);
     activeCallbacks?.onTagCreated(tag);
     activeCallbacks?.onLinkTagAdded({ linkId: 10, tagId: "t-new" });
     activeCallbacks?.onLinkTagRemoved(10, "t-new");
-
-    // Callbacks must NOT fire while dialog is open (deferred)
     expect(onLinkUpdated).not.toHaveBeenCalled();
     expect(onTagCreated).not.toHaveBeenCalled();
-
-    // Close the dialog -> deferred callbacks flush
     fireEvent.click(screen.getByRole("button", { name: "收起" }));
     await waitFor(() => {
-      expect(onLinkUpdated).toHaveBeenCalledWith(baseLink);
+      expect(onLinkUpdated).toHaveBeenCalledWith(link);
       expect(onTagCreated).toHaveBeenCalledWith(tag);
       expect(onClose).toHaveBeenCalled();
     });
-
-    // Callbacks after dialog was closed flush immediately
-    activeCallbacks?.onLinkUpdated(baseLink);
+    activeCallbacks?.onLinkUpdated(link);
     expect(onLinkUpdated).toHaveBeenCalledTimes(2);
     activeCallbacks?.onTagCreated(tag);
-    expect(onTagCreated).toHaveBeenCalledTimes(2);
     activeCallbacks?.onLinkTagAdded({ linkId: 10, tagId: "t-new" });
     activeCallbacks?.onLinkTagRemoved(10, "t-new");
+    expect(onTagCreated).toHaveBeenCalledTimes(2);
   });
 
-  it("prevents close when editProps.isDeleting or panel is aria-busy", async () => {
+  it("prevents closing while the edit panel is aria-busy, then allows it", async () => {
     const onClose = vi.fn();
-    const cardEl = document.createElement("div");
-    cardEl.setAttribute("data-link-id", "10");
-    document.body.appendChild(cardEl);
-    domCleanups.push(() => cardEl.remove());
-
-    const { rerender } = render(
-      <CardEditDialog
-        source={{ current: cardEl }}
-        trigger={{ current: null }}
-        animated={false}
-        deleted={false}
-        onClose={onClose}
-        onDeleted={vi.fn()}
-        link={baseLink}
-        tags={[]}
-        linkTags={[]}
-        folders={[]}
-        editCallbacks={{
-          onLinkUpdated: vi.fn(),
-          onTagCreated: vi.fn(),
-          onLinkTagAdded: vi.fn(),
-          onLinkTagRemoved: vi.fn(),
-        }}
-        isDeleting={true}
-        handleDelete={vi.fn()}
-      />,
+    renderDialog({ onClose });
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    const area = screen.getByTestId("edit-area");
+    area.setAttribute("aria-busy", "true");
+    await userEvent.click(screen.getByRole("button", { name: "收起" }));
+    await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
-
-    // Now busy element inside panel
-    rerender(
-      <CardEditDialog
-        source={{ current: cardEl }}
-        trigger={{ current: null }}
-        animated={false}
-        deleted={false}
-        onClose={onClose}
-        onDeleted={vi.fn()}
-        link={baseLink}
-        tags={[]}
-        linkTags={[]}
-        folders={[]}
-        editCallbacks={{
-          onLinkUpdated: vi.fn(),
-          onTagCreated: vi.fn(),
-          onLinkTagAdded: vi.fn(),
-          onLinkTagRemoved: vi.fn(),
-        }}
-        isDeleting={false}
-        handleDelete={vi.fn()}
-      />,
-    );
-
-    const dialog = screen.getByTestId("card-edit-dialog");
-    const busyChild = document.createElement("div");
-    busyChild.setAttribute("aria-busy", "true");
-    dialog.appendChild(busyChild);
-
-    fireEvent.click(screen.getByRole("button", { name: "收起" }));
-    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("card-edit-dialog")).toBeVisible();
+    area.setAttribute("aria-busy", "false");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("handles deleted prop triggering card destruction transition and onDeleted callback", async () => {
-    const onDeleted = vi.fn();
-    const { rerender, cardEl } = renderDialog({ animated: false, onDeleted, deleted: false });
-
-    rerender(
-      <CardEditDialog
-        source={{ current: cardEl }}
-        trigger={{ current: null }}
-        animated={false}
-        deleted={true}
-        onClose={vi.fn()}
-        onDeleted={onDeleted}
-        link={baseLink}
-        tags={[]}
-        linkTags={[]}
-        folders={[]}
-        editCallbacks={{
-          onLinkUpdated: vi.fn(),
-          onTagCreated: vi.fn(),
-          onLinkTagAdded: vi.fn(),
-          onLinkTagRemoved: vi.fn(),
-        }}
-        isDeleting={false}
-        handleDelete={vi.fn()}
-      />,
+  it("ignores duplicate close requests during the return flight", async () => {
+    const onClose = vi.fn();
+    renderDialog({ onClose });
+    await waitFor(() =>
+      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
     );
-
-    await waitFor(() => {
-      expect(onDeleted).toHaveBeenCalled();
+    const close = screen.getByRole("button", { name: "收起" });
+    await act(async () => {
+      fireEvent.click(close);
+      fireEvent.click(close);
     });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("focuses the panel instead of opening the touch keyboard", async () => {
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+      matches: query === "(pointer: coarse)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    try {
+      renderDialog();
+      await waitFor(() => expect(screen.getByTestId("card-edit-dialog")).toHaveFocus());
+    } finally {
+      matchMedia.mockRestore();
+    }
+  });
+
+  it("keeps the editor usable without flight animations under reduced motion", async () => {
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    try {
+      const onClose = vi.fn();
+      renderDialog({ animated: true, onClose });
+      await waitFor(() =>
+        expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
+      );
+      expect(HTMLElement.prototype.animate).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole("button", { name: "收起" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    } finally {
+      matchMedia.mockRestore();
+    }
   });
 });

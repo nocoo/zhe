@@ -1,13 +1,10 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useContext, useState } from "react";
 import { updateXMediaDimensionsAction } from "@/actions/connector";
-import {
-  DeleteLinkDialog,
-  TagBadge,
-  TagPicker,
-} from "@/components/dashboard/shared-link-components";
+import { BookmarkActionButton } from "@/components/dashboard/bookmark-actions";
+import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
 import { Button } from "@/components/ui/button";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -78,60 +75,12 @@ function TagsRow({
   );
 }
 
-function EditToolbar({
-  isSaving,
-  isDeleting,
-  onSave,
-  onDelete,
-  onClose,
-}: {
-  isSaving: boolean;
-  isDeleting: boolean;
-  onSave: () => void;
-  onDelete: () => void;
-  onClose?: (() => void) | undefined;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
-      <DeleteLinkDialog
-        trigger={
-          <Button
-            type="button"
-            size="lg"
-            variant="ghost"
-            aria-label="Delete link"
-            className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            disabled={isDeleting || isSaving}
-          >
-            <Trash2 strokeWidth={1.5} aria-hidden />
-            {isDeleting ? "删除中..." : "删除"}
-          </Button>
-        }
-        isDeleting={isDeleting}
-        onConfirm={onDelete}
-      />
-      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
-        {onClose && (
-          <Button size="lg" variant="ghost" onClick={onClose} disabled={isSaving || isDeleting}>
-            收起
-          </Button>
-        )}
-        <Button size="lg" onClick={onSave} loading={isSaving} disabled={isDeleting}>
-          {isSaving ? "保存中" : "保存"}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export interface InlineEditAreaProps {
   link: Link;
   tags: Tag[];
   linkTags: LinkTag[];
   folders: Folder[];
   editCallbacks: EditLinkCallbacks;
-  isDeleting: boolean;
-  handleDelete: () => void;
   onCloseEdit: () => void;
   onSaved?: () => void;
   className?: string | undefined;
@@ -144,8 +93,6 @@ export function InlineEditArea({
   linkTags,
   folders,
   editCallbacks,
-  isDeleting,
-  handleDelete,
   onCloseEdit,
   onSaved,
   className,
@@ -159,7 +106,7 @@ export function InlineEditArea({
   const [mediaError, setMediaError] = useState("");
 
   const handleSave = async () => {
-    if (savingMedia || editVm.isSaving) return;
+    if (savingMedia || editVm.isSaving || editVm.isDeletingScreenshot) return;
     setMediaError("");
     const dimensions: XMediaDimensions[] = [];
     for (const [id, ratio] of Object.entries(mediaRatios)) {
@@ -217,13 +164,16 @@ export function InlineEditArea({
     <section
       className={cn("@container/edit space-y-4 border-0 bg-transparent p-5 sm:p-6", className)}
       aria-label="编辑收藏"
-      aria-busy={editVm.isSaving || savingMedia || isDeleting}
+      aria-busy={editVm.isSaving || savingMedia || editVm.isDeletingScreenshot}
       data-testid="edit-area"
     >
       <DialogTitle className="flex items-center gap-2">
         <Pencil className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
         编辑收藏
       </DialogTitle>
+      <p className="text-xs text-muted-foreground">
+        收藏于 {new Date(link.createdAt).toLocaleString("zh-CN")}
+      </p>
       <div className="grid grid-cols-1 gap-3 @xs/edit:grid-cols-2">
         <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="@xs/edit:col-span-2">
           <Input
@@ -298,6 +248,17 @@ export function InlineEditArea({
             onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
             placeholder="https://example.com/screenshot.png"
           />
+          {editVm.screenshotAction && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <BookmarkActionButton
+                action={{
+                  ...editVm.screenshotAction,
+                  disabled: editVm.screenshotAction.disabled || savingMedia,
+                }}
+              />
+              <span>删除已保存截图</span>
+            </div>
+          )}
         </LabelledField>
       </div>
 
@@ -350,13 +311,24 @@ export function InlineEditArea({
         </p>
       )}
 
-      <EditToolbar
-        isSaving={editVm.isSaving || savingMedia}
-        isDeleting={isDeleting}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        onClose={onCloseEdit}
-      />
+      <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
+        <Button
+          size="lg"
+          variant="ghost"
+          onClick={onCloseEdit}
+          disabled={editVm.isSaving || savingMedia || editVm.isDeletingScreenshot}
+        >
+          收起
+        </Button>
+        <Button
+          size="lg"
+          onClick={handleSave}
+          loading={editVm.isSaving || savingMedia}
+          disabled={editVm.isDeletingScreenshot}
+        >
+          保存
+        </Button>
+      </div>
     </section>
   );
 }

@@ -31,9 +31,9 @@ test.describe("Tag UI - create and display", () => {
 
     await saveAndCloseEdit(card);
 
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`)).toBeVisible(
-      { timeout: 10_000 },
-    );
+    await expect(
+      card.locator("[data-bookmark-classification]").getByRole("button", { name: "查看全部标签" }),
+    ).toHaveText(tagName);
   });
 
   test("remove a tag from a link in edit mode", async ({ page }) => {
@@ -55,8 +55,8 @@ test.describe("Tag UI - create and display", () => {
     await saveAndCloseEdit(card);
 
     await expect(
-      card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`),
-    ).toBeHidden();
+      card.locator("[data-bookmark-classification]").getByRole("button", { name: "查看全部标签" }),
+    ).toHaveCount(0);
   });
 
   test("multiple tags are displayed on a link card", async ({ page }) => {
@@ -68,11 +68,15 @@ test.describe("Tag UI - create and display", () => {
     await createTagInEditMode(page, card, tag2);
     await saveAndCloseEdit(card);
 
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag1}"]`)).toBeVisible({
-      timeout: 10_000,
-    });
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tag2}"]`)).toBeVisible({
-      timeout: 10_000,
-    });
+    const tags = card
+      .locator("[data-bookmark-classification]")
+      .getByRole("button", { name: "查看全部标签" });
+    await expect(tags).toContainText("+1");
+    await tags.click();
+    const popover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
+    await expect(popover.getByText(tag1, { exact: true })).toBeVisible();
+    await expect(popover.getByText(tag2, { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(tags).toBeFocused();
   });
 });

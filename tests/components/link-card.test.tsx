@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 import "../helpers/card-width";
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LinkCard } from "@/components/dashboard/link-card";
-import type { AnalyticsStats, Folder, Link, LinkTag, Tag } from "@/models/types";
-import { type EditLinkCallbacks, useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
+import type { Link, Tag } from "@/models/types";
+import { useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 import { unwrap } from "../test-utils";
 
 vi.mock("@/actions/connector", () => ({ retryXBookmarkAction: vi.fn() }));
@@ -16,19 +16,16 @@ const mockVm = {
   copied: false,
   copiedOriginalUrl: false,
   isDeleting: false,
+  isSavingVisibility: false,
   showAnalytics: false,
-  analyticsStats: null as AnalyticsStats | null,
+  analyticsStats: null,
   isLoadingAnalytics: false,
   handleCopy: vi.fn(),
   handleCopyOriginalUrl: vi.fn(),
   handleDelete: vi.fn(),
+  handleToggleHidden: vi.fn(),
   handleToggleAnalytics: vi.fn(),
-  handleRefreshMetadata: vi.fn(),
-  isRefreshingMetadata: false,
   screenshotUrl: null as string | null,
-  canDeleteScreenshot: false,
-  isDeletingScreenshot: false,
-  handleDeleteScreenshot: vi.fn(),
   faviconUrl: null as string | null,
   faviconError: false,
   handleFaviconError: vi.fn(),
@@ -43,9 +40,13 @@ const mockEditVm = {
   setEditFolderId: vi.fn(),
   editNote: "",
   setEditNote: vi.fn(),
+  editTitle: "",
+  setEditTitle: vi.fn(),
   editScreenshotUrl: "",
   setEditScreenshotUrl: vi.fn(),
   isSaving: false,
+  isDeletingScreenshot: false,
+  screenshotAction: null,
   error: "",
   assignedTagIds: new Set<string>(),
   assignedTags: [] as Tag[],
@@ -58,36 +59,6 @@ const mockEditVm = {
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => mockVm,
   useInlineLinkEditViewModel: vi.fn(() => mockEditVm),
-}));
-
-vi.mock("@/lib/utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/utils")>();
-  return {
-    ...actual,
-    formatDate: (date: Date | string) => `formatted:${String(date)}`,
-    formatNumber: (n: number) => `num:${n}`,
-  };
-});
-
-vi.mock("@/models/links", () => ({
-  extractHostname: (url: string) => {
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return url;
-    }
-  },
-  topBreakdownEntries: (breakdown: Record<string, number>, n: number) =>
-    Object.entries(breakdown)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n) as [string, number][],
-}));
-
-vi.mock("@/models/tags", () => ({
-  getTagStyles: (name: string) => ({
-    badge: { backgroundColor: `mock-bg-${name}`, color: `mock-color-${name}` },
-    dot: { backgroundColor: `mock-dot-${name}` },
-  }),
 }));
 
 const baseLink: Link = {
@@ -103,894 +74,115 @@ const baseLink: Link = {
   folderId: null,
   title: null,
   metaTitle: null,
-  metaDescription: null,
+  metaDescription: "A description of the page",
   metaFavicon: null,
   screenshotUrl: null,
   note: null,
 };
 
-const sampleTags: Tag[] = [
-  { id: "t1", userId: "user-1", name: "Work", color: "blue", createdAt: new Date() },
-  { id: "t2", userId: "user-1", name: "Personal", color: "emerald", createdAt: new Date() },
-];
-
-const sampleFolders: Folder[] = [
-  { id: "f1", userId: "user-1", name: "Work", icon: "briefcase", createdAt: new Date() },
-];
-
-const editCallbacks: EditLinkCallbacks = {
+const editCallbacks = {
   onLinkUpdated: vi.fn(),
   onTagCreated: vi.fn(),
   onLinkTagAdded: vi.fn(),
   onLinkTagRemoved: vi.fn(),
 };
 
-describe("LinkCard", () => {
-  const defaultProps = {
-    link: baseLink,
+function props(link = baseLink) {
+  return {
+    link,
     siteUrl: "https://zhe.to",
     onDelete: vi.fn(),
     onUpdate: vi.fn(),
     editCallbacks,
-    folders: sampleFolders,
   };
+}
 
+describe("LinkCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // happy-dom exposes WAAPI without advancing its animation timeline.
     vi.spyOn(HTMLElement.prototype, "animate").mockReturnValue({
       finished: Promise.resolve(),
       cancel: vi.fn(),
     } as unknown as Animation);
-    mockVm.shortUrl = "https://zhe.to/abc123";
-    mockVm.copied = false;
-    mockVm.copiedOriginalUrl = false;
-    mockVm.isDeleting = false;
-    mockVm.showAnalytics = false;
-    mockVm.analyticsStats = null;
-    mockVm.isLoadingAnalytics = false;
-    mockVm.isRefreshingMetadata = false;
-    mockVm.screenshotUrl = null;
-    mockVm.canDeleteScreenshot = false;
-    mockVm.isDeletingScreenshot = false;
-    mockVm.faviconUrl = null;
-    mockVm.faviconError = false;
-    mockEditVm.isSaving = false;
-    mockEditVm.error = "";
-    mockEditVm.assignedTagIds = new Set();
-    mockEditVm.assignedTags = [];
+    Object.assign(mockVm, {
+      shortUrl: "https://zhe.to/abc123",
+      copied: false,
+      copiedOriginalUrl: false,
+      isDeleting: false,
+      isSavingVisibility: false,
+      showAnalytics: false,
+      analyticsStats: null,
+      isLoadingAnalytics: false,
+      screenshotUrl: null,
+      faviconUrl: null,
+      faviconError: false,
+    });
+    Object.assign(mockEditVm, {
+      isSaving: false,
+      isDeletingScreenshot: false,
+      screenshotAction: null,
+      error: "",
+      assignedTagIds: new Set(),
+      assignedTags: [],
+    });
     mockEditVm.saveEdit.mockResolvedValue(true);
   });
 
-  // --- Unified title logic ---
-
-  it("shows hostname as title when no metaTitle (list mode)", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    const titleLink = screen.getByRole("link", { name: "example.com" });
-    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
-    expect(titleLink).toHaveAttribute("target", "_blank");
+  it.each(["list", "grid"] as const)("renders the small %s link preview", (viewMode) => {
+    render(<LinkCard {...props({ ...baseLink, metaTitle: "Example Page" })} viewMode={viewMode} />);
+    expect(screen.getByRole("link", { name: "Example Page" })).toHaveAttribute(
+      "href",
+      baseLink.originalUrl,
+    );
+    expect(screen.getByRole("link", { name: "/abc123" })).toHaveAttribute(
+      "href",
+      "https://zhe.to/abc123",
+    );
+    expect(screen.getByRole("button", { name: "查看收藏内容" })).toHaveTextContent(
+      "A description of the page",
+    );
+    expect(screen.queryByRole("button", { name: "AI 整理" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制链接" })).toBeInTheDocument();
   });
 
-  it("shows metaTitle as title when available (list mode)", () => {
-    const linkWithMeta = { ...baseLink, metaTitle: "Example Page" };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
-
-    const titleLink = screen.getByRole("link", { name: "Example Page" });
-    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
+  it("uses the source hostname when no title metadata exists", () => {
+    render(<LinkCard {...props()} />);
+    expect(screen.getAllByRole("link", { name: "example.com" })[0]).toHaveAttribute(
+      "href",
+      baseLink.originalUrl,
+    );
   });
 
-  it("shows note separately below metaTitle when both available (list mode)", () => {
-    const linkWithBoth = {
-      ...baseLink,
-      note: "Important",
-      title: null,
-      metaTitle: "Example Page",
-    };
-    render(<LinkCard {...defaultProps} link={linkWithBoth} />);
-
-    expect(screen.getByText("Important")).toBeInTheDocument();
-    expect(screen.getByText("Example Page")).toBeInTheDocument();
-    expect(screen.queryByText("|")).not.toBeInTheDocument();
+  it("keeps the unified actions on the shared card footer", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...props()} onSuggest={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "AI 整理" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "复制链接" }));
+    expect(screen.getByRole("menuitem", { name: "复制原链接" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "复制短链接" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    for (const label of ["修改收藏", "数据采集", "访问统计", "隐藏帖子", "删除收藏"])
+      expect(screen.getByRole("menuitem", { name: label })).toBeInTheDocument();
   });
 
-  it("shows note separately from hostname when note exists but no metaTitle (list mode)", () => {
-    const linkWithNote = { ...baseLink, note: "My note" };
-    render(<LinkCard {...defaultProps} link={linkWithNote} />);
-
-    expect(screen.getByText("My note")).toBeInTheDocument();
-    expect(screen.getByText("example.com")).toBeInTheDocument();
-    expect(screen.queryByText("|")).not.toBeInTheDocument();
-  });
-
-  // --- Slug in meta row ---
-
-  it("renders slug in meta row", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("abc123")).toBeInTheDocument();
-  });
-
-  // --- Expiry ---
-
-  it("shows expiry date when link.expiresAt is set", () => {
-    const expiringLink = {
-      ...baseLink,
-      expiresAt: new Date("2026-06-01"),
-    };
-    render(<LinkCard {...defaultProps} link={expiringLink} />);
-
-    expect(screen.getByText(/过期:/)).toBeInTheDocument();
-  });
-
-  it("does not show expiry date when expiresAt is null", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.queryByText(/过期:/)).not.toBeInTheDocument();
-  });
-
-  // --- Copy buttons ---
-
-  it("shows copy short link button", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByTitle("Copy link")).toBeInTheDocument();
-  });
-
-  it("shows Check icon when copied is true", () => {
-    mockVm.copied = true;
-    render(<LinkCard {...defaultProps} />);
-
-    const copyButton = screen.getByTitle("Copy link");
-    const checkIcon = copyButton.querySelector(".text-success");
-    expect(checkIcon).toBeInTheDocument();
-  });
-
-  it("shows copy original URL button next to title", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByTitle("Copy original URL")).toBeInTheDocument();
-  });
-
-  it("shows Check icon on copy original URL button when copiedOriginalUrl is true", () => {
-    mockVm.copiedOriginalUrl = true;
-    render(<LinkCard {...defaultProps} />);
-
-    const copyBtn = screen.getByTitle("Copy original URL");
-    const checkIcon = copyBtn.querySelector(".text-success");
-    expect(checkIcon).toBeInTheDocument();
-  });
-
-  // --- Analytics ---
-
-  it("shows analytics panel with breakdown sections when showAnalytics + stats", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = {
-      totalClicks: 100,
-      uniqueCountries: ["US", "CN", "JP"],
-      deviceBreakdown: { desktop: 60, mobile: 40 },
-      browserBreakdown: { chrome: 50, safari: 30, firefox: 20 },
-      osBreakdown: { windows: 40, macos: 35, linux: 25 },
-    };
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("国家 / 地区")).toBeInTheDocument();
-    expect(screen.getByText("设备")).toBeInTheDocument();
-    expect(screen.getByText("浏览器")).toBeInTheDocument();
-    expect(screen.getByText("操作系统")).toBeInTheDocument();
-  });
-
-  it("shows '暂无分析数据' when analytics open but no data and not loading", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = null;
-    mockVm.isLoadingAnalytics = false;
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("暂无分析数据")).toBeInTheDocument();
-  });
-
-  it("shows '加载中...' when analytics is loading", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = null;
-    mockVm.isLoadingAnalytics = true;
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
-  });
-
-  // --- Counts & dates ---
-
-  it("renders click count with formatNumber", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText(/num:42/)).toBeInTheDocument();
-  });
-
-  it("renders created date with formatDate", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    const dateTexts = screen.getAllByText(/formatted:/);
-    expect(dateTexts.length).toBeGreaterThanOrEqual(1);
-  });
-
-  // --- Edit button ---
-
-  it("shows edit button in list mode", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
-  });
-
-  it("opens a plain dialog in List mode and keeps the source card visible", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    // Edit area not visible initially
-    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
-
-    // Click edit to open
-    fireEvent.click(screen.getByTitle("Edit link"));
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-
-    expect(screen.getByRole("dialog", { name: "编辑收藏" })).toBeInTheDocument();
+  it("opens and closes the editor from the unified menu while preserving the source card", async () => {
+    const user = userEvent.setup();
+    render(<LinkCard {...props()} />);
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    await user.click(screen.getByRole("menuitem", { name: "修改收藏" }));
+    expect(await screen.findByRole("region", { name: "编辑收藏" })).toBeInTheDocument();
     expect(screen.getByTestId("link-card")).toBeVisible();
-    expect(screen.getByTestId("card-edit-dialog").querySelector(".link-card-flight")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    await user.click(screen.getByRole("button", { name: "收起" }));
     await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
-    expect(screen.getByTestId("link-card")).toBeVisible();
+    expect(mockEditVm.saveEdit).not.toHaveBeenCalled();
   });
 
-  // --- Tag badges ---
-
-  it("displays tag badges when tags are assigned (list mode)", () => {
-    const linkTags: LinkTag[] = [
-      { linkId: 1, tagId: "t1" },
-      { linkId: 1, tagId: "t2" },
-    ];
-
-    render(<LinkCard {...defaultProps} tags={sampleTags} linkTags={linkTags} />);
-
-    expect(screen.getByText("Work")).toBeInTheDocument();
-    expect(screen.getByText("Personal")).toBeInTheDocument();
-  });
-
-  it("does not display tag section when no tags are assigned", () => {
-    render(<LinkCard {...defaultProps} tags={sampleTags} linkTags={[]} />);
-
-    expect(screen.queryByText("Work")).not.toBeInTheDocument();
-    expect(screen.queryByText("Personal")).not.toBeInTheDocument();
-  });
-
-  // --- Unified favicon display ---
-
-  it("shows favicon image when metaFavicon is set (list mode)", () => {
-    const linkWithMeta = {
-      ...baseLink,
-      metaFavicon: "https://example.com/favicon.ico",
-    };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
-
-    const favicon = screen.getByAltText("favicon");
-    expect(favicon).toBeInTheDocument();
-    expect(favicon).toHaveAttribute("src", "https://example.com/favicon.ico");
-  });
-
-  it("shows placeholder icon when metaFavicon is null (list mode)", () => {
-    const { container } = render(<LinkCard {...defaultProps} />);
-
-    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
-    const placeholders = container.querySelectorAll(".bg-accent");
-    expect(placeholders.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("shows placeholder icon when metaFavicon errors (404 fallback)", () => {
-    mockVm.faviconError = true;
-    const linkWithMeta = {
-      ...baseLink,
-      metaFavicon: "https://example.com/broken-favicon.ico",
-    };
-    const { container } = render(<LinkCard {...defaultProps} link={linkWithMeta} />);
-
-    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
-    const placeholders = container.querySelectorAll(".bg-accent");
-    expect(placeholders.length).toBeGreaterThanOrEqual(1);
-  });
-
-  // --- Meta title ---
-
-  it("shows meta title when metaTitle is set", () => {
-    const linkWithMeta = {
-      ...baseLink,
-      title: null,
-      metaTitle: "Example Page Title",
-    };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
-
-    expect(screen.getByText("Example Page Title")).toBeInTheDocument();
-  });
-
-  it("shows hostname when metaTitle is null", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("example.com")).toBeInTheDocument();
-  });
-
-  // --- Unified description ---
-
-  it("shows meta description when metaDescription is set", () => {
-    const linkWithMeta = {
-      ...baseLink,
-      metaDescription: "A description of the page",
-    };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} />);
-
-    expect(screen.getByText("A description of the page")).toBeInTheDocument();
-  });
-
-  it("shows unfetched hint when metaDescription is null (list mode)", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText(/未抓取描述/)).toBeInTheDocument();
-    expect(screen.getByText("点击抓取")).toBeInTheDocument();
-  });
-
-  it("shows '抓取中...' in description hint when isRefreshingMetadata is true", () => {
-    mockVm.isRefreshingMetadata = true;
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("抓取中...")).toBeInTheDocument();
-  });
-
-  // --- Refresh metadata ---
-
-  it("shows refresh metadata button", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByRole("button", { name: "Refresh metadata" })).toBeInTheDocument();
-  });
-
-  it("shows spinner on refresh metadata button when refreshing", () => {
-    mockVm.isRefreshingMetadata = true;
-    render(<LinkCard {...defaultProps} />);
-
-    const refreshBtn = screen.getByRole("button", { name: "Refresh metadata" });
-    expect(refreshBtn).toHaveAttribute("aria-busy", "true");
-  });
-
-  // --- Delete confirmation (inside edit mode) ---
-
-  it("shows delete button inside edit area when editing", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    // Open edit mode
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    expect(screen.getByLabelText("Delete link")).toBeInTheDocument();
-  });
-
-  it("does not show delete button when not in edit mode", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.queryByLabelText("Delete link")).not.toBeInTheDocument();
-  });
-
-  it("opens AlertDialog with confirmation text when delete button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    // Open edit mode first
-    fireEvent.click(screen.getByTitle("Edit link"));
-    fireEvent.click(screen.getByLabelText("Delete link"));
-
-    expect(screen.getByText("确认删除")).toBeInTheDocument();
-    expect(screen.getByText("此操作不可撤销，确定要删除这条链接吗？")).toBeInTheDocument();
-  });
-
-  it("does not call handleDelete when cancel button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-    fireEvent.click(screen.getByLabelText("Delete link"));
-    fireEvent.click(screen.getByText("取消"));
-
-    expect(mockVm.handleDelete).not.toHaveBeenCalled();
-  });
-
-  it("calls handleDelete when confirm delete button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-    fireEvent.click(screen.getByLabelText("Delete link"));
-
-    // The AlertDialog confirm button — find within the dialog, not the trigger
-    const confirmButtons = screen.getAllByRole("button", { name: "删除" });
-    // The last one is the AlertDialogAction inside the dialog
-    fireEvent.click(unwrap(confirmButtons[confirmButtons.length - 1]));
-
-    expect(mockVm.handleDelete).toHaveBeenCalledTimes(1);
-  });
-
-  it("disables delete button when isDeleting is true", async () => {
-    mockVm.isDeleting = true;
-    render(<LinkCard {...defaultProps} />);
-
-    // Open edit mode
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    const deleteBtn = screen.getByLabelText("Delete link");
-    expect(deleteBtn).toBeDisabled();
-  });
-
-  // --- Grid mode ---
-
-  it("shows hostname as title in grid mode when no metaTitle", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.getByText("example.com")).toBeInTheDocument();
-  });
-
-  it("shows note separately from hostname in grid mode when note exists but no metaTitle", () => {
-    const linkWithNote = { ...baseLink, note: "Grid note" };
-    render(<LinkCard {...defaultProps} link={linkWithNote} viewMode="grid" />);
-
-    expect(screen.getByText("Grid note")).toBeInTheDocument();
-    expect(screen.getByText("example.com")).toBeInTheDocument();
-    expect(screen.queryByText("|")).not.toBeInTheDocument();
-  });
-
-  it("shows slug in grid mode meta row", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.getByText("abc123")).toBeInTheDocument();
-  });
-
-  it("shows click count with '次点击' in grid mode", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const clickCount = screen.getByTestId("click-count");
-    expect(clickCount).toHaveTextContent("num:42");
-    expect(clickCount.parentElement).toHaveTextContent(/num:42\s*次点击/);
-  });
-
-  it("shows created date in grid mode", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const dateTexts = screen.getAllByText(/formatted:/);
-    expect(dateTexts.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("does not show analytics toggle button in grid mode", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.queryByRole("button", { name: /次点击/ })).not.toBeInTheDocument();
-  });
-
-  it("shows unfetched description hint in grid mode when no metaDescription", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.getByText(/未抓取描述/)).toBeInTheDocument();
-  });
-
-  it("shows edit button in grid mode overlay", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
-  });
-
-  it("toggles inline edit area when edit button is clicked in grid mode", async () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit link" }));
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-  });
-
-  it("shows placeholder icon when no screenshot and not loading in grid mode", () => {
-    mockVm.screenshotUrl = null;
-    mockVm.isDeletingScreenshot = false;
-    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const svgs = container.querySelectorAll("svg");
-    expect(svgs.length).toBeGreaterThan(0);
-  });
-
-  it("shows screenshot image when screenshotUrl is set in grid mode", () => {
-    mockVm.screenshotUrl = "https://screenshot.example.com/image.png";
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const img = screen.getByAltText("Screenshot");
-    expect(img).toBeInTheDocument();
-  });
-
-  it("shows meta title as link in grid mode when set", () => {
-    const linkWithMeta = { ...baseLink, metaTitle: "Grid Title" };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} viewMode="grid" />);
-
-    const titleLink = screen.getByRole("link", { name: "Grid Title" });
-    expect(titleLink).toHaveAttribute("href", "https://example.com/very-long-url");
-  });
-
-  it("shows favicon in grid mode when set", () => {
-    const linkWithMeta = { ...baseLink, metaFavicon: "https://example.com/fav.ico" };
-    render(<LinkCard {...defaultProps} link={linkWithMeta} viewMode="grid" />);
-
-    const favicon = screen.getByAltText("favicon");
-    expect(favicon).toBeInTheDocument();
-  });
-
-  it("shows favicon placeholder in grid mode when no metaFavicon", () => {
-    const { container } = render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.queryByAltText("favicon")).not.toBeInTheDocument();
-    const placeholders = container.querySelectorAll(".bg-accent");
-    expect(placeholders.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("keeps editing available when a grid card has no preview", () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    expect(screen.queryByLabelText("删除截图")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit link" })).toBeInTheDocument();
-  });
-
-  it("displays tag badges in grid mode when tags are assigned", () => {
-    const linkTags: LinkTag[] = [{ linkId: 1, tagId: "t1" }];
-
-    render(<LinkCard {...defaultProps} viewMode="grid" tags={sampleTags} linkTags={linkTags} />);
-
-    expect(screen.getByText("Work")).toBeInTheDocument();
-  });
-
-  it("defaults to list mode when viewMode prop is omitted", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByTitle("Edit link")).toBeInTheDocument();
-  });
-
-  // --- Thumbnail placeholder ---
-
-  it("shows placeholder icon in list mode when no screenshot and not loading", () => {
-    mockVm.screenshotUrl = null;
-    mockVm.isDeletingScreenshot = false;
-    const { container } = render(<LinkCard {...defaultProps} />);
-
-    const thumbArea = container.querySelector(".group\\/thumb");
-    expect(thumbArea).toBeInTheDocument();
-    const svgs = unwrap(thumbArea).querySelectorAll("svg");
-    expect(svgs.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it.each(["list", "grid"] as const)(
-    "offers screenshot deletion only for existing previews in %s mode",
-    (viewMode) => {
-      const { rerender } = render(<LinkCard {...defaultProps} viewMode={viewMode} />);
-      expect(screen.queryByLabelText("删除截图")).not.toBeInTheDocument();
-      expect(screen.queryByLabelText("Refresh preview")).not.toBeInTheDocument();
-      mockVm.canDeleteScreenshot = true;
-      mockVm.screenshotUrl = "https://cdn.example.com/preview.webp";
-      rerender(
-        <LinkCard
-          {...defaultProps}
-          viewMode={viewMode}
-          link={{ ...baseLink, screenshotUrl: mockVm.screenshotUrl }}
-        />,
-      );
-      fireEvent.click(screen.getByRole("button", { name: "删除截图" }));
-      expect(mockVm.handleDeleteScreenshot).toHaveBeenCalledOnce();
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    },
-  );
-
-  it.each(["list", "grid"] as const)(
-    "disables screenshot deletion while pending in %s mode",
-    (viewMode) => {
-      mockVm.canDeleteScreenshot = true;
-      mockVm.isDeletingScreenshot = true;
-      render(<LinkCard {...defaultProps} viewMode={viewMode} />);
-      const button = screen.getByRole("button", { name: "删除截图" });
-      expect(button).toBeDisabled();
-      expect(button).toHaveAttribute("aria-busy", "true");
-      fireEvent.click(button);
-      expect(mockVm.handleDeleteScreenshot).not.toHaveBeenCalled();
-    },
-  );
-
-  // --- Favicon display in thumbnail area ---
-
-  it("shows favicon image in list mode when faviconUrl is set", () => {
-    mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
-    render(<LinkCard {...defaultProps} />);
-
-    const faviconImg = screen.getByAltText("Site favicon");
-    expect(faviconImg).toBeInTheDocument();
-    expect(faviconImg).toHaveAttribute("src", "https://favicon.im/example.com?larger=true");
-  });
-
-  it("shows favicon image in grid mode when faviconUrl is set", () => {
-    mockVm.faviconUrl = "https://favicon.im/example.com?larger=true";
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const faviconImg = screen.getByAltText("Site favicon");
-    expect(faviconImg).toBeInTheDocument();
-    expect(faviconImg).toHaveAttribute("src", "https://favicon.im/example.com?larger=true");
-  });
-
-  it("shows screenshot over favicon when screenshotUrl exists in list mode", () => {
-    mockVm.screenshotUrl = "https://r2.example.com/manual-screenshot.png";
-    mockVm.faviconUrl = null;
-    render(<LinkCard {...defaultProps} />);
-
-    const img = screen.getByAltText("Screenshot");
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "https://r2.example.com/manual-screenshot.png");
-    expect(screen.queryByAltText("Site favicon")).not.toBeInTheDocument();
-  });
-
-  it("shows screenshot over favicon when screenshotUrl exists in grid mode", () => {
-    mockVm.screenshotUrl = "https://r2.example.com/manual-screenshot.png";
-    mockVm.faviconUrl = null;
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    const img = screen.getByAltText("Screenshot");
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", "https://r2.example.com/manual-screenshot.png");
-    expect(screen.queryByAltText("Site favicon")).not.toBeInTheDocument();
-  });
-
-  it("always shows thumbnail area in list mode even without screenshot", () => {
-    mockVm.screenshotUrl = null;
-    mockVm.isDeletingScreenshot = false;
-    const { container } = render(<LinkCard {...defaultProps} />);
-
-    const thumbArea = container.querySelector(".group\\/thumb");
-    expect(thumbArea).toBeInTheDocument();
-  });
-
-  it("shows Refresh metadata button with correct title in list mode", () => {
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByRole("button", { name: "Refresh metadata" })).toBeInTheDocument();
-    expect(screen.queryByTitle("刷新预览图")).not.toBeInTheDocument();
-  });
-
-  // --- Copy button callbacks ---
-
-  it("calls handleCopy when copy link button is clicked in list mode", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Copy link"));
-
-    expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls handleCopyOriginalUrl when copy original URL button is clicked in list mode", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Copy original URL"));
-
-    expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls handleCopy when copy link button is clicked in grid mode", async () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    fireEvent.click(screen.getByTitle("Copy link"));
-
-    expect(mockVm.handleCopy).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls handleCopyOriginalUrl when copy original URL button is clicked in grid mode", async () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    fireEvent.click(screen.getByTitle("Copy original URL"));
-
-    expect(mockVm.handleCopyOriginalUrl).toHaveBeenCalledTimes(1);
-  });
-
-  // --- Refresh metadata callback ---
-
-  it("calls handleRefreshMetadata when refresh metadata button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Refresh metadata" }));
-
-    expect(mockVm.handleRefreshMetadata).toHaveBeenCalledTimes(1);
-  });
-
-  // --- Analytics toggle callback ---
-
-  it("calls handleToggleAnalytics when analytics button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    const analyticsButton = screen.getByText(/次点击/);
-    fireEvent.click(analyticsButton);
-
-    expect(mockVm.handleToggleAnalytics).toHaveBeenCalledTimes(1);
-  });
-
-  // --- BreakdownSection rendering ---
-
-  it("shows country entries without counts in analytics panel", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = {
-      totalClicks: 100,
-      uniqueCountries: ["US", "CN", "JP"],
-      deviceBreakdown: { desktop: 60, mobile: 40 },
-      browserBreakdown: { chrome: 50, safari: 30, firefox: 20 },
-      osBreakdown: { windows: 40, macos: 35, linux: 25 },
-    };
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("US")).toBeInTheDocument();
-    expect(screen.getByText("CN")).toBeInTheDocument();
-    expect(screen.getByText("JP")).toBeInTheDocument();
-  });
-
-  it("shows device breakdown entries with counts", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = {
-      totalClicks: 100,
-      uniqueCountries: ["US"],
-      deviceBreakdown: { desktop: 60, mobile: 35 },
-      browserBreakdown: { chrome: 50 },
-      osBreakdown: { windows: 45 },
-    };
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("desktop")).toBeInTheDocument();
-    expect(screen.getByText("60")).toBeInTheDocument();
-    expect(screen.getByText("mobile")).toBeInTheDocument();
-    expect(screen.getByText("35")).toBeInTheDocument();
-  });
-
-  it("shows the remaining country count when countries exceed displayed entries", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = {
-      totalClicks: 100,
-      uniqueCountries: ["US", "CN", "JP", "UK", "DE", "FR", "BR", "IN"],
-      deviceBreakdown: {},
-      browserBreakdown: {},
-      osBreakdown: {},
-    };
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getByText("另有 3 个")).toBeInTheDocument();
-  });
-
-  it("shows one empty state instead of four empty breakdowns before any visits", () => {
-    mockVm.showAnalytics = true;
-    mockVm.analyticsStats = {
-      totalClicks: 0,
-      uniqueCountries: [],
-      deviceBreakdown: {},
-      browserBreakdown: {},
-      osBreakdown: {},
-    };
-
-    render(<LinkCard {...defaultProps} />);
-
-    expect(screen.getAllByText("暂无分析数据")).toHaveLength(1);
-    expect(screen.queryByText("暂无记录")).not.toBeInTheDocument();
-    expect(screen.queryByText("国家 / 地区")).not.toBeInTheDocument();
-  });
-
-  it.each(["browserBreakdown", "osBreakdown"] as const)(
-    "keeps partial analytics visible when only %s has data",
-    (breakdown) => {
-      mockVm.showAnalytics = true;
-      mockVm.analyticsStats = {
-        totalClicks: 1,
-        uniqueCountries: [],
-        deviceBreakdown: {},
-        browserBreakdown: {},
-        osBreakdown: {},
-        [breakdown]: { "Known visitor": 1 },
-      };
-      render(<LinkCard {...defaultProps} />);
-      expect(screen.getByText("Known visitor")).toBeInTheDocument();
-      expect(screen.getAllByText("暂无记录")).toHaveLength(3);
-      expect(screen.queryByText("暂无分析数据")).not.toBeInTheDocument();
-    },
-  );
-
-  // --- List mode thumbnail dimensions ---
-
-  it("renders list mode thumbnail with 118x62 dimensions", () => {
-    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
-    const { container } = render(<LinkCard {...defaultProps} />);
-
-    const thumbArea = container.querySelector(".group\\/thumb");
-    expect(thumbArea).toBeInTheDocument();
-    expect(thumbArea).toHaveClass("w-[118px]");
-    expect(thumbArea).toHaveClass("h-[62px]");
-  });
-
-  it("renders list mode screenshot with object-top positioning", () => {
-    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
-    render(<LinkCard {...defaultProps} />);
-
-    const img = screen.getByAltText("Screenshot");
-    expect(img).toHaveClass("object-cover");
-    expect(img).toHaveClass("object-top");
-  });
-
-  // --- Inline edit mode ---
-
-  it("does not show edit area when editCallbacks is not provided", () => {
-    const { editCallbacks: _, ...propsWithoutCallbacks } = defaultProps;
-    render(<LinkCard {...propsWithoutCallbacks} />);
-
-    // Even if we somehow had isEditing=true, without editCallbacks the area won't render
-    expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument();
-  });
-
-  it("shows save button inside edit area", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
-  });
-
-  it("calls saveEdit when save button is clicked", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-
-    expect(mockEditVm.saveEdit).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
-  });
-
-  it.each(["list", "grid", "feed"] as const)(
-    "can close the %s editor without saving and keeps analytics open",
-    async (viewMode) => {
-      mockVm.showAnalytics = true;
-      render(
-        <LinkCard
-          {...defaultProps}
-          link={{ ...baseLink, originalUrl: "https://x.com/example/status/12345" }}
-          viewMode={viewMode}
-        />,
-      );
-      const user = userEvent.setup();
-      const trigger = screen.getByRole("button", {
-        name: viewMode === "feed" ? "更多收藏操作" : "Edit link",
-      });
-      await user.click(trigger);
-      if (viewMode === "feed") {
-        await user.click(screen.getByRole("menuitem", { name: "编辑收藏" }));
-      }
-      expect(screen.getByRole("region", { name: "编辑收藏" })).toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: "收起" }));
-      await waitFor(() => expect(screen.queryByTestId("edit-area")).not.toBeInTheDocument());
-      expect(mockEditVm.saveEdit).not.toHaveBeenCalled();
-      expect(trigger).toHaveFocus();
-      if (viewMode !== "grid") {
-        expect(screen.getByRole("region", { name: "短链接统计" })).toBeInTheDocument();
-      }
-    },
-  );
-
-  it("keeps the editor and its error visible when saving fails", async () => {
-    mockEditVm.saveEdit.mockResolvedValue(false);
-    mockEditVm.error = "无法保存链接";
-    render(<LinkCard {...defaultProps} />);
-    fireEvent.click(screen.getByTitle("Edit link"));
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-    await waitFor(() => expect(mockEditVm.saveEdit).toHaveBeenCalled());
-    expect(screen.getByTestId("edit-area")).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("无法保存链接");
-  });
-
-  it("publishes edits after landing and still forwards late tag rollbacks", async () => {
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-    fireEvent.click(screen.getByRole("button", { name: "Edit link" }));
+  it("retains deferred updates until the editor flight lands", async () => {
+    render(<LinkCard {...props()} viewMode="grid" />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    await user.click(screen.getByRole("menuitem", { name: "修改收藏" }));
     await waitFor(() =>
       expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
     );
@@ -1005,90 +197,41 @@ describe("LinkCard", () => {
       callbacks.onLinkUpdated(updated);
       return true;
     });
-    act(() => callbacks.onLinkTagRemoved(baseLink.id, "t1"));
-    fireEvent.click(screen.getByRole("button", { name: /^保存$/ }));
+    callbacks.onLinkTagRemoved(baseLink.id, "t1");
+    await user.click(screen.getByRole("button", { name: "保存" }));
     await waitFor(() =>
       expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "returning"),
     );
     expect(editCallbacks.onLinkUpdated).not.toHaveBeenCalled();
     expect(editCallbacks.onLinkTagRemoved).not.toHaveBeenCalled();
-    expect(screen.getByTestId("link-card")).toBeInTheDocument();
-    await act(async () => landing.resolve({} as Animation));
+    await landing.resolve({} as Animation);
     await waitFor(() => expect(screen.queryByTestId("card-edit-dialog")).not.toBeInTheDocument());
     expect(editCallbacks.onLinkUpdated).toHaveBeenCalledWith(updated);
     expect(editCallbacks.onLinkTagRemoved).toHaveBeenCalledWith(baseLink.id, "t1");
-    callbacks.onLinkTagAdded({ linkId: baseLink.id, tagId: "t1" });
-    expect(editCallbacks.onLinkTagAdded).toHaveBeenCalledWith({ linkId: baseLink.id, tagId: "t1" });
   });
 
-  it("ignores Escape while a save is in progress", async () => {
-    mockEditVm.isSaving = true;
-    render(<LinkCard {...defaultProps} />);
-    fireEvent.click(screen.getByTitle("Edit link"));
-    await waitFor(() =>
-      expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
-    );
-    await userEvent.setup().keyboard("{Escape}");
-    expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
+  it("keeps the edit form error visible when saving fails", async () => {
+    mockEditVm.saveEdit.mockResolvedValue(false);
+    mockEditVm.error = "无法保存链接";
+    render(<LinkCard {...props()} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
+    await user.click(screen.getByRole("menuitem", { name: "修改收藏" }));
+    await user.click(await screen.findByRole("button", { name: "保存" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("无法保存链接");
   });
 
-  // --- Edit form inputs ---
-
-  it("calls setEditUrl when URL input changes in edit area", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    const urlInput = screen.getByPlaceholderText("https://example.com");
-    fireEvent.change(urlInput, { target: { value: "" } });
-    fireEvent.change(urlInput, { target: { value: "https://new.com" } });
-
-    expect(mockEditVm.setEditUrl).toHaveBeenCalled();
-  });
-
-  it("calls setEditSlug when slug input changes in edit area", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    const slugInput = screen.getByPlaceholderText("custom-slug");
-    fireEvent.change(slugInput, { target: { value: "" } });
-    fireEvent.change(slugInput, { target: { value: "new-slug" } });
-
-    expect(mockEditVm.setEditSlug).toHaveBeenCalled();
-  });
-
-  it("calls setEditScreenshotUrl when screenshot URL input changes in edit area", async () => {
-    render(<LinkCard {...defaultProps} />);
-
-    fireEvent.click(screen.getByTitle("Edit link"));
-
-    const screenshotInput = screen.getByPlaceholderText("https://example.com/screenshot.png");
-    fireEvent.change(screenshotInput, { target: { value: "https://img.com/shot.png" } });
-
-    expect(mockEditVm.setEditScreenshotUrl).toHaveBeenCalled();
-  });
-
-  it("renders grid mode card with clickable screenshot area", () => {
-    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-    mockVm.screenshotUrl = "https://screenshot.example.com/img.png";
-
-    render(<LinkCard {...defaultProps} viewMode="grid" />);
-
-    // Click the screenshot area
-    const card = screen.getByTestId("link-card");
-    const clickableArea = card.querySelector(".cursor-pointer");
-    expect(clickableArea).toBeInTheDocument();
-
-    if (clickableArea) {
-      fireEvent.click(clickableArea);
-      expect(windowOpenSpy).toHaveBeenCalledWith(
-        "https://example.com/very-long-url",
-        "_blank",
-        "noopener,noreferrer",
-      );
-    }
-
-    windowOpenSpy.mockRestore();
+  it("shows the bounded X feed preview and opens full details on demand", async () => {
+    const link = {
+      ...baseLink,
+      originalUrl: "https://x.com/example/status/12345",
+      note: "Saved note",
+    };
+    render(<LinkCard {...props(link)} viewMode="feed" />);
+    expect(screen.getByTestId("x-bookmark-preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent("Saved note");
+    expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "查看帖子详情" }));
+    expect(await screen.findByRole("dialog", { name: "X 帖子" })).toBeInTheDocument();
   });
 });

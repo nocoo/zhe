@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { islandHeading } from "./helpers/chrome";
 import { executeD1, queryD1 } from "./helpers/d1";
 
@@ -240,7 +241,11 @@ for (const width of [1365, 320]) {
       await expect(card.getByTitle("GitHub stars · 1,250")).toContainText("1.3K");
       await expect(card.getByTitle("默认分支 main 的 commit 总数 · 321")).toContainText("321");
       await expect(card.getByText("开发收藏", { exact: true })).toBeVisible();
-      await expect(card.getByTestId("tag-badge")).toHaveText("待读");
+      await expect(
+        card
+          .locator("[data-bookmark-classification]")
+          .getByRole("button", { name: "查看全部标签" }),
+      ).toHaveText("待读");
       await expect(cards.getByText(analysis.summary, { exact: true })).toHaveCount(1);
       await expect(cards.getByText("全文归档 · 统一搜索", { exact: true })).toHaveCount(0);
       expect(
@@ -263,14 +268,14 @@ for (const width of [1365, 320]) {
         }),
       );
       const heights = geometry.map((box) => box.height);
-      // Each column stays compact even when neighboring cards have more content.
+      // Long content must not change the fixed card height or row spacing.
       for (const box of geometry) {
         const above = geometry
           .filter((other) => Math.abs(other.left - box.left) < 1 && other.top < box.top)
           .sort((a, b) => b.top - a.top)[0];
         if (above) expect(Math.abs(box.top - above.bottom - 12)).toBeLessThan(1);
       }
-      expect(Math.max(...heights)).toBeLessThan(260);
+      expect(heights.every((height) => Math.abs(height - 384) < 0.005)).toBe(true);
       expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
       const rowGeometry = await cards.evaluateAll((elements) =>
         elements.map((element) => {
@@ -281,7 +286,9 @@ for (const width of [1365, 320]) {
             '[data-testid="github-card-description"]',
             '[data-testid="github-card-metrics"]',
             '[data-testid="github-card-metadata"]',
-            '[data-testid="github-card-footer"]',
+            "[data-bookmark-footer]",
+            "[data-bookmark-classification]",
+            "[data-bookmark-action-row]",
           ].map((selector) => {
             const row = element.querySelector(selector);
             if (!row) throw new Error(`Missing card row: ${selector}`);
@@ -323,48 +330,66 @@ for (const width of [1365, 320]) {
           JSON.stringify(items),
         ).toBe(true);
       }
-      const rows = geometry.reduce<Record<number, number>>((counts, box) => {
-        counts[box.top] = (counts[box.top] ?? 0) + 1;
-        return counts;
-      }, {});
-      expect(Math.max(...Object.values(rows))).toBeLessThanOrEqual(4);
-      if (width === 1920) expect(Math.max(...Object.values(rows))).toBe(4);
-      if (width <= 390) expect(Math.max(...Object.values(rows))).toBe(1);
-      const footer = card.getByTestId("github-card-footer");
-      await expect(footer.getByTestId("tag-badge")).toHaveCount(0);
+      const grid = page.getByTestId("github-repositories");
+      const columns = await grid.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const available = element.getBoundingClientRect().width;
+        const gap = Number.parseFloat(style.columnGap);
+        const minimum = Math.min(
+          available,
+          18 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+        );
+        const count = style.gridTemplateColumns.split(" ").length;
+        if (count !== Math.max(1, Math.floor((available + gap) / (minimum + gap))))
+          throw new Error("Unexpected container-driven column count");
+        return count;
+      });
+      const firstRow = geometry.filter((box) => Math.abs(box.top - (geometry[0]?.top ?? 0)) < 1);
+      expect(firstRow).toHaveLength(Math.min(columns, 6));
+      const footer = card.locator("[data-bookmark-footer]");
+      await expect(footer.locator("time")).toHaveCount(1);
+      await expect(footer.getByRole("button", { name: "AI 整理", exact: true })).toBeVisible();
+      await expect(footer.getByRole("button", { name: "复制链接", exact: true })).toBeVisible();
       const brand = await card.getByTitle("来源：GitHub").boundingBox();
       const title = await card.getByRole("heading").boundingBox();
       const tags = await card.getByTestId("github-card-tags").boundingBox();
       assert(brand && title && tags);
       expect(brand.x).toBeGreaterThan(title.x + title.width);
       expect(tags.y).toBeGreaterThan(title.y + title.height);
-      const labels = cards
-        .filter({ hasText: "fixture/repository-1-with-a-long-name" })
-        .getByTestId("github-card-tags");
-      await expect(labels.getByTestId("github-repository-label")).toHaveCount(12);
-      await expect(labels.getByTestId("tag-badge")).toHaveCount(5);
-      await labels.focus();
-      await page.keyboard.press("ArrowRight");
-      await expect.poll(() => labels.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
-      await labels.getByTestId("github-repository-label").last().scrollIntoViewIfNeeded();
-      await expect(labels.getByTestId("github-repository-label").last()).toBeInViewport();
-      await labels.evaluate((element) => {
-        element.scrollLeft = 0;
-      });
-      const readButton = footer.getByRole("button", { name: "阅读 README" });
+      const longCard = cards.filter({ hasText: "fixture/repository-1-with-a-long-name" });
+      const labels = longCard.getByTestId("github-card-tags");
+      await expect(labels.getByTestId("github-repository-label")).toHaveCount(3);
+      await expect(labels).toContainText("+9");
+      const assignedTags = longCard
+        .locator("[data-bookmark-classification]")
+        .getByRole("button", { name: "查看全部标签" });
+      await expect(assignedTags).toContainText("+4");
+      await assignedTags.click();
+      const tagPopover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
+      for (let index = 1; index <= 5; index++)
+        await expect(tagPopover.getByText(`收藏标签 ${index}`, { exact: true })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(assignedTags).toBeFocused();
+      await longCard.getByRole("button", { name: "阅读 README" }).click();
+      const fullRepository = page.getByRole("dialog");
+      await expect(fullRepository.getByTitle(/^GitHub 仓库标签：/)).toHaveCount(12);
+      await expect(
+        fullRepository.getByText("A long personal note. ".repeat(20).trim(), { exact: true }),
+      ).toBeVisible();
+      await fullRepository.getByRole("button", { name: "关闭 README" }).click();
+      const readButton = card.getByRole("button", { name: "阅读 README" });
       const moreButton = footer.getByRole("button", { name: "更多收藏操作" });
       const readBox = await readButton.boundingBox();
       const moreBox = await moreButton.boundingBox();
       assert(readBox && moreBox);
-      expect(Math.abs(readBox.y - moreBox.y)).toBeLessThan(1);
-      expect(moreBox.x).toBeGreaterThan(readBox.x);
+      expect(moreBox.y).toBeGreaterThan(readBox.y + readBox.height);
       const cardHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
-      await moreButton.click();
-      await expect(page.getByRole("menuitem", { name: "打开原仓库" })).toHaveAttribute(
-        "href",
-        urls[0] as string,
-      );
-      await page.getByRole("menuitem", { name: "编辑收藏" }).click();
+      await expect(
+        card
+          .locator("[data-bookmark-links]")
+          .getByRole("link", { name: "github.com", exact: true }),
+      ).toHaveAttribute("href", urls[0] as string);
+      await (await cardAction(page, card, "修改收藏")).click();
       await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
       expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
         cardHeight,
@@ -386,10 +411,13 @@ for (const width of [1365, 320]) {
           "rgb(255, 255, 255)",
         );
       }
-      await expect(dialog.getByRole("link", { name: "Guide", exact: true })).toHaveAttribute(
+      const guide = dialog.getByRole("link", { name: "Guide", exact: true });
+      await expect(guide).toHaveAttribute(
         "href",
         "https://github.com/octocat/Hello-World/blob/main/guide.md",
       );
+      await expect(guide).toHaveAttribute("rel", "noopener noreferrer");
+      await expect(card.getByText("END OF README", { exact: true })).toHaveCount(0);
       await dialog.getByText("END OF README", { exact: true }).scrollIntoViewIfNeeded();
       await expect(dialog.getByText("END OF README", { exact: true })).toBeVisible();
       await expect(dialog.getByRole("button", { name: "关闭 README" })).toBeInViewport();
@@ -407,7 +435,12 @@ for (const width of [1365, 320]) {
       await expect(dialog).toBeHidden();
       await page.goto("/dashboard/x");
       await expect(islandHeading(page, "X 收藏")).toBeVisible();
-      await expect(page.getByTestId("x-card-tags")).toHaveText("待读");
+      await expect(
+        page
+          .getByTestId("link-card")
+          .locator("[data-bookmark-classification]")
+          .getByRole("button", { name: "查看全部标签" }),
+      ).toHaveText("待读");
       await page.getByRole("button", { name: "标签", exact: true }).click();
       await page.getByRole("option", { name: "待读", exact: true }).click();
       await page.keyboard.press("Escape");

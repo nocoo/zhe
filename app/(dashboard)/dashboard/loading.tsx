@@ -4,9 +4,9 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useViewMode } from "@/components/dashboard/links-list-parts/useViewMode";
 import {
+  BOOKMARK_GRID_CLASS,
   CardGridSkeleton,
   CardListSkeleton,
-  GITHUB_CARD_GRID_CLASS,
 } from "@/components/ui/card-skeleton";
 import { PageHeaderSkeleton } from "@/components/ui/page-header";
 
@@ -24,7 +24,7 @@ export default function DashboardLoading() {
   const [viewMode, , ready] = useViewMode();
   let cards: ReactNode = <CardListSkeleton />;
   if (pathname === "/dashboard/github")
-    cards = <CardGridSkeleton variant="github" gridClass={GITHUB_CARD_GRID_CLASS} count={8} />;
+    cards = <CardGridSkeleton variant="github" gridClass={BOOKMARK_GRID_CLASS} count={8} />;
   else if (pathname === "/dashboard/x") cards = <CardGridSkeleton variant="x" />;
   else if (pathname === "/dashboard/ideas") cards = <CardGridSkeleton variant="idea" />;
   else if (pathname === "/dashboard")

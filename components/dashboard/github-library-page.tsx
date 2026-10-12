@@ -5,7 +5,7 @@ import { deleteLink } from "@/actions/links";
 import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
 import { GithubIcon } from "@/components/site-icons";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
-import { CardGridSkeleton, GITHUB_CARD_GRID_CLASS } from "@/components/ui/card-skeleton";
+import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
@@ -104,7 +104,7 @@ export function GitHubLibraryPage() {
     return (
       <div className="@container/github">
         <PageHeaderSkeleton />
-        <CardGridSkeleton variant="github" gridClass={GITHUB_CARD_GRID_CLASS} count={8} />
+        <CardGridSkeleton variant="github" gridClass={BOOKMARK_GRID_CLASS} count={8} />
       </div>
     );
   return (
@@ -169,11 +169,7 @@ export function GitHubLibraryPage() {
         }
       />
       {visible.length ? (
-        <AnimatedCardList
-          className={GITHUB_CARD_GRID_CLASS}
-          masonry
-          data-testid="github-repositories"
-        >
+        <AnimatedCardList className={BOOKMARK_GRID_CLASS} data-testid="github-repositories">
           {visible.map(({ link, bookmark }, index) => (
             <SelectableCard
               selection={selection}
@@ -193,7 +189,6 @@ export function GitHubLibraryPage() {
                 siteUrl={siteUrl}
                 editCallbacks={callbacks}
                 onDelete={handleLinkDeleted}
-                onRefresh={refresh}
               />
             </SelectableCard>
           ))}

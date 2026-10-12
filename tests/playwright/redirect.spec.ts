@@ -27,7 +27,9 @@ test.describe("Short link redirect", () => {
     await page.locator("#slug").fill(slug);
     await page.locator('button:has-text("创建链接")').click();
     await expect(page.getByText("创建短链接")).toBeHidden({ timeout: 15_000 });
-    await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("link", { name: `/${slug}`, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Step 2: Use the API request context to fetch the short link
     // with redirect: 'manual' so we can inspect the 307 status
@@ -55,7 +57,9 @@ test.describe("Short link redirect", () => {
     await page.locator("#slug").fill(slug);
     await page.locator('button:has-text("创建链接")').click();
     await expect(page.getByText("创建短链接")).toBeHidden({ timeout: 15_000 });
-    await expect(page.getByText(slug)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("link", { name: `/${slug}`, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Fire 3 redirect requests — all should return 307 to the same target
     for (let i = 0; i < 3; i++) {

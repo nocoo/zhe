@@ -49,8 +49,12 @@ test.describe("Tag UI - filter by tag", () => {
 
     const main = page.locator("main");
 
-    await expect(main.getByText(slug1)).toBeVisible({ timeout: 10_000 });
-    await expect(main.getByText(slug2)).toBeVisible({ timeout: 10_000 });
+    await expect(main.getByRole("link", { name: `/${slug1}`, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await main.locator('[data-testid="tag-filter-trigger"]').click();
 
@@ -64,8 +68,12 @@ test.describe("Tag UI - filter by tag", () => {
       main.locator(`[data-testid="active-tag-filter"][data-tag-name="${tagName}"]`),
     ).toBeVisible({ timeout: 5_000 });
 
-    await expect(main.getByText(slug1)).toBeVisible({ timeout: 10_000 });
-    await expect(main.getByText(slug2)).toBeHidden({ timeout: 10_000 });
+    await expect(main.getByRole("link", { name: `/${slug1}`, exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeHidden({
+      timeout: 10_000,
+    });
 
     await expect(main.getByText(/\d+ \/ \d+ 条链接/)).toBeVisible();
   });
@@ -81,12 +89,18 @@ test.describe("Tag UI - filter by tag", () => {
     await tagItem.click();
     await page.keyboard.press("Escape");
 
-    await expect(main.getByText(slug2)).toBeHidden({ timeout: 5_000 });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeHidden({
+      timeout: 5_000,
+    });
 
     await main.locator('[data-testid="clear-filters"]').click();
 
-    await expect(main.getByText(slug1)).toBeVisible({ timeout: 5_000 });
-    await expect(main.getByText(slug2)).toBeVisible({ timeout: 5_000 });
+    await expect(main.getByRole("link", { name: `/${slug1}`, exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   test("remove active tag filter badge deselects the tag", async ({ page }) => {
@@ -104,13 +118,19 @@ test.describe("Tag UI - filter by tag", () => {
       `[data-testid="active-tag-filter"][data-tag-name="${tagName}"]`,
     );
     await expect(activeBadge).toBeVisible({ timeout: 3_000 });
-    await expect(main.getByText(slug2)).toBeHidden({ timeout: 5_000 });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeHidden({
+      timeout: 5_000,
+    });
 
     await activeBadge.locator(`button[aria-label="Remove filter ${tagName}"]`).click();
 
     await expect(activeBadge).toBeHidden({ timeout: 3_000 });
-    await expect(main.getByText(slug1)).toBeVisible({ timeout: 5_000 });
-    await expect(main.getByText(slug2)).toBeVisible({ timeout: 5_000 });
+    await expect(main.getByRole("link", { name: `/${slug1}`, exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(main.getByRole("link", { name: `/${slug2}`, exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   test("tag filter shows count in trigger button", async ({ page }) => {

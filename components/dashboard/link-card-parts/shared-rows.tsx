@@ -1,13 +1,19 @@
 "use client";
 
-import { Check, Copy, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import Image from "next/image";
-import { canonicalXPost } from "@/cli/src/connector/core";
-import { XIcon } from "@/components/x-icon";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { linkPresentation } from "@/models/link-presentation";
 import type { Link } from "@/models/types";
-import { CardText, CardTitleText } from "./curated-text";
+import { CardTitleText } from "./curated-text";
 
 /** Favicon image with fallback to placeholder square. */
 export function Favicon({
@@ -49,12 +55,10 @@ function TitleAnchor({
   href,
   title,
   titleText,
-  onOpenDetails,
 }: {
   href: string;
   title: string | null;
   titleText: string;
-  onOpenDetails?: (() => void) | undefined;
 }) {
   const content = (
     <CardTitleText
@@ -64,12 +68,6 @@ function TitleAnchor({
   );
   const className =
     "min-w-0 truncate text-left text-sm font-medium leading-5 text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-  if (onOpenDetails)
-    return (
-      <button type="button" onClick={onOpenDetails} className={className}>
-        {content}
-      </button>
-    );
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
       {content}
@@ -77,133 +75,97 @@ function TitleAnchor({
   );
 }
 
-/** Small copy button used in the title row to copy the original URL. */
-function CopyOriginalButton({
-  copied,
-  onClick,
-  size,
-}: {
-  copied: boolean;
-  onClick: (e: React.MouseEvent) => void;
-  size: "sm" | "md";
-}) {
-  const cls = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Copy original URL"
-      className={`shrink-0 flex ${cls} items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors`}
-      title="Copy original URL"
-    >
-      {copied ? (
-        <Check className="w-3 h-3 text-success" strokeWidth={1.5} />
-      ) : (
-        <Copy className="w-3 h-3" strokeWidth={1.5} />
-      )}
-    </button>
-  );
-}
-
-interface TitleRowProps {
+export interface LinkPreviewProps {
   link: Link;
   titleText: string;
   showFaviconImage: boolean;
-  copiedOriginalUrl: boolean;
+  shortUrl: string;
+  screenshotUrl: string | null;
+  faviconUrl: string | null;
   onFaviconError: () => void;
-  onCopyOriginalUrl: () => void;
-  /** Grid mode wraps in a tighter gap-1.5 row, list mode uses gap-2 mb-1. */
-  variant: "grid" | "list";
-  /** When true, the copy click stops propagation (used in grid's click-through wrapper). */
-  stopPropagationOnCopy?: boolean;
   onOpenDetails?: (() => void) | undefined;
 }
 
-/** Unified favicon + title + copy-URL row, shared between grid + list. */
 export function TitleRow({
   link,
   titleText,
   showFaviconImage,
-  copiedOriginalUrl,
   onFaviconError,
-  onCopyOriginalUrl,
-  variant,
-  stopPropagationOnCopy = false,
-  onOpenDetails,
-}: TitleRowProps) {
-  const rowCls = variant === "grid" ? "flex items-center gap-1.5" : "flex items-center gap-2 mb-1";
+}: Pick<LinkPreviewProps, "link" | "titleText" | "showFaviconImage" | "onFaviconError">) {
   return (
-    <div className={rowCls}>
-      {onOpenDetails ? (
-        <XIcon className="size-3.5 shrink-0 text-foreground" />
-      ) : (
-        <Favicon
-          link={link}
-          show={showFaviconImage}
-          onError={onFaviconError}
-          size={variant === "grid" ? "sm" : "md"}
-        />
-      )}
-      <TitleAnchor
-        href={link.originalUrl}
-        title={link.title}
-        titleText={titleText}
-        onOpenDetails={onOpenDetails}
-      />
-      <CopyOriginalButton
-        copied={copiedOriginalUrl}
-        onClick={(e) => {
-          if (stopPropagationOnCopy) e.stopPropagation();
-          onCopyOriginalUrl();
-        }}
-        size={variant === "grid" ? "sm" : "md"}
-      />
+    <div className="flex min-w-0 items-center gap-2">
+      <Favicon link={link} show={showFaviconImage} onError={onFaviconError} size="sm" />
+      <TitleAnchor href={link.originalUrl} title={link.title} titleText={titleText} />
     </div>
   );
 }
 
-/** Description paragraph or "click to fetch" hint when metadata is missing. */
-export function Description({
-  link,
-  isRefreshingMetadata,
-  onRefresh,
-  variant,
-}: {
-  link: Link;
-  isRefreshingMetadata: boolean;
-  onRefresh: () => void;
-  variant: "grid" | "list";
-}) {
-  const display = linkPresentation(link);
-  if (display.description)
-    return (
-      <div
-        className={cn(
-          "min-w-0 space-y-1",
-          variant === "grid" && "[&>details:first-child>summary]:min-h-10",
-        )}
-      >
-        <CardText
-          text={display.description}
-          singleLine={variant === "list"}
-          code={Boolean(variant === "list" && display.note && canonicalXPost(link.originalUrl))}
-        />
-        {variant === "list" && display.originalDescription && (
-          <CardText text={display.originalDescription} auxiliary />
-        )}
-      </div>
-    );
+export function SourceLinks({ link, shortUrl }: { link: Link; shortUrl: string }) {
   return (
-    <p className={cn("text-xs text-muted-foreground/60", variant === "grid" && "min-h-10")}>
-      未抓取描述 ·{" "}
-      <button
-        type="button"
-        onClick={onRefresh}
-        disabled={isRefreshingMetadata}
-        className="underline underline-offset-2"
+    <div
+      className="flex h-5 min-w-0 items-center gap-2 text-xs text-muted-foreground"
+      data-bookmark-links
+    >
+      <a
+        href={link.originalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="min-w-0 truncate hover:text-foreground"
+        title={link.originalUrl}
       >
-        {isRefreshingMetadata ? "抓取中..." : "点击抓取"}
-      </button>
-    </p>
+        {new URL(link.originalUrl).hostname}
+      </a>
+      <span aria-hidden>·</span>
+      <a
+        href={shortUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="min-w-0 truncate hover:text-foreground"
+        title={shortUrl}
+      >
+        /{link.slug}
+      </a>
+      {link.expiresAt && (
+        <span
+          className="shrink-0 text-warning"
+          title={new Date(link.expiresAt).toLocaleString("zh-CN")}
+        >
+          限时
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function Description({ link }: { link: Link }) {
+  const display = linkPresentation(link);
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex h-10 w-full items-start justify-start overflow-hidden p-0 text-left text-sm font-normal leading-5 hover:bg-transparent"
+          aria-label="查看收藏内容"
+        >
+          <span className="line-clamp-2 whitespace-pre-wrap break-words">
+            {display.description || "暂无描述"}
+          </span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{display.title}</DialogTitle>
+          <DialogDescription>收藏内容</DialogDescription>
+        </DialogHeader>
+        <p className="whitespace-pre-wrap break-words text-sm">
+          {display.description || "暂无描述"}
+        </p>
+        {display.originalDescription && (
+          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+            {display.originalDescription}
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

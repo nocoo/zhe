@@ -112,7 +112,13 @@ L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`�
 
 ## 列表加载与入场
 
-`CardGridSkeleton` / `CardListSkeleton` share their column counts, spacing, and structure with the loaded collections. Link loading respects the saved grid/list preference, including uncategorized links. X masonry and shared card grids use 2–6 columns below a 2560px viewport and 8 columns from 2560px, preserving 6 columns at the 16-inch MacBook's standard 1728px logical width and using 8 on the local 3360px external desktop. Breakpoints use CSS viewport widths, not panel pixels. GitHub keeps its 1–4 container-based columns and 244px default card height. Ideas use text cards or icon rows; uploads use file icon rows. Route and in-page placeholders follow the same layout.
+`CardGridSkeleton` / `CardListSkeleton` share geometry with the loaded collections.
+Bookmark grid, X and GitHub collections use `BOOKMARK_GRID_CLASS`: container-width
+auto-fill columns with an 18rem minimum, collapsing to one column on narrow screens.
+All three grid presentations use 24rem cards; X and GitHub no longer use masonry.
+List cards retain a compact horizontal preview and combine classification and actions
+into one footer row on desktop. Ideas and uploads retain their existing layouts.
+Loading respects the saved grid/list preference, including uncategorized links.
 
 骨架容器提供 `role="status"`、`aria-busy` 和加载名称，内部装饰对辅助技术隐藏。骨架使用轻微 pulse；数据到达后卡片通过 `animate-fade-up` 和 `staggerStyle` 依次渐入，延迟最多累计 12 张，稳定 key 避免刷新重播。减少动态效果设置下停用 pulse 和卡片入场，保留正常布局；重排继续使用共享 `AnimatedCardList`。
 
@@ -189,40 +195,53 @@ X 收藏与 GitHub 收藏复用 PageHeader.actions：短筛选组在标题/副�
 
 Collection actions use compact 32px Lucide icon buttons with Basalt tooltips and accessible names. Filters retain their selected values. X selection controls stay at the bottom of the viewport and offer hide, unhide and delete; visibility updates disable the batch controls and preserve failed selections for retry. Image previews and expanded video/GIF attachments provide downloads with pending and failure feedback. Video badges use the Lucide video icon while retaining screen-reader text and duration.
 
-## Responsive card actions
+## Bookmark actions and layout
 
-Link grid previews and their skeletons retain a `min-h-28` media area so the
-center preview target stays clear of the top-right controls even at narrow
-desktop grid widths. Mobile toasts use a bottom offset of `6rem` plus the safe
-area inset, keeping the floating bulk toolbar reachable.
+The four bookmark presentations (list, grid, GitHub, X) share one action contract:
+`models/bookmark-actions.ts`. Each descriptor declares a stable ID, label, icon,
+execution callback, placement (`toolbar`, `copy`, `menu`, `editor`), and optional
+pending, disabled, explanation and destructive state. Business callbacks are
+assembled in `useBookmarkCardViewModel`; `BookmarkActions` only renders descriptors.
+Do not add per-source menu JSX or width-dependent action placement.
 
-`CardActions` owns action overflow for links (grid/list), X, GitHub, ideas
-(grid/list), and completed uploads. Each card marks its boundary with
-`data-card-actions-container`; a ResizeObserver uses that card's content width,
-not the viewport or the action strip's own changing width. Below 480 CSS pixels,
-only the primary action and More remain visible. Wider cards expose secondary
-actions directly; existing persistent menu entries remain in More. The breakpoint
-reserves room for content alongside six controls, including coarse-pointer targets.
+The bottom-right toolbar always contains AI organization, Copy and More, in that
+order. It is visible without hover at every width. Copy opens a menu for original
+and short URLs. More contains Edit, Data collection, Visit statistics, Visibility,
+and Delete, with a separator before Delete. Desktop targets are 32px; coarse-pointer
+targets are at least 44px. Disabled AI remains in its slot with an explanation.
+Menus return focus before invoking modal actions; pending deletion prevents dismissal
+and duplicate confirmation. Deletion preserves the existing destruction/reflow motion.
 
-Core actions are edit for ordinary links/ideas, details for X in every layout,
-README for GitHub, video
-preview for video uploads, and copy for other uploads. Secondary actions keep
-the same ViewModel callbacks, pending state, confirmation dialogs and ownership.
-Basalt dropdowns provide portal positioning, keyboard navigation, accessible
-menu semantics, Escape/outside dismissal and focus return. Menu labels wrap
-within the viewport. Coarse-pointer card controls and menu rows are at least
-44 CSS pixels; desktop controls retain the existing compact density. No global
-Button sizing defaults change.
+Screenshot deletion belongs only in the editor, and uses the existing owned-object
+cleanup action. Data collection and event history share the enrichment dialog,
+including first collection, refresh and retries. Statistics open in a dialog, not
+an expanding card section. Edit flight/save behavior remains intact; whole-bookmark
+deletion no longer lives inside the editor.
 
-The existing todo tree already uses one More menu; feature/summary/Xray read-only
-cards and storage rows do not have competing action strips. List metadata wraps,
-while long identifiers and card headings truncate without shrinking actions.
+`BookmarkCardFooter` owns classification, saved date and management actions.
+Folder names and the first saved tag truncate on one line; the tag popover shows
+all full names without changing card height. Extra tags display as +N. Source topics
+remain distinct from saved tags. Dates use YYYY-MM-DD and always mean saved time;
+full saved timestamps appear in the editor and date tooltip. Source publication,
+commit and capture times remain in their respective detail views.
 
-Evidence: `tests/playwright/card-actions.spec.ts` exercises rendered cards at
-320/375/390/430 CSS pixels in Chromium touch emulation and iPhone WebKit, with
-1365px desktop resizing. These are browser device emulations, not physical-device
-or VoiceOver certification. Shared component tests cover adaptive actions,
-disabled/pending behavior and focus after resizing an open menu.
+Source and short links are real anchors in the left content area. In-app reading
+(README, full X post, bookmark text, media) stays in the content area, not the
+management toolbar. Previews have bounded line/media budgets; full text and
+attachments remain accessible in dialogs. Long titles, tag counts, vertical video,
+missing data and loading states must not move the footer or grow individual cards.
+Do not truncate interactive controls or nest buttons/anchors inside each other.
+
+Ideas and completed uploads still use the independent `CardActions` responsive
+contract: below 480px card width, secondary actions move into More. This bookmark
+refactor does not change their behavior or global Button sizing.
+
+Evidence: `tests/components/bookmark-actions.test.tsx` covers descriptors, callbacks,
+copy grouping, menu/focus behavior, pending deletion and dialog boundaries;
+`tests/components/bookmark-presentations.test.tsx` covers bounded X media and footer
+metadata. Browser `card-actions.spec.ts`, `card-reflow.spec.ts` and
+`link-card-motion.spec.ts` cover responsive geometry, equal heights, keyboard/touch
+navigation and modal/deletion motion on isolated local resources.
 
 ### Global creation
 

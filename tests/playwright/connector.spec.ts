@@ -113,7 +113,8 @@ async function enrichBookmark(
   await expect(page.getByText("创建短链接", { exact: true })).toBeHidden({ timeout: 25_000 });
   await expect(
     page.getByTestId("link-card").getByRole("button", { name: "查看帖子详情" }),
-  ).toHaveAccessibleDescription(/等待补全/);
+  ).toBeVisible();
+  await expect(page.getByTestId("link-card").locator("[data-bookmark-footer] time")).toHaveCount(1);
   const pendingBox = await page.getByTestId("link-card").boundingBox();
 
   const claim = await page.request.post("/api/v1/connector", { headers, data: {} });
@@ -317,10 +318,19 @@ test.describe("webpage previews", () => {
       await page.goto("/dashboard");
       const card = page.locator(`[data-testid="link-card"][data-link-id="${link.id}"]`);
       await expect(card).toBeVisible();
-      const image = card.getByRole("img", { name: "Screenshot", exact: true });
-      await expect(image).toHaveCount(0);
-      await expect(card.getByRole("button", { name: "删除截图" })).toHaveCount(0);
-      await expect(card.getByRole("button", { name: "Refresh preview" })).toHaveCount(0);
+      const image = card.getByRole("img", { name: "链接预览", exact: true });
+      await expect(image).not.toHaveAttribute("src", /\/r2\//);
+      expect(
+        await queryD1("SELECT screenshot_url FROM links WHERE id=? AND user_id=?", [
+          link.id,
+          owner,
+        ]),
+      ).toEqual([{ screenshot_url: null }]);
+      await expect(
+        card
+          .locator("[data-bookmark-actions]")
+          .getByRole("button", { name: "复制链接", exact: true }),
+      ).toBeVisible();
       const headers = { authorization: `Bearer ${key}`, "x-connector-sources": "screenshot" };
       const claims = await Promise.all([
         page.request.post("/api/v1/connector", { headers, data: {} }),
@@ -363,24 +373,38 @@ test.describe("webpage previews", () => {
       expect(await page.evaluate(() => devicePixelRatio)).toBe(2);
       for (const width of [1365, 390]) {
         await page.setViewportSize({ width, height: 960 });
-        // Measure the 4:3 frame; its bottom border sits outside the image content box.
-        await expect
-          .poll(() =>
-            image.evaluate((element) => {
-              const frame = element.parentElement?.parentElement?.getBoundingClientRect();
-              return frame ? frame.width / frame.height : 0;
-            }),
-          )
-          .toBeCloseTo(4 / 3, 2);
+        const frame = card.getByRole("link", { name: "打开原链接", exact: true });
+        const frameBox = await frame.boundingBox();
+        const imageBox = await image.boundingBox();
+        assert(frameBox && imageBox);
+        expect(imageBox.width).toBeCloseTo(frameBox.width, 0);
+        expect(imageBox.height).toBeCloseTo(
+          await frame.evaluate((element) => element.clientHeight),
+          0,
+        );
+        expect(
+          await card.evaluate((element) => element.getBoundingClientRect().height),
+        ).toBeCloseTo(384, 2);
+        expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe(
+          "cover",
+        );
+        await expect(card.locator("[data-bookmark-footer] time")).toHaveCount(1);
         await card.screenshot({ path: `.artifacts/connector-preview-${width}.png` });
       }
       const next = await page.request.post("/api/v1/connector", { headers, data: {} });
       expect((await next.json()).job).toBeNull();
 
-      await card.hover();
-      await (await cardAction(page, card, "删除截图")).click();
-      await expect(image).toHaveCount(0);
-      await expect(card.getByRole("button", { name: "删除截图" })).toHaveCount(0);
+      await (await cardAction(page, card, "修改收藏")).click();
+      const editor = page.getByTestId("card-edit-dialog");
+      await expect(editor).toHaveAttribute("data-phase", "editing");
+      await editor.getByRole("button", { name: "删除截图", exact: true }).click();
+      await expect(editor.getByLabel("截图链接", { exact: true })).toHaveValue("");
+      await expect(editor.getByRole("button", { name: "删除截图", exact: true })).toHaveCount(0);
+      await editor.getByRole("button", { name: "保存", exact: true }).click();
+      await expect(editor).not.toBeAttached();
+      await expect
+        .poll(async () => ((await image.count()) ? image.getAttribute("src") : null))
+        .not.toBe(saved.screenshot_url);
       const [cleared] = await queryD1<{ screenshot_url: string | null }>(
         "SELECT screenshot_url FROM links WHERE id=? AND user_id=?",
         [link.id, owner],
@@ -421,8 +445,9 @@ for (const viewport of [
     test("saved X bookmarks enrich and play", async ({ page, bookmark }) => {
       const { card, pendingBox, mediaRequests } = bookmark;
       // The foreground poll updates a fixed-size summary; full media is opened on demand.
-      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
-        /已补全/,
+      await expect(card.getByRole("img", { name: "链接预览", exact: true })).toHaveAttribute(
+        "src",
+        /\/r2\//,
         { timeout: 20_000 },
       );
       await expect(card.locator("video")).toHaveCount(0);
@@ -431,16 +456,16 @@ for (const viewport of [
       expect(Math.abs(completedBox.height - pendingBox.height)).toBeLessThan(1);
       if (viewport.width < 600) {
         const detailsBox = await card.getByRole("button", { name: "查看帖子详情" }).boundingBox();
-        const sourceBox = await card.locator('[title="来源：X"]').boundingBox();
+        const footerBox = await card.locator("[data-bookmark-footer]").boundingBox();
         const moreBox = await card
           .getByRole("button", { name: "更多收藏操作", exact: true })
           .boundingBox();
-        assert(detailsBox && moreBox && sourceBox);
-        expect(detailsBox.height).toBe(moreBox.height);
+        assert(detailsBox && moreBox && footerBox);
+        expect(moreBox.height).toBeGreaterThanOrEqual(32);
         for (const box of [detailsBox, moreBox]) {
           expect(box.x).toBeGreaterThanOrEqual(completedBox.x);
           expect(box.x + box.width).toBeLessThanOrEqual(completedBox.x + completedBox.width);
-          expect(sourceBox.y).toBeGreaterThanOrEqual(box.y + box.height);
+          expect(box.y + box.height).toBeLessThanOrEqual(completedBox.y + completedBox.height);
         }
         await card.getByRole("button", { name: "查看帖子详情" }).click({ trial: true });
         await card
@@ -452,12 +477,12 @@ for (const viewport of [
           await page.setViewportSize({ ...viewport, width });
           await card.hover();
           await card
-            .getByRole("button", { name: "查看 X 帖子", exact: true })
+            .getByRole("button", { name: "查看帖子详情", exact: true })
             .click({ trial: true });
         }
         await page.setViewportSize(viewport);
       }
-      await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+      await card.getByRole("button", { name: "查看帖子详情", exact: true }).click();
       const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
       await expect(post.getByTestId("x-bookmark-content")).toBeVisible();
       await expect(post.getByRole("link", { name: "Example Author", exact: true })).toBeVisible();
@@ -616,8 +641,9 @@ for (const viewport of [
       );
       assert(ordinary);
       await page.reload();
-      await expect(card.getByRole("button", { name: "查看帖子详情" })).toHaveAccessibleDescription(
-        /已补全/,
+      await expect(card.getByRole("img", { name: "链接预览", exact: true })).toHaveAttribute(
+        "src",
+        /\/r2\//,
       );
       const normalCard = page.locator(`[data-testid="link-card"][data-link-id="${ordinary.id}"]`);
       const normalBox = await normalCard.boundingBox();
@@ -646,23 +672,42 @@ for (const viewport of [
       const feed = page.getByTestId("x-feed");
       await expect(feed.getByTestId("link-card")).toHaveCount(4 + galleryCount);
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
-      const archiveInfo = feedCard.getByTestId("x-video-archive-info");
-      await expect(archiveInfo).toContainText(videoResolution(mediaSize.width, mediaSize.height));
-      await expect(archiveInfo).toContainText(videoFileSize((await readFile(videoPath)).length));
-      const footer = feedCard.getByTestId("x-card-footer");
+      await expect(feedCard.getByTestId("x-bookmark-preview")).toBeVisible();
+      await expect(
+        feedCard.getByRole("button", { name: "查看帖子详情", exact: true }),
+      ).toHaveAccessibleDescription(/已补全/);
+      await expect(feedCard.getByTestId("x-bookmark-content")).toHaveCount(0);
+      const footer = feedCard.locator("[data-bookmark-footer]");
       const footerBox = await footer.boundingBox();
       assert(footerBox);
-      // Named tags may take two rows below the category and actions.
       expect(footerBox.height).toBeLessThanOrEqual(104);
       expect(await footer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true,
       );
-      await expect(footer.getByText(designName, { exact: true })).toBeVisible();
-      await expect(footer.getByTestId("x-card-tags").locator("[data-tag-name]")).toHaveCount(2);
+      await expect(
+        footer.locator("[data-bookmark-classification]").getByTitle(designName, { exact: true }),
+      ).toBeVisible();
+      const tagButton = footer.getByRole("button", { name: "查看全部标签" });
+      await expect(tagButton).toContainText("+1");
+      await tagButton.click();
+      const tagsPopover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
+      await expect(tagsPopover.getByText("Design systems", { exact: true })).toBeVisible();
+      await expect(tagsPopover.getByText("Interaction references", { exact: true })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(tagButton).toBeFocused();
+      await feedCard.getByRole("button", { name: "查看帖子详情" }).click();
+      const archiveInfo = post.getByTestId("x-video-archive-info");
+      await expect(archiveInfo).toContainText(videoResolution(mediaSize.width, mediaSize.height));
+      await expect(archiveInfo).toContainText(videoFileSize((await readFile(videoPath)).length));
+      const fullPoster = post.getByRole("button", { name: "播放视频 1" });
+      const defaultPosterBox = await fullPoster.boundingBox();
+      assert(defaultPosterBox);
+      expect(defaultPosterBox.height / defaultPosterBox.width).toBeCloseTo(9 / 16, 1);
+      await page.keyboard.press("Escape");
       await expect(feedCard.getByRole("region", { name: "帖子统计" })).toHaveCount(0);
       await expect(feedCard.getByLabel("引用的 X 帖子")).toHaveCount(0);
       await expect(feedCard.getByRole("button", { name: "展开全文" })).toHaveCount(0);
-      const poster = feedCard.getByRole("button", { name: "播放视频 1" });
+      const poster = feedCard.getByRole("button", { name: "播放帖子视频" });
       await expect(poster).toBeVisible();
       await expect
         .poll(() =>
@@ -671,12 +716,10 @@ for (const viewport of [
         .toBeGreaterThan(0);
       await expect(feed.locator("video")).toHaveCount(0);
       expect(mediaRequests.length).toBe(requestsBeforeFeed);
-      const defaultPosterBox = await poster.boundingBox();
-      assert(defaultPosterBox);
-      expect(defaultPosterBox.height / defaultPosterBox.width).toBeCloseTo(9 / 16, 1);
+      const previewBox = await poster.boundingBox();
+      assert(previewBox);
       const editMenu = feedCard.getByRole("button", { name: "更多收藏操作" });
-      await editMenu.click();
-      await page.getByRole("menuitem", { name: "编辑收藏", exact: true }).click();
+      await (await cardAction(page, feedCard, "修改收藏")).click();
       const editor = page.getByRole("dialog", { name: "编辑收藏", exact: true });
       await expect(editor).toHaveAttribute("data-phase", "editing");
       const ratio = editor.getByLabel("视频 1 宽高比");
@@ -689,12 +732,17 @@ for (const viewport of [
       await editor.getByRole("button", { name: "保存", exact: true }).click();
       await expect(editor).toHaveCount(0);
       await expect(editMenu).toBeFocused();
-      const correctedPosterBox = await poster.boundingBox();
+      const correctedPreviewBox = await poster.boundingBox();
+      assert(correctedPreviewBox);
+      expect(correctedPreviewBox.height).toBeCloseTo(previewBox.height, 0);
+      await feedCard.getByRole("button", { name: "查看帖子详情" }).click();
+      const correctedPosterBox = await fullPoster.boundingBox();
       assert(correctedPosterBox);
       expect(correctedPosterBox.height / correctedPosterBox.width).toBeCloseTo(
         mediaSize.height / mediaSize.width,
         1,
       );
+      await page.keyboard.press("Escape");
       await page.reload();
       await expect(poster).toBeVisible();
       const persisted = await queryD1<{ width: number; height: number }>(
@@ -716,34 +764,50 @@ for (const viewport of [
         animations: "disabled",
       });
       if (viewport.width > 600) {
-        for (const [width, columns] of [
-          [1920, 6],
-          [2560, 8],
-        ] as const) {
+        for (const width of [1920, 2560]) {
           await page.setViewportSize({ width, height: viewport.height });
+          await expect
+            .poll(() =>
+              feed.evaluate((element) => {
+                const style = getComputedStyle(element);
+                const available = element.getBoundingClientRect().width;
+                const gap = Number.parseFloat(style.columnGap);
+                const minimum = Math.min(
+                  available,
+                  18 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+                );
+                return (
+                  style.gridTemplateColumns.split(" ").length ===
+                  Math.max(1, Math.floor((available + gap) / (minimum + gap)))
+                );
+              }),
+            )
+            .toBe(true);
           await expect
             .poll(() =>
               feed
                 .getByTestId("link-card")
-                .evaluateAll(
-                  (cards) =>
-                    new Set(cards.map((card) => Math.round(card.getBoundingClientRect().x))).size,
+                .evaluateAll((cards) =>
+                  cards.every(
+                    (card) => Math.abs(card.getBoundingClientRect().height - 384) < 0.005,
+                  ),
                 ),
             )
-            .toBe(columns);
+            .toBe(true);
           expect(
             await feed
-              .locator('[data-testid="link-card"], [data-testid="x-card-footer"]')
+              .locator('[data-testid="link-card"], [data-bookmark-footer]')
               .evaluateAll((elements) =>
                 elements.every((element) => element.scrollWidth <= element.clientWidth),
               ),
           ).toBe(true);
-          const posterBox = await poster.boundingBox();
-          assert(posterBox);
-          expect(posterBox.height / posterBox.width).toBeCloseTo(
-            mediaSize.height / mediaSize.width,
-            1,
-          );
+          const preview = await poster.boundingBox();
+          const cardBox = await feedCard.boundingBox();
+          assert(preview && cardBox);
+          expect(preview.y + preview.height).toBeLessThan(cardBox.y + cardBox.height);
+          expect(
+            await poster.locator("img").evaluate((element) => getComputedStyle(element).objectFit),
+          ).toBe("contain");
           await page.screenshot({
             path: `.artifacts/x-library-${width}.png`,
             animations: "disabled",
@@ -760,13 +824,12 @@ for (const viewport of [
       }
       const menu = feedCard.getByRole("button", { name: "更多收藏操作" });
       await menu.click();
-      await expect(page.getByRole("menuitem", { name: "编辑收藏" })).toBeVisible();
-      await expect(page.getByRole("menuitem", { name: "打开原帖" })).toHaveAttribute(
-        "href",
-        `https://x.com/example/status/${postId}`,
-      );
+      await expect(page.getByRole("menuitem", { name: "修改收藏", exact: true })).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(menu).toBeFocused();
+      await expect(
+        feedCard.locator("[data-bookmark-links]").getByRole("link", { name: "x.com", exact: true }),
+      ).toHaveAttribute("href", `https://x.com/example/status/${postId}`);
       await poster.click();
       await expect
         .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
@@ -779,8 +842,8 @@ for (const viewport of [
       await details.click();
       await expect(post.getByRole("region", { name: "帖子统计" })).toBeVisible();
       await expect(post.getByRole("button", { name: "查看图片 2" })).toBeVisible();
-      await expect(post.getByText("Design systems", { exact: true })).toBeVisible();
-      await expect(post.getByText("Interaction references", { exact: true })).toBeVisible();
+      await expect(post.getByText("Context from the quoted post", { exact: true })).toBeVisible();
+      await expect(post.getByTestId("x-bookmark-content")).toBeVisible();
       await expect(post.getByRole("button", { name: "播放视频 1" })).toBeVisible();
       await expect(page.locator("video")).toHaveCount(0);
       await page.keyboard.press("Escape");
@@ -810,7 +873,9 @@ for (const viewport of [
       await page.getByRole("combobox", { name: "内容类型" }).click();
       await page.getByRole("option", { name: /^文章/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
-      await expect(feed.getByText("Reading article", { exact: true })).toBeVisible();
+      await expect(feed.getByRole("button", { name: "查看帖子正文", exact: true })).toHaveText(
+        "Reading article",
+      );
       await expect(page.getByRole("searchbox", { name: "搜索 X 收藏" })).toHaveCount(0);
       await page.getByRole("button", { name: "清除筛选", exact: true }).first().click();
       await page.getByRole("combobox", { name: "内容类型" }).click();
@@ -825,15 +890,16 @@ for (const viewport of [
         const post = page.getByRole("dialog", { name: "X 帖子", exact: true });
         const video = post.getByLabel("已归档的 X 视频");
         await page.goto("/dashboard");
-        await expect(
-          card.getByRole("button", { name: "查看帖子详情" }),
-        ).toHaveAccessibleDescription(/已补全/);
+        await expect(card.getByRole("img", { name: "链接预览", exact: true })).toHaveAttribute(
+          "src",
+          /\/r2\//,
+        );
         const before = await page.locator('aside img[alt="Zhe"]').boundingBox();
         await page.getByRole("button", { name: "Collapse sidebar" }).click();
         await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
         const after = await page.locator('aside img[alt="Zhe"]').boundingBox();
         expect(Math.abs((before?.x ?? 0) - (after?.x ?? 0))).toBeLessThan(1);
-        await card.getByRole("button", { name: "查看 X 帖子", exact: true }).click();
+        await card.getByRole("button", { name: "查看帖子详情", exact: true }).click();
         await post.getByRole("button", { name: "播放视频 1" }).click();
         await expect(video).toBeVisible();
         const uploads = await queryD1<{ id: number; file_type: string; public_url: string }>(
@@ -979,7 +1045,16 @@ for (const viewport of [
             owner,
           ]);
           await page.reload();
-          const photos = albumCard.getByRole("button", { name: /^查看图片/ });
+          await expect(
+            albumCard.getByRole("button", { name: "查看帖子图片", exact: true }),
+          ).toHaveCount(1);
+          await expect(albumCard.getByRole("button", { name: /^查看图片/ })).toHaveCount(0);
+          expect(
+            await albumCard.evaluate((element) => element.getBoundingClientRect().height),
+          ).toBeCloseTo(384, 2);
+          await albumCard.getByRole("button", { name: "查看帖子图片", exact: true }).click();
+          const galleryDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });
+          const photos = galleryDialog.getByRole("button", { name: /^查看图片/ });
           await expect(photos).toHaveCount(count);
           for (let index = 0; index < count; index++) {
             const photo = photos.nth(index).locator("img");
@@ -991,12 +1066,20 @@ for (const viewport of [
             assert(box && shape);
             expect(box.height / box.width).toBeCloseTo(shape.height / shape.width, 2);
           }
-          await albumCard.screenshot({
+          await galleryDialog.screenshot({
             path: `.artifacts/x-photos-${count}.png`,
             animations: "disabled",
           });
+          await page.keyboard.press("Escape");
+          await expect(
+            albumCard.getByRole("button", { name: "查看帖子图片", exact: true }),
+          ).toBeFocused();
         }
-        await albumCard.getByRole("button", { name: "查看图片 4" }).click();
+        await albumCard.getByRole("button", { name: "查看帖子图片", exact: true }).click();
+        await page
+          .getByRole("dialog", { name: "X 帖子", exact: true })
+          .getByRole("button", { name: "查看图片 4" })
+          .click();
         const photoDialog = page.getByRole("dialog", { name: "图片预览" });
         await expect(photoDialog).toBeVisible();
         await expect(photoDialog.getByRole("img")).toHaveAttribute("src", /\/3\.jpg$/);

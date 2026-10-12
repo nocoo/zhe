@@ -163,7 +163,7 @@ for (const width of [1440, 390]) {
     const ids = await seed(owner);
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "补全记录", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "补全记录", exact: true });
+    const dialog = page.getByRole("dialog", { name: "数据采集", exact: true });
     await expect(dialog.getByText("X failed demo", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Website failed demo", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("checkbox", { name: "选择 X complete demo" })).toBeDisabled();
@@ -179,8 +179,17 @@ for (const width of [1440, 390]) {
       if (index === 3) await expect(dialog.getByRole("img", { name: expected })).toBeVisible();
       else await expect(dialog.getByText(expected, { exact: true })).toBeVisible();
       await expect(dialog.getByRole("region", { name: "执行记录" })).toContainText("已补全");
+      await expect(dialog.getByRole("button", { name: "刷新", exact: true })).toBeEnabled();
+      await expect(dialog.getByRole("button", { name: "重新补全", exact: true })).toHaveCount(0);
       await dialog.getByRole("button", { name: "全部记录" }).click();
     }
+    await dialog
+      .getByTestId(`enrichment-task-${ids[0]}`)
+      .getByRole("button", { name: "详情" })
+      .click();
+    await expect(dialog.getByRole("button", { name: "重新补全", exact: true })).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "刷新", exact: true })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "全部记录" }).click();
     await dialog.getByRole("checkbox", { name: "选择本页可重试任务" }).click();
     await expect(dialog.getByRole("button", { name: "重新补全所选 (2)" })).toBeEnabled();
     await dialog.screenshot({ path: `.artifacts/enrichment-dialog-${width}.png` });
@@ -191,28 +200,39 @@ for (const width of [1440, 390]) {
     await expect(page.getByText("已将 2 条任务重新排队", { exact: true })).toBeVisible();
     await expect(dialog.getByTestId(`enrichment-task-${ids[0]}`)).toContainText("等待补全");
     await expect(dialog.getByTestId(`enrichment-task-${ids[4]}`)).toContainText("等待补全");
-    await dialog.getByRole("button", { name: "关闭补全记录" }).click();
+    await dialog.getByRole("button", { name: "关闭数据采集" }).click();
     await page.goto("/dashboard/x");
+    await expect(
+      page
+        .getByTestId("link-card")
+        .filter({ hasText: "X failed demo" })
+        .locator("[data-bookmark-links]")
+        .getByRole("link", { name: "x.com", exact: true }),
+    ).toHaveAttribute("href", "https://x.com/demo/status/2100000000000000001");
     await page
       .getByTestId(`link-card`)
       .filter({ hasText: "X failed demo" })
       .getByRole("button", { name: "查看帖子详情" })
       .click();
     const postDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });
-    await expect(postDialog.getByRole("link", { name: "打开原帖" })).toBeVisible();
+    await expect(postDialog.getByText("内容暂未补全", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await (
       await cardAction(
         page,
         page.getByTestId("link-card").filter({ hasText: "X failed demo" }),
-        "查看补全记录",
+        "数据采集",
       )
     ).click();
     await expect(dialog.getByRole("region", { name: "执行记录" })).toContainText("已加入队列");
+    await expect(dialog.getByRole("button", { name: "重新补全", exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "采集", exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "刷新", exact: true })).toHaveCount(0);
     await page.keyboard.press("Escape");
     await page.goto("/dashboard/github");
     await page.getByRole("button", { name: "补全记录", exact: true }).click();
     await expect(dialog.getByText("GitHub complete demo", { exact: true })).toBeVisible();
     await expect(dialog.getByText("X complete demo", { exact: true })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "关闭数据采集" }).click();
   });
 }

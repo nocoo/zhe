@@ -361,11 +361,15 @@ The ordinary L3 suite runs shared workflows once per meaningful UI variant:
   same journey then checks the search page at 390px; a second complete mobile
   keyboard/backend replay is removed.
 
-- X deletion keeps its bulk-delete and archived-media workflows. The duplicate
-  frame-by-frame deletion animation case is removed; X masonry layout and
-  loading transitions remain covered.
+- Bookmark actions run in Chromium and iPhone WebKit at 320/375/430px and a wide
+  viewport: fixed toolbar placement, copy/More menus, keyboard focus, touch target
+  sizes and separate edit/statistics/delete dialogs. Grid, GitHub and X use equal
+  24rem card heights; list footers share the same controls in a compact row.
+- All four bookmark presentations exercise deletion/reflow and matching loading
+  skeletons. X retains bulk-delete and archived-media workflows; full posts and
+  media are tested in the reader rather than expanding cards into masonry.
 
-This removes nine browser cases. CI still rejects flaky retained cases; security,
+CI still rejects flaky retained cases; security,
 tenant isolation, data deletion assertions, coverage thresholds and retries are unchanged.
 The manual L3 stress workflow remains available for targeted investigation.
 

@@ -6,6 +6,7 @@
  * the global-teardown cleans everything up.
  */
 import { expect, test } from "./fixtures";
+import { cardAction } from "./helpers/card-actions";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 /** Helper: wait for link-crud page to finish loading inside <main>. */
@@ -85,7 +86,9 @@ test.describe("Link CRUD", () => {
       await expect(page.getByText("创建短链接")).toBeHidden({ timeout: 15_000 });
 
       // Verify the link with custom slug appears
-      await expect(page.getByText(customSlug)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("link", { name: `/${customSlug}`, exact: true })).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test("create link with folder, note, and tags", async ({ page }) => {
@@ -174,22 +177,29 @@ test.describe("Link CRUD", () => {
       await page.locator("#slug").fill(testSlug);
       await page.locator('button:has-text("创建链接")').click();
       await expect(page.getByText("创建短链接")).toBeHidden({ timeout: 15_000 });
-      await expect(page.getByText(testSlug)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("link", { name: `/${testSlug}`, exact: true })).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test("copy short link", async ({ page }) => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
-      const copyButton = card.getByRole("button", { name: "Copy link" }).first();
+      const copyButton = card
+        .locator("[data-bookmark-actions]")
+        .getByRole("button", { name: "复制链接", exact: true });
 
       // Grant clipboard permissions
       await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 
       await copyButton.click();
+      await page.getByRole("menuitem", { name: "复制短链接", exact: true }).click();
 
-      // Verify clipboard contains the short link URL with our slug
-      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipboardText).toContain(testSlug);
+      const shortLink = card
+        .locator("[data-bookmark-links]")
+        .getByRole("link", { name: `/${testSlug}`, exact: true });
+      const href = await shortLink.getAttribute("href");
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(href);
     });
 
     test("toggle view mode between list and grid", async ({ page }) => {
@@ -198,20 +208,35 @@ test.describe("Link CRUD", () => {
       const listButton = main.getByRole("button", { name: "List view" });
 
       // Switch to grid
+      const card = page.getByTestId("link-card").filter({ hasText: `/${testSlug}` });
       await gridButton.click();
-      await expect(page.getByText(testSlug)).toBeVisible();
+      await expect(card).toHaveAttribute("data-view", "grid");
+      expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
+        384,
+        2,
+      );
+      await expect(card.locator("[data-bookmark-footer] time")).toHaveCount(1);
 
-      // Switch back to list
       await listButton.click();
-      await expect(page.getByText(testSlug)).toBeVisible();
+      await expect(card).toHaveAttribute("data-view", "list");
+      const footer = card.locator("[data-bookmark-footer]");
+      const classification = await footer.locator("[data-bookmark-classification]").boundingBox();
+      const actions = await footer.locator("[data-bookmark-action-row]").boundingBox();
+      expect(classification).not.toBeNull();
+      expect(actions).not.toBeNull();
+      expect((classification?.y ?? 0) + (classification?.height ?? 0) / 2).toBeCloseTo(
+        (actions?.y ?? 0) + (actions?.height ?? 0) / 2,
+        0,
+      );
+      expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(
+        384,
+      );
     });
 
     test("edit link", async ({ page }) => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
-      const editButton = card.getByRole("button", { name: "Edit link" }).first();
-
-      await editButton.click();
+      await (await cardAction(page, card, "修改收藏")).click();
 
       const editor = page.getByTestId("card-edit-dialog");
       await expect(editor).toHaveAttribute("data-phase", "editing");
@@ -232,8 +257,7 @@ test.describe("Link CRUD", () => {
       const newSlug = `e2e-edited-${Date.now()}`;
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
 
-      // Enter edit mode
-      await card.getByRole("button", { name: "Edit link" }).first().click();
+      await (await cardAction(page, card, "修改收藏")).click();
 
       // Clear and fill slug input
       const editor = page.getByTestId("card-edit-dialog");
@@ -248,8 +272,10 @@ test.describe("Link CRUD", () => {
       await expect(slugInput).toBeHidden({ timeout: 10_000 });
 
       // Verify new slug visible, old slug gone
-      await expect(page.getByText(newSlug)).toBeVisible({ timeout: 10_000 });
-      await expect(page.getByText(testSlug)).toBeHidden();
+      await expect(page.getByRole("link", { name: `/${newSlug}`, exact: true })).toBeVisible({
+        timeout: 10_000,
+      });
+      await expect(page.getByRole("link", { name: `/${testSlug}`, exact: true })).toBeHidden();
     });
 
     test("move link to folder via edit mode", async ({ page }) => {
@@ -268,12 +294,13 @@ test.describe("Link CRUD", () => {
         // Reload to pick up the new folder
         await page.goto("/dashboard");
         await waitForLinksPage(page);
-        await expect(page.getByText(testSlug)).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByRole("link", { name: `/${testSlug}`, exact: true })).toBeVisible({
+          timeout: 10_000,
+        });
 
         const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
 
-        // Enter edit mode
-        await card.getByRole("button", { name: "Edit link" }).first().click();
+        await (await cardAction(page, card, "修改收藏")).click();
 
         // Select folder
         const editor = page.getByTestId("card-edit-dialog");
@@ -301,8 +328,9 @@ test.describe("Link CRUD", () => {
         await sidebar.getByText(folderName).click();
         await expect(page).toHaveURL(/folder=/, { timeout: 15_000 });
 
-        // Verify the link appears in the folder view
-        await expect(page.getByText(testSlug)).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByRole("link", { name: `/${testSlug}`, exact: true })).toBeVisible({
+          timeout: 10_000,
+        });
       } finally {
         await executeD1(
           "DELETE FROM folders WHERE id = ? AND user_id = ?",
@@ -316,25 +344,12 @@ test.describe("Link CRUD", () => {
       // Locate the link-card that contains our slug
       const card = page.locator(`[data-testid="link-card"]:has-text("${testSlug}")`).first();
 
-      // Enter edit mode first — delete is on the back of the card.
-      const editButton = card.getByRole("button", { name: "Edit link" }).first();
-      await editButton.click();
-
-      // Wait for edit area to appear, then click delete
-      await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
-      const deleteButton = page.getByTestId("card-edit-dialog").getByRole("button", {
-        name: "Delete link",
-      });
-      await expect(deleteButton).toBeVisible({ timeout: 5_000 });
-      await deleteButton.click();
-
-      // Confirmation dialog
-      await expect(page.getByText("确认删除")).toBeVisible();
-      await expect(page.getByText("此操作不可撤销")).toBeVisible();
-
-      // Confirm — click the destructive "删除" button in the dialog
-      const dialog = page.locator('[role="alertdialog"]');
-      await dialog.getByRole("button", { name: "删除" }).click();
+      await (await cardAction(page, card, "删除收藏")).click();
+      const dialog = page.getByRole("alertdialog");
+      await expect(dialog.getByRole("heading", { name: "删除收藏？" })).toBeVisible();
+      await expect(dialog).toContainText("此操作不可撤销");
+      await expect(page.getByTestId("card-edit-dialog")).not.toBeAttached();
+      await dialog.getByRole("button", { name: "删除", exact: true }).click();
 
       // Link should disappear
       await expect(card).not.toBeAttached({ timeout: 10_000 });

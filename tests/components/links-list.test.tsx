@@ -246,27 +246,27 @@ describe("LinksList", () => {
 
     expect(screen.getByText("全部链接")).toBeInTheDocument();
     expect(screen.getByText("共 3 条链接")).toBeInTheDocument();
-    expect(screen.getByText("abc")).toBeInTheDocument();
-    expect(screen.getByText("def")).toBeInTheDocument();
-    expect(screen.getByText("ghi")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "/def" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "/ghi" })).toBeInTheDocument();
   });
 
   it("filters links by selected folder", () => {
     mockSearchParamsFolder = "f1";
     render(<LinksList />);
 
-    expect(screen.getByText("工作")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "工作" })).toBeInTheDocument();
     expect(screen.getByText("共 1 条链接")).toBeInTheDocument();
-    expect(screen.getByText("abc")).toBeInTheDocument();
-    expect(screen.queryByText("def")).not.toBeInTheDocument();
-    expect(screen.queryByText("ghi")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "/def" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "/ghi" })).not.toBeInTheDocument();
   });
 
   it("shows folder name as header when folder is selected", () => {
     mockSearchParamsFolder = "f2";
     render(<LinksList />);
 
-    expect(screen.getByText("个人")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "个人" })).toBeInTheDocument();
     expect(screen.queryByText("全部链接")).not.toBeInTheDocument();
   });
 
@@ -365,7 +365,7 @@ describe("LinksList", () => {
 
     const gridContainer = container.querySelector("[data-testid=card-grid]");
     expect(gridContainer).toBeInTheDocument();
-    expect(gridContainer?.className).toContain("xl:grid-cols-6");
+    expect(gridContainer?.className).toContain("minmax(min(100%,18rem),1fr)");
   });
 
   it("uses list layout container when in list mode", () => {
@@ -383,7 +383,7 @@ describe("LinksList", () => {
 
     const gridSkeleton = container.querySelector("[data-testid=card-grid]");
     expect(gridSkeleton).toBeInTheDocument();
-    expect(gridSkeleton?.className).toContain("xl:grid-cols-6");
+    expect(gridSkeleton?.className).toContain("minmax(min(100%,18rem),1fr)");
   });
 
   it("renders list skeleton when loading in list mode", () => {
@@ -427,8 +427,8 @@ describe("LinksList", () => {
     it("renders folder and tag filter buttons", () => {
       render(<LinksList />);
 
-      expect(screen.getByText("文件夹")).toBeInTheDocument();
-      expect(screen.getByText("标签")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "文件夹" })).toBeInTheDocument();
+      expect(screen.getByTestId("tag-filter-trigger")).toHaveTextContent("标签");
     });
 
     it("hides folder filter when sidebar has selected a folder", () => {
@@ -437,21 +437,21 @@ describe("LinksList", () => {
 
       expect(screen.queryByText("文件夹")).not.toBeInTheDocument();
       // Tag filter should still be visible
-      expect(screen.getByText("标签")).toBeInTheDocument();
+      expect(screen.getByTestId("tag-filter-trigger")).toHaveTextContent("标签");
     });
 
     it("filters links by folder via filter bar", async () => {
       render(<LinksList />);
 
       // Open folder dropdown
-      fireEvent.click(screen.getByText("文件夹"));
+      fireEvent.click(screen.getByRole("button", { name: "文件夹" }));
       // Select "工作" folder
-      fireEvent.click(screen.getByText("工作"));
+      fireEvent.click(screen.getByRole("option", { name: "工作" }));
 
       // Should show only link 1 (abc)
-      expect(screen.getByText("abc")).toBeInTheDocument();
-      expect(screen.queryByText("def")).not.toBeInTheDocument();
-      expect(screen.queryByText("ghi")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/def" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/ghi" })).not.toBeInTheDocument();
       // Should show filtered count
       expect(screen.getByText("1 / 3 条链接")).toBeInTheDocument();
     });
@@ -459,26 +459,26 @@ describe("LinksList", () => {
     it("filters links by Inbox (uncategorized) via filter bar", async () => {
       render(<LinksList />);
 
-      fireEvent.click(screen.getByText("文件夹"));
-      fireEvent.click(screen.getByText("未分类"));
+      fireEvent.click(screen.getByRole("button", { name: "文件夹" }));
+      fireEvent.click(screen.getByRole("option", { name: "未分类" }));
 
       // Should show only link 3 (ghi) which has folderId=null
-      expect(screen.getByText("ghi")).toBeInTheDocument();
-      expect(screen.queryByText("abc")).not.toBeInTheDocument();
-      expect(screen.queryByText("def")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "/ghi" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/abc" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/def" })).not.toBeInTheDocument();
     });
 
     it('resets folder filter when "全部文件夹" is selected', async () => {
       render(<LinksList />);
 
       // Select a folder first
-      fireEvent.click(screen.getByText("文件夹"));
-      fireEvent.click(screen.getByText("工作"));
+      fireEvent.click(screen.getByRole("button", { name: "文件夹" }));
+      fireEvent.click(screen.getByRole("option", { name: "工作" }));
       expect(screen.getByText("1 / 3 条链接")).toBeInTheDocument();
 
       // Now reset to all
-      fireEvent.click(screen.getByText("工作")); // trigger shows selected folder name
-      fireEvent.click(screen.getByText("全部文件夹"));
+      fireEvent.click(screen.getByRole("button", { name: "工作" }));
+      fireEvent.click(screen.getByRole("option", { name: "全部文件夹" }));
       expect(screen.getByText("共 3 条链接")).toBeInTheDocument();
     });
 
@@ -486,17 +486,20 @@ describe("LinksList", () => {
       render(<LinksList />);
 
       // Open tag dropdown
-      fireEvent.click(screen.getByText("标签"));
-      // Select "dev" tag — use the command item (dropdown), not the tag badge on LinkCard
-      const devItems = screen.getAllByText("dev");
-      const devDropdownItem = devItems.find((el) => el.closest("[cmdk-item]"));
-      expect(devDropdownItem).toBeTruthy();
-      fireEvent.click(unwrap(devDropdownItem));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      // Select the filter option, not the card's saved tag.
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "dev"),
+        ),
+      );
 
       // Only link 1 (abc) has the "dev" tag
-      expect(screen.getByText("abc")).toBeInTheDocument();
-      expect(screen.queryByText("def")).not.toBeInTheDocument();
-      expect(screen.queryByText("ghi")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/def" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/ghi" })).not.toBeInTheDocument();
       expect(screen.getByText("1 / 3 条链接")).toBeInTheDocument();
     });
 
@@ -504,32 +507,37 @@ describe("LinksList", () => {
       render(<LinksList />);
 
       // Select "dev" tag
-      fireEvent.click(screen.getByText("标签"));
-      const devItems = screen.getAllByText("dev");
-      fireEvent.click(unwrap(devItems.find((el) => el.closest("[cmdk-item]"))));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "dev"),
+        ),
+      );
 
-      // Select "design" tag too (reopen)
-      fireEvent.click(screen.getByText("标签 (1)"));
-      const designItems = screen.getAllByText("design");
-      const designDropdownItem = designItems.find((el) => el.closest("[cmdk-item]"));
-      // cmdk may filter out already-selected items; click only if present
-      if (designDropdownItem) {
-        fireEvent.click(designDropdownItem);
-      }
+      // The selected tag is filtered out of the command list; verify the intersection result.
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      expect(screen.queryByTestId("tag-filter-item")).not.toBeInTheDocument();
 
       // Only link 1 (abc) has both "dev" AND "design"
-      expect(screen.getByText("abc")).toBeInTheDocument();
-      expect(screen.queryByText("def")).not.toBeInTheDocument();
-      expect(screen.queryByText("ghi")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/def" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/ghi" })).not.toBeInTheDocument();
     });
 
     it("removes tag filter via badge X button", async () => {
       render(<LinksList />);
 
       // Select "blog" tag to narrow to link 3 only
-      fireEvent.click(screen.getByText("标签"));
-      const blogItems = screen.getAllByText("blog");
-      fireEvent.click(unwrap(blogItems.find((el) => el.closest("[cmdk-item]"))));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "blog"),
+        ),
+      );
       expect(screen.getByText("1 / 3 条链接")).toBeInTheDocument();
 
       // Remove it via X on the badge
@@ -541,11 +549,16 @@ describe("LinksList", () => {
       render(<LinksList />);
 
       // Apply folder + tag filters
-      fireEvent.click(screen.getByText("文件夹"));
-      fireEvent.click(screen.getByText("工作"));
-      fireEvent.click(screen.getByText("标签"));
-      const devItems = screen.getAllByText("dev");
-      fireEvent.click(unwrap(devItems.find((el) => el.closest("[cmdk-item]"))));
+      fireEvent.click(screen.getByRole("button", { name: "文件夹" }));
+      fireEvent.click(screen.getByRole("option", { name: "工作" }));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "dev"),
+        ),
+      );
 
       // Clear all
       fireEvent.click(screen.getByText("清除筛选"));
@@ -557,27 +570,37 @@ describe("LinksList", () => {
       render(<LinksList />);
 
       // Filter by folder "个人" (link 2 only) then by tag "design" (link 1, 2)
-      fireEvent.click(screen.getByText("文件夹"));
-      fireEvent.click(screen.getByText("个人"));
+      fireEvent.click(screen.getByRole("button", { name: "文件夹" }));
+      fireEvent.click(screen.getByRole("option", { name: "个人" }));
 
-      fireEvent.click(screen.getByText("标签"));
-      const designItems = screen.getAllByText("design");
-      fireEvent.click(unwrap(designItems.find((el) => el.closest("[cmdk-item]"))));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "design"),
+        ),
+      );
 
       // Only link 2 (def) is in folder "个人" AND has tag "design"
-      expect(screen.getByText("def")).toBeInTheDocument();
-      expect(screen.queryByText("abc")).not.toBeInTheDocument();
-      expect(screen.queryByText("ghi")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "/def" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/abc" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "/ghi" })).not.toBeInTheDocument();
     });
 
     it("shows tag count on tag button when tags are selected", async () => {
       render(<LinksList />);
 
-      fireEvent.click(screen.getByText("标签"));
-      const devItems = screen.getAllByText("dev");
-      fireEvent.click(unwrap(devItems.find((el) => el.closest("[cmdk-item]"))));
+      fireEvent.click(screen.getByTestId("tag-filter-trigger"));
+      fireEvent.click(
+        unwrap(
+          screen
+            .getAllByTestId("tag-filter-item")
+            .find((item) => item.getAttribute("data-tag-name") === "dev"),
+        ),
+      );
 
-      expect(screen.getByText("标签 (1)")).toBeInTheDocument();
+      expect(screen.getByTestId("tag-filter-trigger")).toHaveTextContent("标签 (1)");
     });
   });
 });

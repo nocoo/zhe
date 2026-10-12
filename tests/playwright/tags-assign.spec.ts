@@ -58,8 +58,8 @@ test.describe("Tag UI - assign existing", () => {
 
     await saveAndCloseEdit(card);
 
-    await expect(card.locator(`[data-testid="tag-badge"][data-tag-name="${tagName}"]`)).toBeVisible(
-      { timeout: 10_000 },
-    );
+    await expect(
+      card.locator("[data-bookmark-classification]").getByRole("button", { name: "查看全部标签" }),
+    ).toHaveText(tagName);
   });
 });

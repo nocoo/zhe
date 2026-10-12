@@ -21,8 +21,6 @@ import {
   ArrowUpRight,
   BadgeCheck,
   BookOpen,
-  Check,
-  CircleAlert,
   Clock3,
   Download,
   Eye,
@@ -33,12 +31,10 @@ import {
   MessageCircle,
   Play,
   Quote as QuoteIcon,
-  RefreshCw,
   Repeat2,
   Video,
 } from "lucide-react";
 import { useState } from "react";
-import { retryXBookmarkAction } from "@/actions/connector";
 import { videoFileSize, videoResolution, type XMedia, type XPost } from "@/cli/src/connector/core";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
@@ -683,98 +679,5 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
         {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}
       </p>
     </LayerCard.Body>
-  );
-}
-
-export function XBookmarkStatus({
-  bookmark,
-  linkId,
-  compact = false,
-  actions,
-}: {
-  bookmark: XBookmark | undefined;
-  linkId: number;
-  compact?: boolean;
-  actions?: React.ReactNode;
-}) {
-  const [retrying, setRetrying] = useState(false);
-  const [feedback, setFeedback] = useState<{ version: string; success: boolean } | null>(null);
-  const state = bookmark?.state ?? "pending";
-  const version = `${linkId}:${state}:${bookmark?.updatedAt ?? 0}`;
-  const currentFeedback = feedback?.version === version ? feedback : null;
-  const errorMessage =
-    bookmark?.errorCode && !bookmark.mediaErrors?.length
-      ? xMediaFailureMessage(bookmark.errorCode)
-      : undefined;
-  const StatusIcon =
-    state === "running"
-      ? RefreshCw
-      : state === "complete"
-        ? Check
-        : state === "pending"
-          ? Clock3
-          : CircleAlert;
-  const icon = (
-    <StatusIcon
-      className={cn(
-        "size-3.5 shrink-0",
-        state === "complete" && "text-success",
-        state === "running" && "animate-spin motion-reduce:animate-none",
-        ["partial", "failed", "unavailable"].includes(state) && "text-warning",
-      )}
-      strokeWidth={1.5}
-      aria-hidden
-    />
-  );
-  if (compact)
-    return (
-      <span
-        role="status"
-        title={errorMessage ?? statusLabels[state]}
-        className="inline-flex min-w-0 max-w-full items-center gap-1.5 truncate text-xs text-muted-foreground"
-      >
-        {icon}
-        <span className="truncate">
-          {errorMessage ?? (state === "partial" ? "媒体待补全" : statusLabels[state])}
-        </span>
-      </span>
-    );
-  const retry = async () => {
-    setRetrying(true);
-    try {
-      setFeedback({ version, success: (await retryXBookmarkAction(linkId)).success });
-    } catch {
-      setFeedback({ version, success: false });
-    } finally {
-      setRetrying(false);
-    }
-  };
-  return (
-    <div className="w-full space-y-3 text-sm text-muted-foreground" role="status">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span>
-          {currentFeedback
-            ? currentFeedback.success
-              ? "已重新排队"
-              : "暂时无法重试"
-            : statusLabels[state]}
-        </span>
-      </div>
-      {errorMessage &&
-        ["failed", "partial", "unavailable"].includes(state) &&
-        !currentFeedback?.success && <p className="text-sm text-warning">{errorMessage}</p>}
-      <div className="flex flex-wrap items-center gap-2">
-        {["failed", "partial", "unavailable"].includes(state) && !currentFeedback?.success && (
-          <IconAction label="重新补全" onClick={retry} disabled={retrying}>
-            <RefreshCw
-              className={retrying ? "animate-spin motion-reduce:animate-none" : ""}
-              aria-hidden
-            />
-          </IconAction>
-        )}
-        <div className="ml-auto flex items-center gap-2">{actions}</div>
-      </div>
-    </div>
   );
 }

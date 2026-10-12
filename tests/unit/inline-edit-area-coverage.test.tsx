@@ -51,6 +51,8 @@ vi.mock("@/viewmodels/useLinksViewModel", () => ({
     createAndAssignTag: mockCreateAndAssignTag,
     saveEdit: mockSaveEdit,
     isSaving: false,
+    isDeletingScreenshot: false,
+    screenshotAction: null,
     error: "",
   }),
 }));
@@ -159,8 +161,6 @@ describe("InlineEditArea", () => {
                 linkTags={sampleLinkTags}
                 folders={sampleFolders}
                 editCallbacks={mockEditCallbacks}
-                isDeleting={false}
-                handleDelete={options.handleDelete ?? vi.fn()}
                 onCloseEdit={options.onCloseEdit ?? vi.fn()}
                 {...onSavedProps}
               />

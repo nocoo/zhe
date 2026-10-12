@@ -287,3 +287,21 @@ The stack now checks the tracked production template. Docker includes only the
 three runtime-imported helpers, not the local launchers. Verification must use
 an exported tracked tree for L2/L3 and a Docker-context-equivalent source tree
 for builds, in addition to checking the user's ordinary checkout.
+
+## 2026-10-13: Validate delegated runtime names and test interfaces first
+
+The bookmark refactor's first browser build compiled the application but stopped
+on tests still using removed component props. I started that expensive check
+before the concurrent test migration had reached a clean typecheck. A separate
+browser-test delegate also received a stale model alias and returned API errors
+instead of doing work. Before launching browser builds, wait for the owned test
+migration and run the complete typecheck. After agent startup, verify successful
+model execution rather than treating an idle/done lifecycle status as task proof.
+
+A resize assertion also measured the old desktop sidebar inside the new mobile
+viewport before React committed the responsive layout. Wait for layout frames
+before collecting active animations; do not weaken the overflow assertion to
+accept an intermediate card squeezed to 75px.
+The shared browser action helper must still await the adaptive upload/idea
+toolbar's ResizeObserver; removing that wait for fixed bookmark toolbars made
+an unchanged upload flow look for a menu item that had just moved outside.

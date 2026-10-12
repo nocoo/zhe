@@ -3,22 +3,33 @@ import { LayerCard } from "@nocoo/basalt";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { retryXBookmarkAction } from "@/actions/connector";
 import { normalizeXPost } from "@/cli/src/connector/core";
 import { LinkCard } from "@/components/dashboard/link-card";
-import { XBookmarkContent, XBookmarkStatus } from "@/components/dashboard/x-bookmark-content";
+import { XBookmarkContent } from "@/components/dashboard/x-bookmark-content";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import type { XBookmark } from "@/lib/connector/jobs";
 import type { Link } from "@/models/types";
 
-vi.mock("@/actions/connector", () => ({ retryXBookmarkAction: vi.fn() }));
+vi.mock("@/actions/connector", () => ({ updateXMediaDimensionsAction: vi.fn() }));
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: () => ({
     shortUrl: "https://zhe.to/test",
     copied: false,
-    faviconError: false,
+    copiedOriginalUrl: false,
+    isDeleting: false,
+    isSavingVisibility: false,
+    showAnalytics: false,
+    analyticsStats: null,
+    isLoadingAnalytics: false,
     handleCopy: vi.fn(),
+    handleCopyOriginalUrl: vi.fn(),
+    handleDelete: vi.fn(),
+    handleToggleHidden: vi.fn(),
     handleToggleAnalytics: vi.fn(),
+    screenshotUrl: null,
+    faviconUrl: null,
+    faviconError: false,
+    handleFaviconError: vi.fn(),
   }),
   useInlineLinkEditViewModel: vi.fn(),
 }));
@@ -70,7 +81,6 @@ const link: Link = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(retryXBookmarkAction).mockResolvedValue({ success: true });
 });
 
 describe("X bookmark presentation", () => {
@@ -130,16 +140,6 @@ describe("X bookmark presentation", () => {
     expect(screen.getByTestId("x-video-archive-info")).toHaveTextContent(
       "视频未归档：4K 564.2 MB、1080p 120.8 MB、720p 100 MB，均超过 100 MB 上限。",
     );
-  });
-  it("shows a specific connector error even without captured content", () => {
-    render(
-      <XBookmarkStatus
-        bookmark={{ ...bookmark, state: "failed", tweet: null, errorCode: "needs_login" }}
-        linkId={1}
-        compact
-      />,
-    );
-    expect(screen.getByRole("status")).toHaveTextContent("本地浏览器尚未登录 X");
   });
   it("uses the saved headline for a standalone article without repeating raw URLs", () => {
     const url = "https://x.com/i/article/2037129045423341568";
@@ -203,21 +203,32 @@ describe("X bookmark presentation", () => {
           siteUrl="https://zhe.to"
           onDelete={vi.fn()}
           onUpdate={vi.fn()}
+          editCallbacks={{
+            onLinkUpdated: vi.fn(),
+            onTagCreated: vi.fn(),
+            onLinkTagAdded: vi.fn(),
+            onLinkTagRemoved: vi.fn(),
+          }}
+          onSuggest={vi.fn()}
           viewMode={viewMode}
         />
       );
       const { rerender } = render(
         <XBookmarksContext.Provider value={new Map()}>{card}</XBookmarksContext.Provider>,
       );
-      expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
+      if (viewMode === "feed")
+        expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent(
+          "Keep this saved note after enrichment",
+        );
       rerender(
         <XBookmarksContext.Provider value={new Map([[1, bookmark]])}>
           {card}
         </XBookmarksContext.Provider>,
       );
-      expect(screen.queryAllByTestId("x-bookmark-content")).toHaveLength(
-        viewMode === "feed" ? 1 : 0,
-      );
+      expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId(viewMode === "feed" ? "x-bookmark-preview" : "link-card"),
+      ).toBeInTheDocument();
       expect(screen.queryByText("喜欢 7")).not.toBeInTheDocument();
       expect(screen.queryByText("已补全", { exact: true })).not.toBeInTheDocument();
       expect(screen.queryByText("阅读帖子")).not.toBeInTheDocument();
@@ -225,24 +236,29 @@ describe("X bookmark presentation", () => {
       const user = userEvent.setup();
       if (viewMode === "feed") {
         await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-        expect(screen.getByRole("menuitem", { name: "编辑收藏" })).toBeInTheDocument();
+        expect(screen.getByRole("menuitem", { name: "修改收藏" })).toBeInTheDocument();
+        await user.keyboard("{Escape}");
+        await user.click(screen.getByRole("button", { name: "复制链接" }));
         expect(screen.getByRole("menuitem", { name: "复制短链接" })).toBeInTheDocument();
         await user.keyboard("{Escape}");
       } else {
         await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-        expect(screen.getByRole("menuitem", { name: "Edit link" })).toBeInTheDocument();
+        expect(screen.getByRole("menuitem", { name: "修改收藏" })).toBeInTheDocument();
         await user.keyboard("{Escape}");
       }
-      expect(screen.getByText("Keep this saved note after enrichment")).toBeInTheDocument();
+      if (viewMode === "feed")
+        expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent(
+          "Keep this saved note after enrichment",
+        );
       const trigger = screen.getByRole("button", { name: "查看帖子详情" });
-      expect(trigger).toHaveAccessibleDescription("已补全");
+      if (viewMode === "feed") expect(trigger).toHaveAccessibleDescription("已补全");
       await user.click(trigger);
       const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
       expect(within(dialog).getByTestId("x-bookmark-content")).toBeInTheDocument();
       expect(within(dialog).getByText("喜欢 7")).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "打开原帖" })).toHaveAttribute(
+      expect(within(dialog).getByRole("link", { name: "Example Author" })).toHaveAttribute(
         "href",
-        link.originalUrl,
+        "https://x.com/example",
       );
       await user.keyboard("{Escape}");
       await waitFor(() =>
@@ -434,7 +450,7 @@ describe("X bookmark presentation", () => {
       </XBookmarksContext.Provider>,
     );
     const card = screen.getByTestId("link-card");
-    const preview = within(card).getByRole("button", { name: "播放视频 1" });
+    const preview = within(card).getByRole("button", { name: "播放帖子视频" });
     const user = userEvent.setup();
     expect(card.querySelector("video")).toBeNull();
     await user.click(preview);
@@ -527,58 +543,6 @@ describe("X bookmark presentation", () => {
       expect(screen.getByText("Saved body remains readable")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "重试" }));
       expect(media()).toBeInTheDocument();
-    },
-  );
-  it("keeps pending and partial states visible and lets the owner retry a failed job", async () => {
-    const { rerender } = render(<XBookmarkStatus bookmark={undefined} linkId={1} />);
-    expect(screen.getByText("等待补全")).toBeInTheDocument();
-    rerender(
-      <XBookmarkStatus
-        bookmark={{ ...bookmark, state: "partial", errorCode: "media_incomplete" }}
-        linkId={1}
-      />,
-    );
-    expect(screen.getByText("正文已保存，媒体待补全")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "重新补全" }));
-    await waitFor(() => expect(retryXBookmarkAction).toHaveBeenCalledWith(1));
-    expect(await screen.findByText("已重新排队")).toBeInTheDocument();
-  });
-  it.each([
-    ["pending", "等待补全"],
-    ["running", "正在补全"],
-    ["complete", "已补全"],
-    ["partial", "正文已保存，媒体待补全"],
-    ["failed", "补全暂未完成"],
-  ] as const)("replaces retry feedback with the next %s state", async (state, label) => {
-    const { rerender } = render(
-      <XBookmarkStatus bookmark={{ ...bookmark, state: "partial" }} linkId={1} />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "重新补全" }));
-    expect(await screen.findByText("已重新排队")).toBeInTheDocument();
-    rerender(
-      <XBookmarkStatus
-        bookmark={{ ...bookmark, state, updatedAt: bookmark.updatedAt + 1 }}
-        linkId={1}
-      />,
-    );
-    expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.queryByText("已重新排队")).not.toBeInTheDocument();
-    if (["partial", "failed"].includes(state))
-      expect(screen.getByRole("button", { name: "重新补全" })).toBeEnabled();
-  });
-  it.each([false, true])(
-    "lets an unsuccessful retry be tried again (throws=%s)",
-    async (throws) => {
-      if (throws) vi.mocked(retryXBookmarkAction).mockRejectedValueOnce(new Error("offline"));
-      else vi.mocked(retryXBookmarkAction).mockResolvedValueOnce({ success: false });
-      render(<XBookmarkStatus bookmark={{ ...bookmark, state: "failed" }} linkId={1} />);
-      fireEvent.click(screen.getByRole("button", { name: "重新补全" }));
-      expect(await screen.findByText("暂时无法重试")).toBeInTheDocument();
-      const retry = screen.getByRole("button", { name: "重新补全" });
-      expect(retry).toBeEnabled();
-      fireEvent.click(retry);
-      expect(await screen.findByText("已重新排队")).toBeInTheDocument();
-      expect(retryXBookmarkAction).toHaveBeenCalledTimes(2);
     },
   );
 });

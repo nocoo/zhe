@@ -3,17 +3,6 @@
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -24,40 +13,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
-
-// ── DeleteLinkDialog ──
-
-interface DeleteLinkDialogProps {
-  /** The trigger button element (e.g. a trash icon button) */
-  trigger: React.ReactNode;
-  isDeleting: boolean;
-  onConfirm: () => void;
-}
-
-/** Shared confirmation dialog for deleting a link */
-export function DeleteLinkDialog({ trigger, isDeleting, onConfirm }: DeleteLinkDialogProps) {
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>确认删除</AlertDialogTitle>
-          <AlertDialogDescription>此操作不可撤销，确定要删除这条链接吗？</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isDeleting ? "删除中..." : "删除"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
 
 // ── TagBadge ──
 

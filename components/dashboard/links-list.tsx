@@ -5,7 +5,11 @@ import { Link2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { deleteLink } from "@/actions/links";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
-import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
+import {
+  BOOKMARK_GRID_CLASS,
+  CardGridSkeleton,
+  CardListSkeleton,
+} from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeaderSkeleton } from "@/components/ui/page-header";
 import { useDashboardService } from "@/contexts/dashboard-service";
@@ -80,7 +84,7 @@ function LinksContent(props: LinksContentProps) {
 
   return (
     <AnimatedCardList
-      className={viewMode === "grid" ? CARD_GRID_CLASS : "space-y-2"}
+      className={viewMode === "grid" ? BOOKMARK_GRID_CLASS : "space-y-2"}
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
       {filteredLinks.map((link, i) => (

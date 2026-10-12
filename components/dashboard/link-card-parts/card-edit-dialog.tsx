@@ -1,15 +1,14 @@
 "use client";
 
 import { Dialog, DialogContent, DialogDescription } from "@nocoo/basalt/components/dialog";
-import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CARD_MOTION_EASING, canAnimate, destroyCard } from "@/lib/motion";
+import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
+import { CARD_MOTION_EASING, canAnimate } from "@/lib/motion";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { InlineEditArea, type InlineEditAreaProps } from "./inline-edit-area";
 
 const FLIGHT_DURATION = 600;
 const RETURN_DURATION = 460;
-const EDIT_TRIGGER_SELECTOR =
-  '[aria-label="Edit link"], [aria-label="更多收藏操作"], [aria-label="编辑 GitHub 收藏"]';
+const EDIT_TRIGGER_SELECTOR = '[aria-label="更多收藏操作"]';
 const FALLBACK_FOCUS_SELECTOR =
   '[aria-label="刷新链接"], [aria-label="筛选与视图"], [aria-label="搜索 GitHub 收藏"], [aria-label="搜索 X 收藏"]';
 
@@ -52,18 +51,14 @@ interface CardEditDialogProps extends Omit<InlineEditAreaProps, "onCloseEdit"> {
   source: RefObject<HTMLDivElement | null>;
   trigger: RefObject<HTMLElement | null>;
   animated?: boolean;
-  deleted: boolean;
   onClose: () => void;
-  onDeleted: () => void;
 }
 
 export function CardEditDialog({
   source,
   trigger,
   animated = true,
-  deleted,
   onClose,
-  onDeleted,
   editCallbacks,
   tags,
   linkTags,
@@ -195,14 +190,9 @@ export function CardEditDialog({
   );
 
   const finish = useCallback(
-    async (action: "close" | "save" | "delete" = "close") => {
+    async (action: "close" | "save" = "close") => {
       if (closing.current) return;
-      if (
-        action === "close" &&
-        (editProps.isDeleting || panel.current?.querySelector('[aria-busy="true"]'))
-      )
-        return;
-      const destroy = action === "delete";
+      if (action === "close" && panel.current?.querySelector('[aria-busy="true"]')) return;
       closing.current = true;
       await opening.current;
       const node = panel.current;
@@ -229,29 +219,11 @@ export function CardEditDialog({
       if (!panel.current) return;
       card.style.visibility = "visible";
       frame.style.visibility = "hidden";
-      if (destroy) {
-        node.dataset.phase = "destroying";
-        node.style.visibility = "hidden";
-        if (backdrop.current) backdrop.current.style.opacity = "0";
-        const cards = [...document.querySelectorAll<HTMLElement>("[data-link-id]")];
-        const index = cards.indexOf(card);
-        restoreFocus.current =
-          (cards[index + 1] ?? cards[index - 1])?.querySelector<HTMLElement>(
-            EDIT_TRIGGER_SELECTOR,
-          ) ?? document.querySelector<HTMLElement>(FALLBACK_FOCUS_SELECTOR);
-        await destroyCard(card);
-        if (!panel.current) return;
-      }
       flushUpdates();
-      if (destroy) onDeleted();
-      else onClose();
+      onClose();
     },
-    [source, animated, editProps.isDeleting, animate, flushUpdates, onDeleted, onClose],
+    [source, animated, animate, flushUpdates, onClose],
   );
-
-  useEffect(() => {
-    if (deleted) void finish("delete");
-  }, [deleted, finish]);
 
   return (
     <Dialog open onOpenChange={(open) => !open && void finish()}>
@@ -285,7 +257,6 @@ export function CardEditDialog({
               tags={editorTags}
               linkTags={editorLinkTags}
               editCallbacks={callbacks}
-              isDeleting={editProps.isDeleting || deleted}
               onCloseEdit={() => void finish()}
               onSaved={() => void finish("save")}
             />

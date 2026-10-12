@@ -27,10 +27,34 @@ vi.mock("@/actions/github-connector", () => ({
   retryGitHubBookmarkAction: vi.fn(),
 }));
 vi.mock("@/contexts/dashboard-service", () => ({ useDashboardService: vi.fn() }));
-const { copyLink } = vi.hoisted(() => ({ copyLink: vi.fn() }));
+const { copyLink, bookmarkVm } = vi.hoisted(() => {
+  const copyLink = vi.fn();
+  return {
+    copyLink,
+    bookmarkVm: {
+      shortUrl: "https://zhe.to/abc",
+      copied: false,
+      copiedOriginalUrl: false,
+      isDeleting: false,
+      isSavingVisibility: false,
+      showAnalytics: false,
+      analyticsStats: null,
+      isLoadingAnalytics: false,
+      handleCopy: copyLink,
+      handleCopyOriginalUrl: vi.fn(),
+      handleDelete: vi.fn(),
+      handleToggleHidden: vi.fn(),
+      handleToggleAnalytics: vi.fn(),
+      screenshotUrl: null,
+      faviconUrl: null,
+      faviconError: false,
+      handleFaviconError: vi.fn(),
+    },
+  };
+});
 vi.mock("@/viewmodels/useLinksViewModel", async () => ({
   ...(await vi.importActual("@/viewmodels/useCreateLinkViewModel")),
-  useLinkCardViewModel: () => ({ isDeleting: false, handleDelete: vi.fn(), handleCopy: copyLink }),
+  useLinkCardViewModel: () => bookmarkVm,
 }));
 vi.mock("@/components/dashboard/link-card-parts/inline-edit-area", () => ({
   InlineEditArea: ({ onCloseEdit }: { onCloseEdit: () => void }) => (
@@ -219,24 +243,19 @@ describe("GitHub collection", () => {
 });
 
 function renderCard(value: GitHubBookmark | undefined = bookmark, savedLink = link) {
-  const refresh = vi.fn();
-  return {
-    refresh,
-    ...render(
-      <GitHubRepositoryCard
-        link={savedLink}
-        bookmark={value}
-        folders={[folder]}
-        tags={[tag]}
-        linkTags={[{ linkId: 1, tagId: tag.id }]}
-        siteUrl="https://zhe.to"
-        editCallbacks={callbacks}
-        onDelete={vi.fn()}
-        onRefresh={refresh}
-        onSuggest={vi.fn()}
-      />,
-    ),
-  };
+  return render(
+    <GitHubRepositoryCard
+      link={savedLink}
+      bookmark={value}
+      folders={[folder]}
+      tags={[tag]}
+      linkTags={[{ linkId: 1, tagId: tag.id }]}
+      siteUrl="https://zhe.to"
+      editCallbacks={callbacks}
+      onDelete={vi.fn()}
+      onSuggest={vi.fn()}
+    />,
+  );
 }
 describe("README reading", () => {
   it("loads the entire README on demand and resolves links without enabling scripts", async () => {
@@ -290,16 +309,16 @@ describe("README reading", () => {
       ).toBeVisible();
     },
   );
-  it("offers editing and explicit retry without losing a prior snapshot", async () => {
+  it("offers shared editing and enrichment actions without losing a prior snapshot", async () => {
     const user = userEvent.setup();
-    const { refresh } = renderCard({
+    renderCard({
       ...bookmark,
       state: "failed",
       errorCode: "github_rate_limited",
       repository: { ...summary, archived: true },
     });
     await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-    await user.click(screen.getByRole("menuitem", { name: "编辑收藏" }));
+    await user.click(screen.getByRole("menuitem", { name: "修改收藏" }));
     await waitFor(() =>
       expect(screen.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing"),
     );
@@ -310,29 +329,9 @@ describe("README reading", () => {
     expect(screen.getByText("已归档")).toBeVisible();
     expect(screen.getByText("GitHub 暂时限制访问，稍后重试")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-    await user.click(screen.getByRole("menuitem", { name: "重新采集 GitHub 仓库" }));
-    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(screen.getByRole("menuitem", { name: "数据采集" })).toBeEnabled();
     expect(screen.getByText("1.2K")).toBeVisible();
   });
-  it.each([false, "reject"])(
-    "keeps the retry control usable after a failure: %s",
-    async (outcome) => {
-      const user = userEvent.setup();
-      if (outcome === "reject")
-        vi.mocked(retryGitHubBookmarkAction).mockRejectedValue(new Error("offline"));
-      else vi.mocked(retryGitHubBookmarkAction).mockResolvedValue({ success: false });
-      const { refresh } = renderCard();
-      await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-      await user.click(screen.getByRole("menuitem", { name: "重新采集 GitHub 仓库" }));
-      await waitFor(() => expect(retryGitHubBookmarkAction).toHaveBeenCalledOnce());
-      await user.click(screen.getByRole("button", { name: "更多收藏操作" }));
-      expect(screen.getByRole("menuitem", { name: "重新采集 GitHub 仓库" })).not.toHaveAttribute(
-        "aria-disabled",
-        "true",
-      );
-      expect(refresh).not.toHaveBeenCalled();
-    },
-  );
   it("resolves root and relative URLs while dropping unsafe schemes and credentials", () => {
     expect(githubReadmeUrl("/LICENSE", false, summary)).toBe(
       "https://github.com/octocat/hello/blob/main/LICENSE",
@@ -356,6 +355,7 @@ describe("README reading", () => {
 describe("shared AI organization entry", () => {
   it("prioritizes the note and keeps source details in the reader with common actions in the footer", async () => {
     const user = userEvent.setup();
+    const onSuggest = vi.fn();
     const analysis = {
       summary: "旧 AI 简介",
       features: ["全文归档"],
@@ -366,23 +366,36 @@ describe("shared AI organization entry", () => {
       provider: "custom",
       generatedAt: 1,
     };
-    renderCard({ ...bookmark, analysis }, { ...link, title: "整理标题", note: "当前手改备注" });
+    render(
+      <GitHubRepositoryCard
+        link={{ ...link, title: "整理标题", note: "当前手改备注" }}
+        bookmark={{ ...bookmark, analysis }}
+        folders={[folder]}
+        tags={[tag]}
+        linkTags={[{ linkId: 1, tagId: tag.id }]}
+        siteUrl="https://zhe.to"
+        editCallbacks={callbacks}
+        onDelete={vi.fn()}
+        onSuggest={onSuggest}
+      />,
+    );
     expect(screen.getByText("整理标题")).toBeVisible();
     expect(screen.getByText("当前手改备注")).toBeVisible();
     expect(screen.queryByText("旧 AI 简介")).not.toBeInTheDocument();
     expect(screen.queryByText("Repository description")).not.toBeInTheDocument();
-    const footer = within(screen.getByTestId("github-card-footer"));
-    expect(footer.getByText("工具")).toBeVisible();
-    await user.click(footer.getByRole("button", { name: "更多收藏操作" }));
-    for (const name of ["AI 整理", "编辑收藏", "重新采集 GitHub 仓库"])
+    const card = within(screen.getByTestId("github-repository"));
+    expect(card.getByText("工具")).toBeVisible();
+    await user.click(card.getByRole("button", { name: "AI 整理" }));
+    expect(onSuggest).toHaveBeenCalled();
+    await user.click(card.getByRole("button", { name: "更多收藏操作" }));
+    for (const name of ["修改收藏", "数据采集", "访问统计", "隐藏帖子", "删除收藏"])
       expect(screen.getByRole("menuitem", { name })).not.toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("menuitem", { name: "打开原仓库" })).toHaveAttribute(
-      "href",
-      link.originalUrl,
-    );
+    await user.keyboard("{Escape}");
+    await user.click(card.getByRole("button", { name: "复制链接" }));
+    expect(screen.getByRole("menuitem", { name: "复制短链接" })).toBeInTheDocument();
     await user.click(screen.getByRole("menuitem", { name: "复制短链接" }));
     expect(copyLink).toHaveBeenCalledOnce();
-    await user.click(footer.getByRole("button", { name: "阅读 README" }));
+    await user.click(card.getByRole("button", { name: "阅读 README" }));
     expect(within(screen.getByRole("dialog")).getByText("Repository description")).toBeVisible();
   });
   it.each([null, "   "])("uses the source description when the note is %s", (note) => {
@@ -395,16 +408,18 @@ describe("shared AI organization entry", () => {
     );
     expect(screen.queryByText("NOASSERTION")).not.toBeInTheDocument();
   });
-  it("keeps every repository label beside saved tags, distinct from the footer actions", () => {
+  it("keeps bounded repository labels beside saved tags and away from footer actions", () => {
     const topics = Array.from({ length: 12 }, (_, index) => `repository-label-${index}`);
     renderCard({ ...bookmark, repository: { ...summary, topics } });
     const labels = within(screen.getByTestId("github-card-tags"));
-    expect(labels.getByTestId("tag-badge")).toHaveTextContent("已读");
+    expect(screen.getByRole("button", { name: "查看全部标签" })).toHaveTextContent("已读");
     expect(
       labels.getAllByTestId("github-repository-label").map((label) => label.textContent),
-    ).toEqual(topics);
+    ).toEqual(topics.slice(0, 3));
     expect(screen.queryByText("主题")).not.toBeInTheDocument();
-    expect(within(screen.getByTestId("github-card-footer")).queryByTestId("tag-badge")).toBeNull();
+    expect(
+      within(screen.getByTestId("github-repository")).getByTestId("github-card-tags"),
+    ).toBeVisible();
   });
   it("opens the unified editor without requiring README", async () => {
     const user = userEvent.setup();
@@ -447,12 +462,8 @@ describe("shared AI organization entry", () => {
     try {
       render(<GitHubLibraryPage />);
       await screen.findByText("1.2K");
-      await user.click(
-        within(screen.getAllByTestId("github-repository")[0] as HTMLElement).getByRole("button", {
-          name: "更多收藏操作",
-        }),
-      );
-      await user.click(screen.getByRole("menuitem", { name: "AI 整理" }));
+      const repositoryCard = within(screen.getAllByTestId("github-repository")[0] as HTMLElement);
+      await user.click(repositoryCard.getByRole("button", { name: "AI 整理" }));
       await waitFor(() => expect(screen.getByTestId("suggest-title")).toHaveValue("短标题"));
       expect(screen.getByTestId("suggest-note")).toHaveValue("共享备注");
       expect(screen.getByText("README 未收录")).toBeVisible();

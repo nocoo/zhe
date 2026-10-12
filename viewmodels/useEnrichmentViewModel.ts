@@ -3,14 +3,18 @@
 import { toast } from "@nocoo/basalt/components/toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadEnrichmentTasksAction, retryEnrichmentTasksAction } from "@/actions/enrichment";
+import { refreshLinkMetadata } from "@/actions/links/metadata";
+import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentScope } from "@/contexts/enrichment";
 import { canRetryEnrichment, type EnrichmentTask } from "@/models/connector-activity";
 
 export function useEnrichmentViewModel(scope: EnrichmentScope) {
+  const { handleLinkUpdated } = useDashboardService();
   const [tasks, setTasks] = useState<EnrichmentTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [collecting, setCollecting] = useState(false);
   const [source, setSource] = useState<string>(scope.source ?? "all");
   const [state, setState] = useState("all");
   const [search, setSearch] = useState("");
@@ -68,7 +72,7 @@ export function useEnrichmentViewModel(scope: EnrichmentScope) {
     setSelected(new Set());
   };
   const retry = async (ids: number[]) => {
-    if (retrying || !ids.length) return;
+    if (retrying || collecting || !ids.length) return;
     setRetrying(true);
     try {
       const result = await retryEnrichmentTasksAction(ids);
@@ -83,13 +87,33 @@ export function useEnrichmentViewModel(scope: EnrichmentScope) {
       setRetrying(false);
     }
   };
+  const collect = async (linkId: number) => {
+    if (loading || error || collecting || retrying || !Number.isSafeInteger(linkId) || linkId <= 0)
+      return;
+    const task = tasks.find((item) => item.linkId === linkId);
+    if (task && task.state !== "complete") return;
+    setCollecting(true);
+    try {
+      const result = await refreshLinkMetadata(linkId);
+      if (!result.success || !result.data) throw new Error("collect_failed");
+      handleLinkUpdated(result.data);
+      toast.success(task ? "已提交刷新" : "已提交采集");
+      await refresh();
+    } catch {
+      toast.error(task ? "刷新失败，请稍后重试" : "采集失败，请稍后重试");
+    } finally {
+      setCollecting(false);
+    }
+  };
   return {
     tasks,
     loading,
     error,
     retrying,
+    collecting,
     refresh,
     retry,
+    collect,
     source,
     state,
     search,

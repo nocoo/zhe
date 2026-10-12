@@ -42,6 +42,7 @@ vi.mock("@/models/links", () => ({
 }));
 
 import { updateLink, updateLinkNote } from "@/actions/links";
+import { deleteScreenshot } from "@/actions/links/screenshot";
 import { addTagToLink, createTag, removeTagFromLink } from "@/actions/tags";
 import { type EditLinkCallbacks, useInlineLinkEditViewModel } from "@/viewmodels/useLinksViewModel";
 
@@ -62,6 +63,83 @@ describe("useInlineLinkEditViewModel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  it.each(["missing-error", "throw"])(
+    "preserves the screenshot when deletion fails: %s",
+    async (mode) => {
+      const link = makeLink({ screenshotUrl: "https://example.com/screenshot.png" });
+      if (mode === "throw") vi.mocked(deleteScreenshot).mockRejectedValueOnce(new Error("network"));
+      else vi.mocked(deleteScreenshot).mockResolvedValueOnce({ success: false });
+      const { result } = renderHook(() =>
+        useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
+      );
+      await act(async () => result.current.screenshotAction?.run());
+      expect(result.current.error).toBe("删除截图失败，请重试");
+      expect(result.current.editScreenshotUrl).toBe(link.screenshotUrl);
+    },
+  );
+
+  it("blocks save and repeated screenshot deletion while cleanup is pending", async () => {
+    let finish: (value: { success: false }) => void = () => {};
+    vi.mocked(deleteScreenshot).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const link = makeLink({ screenshotUrl: "https://example.com/screenshot.png" });
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], makeCallbacks()));
+    act(() => {
+      void result.current.screenshotAction?.run();
+    });
+    expect(result.current.screenshotAction?.disabled).toBe(true);
+    await act(async () => {
+      await result.current.screenshotAction?.run();
+      expect(await result.current.saveEdit()).toBe(false);
+    });
+    expect(deleteScreenshot).toHaveBeenCalledOnce();
+    expect(updateLink).not.toHaveBeenCalled();
+    await act(async () => finish({ success: false }));
+    expect(result.current.isDeletingScreenshot).toBe(false);
+  });
+
+  it("deletes an existing screenshot from the editor and updates its draft", async () => {
+    const link = makeLink({ id: 7, screenshotUrl: "https://cdn.example.com/shot.png" });
+    const callbacks = makeCallbacks();
+    const updated = { ...link, screenshotUrl: null };
+    vi.mocked(deleteScreenshot).mockResolvedValue({ success: true, data: updated });
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], callbacks));
+
+    expect(result.current.screenshotAction?.label).toBe("删除截图");
+    await act(async () => result.current.screenshotAction?.run());
+
+    expect(deleteScreenshot).toHaveBeenCalledWith(link.id, link.screenshotUrl);
+    expect(result.current.editScreenshotUrl).toBe("");
+    expect(result.current.screenshotAction).toBeNull();
+    expect(callbacks.onLinkUpdated).toHaveBeenCalledWith(updated);
+  });
+
+  it("keeps the screenshot draft and exposes the server error when deletion fails", async () => {
+    const link = makeLink({ screenshotUrl: "https://cdn.example.com/shot.png" });
+    vi.mocked(deleteScreenshot).mockResolvedValue({ success: false, error: "Storage unavailable" });
+    const { result } = renderHook(() => useInlineLinkEditViewModel(link, [], [], makeCallbacks()));
+
+    await act(async () => result.current.screenshotAction?.run());
+
+    expect(result.current.editScreenshotUrl).toBe(link.screenshotUrl);
+    expect(result.current.error).toBe("Storage unavailable");
+    expect(result.current.screenshotAction).not.toBeNull();
+  });
+
+  it.each(["https://github.com/nocoo/zhe", "https://x.com/person/status/1"])(
+    "does not offer screenshot deletion for special sources (%s)",
+    (originalUrl) => {
+      const link = makeLink({ originalUrl, screenshotUrl: "https://cdn.example.com/shot.png" });
+      const { result } = renderHook(() =>
+        useInlineLinkEditViewModel(link, [], [], makeCallbacks()),
+      );
+      expect(result.current.screenshotAction).toBeNull();
+    },
+  );
 
   // ── Initial state ──
 

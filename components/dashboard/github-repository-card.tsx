@@ -1,33 +1,28 @@
 "use client";
 
 import { LayerCard } from "@nocoo/basalt";
-import { toast } from "@nocoo/basalt/components/toast";
 import {
   BookOpen,
-  Check,
   CircleAlert,
   Clock3,
   Code2,
-  Copy,
   ExternalLink,
-  FolderOpen,
   GitBranch,
   GitCommitHorizontal,
   GitFork,
-  Pencil,
   RefreshCw,
   Scale,
-  Sparkles,
   Star,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { loadGitHubReadme, retryGitHubBookmarkAction } from "@/actions/github-connector";
+import { useEffect, useState } from "react";
+import { loadGitHubReadme } from "@/actions/github-connector";
 import { canonicalGitHubRepo, type GitHubRepository } from "@/cli/src/connector/github-core";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { GithubIcon } from "@/components/site-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BOOKMARK_CARD_CLASS } from "@/components/ui/card-skeleton";
 import {
   Dialog,
   DialogClose,
@@ -36,8 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { GitHubBookmark } from "@/lib/connector/github-jobs";
 import { cn, formatNumber } from "@/lib/utils";
 import {
@@ -48,12 +41,13 @@ import {
 import { linkPresentation } from "@/models/link-presentation";
 import { getTagStyles } from "@/models/tags";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
-import { type EditLinkCallbacks, useLinkCardViewModel } from "@/viewmodels/useLinksViewModel";
-import { CardActions } from "./card-actions";
-import { CardEditDialog } from "./link-card-parts/card-edit-dialog";
-import { CardText, CardTitleText } from "./link-card-parts/curated-text";
+import { useBookmarkCardViewModel } from "@/viewmodels/useBookmarkCardViewModel";
+import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
+import { BookmarkCardDialogs } from "./bookmark-card-dialogs";
+import { BookmarkCardFooter } from "./bookmark-card-footer";
+import { CardTitleText } from "./link-card-parts/curated-text";
+import { Description, SourceLinks } from "./link-card-parts/shared-rows";
 import { TagBadge } from "./shared-link-components";
-import { useLinkSecondaryActions } from "./use-link-secondary-actions";
 
 export function GitHubReadme({ link }: { link: Link }) {
   const [repository, setRepository] = useState<GitHubRepository | null>(null);
@@ -276,7 +270,6 @@ export function GitHubRepositoryCard({
   siteUrl,
   editCallbacks,
   onDelete,
-  onRefresh,
   onSuggest,
 }: {
   link: Link;
@@ -287,26 +280,17 @@ export function GitHubRepositoryCard({
   siteUrl: string;
   editCallbacks: EditLinkCallbacks;
   onDelete: (id: number) => void;
-  onRefresh: () => void;
   onSuggest?: () => void;
 }) {
   const [reading, setReading] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [deleted, setDeleted] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-  const card = useRef<HTMLDivElement | null>(null);
-  const editTrigger = useRef<HTMLButtonElement | null>(null);
-  const vm = useLinkCardViewModel(
+  const vm = useBookmarkCardViewModel({
     link,
     siteUrl,
-    () => setDeleted(true),
-    editCallbacks.onLinkUpdated,
-  );
-  const secondaryActions = useLinkSecondaryActions(
-    link,
-    vm.isSavingVisibility,
-    vm.handleToggleHidden,
-  );
+    onDelete,
+    onUpdate: editCallbacks.onLinkUpdated,
+    onSuggest,
+    editable: true,
+  });
   const repository = bookmark?.repository;
   const name =
     repository?.fullName ?? canonicalGitHubRepo(link.originalUrl)?.fullName ?? link.metaTitle;
@@ -319,36 +303,21 @@ export function GitHubRepositoryCard({
     repository?.license && !["NOASSERTION", "OTHER"].includes(repository.license)
       ? repository.license
       : null;
-  const statusText = GITHUB_STATE_LABELS[state];
   const errorText = bookmark?.errorCode
     ? (GITHUB_ERROR_LABELS[bookmark.errorCode] ?? "稍后重试，已有内容会保留")
     : null;
   const capturedAt = bookmark?.capturedAt ? new Date(bookmark.capturedAt).toLocaleString() : null;
-  const retry = async () => {
-    setRetrying(true);
-    try {
-      const result = await retryGitHubBookmarkAction(link.id);
-      if (result.success) {
-        toast.success("已加入补全队列");
-        onRefresh();
-      } else toast.error("暂时无法重新采集，请稍后重试");
-    } catch {
-      toast.error("暂时无法重新采集，请稍后重试");
-    } finally {
-      setRetrying(false);
-    }
-  };
   return (
     <>
       <LayerCard
-        ref={card}
+        ref={vm.card}
         padding="none"
-        className="group @container/repository min-w-0 overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover"
+        className={`${BOOKMARK_CARD_CLASS} @container/repository h-96`}
         data-testid="github-repository"
         data-card-actions-container
         data-link-id={link.id}
       >
-        <div className="space-y-2 p-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
           <div className="flex h-7 items-center gap-2">
             <h2 className="min-w-0 flex-1 text-sm font-semibold leading-5">
               <a
@@ -373,41 +342,29 @@ export function GitHubRepositoryCard({
               <span className="sr-only">GitHub</span>
             </span>
           </div>
-          <section
-            aria-label="收藏与仓库标签（可横向滚动）"
-            tabIndex={assignedTags.length || topics.length ? 0 : undefined}
-            className="flex h-6 min-w-0 items-center gap-3 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-widget [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          <SourceLinks link={link} shortUrl={vm.shortUrl} />
+          <div
+            className="flex h-6 shrink-0 items-center gap-2 overflow-hidden"
             data-testid="github-card-tags"
           >
-            {assignedTags.map((tag) => (
-              <span key={tag.id} className="inline-flex shrink-0" title={`收藏标签：${tag.name}`}>
-                <TagBadge tag={tag} />
-              </span>
-            ))}
-            {assignedTags.length > 0 && topics.length > 0 && (
-              <span className="h-3 w-px shrink-0 bg-border" aria-hidden />
-            )}
-            {topics.map((topic) => (
+            {topics.slice(0, 3).map((topic) => (
               <span
                 key={topic}
-                className="inline-flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
-                title={`GitHub 仓库标签：${topic}`}
+                title={`GitHub topic: ${topic}`}
+                className="min-w-0 truncate text-xs text-muted-foreground"
                 data-testid="github-repository-label"
               >
-                <span
-                  className="size-1.5 shrink-0 rounded-full"
-                  style={getTagStyles(topic).dot}
-                  aria-hidden
-                />
                 {topic}
               </span>
             ))}
-          </section>
-          <div
-            className="min-w-0 [&>details>summary]:min-h-10"
-            data-testid="github-card-description"
-          >
-            <CardText text={display.description || "仓库信息待补全，可先打开原仓库。"} />
+            {topics.length > 3 && (
+              <span className="shrink-0 text-xs text-muted-foreground">+{topics.length - 3}</span>
+            )}
+          </div>
+          <div className="min-h-0 flex-1" data-testid="github-card-description">
+            <Description
+              link={{ ...link, metaDescription: repository?.description || link.metaDescription }}
+            />
           </div>
           <RepositoryInfo
             repository={repository}
@@ -415,111 +372,34 @@ export function GitHubRepositoryCard({
             state={state}
             errorText={errorText}
           />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-fit shrink-0 px-0"
+            aria-label="阅读 README"
+            disabled={!repository}
+            onClick={() => setReading(true)}
+          >
+            <BookOpen strokeWidth={1.5} aria-hidden />
+            阅读 README
+          </Button>
         </div>
-        <LayerCard.Footer
-          className="h-11 [@media(pointer:coarse)]:h-auto [@media(pointer:coarse)]:min-h-11 gap-2 border-border/60 bg-background/40 px-3 py-1"
-          data-testid="github-card-footer"
-        >
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex min-w-0 items-center gap-1.5" title={folder}>
-              <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
-              <span className="truncate">{folder}</span>
-            </span>
-          </div>
-          <CardActions
-            className="text-muted-foreground"
-            triggerRef={editTrigger}
-            secondary={secondaryActions}
-            primary={
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="阅读 README"
-                        aria-description={statusText}
-                        disabled={!repository}
-                        onClick={() => setReading(true)}
-                        className="relative"
-                      >
-                        <BookOpen strokeWidth={1.5} aria-hidden />
-                        {state !== "complete" && (
-                          <span
-                            aria-hidden
-                            className={cn(
-                              "absolute right-1.5 top-1.5 size-1.5 rounded-full bg-muted-foreground",
-                              state === "running" &&
-                                "bg-primary animate-pulse motion-reduce:animate-none",
-                              ["failed", "unavailable"].includes(state) && "bg-warning",
-                            )}
-                          />
-                        )}
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    阅读 README · {statusText}
-                    {capturedAt ? ` · 采集于 ${capturedAt}` : ""}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            }
-            menuItems={
-              <>
-                <DropdownMenuItem onSelect={vm.handleCopy}>
-                  {vm.copied ? (
-                    <Check className="text-success" aria-hidden />
-                  ) : (
-                    <Copy aria-hidden />
-                  )}
-                  {vm.copied ? "已复制" : "复制短链接"}
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={link.originalUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink aria-hidden />
-                    打开原仓库
-                  </a>
-                </DropdownMenuItem>
-                {onSuggest && (
-                  <DropdownMenuItem onSelect={onSuggest}>
-                    <Sparkles aria-hidden />
-                    AI 整理
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onSelect={() => setEditing(true)}>
-                  <Pencil aria-hidden />
-                  编辑收藏
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={retrying || state === "running"} onSelect={retry}>
-                  <RefreshCw
-                    className={retrying ? "animate-spin motion-reduce:animate-none" : ""}
-                    aria-hidden
-                  />
-                  重新采集 GitHub 仓库
-                </DropdownMenuItem>
-              </>
-            }
-          />
-        </LayerCard.Footer>
-      </LayerCard>
-      {editing && (
-        <CardEditDialog
-          source={card}
-          trigger={editTrigger}
+        <BookmarkCardFooter
           link={link}
-          tags={tags}
-          linkTags={linkTags}
-          folders={folders}
-          editCallbacks={editCallbacks}
-          isDeleting={vm.isDeleting}
-          handleDelete={vm.handleDelete}
-          deleted={deleted}
-          onClose={() => setEditing(false)}
-          onDeleted={() => onDelete(link.id)}
+          folder={folder}
+          tags={assignedTags}
+          actions={vm.actions}
+          triggerRef={vm.menuTrigger}
         />
-      )}
+      </LayerCard>
+      <BookmarkCardDialogs
+        vm={vm}
+        link={link}
+        tags={tags}
+        linkTags={linkTags}
+        folders={folders}
+        editCallbacks={editCallbacks}
+      />
       <Dialog open={reading} onOpenChange={setReading}>
         <DialogContent size="xl" className="max-h-[90dvh] overflow-hidden">
           <div className="flex items-start gap-3">
