@@ -87,7 +87,7 @@ export function BookmarkCardFooter({
               <Button
                 variant="ghost"
                 size="sm"
-                className="-ml-2 min-w-0 px-2 text-xs font-normal tabular-nums text-muted-foreground [@media(pointer:coarse)]:min-h-11"
+                className="-ml-2 min-w-0 px-2 font-normal tabular-nums text-muted-foreground [@media(pointer:coarse)]:min-h-11"
                 aria-label="复制收藏时间"
                 onClick={async () => {
                   if (await copyToClipboard(timestamp)) toast.success("已复制收藏时间");

@@ -17,12 +17,13 @@ export const IconAction = forwardRef<HTMLButtonElement, ButtonProps & { label: s
               size="sm"
               {...props}
               aria-label={label}
-              className={cn("w-8 shrink-0 px-0 [&_svg]:stroke-[1.5]", className)}
+              className={cn("size-8 shrink-0 p-0 [&_svg]:stroke-[1.5]", className)}
             >
               {children}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{label}</TooltipContent>
+          {/* Closed tooltip layers must not intercept Escape in a newly opened dialog. */}
+          <TooltipContent className="data-[state=closed]:animate-none">{label}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

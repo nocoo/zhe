@@ -1,16 +1,13 @@
 // @vitest-environment happy-dom
 
-/**
- * Locks Basalt control-density:
- *   Button/Input default → h-9
- *   Button/Input sm      → h-8 toolbar compact
- *   Button/Input lg      → h-10 form primary
- *
- * See docs/22-design-tokens.md.
- */
-
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +17,18 @@ import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 afterEach(() => cleanup());
 
 describe("dialog typography", () => {
+  it("keeps confirmation typography at the same project scale", () => {
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>删除收藏？</AlertDialogTitle>
+          <AlertDialogDescription>此操作不可撤销</AlertDialogDescription>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+    expect(screen.getByRole("heading", { name: "删除收藏？" })).toHaveClass("text-lg", "leading-6");
+    expect(screen.getByText("此操作不可撤销")).toHaveClass("text-sm", "leading-5");
+  });
   it("uses a distinct modal heading and consistent body scale", () => {
     render(
       <Dialog open>
@@ -40,59 +49,52 @@ describe("dialog typography", () => {
 });
 
 describe("control density — Input", () => {
-  it("lg size is form primary (h-10)", () => {
+  it("lg size uses the package large action role", () => {
     render(<Input size="lg" aria-label="lg-input" />);
     const el = screen.getByLabelText("lg-input");
-    expect(el.className).toMatch(/\bh-10\b/);
-    expect(el.className).not.toMatch(/\bh-9\b/);
-    expect(el.className).not.toMatch(/\bh-8\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-lg");
+    expect(el).not.toHaveClass("basalt-action-sm");
   });
 
-  it("default size is form scale (h-9)", () => {
+  it("default size uses the package action role", () => {
     render(<Input aria-label="default-input" />);
     const el = screen.getByLabelText("default-input");
-    expect(el.className).toMatch(/\bh-9\b/);
-    expect(el.className).toMatch(/\btext-sm\b/);
-    expect(el.className).not.toMatch(/\bh-8\b/);
+    expect(el).toHaveClass("basalt-action");
+    expect(el).not.toHaveClass("basalt-action-sm", "basalt-action-lg");
   });
 
-  it("sm size is compact toolbar scale (h-8, text-xs)", () => {
+  it("sm size uses the compact action role", () => {
     render(<Input size="sm" aria-label="sm-input" />);
     const el = screen.getByLabelText("sm-input");
-    expect(el.className).toMatch(/\bh-8\b/);
-    expect(el.className).toMatch(/\btext-xs\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-sm");
   });
 
   it("className overrides win over size defaults (title-style text-base)", () => {
     render(<Input size="sm" aria-label="title" className="text-base font-medium" />);
     const el = screen.getByLabelText("title");
     expect(el.className).toMatch(/\btext-base\b/);
-    // tailwind-merge drops the body text-xs from size=sm; file:text-xs may remain.
-    expect(el.className).not.toMatch(/(?<!file:)\btext-xs\b/);
+    expect(el).toHaveClass("basalt-action-sm");
   });
 });
 
 describe("control density — Button", () => {
-  it("lg is form primary (h-10)", () => {
+  it("lg uses the large action role", () => {
     render(<Button size="lg">创建</Button>);
     const el = screen.getByRole("button", { name: "创建" });
-    expect(el.className).toMatch(/\bh-10\b/);
-    expect(el.className).not.toMatch(/\bh-9\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-lg");
   });
 
-  it("default is form secondary (h-9)", () => {
+  it("default uses the standard action role", () => {
     render(<Button size="default">保存</Button>);
     const el = screen.getByRole("button", { name: "保存" });
-    expect(el.className).toMatch(/\bh-9\b/);
-    expect(el.className).not.toMatch(/\bh-8\b/);
-    expect(el.className).not.toMatch(/\btext-xs\b/);
+    expect(el).toHaveClass("basalt-action");
+    expect(el).not.toHaveClass("basalt-action-sm", "basalt-action-lg");
   });
 
-  it("sm is toolbar compact (h-8, text-xs)", () => {
+  it("sm uses the compact action role", () => {
     render(<Button size="sm">新建</Button>);
     const el = screen.getByRole("button", { name: "新建" });
-    expect(el.className).toMatch(/\bh-8\b/);
-    expect(el.className).toMatch(/\btext-xs\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-sm");
   });
 
   it("icon is a square control", () => {
@@ -102,8 +104,7 @@ describe("control density — Button", () => {
       </Button>,
     );
     const el = screen.getByRole("button", { name: "menu" });
-    expect(el.className).toMatch(/\bh-9\b/);
-    expect(el.className).toMatch(/\bw-9\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-icon");
   });
 });
 
@@ -117,8 +118,7 @@ describe("control density — SelectTrigger", () => {
       </Select>,
     );
     const el = screen.getByLabelText("due-filter");
-    expect(el.className).toMatch(/\bh-8\b/);
-    expect(el.className).toMatch(/\btext-xs\b/);
+    expect(el).toHaveClass("basalt-action", "basalt-action-sm");
     expect(el.className).toMatch(/\bbg-basalt-control\b/);
   });
 });
@@ -126,6 +126,6 @@ describe("control density — SelectTrigger", () => {
 describe("control density — Checkbox", () => {
   it("sm is compact", () => {
     render(<Checkbox size="sm" aria-label="cb" />);
-    expect(screen.getByRole("checkbox").className).toMatch(/\bh-3\b/);
+    expect(screen.getByRole("checkbox")).toHaveClass("h-basalt-check-sm", "w-basalt-check-sm");
   });
 });

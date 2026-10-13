@@ -94,7 +94,7 @@ describe("SuggestLinkOrgDialog", () => {
     render(<SuggestLinkOrgDialog vm={vm} />);
     const existing = screen.getAllByRole("button", { name: "文档" })[0];
     expect(existing).toHaveAttribute("aria-pressed", "true");
-    expect(existing?.querySelector("span")).toHaveClass("rounded-full");
+    expect(existing?.querySelector("span")).toHaveClass("rounded-basalt-full");
     const create = screen.getByRole("button", { name: "创建标签 知识管理" });
     expect(create).not.toHaveAttribute("aria-pressed");
     expect(create.querySelector("span")).toHaveClass("border-dashed");

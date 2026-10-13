@@ -35,6 +35,8 @@ test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true
 
 for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: fixed bookmark actions and equal heights`, async ({ page, owner }, info) => {
+    const now = Date.now();
+    await page.clock.setFixedTime(now);
     for (const index of [0, 1, 2])
       await executeD1(
         "INSERT INTO links(user_id,slug,original_url,meta_title,meta_description,screenshot_url,created_at) VALUES(?,?,?,?,?,?,?)",
@@ -49,7 +51,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
           index ? "Short title" : "Long card title with 中文内容 ".repeat(8),
           index ? "Short description" : "Long description ".repeat(40),
           "/logo-80.png",
-          Date.now() - 3 * 86400_000,
+          now - (index === 2 ? 59 * 60_000 : (index === 1 ? 22 : 3) * 86400_000),
         ],
       );
     const [first] = await queryD1<{ id: number }>(
@@ -86,7 +88,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await expect(actions.getByRole("button")).toHaveCount(
         collection === "github" || collection === "x" ? 4 : 3,
       );
-      await expect(card.getByRole("button", { name: "复制收藏时间" })).toHaveText("3天前");
+      await expect(card.getByRole("button", { name: "复制收藏时间" })).toHaveText("59分钟前");
       if (collection === "github" || collection === "x") {
         await expect(actions.getByRole("button").first()).toHaveAccessibleName(
           collection === "github" ? "阅读 README" : "查看 X 全文",
@@ -118,6 +120,21 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       expect(await card.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
       const row = card.locator("[data-bookmark-action-row]");
       expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      const date = card.getByRole("button", { name: "复制收藏时间" });
+      const dateSpacing = await date.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const time = element.querySelector("time")?.getBoundingClientRect();
+        const box = element.getBoundingClientRect();
+        if (!time) throw new Error("Missing saved time");
+        return {
+          left: time.left - box.left,
+          right: box.right - time.right,
+          padding: Number.parseFloat(style.paddingInlineStart),
+        };
+      });
+      expect(dateSpacing.padding).toBeGreaterThanOrEqual(8);
+      expect(dateSpacing.left).toBeGreaterThanOrEqual(8);
+      expect(dateSpacing.right).toBeGreaterThanOrEqual(8);
       const tags = tagged.getByRole("list", { name: "收藏标签" });
       await expect(tags.getByRole("listitem")).toHaveCount(3);
       await expect(tags.getByRole("button")).toHaveCount(0);
@@ -174,6 +191,15 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     await page.getByRole("menuitem", { name: "修改收藏" }).click();
     const editor = page.getByTestId("card-edit-dialog");
     await expect(editor).toHaveAttribute("data-phase", "editing");
+    await editor.evaluate(async (element) => {
+      await Promise.all(element.getAnimations().map((animation) => animation.finished));
+    });
+    expect(await editor.evaluate((element) => getComputedStyle(element).padding)).toBe("0px");
+    const input = editor.getByLabel("目标链接", { exact: true });
+    expect(await input.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
+      34,
+      1,
+    );
     await expect(editor.getByRole("button", { name: "Delete link" })).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(editor).not.toBeAttached();
@@ -213,6 +239,9 @@ for (const collection of ["ideas", "uploads"] as const) {
         name: collection === "ideas" ? "删除想法" : "Delete file",
       });
       await expect(remove).toBeVisible();
+      await menu.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map((animation) => animation.finished));
+      });
       expect(Number((await remove.boundingBox())?.height.toFixed(3))).toBeGreaterThanOrEqual(44);
       await remove.tap();
       const dialog = page.getByRole(collection === "ideas" ? "dialog" : "alertdialog");

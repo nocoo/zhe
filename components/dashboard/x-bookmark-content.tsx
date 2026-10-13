@@ -1,18 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  LayerCard,
-} from "@nocoo/basalt";
+import { Avatar, AvatarFallback, AvatarImage, Button, LayerCard } from "@nocoo/basalt";
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -31,6 +19,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { videoFileSize, videoResolution, type XMedia, type XPost } from "@/cli/src/connector/core";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { cn } from "@/lib/utils";

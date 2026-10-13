@@ -100,7 +100,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="lg"
-        className="overflow-hidden p-0"
+        className="overflow-hidden p-0 sm:p-0"
         aria-describedby={undefined}
         onOpenAutoFocus={() => {
           if (document.activeElement instanceof HTMLElement)

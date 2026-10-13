@@ -31,8 +31,8 @@ describe("CreateIdeaModal density", () => {
         onCreate={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("标题 (可选)").className).toMatch(/\bh-10\b/);
-    expect(screen.getByRole("button", { name: "创建" }).className).toMatch(/\bh-10\b/);
-    expect(screen.getByRole("button", { name: "取消" }).className).toMatch(/\bh-10\b/);
+    expect(screen.getByLabelText("标题 (可选)").className).toMatch(/\bbasalt-action-lg\b/);
+    expect(screen.getByRole("button", { name: "创建" }).className).toMatch(/\bbasalt-action-lg\b/);
+    expect(screen.getByRole("button", { name: "取消" }).className).toMatch(/\bbasalt-action-lg\b/);
   });
 });

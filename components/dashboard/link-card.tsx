@@ -1,17 +1,17 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { BookOpen } from "lucide-react";
+import { memo, useContext, useRef, useState } from "react";
+import { canonicalXPost } from "@/cli/src/connector/core";
+import { BOOKMARK_CARD_CLASS } from "@/components/ui/card-skeleton";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  LayerCard,
-} from "@nocoo/basalt";
-import { BookOpen } from "lucide-react";
-import { memo, useContext, useRef, useState } from "react";
-import { canonicalXPost } from "@/cli/src/connector/core";
-import { BOOKMARK_CARD_CLASS } from "@/components/ui/card-skeleton";
+} from "@/components/ui/dialog";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
@@ -104,7 +104,7 @@ export const LinkCard = memo(function LinkCard({
     <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] overflow-y-auto p-0"
+        className="max-h-[90dvh] overflow-y-auto p-0 sm:p-0"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           detailsTrigger.current?.focus();

@@ -53,11 +53,18 @@
 
 | 档位 | 高度 | 字号 | Button | Input / Select / Checkbox | 何时用 |
 |------|------|------|--------|---------------------------|--------|
-| **lg** | 40px (`h-10`) | `text-sm` / `text-base` | `size="lg"` | `size="lg"` | 表单主操作、Modal 主按钮 |
-| **default** | 36px (`h-9`) | `text-sm` | `size="default"` | `size="default"` | 设置页、API Keys、Backy 等 **表单次要按钮** |
-| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`size="sm"`** | **`size="sm"`** | PageHeader 工具栏、FilterBar、Panel 内联字段 |
+| **lg** | 40px | 16px | `size="lg"` | `size="lg"` | Primary form actions |
+| **default** | 34px | 14px | `size="default"` | `size="default"` | Standard form controls |
+| **toolbar compact** | **28px** | **12px** | **`size="sm"`** | **`size="sm"`** | Compact toolbar/filter controls |
 
-独立图标按钮：`size="icon"`（36×36）。与 32px 筛选框同排的工具栏图标按钮使用 `size="sm" className="w-8 shrink-0 px-0"`，高度仍由原语控制。不要再发明 `xs` / `icon-sm`。
+Basalt 3 owns intrinsic sizing through `basalt-action` roles, line height, padding
+and borders, not the retired `h-8` / `h-9` defaults. These reference heights assume
+normal typography; do not constrain wrapped text actions to fixed heights.
+`size="icon"` is a 34px square. Shared `IconAction` deliberately keeps the existing
+32px square card target (`size-8 p-0`), expanded to 44px on coarse pointers.
+Text actions, including copyable dates, retain horizontal padding; use a negative
+margin for text alignment rather than a zero-padding hover surface. Do not invent
+`xs` / `icon-sm` or override global library sizing tokens.
 
 菜单项统一使用 `components/ui/dropdown-menu` / `context-menu`：最小行高 36px、正文 `text-sm`、图文间距 8px，图标固定 16×16px、1.5px 描边且不收缩。业务菜单直接放 Lucide 图标，不再单独设置尺寸或 `mr-2`；说明性图标使用 `aria-hidden`。卡片内的辅助信息图标使用 14×14px、1.5px 描边。
 
@@ -76,7 +83,7 @@
 <Button size="icon" aria-label="…">…</Button>
 ```
 
-- 同排工具栏控件必须同高（Button `sm` + Input/Select `sm` 都是 32px）。
+- 同排工具栏控件必须同高（Button `sm` + Input/Select `sm` use the same 28px native role）。
 - 需要「伪文本」编辑（如 Todo 标题）时：静止可透明边，但 **仍用 `Input size="sm"`**，用 `className` 覆盖表面，不要裸 `<input>`。
 
 ---
@@ -85,10 +92,10 @@
 
 | 组件 | lg | default | toolbar compact | 备注 |
 |------|----|---------|-----------------|------|
-| `Button` | `h-10` | `h-9` | **`sm` → h-8 text-xs** | `icon` → 36×36 |
-| `Input` | `h-10` | `h-9` | **`sm` → h-8 text-xs** | 无 HTML `size` 属性；用 prop `size` |
-| `SelectTrigger` | `h-10` | `h-9` | **`sm` → h-8** | |
-| `Checkbox` | — | `h-4` | **`sm` → h-3** | **禁止** 原生 `<input type="checkbox">` |
+| `Button` | 40px | 34px | **`sm` → 28px** | `icon` → 34×34 |
+| `Input` | 40px | 34px | **`sm` → 28px** | 无 HTML `size` 属性；用 prop `size` |
+| `SelectTrigger` | 40px | 34px | **`sm` → 28px** | |
+| `Checkbox` | — | 16px | **`sm` → 12px** | **禁止** 原生 `<input type="checkbox">` |
 | `Textarea` | — | Basalt `InputArea` | `size="sm"` | |
 | `PageHeader` | — | Basalt | actions 槽位：Button `sm` / 字段 `sm` | |
 
@@ -148,7 +155,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 | 工具栏 / meta / 表单标签 | `text-xs` | 与 Button `sm` / 字段 `sm` 一致 |
 | Chip 内文 | `text-[11px]` 或 `text-xs` | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
 
-新建、编辑和 AI 整理表单的标签使用 `block text-xs font-medium leading-4`，与字段间距 6px；同行标签及控件顶端对齐。弹窗字段默认 36px / 14px，主操作区按钮同排同高。AI 整理、新建与编辑的操作按钮使用 40px。弹窗高度不超过视口的 90%，内容溢出时在弹窗内滚动。
+新建、编辑和 AI 整理表单的标签使用 `block text-xs font-medium leading-4`，与字段间距 6px；同行标签及控件顶端对齐。弹窗字段默认 34px / 14px，主操作区按钮同排同高。AI 整理、新建与编辑的操作按钮使用 40px。弹窗高度不超过视口的 90%，内容溢出时在弹窗内滚动。
 
 ---
 
@@ -157,7 +164,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 做 Dashboard UI 前自检：
 
 1. [ ] 工具栏 / 筛选条：Button 是否 `size="sm"`（或 `icon`），字段是否 `size="sm"`？
-2. [ ] 设置/表单页次要按钮是否仍用 `Button size="default"`（h-9），而不是被当成工具栏？
+2. [ ] 设置/表单页次要按钮是否仍用 `Button size="default"` (native 34px)，而不是被当成工具栏？
 3. [ ] 有无 `rounded-lg` / 手写 `h-7` / 原生 checkbox？
 4. [ ] 同行控件高度是否一致、`items-center`？
 5. [ ] 是否复用 `PageHeader` 而不是手写一套 header？
@@ -255,3 +262,18 @@ navigation and modal/deletion motion on isolated local resources.
 The dashboard shell owns one 56px bottom-right creation FAB with a Lucide Plus, accessible action label and tooltip. Page actions register through `CreateActionProvider`: ideas, todos, tags and uploads keep their existing workflows; other routes open the shared short-link dialog. Page toolbars and empty link/idea states no longer duplicate creation buttons. The shell reserves bottom content space and the FAB respects safe-area insets and moves above floating selection controls. Dialogs use a short scale/fade entrance with reduced-motion support. Opening a short-link dialog focuses its URL field; closing creation dialogs returns focus to the FAB.
 
 Selection overlays focus their checkbox with `preventScroll` when the card body is activated, so tall cards stay stationary even when the checkbox is above the viewport. Escape leaves selection and clears choices; open menus/dialogs retain their own Escape behavior, and active deletion cannot be interrupted. Exiting restores the selection-entry focus without scrolling.
+
+### Basalt 3 adoption
+
+Pinned package: `@nocoo/basalt@3.0.0`; migration guidance checked against its
+installed `ai/COMPATIBILITY.md` and Basalt source revision `874b025`.
+The package owns native control roles and island/card insets. Zhe retains its
+32px/44px card icon targets, bright dialog surfaces and 18px/14px modal typography.
+Zero-padding reader/editor/search/enrichment panels also clear `sm:` padding so
+Basalt 3 desktop insets do not double their existing inner spacing.
+There are no application uses of the breaking Loader SVG API or IconPicker names.
+Unit density contracts assert public sizing roles; browser card acceptance checks
+actual padding, control geometry, scrolling, focus restoration and equal heights.
+Action tooltips have no exit animation: a closed tooltip must not remain above a
+new dialog in Radix's dismissal stack and consume its first Escape. Menu size
+assertions wait for the package's opening scale animation to finish.

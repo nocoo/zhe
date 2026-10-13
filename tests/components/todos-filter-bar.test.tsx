@@ -47,9 +47,9 @@ describe("TodosFilterBar", () => {
   it("uses compact control density on search and filter triggers", () => {
     render(<TodosFilterBar {...baseProps} />);
     const search = screen.getByLabelText("Search todos");
-    expect(search.className).toMatch(/\bh-8\b/);
+    expect(search.className).toMatch(/\bbasalt-action-sm\b/);
     const due = screen.getByLabelText("Due date filter");
-    expect(due.className).toMatch(/\bh-8\b/);
+    expect(due.className).toMatch(/\bbasalt-action-sm\b/);
     expect(due.className).toMatch(/\brounded-basalt-md\b/);
     // No ad-hoc rounded-lg — control radius is the widget token only.
     expect(search.className).not.toMatch(/\brounded-lg\b/);

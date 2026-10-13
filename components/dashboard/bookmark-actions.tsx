@@ -102,7 +102,7 @@ export function BookmarkActions({
   return (
     <div
       data-bookmark-actions
-      className="flex shrink-0 items-center gap-1 text-muted-foreground [&_svg]:stroke-[1.5] [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11"
+      className="flex shrink-0 items-center gap-1 text-muted-foreground [&_svg]:stroke-[1.5] [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11"
     >
       {actions
         .filter((action) => action.placement === "toolbar")

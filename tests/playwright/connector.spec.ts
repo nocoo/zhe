@@ -666,7 +666,9 @@ for (const viewport of [
         const heading = await islandHeading(page, "X 收藏").boundingBox();
         const filter = await page.getByRole("combobox", { name: "内容类型" }).boundingBox();
         assert(heading && filter);
-        expect(Math.abs(heading.y - filter.y)).toBeLessThan(2);
+        expect(
+          Math.abs(heading.y + heading.height / 2 - filter.y - filter.height / 2),
+        ).toBeLessThan(2);
         expect(filter.x).toBeGreaterThan(heading.x);
       }
       const feed = page.getByTestId("x-feed");

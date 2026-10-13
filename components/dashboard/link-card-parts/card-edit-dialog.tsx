@@ -230,7 +230,7 @@ export function CardEditDialog({
       <DialogContent
         ref={mountPanel}
         size="lg"
-        className={animated ? "link-card-editor" : "max-h-[90dvh] overflow-y-auto p-0"}
+        className={animated ? "link-card-editor" : "max-h-[90dvh] overflow-y-auto p-0 sm:p-0"}
         data-testid="card-edit-dialog"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => {

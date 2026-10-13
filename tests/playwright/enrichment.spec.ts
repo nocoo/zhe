@@ -212,7 +212,7 @@ for (const width of [1440, 390]) {
     await page
       .getByTestId(`link-card`)
       .filter({ hasText: "X failed demo" })
-      .getByRole("button", { name: "查看帖子详情" })
+      .getByRole("button", { name: "查看 X 全文" })
       .click();
     const postDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });
     await expect(postDialog.getByText("内容暂未补全", { exact: true })).toBeVisible();

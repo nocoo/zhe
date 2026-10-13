@@ -323,3 +323,15 @@ that padding, and verify the hover surface as well as the resting layout.
 The new scrolling-tag browser fixture also omitted the required `tags.color`
 column and failed before exercising the UI. Read the real schema or reuse an
 existing fixture before starting an isolated browser build.
+
+The subsequent Basalt 3 upgrade adds `sm:p-basalt-card-lg` to dialog panels.
+Clearing only `p-0` kept doubled desktop insets in composed editors/readers.
+Clear both base and breakpoint padding where an inner section owns spacing, and
+assert the computed panel padding and field height in browser acceptance.
+
+Basalt 3 also animates closed tooltips for 150ms. Restoring an action trigger's
+focus before opening a dialog can leave that exiting tooltip as Radix's highest
+dismissable layer, consuming the first Escape. A paused opening-flight probe
+reproduced the real interaction failure with a closed tooltip still in the DOM.
+Action tooltips now unmount without an exit animation; preserve dialog Escape
+tests during the opening flight rather than hiding the regression with a delay.
