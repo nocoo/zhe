@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.1] - 2026-10-13
+
+### Changed
+- Verify hidden x metadata across sources
+- Isolate bookmark viewport scenarios
+
+### Fixed
+- Restore x bookmark masonry and media
+
 ## [v2.2.0] - 2026-10-13
 
 ### Added
