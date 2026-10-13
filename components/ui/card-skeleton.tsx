@@ -12,7 +12,13 @@ function Bone({ className }: { className: string }) {
   return <div className={cn("shrink-0 rounded bg-muted-foreground/10", className)} />;
 }
 
-function BookmarkFooterBones({ compact = false }: { compact?: boolean }) {
+function BookmarkFooterBones({
+  compact = false,
+  reader = false,
+}: {
+  compact?: boolean;
+  reader?: boolean;
+}) {
   return (
     <div
       className={cn(
@@ -21,7 +27,7 @@ function BookmarkFooterBones({ compact = false }: { compact?: boolean }) {
       )}
     >
       <div className="flex h-10 flex-1 items-center gap-2 px-3">
-        <Bone className="mr-auto h-3 w-16" />
+        <Bone className="h-3 w-16" />
         <Bone className="h-4 w-16" />
       </div>
       <div
@@ -30,7 +36,8 @@ function BookmarkFooterBones({ compact = false }: { compact?: boolean }) {
           compact && "sm:border-t-0",
         )}
       >
-        <Bone className="mr-auto h-3 w-24" />
+        <Bone className="mr-auto h-3 w-12" />
+        {reader && <Bone className="size-8 [@media(pointer:coarse)]:size-11" />}
         {[0, 1, 2].map((id) => (
           <Bone key={id} className="size-8 [@media(pointer:coarse)]:size-11" />
         ))}
@@ -149,7 +156,7 @@ function GridCardBones({ variant }: { variant: GridVariant }) {
         <Bone className="min-h-0 w-full flex-1" />
         <Bone className="h-10 w-full" />
       </div>
-      <BookmarkFooterBones />
+      <BookmarkFooterBones reader={variant === "github" || variant === "x"} />
     </>
   );
 }

@@ -8,7 +8,6 @@ import {
   type ClickTrendPoint,
   deriveWorkerHealth,
   formatClickCount,
-  formatRelativeTime,
   formatStorageSize,
   type OverviewStats,
   type TopLinkEntry,
@@ -252,34 +251,6 @@ describe("overview model", () => {
         kvKeyCount: 50,
       };
       expect(status.kvKeyCount).toBe(50);
-    });
-  });
-
-  // ---- formatRelativeTime ----
-  describe("formatRelativeTime", () => {
-    it('returns "刚刚" for timestamps less than 60 seconds ago', () => {
-      const now = new Date();
-      expect(formatRelativeTime(now.toISOString())).toBe("刚刚");
-    });
-
-    it('returns "刚刚" for future timestamps', () => {
-      const future = new Date(Date.now() + 60000);
-      expect(formatRelativeTime(future.toISOString())).toBe("刚刚");
-    });
-
-    it("returns minutes for timestamps 1-59 minutes ago", () => {
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-      expect(formatRelativeTime(fiveMinAgo.toISOString())).toBe("5 分钟前");
-    });
-
-    it("returns hours for timestamps 1-23 hours ago", () => {
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      expect(formatRelativeTime(twoHoursAgo.toISOString())).toBe("2 小时前");
-    });
-
-    it("returns days for timestamps 24+ hours ago", () => {
-      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-      expect(formatRelativeTime(threeDaysAgo.toISOString())).toBe("3 天前");
     });
   });
 });

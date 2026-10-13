@@ -8,13 +8,18 @@ import {
   DialogTitle,
   LayerCard,
 } from "@nocoo/basalt";
+import { BookOpen } from "lucide-react";
 import { memo, useContext, useRef, useState } from "react";
 import { canonicalXPost } from "@/cli/src/connector/core";
 import { BOOKMARK_CARD_CLASS } from "@/components/ui/card-skeleton";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { extractHostname } from "@/models/links";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
-import { getXBookmarkForLink, getXPostPresentation } from "@/models/x-bookmarks";
+import {
+  getXBookmarkForLink,
+  getXPostPresentation,
+  X_BOOKMARK_STATE_LABELS,
+} from "@/models/x-bookmarks";
 import { useBookmarkCardViewModel } from "@/viewmodels/useBookmarkCardViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";
 import { BookmarkCardDialogs } from "./bookmark-card-dialogs";
@@ -155,7 +160,21 @@ export const LinkCard = memo(function LinkCard({
           link={link}
           folder={folderName}
           tags={cardTags}
-          actions={vm.actions}
+          actions={
+            isXFeed
+              ? [
+                  {
+                    id: "read-post",
+                    label: "查看 X 全文",
+                    icon: BookOpen,
+                    placement: "toolbar",
+                    description: X_BOOKMARK_STATE_LABELS[xBookmark?.state ?? "pending"],
+                    run: openDetails,
+                  },
+                  ...vm.actions,
+                ]
+              : vm.actions
+          }
           triggerRef={vm.menuTrigger}
         />
       </LayerCard>

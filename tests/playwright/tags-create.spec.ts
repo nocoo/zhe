@@ -32,7 +32,7 @@ test.describe("Tag UI - create and display", () => {
     await saveAndCloseEdit(card);
 
     await expect(
-      card.locator("[data-bookmark-classification]").getByRole("button", { name: "查看全部标签" }),
+      card.locator("[data-bookmark-classification]").getByRole("list", { name: "收藏标签" }),
     ).toHaveText(tagName);
   });
 
@@ -55,7 +55,7 @@ test.describe("Tag UI - create and display", () => {
     await saveAndCloseEdit(card);
 
     await expect(
-      card.locator("[data-bookmark-classification]").getByRole("button", { name: "查看全部标签" }),
+      card.locator("[data-bookmark-classification]").getByRole("list", { name: "收藏标签" }),
     ).toHaveCount(0);
   });
 
@@ -70,13 +70,8 @@ test.describe("Tag UI - create and display", () => {
 
     const tags = card
       .locator("[data-bookmark-classification]")
-      .getByRole("button", { name: "查看全部标签" });
-    await expect(tags).toContainText("+1");
-    await tags.click();
-    const popover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
-    await expect(popover.getByText(tag1, { exact: true })).toBeVisible();
-    await expect(popover.getByText(tag2, { exact: true })).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(tags).toBeFocused();
+      .getByRole("list", { name: "收藏标签" });
+    await expect(tags.getByRole("listitem")).toHaveText([tag1, tag2]);
+    await expect(tags.getByRole("button")).toHaveCount(0);
   });
 });

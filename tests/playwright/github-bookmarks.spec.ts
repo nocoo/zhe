@@ -242,9 +242,7 @@ for (const width of [1365, 320]) {
       await expect(card.getByTitle("默认分支 main 的 commit 总数 · 321")).toContainText("321");
       await expect(card.getByText("开发收藏", { exact: true })).toBeVisible();
       await expect(
-        card
-          .locator("[data-bookmark-classification]")
-          .getByRole("button", { name: "查看全部标签" }),
+        card.locator("[data-bookmark-classification]").getByRole("list", { name: "收藏标签" }),
       ).toHaveText("待读");
       await expect(cards.getByText(analysis.summary, { exact: true })).toHaveCount(1);
       await expect(cards.getByText("全文归档 · 统一搜索", { exact: true })).toHaveCount(0);
@@ -362,14 +360,11 @@ for (const width of [1365, 320]) {
       await expect(labels).toContainText("+9");
       const assignedTags = longCard
         .locator("[data-bookmark-classification]")
-        .getByRole("button", { name: "查看全部标签" });
-      await expect(assignedTags).toContainText("+4");
-      await assignedTags.click();
-      const tagPopover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
+        .getByRole("list", { name: "收藏标签" });
+      await expect(assignedTags.getByRole("listitem")).toHaveCount(5);
       for (let index = 1; index <= 5; index++)
-        await expect(tagPopover.getByText(`收藏标签 ${index}`, { exact: true })).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(assignedTags).toBeFocused();
+        await expect(assignedTags.getByText(`收藏标签 ${index}`, { exact: true })).toBeAttached();
+      await expect(assignedTags.getByRole("button")).toHaveCount(0);
       await longCard.getByRole("button", { name: "阅读 README" }).click();
       const fullRepository = page.getByRole("dialog");
       await expect(fullRepository.getByTitle(/^GitHub 仓库标签：/)).toHaveCount(12);
@@ -382,7 +377,10 @@ for (const width of [1365, 320]) {
       const readBox = await readButton.boundingBox();
       const moreBox = await moreButton.boundingBox();
       assert(readBox && moreBox);
-      expect(moreBox.y).toBeGreaterThan(readBox.y + readBox.height);
+      expect(moreBox.y).toBeCloseTo(readBox.y, 1);
+      const organizeBox = await footer.getByRole("button", { name: "AI 整理" }).boundingBox();
+      assert(organizeBox);
+      expect(readBox.x + readBox.width).toBeLessThanOrEqual(organizeBox.x);
       const cardHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
       await expect(
         card
@@ -439,7 +437,7 @@ for (const width of [1365, 320]) {
         page
           .getByTestId("link-card")
           .locator("[data-bookmark-classification]")
-          .getByRole("button", { name: "查看全部标签" }),
+          .getByRole("list", { name: "收藏标签" }),
       ).toHaveText("待读");
       await page.getByRole("button", { name: "标签", exact: true }).click();
       await page.getByRole("option", { name: "待读", exact: true }).click();

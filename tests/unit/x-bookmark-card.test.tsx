@@ -250,7 +250,17 @@ describe("X bookmark presentation", () => {
         expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent(
           "Keep this saved note after enrichment",
         );
-      const trigger = screen.getByRole("button", { name: "查看帖子详情" });
+      const toolbar = within(document.querySelector("[data-bookmark-actions]") as HTMLElement);
+      expect(
+        toolbar.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+      ).toEqual(
+        viewMode === "feed"
+          ? ["查看 X 全文", "AI 整理", "复制链接", "更多收藏操作"]
+          : ["AI 整理", "复制链接", "更多收藏操作"],
+      );
+      const trigger = screen.getByRole("button", {
+        name: viewMode === "feed" ? "查看 X 全文" : "查看帖子详情",
+      });
       if (viewMode === "feed") expect(trigger).toHaveAccessibleDescription("已补全");
       await user.click(trigger);
       const dialog = await screen.findByRole("dialog", { name: "X 帖子" });
@@ -461,7 +471,7 @@ describe("X bookmark presentation", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(preview).toHaveFocus();
     expect(screen.queryByLabelText("已归档的 X 视频")).not.toBeInTheDocument();
-    await user.click(within(card).getByRole("button", { name: "查看帖子详情" }));
+    await user.click(within(card).getByRole("button", { name: "查看 X 全文" }));
     expect(screen.queryByLabelText("已归档的 X 视频")).not.toBeInTheDocument();
     expect(
       within(screen.getByRole("dialog")).getByRole("button", { name: "播放视频 1" }),

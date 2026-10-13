@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+
+import { toast } from "@nocoo/basalt/components/toast";
 import {
   act,
   fireEvent,
@@ -15,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarkActions } from "@/components/dashboard/bookmark-actions";
 import { BookmarkCardDialogs } from "@/components/dashboard/bookmark-card-dialogs";
 import { BookmarkCardFooter } from "@/components/dashboard/bookmark-card-footer";
+import { copyToClipboard } from "@/lib/utils";
 import { useBookmarkCardViewModel } from "@/viewmodels/useBookmarkCardViewModel";
 import { makeLink, makeTag } from "../fixtures";
 
@@ -39,6 +42,11 @@ const { vm, openEnrichment, deleted, destroy } = vi.hoisted(() => ({
   destroy: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/contexts/enrichment", () => ({ useOpenEnrichment: () => openEnrichment }));
+vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/lib/utils", async (original) => ({
+  ...(await original<typeof import("@/lib/utils")>()),
+  copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
 vi.mock("@/lib/motion", () => ({ destroyCard: destroy }));
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
   useLinkCardViewModel: (_link: unknown, _site: unknown, onDelete: () => Promise<void>) => {
@@ -178,13 +186,41 @@ describe("unified bookmark action contract", () => {
         .map((el) => el.getAttribute("aria-label")),
     ).toEqual(["AI 整理", "复制链接", "更多收藏操作"]);
     expect(screen.queryByRole("button", { name: "修改收藏" })).not.toBeInTheDocument();
-    expect(document.querySelector("time")?.textContent).toContain("2026-10-13");
-    expect(document.querySelector("time")?.getAttribute("title")).toContain("收藏于");
-    await user.click(screen.getByRole("button", { name: "查看全部标签" }));
-    expect(screen.getByText("Second")).toBeVisible();
-    await user.keyboard("{Escape}");
+    const tags = screen.getByRole("list", { name: "收藏标签" });
+    expect(
+      within(tags)
+        .getAllByRole("listitem")
+        .map((tag) => tag.textContent),
+    ).toEqual(["First", "Second"]);
+    expect(within(tags).queryByRole("button")).not.toBeInTheDocument();
+    expect(tags).toHaveClass("flex-1", "overflow-x-auto", "whitespace-nowrap");
+    expect(tags).toHaveAttribute("tabindex", "0");
     await user.click(screen.getByRole("button", { name: "AI 整理" }));
     expect(onSuggest).toHaveBeenCalledOnce();
+  });
+
+  it("shows relative saved time, exposes the full zoned timestamp and copies it by keyboard", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-10-16T02:00:00Z").getTime());
+    const user = userEvent.setup();
+    render(<Harness />);
+    const button = screen.getByRole("button", { name: "复制收藏时间" });
+    expect(button).toHaveClass("px-2");
+    expect(button).toHaveTextContent("3天前");
+    expect(button.querySelector("time")).toHaveAttribute("datetime", "2026-10-13T02:00:00.000Z");
+    await user.hover(button);
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip).toHaveTextContent(
+      /收藏于 2026-10-13 \d{2}:00:00 GMT(?:[+-]\d{2}:\d{2})? · 点击复制/,
+    );
+    const timestamp = tooltip.textContent?.replace("收藏于 ", "").replace(" · 点击复制", "");
+    button.focus();
+    await user.keyboard("{Enter}");
+    expect(copyToClipboard).toHaveBeenCalledWith(timestamp);
+    expect(toast.success).toHaveBeenCalledWith("已复制收藏时间");
+    vi.mocked(copyToClipboard).mockResolvedValueOnce(false);
+    await user.click(button);
+    expect(toast.error).toHaveBeenCalledWith("复制失败，请重试");
+    vi.restoreAllMocks();
   });
 
   it("groups both copy variants and restores keyboard focus after selection", async () => {

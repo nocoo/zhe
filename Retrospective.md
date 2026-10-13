@@ -313,3 +313,13 @@ More button even at maximum scroll. Restore the intended padding at the desktop
 breakpoint and verify hit testing plus an actual click at the end of the collection.
 For menu-launched editors, test early Escape after the opening flight starts;
 mere DOM attachment can precede the dialog's keyboard listener registration.
+
+## 2026-10-13: Preserve padding when metadata becomes interactive
+
+The saved date became a ghost button, but retaining `px-0` made its hover surface
+hug the text. A user screenshot exposed the missing inset. Interactive metadata
+needs real control padding; align the text with a margin rather than removing
+that padding, and verify the hover surface as well as the resting layout.
+The new scrolling-tag browser fixture also omitted the required `tags.color`
+column and failed before exercising the UI. Read the real schema or reuse an
+existing fixture before starting an isolated browser build.

@@ -42,7 +42,7 @@ describe("bounded bookmark content", () => {
       />,
     );
     expect(screen.getByText("未分类")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "查看全部标签" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "收藏标签" })).not.toBeInTheDocument();
     rerender(
       <BookmarkCardFooter
         link={link}
@@ -52,7 +52,10 @@ describe("bounded bookmark content", () => {
         triggerRef={createRef()}
       />,
     );
-    expect(screen.getByRole("button", { name: "查看全部标签" })).toBeVisible();
+    const tags = screen.getByRole("list", { name: "收藏标签" });
+    expect(tags).toHaveTextContent("long-tag".repeat(40));
+    expect(tags).toHaveClass("min-w-0", "overflow-x-auto");
+    expect(screen.getByRole("listitem")).toHaveClass("shrink-0");
     expect(document.querySelector("[data-bookmark-classification]")).toHaveClass("h-10");
   });
 
@@ -68,6 +71,7 @@ describe("bounded bookmark content", () => {
       />,
     );
     expect(screen.getByText("尚未补全")).toBeVisible();
+    expect(screen.queryByText("查看全文")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "查看帖子正文" }));
     expect(open).toHaveBeenCalledOnce();
   });

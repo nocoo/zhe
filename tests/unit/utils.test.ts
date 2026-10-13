@@ -1,6 +1,26 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
-import { copyToClipboard, formatNumber } from "@/lib/utils";
+import { copyToClipboard, formatNumber, formatRelativeTime } from "@/lib/utils";
+
+describe("formatRelativeTime", () => {
+  it.each([
+    [-60, "刚刚"],
+    [0, "刚刚"],
+    [59, "刚刚"],
+    [60, "1分钟前"],
+    [3599, "59分钟前"],
+    [3600, "1小时前"],
+    [86399, "23小时前"],
+    [86400, "1天前"],
+    [259200, "3天前"],
+    [8640000, "100天前"],
+  ])("formats %s seconds ago as %s", (seconds, label) => {
+    const now = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    expect(formatRelativeTime(new Date(now - seconds * 1000).toISOString())).toBe(label);
+    vi.restoreAllMocks();
+  });
+});
 
 describe("formatNumber", () => {
   it("formats small numbers as-is", () => {

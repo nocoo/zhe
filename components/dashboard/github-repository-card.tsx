@@ -372,23 +372,22 @@ export function GitHubRepositoryCard({
             state={state}
             errorText={errorText}
           />
-          <Button
-            size="sm"
-            variant="ghost"
-            className="w-fit shrink-0 px-0"
-            aria-label="阅读 README"
-            disabled={!repository}
-            onClick={() => setReading(true)}
-          >
-            <BookOpen strokeWidth={1.5} aria-hidden />
-            阅读 README
-          </Button>
         </div>
         <BookmarkCardFooter
           link={link}
           folder={folder}
           tags={assignedTags}
-          actions={vm.actions}
+          actions={[
+            {
+              id: "read-readme",
+              label: "阅读 README",
+              icon: BookOpen,
+              placement: "toolbar",
+              disabled: !repository,
+              run: () => setReading(true),
+            },
+            ...vm.actions,
+          ]}
           triggerRef={vm.menuTrigger}
         />
       </LayerCard>

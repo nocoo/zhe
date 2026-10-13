@@ -2,8 +2,8 @@
 
 import { SectionRule } from "@nocoo/basalt/components/section-rule";
 import { Clock, Database } from "lucide-react";
+import { formatRelativeTime } from "@/lib/utils";
 import type { WorkerHealthStatus } from "@/models/overview";
-import { formatRelativeTime } from "@/models/overview";
 import { StatCard, StatSkeleton } from "./charts";
 
 export function KVCacheSection({

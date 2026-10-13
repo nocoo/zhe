@@ -231,7 +231,7 @@ describe("LinkCard", () => {
     expect(screen.getByTestId("x-bookmark-preview")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent("Saved note");
     expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
-    await userEvent.setup().click(screen.getByRole("button", { name: "查看帖子详情" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "查看 X 全文" }));
     expect(await screen.findByRole("dialog", { name: "X 帖子" })).toBeInTheDocument();
   });
 });

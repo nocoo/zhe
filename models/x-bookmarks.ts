@@ -7,6 +7,15 @@ import {
 import type { XBookmark } from "@/lib/connector/jobs";
 import type { Link } from "./types";
 
+export const X_BOOKMARK_STATE_LABELS = {
+  pending: "等待补全",
+  running: "正在补全",
+  complete: "已补全",
+  partial: "正文已保存，媒体待补全",
+  failed: "补全暂未完成",
+  unavailable: "原帖暂不可访问",
+};
+
 export const X_CONTENT_TYPES = [
   { value: "all", label: "全部" },
   { value: "video", label: "视频" },

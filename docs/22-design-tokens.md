@@ -205,7 +205,8 @@ assembled in `useBookmarkCardViewModel`; `BookmarkActions` only renders descript
 Do not add per-source menu JSX or width-dependent action placement.
 
 The bottom-right toolbar always contains AI organization, Copy and More, in that
-order. It is visible without hover at every width. Copy opens a menu for original
+order. Specialized GitHub/X cards prepend their README/full-post reader using the
+same action descriptor. It is visible without hover at every width. Copy opens a menu for original
 and short URLs. More contains Edit, Data collection, Visit statistics, Visibility,
 and Delete, with a separator before Delete. Desktop targets are 32px; coarse-pointer
 targets are at least 44px. Disabled AI remains in its slot with an explanation.
@@ -222,15 +223,18 @@ an expanding card section. Edit flight/save behavior remains intact; whole-bookm
 deletion no longer lives inside the editor.
 
 `BookmarkCardFooter` owns classification, saved date and management actions.
-Folder names and the first saved tag truncate on one line; the tag popover shows
-all full names without changing card height. Extra tags display as +N. Source topics
-remain distinct from saved tags. Dates use YYYY-MM-DD and always mean saved time;
-full saved timestamps appear in the editor and date tooltip. Source publication,
+Folder names truncate on one line. Saved tags sit directly to the right in a
+read-only, keyboard-focusable horizontal scrolling list using all remaining space;
+full tag names never wrap and are not wrapped in a button/popover. Source topics
+remain distinct from saved tags. Dates use relative Chinese time and always mean
+saved time. Hover/focus shows the full local timestamp with seconds and UTC offset;
+click/Enter copies that same timestamp, with success/failure feedback. Source publication,
 commit and capture times remain in their respective detail views.
 
-Source and short links are real anchors in the left content area. In-app reading
-(README, full X post, bookmark text, media) stays in the content area, not the
-management toolbar. Previews have bounded line/media budgets; full text and
+Source and short links are real anchors in the left content area. Specialized
+GitHub/X readers sit immediately before AI organization in the bottom toolbar,
+not on a separate content row. Ordinary list/grid cards retain their content
+reading affordances. Previews have bounded line/media budgets; full text and
 attachments remain accessible in dialogs. Long titles, tag counts, vertical video,
 missing data and loading states must not move the footer or grow individual cards.
 Do not truncate interactive controls or nest buttons/anchors inside each other.

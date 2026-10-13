@@ -12,15 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
   LayerCard,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@nocoo/basalt";
 import {
   ArrowUpRight,
   BadgeCheck,
-  BookOpen,
   Clock3,
   Download,
   Eye,
@@ -53,56 +48,6 @@ import { useGifPlayback } from "@/viewmodels/useGifPlayback";
 import { useMediaDownload } from "@/viewmodels/useMediaDownload";
 import { IconAction } from "./icon-action";
 import { CardText, CardTitleText } from "./link-card-parts/curated-text";
-
-const statusLabels = {
-  pending: "等待补全",
-  running: "正在补全",
-  complete: "已补全",
-  partial: "正文已保存，媒体待补全",
-  failed: "补全暂未完成",
-  unavailable: "原帖暂不可访问",
-};
-
-export function XBookmarkDetailsButton({
-  bookmark,
-  onClick,
-  className,
-}: {
-  bookmark: XBookmark | undefined;
-  onClick: () => void;
-  className?: string;
-}) {
-  const state = bookmark?.state ?? "pending";
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onClick}
-            aria-label="查看帖子详情"
-            aria-description={statusLabels[state]}
-            className={cn("relative text-muted-foreground hover:text-foreground", className)}
-          >
-            <BookOpen strokeWidth={1.5} aria-hidden />
-            {state !== "complete" && (
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute right-1.5 top-1.5 size-1.5 rounded-full bg-muted-foreground",
-                  state === "running" && "bg-primary animate-pulse motion-reduce:animate-none",
-                  ["partial", "failed", "unavailable"].includes(state) && "bg-warning",
-                )}
-              />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>查看帖子详情 · {statusLabels[state]}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 export function XSourceBadge({
   type = "text",

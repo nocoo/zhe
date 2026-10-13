@@ -7,7 +7,7 @@ import type { XBookmark } from "@/lib/connector/jobs";
 import type { Link } from "@/models/types";
 import { getXContentTypes, getXPostPresentation } from "@/models/x-bookmarks";
 import { SourceLinks } from "./link-card-parts/shared-rows";
-import { XBookmarkDetailsButton, XSourceBadge } from "./x-bookmark-content";
+import { XSourceBadge } from "./x-bookmark-content";
 
 export function XBookmarkPreview({
   link,
@@ -93,10 +93,6 @@ export function XBookmarkPreview({
           )}
         </Button>
       )}
-      <div className="flex h-8 shrink-0 items-center gap-1 text-xs text-muted-foreground">
-        <XBookmarkDetailsButton bookmark={bookmark} onClick={onOpenDetails} />
-        <span>查看全文</span>
-      </div>
     </div>
   );
 }

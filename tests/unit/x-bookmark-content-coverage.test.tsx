@@ -1,11 +1,10 @@
 // @vitest-environment happy-dom
 import { LayerCard } from "@nocoo/basalt";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { normalizeXPost } from "@/cli/src/connector/core";
 import {
   XBookmarkContent,
-  XBookmarkDetailsButton,
   XBookmarkPending,
   XSourceBadge,
 } from "@/components/dashboard/x-bookmark-content";
@@ -67,44 +66,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("XBookmarkDetailsButton & XSourceBadge", () => {
-  it.each([
-    ["complete", "已补全", false],
-    ["running", "正在补全", true],
-    ["partial", "正文已保存，媒体待补全", true],
-    ["failed", "补全暂未完成", true],
-    ["unavailable", "原帖暂不可访问", true],
-    ["pending", "等待补全", true],
-  ] as const)("renders details button state=%s with description=%s", (state, desc, hasDot) => {
-    const onClick = vi.fn();
-    const { container } = render(
-      <XBookmarkDetailsButton
-        bookmark={{ ...bookmark, state }}
-        onClick={onClick}
-        className="test-class"
-      />,
-    );
-    const btn = screen.getByRole("button", { name: "查看帖子详情" });
-    expect(btn).toHaveAccessibleDescription(desc);
-    expect(btn).toHaveClass("test-class");
-    fireEvent.click(btn);
-    expect(onClick).toHaveBeenCalledOnce();
-    const dot = container.querySelector("span[aria-hidden]");
-    if (hasDot) {
-      expect(dot).toBeInTheDocument();
-      if (state === "running") expect(dot).toHaveClass("bg-primary");
-      if (["partial", "failed", "unavailable"].includes(state))
-        expect(dot).toHaveClass("bg-warning");
-    } else {
-      expect(dot).toBeNull();
-    }
-  });
-
-  it("handles undefined bookmark in details button defaulting to pending", () => {
-    render(<XBookmarkDetailsButton bookmark={undefined} onClick={vi.fn()} />);
-    expect(screen.getByRole("button")).toHaveAccessibleDescription("等待补全");
-  });
-
+describe("XSourceBadge", () => {
   it("renders XSourceBadge in both compact and full mode for each content type", () => {
     const { rerender } = render(<XSourceBadge type="text" compact={false} />);
     expect(screen.getByTitle("来源：X")).toBeInTheDocument();

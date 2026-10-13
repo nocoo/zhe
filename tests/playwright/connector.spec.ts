@@ -674,7 +674,7 @@ for (const viewport of [
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
       await expect(feedCard.getByTestId("x-bookmark-preview")).toBeVisible();
       await expect(
-        feedCard.getByRole("button", { name: "查看帖子详情", exact: true }),
+        feedCard.getByRole("button", { name: "查看 X 全文", exact: true }),
       ).toHaveAccessibleDescription(/已补全/);
       await expect(feedCard.getByTestId("x-bookmark-content")).toHaveCount(0);
       const footer = feedCard.locator("[data-bookmark-footer]");
@@ -687,15 +687,13 @@ for (const viewport of [
       await expect(
         footer.locator("[data-bookmark-classification]").getByTitle(designName, { exact: true }),
       ).toBeVisible();
-      const tagButton = footer.getByRole("button", { name: "查看全部标签" });
-      await expect(tagButton).toContainText("+1");
-      await tagButton.click();
-      const tagsPopover = page.getByRole("dialog").filter({ hasText: "收藏标签" });
-      await expect(tagsPopover.getByText("Design systems", { exact: true })).toBeVisible();
-      await expect(tagsPopover.getByText("Interaction references", { exact: true })).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(tagButton).toBeFocused();
-      await feedCard.getByRole("button", { name: "查看帖子详情" }).click();
+      const savedTags = footer.getByRole("list", { name: "收藏标签" });
+      await expect(savedTags.getByRole("listitem")).toHaveText([
+        "Design systems",
+        "Interaction references",
+      ]);
+      await expect(savedTags.getByRole("button")).toHaveCount(0);
+      await feedCard.getByRole("button", { name: "查看 X 全文" }).click();
       const archiveInfo = post.getByTestId("x-video-archive-info");
       await expect(archiveInfo).toContainText(videoResolution(mediaSize.width, mediaSize.height));
       await expect(archiveInfo).toContainText(videoFileSize((await readFile(videoPath)).length));
@@ -735,7 +733,7 @@ for (const viewport of [
       const correctedPreviewBox = await poster.boundingBox();
       assert(correctedPreviewBox);
       expect(correctedPreviewBox.height).toBeCloseTo(previewBox.height, 0);
-      await feedCard.getByRole("button", { name: "查看帖子详情" }).click();
+      await feedCard.getByRole("button", { name: "查看 X 全文" }).click();
       const correctedPosterBox = await fullPoster.boundingBox();
       assert(correctedPosterBox);
       expect(correctedPosterBox.height / correctedPosterBox.width).toBeCloseTo(
@@ -838,7 +836,7 @@ for (const viewport of [
       await page.keyboard.press("Escape");
       await expect(poster).toBeFocused();
       await expect(page.locator("video")).toHaveCount(0);
-      const details = feedCard.getByRole("button", { name: "查看帖子详情" });
+      const details = feedCard.getByRole("button", { name: "查看 X 全文" });
       await details.click();
       await expect(post.getByRole("region", { name: "帖子统计" })).toBeVisible();
       await expect(post.getByRole("button", { name: "查看图片 2" })).toBeVisible();

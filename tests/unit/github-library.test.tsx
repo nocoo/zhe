@@ -384,6 +384,10 @@ describe("shared AI organization entry", () => {
     expect(screen.queryByText("旧 AI 简介")).not.toBeInTheDocument();
     expect(screen.queryByText("Repository description")).not.toBeInTheDocument();
     const card = within(screen.getByTestId("github-repository"));
+    const toolbar = within(document.querySelector("[data-bookmark-actions]") as HTMLElement);
+    expect(
+      toolbar.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["阅读 README", "AI 整理", "复制链接", "更多收藏操作"]);
     expect(card.getByText("工具")).toBeVisible();
     await user.click(card.getByRole("button", { name: "AI 整理" }));
     expect(onSuggest).toHaveBeenCalled();
@@ -412,7 +416,7 @@ describe("shared AI organization entry", () => {
     const topics = Array.from({ length: 12 }, (_, index) => `repository-label-${index}`);
     renderCard({ ...bookmark, repository: { ...summary, topics } });
     const labels = within(screen.getByTestId("github-card-tags"));
-    expect(screen.getByRole("button", { name: "查看全部标签" })).toHaveTextContent("已读");
+    expect(screen.getByRole("list", { name: "收藏标签" })).toHaveTextContent("已读");
     expect(
       labels.getAllByTestId("github-repository-label").map((label) => label.textContent),
     ).toEqual(topics.slice(0, 3));

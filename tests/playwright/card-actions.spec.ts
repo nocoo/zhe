@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { encode } from "@auth/core/jwt";
 import { test as base, expect } from "./fixtures";
-import { executeD1 } from "./helpers/d1";
+import { executeD1, queryD1 } from "./helpers/d1";
 
 const test = base.extend<{ owner: string }>({
   owner: async ({ context, baseURL }, use) => {
@@ -49,9 +49,25 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
           index ? "Short title" : "Long card title with 中文内容 ".repeat(8),
           index ? "Short description" : "Long description ".repeat(40),
           "/logo-80.png",
-          Date.now(),
+          Date.now() - 3 * 86400_000,
         ],
       );
+    const [first] = await queryD1<{ id: number }>(
+      "SELECT id FROM links WHERE user_id=? ORDER BY id LIMIT 1",
+      [owner],
+    );
+    assert(first);
+    for (const index of [0, 1, 2]) {
+      const tagId = `${owner}-tag-${index}`;
+      await executeD1("INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)", [
+        tagId,
+        owner,
+        `${index}: Long saved tag 中文内容`,
+        "blue",
+        Date.now(),
+      ]);
+      await executeD1("INSERT INTO link_tags(link_id,tag_id) VALUES(?,?)", [first.id, tagId]);
+    }
     await page.addInitScript(
       (view) => localStorage.setItem("zhe_links_view_mode", view),
       collection,
@@ -61,12 +77,21 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
     );
     const cards = page.getByTestId(collection === "github" ? "github-repository" : "link-card");
     const card = cards.first();
+    const tagged = cards.filter({ has: page.getByRole("list", { name: "收藏标签" }) });
     await expect(cards).toHaveCount(3);
     for (const width of [320, 375, 430, 1365]) {
       await page.setViewportSize({ width, height: 932 });
       await card.scrollIntoViewIfNeeded();
       const actions = card.locator("[data-bookmark-actions]");
-      await expect(actions.getByRole("button")).toHaveCount(3);
+      await expect(actions.getByRole("button")).toHaveCount(
+        collection === "github" || collection === "x" ? 4 : 3,
+      );
+      await expect(card.getByRole("button", { name: "复制收藏时间" })).toHaveText("3天前");
+      if (collection === "github" || collection === "x") {
+        await expect(actions.getByRole("button").first()).toHaveAccessibleName(
+          collection === "github" ? "阅读 README" : "查看 X 全文",
+        );
+      }
       await expect(actions.getByRole("button", { name: "AI 整理" })).toBeVisible();
       const more = actions.getByRole("button", { name: "更多收藏操作" });
       const geometry = await actions.evaluate((el) => {
@@ -93,6 +118,29 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       expect(await card.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
       const row = card.locator("[data-bookmark-action-row]");
       expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      const tags = tagged.getByRole("list", { name: "收藏标签" });
+      await expect(tags.getByRole("listitem")).toHaveCount(3);
+      await expect(tags.getByRole("button")).toHaveCount(0);
+      const strip = await tags.evaluate((element) => {
+        const folder = element.previousElementSibling?.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left,
+          folderRight: folder?.right,
+          scrollable: element.scrollWidth > element.clientWidth,
+        };
+      });
+      assert(strip.folderRight);
+      expect(strip.left).toBeGreaterThan(strip.folderRight);
+      if (width < 500) {
+        expect(strip.scrollable).toBe(true);
+        await tags.evaluate((element) => {
+          element.scrollLeft = 0;
+        });
+        await tags.focus();
+        await page.keyboard.press("ArrowRight");
+        await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+      }
       await more.click();
       const menu = page.getByRole("menu");
       await expect(menu.getByRole("menuitem")).toHaveText([
