@@ -371,3 +371,13 @@ found one article-filter assertion still targeting the deleted compact-preview
 button. Search every removed component's test IDs and accessible labels, not only
 its imports and fixed-height assertions. Keep the filter behavior assertion on
 the restored content rather than recreating an obsolete button for the test.
+
+## 2026-10-13: Give each viewport scenario its own test budget
+
+The v2.2.0 release CI failed the iPhone grid-actions case despite a local green
+run. The retained trace showed successful 320/375/430px journeys, entry into the
+1365px journey at 23.15 seconds and its copy click starting at 29.05 seconds.
+The 30-second per-test budget expired, not a menu deadlock. Parameterize viewport
+journeys independently and keep management dialogs in a separate case. Preserve
+all assertions and existing timeouts; a compound local pass does not establish
+sufficient runtime headroom on CI/WebKit.

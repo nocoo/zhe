@@ -366,6 +366,9 @@ The ordinary L3 suite runs shared workflows once per meaningful UI variant:
   sizes and separate edit/statistics/delete dialogs. Grid and GitHub use equal
   24rem card heights; X uses natural-height masonry without card folder/tag rows.
   List footers share the same controls in a compact row.
+  Each collection/viewport has its own case and unchanged timeout; management
+  dialogs run once per collection rather than sharing four viewport journeys'
+  budget on CI/WebKit.
 - All four bookmark presentations exercise deletion/reflow and matching loading
   skeletons. X retains bulk-delete and archived-media workflows, reading-order
   masonry/repacking, native media proportions and one-to-four-photo collages on
