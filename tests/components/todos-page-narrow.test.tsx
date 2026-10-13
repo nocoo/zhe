@@ -176,6 +176,7 @@ describe("TodosPage — narrow viewport Sheet fallback", () => {
     // work regardless of portal location.
     const sheet = container.ownerDocument.querySelector("[data-todos-detail-sheet]");
     expect(sheet).toBeTruthy();
+    expect(sheet).toHaveClass("p-0", "sm:p-0");
     expect(sheet?.textContent).toContain("root");
   });
 

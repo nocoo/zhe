@@ -328,6 +328,9 @@ The subsequent Basalt 3 upgrade adds `sm:p-basalt-card-lg` to dialog panels.
 Clearing only `p-0` kept doubled desktop insets in composed editors/readers.
 Clear both base and breakpoint padding where an inner section owns spacing, and
 assert the computed panel padding and field height in browser acceptance.
+Independent review found the same issue in navigation and todo sheets. Audit all
+zero-padding overlay consumers, not just dialogs, and test intermediate tablet
+widths where the library's `sm:` rules activate before the app switches layouts.
 
 Basalt 3 also animates closed tooltips for 150ms. Restoring an action trigger's
 focus before opening a dialog can leave that exiting tooltip as Radix's highest

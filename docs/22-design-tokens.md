@@ -273,8 +273,9 @@ Pinned package: `@nocoo/basalt@3.0.0`; migration guidance checked against its
 installed `ai/COMPATIBILITY.md` and Basalt source revision `874b025`.
 The package owns native control roles and island/card insets. Zhe retains its
 32px/44px card icon targets, bright dialog surfaces and 18px/14px modal typography.
-Zero-padding reader/editor/search/enrichment panels also clear `sm:` padding so
-Basalt 3 desktop insets do not double their existing inner spacing.
+Zero-padding reader/editor/search/enrichment panels and navigation/todo sheets
+also clear `sm:` padding so Basalt 3 insets do not double their existing inner
+spacing, including intermediate tablet widths.
 There are no application uses of the breaking Loader SVG API or IconPicker names.
 Unit density contracts assert public sizing roles; browser card acceptance checks
 actual padding, control geometry, scrolling, focus restoration and equal heights.

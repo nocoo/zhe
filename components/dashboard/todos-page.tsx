@@ -272,7 +272,7 @@ export function TodosPage() {
         >
           <SheetContent
             side="right"
-            className="flex w-full min-w-0 flex-col overflow-hidden p-0 sm:max-w-xl"
+            className="flex w-full min-w-0 flex-col overflow-hidden p-0 sm:max-w-xl sm:p-0"
             data-todos-detail-sheet
           >
             <SheetHeader className="flex min-w-0 flex-row items-center justify-between gap-2 space-y-0 px-4 pt-4 pb-2">

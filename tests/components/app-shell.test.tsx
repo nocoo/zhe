@@ -316,6 +316,7 @@ describe("AppShell", () => {
       // Sheet overlay is rendered via Radix portal with role="dialog"
       const dialog = document.querySelector('[role="dialog"]');
       expect(dialog).toBeInTheDocument();
+      expect(dialog).toHaveClass("p-0", "sm:p-0");
     });
 
     it("keeps the mobile sheet sidebar expanded after a desktop collapse", async () => {
