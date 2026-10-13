@@ -26,8 +26,8 @@ import { BookmarkCardDialogs } from "./bookmark-card-dialogs";
 import { BookmarkCardFooter } from "./bookmark-card-footer";
 import { GridView } from "./link-card-parts/grid-view";
 import { ListView } from "./link-card-parts/list-view";
+import { SourceLinks } from "./link-card-parts/shared-rows";
 import { XBookmarkContent, XBookmarkPending } from "./x-bookmark-content";
-import { XBookmarkPreview } from "./x-bookmark-preview";
 
 type ViewMode = "list" | "grid" | "feed";
 interface LinkCardProps {
@@ -136,20 +136,30 @@ export const LinkCard = memo(function LinkCard({
       <LayerCard
         ref={vm.card}
         padding="none"
-        className={`${BOOKMARK_CARD_CLASS} ${viewMode === "list" ? "h-auto" : "h-96"}`}
+        className={`${BOOKMARK_CARD_CLASS} ${viewMode === "list" || isXFeed ? "h-auto" : "h-96"}`}
         data-testid="link-card"
         data-card-actions-container
         data-link-id={link.id}
         data-view={viewMode}
       >
         {isXFeed ? (
-          <XBookmarkPreview
-            link={link}
-            bookmark={xBookmark}
-            shortUrl={vm.shortUrl}
-            onOpenDetails={openDetails}
-            onPlayMedia={playMedia}
-          />
+          <>
+            {xBookmark?.tweet ? (
+              <XBookmarkContent
+                bookmark={xBookmark}
+                note={link.note}
+                title={link.title}
+                originalTitle={link.metaTitle}
+                compact
+                onPlayMedia={playMedia}
+              />
+            ) : (
+              <XBookmarkPending link={link} compact />
+            )}
+            <div className="px-3 pb-3">
+              <SourceLinks link={link} shortUrl={vm.shortUrl} />
+            </div>
+          </>
         ) : viewMode === "grid" ? (
           <GridView {...preview} />
         ) : (
@@ -157,6 +167,7 @@ export const LinkCard = memo(function LinkCard({
         )}
         <BookmarkCardFooter
           compact={viewMode === "list"}
+          showClassification={!isXFeed}
           link={link}
           folder={folderName}
           tags={cardTags}

@@ -122,7 +122,9 @@ L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`�
 `CardGridSkeleton` / `CardListSkeleton` share geometry with the loaded collections.
 Bookmark grid, X and GitHub collections use `BOOKMARK_GRID_CLASS`: container-width
 auto-fill columns with an 18rem minimum, collapsing to one column on narrow screens.
-All three grid presentations use 24rem cards; X and GitHub no longer use masonry.
+Ordinary grid and GitHub use 24rem cards. X uses natural-height masonry, preserving
+DOM/date order and observing content/media resize to repack without column gaps.
+Its skeleton also uses masonry and varied content heights.
 List cards retain a compact horizontal preview and combine classification and actions
 into one footer row on desktop. Ideas use a separate 14rem minimum grid;
 uploads retain their existing layout.
@@ -231,6 +233,8 @@ an expanding card section. Edit flight/save behavior remains intact; whole-bookm
 deletion no longer lives inside the editor.
 
 `BookmarkCardFooter` owns classification, saved date and management actions.
+X feed cards omit the classification row entirely; folder/tag data remains available
+in the editor and page filters, not as empty reserved space.
 Folder names truncate on one line. Saved tags sit directly to the right in a
 read-only, keyboard-focusable horizontal scrolling list using all remaining space;
 full tag names never wrap and are not wrapped in a button/popover. Source topics
@@ -242,9 +246,11 @@ commit and capture times remain in their respective detail views.
 Source and short links are real anchors in the left content area. Specialized
 GitHub/X readers sit immediately before AI organization in the bottom toolbar,
 not on a separate content row. Ordinary list/grid cards retain their content
-reading affordances. Previews have bounded line/media budgets; full text and
-attachments remain accessible in dialogs. Long titles, tag counts, vertical video,
-missing data and loading states must not move the footer or grow individual cards.
+reading affordances. Ordinary grid/GitHub previews have bounded line/media budgets;
+long metadata must not grow those cards. X restores compact post content, native
+media proportions and up to four photos in its two-column collage; tall video and
+media changes may grow an X card. Full text and all attachments remain accessible
+in the reader. Every presentation keeps actions at its own card bottom.
 Do not truncate interactive controls or nest buttons/anchors inside each other.
 
 Ideas use a container-driven 14rem minimum grid, shared with their skeleton, so
@@ -256,9 +262,9 @@ Button sizing.
 
 Evidence: `tests/components/bookmark-actions.test.tsx` covers descriptors, callbacks,
 copy grouping, menu/focus behavior, pending deletion and dialog boundaries;
-`tests/components/bookmark-presentations.test.tsx` covers bounded X media and footer
-metadata. Browser `card-actions.spec.ts`, `card-reflow.spec.ts` and
-`link-card-motion.spec.ts` cover responsive geometry, equal heights, keyboard/touch
+`tests/components/bookmark-presentations.test.tsx` covers footer metadata;
+`tests/unit/x-bookmark-card.test.tsx` covers X content/media and reader behavior. Browser `card-actions.spec.ts`, `card-reflow.spec.ts` and
+`link-card-motion.spec.ts` cover responsive geometry, grid/GitHub equal heights, X masonry, keyboard/touch
 navigation and modal/deletion motion on isolated local resources.
 
 ### Global creation

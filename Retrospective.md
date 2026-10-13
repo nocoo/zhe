@@ -363,3 +363,11 @@ expensive browser preflight, apply the smallest patched dependency set, and reru
 the browser suite when build or image-processing dependencies change. A local
 release tag is not publication evidence; verify remote absence before replacing
 that unpublished tag, and never move a published one.
+
+## 2026-10-13: Restore presentation contracts with their selectors
+
+Restoring X masonry reused the original post content, but the first browser run
+found one article-filter assertion still targeting the deleted compact-preview
+button. Search every removed component's test IDs and accessible labels, not only
+its imports and fixed-height assertions. Keep the filter behavior assertion on
+the restored content rather than recreating an obsolete button for the test.

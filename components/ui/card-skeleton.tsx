@@ -1,3 +1,4 @@
+import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { cn } from "@/lib/utils";
 
 export const CARD_GRID_CLASS =
@@ -15,9 +16,11 @@ function Bone({ className }: { className: string }) {
 function BookmarkFooterBones({
   compact = false,
   reader = false,
+  showClassification = true,
 }: {
   compact?: boolean;
   reader?: boolean;
+  showClassification?: boolean;
 }) {
   return (
     <div
@@ -26,10 +29,12 @@ function BookmarkFooterBones({
         compact && "sm:flex sm:items-center sm:border-t sm:border-border/60",
       )}
     >
-      <div className="flex h-10 flex-1 items-center gap-2 px-3">
-        <Bone className="h-3 w-16" />
-        <Bone className="h-4 w-16" />
-      </div>
+      {showClassification && (
+        <div className="flex h-10 flex-1 items-center gap-2 px-3">
+          <Bone className="h-3 w-16" />
+          <Bone className="h-4 w-16" />
+        </div>
+      )}
       <div
         className={cn(
           "flex min-h-11 items-center gap-1 border-t border-border/60 px-3 py-1",
@@ -129,7 +134,24 @@ export function CardListSkeleton({
 
 type GridVariant = "link" | "github" | "x" | "idea";
 
-function GridCardBones({ variant }: { variant: GridVariant }) {
+function GridCardBones({ variant, index }: { variant: GridVariant; index: number }) {
+  if (variant === "x")
+    return (
+      <>
+        <div className="space-y-2.5 p-3">
+          <div className="flex items-center gap-2">
+            <Bone className="size-7 rounded-full" />
+            <Bone className="h-4 w-2/3" />
+          </div>
+          <Bone className="h-10 w-full" />
+          {index % 3 !== 0 && (
+            <Bone className={cn("w-full", index % 3 === 1 ? "aspect-square" : "aspect-video")} />
+          )}
+          <Bone className="h-3 w-2/3" />
+        </div>
+        <BookmarkFooterBones reader showClassification={false} />
+      </>
+    );
   if (variant === "idea")
     return (
       <div className="p-4">
@@ -156,7 +178,7 @@ function GridCardBones({ variant }: { variant: GridVariant }) {
         <Bone className="min-h-0 w-full flex-1" />
         <Bone className="h-10 w-full" />
       </div>
-      <BookmarkFooterBones reader={variant === "github" || variant === "x"} />
+      <BookmarkFooterBones reader={variant === "github"} />
     </>
   );
 }
@@ -174,20 +196,32 @@ export function CardGridSkeleton({
   className?: string;
   variant?: GridVariant;
 }) {
-  const cards = Array.from({ length: count }, (_, i) => `sk-card-${i}`).map((id) => (
+  const cards = Array.from({ length: count }, (_, i) => `sk-card-${i}`).map((id, index) => (
     <div
       key={id}
       aria-hidden
       className={cn(
         "overflow-hidden rounded-card bg-secondary ring-1 ring-border/40 animate-pulse motion-reduce:animate-none",
-        variant !== "idea" && `${BOOKMARK_CARD_CLASS} h-96`,
+        variant !== "idea" && BOOKMARK_CARD_CLASS,
+        variant !== "idea" && variant !== "x" && "h-96",
         aspectClass,
       )}
     >
-      <GridCardBones variant={variant} />
+      <GridCardBones variant={variant} index={index} />
     </div>
   ));
-  return (
+  return variant === "x" ? (
+    <AnimatedCardList
+      className={cn(gridClass ?? BOOKMARK_GRID_CLASS, className)}
+      masonry
+      data-testid="card-grid"
+      role="status"
+      aria-busy="true"
+      aria-label="正在加载卡片"
+    >
+      {cards}
+    </AnimatedCardList>
+  ) : (
     <div
       className={cn(
         gridClass ?? (variant === "idea" ? CARD_GRID_CLASS : BOOKMARK_GRID_CLASS),

@@ -674,11 +674,10 @@ for (const viewport of [
       const feed = page.getByTestId("x-feed");
       await expect(feed.getByTestId("link-card")).toHaveCount(4 + galleryCount);
       const feedCard = feed.locator(`[data-link-id="${linkId}"]`);
-      await expect(feedCard.getByTestId("x-bookmark-preview")).toBeVisible();
+      await expect(feedCard.getByTestId("x-bookmark-content")).toBeVisible();
       await expect(
         feedCard.getByRole("button", { name: "查看 X 全文", exact: true }),
       ).toHaveAccessibleDescription(/已补全/);
-      await expect(feedCard.getByTestId("x-bookmark-content")).toHaveCount(0);
       const footer = feedCard.locator("[data-bookmark-footer]");
       const footerBox = await footer.boundingBox();
       assert(footerBox);
@@ -686,15 +685,8 @@ for (const viewport of [
       expect(await footer.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
         true,
       );
-      await expect(
-        footer.locator("[data-bookmark-classification]").getByTitle(designName, { exact: true }),
-      ).toBeVisible();
-      const savedTags = footer.getByRole("list", { name: "收藏标签" });
-      await expect(savedTags.getByRole("listitem")).toHaveText([
-        "Design systems",
-        "Interaction references",
-      ]);
-      await expect(savedTags.getByRole("button")).toHaveCount(0);
+      await expect(footer.locator("[data-bookmark-classification]")).toHaveCount(0);
+      await expect(footer.getByRole("list", { name: "收藏标签" })).toHaveCount(0);
       await feedCard.getByRole("button", { name: "查看 X 全文" }).click();
       const archiveInfo = post.getByTestId("x-video-archive-info");
       await expect(archiveInfo).toContainText(videoResolution(mediaSize.width, mediaSize.height));
@@ -707,7 +699,7 @@ for (const viewport of [
       await expect(feedCard.getByRole("region", { name: "帖子统计" })).toHaveCount(0);
       await expect(feedCard.getByLabel("引用的 X 帖子")).toHaveCount(0);
       await expect(feedCard.getByRole("button", { name: "展开全文" })).toHaveCount(0);
-      const poster = feedCard.getByRole("button", { name: "播放帖子视频" });
+      const poster = feedCard.getByRole("button", { name: "播放视频 1" });
       await expect(poster).toBeVisible();
       await expect
         .poll(() =>
@@ -734,7 +726,10 @@ for (const viewport of [
       await expect(editMenu).toBeFocused();
       const correctedPreviewBox = await poster.boundingBox();
       assert(correctedPreviewBox);
-      expect(correctedPreviewBox.height).toBeCloseTo(previewBox.height, 0);
+      expect(correctedPreviewBox.height / correctedPreviewBox.width).toBeCloseTo(
+        mediaSize.height / mediaSize.width,
+        1,
+      );
       await feedCard.getByRole("button", { name: "查看 X 全文" }).click();
       const correctedPosterBox = await fullPoster.boundingBox();
       assert(correctedPosterBox);
@@ -787,10 +782,10 @@ for (const viewport of [
             .poll(() =>
               feed
                 .getByTestId("link-card")
-                .evaluateAll((cards) =>
-                  cards.every(
-                    (card) => Math.abs(card.getBoundingClientRect().height - 384) < 0.005,
-                  ),
+                .evaluateAll(
+                  (cards) =>
+                    new Set(cards.map((card) => Math.round(card.getBoundingClientRect().height)))
+                      .size > 1,
                 ),
             )
             .toBe(true);
@@ -873,9 +868,7 @@ for (const viewport of [
       await page.getByRole("combobox", { name: "内容类型" }).click();
       await page.getByRole("option", { name: /^文章/ }).click();
       await expect(feed.getByTestId("link-card")).toHaveCount(1);
-      await expect(feed.getByRole("button", { name: "查看帖子正文", exact: true })).toHaveText(
-        "Reading article",
-      );
+      await expect(feed.getByTestId("x-bookmark-content")).toContainText("Reading article");
       await expect(page.getByRole("searchbox", { name: "搜索 X 收藏" })).toHaveCount(0);
       await page.getByRole("button", { name: "清除筛选", exact: true }).first().click();
       await page.getByRole("combobox", { name: "内容类型" }).click();
@@ -1045,14 +1038,19 @@ for (const viewport of [
             owner,
           ]);
           await page.reload();
-          await expect(
-            albumCard.getByRole("button", { name: "查看帖子图片", exact: true }),
-          ).toHaveCount(1);
-          await expect(albumCard.getByRole("button", { name: /^查看图片/ })).toHaveCount(0);
-          expect(
-            await albumCard.evaluate((element) => element.getBoundingClientRect().height),
-          ).toBeCloseTo(384, 2);
-          await albumCard.getByRole("button", { name: "查看帖子图片", exact: true }).click();
+          const cardPhotos = albumCard.getByRole("button", { name: /^查看图片/ });
+          await expect(cardPhotos).toHaveCount(count);
+          for (let index = 0; index < count; index++) {
+            const photo = cardPhotos.nth(index).locator("img");
+            await expect
+              .poll(() => photo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+              .toBeGreaterThan(0);
+            const box = await photo.boundingBox();
+            const shape = shapes[index];
+            assert(box && shape);
+            expect(box.height / box.width).toBeCloseTo(shape.height / shape.width, 2);
+          }
+          await albumCard.getByRole("button", { name: "查看 X 全文", exact: true }).click();
           const galleryDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });
           const photos = galleryDialog.getByRole("button", { name: /^查看图片/ });
           await expect(photos).toHaveCount(count);
@@ -1072,10 +1070,10 @@ for (const viewport of [
           });
           await page.keyboard.press("Escape");
           await expect(
-            albumCard.getByRole("button", { name: "查看帖子图片", exact: true }),
+            albumCard.getByRole("button", { name: "查看 X 全文", exact: true }),
           ).toBeFocused();
         }
-        await albumCard.getByRole("button", { name: "查看帖子图片", exact: true }).click();
+        await albumCard.getByRole("button", { name: "查看 X 全文", exact: true }).click();
         await page
           .getByRole("dialog", { name: "X 帖子", exact: true })
           .getByRole("button", { name: "查看图片 4" })

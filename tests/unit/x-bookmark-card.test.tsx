@@ -9,6 +9,7 @@ import { XBookmarkContent } from "@/components/dashboard/x-bookmark-content";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import type { XBookmark } from "@/lib/connector/jobs";
 import type { Link } from "@/models/types";
+import { makeFolder, makeLinkTag, makeTag } from "../fixtures";
 
 vi.mock("@/actions/connector", () => ({ updateXMediaDimensionsAction: vi.fn() }));
 vi.mock("@/viewmodels/useLinksViewModel", () => ({
@@ -84,6 +85,63 @@ beforeEach(() => {
 });
 
 describe("X bookmark presentation", () => {
+  it.each([1, 2, 3, 4])(
+    "shows %i photos on a natural-height feed card without classification",
+    (count) => {
+      const tag = makeTag({ name: "Saved tag" });
+      const folder = makeFolder({ name: "Saved folder" });
+      render(
+        <XBookmarksContext.Provider
+          value={
+            new Map([
+              [
+                link.id,
+                {
+                  ...bookmark,
+                  tweet: {
+                    ...tweet,
+                    media: Array.from({ length: count }, (_, index) => ({
+                      id: String(index),
+                      type: "PHOTO" as const,
+                      url: `https://example.com/${index}.jpg`,
+                      width: 3,
+                      height: 4,
+                    })),
+                  },
+                },
+              ],
+            ])
+          }
+        >
+          <LinkCard
+            link={{ ...link, folderId: folder.id }}
+            siteUrl="https://zhe.to"
+            onDelete={vi.fn()}
+            onUpdate={vi.fn()}
+            viewMode="feed"
+            folders={[folder]}
+            tags={[tag]}
+            linkTags={[makeLinkTag({ linkId: link.id, tagId: tag.id })]}
+            onSuggest={vi.fn()}
+          />
+        </XBookmarksContext.Provider>,
+      );
+      const card = screen.getByTestId("link-card");
+      expect(card).toHaveClass("h-auto");
+      expect(within(card).getAllByRole("button", { name: /^查看图片/ })).toHaveLength(count);
+      const grid = screen.getByTestId("x-media-grid");
+      expect(grid).toHaveClass(count > 1 ? "columns-2" : "grid");
+      for (const image of within(grid).getAllByRole("img"))
+        expect(image).toHaveStyle({ aspectRatio: "3/4" });
+      expect(within(card).queryByText("Saved folder")).not.toBeInTheDocument();
+      expect(within(card).queryByText("Saved tag")).not.toBeInTheDocument();
+      expect(card.querySelector("[data-bookmark-classification]")).toBeNull();
+      const actions = within(card.querySelector("[data-bookmark-actions]") as HTMLElement);
+      expect(
+        actions.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+      ).toEqual(["查看 X 全文", "AI 整理", "复制链接", "更多收藏操作"]);
+    },
+  );
   it("shows archived resolution and decimal file size below the video", () => {
     render(
       <LayerCard>
@@ -217,7 +275,7 @@ describe("X bookmark presentation", () => {
         <XBookmarksContext.Provider value={new Map()}>{card}</XBookmarksContext.Provider>,
       );
       if (viewMode === "feed")
-        expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent(
+        expect(screen.getByTestId("link-card")).toHaveTextContent(
           "Keep this saved note after enrichment",
         );
       rerender(
@@ -225,10 +283,13 @@ describe("X bookmark presentation", () => {
           {card}
         </XBookmarksContext.Provider>,
       );
-      expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
-      expect(
-        screen.getByTestId(viewMode === "feed" ? "x-bookmark-preview" : "link-card"),
-      ).toBeInTheDocument();
+      expect(screen.queryAllByTestId("x-bookmark-content")).toHaveLength(
+        viewMode === "feed" ? 1 : 0,
+      );
+      expect(screen.getByTestId("link-card")).toHaveClass(viewMode === "grid" ? "h-96" : "h-auto");
+      expect(document.querySelectorAll("[data-bookmark-classification]")).toHaveLength(
+        viewMode === "feed" ? 0 : 1,
+      );
       expect(screen.queryByText("喜欢 7")).not.toBeInTheDocument();
       expect(screen.queryByText("已补全", { exact: true })).not.toBeInTheDocument();
       expect(screen.queryByText("阅读帖子")).not.toBeInTheDocument();
@@ -247,7 +308,7 @@ describe("X bookmark presentation", () => {
         await user.keyboard("{Escape}");
       }
       if (viewMode === "feed")
-        expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent(
+        expect(screen.getByTestId("link-card")).toHaveTextContent(
           "Keep this saved note after enrichment",
         );
       const toolbar = within(document.querySelector("[data-bookmark-actions]") as HTMLElement);
@@ -460,7 +521,7 @@ describe("X bookmark presentation", () => {
       </XBookmarksContext.Provider>,
     );
     const card = screen.getByTestId("link-card");
-    const preview = within(card).getByRole("button", { name: "播放帖子视频" });
+    const preview = within(card).getByRole("button", { name: "播放视频 1" });
     const user = userEvent.setup();
     expect(card.querySelector("video")).toBeNull();
     await user.click(preview);

@@ -34,7 +34,10 @@ const test = base.extend<{ owner: string }>({
 test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
 for (const collection of ["grid", "list", "github", "x"] as const) {
-  test(`${collection}: fixed bookmark actions and equal heights`, async ({ page, owner }, info) => {
+  test(`${collection}: fixed bookmark actions and collection layout`, async ({
+    page,
+    owner,
+  }, info) => {
     const now = Date.now();
     await page.clock.setFixedTime(now);
     for (const index of [0, 1, 2])
@@ -116,7 +119,7 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       const heights = await cards.evaluateAll((els) =>
         els.map((el) => el.getBoundingClientRect().height),
       );
-      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
+      if (collection !== "x") expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1);
       expect(await card.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
       const row = card.locator("[data-bookmark-action-row]");
       expect(await row.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -135,30 +138,37 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       expect(dateSpacing.padding).toBeGreaterThanOrEqual(8);
       expect(dateSpacing.left).toBeGreaterThanOrEqual(8);
       expect(dateSpacing.right).toBeGreaterThanOrEqual(8);
-      const tags = tagged.getByRole("list", { name: "收藏标签" });
-      await expect(tags.getByRole("listitem")).toHaveCount(3);
-      await expect(tags.getByRole("button")).toHaveCount(0);
-      const strip = await tags.evaluate((element) => {
-        const folder = element.previousElementSibling?.getBoundingClientRect();
-        const rect = element.getBoundingClientRect();
-        return {
-          left: rect.left,
-          folderRight: folder?.right,
-          scrollable: element.scrollWidth > element.clientWidth,
-        };
-      });
-      assert(strip.folderRight);
-      expect(strip.left).toBeGreaterThan(strip.folderRight);
-      if (width < 500) {
-        expect(strip.scrollable).toBe(true);
-        await tags.evaluate((element) => {
-          element.scrollLeft = 0;
+      if (collection === "x") {
+        await expect(cards.locator("[data-bookmark-classification]")).toHaveCount(0);
+        await expect(cards.getByRole("list", { name: "收藏标签" })).toHaveCount(0);
+      } else {
+        const tags = tagged.getByRole("list", { name: "收藏标签" });
+        await expect(tags.getByRole("listitem")).toHaveCount(3);
+        await expect(tags.getByRole("button")).toHaveCount(0);
+        const strip = await tags.evaluate((element) => {
+          const folder = element.previousElementSibling?.getBoundingClientRect();
+          const rect = element.getBoundingClientRect();
+          return {
+            left: rect.left,
+            folderRight: folder?.right,
+            scrollable: element.scrollWidth > element.clientWidth,
+          };
         });
-        await tags.focus();
-        await page.keyboard.press("ArrowRight");
-        await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
-        await page.keyboard.press("ArrowLeft");
-        await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBe(0);
+        assert(strip.folderRight);
+        expect(strip.left).toBeGreaterThan(strip.folderRight);
+        if (width < 500) {
+          expect(strip.scrollable).toBe(true);
+          await tags.evaluate((element) => {
+            element.scrollLeft = 0;
+          });
+          await tags.focus();
+          await page.keyboard.press("ArrowRight");
+          await expect
+            .poll(() => tags.evaluate((element) => element.scrollLeft))
+            .toBeGreaterThan(0);
+          await page.keyboard.press("ArrowLeft");
+          await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBe(0);
+        }
       }
       await more.click();
       const menu = page.getByRole("menu");

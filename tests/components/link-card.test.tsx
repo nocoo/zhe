@@ -221,15 +221,16 @@ describe("LinkCard", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("无法保存链接");
   });
 
-  it("shows the bounded X feed preview and opens full details on demand", async () => {
+  it("keeps pending X cards natural-height and opens full details on demand", async () => {
     const link = {
       ...baseLink,
       originalUrl: "https://x.com/example/status/12345",
       note: "Saved note",
     };
     render(<LinkCard {...props(link)} viewMode="feed" />);
-    expect(screen.getByTestId("x-bookmark-preview")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看帖子正文" })).toHaveTextContent("Saved note");
+    expect(screen.getByTestId("link-card")).toHaveClass("h-auto");
+    expect(screen.getByTestId("link-card")).toHaveTextContent("Saved note");
+    expect(document.querySelector("[data-bookmark-classification]")).toBeNull();
     expect(screen.queryByTestId("x-bookmark-content")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "查看 X 全文" }));
     expect(await screen.findByRole("dialog", { name: "X 帖子" })).toBeInTheDocument();

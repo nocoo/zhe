@@ -201,7 +201,8 @@ for (const collection of ["grid", "list", "x", "github"] as const) {
         .toBeGreaterThan(0);
       assert(before);
       if (collection === "list") expect(before.columns).toBe("none");
-      if (collection !== "list") expect(before.height).toBeCloseTo(384, 2);
+      if (collection === "grid" || collection === "github")
+        expect(before.height).toBeCloseTo(384, 2);
       await page.emulateMedia({ reducedMotion: "reduce" });
       expect(
         await skeleton
@@ -239,7 +240,7 @@ for (const collection of ["grid", "list", "x", "github"] as const) {
       expect(
         await container.evaluate((element) => getComputedStyle(element).gridTemplateColumns),
       ).toBe(before.columns);
-      if (collection !== "list") {
+      if (collection === "grid" || collection === "github") {
         expect(
           await cards.first().evaluate((element) => element.getBoundingClientRect().height),
         ).toBeCloseTo(before.height ?? 0, 0);
@@ -306,7 +307,7 @@ for (const collection of ["grid", "x", "github"] as const) {
   });
 }
 
-for (const collection of ["grid", "x", "github"] as const) {
+for (const collection of ["grid", "github"] as const) {
   test(`${collection}: equal-height cards keep aligned footers and reading order on resize`, async ({
     page,
     owner,
@@ -314,11 +315,7 @@ for (const collection of ["grid", "x", "github"] as const) {
     const cards = await seedCollection(page, owner, collection);
     for (let index = 0; index < 8; index++) {
       await expect(cards.nth(index)).toContainText(
-        collection === "github"
-          ? `motion/repository-${index}`
-          : collection === "x"
-            ? `/${owner}-${index}`
-            : `Saved link ${index + 1}`,
+        collection === "github" ? `motion/repository-${index}` : `Saved link ${index + 1}`,
       );
     }
     for (const width of [1280, 1920, 768, 375]) {
@@ -375,6 +372,83 @@ for (const collection of ["grid", "x", "github"] as const) {
     }
   });
 }
+
+test("x: masonry preserves order, packs variable heights and observes media resize", async ({
+  page,
+  owner,
+}) => {
+  const cards = await seedCollection(page, owner, "x");
+  for (let index = 0; index < 8; index++) {
+    await expect(cards.nth(index)).toContainText(`Saved link ${index + 1}`);
+  }
+  for (const width of [1280, 1920, 768, 375]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await settle(page);
+    await expect
+      .poll(() =>
+        cards.evaluateAll((elements) => {
+          const boxes = elements.map((element) => element.getBoundingClientRect());
+          return boxes.every((box, index) => {
+            const earlier = boxes.slice(0, index);
+            const previous = earlier.at(-1);
+            const above = earlier.filter((other) => Math.abs(other.x - box.x) < 1).at(-1);
+            const ordered =
+              !previous ||
+              box.y > previous.y ||
+              (Math.abs(box.y - previous.y) < 1 && box.x > previous.x);
+            const packed = !above || Math.abs(box.y - above.bottom - 12) < 1;
+            const footer = elements[index]
+              ?.querySelector("[data-bookmark-footer]")
+              ?.getBoundingClientRect();
+            return ordered && packed && footer && Math.abs(box.bottom - footer.bottom) < 1;
+          });
+        }),
+      )
+      .toBe(true);
+    const heights = await cards.evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().height)),
+    );
+    expect(new Set(heights).size).toBeGreaterThan(1);
+    await expect(cards.locator("[data-bookmark-classification]")).toHaveCount(0);
+    await expect(cards.locator("[data-bookmark-action-row] time")).toHaveCount(8);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+  for (const width of [375, 1280]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await settle(page);
+    const before = await positions(cards);
+    const cardHeight = await cards
+      .first()
+      .evaluate((element) => element.getBoundingClientRect().height);
+    await cards.first().evaluate((element) => {
+      element.style.minHeight = `${element.getBoundingClientRect().height + 120}px`;
+    });
+    await expect
+      .poll(async () =>
+        (await positions(cards)).some(
+          (position, index) => position.y > (before[index]?.y ?? position.y) + 1,
+        ),
+      )
+      .toBe(true);
+    const firstBox = await cards.first().boundingBox();
+    assert(firstBox);
+    expect(firstBox.height).toBeCloseTo(cardHeight + 120, 0);
+    const resized = await positions(cards);
+    for (const position of resized
+      .slice(1)
+      .filter((position) => Math.abs(position.x - firstBox.x) < 1)) {
+      expect(position.y).toBeGreaterThanOrEqual(firstBox.y + firstBox.height + 11);
+    }
+    await cards.first().evaluate((element) => {
+      element.style.minHeight = "";
+    });
+    await expect
+      .poll(async () => (await positions(cards)).map(({ y }) => Math.round(y)))
+      .toEqual(before.map(({ y }) => Math.round(y)));
+  }
+});
 
 for (const collection of ["grid", "list", "github", "x"] as const) {
   test(`${collection}: deletion smoothly fills the vacancy`, async ({ page, owner }, info) => {

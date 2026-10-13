@@ -293,7 +293,7 @@ export function XLibraryPage() {
           }
         />
       ) : (
-        <AnimatedCardList className={BOOKMARK_GRID_CLASS} data-testid="x-feed">
+        <AnimatedCardList className={BOOKMARK_GRID_CLASS} masonry data-testid="x-feed">
           {visible.map(({ link }, index) => (
             <SelectableCard
               selection={selection}

@@ -363,11 +363,13 @@ The ordinary L3 suite runs shared workflows once per meaningful UI variant:
 
 - Bookmark actions run in Chromium and iPhone WebKit at 320/375/430px and a wide
   viewport: fixed toolbar placement, copy/More menus, keyboard focus, touch target
-  sizes and separate edit/statistics/delete dialogs. Grid, GitHub and X use equal
-  24rem card heights; list footers share the same controls in a compact row.
+  sizes and separate edit/statistics/delete dialogs. Grid and GitHub use equal
+  24rem card heights; X uses natural-height masonry without card folder/tag rows.
+  List footers share the same controls in a compact row.
 - All four bookmark presentations exercise deletion/reflow and matching loading
-  skeletons. X retains bulk-delete and archived-media workflows; full posts and
-  media are tested in the reader rather than expanding cards into masonry.
+  skeletons. X retains bulk-delete and archived-media workflows, reading-order
+  masonry/repacking, native media proportions and one-to-four-photo collages on
+  cards. Full posts and all attachments are also tested in the reader.
 
 CI still rejects flaky retained cases; security,
 tenant isolation, data deletion assertions, coverage thresholds and retries are unchanged.
