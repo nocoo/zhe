@@ -335,3 +335,8 @@ dismissable layer, consuming the first Escape. A paused opening-flight probe
 reproduced the real interaction failure with a closed tooltip still in the DOM.
 Action tooltips now unmount without an exit animation; preserve dialog Escape
 tests during the opening flight rather than hiding the regression with a delay.
+
+Native overflow plus `tabIndex` allowed tag scrolling with arrow keys in Chromium
+but not WebKit, including desktop Safari. An isolated native-list probe confirmed
+the platform difference. Keep native touch/trackpad scrolling and handle horizontal
+arrow keys on the focused strip; verify both directions without trapping Tab.

@@ -157,6 +157,8 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
         await tags.focus();
         await page.keyboard.press("ArrowRight");
         await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+        await page.keyboard.press("ArrowLeft");
+        await expect.poll(() => tags.evaluate((element) => element.scrollLeft)).toBe(0);
       }
       await more.click();
       const menu = page.getByRole("menu");

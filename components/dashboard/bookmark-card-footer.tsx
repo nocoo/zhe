@@ -60,6 +60,11 @@ export function BookmarkCardFooter({
             aria-label="收藏标签"
             // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must be able to scroll overflowing tags.
             tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+              event.preventDefault();
+              event.currentTarget.scrollLeft += event.key === "ArrowRight" ? 40 : -40;
+            }}
             className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {tags.map((tag) => (

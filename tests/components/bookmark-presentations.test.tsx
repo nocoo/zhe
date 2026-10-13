@@ -57,6 +57,13 @@ describe("bounded bookmark content", () => {
     expect(tags).toHaveClass("min-w-0", "overflow-x-auto");
     expect(screen.getByRole("listitem")).toHaveClass("shrink-0");
     expect(document.querySelector("[data-bookmark-classification]")).toHaveClass("h-10");
+    expect(tags).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(tags, { key: "ArrowRight" });
+    expect(tags.scrollLeft).toBe(40);
+    fireEvent.keyDown(tags, { key: "ArrowLeft" });
+    expect(tags.scrollLeft).toBe(0);
+    expect(fireEvent.keyDown(tags, { key: "Tab" })).toBe(true);
+    expect(tags.scrollLeft).toBe(0);
   });
 
   it("keeps pending posts readable and opens the reader without expanding the card", () => {
