@@ -51,7 +51,7 @@ zhe open my-slug
 | `zhe open <slug>` | Open short URL in browser |
 | `zhe connector status` | Show the combined enrichment queue and shared key expiry |
 | `zhe connector once` | Process one X, GitHub, or webpage preview job |
-| `zhe connector watch` | Poll the shared queue every 20 seconds |
+| `zhe connector watch` | Drain ready jobs serially; when idle, poll every 5 minutes (30 minutes during local 22:00-05:00) |
 | `zhe connector start` | Start the background Connector at macOS login |
 | `zhe connector stop` | Stop and remove the macOS background service |
 | `zhe connector eagle` | Configure the optional Eagle image sidecar |

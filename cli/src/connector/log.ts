@@ -3,6 +3,7 @@ import { ApiClientError } from "../api/client.js";
 import { CLI_VERSION } from "../version.js";
 import { ConnectorError } from "./core.js";
 import type { EagleEvent } from "./eagle.js";
+import { POLLING_SCHEDULE } from "./polling.js";
 import type { PollResult } from "./runtime.js";
 import type { ConnectorProgress, ConnectorStatus } from "./types.js";
 
@@ -108,7 +109,7 @@ export class ConnectorLogger {
   start() {
     this.write(
       "ready",
-      `Zhe · X / GitHub / Preview Connector ${CLI_VERSION} · one job at a time · 20s between polls · Ctrl+C to stop`,
+      `Zhe · X / GitHub / Preview Connector ${CLI_VERSION} · one job at a time · ${POLLING_SCHEDULE} · Ctrl+C to stop`,
     );
   }
 
@@ -156,7 +157,7 @@ export class ConnectorLogger {
     );
   }
 
-  result(result: PollResult, durationMs: number, watching = false) {
+  result(result: PollResult, durationMs: number, nextPollMs?: number) {
     this.active = undefined;
     const interrupted = result.error === "interrupted";
     if (result.status !== "idle") {
@@ -169,18 +170,19 @@ export class ConnectorLogger {
         : `${result.media}/${this.totalMedia} media archived · ${formatDuration(durationMs)}${result.error ? ` · ${connectorErrorHint(result.errorStatus ?? result.error)}` : ""}`;
     this.write(
       interrupted ? "interrupted" : result.status,
-      `${detail}${watching ? " · next poll in 20s" : ""}`,
-      { ...result, durationMs, stats: { ...this.stats } },
+      `${detail}${nextPollMs === undefined ? "" : nextPollMs === 0 ? " · checking next job now" : ` · next poll in ${nextPollMs / 60_000}m`}`,
+      { ...result, durationMs, nextPollMs, stats: { ...this.stats } },
     );
     if (result.status !== "idle")
       this.write("session", this.summary(), { stats: { ...this.stats } });
   }
 
-  offline(error: unknown) {
+  offline(error: unknown, nextPollMs: number) {
     this.active = undefined;
     this.stats.errors++;
-    this.write("offline", `${connectorErrorHint(error)} Next poll in 20s.`, {
+    this.write("offline", `${connectorErrorHint(error)} Next poll in ${nextPollMs / 60_000}m.`, {
       status: "offline",
+      nextPollMs,
       code:
         error instanceof ApiClientError
           ? error.status

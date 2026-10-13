@@ -26,7 +26,7 @@
 - 截图仅发给声明 `X-Connector-Sources: github,x,screenshot` 能力的客户端。旧版客户端继续接收其支持的来源。
 - `screenshot_jobs.link_id` 主键防止同一个收藏重复入队。每次租约使用独立随机 R2 key，旧进程无法覆盖新一轮上传；同一租约的并发 PUT 只能有一个写入者。
 - 重复提交已成功的相同 SHA-256 返回成功，保留原图与 URL。失败不会清空用户已有的图。
-- 沿用 180 秒租约、30 秒续租、最多 5 次尝试和指数退避。`watch` 等待任务及临时文件清理结束，再等待 20 秒。取消时等待隔离子进程退出，必要时在 5 秒后强制结束。
+- 沿用 180 秒租约、30 秒续租、最多 5 次尝试和指数退避。`watch` waits for task completion and temporary-file cleanup, then immediately claims the next job. Idle/error polling waits 5 minutes, or 30 minutes during local 22:00-05:00. 取消时等待隔离子进程退出，必要时在 5 秒后强制结束。
 - 每次发布重新检查用户、API Key、租约、原始 URL 和缺图状态；改 URL、手动补图、删除或撤销密钥均会阻止晚到的结果。
 
 可选 Eagle 旁路仍按其独立配置运行；它不接收网页截图任务。

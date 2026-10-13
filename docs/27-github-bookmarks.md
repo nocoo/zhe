@@ -40,7 +40,7 @@ GitHub 采集调用官方 REST API。凭据优先使用本机 `GH_TOKEN` / `GITH
 
 commit 数来自 `commits?per_page=1&sha=<默认分支>` 的最后一页页码；单提交与空仓库分别为 1 和 0。无法确定完整计数时保留原快照并报错。README 使用 contents API 的 Base64 全文，并校验解码字节数；没有文件时明确显示没有 README。每份 README 最多 1,000,000 字节，编码后快照最多 1,800,000 字节。超限会报错并提供 GitHub 阅读入口，不保存截断文本。
 
-完成的快照保留到用户点击「重新采集」。失败最多重试五次，间隔逐步延长，已有快照继续可读。网页在前台每 15 秒刷新；Connector 每次处理一个任务，两轮之间等待 20 秒。旧 CLI 不声明 GitHub 能力，仍只领取 X 任务。
+完成的快照保留到用户点击「重新采集」。失败最多重试五次，间隔逐步延长，已有快照继续可读。网页在前台每 15 秒刷新；Connector processes ready jobs serially without an inter-job delay; idle checks run every 5 minutes, or 30 minutes during local 22:00-05:00. 旧 CLI 不声明 GitHub 能力，仍只领取 X 任务。
 
 ## 数据与发布
 

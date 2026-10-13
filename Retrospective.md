@@ -389,3 +389,13 @@ The 30-second per-test budget expired, not a menu deadlock. Parameterize viewpor
 journeys independently and keep management dialogs in a separate case. Preserve
 all assertions and existing timeouts; a compound local pass does not establish
 sufficient runtime headroom on CI/WebKit.
+
+## 2026-10-13: Preserve transport evidence when changing polling tests
+
+Replacing the Connector claim method with a successful mock bypassed an existing
+401 transport test and removed the request counted by the no-overlap assertion.
+The first test run exposed both mistakes. Restrict the successful mock to its
+scenario and delegate the first claim to the real client when asserting HTTP
+behavior; only subsequent empty claims should be synthesized to stop queue
+draining. Changing loop termination must not weaken authentication or concurrency
+evidence.

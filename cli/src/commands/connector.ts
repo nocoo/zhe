@@ -13,6 +13,7 @@ import {
   eagleConfig,
 } from "../connector/eagle.js";
 import { ConnectorLogger } from "../connector/log.js";
+import { POLLING_SCHEDULE } from "../connector/polling.js";
 import { authenticatedClient, runOnce, watchConnector } from "../connector/runtime.js";
 
 const execute = promisify(execFile);
@@ -96,7 +97,10 @@ export const connectorCommand = defineCommand({
       },
     }),
     watch: defineCommand({
-      meta: { name: "watch", description: "Poll X, GitHub and webpage previews every 20 seconds" },
+      meta: {
+        name: "watch",
+        description: `Watch X, GitHub and webpage previews; ${POLLING_SCHEDULE}`,
+      },
       args: { json: { type: "boolean", description: "Output newline-delimited JSON events" } },
       async run({ args }) {
         const controller = new AbortController();
@@ -140,7 +144,7 @@ export const connectorCommand = defineCommand({
         await execute("launchctl", ["bootout", `${domain}/${label}`]).catch(() => {});
         await execute("launchctl", ["bootstrap", domain, agentFile()]);
         console.log(
-          "Connector started. Shared zhe login; polling every 20 seconds. Stop with `zhe connector stop`.",
+          `Connector started. Shared zhe login; ${POLLING_SCHEDULE}. Stop with \`zhe connector stop\`.`,
         );
       },
     }),

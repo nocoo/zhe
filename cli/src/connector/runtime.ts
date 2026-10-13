@@ -11,6 +11,7 @@ import { readGitHubRepository } from "./github.js";
 import { ConnectorLogger, connectorErrorHint } from "./log.js";
 import { trimConnectorLog } from "./log-file.js";
 import { readPost } from "./opencli.js";
+import { idlePollDelay } from "./polling.js";
 import { captureScreenshot } from "./screenshot.js";
 import type {
   ConnectorJob,
@@ -270,21 +271,22 @@ export async function watchConnector(signal: AbortSignal, json = false): Promise
   try {
     while (!signal.aborted) {
       const started = Date.now();
+      let nextPollMs = 0;
       try {
         const client = authenticatedClient();
         // Queue statistics are optional; a failed status lookup must not block enrichment.
         const status = await client.connectorStatus(signal).catch(() => undefined);
         if (signal.aborted) break;
         if (status) log.queue(status);
-        log.result(
-          await processOne(client, signal, log.progress, eagle),
-          Date.now() - started,
-          !signal.aborted,
-        );
+        const result = await processOne(client, signal, log.progress, eagle);
+        nextPollMs = result.status === "idle" ? idlePollDelay() : 0;
+        log.result(result, Date.now() - started, signal.aborted ? undefined : nextPollMs);
       } catch (error) {
-        if (!signal.aborted) log.offline(error);
+        nextPollMs = idlePollDelay();
+        if (!signal.aborted) log.offline(error, nextPollMs);
       }
-      if (!signal.aborted) await delay(20_000, undefined, { signal }).catch(() => {});
+      if (!signal.aborted && nextPollMs > 0)
+        await delay(nextPollMs, undefined, { signal }).catch(() => {});
     }
   } finally {
     clearInterval(activity);

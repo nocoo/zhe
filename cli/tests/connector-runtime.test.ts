@@ -10,6 +10,7 @@ import { ConnectorError, normalizeXPost } from "../src/connector/core.js";
 import { downloadMedia, MediaTooLargeError, makePoster } from "../src/connector/download.js";
 import { trimConnectorLog } from "../src/connector/log-file.js";
 import { readPost } from "../src/connector/opencli.js";
+import { idlePollDelay } from "../src/connector/polling.js";
 import { processOne, runOnce, watchConnector } from "../src/connector/runtime.js";
 import { captureScreenshot } from "../src/connector/screenshot.js";
 
@@ -87,6 +88,66 @@ afterEach(async () => {
 });
 
 describe("zhe connector", () => {
+  it.each([false, true])(
+    "drains jobs without sleeping, then waits while idle (failed=%s)",
+    async (failed) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 9, 13, 12));
+      vi.spyOn(console, "log").mockImplementation(() => {});
+      const controller = new AbortController();
+      const claim = vi
+        .spyOn(ApiClient.prototype, "claimConnectorJob")
+        .mockResolvedValueOnce({ job })
+        .mockResolvedValueOnce({ job: { ...job, linkId: 2 } })
+        .mockResolvedValue({ job: null });
+      if (failed) vi.mocked(readPost).mockRejectedValue(new ConnectorError("needs_login"));
+      vi.mocked(delay).mockImplementation(async (ms) => {
+        expect(claim).toHaveBeenCalledTimes(3);
+        expect(ms).toBe(300_000);
+        controller.abort();
+      });
+      await watchConnector(controller.signal, true);
+      expect(readPost).toHaveBeenCalledTimes(2);
+      expect(delay).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it.each([
+    [21, 59, 22, 5, 30],
+    [4, 59, 5, 30, 5],
+  ])(
+    "recomputes idle delay on each poll across local %i:%i",
+    async (hour, minute, nextHour, firstMinutes, nextMinutes) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 9, 13, hour, minute));
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const controller = new AbortController();
+      vi.spyOn(ApiClient.prototype, "claimConnectorJob").mockResolvedValue({ job: null });
+      vi.mocked(delay)
+        .mockImplementationOnce(async () => {
+          vi.setSystemTime(new Date(2026, 9, 13, nextHour));
+        })
+        .mockImplementationOnce(async () => {
+          controller.abort();
+        });
+      await watchConnector(controller.signal, true);
+      expect(vi.mocked(delay).mock.calls.map(([ms]) => ms)).toEqual([
+        firstMinutes * 60_000,
+        nextMinutes * 60_000,
+      ]);
+      const idle = log.mock.calls
+        .map(([line]) => JSON.parse(String(line)))
+        .filter((event) => event.event === "idle");
+      expect(idle.map((event) => event.nextPollMs)).toEqual([
+        firstMinutes * 60_000,
+        nextMinutes * 60_000,
+      ]);
+      expect(idle[1].message).toContain(`next poll in ${nextMinutes}m`);
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
   it("processes a preview through the shared lease, then removes its temporary file", async () => {
     const client = new ApiClient("fixture");
     const previewJob = {
@@ -236,6 +297,10 @@ describe("zhe connector", () => {
     async (outcome) => {
       const controller = new AbortController();
       const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      if (outcome === "success")
+        vi.spyOn(ApiClient.prototype, "claimConnectorJob")
+          .mockResolvedValueOnce({ job })
+          .mockResolvedValue({ job: null });
       if (outcome === "unauthenticated") vi.mocked(getApiKey).mockReturnValue(undefined);
       if (outcome === "rejected")
         vi.mocked(fetch).mockResolvedValue(
@@ -275,13 +340,19 @@ describe("zhe connector", () => {
         expect(offline.message).toContain("Zhe rejected the API Key");
         expect(offline.message).toContain("`zhe logout`, then `zhe login`");
       }
-      expect(delay).toHaveBeenCalledWith(20_000, undefined, { signal: controller.signal });
+      expect(delay).toHaveBeenCalledWith(idlePollDelay(), undefined, {
+        signal: controller.signal,
+      });
     },
   );
   it("shows in-flight progress without claiming overlapping jobs and summarizes confirmed uploads", async () => {
     vi.useFakeTimers();
     vi.mocked(trimConnectorLog).mockRejectedValue(new Error("log storage unavailable"));
     const controller = new AbortController();
+    const originalClaim = ApiClient.prototype.claimConnectorJob;
+    vi.spyOn(ApiClient.prototype, "claimConnectorJob")
+      .mockImplementationOnce(originalClaim)
+      .mockResolvedValue({ job: null });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const events = () => log.mock.calls.map(([line]) => JSON.parse(String(line)));
     const data = structuredClone(capture);

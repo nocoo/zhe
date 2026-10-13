@@ -66,13 +66,13 @@ describe("Connector progress output", () => {
     log.progress({ stage: "uploaded", message: "Upload confirmed", bytes: 1024 });
     log.progress({ stage: "skipped", message: "Explicit deletion retained" });
     log.progress({ stage: "warning", message: "Another media item could not be saved" });
-    log.result({ status: "partial", media: 1 }, 12_000, true);
+    log.result({ status: "partial", media: 1 }, 12_000, 0);
     log.progress({ stage: "claim", message: "Link #2" });
-    log.result({ status: "failed", media: 0, error: "needs_login" }, 1000, true);
+    log.result({ status: "failed", media: 0, error: "needs_login" }, 1000, 0);
     log.result({ status: "failed", media: 0, error: "interrupted" }, 500);
     log.result({ status: "idle", media: 0 }, 100);
-    log.offline(new ApiClientError(403, "private server response"));
-    log.offline(new Error("private network response"));
+    log.offline(new ApiClientError(403, "private server response"), 300_000);
+    log.offline(new Error("private network response"), 1_800_000);
     log.stop();
     const text = output.mock.calls.flat().join("\n");
     expect(output.mock.calls.filter(([line]) => String(line).includes("QUEUE"))).toHaveLength(1);
@@ -81,6 +81,9 @@ describe("Connector progress output", () => {
     expect(text).toContain("50% · 512 B / 1.0 KB");
     expect(text).toContain("100% · 1.0 KB / 1.0 KB");
     expect(text).toContain("still running");
+    expect(text).toContain("checking next job now");
+    expect(text).toContain("Next poll in 5m");
+    expect(text).toContain("Next poll in 30m");
     expect(text).toContain("1/2 media archived");
     expect(text).toContain("connector:write");
     expect(text).toContain(

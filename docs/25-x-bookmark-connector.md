@@ -21,7 +21,7 @@ Connector 的 API Key 只需选择 `connector:write`。登录支持任意有效�
 
 macOS 的 `start` 安装 `ai.hexly.zhe.connector` LaunchAgent；`stop` 卸载该服务。其他系统运行 `zhe connector watch`，交由既有进程管理器启动。电脑休眠、浏览器未连接或 X 会话失效时，已保存链接仍可使用，补全等待本机恢复。
 
-`watch` 默认显示时间、队列统计、链接／帖子 ID、重试次数，以及读取、下载百分比、验证、上传和生成海报等阶段。慢任务每 10 秒继续报告当前阶段；每条结果附耗时和本次会话的成功、部分完成、失败、媒体数量及已确认上传字节统计。按 `Ctrl+C` 输出最终统计并停止。任务串行处理，每轮结束后等待 20 秒；单次验证可用 `zhe connector once`，自动采集可用 `watch --json`。日志不包含 Key、cookies、帖子正文或原始上游错误。
+`watch` 默认显示时间、队列统计、链接／帖子 ID、重试次数，以及读取、下载百分比、验证、上传和生成海报等阶段。慢任务每 10 秒继续报告当前阶段；每条结果附耗时和本次会话的成功、部分完成、失败、媒体数量及已确认上传字节统计。按 `Ctrl+C` 输出最终统计并停止。Ready jobs run serially without an inter-job delay. When idle or disconnected, the next check is scheduled from the local clock: 30 minutes during 22:00-05:00, otherwise 5 minutes. The interval is recalculated at each check; an existing wait is not interrupted at a time-band boundary. Lease renewal remains every 30 seconds. 单次验证可用 `zhe connector once`，自动采集可用 `watch --json`。日志不包含 Key、cookies、帖子正文或原始上游错误。
 
 Webhook 继续使用管理页生成的令牌 URL，无需额外 Authorization 请求头。令牌确定所属用户并支持撤销和限流；它不能领取 Connector 任务或写入归档媒体。
 
@@ -46,7 +46,7 @@ sequenceDiagram
   participant R as 现有 R2
   U->>Z: 正常保存链接
   Z-->>U: 返回已保存链接
-  C->>Z: 每 20 秒领取一个待补全 X 链接
+  C->>Z: Claim next job immediately after completion; idle polling 5m / quiet hours 30m
   Z-->>C: 绑定用户、密钥和链接的租约
   C->>X: 读取指定帖子
   X-->>C: 正文、作者和媒体来源
