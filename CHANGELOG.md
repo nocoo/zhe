@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Verify card menu interaction states
 
 ### Fixed
+- Update vulnerable selector parsing, image processing and source-map dependencies
 - Preserve sheet padding at tablet widths
 - Support keyboard tag scrolling in safari
 - Fit idea grids to available space

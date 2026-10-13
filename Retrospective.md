@@ -355,3 +355,11 @@ domains explicitly, assert the resulting URLs and screenshot-reference query
 parameters, and restore environment stubs after each test. A green run with
 incidental environment coverage is not deterministic release evidence; preserve
 the gate and fix the missing cases instead of retrying for a passing percentage.
+
+The subsequent pre-push scan rejected three vulnerable transitive dependencies
+before either release ref reached GitHub. The same sharp and source-map packages
+also existed in the CLI/Worker lockfiles. Scan all release lanes before the
+expensive browser preflight, apply the smallest patched dependency set, and rerun
+the browser suite when build or image-processing dependencies change. A local
+release tag is not publication evidence; verify remote absence before replacing
+that unpublished tag, and never move a published one.
