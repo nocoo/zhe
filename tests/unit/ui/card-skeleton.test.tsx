@@ -3,12 +3,18 @@ import { render, screen } from "@testing-library/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DashboardLoading from "@/app/(dashboard)/dashboard/loading";
-import { CardListSkeleton } from "@/components/ui/card-skeleton";
+import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
 
 vi.mock("next/navigation", () => ({ usePathname: vi.fn(), useSearchParams: vi.fn() }));
 afterEach(() => localStorage.clear());
 
 describe("collection loading layouts", () => {
+  it("sizes idea columns from available content width rather than the viewport", () => {
+    render(<CardGridSkeleton variant="idea" count={2} />);
+    const grid = screen.getByTestId("card-grid");
+    expect(grid.className).toContain(CARD_GRID_CLASS);
+    expect(grid.className).toContain("minmax(min(100%,14rem),1fr)");
+  });
   it.each([
     ["/dashboard", "", "grid", "card-grid", 12],
     ["/dashboard", "folder=saved", "list", "card-list", 6],

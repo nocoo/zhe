@@ -124,7 +124,8 @@ Bookmark grid, X and GitHub collections use `BOOKMARK_GRID_CLASS`: container-wid
 auto-fill columns with an 18rem minimum, collapsing to one column on narrow screens.
 All three grid presentations use 24rem cards; X and GitHub no longer use masonry.
 List cards retain a compact horizontal preview and combine classification and actions
-into one footer row on desktop. Ideas and uploads retain their existing layouts.
+into one footer row on desktop. Ideas use a separate 14rem minimum grid;
+uploads retain their existing layout.
 Loading respects the saved grid/list preference, including uncategorized links.
 
 骨架容器提供 `role="status"`、`aria-busy` 和加载名称，内部装饰对辅助技术隐藏。骨架使用轻微 pulse；数据到达后卡片通过 `animate-fade-up` 和 `staggerStyle` 依次渐入，延迟最多累计 12 张，稳定 key 避免刷新重播。减少动态效果设置下停用 pulse 和卡片入场，保留正常布局；重排继续使用共享 `AnimatedCardList`。
@@ -246,9 +247,12 @@ attachments remain accessible in dialogs. Long titles, tag counts, vertical vide
 missing data and loading states must not move the footer or grow individual cards.
 Do not truncate interactive controls or nest buttons/anchors inside each other.
 
-Ideas and completed uploads still use the independent `CardActions` responsive
-contract: below 480px card width, secondary actions move into More. This bookmark
-refactor does not change their behavior or global Button sizing.
+Ideas use a container-driven 14rem minimum grid, shared with their skeleton, so
+the native island padding cannot squeeze dates and touch targets into two narrow
+mobile columns. Ideas and completed uploads still use the independent
+`CardActions` responsive contract: below 480px card width, secondary actions move
+into More. This bookmark refactor does not change their behavior or global
+Button sizing.
 
 Evidence: `tests/components/bookmark-actions.test.tsx` covers descriptors, callbacks,
 copy grouping, menu/focus behavior, pending deletion and dialog boundaries;

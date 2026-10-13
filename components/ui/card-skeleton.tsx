@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 export const CARD_GRID_CLASS =
-  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 min-[160rem]:grid-cols-8 gap-3";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,14rem),1fr))] gap-3";
 
 export const BOOKMARK_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3";
