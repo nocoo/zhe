@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.0] - 2026-10-13
+
+### Added
+- Refine bookmark footer interactions
+- Unify bookmark actions and card layouts
+
+### Changed
+- Isolate R2 public-domain fallback tests from inherited environment values
+- Upgrade basalt to 3.0.0
+- Synchronize early editor dismissal
+- Preserve upstream card test fixes
+- Await card entrance before scroll checks
+- Verify card menu interaction states
+
+### Fixed
+- Preserve sheet padding at tablet widths
+- Support keyboard tag scrolling in safari
+- Fit idea grids to available space
+- Keep card actions clear of floating create
+- Isolate search navigation and update basalt
+- Preserve clean checkout release inputs
+
 ## [v2.1.9] - 2026-10-01
 
 ### Added
