@@ -372,6 +372,14 @@ button. Search every removed component's test IDs and accessible labels, not onl
 its imports and fixed-height assertions. Keep the filter behavior assertion on
 the restored content rather than recreating an obsolete button for the test.
 
+The full release preflight also found a cross-source journey in the GitHub spec
+that navigated to X and expected its saved-tag row. A filename-scoped test search
+was insufficient. Inventory every affected route and shared classification
+selector across browser specs; assert hidden X metadata while retaining positive
+and negative tag-filter checks. The preflight correctly stopped before versioning
+or publication. Selected filters change their accessible label to include a count;
+read that control contract before adding a second interaction to the journey.
+
 ## 2026-10-13: Give each viewport scenario its own test budget
 
 The v2.2.0 release CI failed the iPhone grid-actions case despite a local green

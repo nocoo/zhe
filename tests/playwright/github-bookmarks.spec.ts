@@ -433,16 +433,19 @@ for (const width of [1365, 320]) {
       await expect(dialog).toBeHidden();
       await page.goto("/dashboard/x");
       await expect(islandHeading(page, "X 收藏")).toBeVisible();
-      await expect(
-        page
-          .getByTestId("link-card")
-          .locator("[data-bookmark-classification]")
-          .getByRole("list", { name: "收藏标签" }),
-      ).toHaveText("待读");
+      const xCard = page.getByTestId("link-card");
+      await expect(xCard).toHaveCount(1);
+      await expect(xCard.locator("[data-bookmark-classification]")).toHaveCount(0);
+      await expect(xCard.getByRole("list", { name: "收藏标签" })).toHaveCount(0);
       await page.getByRole("button", { name: "标签", exact: true }).click();
       await page.getByRole("option", { name: "待读", exact: true }).click();
       await page.keyboard.press("Escape");
-      await expect(page.getByTestId("link-card")).toHaveCount(1);
+      await expect(xCard).toHaveCount(1);
+      await expect(xCard).toHaveAttribute("data-link-id", String(ids[1]));
+      await page.getByRole("button", { name: "标签 (1)", exact: true }).click();
+      await page.getByRole("option", { name: "收藏标签 1", exact: true }).click();
+      await page.keyboard.press("Escape");
+      await expect(xCard).toHaveCount(0);
     } finally {
       await executeD1("DELETE FROM users WHERE id=?", [owner]);
     }
