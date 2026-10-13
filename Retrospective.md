@@ -343,3 +343,15 @@ Native overflow plus `tabIndex` allowed tag scrolling with arrow keys in Chromiu
 but not WebKit, including desktop Safari. An isolated native-list probe confirmed
 the platform difference. Keep native touch/trackpad scrolling and handle horizontal
 arrow keys on the focused strip; verify both directions without trapping Tab.
+
+## 2026-10-13: Test environment fallbacks explicitly before releasing
+
+The v2.2.0 release passed all 233 browser tests but its normal pre-commit gate
+rejected branch coverage at 94.98%, versus 95.02% in earlier commits. Comparing
+the reports isolated two R2 public-domain fallbacks. Their tests inherited
+`R2_PUBLIC_DOMAIN`, so a configured release environment changed which branches
+ran even though every test still passed. Cover unset, empty and configured
+domains explicitly, assert the resulting URLs and screenshot-reference query
+parameters, and restore environment stubs after each test. A green run with
+incidental environment coverage is not deterministic release evidence; preserve
+the gate and fix the missing cases instead of retrying for a passing percentage.

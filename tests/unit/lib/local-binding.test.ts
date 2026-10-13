@@ -28,6 +28,21 @@ it("signs uploads for one key and content type without leaking the secret", () =
   const other = new URL(createPresignedUploadUrl("a/b.png", "text/plain"));
   expect(other.searchParams.get("signature")).not.toBe(url.searchParams.get("signature"));
 });
+it.each([
+  { domain: undefined, origin: "http://127.0.0.1:8788", pathname: "/upload" },
+  { domain: "", origin: "http://127.0.0.1:8788", pathname: "/upload" },
+  {
+    domain: "https://cdn.example.com/media/r2",
+    origin: "https://cdn.example.com",
+    pathname: "/media/upload",
+  },
+] as const)("presigns against public domain %#", ({ domain, origin, pathname }) => {
+  vi.stubEnv("R2_PUBLIC_DOMAIN", domain);
+  const url = new URL(createPresignedUploadUrl("shot.webp", "image/webp"));
+  expect(url.origin).toBe(origin);
+  expect(url.pathname).toBe(pathname);
+  expect(url.searchParams.get("key")).toBe("shot.webp");
+});
 it("rejects missing or remote local bindings", () => {
   vi.stubEnv("D1_PROXY_URL", "");
   expect(() => createPresignedUploadUrl("key", "text/plain")).toThrow("not configured");
