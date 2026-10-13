@@ -207,8 +207,12 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await expect(more).toBeFocused();
       await more.click();
       await page.getByRole("menuitem", { name: "修改收藏" }).click();
+      await expect(page.getByRole("menu")).toBeHidden();
       const editor = page.getByTestId("card-edit-dialog");
-      await expect(editor).toHaveAttribute("data-phase", "editing");
+      await expect(editor).toBeVisible();
+      await expect
+        .poll(async () => editor.getAttribute("data-phase"), { timeout: 15_000 })
+        .toBe("editing");
       await editor.evaluate(async (element) => {
         await Promise.all(element.getAnimations().map((animation) => animation.finished));
       });
@@ -224,7 +228,13 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await expect(more).toBeFocused();
       await more.click();
       await page.getByRole("menuitem", { name: "删除收藏" }).click();
-      await page.getByRole("alertdialog").getByRole("button", { name: "取消" }).click();
+      const deleteDialog = page.getByRole("alertdialog");
+      await expect(deleteDialog).toBeVisible();
+      await deleteDialog.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map((animation) => animation.finished));
+      });
+      const cancelDelete = deleteDialog.getByRole("button", { name: "取消" });
+      await cancelDelete.click();
       await expect(cards).toHaveCount(3);
       await expect(more).toBeFocused();
     });
