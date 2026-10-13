@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.2] - 2026-10-13
+
+### Fixed
+- Reduce idle connector polling
+
 ## [v2.2.1] - 2026-10-13
 
 ### Changed
