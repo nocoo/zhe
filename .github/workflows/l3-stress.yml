@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: nocoo/base-ci/.github/actions/setup-js@ad43150de3a2be2fa464b5cd2f921dc4fa9f8f0f
+      - uses: nocoo/base-ci/.github/actions/setup-js@0394178ebcff0418c442d84a84119220f31f8987 # v2026.9
         with:
           runtime-version: "1.3.11"
           install-policy: "blocked"
