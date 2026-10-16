@@ -26,7 +26,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.79",
+    "@ai-sdk/anthropic": "4.0.81",
     "@ai-sdk/openai": "4.0.92",
     "@auth/core": "^0.41.3",
     "@aws-sdk/client-s3": "3.1150.0",
@@ -104,6 +104,7 @@
     "ws": ">=8.21.0",
     "nanoid": "^6.0.2",
     "postcss-selector-parser": "^7.1.6",
-    "source-map-js": "1.2.2"
+    "source-map-js": "1.2.2",
+    "@ai-sdk/anthropic": "4.0.81"
   }
 }
