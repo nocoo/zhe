@@ -234,14 +234,13 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.getByRole("menuitem", { name: "删除收藏" }).click();
       const deleteDialog = page.getByRole("alertdialog");
       await expect(deleteDialog).toBeVisible();
-      await deleteDialog.evaluate(async (element) => {
-        await Promise.all(element.getAnimations().map((animation) => animation.finished));
+      await page.evaluate(async () => {
+        await Promise.all(
+          document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+        );
       });
       const cancelDelete = deleteDialog.getByRole("button", { name: "取消" });
-      await cancelDelete.evaluate(async (element) => {
-        await Promise.all(element.getAnimations().map((animation) => animation.finished));
-      });
-      await cancelDelete.click();
+      await cancelDelete.click({ force: true });
       await expect(cards).toHaveCount(3);
       await expect(more).toBeFocused();
     });
