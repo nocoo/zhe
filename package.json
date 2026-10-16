@@ -34,7 +34,7 @@
     "@nocoo/basalt": "3.0.0",
     "@nocoo/next-ai": "^0.4.0",
     "@tailwindcss/typography": "0.5.20",
-    "ai": "7.0.138",
+    "ai": "7.0.142",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "drizzle-orm": "0.45.4",
@@ -106,6 +106,7 @@
     "postcss-selector-parser": "^7.1.6",
     "source-map-js": "1.2.2",
     "@ai-sdk/anthropic": "4.0.81",
-    "@ai-sdk/openai": "4.0.95"
+    "@ai-sdk/openai": "4.0.95",
+    "ai": "7.0.142"
   }
 }
