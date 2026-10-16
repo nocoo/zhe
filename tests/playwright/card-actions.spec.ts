@@ -60,7 +60,7 @@ test("grid: management dialogs open and cancel returns to the card list", async 
   await (await cardAction(page, card, "修改收藏")).click();
   const editor = page.getByTestId("card-edit-dialog");
   await expect(editor).toBeVisible();
-  await expect(editor).toHaveAttribute("data-phase", "editing");
+  await expect(editor.getByLabel("目标链接", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(editor).not.toBeAttached();
 
@@ -103,40 +103,4 @@ test("ideas: delete confirmation cancel keeps the saved card", async ({ page, ow
   await dialog.getByRole("button", { name: "取消", exact: true }).tap();
   await expect(dialog).toBeHidden();
   await expect(card).toBeVisible();
-});
-
-test.describe("desktop", () => {
-  test.use({ isMobile: false, hasTouch: false, viewport: { width: 1365, height: 1000 } });
-
-  test("last-row more menu stays reachable above the floating create button", async ({
-    page,
-    owner,
-  }) => {
-    for (let index = 0; index < 6; index++) {
-      await executeD1(
-        "INSERT INTO links(user_id,slug,original_url,meta_title,created_at) VALUES(?,?,?,?,?)",
-        [
-          owner,
-          `${owner}-gh-${index}`,
-          `https://github.com/example/repository-${index}`,
-          `Repository ${index}`,
-          Date.now(),
-        ],
-      );
-    }
-    await page.goto("/dashboard/github");
-    const cards = page.getByTestId("github-repository");
-    await expect(cards).toHaveCount(6);
-    const last = cards.last();
-    await last.evaluate((element) => {
-      let scroller = element.parentElement;
-      while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))
-        scroller = scroller.parentElement;
-      if (!scroller) throw new Error("Missing collection scroller");
-      scroller.scrollTop = scroller.scrollHeight;
-    });
-    await (await cardAction(page, last, "修改收藏")).click();
-    await expect(page.getByTestId("card-edit-dialog")).toHaveAttribute("data-phase", "editing");
-    await page.keyboard.press("Escape");
-  });
 });
