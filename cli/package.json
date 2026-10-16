@@ -1,6 +1,6 @@
 {
   "name": "@nocoo/zhe",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "CLI for managing zhe.to short links",
   "type": "module",
   "main": "dist/index.js",
@@ -31,9 +31,9 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@types/node": "26.6.5",
-    "@vitest/coverage-v8": "5.0.4",
+    "@vitest/coverage-v8": "5.0.5",
     "typescript": "7.0.2",
-    "vitest": "5.0.4"
+    "vitest": "5.0.5"
   },
   "keywords": [
     "zhe",
