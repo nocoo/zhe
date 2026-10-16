@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Simplify L3 browser E2E specs: replace layout, focus, and animation-frame assertions with user-level dialog and CRUD happy paths.
+- Align `@nocoo/zhe` package version with root `2.2.8` for npm publish.
+
+### Fixed
+- Correct `verifyKey` JSDoc: todos-only API keys can pass `zhe login` via the standard `links:read` insufficient-scope 403.
 
 ## [v2.2.7] - 2026-10-16
 

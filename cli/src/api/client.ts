@@ -240,8 +240,8 @@ export class ApiClient {
   /**
    * Verify identity via `GET /links?limit=1`. Keys without `links:read` receive
    * 403 with message `Insufficient permissions. Required scope: links:read` —
-   * that still proves the key is valid. Other scope-only keys (e.g. todos:read)
-   * cannot complete `zhe login` verification; include `links:read` on CLI keys.
+   * that still proves the key is valid, so todos-only keys can complete
+   * `zhe login`. Include `links:read` on general-purpose CLI keys.
    */
   async verifyKey(): Promise<boolean> {
     try {
