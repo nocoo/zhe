@@ -20,7 +20,10 @@ import { tagCommand } from "./commands/tag.js";
 import { tagsCommand } from "./commands/tags.js";
 import { todoCommand } from "./commands/todo.js";
 import { updateCommand } from "./commands/update.js";
+import { handleSkillFlagIfNeeded } from "./skill.js";
 import { CLI_VERSION } from "./version.js";
+
+handleSkillFlagIfNeeded();
 
 const main = defineCommand({
   meta: {

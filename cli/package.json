@@ -9,7 +9,8 @@
     "zhe": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc && cp src/connector/eagle-native.py dist/connector/eagle-native.py",
