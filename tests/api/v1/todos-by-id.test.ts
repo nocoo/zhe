@@ -115,17 +115,32 @@ describe("/api/v1/todos/[id]", () => {
 
   describe("POST reorder", () => {
     it("reorders siblings", async () => {
-      const a = await seedTodo(TEST_USER_ID, { title: "A", position: 0 });
-      const b = await seedTodo(TEST_USER_ID, { title: "B", position: 1 });
+      const a = await seedTodo(TEST_USER_ID, { title: "Reorder A", position: 0 });
+      const b = await seedTodo(TEST_USER_ID, { title: "Reorder B", position: 1 });
+
+      const listRes = await authenticatedFetch(API_URL, apiKeyReadOnly);
+      const listBody = await listRes.json();
+      const rootIds = (listBody.todos as { id: number; parentId: number | null }[])
+        .filter((t) => t.parentId === null)
+        .sort((x, y) => x.id - y.id)
+        .map((t) => t.id);
+
+      expect(rootIds).toContain(a.id);
+      expect(rootIds).toContain(b.id);
+
+      const orderedIds = [...rootIds];
+      const ai = orderedIds.indexOf(a.id);
+      const bi = orderedIds.indexOf(b.id);
+      [orderedIds[ai], orderedIds[bi]] = [orderedIds[bi], orderedIds[ai]];
 
       const response = await authenticatedFetch(`${API_URL}/reorder`, apiKeyWithReadWrite, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentId: null, orderedIds: [b.id, a.id] }),
+        body: JSON.stringify({ parentId: null, orderedIds }),
       });
       expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body.orderedIds).toEqual([b.id, a.id]);
+      expect(body.orderedIds).toEqual(orderedIds);
     });
   });
 });
