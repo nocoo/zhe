@@ -131,7 +131,12 @@ describe("/api/v1/todos/[id]", () => {
       const orderedIds = [...rootIds];
       const ai = orderedIds.indexOf(a.id);
       const bi = orderedIds.indexOf(b.id);
-      [orderedIds[ai], orderedIds[bi]] = [orderedIds[bi], orderedIds[ai]];
+      expect(ai).toBeGreaterThanOrEqual(0);
+      expect(bi).toBeGreaterThanOrEqual(0);
+      const aVal = orderedIds[ai] as number;
+      const bVal = orderedIds[bi] as number;
+      orderedIds[ai] = bVal;
+      orderedIds[bi] = aVal;
 
       const response = await authenticatedFetch(`${API_URL}/reorder`, apiKeyWithReadWrite, {
         method: "POST",
