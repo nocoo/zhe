@@ -29,7 +29,7 @@ beforeAll(async () => {
   apiKey = await seedApiKey(TEST_USER_ID, {
     name: "Idempotency",
     scopes:
-      "links:read,links:write,tags:read,tags:write,folders:read,folders:write,ideas:read,ideas:write",
+      "links:read,links:write,tags:read,tags:write,folders:read,folders:write,ideas:read,ideas:write,todos:read,todos:write",
   });
 });
 

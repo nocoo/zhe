@@ -18,6 +18,7 @@ import type {
   CreateIdeaRequest,
   CreateLinkRequest,
   CreateTagRequest,
+  CreateTodoRequest,
   FolderResponse,
   FoldersResponse,
   IdeaResponse,
@@ -26,12 +27,20 @@ import type {
   LinksResponse,
   ListIdeasParams,
   ListLinksParams,
+  MoveTodoRequest,
+  MoveTodoResponse,
+  ReorderTodosRequest,
+  ReorderTodosResponse,
   TagResponse,
   TagsResponse,
+  TodoResponse,
+  TodosResponse,
+  TodoTagsResponse,
   UpdateFolderRequest,
   UpdateIdeaRequest,
   UpdateLinkRequest,
   UpdateTagRequest,
+  UpdateTodoRequest,
 } from "./types.js";
 
 const API_BASE = "https://zhe.to/api/v1";
@@ -238,13 +247,13 @@ export class ApiClient {
     } catch (error) {
       if (error instanceof ApiClientError) {
         if (error.status === 401) return false;
-        // This response is only emitted after the API has authenticated the key.
-        // Other 403 responses (for example, an edge denial) do not verify identity.
+        // Authenticated key lacking links:read still proves identity.
         if (
           error.status === 403 &&
-          error.message === "Insufficient permissions. Required scope: links:read"
-        )
+          error.message.startsWith("Insufficient permissions. Required scope:")
+        ) {
           return true;
+        }
       }
       throw error;
     }
@@ -293,6 +302,40 @@ export class ApiClient {
    */
   async deleteIdea(id: number): Promise<void> {
     await this.request<Record<string, never>>("DELETE", `/ideas/${id}`);
+  }
+
+  // ── Todos ──
+
+  async listTodos(): Promise<TodosResponse> {
+    return this.request<TodosResponse>("GET", "/todos");
+  }
+
+  async getTodo(id: number): Promise<TodoResponse> {
+    return this.request<TodoResponse>("GET", `/todos/${id}`);
+  }
+
+  async listTodoTags(): Promise<TodoTagsResponse> {
+    return this.request<TodoTagsResponse>("GET", "/todos/tags");
+  }
+
+  async createTodo(data: CreateTodoRequest): Promise<TodoResponse> {
+    return this.request<TodoResponse>("POST", "/todos", data);
+  }
+
+  async updateTodo(id: number, data: UpdateTodoRequest): Promise<TodoResponse> {
+    return this.request<TodoResponse>("PATCH", `/todos/${id}`, data);
+  }
+
+  async moveTodo(id: number, data: MoveTodoRequest): Promise<MoveTodoResponse> {
+    return this.request<MoveTodoResponse>("POST", `/todos/${id}/move`, data);
+  }
+
+  async reorderTodos(data: ReorderTodosRequest): Promise<ReorderTodosResponse> {
+    return this.request<ReorderTodosResponse>("POST", "/todos/reorder", data);
+  }
+
+  async deleteTodo(id: number): Promise<void> {
+    await this.request<Record<string, never>>("DELETE", `/todos/${id}`);
   }
 
   connectorStatus(signal?: AbortSignal): Promise<ConnectorStatus> {

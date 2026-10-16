@@ -533,22 +533,26 @@ Each action mirrors the actual `actions/ideas.ts` shape (v1 修订，Reviewer �
 
 ---
 
-## API v1 (deferred to v2)
+## API v1
 
-Not in v1 scope. When added, mirror `/api/v1/ideas` endpoints:
+Scopes: `todos:read`, `todos:write`. Todo tags are free-form text on the todo (`tagNames`); unlike ideas, tag resolution does **not** require `tags:read`.
 
-- `GET /api/v1/todos` — flat list, tree shape reconstructed client-side.
-- `POST /api/v1/todos` — create.
-- `GET /api/v1/todos/[id]` — detail.
-- `PATCH /api/v1/todos/[id]` — update.
-- `POST /api/v1/todos/[id]/move` — reparent + reorder (dedicated endpoint so move validation and reorder stay one guarded operation even when only one field changes).
-- `DELETE /api/v1/todos/[id]` — cascade delete.
+| Route | Method | Scope | Notes |
+|-------|--------|-------|-------|
+| `/api/v1/todos` | GET | `todos:read` | Flat `TodoTreeNode[]`; client rebuilds forest |
+| `/api/v1/todos` | POST | `todos:write` | Create; body uses `dueAtMs` like server actions |
+| `/api/v1/todos/tags` | GET | `todos:read` | Distinct tag names |
+| `/api/v1/todos/reorder` | POST | `todos:write` | `{ parentId, orderedIds }` |
+| `/api/v1/todos/[id]` | GET | `todos:read` | Detail shape (`content`, `doneAt`) |
+| `/api/v1/todos/[id]` | PATCH | `todos:write` | Partial update |
+| `/api/v1/todos/[id]` | DELETE | `todos:write` | Cascade delete subtree |
+| `/api/v1/todos/[id]/move` | POST | `todos:write` | Guarded reparent + position |
 
-New scopes: `todos:read`, `todos:write`. Reviewer to confirm the same scope-hygiene story as ideas (tag resolution requires no cross-scope, unlike ideas' `tags:read` because todo tags are text-only).
+Wire validation and `dueAtMs` / `emoji` handling live in `models/todo-wire.ts` (shared with `actions/todos.ts`).
 
-## CLI (deferred to v2)
+## CLI
 
-`zhe todo …` mirrors `zhe idea …` shape when API v1 lands. Not in v1.
+`zhe todo list|get|create|update|move|delete` calls the v1 routes above. Login identity verification accepts any authenticated key (403 with missing `links:read` still counts as verified).
 
 ---
 

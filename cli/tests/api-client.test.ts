@@ -731,6 +731,18 @@ describe("ApiClient", () => {
       expect(result).toBe(true);
     });
 
+    it("accepts an authenticated key with only todos:read", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        headers: new Headers(),
+        json: async () => ({ error: "Insufficient permissions. Required scope: links:read" }),
+      });
+
+      const client = new ApiClient("zhe_todos_only");
+      expect(await client.verifyKey()).toBe(true);
+    });
+
     it.each(["Forbidden", "Permission denied. Check your API Key scopes."])(
       "does not mistake an unrelated 403 for verified identity: %s",
       async (message) => {
@@ -1103,6 +1115,147 @@ describe("ApiClient", () => {
 
       const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(url).toBe("https://zhe.to/api/v1/ideas/42");
+      expect(options.method).toBe("DELETE");
+    });
+  });
+
+  // ── Todos ──
+
+  describe("listTodos", () => {
+    it("returns todos from API", async () => {
+      const todos = [{ id: 1, title: "Task", parentId: null, position: 0, done: false }];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ todos, total: 1 }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      const result = await client.listTodos();
+
+      expect(result.todos).toEqual(todos);
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toBe("https://zhe.to/api/v1/todos");
+    });
+  });
+
+  describe("getTodo", () => {
+    it("returns todo detail by ID", async () => {
+      const todo = { id: 3, title: "Detail", content: "Body" };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ todo }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      const result = await client.getTodo(3);
+      expect(result.todo).toEqual(todo);
+    });
+  });
+
+  describe("listTodoTags", () => {
+    it("returns tag names", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ tags: ["work"] }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      const result = await client.listTodoTags();
+      expect(result.tags).toEqual(["work"]);
+    });
+  });
+
+  describe("createTodo", () => {
+    it("creates a todo", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        headers: new Headers(),
+        json: async () => ({ todo: { id: 1, title: "New" } }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      await client.createTodo({ title: "New" });
+
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/todos");
+      expect(options.method).toBe("POST");
+    });
+  });
+
+  describe("updateTodo", () => {
+    it("patches a todo", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ todo: { id: 2, title: "Done", done: true } }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      await client.updateTodo(2, { done: true });
+
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/todos/2");
+      expect(options.method).toBe("PATCH");
+    });
+  });
+
+  describe("moveTodo", () => {
+    it("posts move payload", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ move: { movedId: 2, newParentId: 1 } }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      await client.moveTodo(2, { parentId: 1, position: 0 });
+
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/todos/2/move");
+      expect(options.method).toBe("POST");
+    });
+  });
+
+  describe("reorderTodos", () => {
+    it("posts reorder payload", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ orderedIds: [2, 1] }),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      await client.reorderTodos({ parentId: null, orderedIds: [2, 1] });
+
+      const [url] = mockFetch.mock.calls[0] as [string];
+      expect(url).toBe("https://zhe.to/api/v1/todos/reorder");
+    });
+  });
+
+  describe("deleteTodo", () => {
+    it("deletes a todo", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+        json: async () => ({}),
+      });
+
+      const client = new ApiClient("zhe_testkey");
+      await client.deleteTodo(9);
+
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/todos/9");
       expect(options.method).toBe("DELETE");
     });
   });

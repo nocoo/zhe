@@ -1,6 +1,10 @@
 {
   "name": "zhe",
+<<<<<<< HEAD
   "version": "2.2.6",
+=======
+  "version": "2.2.7",
+>>>>>>> 04e46a58 (feat(api): add todos API scopes, routes, and CLI commands)
   "private": true,
   "scripts": {
     "dev": "bun run scripts/local.ts",

@@ -49,6 +49,8 @@ zhe open my-slug
 | `zhe update <id>` | Update a link |
 | `zhe delete <id>` | Delete a link |
 | `zhe open <slug>` | Open short URL in browser |
+| `zhe idea …` | Manage Markdown ideas |
+| `zhe todo …` | Manage hierarchical todos |
 | `zhe connector status` | Show the combined enrichment queue and shared key expiry |
 | `zhe connector once` | Process one X, GitHub, or webpage preview job |
 | `zhe connector watch` | Drain ready jobs serially; when idle, poll every 5 minutes (30 minutes during local 22:00-05:00) |

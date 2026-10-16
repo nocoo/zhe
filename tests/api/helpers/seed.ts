@@ -347,6 +347,56 @@ export async function seedIdea(
 }
 
 // ---------------------------------------------------------------------------
+// Todo helpers
+// ---------------------------------------------------------------------------
+
+export interface SeedTodoOptions {
+  userId?: string;
+  title?: string;
+  parentId?: number | null;
+  content?: string | null;
+  position?: number;
+  done?: boolean;
+  tagNames?: string[];
+}
+
+/** Insert a todo into D1 and return the todo info. */
+export async function seedTodo(
+  userId?: string,
+  options: SeedTodoOptions = {},
+): Promise<{ id: number; title: string }> {
+  const uid = userId ?? TEST_USER.id;
+  const title = options.title ?? `Test todo ${nanoid(6)}`;
+  const parentId = options.parentId === undefined ? null : options.parentId;
+  const content = options.content ?? null;
+  const excerpt = content ? content.substring(0, 200) : null;
+  const position = options.position ?? 0;
+  const done = options.done ? 1 : 0;
+  const now = Date.now();
+
+  const rows = await queryD1<{ id: number }>(
+    `INSERT INTO todos (user_id, parent_id, position, title, content, excerpt, done, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     RETURNING id`,
+    [uid, parentId, position, title, content, excerpt, done, now, now],
+  );
+  if (rows.length === 0) throw new Error("Seeded todo not found");
+  const id = unwrap(rows[0]).id;
+
+  if (options.tagNames && options.tagNames.length > 0) {
+    for (const name of options.tagNames) {
+      await executeD1("INSERT INTO todo_tags (todo_id, name, created_at) VALUES (?, ?, ?)", [
+        id,
+        name.toLowerCase(),
+        now,
+      ]);
+    }
+  }
+
+  return { id, title };
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup
 // ---------------------------------------------------------------------------
 
@@ -360,6 +410,11 @@ export async function cleanupTestData(userId?: string): Promise<void> {
     { sql: "DELETE FROM api_keys WHERE user_id = ?", params: [uid] },
     // idea_tags is cleaned up by CASCADE on ideas delete
     { sql: "DELETE FROM ideas WHERE user_id = ?", params: [uid] },
+    {
+      sql: "DELETE FROM todo_tags WHERE todo_id IN (SELECT id FROM todos WHERE user_id = ?)",
+      params: [uid],
+    },
+    { sql: "DELETE FROM todos WHERE user_id = ?", params: [uid] },
     { sql: "DELETE FROM tags WHERE user_id = ?", params: [uid] },
     { sql: "DELETE FROM links WHERE user_id = ?", params: [uid] },
     { sql: "DELETE FROM folders WHERE user_id = ?", params: [uid] },
@@ -384,6 +439,11 @@ export async function resetAndSeedUser(userId: string): Promise<void> {
     { sql: "DELETE FROM api_audit_logs WHERE user_id = ?", params: [userId] },
     { sql: "DELETE FROM api_keys WHERE user_id = ?", params: [userId] },
     { sql: "DELETE FROM ideas WHERE user_id = ?", params: [userId] },
+    {
+      sql: "DELETE FROM todo_tags WHERE todo_id IN (SELECT id FROM todos WHERE user_id = ?)",
+      params: [userId],
+    },
+    { sql: "DELETE FROM todos WHERE user_id = ?", params: [userId] },
     { sql: "DELETE FROM tags WHERE user_id = ?", params: [userId] },
     { sql: "DELETE FROM links WHERE user_id = ?", params: [userId] },
     { sql: "DELETE FROM folders WHERE user_id = ?", params: [userId] },

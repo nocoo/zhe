@@ -368,6 +368,11 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | `tags:write` | 创建、更新、删除标签 |
 | `uploads:read` | 读取上传文件列表和详情 |
 | `uploads:write` | 删除上传文件 |
+| `ideas:read` | 读取想法列表和详情 |
+| `ideas:write` | 创建、更新、删除想法 |
+| `todos:read` | 读取待办列表、详情与标签名 |
+| `todos:write` | 创建、更新、移动、重排与删除待办 |
+| `connector:write` | Connector 轮询与任务写入 |
 
 #### 端点列表
 
@@ -391,6 +396,20 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 | `/api/v1/uploads` | GET | `uploads:read` | 获取上传文件列表 |
 | `/api/v1/uploads/[id]` | GET | `uploads:read` | 获取上传文件详情 |
 | `/api/v1/uploads/[id]` | DELETE | `uploads:write` | 删除上传文件 |
+| `/api/v1/ideas` | GET | `ideas:read` | 获取想法列表 |
+| `/api/v1/ideas` | POST | `ideas:write` | 创建想法 |
+| `/api/v1/ideas/[id]` | GET | `ideas:read` | 获取想法详情 |
+| `/api/v1/ideas/[id]` | PATCH | `ideas:write` | 更新想法 |
+| `/api/v1/ideas/[id]` | DELETE | `ideas:write` | 删除想法 |
+| `/api/v1/todos` | GET | `todos:read` | 获取待办扁平列表（树形由客户端重建） |
+| `/api/v1/todos` | POST | `todos:write` | 创建待办 |
+| `/api/v1/todos/tags` | GET | `todos:read` | 获取待办自由标签名列表 |
+| `/api/v1/todos/reorder` | POST | `todos:write` | 重排同级待办 |
+| `/api/v1/todos/[id]` | GET | `todos:read` | 获取待办详情 |
+| `/api/v1/todos/[id]` | PATCH | `todos:write` | 更新待办 |
+| `/api/v1/todos/[id]` | DELETE | `todos:write` | 删除待办（级联子项） |
+| `/api/v1/todos/[id]/move` | POST | `todos:write` | 移动待办（改父级与排序） |
+| `/api/v1/connector` | GET/POST | `connector:write` | Connector 状态与领取任务 |
 
 #### 链接 API 详情
 

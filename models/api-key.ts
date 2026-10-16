@@ -15,6 +15,8 @@ export const API_SCOPES = [
   "uploads:write",
   "ideas:read",
   "ideas:write",
+  "todos:read",
+  "todos:write",
   "connector:write",
 ] as const;
 
