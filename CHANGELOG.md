@@ -7,19 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-<<<<<<< HEAD
+## [v2.2.7] - 2026-10-16
+
+### Added
+- Add `todos:read` and `todos:write` API scopes with `/api/v1/todos` REST endpoints and `zhe todo` CLI commands
+
 ## [v2.2.6] - 2026-10-16
 
 ### Changed
 - Bump react-arborist to 4.0.1
 - Add react-dnd and react-dnd-html5-backend as direct dependencies (v4 peer requirement)
 - Run `test:unit` with `--pool=forks` so happy-dom suites load ESM-only tree DnD peers reliably
-=======
-## [v2.2.7] - 2026-10-16
-
-### Added
-- Add `todos:read` and `todos:write` API scopes with `/api/v1/todos` REST endpoints and `zhe todo` CLI commands
->>>>>>> 04e46a58 (feat(api): add todos API scopes, routes, and CLI commands)
 
 ## [v2.2.5] - 2026-10-16
 
