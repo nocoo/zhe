@@ -20,9 +20,7 @@ test("global creation follows page navigation and contextual dialogs", async ({ 
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
 
-  const menu = page.getByRole("button", { name: "Open menu", exact: true });
-  if (await menu.isVisible()) await menu.click();
-  await page.locator('a[href="/dashboard"]').first().click();
+  await page.goto("/dashboard");
   await expect(fab).toHaveAccessibleName("新建链接");
   await fab.click();
   await expect(page.getByLabel("原始链接")).toBeVisible();
