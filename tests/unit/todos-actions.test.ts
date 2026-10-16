@@ -262,6 +262,15 @@ describe("createTodo", () => {
     }
     expect(mockCreateTodo).not.toHaveBeenCalled();
   });
+
+  it("rejects out-of-range dueAtMs without touching the DB", async () => {
+    const result = await createTodo({ title: "t", dueAtMs: 9_000_000_000_000_000 });
+    expect(result).toEqual({
+      success: false,
+      error: "Due date must be a finite timestamp",
+    });
+    expect(mockCreateTodo).not.toHaveBeenCalled();
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -322,6 +331,15 @@ describe("updateTodo", () => {
         error: "Due date must be a finite timestamp",
       });
     }
+    expect(mockUpdateTodo).not.toHaveBeenCalled();
+  });
+
+  it("rejects out-of-range dueAtMs on update without clearing due in DB", async () => {
+    const result = await updateTodo(1, { dueAtMs: 9_000_000_000_000_000 });
+    expect(result).toEqual({
+      success: false,
+      error: "Due date must be a finite timestamp",
+    });
     expect(mockUpdateTodo).not.toHaveBeenCalled();
   });
 });

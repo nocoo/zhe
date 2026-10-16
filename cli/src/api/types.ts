@@ -174,3 +174,80 @@ export interface ListIdeasParams {
   tagId?: string;
   q?: string;
 }
+
+// ── Todos ──
+
+export interface TodoTreeNode {
+  id: number;
+  parentId: number | null;
+  position: number;
+  title: string;
+  done: boolean;
+  hasContent: boolean;
+  excerpt: string | null;
+  tagNames: string[];
+  dueAt: string | null;
+  emoji: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodoDetail extends TodoTreeNode {
+  content: string | null;
+  doneAt: string | null;
+}
+
+export interface TodosResponse {
+  todos: TodoTreeNode[];
+  total: number;
+}
+
+export interface TodoResponse {
+  todo: TodoDetail;
+}
+
+export interface CreateTodoRequest {
+  title: string;
+  parentId?: number | null;
+  content?: string | null;
+  dueAtMs?: number | null;
+  tagNames?: string[];
+  emoji?: string | null;
+}
+
+export interface UpdateTodoRequest {
+  title?: string;
+  content?: string | null;
+  done?: boolean;
+  dueAtMs?: number | null;
+  tagNames?: string[];
+  emoji?: string | null;
+}
+
+export interface MoveTodoRequest {
+  parentId: number | null;
+  position: number;
+}
+
+export interface MoveTodoResponse {
+  move: {
+    movedId: number;
+    oldParentId: number | null;
+    newParentId: number | null;
+    oldParentSiblings: number[];
+    newParentSiblings: number[];
+  };
+}
+
+export interface ReorderTodosRequest {
+  parentId: number | null;
+  orderedIds: number[];
+}
+
+export interface ReorderTodosResponse {
+  orderedIds: number[];
+}
+
+export interface TodoTagsResponse {
+  tags: string[];
+}

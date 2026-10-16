@@ -6,7 +6,7 @@
  */
 
 import type { Link, Tag, Upload } from "@/lib/db/schema";
-import type { IdeaDetail, IdeaListItem } from "@/lib/db/scoped";
+import type { IdeaDetail, IdeaListItem, TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
 
 /** Transform a Link to API response format. Pass `tags` to embed the link's tags. */
 export function linkToResponse(link: Link, tags: Tag[] = []): Record<string, unknown> {
@@ -39,6 +39,33 @@ export function ideaListItemToResponse(idea: IdeaListItem): Record<string, unkno
     tagIds: idea.tagIds,
     createdAt: idea.createdAt.toISOString(),
     updatedAt: idea.updatedAt.toISOString(),
+  };
+}
+
+/** Transform a TodoTreeNode to API response format (list / tree flat row). */
+export function todoTreeNodeToResponse(todo: TodoTreeNode): Record<string, unknown> {
+  return {
+    id: todo.id,
+    parentId: todo.parentId,
+    position: todo.position,
+    title: todo.title,
+    done: todo.done,
+    hasContent: todo.hasContent,
+    excerpt: todo.excerpt,
+    tagNames: todo.tagNames,
+    dueAt: todo.dueAt?.toISOString() ?? null,
+    emoji: todo.emoji,
+    createdAt: todo.createdAt.toISOString(),
+    updatedAt: todo.updatedAt.toISOString(),
+  };
+}
+
+/** Transform a TodoDetail to API response format. */
+export function todoDetailToResponse(todo: TodoDetail): Record<string, unknown> {
+  return {
+    ...todoTreeNodeToResponse(todo),
+    content: todo.content,
+    doneAt: todo.doneAt?.toISOString() ?? null,
   };
 }
 

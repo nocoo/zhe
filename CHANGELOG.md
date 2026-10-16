@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.7] - 2026-10-16
+
+### Added
+- Add `todos:read` and `todos:write` API scopes with `/api/v1/todos` REST endpoints and `zhe todo` CLI commands
+
 ## [v2.2.6] - 2026-10-16
 
 ### Changed

@@ -14,16 +14,17 @@
  */
 
 import { getAuthContext } from "@/lib/auth-context";
+import type { MoveTodoResult, TodoDetail, TodoTreeNode } from "@/lib/db/scoped";
 import {
-  type CreateTodoInput,
-  type MoveTodoResult,
-  TodoDepthExceededError,
-  type TodoDetail,
-  TodoMoveConflictError,
-  TodoNotFoundError,
-  type TodoTreeNode,
-  type UpdateTodoPatch,
-} from "@/lib/db/scoped";
+  buildCreateTodoInput,
+  buildMoveTodoInput,
+  buildReorderPayload,
+  buildUpdateTodoPatch,
+  mapCreateTodoError,
+  mapMoveTodoError,
+  mapReorderTodoError,
+  mapUpdateTodoError,
+} from "@/models/todo-wire";
 
 export interface ActionResult<T = void> {
   success: boolean;
@@ -59,69 +60,6 @@ export interface UpdateTodoActionInput {
 export interface MoveTodoActionInput {
   parentId: number | null;
   position: number;
-}
-
-/**
- * Resolve a `dueAtMs` wire value into what ScopedDB expects:
- *   - `undefined` → not present in the patch (caller unchanged)
- *   - `null`      → clear the column
- *   - finite ms   → `new Date(ms)`
- *   - anything else (NaN, Infinity, non-number that slipped past TS at the
- *     server-action boundary) → typed error the caller maps to
- *     `ActionResult.error`.
- *
- * TS types are advisory across the server-action wire; a stray `NaN` would
- * otherwise pass through to a `new Date(NaN)` and eventually get JSON-ified
- * to `null` in the D1 proxy request — silently clearing the due date. This
- * helper turns that into an explicit rejection.
- */
-class InvalidDueAtError extends Error {
-  constructor() {
-    super("Due date must be a finite timestamp");
-    this.name = "InvalidDueAtError";
-  }
-}
-
-function resolveDueAt(
-  raw: number | null | undefined,
-): { present: false } | { present: true; value: Date | null } {
-  if (raw === undefined) return { present: false };
-  if (raw === null) return { present: true, value: null };
-  if (typeof raw !== "number" || !Number.isFinite(raw)) {
-    throw new InvalidDueAtError();
-  }
-  return { present: true, value: new Date(raw) };
-}
-
-/**
- * Validate a wire `emoji` value.
- *
- *   - `undefined` → not present in the patch (caller unchanged)
- *   - `null`      → clear the column
- *   - string of ≤ 8 UTF-16 units (≈ 1–4 emoji codepoints, covering ZWJ
- *     sequences like family emoji) → passed through
- *   - anything else → typed error the caller maps to `ActionResult.error`
- *
- * The cap is a defensive check: the picker limits to a single glyph on
- * the client, but the action boundary is where advisory TS types stop
- * being enforced.
- */
-class InvalidEmojiError extends Error {
-  constructor() {
-    super("Emoji must be a short string or null");
-    this.name = "InvalidEmojiError";
-  }
-}
-
-function resolveEmoji(
-  raw: string | null | undefined,
-): { present: false } | { present: true; value: string | null } {
-  if (raw === undefined) return { present: false };
-  if (raw === null) return { present: true, value: null };
-  if (typeof raw !== "string" || raw.length === 0 || raw.length > 8) {
-    throw new InvalidEmojiError();
-  }
-  return { present: true, value: raw };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -178,44 +116,14 @@ export async function createTodo(input: CreateTodoActionInput): Promise<ActionRe
     const ctx = await getAuthContext();
     if (!ctx) return { success: false, error: "Unauthorized" };
 
-    const title = input.title.trim();
-    if (title.length === 0) {
-      return { success: false, error: "Title cannot be empty" };
-    }
-    if (
-      input.parentId !== undefined &&
-      input.parentId !== null &&
-      !Number.isInteger(input.parentId)
-    ) {
-      return { success: false, error: "Parent id must be an integer or null" };
-    }
+    const built = buildCreateTodoInput(input);
+    if ("error" in built) return { success: false, error: built.error };
 
-    const scopedInput: CreateTodoInput = { title };
-    if (input.parentId !== undefined) scopedInput.parentId = input.parentId;
-    if (input.content !== undefined) scopedInput.content = input.content;
-    const dueAt = resolveDueAt(input.dueAtMs);
-    if (dueAt.present) scopedInput.dueAt = dueAt.value;
-    const emoji = resolveEmoji(input.emoji);
-    if (emoji.present) scopedInput.emoji = emoji.value;
-    if (input.tagNames !== undefined) scopedInput.tagNames = input.tagNames;
-
-    const todo = await ctx.db.createTodo(scopedInput);
+    const todo = await ctx.db.createTodo(built.input);
     return { success: true, data: todo };
   } catch (error) {
-    if (error instanceof InvalidDueAtError) {
-      return { success: false, error: error.message };
-    }
-    if (error instanceof InvalidEmojiError) {
-      return { success: false, error: error.message };
-    }
-    if (error instanceof TodoNotFoundError) {
-      return { success: false, error: "Parent todo not found" };
-    }
-    if (error instanceof TodoDepthExceededError) {
-      return { success: false, error: "Todo depth would exceed the maximum" };
-    }
     console.error("Failed to create todo:", error);
-    return { success: false, error: "Failed to create todo" };
+    return { success: false, error: mapCreateTodoError(error) };
   }
 }
 
@@ -227,34 +135,15 @@ export async function updateTodo(
     const ctx = await getAuthContext();
     if (!ctx) return { success: false, error: "Unauthorized" };
 
-    // Only validate title when the caller sends one; a caller that leaves
-    // it off is intentionally patching other fields.
-    if (input.title !== undefined && input.title.trim().length === 0) {
-      return { success: false, error: "Title cannot be empty" };
-    }
+    const built = buildUpdateTodoPatch(input);
+    if ("error" in built) return { success: false, error: built.error };
 
-    const patch: UpdateTodoPatch = {};
-    if (input.title !== undefined) patch.title = input.title.trim();
-    if (input.content !== undefined) patch.content = input.content;
-    if (input.done !== undefined) patch.done = input.done;
-    const dueAt = resolveDueAt(input.dueAtMs);
-    if (dueAt.present) patch.dueAt = dueAt.value;
-    const emoji = resolveEmoji(input.emoji);
-    if (emoji.present) patch.emoji = emoji.value;
-    if (input.tagNames !== undefined) patch.tagNames = input.tagNames;
-
-    const todo = await ctx.db.updateTodo(id, patch);
+    const todo = await ctx.db.updateTodo(id, built.patch);
     if (!todo) return { success: false, error: "Todo not found" };
     return { success: true, data: todo };
   } catch (error) {
-    if (error instanceof InvalidDueAtError) {
-      return { success: false, error: error.message };
-    }
-    if (error instanceof InvalidEmojiError) {
-      return { success: false, error: error.message };
-    }
     console.error("Failed to update todo:", error);
-    return { success: false, error: "Failed to update todo" };
+    return { success: false, error: mapUpdateTodoError(error) };
   }
 }
 
@@ -266,33 +155,14 @@ export async function moveTodo(
     const ctx = await getAuthContext();
     if (!ctx) return { success: false, error: "Unauthorized" };
 
-    if (!Number.isInteger(input.position) || input.position < 0) {
-      return { success: false, error: "Position must be a non-negative integer" };
-    }
-    if (input.parentId !== null && !Number.isInteger(input.parentId)) {
-      return { success: false, error: "Parent id must be an integer or null" };
-    }
+    const built = buildMoveTodoInput(input);
+    if ("error" in built) return { success: false, error: built.error };
 
-    const result = await ctx.db.moveTodo(id, {
-      parentId: input.parentId,
-      position: input.position,
-    });
+    const result = await ctx.db.moveTodo(id, built.input);
     return { success: true, data: result };
   } catch (error) {
-    // The ScopedDB layer surfaces four typed errors for the move contract;
-    // map each to a stable ActionResult.error string so the UI can key on
-    // message text without importing the classes across the RSC boundary.
-    if (error instanceof TodoMoveConflictError) {
-      return { success: false, error: "Move conflicted or invalid" };
-    }
-    if (error instanceof TodoNotFoundError) {
-      return { success: false, error: "Todo not found" };
-    }
-    if (error instanceof TodoDepthExceededError) {
-      return { success: false, error: "Todo depth would exceed the maximum" };
-    }
     console.error("Failed to move todo:", error);
-    return { success: false, error: "Failed to move todo" };
+    return { success: false, error: mapMoveTodoError(error) };
   }
 }
 
@@ -304,23 +174,14 @@ export async function reorderTodoSiblings(
     const ctx = await getAuthContext();
     if (!ctx) return { success: false, error: "Unauthorized" };
 
-    if (parentId !== null && !Number.isInteger(parentId)) {
-      return { success: false, error: "Parent id must be an integer or null" };
-    }
-    for (const cid of orderedIds) {
-      if (!Number.isInteger(cid)) {
-        return { success: false, error: "orderedIds must be integers" };
-      }
-    }
+    const built = buildReorderPayload(parentId, orderedIds);
+    if ("error" in built) return { success: false, error: built.error };
 
-    const result = await ctx.db.reorderSiblings(parentId, orderedIds);
+    const result = await ctx.db.reorderSiblings(built.parentId, built.orderedIds);
     return { success: true, data: result };
   } catch (error) {
-    if (error instanceof TodoMoveConflictError) {
-      return { success: false, error: "Reorder conflicted or invalid" };
-    }
     console.error("Failed to reorder siblings:", error);
-    return { success: false, error: "Failed to reorder siblings" };
+    return { success: false, error: mapReorderTodoError(error) };
   }
 }
 

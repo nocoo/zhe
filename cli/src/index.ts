@@ -18,6 +18,7 @@ import { logoutCommand } from "./commands/logout.js";
 import { openCommand } from "./commands/open.js";
 import { tagCommand } from "./commands/tag.js";
 import { tagsCommand } from "./commands/tags.js";
+import { todoCommand } from "./commands/todo.js";
 import { updateCommand } from "./commands/update.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -37,6 +38,7 @@ const main = defineCommand({
     tags: tagsCommand,
     tag: tagCommand,
     idea: ideaCommand,
+    todo: todoCommand,
     create: createCommand,
     get: getCommand,
     update: updateCommand,
