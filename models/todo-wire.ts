@@ -11,6 +11,7 @@ import {
   TodoNotFoundError,
   type UpdateTodoPatch,
 } from "@/lib/db/scoped";
+import { isValidDueAtMs } from "@/lib/todo-due-ms";
 
 export class InvalidDueAtError extends Error {
   constructor() {
@@ -32,7 +33,7 @@ export type DueAtResolution = { present: false } | { present: true; value: Date 
 export function resolveDueAt(raw: number | null | undefined): DueAtResolution {
   if (raw === undefined) return { present: false };
   if (raw === null) return { present: true, value: null };
-  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+  if (!isValidDueAtMs(raw)) {
     throw new InvalidDueAtError();
   }
   return { present: true, value: new Date(raw) };

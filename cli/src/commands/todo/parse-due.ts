@@ -4,9 +4,20 @@
  * Accepted formats (entire string must match one):
  * - Unix epoch milliseconds: non-empty decimal digits only (e.g. `1700000000000`)
  * - Calendar date: `YYYY-MM-DD` (validated components; rejects `2026-99-99`)
+ *
+ * Bounds match `lib/todo-due-ms.ts` / `resolveDueAt` in `models/todo-wire.ts`.
  */
 const MS_ONLY = /^\d+$/;
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DUE_AT_MS_MIN = Date.UTC(1, 0, 1, 0, 0, 0, 0);
+const DUE_AT_MS_MAX = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
+
+function isValidDueAtMs(ms: number): boolean {
+  if (!Number.isFinite(ms) || !Number.isSafeInteger(ms)) return false;
+  if (ms < DUE_AT_MS_MIN || ms > DUE_AT_MS_MAX) return false;
+  const time = new Date(ms).getTime();
+  return Number.isFinite(time) && !Number.isNaN(time);
+}
 
 export function parseTodoDueArg(raw: string): number | null {
   const trimmed = raw.trim();
@@ -16,7 +27,7 @@ export function parseTodoDueArg(raw: string): number | null {
     // Require full millisecond timestamps (avoids `--due 2026` or `--due 0` misreads).
     if (trimmed.length < 12) return null;
     const ms = Number(trimmed);
-    if (!Number.isSafeInteger(ms)) return null;
+    if (!isValidDueAtMs(ms)) return null;
     return ms;
   }
 
@@ -36,5 +47,7 @@ export function parseTodoDueArg(raw: string): number | null {
   ) {
     return null;
   }
-  return utc.getTime();
+  const ms = utc.getTime();
+  if (!isValidDueAtMs(ms)) return null;
+  return ms;
 }

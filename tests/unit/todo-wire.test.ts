@@ -25,6 +25,20 @@ describe("todo-wire", () => {
     it("rejects non-finite numbers", () => {
       expect(() => resolveDueAt(Number.NaN)).toThrow("Due date must be a finite timestamp");
     });
+
+    it("rejects out-of-range safe integers that become Invalid Date", () => {
+      expect(() => resolveDueAt(9_000_000_000_000_000)).toThrow(
+        "Due date must be a finite timestamp",
+      );
+    });
+  });
+
+  describe("buildUpdateTodoPatch dueAtMs", () => {
+    it("rejects invalid dueAtMs instead of clearing due", () => {
+      expect(buildUpdateTodoPatch({ dueAtMs: 9_000_000_000_000_000 })).toEqual({
+        error: "Due date must be a finite timestamp",
+      });
+    });
   });
 
   describe("resolveEmoji", () => {

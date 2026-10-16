@@ -26,4 +26,8 @@ describe("parseTodoDueArg", () => {
   it("rejects loose Date.parse strings", () => {
     expect(parseTodoDueArg("Apr 15, 2026")).toBeNull();
   });
+
+  it("rejects out-of-range millisecond timestamps", () => {
+    expect(parseTodoDueArg("9000000000000000")).toBeNull();
+  });
 });

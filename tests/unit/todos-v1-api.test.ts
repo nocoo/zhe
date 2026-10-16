@@ -172,12 +172,66 @@ describe("todos v1 API routes", () => {
     it.each([
       ["GET list", () => listTodos(new NextRequest("http://localhost/api/v1/todos")), "todos:read"],
       [
+        "GET tags",
+        () => listTodoTags(new NextRequest("http://localhost/api/v1/todos/tags")),
+        "todos:read",
+      ],
+      [
+        "GET by id",
+        () => getTodo(new NextRequest("http://localhost/api/v1/todos/1"), ctx("1")),
+        "todos:read",
+      ],
+      [
         "POST create",
         () =>
           createTodo(
             new NextRequest("http://localhost/api/v1/todos", {
               method: "POST",
               body: JSON.stringify({ title: "x" }),
+            }),
+          ),
+        "todos:write",
+      ],
+      [
+        "PATCH",
+        () =>
+          patchTodo(
+            new NextRequest("http://localhost/api/v1/todos/1", {
+              method: "PATCH",
+              body: JSON.stringify({ title: "y" }),
+            }),
+            ctx("1"),
+          ),
+        "todos:write",
+      ],
+      [
+        "DELETE",
+        () =>
+          deleteTodo(
+            new NextRequest("http://localhost/api/v1/todos/1", { method: "DELETE" }),
+            ctx("1"),
+          ),
+        "todos:write",
+      ],
+      [
+        "POST move",
+        () =>
+          moveTodo(
+            new NextRequest("http://localhost/api/v1/todos/1/move", {
+              method: "POST",
+              body: JSON.stringify({ parentId: null, position: 0 }),
+            }),
+            ctx("1"),
+          ),
+        "todos:write",
+      ],
+      [
+        "POST reorder",
+        () =>
+          reorderTodos(
+            new NextRequest("http://localhost/api/v1/todos/reorder", {
+              method: "POST",
+              body: JSON.stringify({ parentId: null, orderedIds: [1] }),
             }),
           ),
         "todos:write",
@@ -231,6 +285,18 @@ describe("todos v1 API routes", () => {
   });
 
   describe("POST /todos", () => {
+    it("returns 400 for out-of-range dueAtMs", async () => {
+      mockRequireAuth.mockResolvedValue(writeAuth);
+      const response = await createTodo(
+        new NextRequest("http://localhost/api/v1/todos", {
+          method: "POST",
+          body: JSON.stringify({ title: "x", dueAtMs: 9_000_000_000_000_000 }),
+        }),
+      );
+      expect(response.status).toBe(400);
+      expect(mockCreateTodo).not.toHaveBeenCalled();
+    });
+
     it("creates with write scope", async () => {
       mockRequireAuth.mockResolvedValue(writeAuth);
       mockCreateTodo.mockResolvedValue(detailFixture);
@@ -245,6 +311,19 @@ describe("todos v1 API routes", () => {
   });
 
   describe("PATCH /todos/[id]", () => {
+    it("returns 400 for invalid dueAtMs without updating", async () => {
+      mockRequireAuth.mockResolvedValue(writeAuth);
+      const response = await patchTodo(
+        new NextRequest("http://localhost/api/v1/todos/1", {
+          method: "PATCH",
+          body: JSON.stringify({ dueAtMs: 9_000_000_000_000_000 }),
+        }),
+        ctx("1"),
+      );
+      expect(response.status).toBe(400);
+      expect(mockUpdateTodo).not.toHaveBeenCalled();
+    });
+
     it("returns 404 when not found", async () => {
       mockRequireAuth.mockResolvedValue(writeAuth);
       mockUpdateTodo.mockResolvedValue(null);

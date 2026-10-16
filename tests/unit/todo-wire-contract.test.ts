@@ -16,6 +16,19 @@ import {
 } from "@/models/todo-wire";
 
 describe("todo-wire action/API error contract", () => {
+  /**
+   * Server actions and `/api/v1/todos` share `todo-wire` validators. Missing-field
+   * copy was aligned to REST-style messages (e.g. `Missing or invalid 'title' field`)
+   * instead of older action-only strings such as `Title is required`. Intentional
+   * breaking change for consistency across surfaces — update both if revising copy.
+   */
+  it("documents intentional create missing-title message", () => {
+    expect(buildCreateTodoInput({})).toEqual({ error: "Missing or invalid 'title' field" });
+    expect(buildCreateTodoInput({ title: 42 })).toEqual({
+      error: "Missing or invalid 'title' field",
+    });
+  });
+
   it("preserves stable validation messages for server actions", () => {
     expect(buildCreateTodoInput({ title: "  " })).toEqual({ error: "Title cannot be empty" });
     expect(buildCreateTodoInput({ title: "x", parentId: 1.5 })).toEqual({

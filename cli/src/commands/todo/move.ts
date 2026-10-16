@@ -1,6 +1,6 @@
 import { defineCommand, pc } from "@nocoo/base-cli";
 import { ApiClient, EXIT_INVALID_ARGS } from "../../api/client.js";
-import { parsePositiveInt } from "../../utils.js";
+import { parseNonNegativeInt, parsePositiveInt } from "../../utils.js";
 import { handleApiError, requireAuth } from "./helpers.js";
 
 export const moveSubcommand = defineCommand({
@@ -55,8 +55,8 @@ export const moveSubcommand = defineCommand({
       }
     }
 
-    const position = Number.parseInt(args.position as string, 10);
-    if (!Number.isInteger(position) || position < 0) {
+    const position = parseNonNegativeInt(args.position as string);
+    if (position === null) {
       console.log(pc.red("Position must be a non-negative integer."));
       process.exit(EXIT_INVALID_ARGS);
     }

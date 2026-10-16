@@ -68,6 +68,20 @@ export function parsePositiveInt(input: string): number | null {
   return id;
 }
 
+const STRICT_NON_NEGATIVE_INT = /^(0|[1-9]\d*)$/;
+
+/** Parse a 0-based position; rejects partial parses (`1.5`, `1foreign`, `1e3`, `01`). */
+export function parseNonNegativeInt(input: string): number | null {
+  if (!STRICT_NON_NEGATIVE_INT.test(input)) {
+    return null;
+  }
+  const value = Number(input);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    return null;
+  }
+  return value;
+}
+
 /** Parse a link ID from string; uses strict positive-integer parsing. */
 export function parseLinkId(input: string): number | null {
   return parsePositiveInt(input);
