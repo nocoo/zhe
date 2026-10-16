@@ -78,13 +78,17 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
       await page.goto(
         `/dashboard${collection === "github" || collection === "x" ? `/${collection}` : ""}`,
       );
+      const seededCards = page.getByTestId(
+        collection === "github" ? "github-repository" : "link-card",
+      );
+      await expect(seededCards).toHaveCount(3, { timeout: 30_000 });
     });
     for (const width of [320, 375, 430, 1365]) {
       test(`${width}px: fixed actions and collection layout`, async ({ page }, info) => {
         const cards = page.getByTestId(collection === "github" ? "github-repository" : "link-card");
         const card = cards.first();
         const tagged = cards.filter({ has: page.getByRole("list", { name: "收藏标签" }) });
-        await expect(cards).toHaveCount(3);
+        await expect(cards).toHaveCount(3, { timeout: 30_000 });
         await page.setViewportSize({ width, height: 932 });
         await card.scrollIntoViewIfNeeded();
         const actions = card.locator("[data-bookmark-actions]");
@@ -234,6 +238,9 @@ for (const collection of ["grid", "list", "github", "x"] as const) {
         await Promise.all(element.getAnimations().map((animation) => animation.finished));
       });
       const cancelDelete = deleteDialog.getByRole("button", { name: "取消" });
+      await cancelDelete.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map((animation) => animation.finished));
+      });
       await cancelDelete.click();
       await expect(cards).toHaveCount(3);
       await expect(more).toBeFocused();
