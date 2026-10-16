@@ -42,18 +42,13 @@ export function resolvePackagedSkillPath(moduleUrl?: string): string {
     return adjacent;
   }
 
-  const usePackageDiscovery = moduleUrl === undefined || moduleUrl === import.meta.url;
-  const searchRoots = usePackageDiscovery ? [moduleDir, process.cwd()] : [moduleDir];
-
-  for (const start of searchRoots) {
-    try {
-      const candidate = join(findZheCliPackageRoot(start), SKILL_RELATIVE);
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    } catch {
-      // try next root
+  try {
+    const candidate = join(findZheCliPackageRoot(moduleDir), SKILL_RELATIVE);
+    if (existsSync(candidate)) {
+      return candidate;
     }
+  } catch {
+    // package root not found or unreadable package.json along the walk
   }
 
   throw new Error(`Packaged zhe CLI skill not found at ${adjacent}`);
