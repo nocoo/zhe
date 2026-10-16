@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.9] - 2026-10-16
+
+### Added
+- CLI: `zhe --skill` prints the packaged agent skill Markdown to stdout (offline, no subcommand execution when `--skill` precedes the command).
+
 ## [v2.2.8] - 2026-10-16
 
 ### Changed
