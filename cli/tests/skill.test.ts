@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -13,6 +13,7 @@ import {
 } from "../src/skill.js";
 
 const cliRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const packagedSkillModuleUrl = pathToFileURL(join(cliRoot, "src", "skill.ts")).href;
 
 describe("shouldPrintPackagedSkill", () => {
   const nodeArgv = (args: string[]) => ["node", join(cliRoot, "dist/index.js"), ...args];
@@ -48,10 +49,68 @@ describe("shouldPrintPackagedSkill", () => {
 
 describe("readPackagedSkill", () => {
   it("loads the packaged markdown from the package root", () => {
-    const content = readPackagedSkill();
+    const content = readPackagedSkill(packagedSkillModuleUrl);
     expect(content).toContain("name: zhe-cli");
     expect(content).toContain("# zhe CLI");
-    expect(resolvePackagedSkillPath()).toContain(join("skills", "zhe-cli", "SKILL.md"));
+    expect(resolvePackagedSkillPath(packagedSkillModuleUrl)).toContain(
+      join("skills", "zhe-cli", "SKILL.md"),
+    );
+  });
+
+  it("walks upward from the module directory to the package skill file", () => {
+    const pkgRoot = mkdtempSync(join(tmpdir(), "zhe-pkg-walk-"));
+    const skillDir = join(pkgRoot, "skills", "zhe-cli");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(pkgRoot, "package.json"), JSON.stringify({ name: "@nocoo/zhe" }));
+    writeFileSync(join(skillDir, "SKILL.md"), "walked-skill-content");
+
+    const moduleFile = join(pkgRoot, "vendor", "bundle", "skill.js");
+    mkdirSync(dirname(moduleFile), { recursive: true });
+    writeFileSync(moduleFile, "export {}");
+
+    const resolved = resolvePackagedSkillPath(pathToFileURL(moduleFile).href);
+    expect(readFileSync(resolved, "utf8")).toBe("walked-skill-content");
+  });
+
+  it("ignores invalid package.json files while walking upward", () => {
+    const pkgRoot = mkdtempSync(join(tmpdir(), "zhe-pkg-invalid-json-"));
+    const skillDir = join(pkgRoot, "skills", "zhe-cli");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(pkgRoot, "package.json"), JSON.stringify({ name: "@nocoo/zhe" }));
+    writeFileSync(join(skillDir, "SKILL.md"), "valid-skill");
+
+    const mid = join(pkgRoot, "nested");
+    mkdirSync(mid, { recursive: true });
+    writeFileSync(join(mid, "package.json"), "{ not-json");
+
+    const moduleFile = join(mid, "src", "skill.js");
+    mkdirSync(dirname(moduleFile), { recursive: true });
+    writeFileSync(moduleFile, "export {}");
+
+    expect(readPackagedSkill(pathToFileURL(moduleFile).href)).toBe("valid-skill");
+  });
+
+  it("does not load a forged @nocoo/zhe skill from process.cwd()", () => {
+    const forgedRoot = mkdtempSync(join(tmpdir(), "zhe-forged-"));
+    const forgedSkillDir = join(forgedRoot, "skills", "zhe-cli");
+    mkdirSync(forgedSkillDir, { recursive: true });
+    writeFileSync(join(forgedRoot, "package.json"), JSON.stringify({ name: "@nocoo/zhe" }));
+    writeFileSync(join(forgedSkillDir, "SKILL.md"), "FORGED_SKILL_CONTENT");
+
+    const isolatedDir = mkdtempSync(join(tmpdir(), "zhe-isolated-"));
+    const fakeModule = join(isolatedDir, "src", "skill.js");
+    mkdirSync(dirname(fakeModule), { recursive: true });
+    writeFileSync(fakeModule, "export {}");
+
+    const previousCwd = process.cwd();
+    try {
+      process.chdir(forgedRoot);
+      expect(() => readPackagedSkill(pathToFileURL(fakeModule).href)).toThrow(
+        /Packaged zhe CLI skill not found/,
+      );
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 
   it("throws when the skill file is missing", () => {
@@ -61,6 +120,20 @@ describe("readPackagedSkill", () => {
     writeFileSync(fakeModule, "export {}");
     expect(() => readPackagedSkill(pathToFileURL(fakeModule).href)).toThrow(
       /Packaged zhe CLI skill not found/,
+    );
+  });
+
+  it("throws when the resolved skill path cannot be read", () => {
+    const pkgRoot = mkdtempSync(join(tmpdir(), "zhe-pkg-unreadable-"));
+    writeFileSync(join(pkgRoot, "package.json"), JSON.stringify({ name: "@nocoo/zhe" }));
+    mkdirSync(join(pkgRoot, "skills", "zhe-cli", "SKILL.md"), { recursive: true });
+
+    const moduleFile = join(pkgRoot, "lib", "skill.js");
+    mkdirSync(dirname(moduleFile), { recursive: true });
+    writeFileSync(moduleFile, "export {}");
+
+    expect(() => readPackagedSkill(pathToFileURL(moduleFile).href)).toThrow(
+      /Packaged zhe CLI skill not found at/,
     );
   });
 });
@@ -78,7 +151,7 @@ describe("printPackagedSkillAndExit", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const exit = mockProcessExit();
 
-    printPackagedSkillAndExit();
+    printPackagedSkillAndExit(packagedSkillModuleUrl);
     expect(stdout).toHaveBeenCalled();
     expect(exit).toHaveBeenCalledWith(0);
     const written = String(stdout.mock.calls[0]?.[0] ?? "");
