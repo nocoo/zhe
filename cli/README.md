@@ -14,6 +14,14 @@ bun add -g @nocoo/zhe
 
 ## Usage
 
+Print the packaged agent skill (UTF-8 Markdown on stdout, no network):
+
+```bash
+zhe --skill
+```
+
+When `--skill` appears before the first subcommand, the CLI prints the skill and exits without running any trailing command (for example `zhe --skill list` does not call `list`).
+
 ```bash
 # Authenticate
 zhe login
