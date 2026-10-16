@@ -54,6 +54,14 @@ describe("/api/v1/todos/[id]", () => {
       const response = await authenticatedFetch(`${API_URL}/abc`, apiKeyReadOnly);
       expect(response.status).toBe(400);
     });
+
+    it("returns 400 for partial-parse id (does not delete another todo)", async () => {
+      const seeded = await seedTodo(TEST_USER_ID, { title: "Real one" });
+      const response = await authenticatedFetch(`${API_URL}/1foreign`, apiKeyReadOnly);
+      expect(response.status).toBe(400);
+      const stillThere = await authenticatedFetch(`${API_URL}/${seeded.id}`, apiKeyReadOnly);
+      expect(stillThere.status).toBe(200);
+    });
   });
 
   describe("PATCH", () => {

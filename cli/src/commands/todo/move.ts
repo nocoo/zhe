@@ -10,11 +10,11 @@ export const moveSubcommand = defineCommand({
   },
   args: {
     id: { type: "positional", description: "Todo ID", required: true },
+    root: { type: "boolean", description: "Move to top level (same as omitting --parent)" },
     parent: {
       type: "string",
       alias: "p",
-      description: "New parent ID (omit or 'root' for top level)",
-      required: true,
+      description: "New parent todo ID (omit or use --root for top level)",
     },
     position: {
       type: "string",
@@ -34,15 +34,24 @@ export const moveSubcommand = defineCommand({
       process.exit(EXIT_INVALID_ARGS);
     }
 
-    const parentRaw = args.parent as string;
+    if (args.root && args.parent !== undefined) {
+      console.log(pc.red("Use either --root or --parent, not both."));
+      process.exit(EXIT_INVALID_ARGS);
+    }
+
     let parentId: number | null;
-    if (parentRaw === "root" || parentRaw === "null") {
+    if (args.root || args.parent === undefined) {
       parentId = null;
     } else {
-      parentId = parsePositiveInt(parentRaw);
-      if (parentId === null) {
-        console.log(pc.red("Invalid parent todo ID."));
-        process.exit(EXIT_INVALID_ARGS);
+      const parentRaw = args.parent as string;
+      if (parentRaw === "root" || parentRaw === "null") {
+        parentId = null;
+      } else {
+        parentId = parsePositiveInt(parentRaw);
+        if (parentId === null) {
+          console.log(pc.red("Invalid parent todo ID."));
+          process.exit(EXIT_INVALID_ARGS);
+        }
       }
     }
 

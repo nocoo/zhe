@@ -3,6 +3,7 @@ import { ApiClient, EXIT_INVALID_ARGS } from "../../api/client.js";
 import type { UpdateTodoRequest } from "../../api/types.js";
 import { parsePositiveInt } from "../../utils.js";
 import { handleApiError, requireAuth } from "./helpers.js";
+import { parseTodoDueArg } from "./parse-due.js";
 
 export const updateSubcommand = defineCommand({
   meta: {
@@ -19,7 +20,11 @@ export const updateSubcommand = defineCommand({
       alias: "T",
       description: "Replace tags (comma-separated names, empty clears)",
     },
-    due: { type: "string", alias: "d", description: "Due date (ISO or ms); use 'clear' to remove" },
+    due: {
+      type: "string",
+      alias: "d",
+      description: "Due: YYYY-MM-DD, Unix ms (digits), or 'clear'",
+    },
     emoji: { type: "string", description: "Emoji icon (empty clears)" },
     json: { type: "boolean", description: "Output as JSON" },
   },
@@ -53,17 +58,12 @@ export const updateSubcommand = defineCommand({
       if (args.due === "clear") {
         request.dueAtMs = null;
       } else {
-        const parsed = Date.parse(args.due);
-        if (Number.isNaN(parsed)) {
-          const asNum = Number.parseInt(args.due, 10);
-          if (!Number.isFinite(asNum)) {
-            console.log(pc.red("Invalid due date."));
-            process.exit(EXIT_INVALID_ARGS);
-          }
-          request.dueAtMs = asNum;
-        } else {
-          request.dueAtMs = parsed;
+        const dueAtMs = parseTodoDueArg(args.due);
+        if (dueAtMs === null) {
+          console.log(pc.red("Invalid due date. Use YYYY-MM-DD, Unix milliseconds, or 'clear'."));
+          process.exit(EXIT_INVALID_ARGS);
         }
+        request.dueAtMs = dueAtMs;
       }
     }
 

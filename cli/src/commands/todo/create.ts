@@ -3,6 +3,7 @@ import { ApiClient, EXIT_INVALID_ARGS } from "../../api/client.js";
 import type { CreateTodoRequest } from "../../api/types.js";
 import { parsePositiveInt } from "../../utils.js";
 import { handleApiError, requireAuth } from "./helpers.js";
+import { parseTodoDueArg } from "./parse-due.js";
 
 export const createSubcommand = defineCommand({
   meta: {
@@ -18,7 +19,11 @@ export const createSubcommand = defineCommand({
       alias: "T",
       description: "Add tag by name (repeatable via comma-separated list)",
     },
-    due: { type: "string", alias: "d", description: "Due date (ISO 8601 or ms timestamp)" },
+    due: {
+      type: "string",
+      alias: "d",
+      description: "Due date: YYYY-MM-DD or Unix ms (digits only)",
+    },
     emoji: { type: "string", description: "Optional emoji icon" },
     json: { type: "boolean", description: "Output as JSON" },
   },
@@ -54,17 +59,12 @@ export const createSubcommand = defineCommand({
     }
 
     if (args.due) {
-      const parsed = Date.parse(args.due);
-      if (Number.isNaN(parsed)) {
-        const asNum = Number.parseInt(args.due, 10);
-        if (!Number.isFinite(asNum)) {
-          console.log(pc.red("Invalid due date."));
-          process.exit(EXIT_INVALID_ARGS);
-        }
-        request.dueAtMs = asNum;
-      } else {
-        request.dueAtMs = parsed;
+      const dueAtMs = parseTodoDueArg(args.due);
+      if (dueAtMs === null) {
+        console.log(pc.red("Invalid due date. Use YYYY-MM-DD or Unix milliseconds."));
+        process.exit(EXIT_INVALID_ARGS);
       }
+      request.dueAtMs = dueAtMs;
     }
 
     try {

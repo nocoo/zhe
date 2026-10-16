@@ -238,7 +238,10 @@ export class ApiClient {
   }
 
   /**
-   * Verify identity without requiring links:read or granting any extra scope.
+   * Verify identity via `GET /links?limit=1`. Keys without `links:read` receive
+   * 403 with message `Insufficient permissions. Required scope: links:read` —
+   * that still proves the key is valid. Other scope-only keys (e.g. todos:read)
+   * cannot complete `zhe login` verification; include `links:read` on CLI keys.
    */
   async verifyKey(): Promise<boolean> {
     try {
@@ -247,10 +250,11 @@ export class ApiClient {
     } catch (error) {
       if (error instanceof ApiClientError) {
         if (error.status === 401) return false;
-        // Authenticated key lacking links:read still proves identity.
+        // This response is only emitted after the API has authenticated the key.
+        // Other 403 responses (for example, an edge denial) do not verify identity.
         if (
           error.status === 403 &&
-          error.message.startsWith("Insufficient permissions. Required scope:")
+          error.message === "Insufficient permissions. Required scope: links:read"
         ) {
           return true;
         }

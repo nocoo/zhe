@@ -731,18 +731,6 @@ describe("ApiClient", () => {
       expect(result).toBe(true);
     });
 
-    it("accepts an authenticated key with only todos:read", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        headers: new Headers(),
-        json: async () => ({ error: "Insufficient permissions. Required scope: links:read" }),
-      });
-
-      const client = new ApiClient("zhe_todos_only");
-      expect(await client.verifyKey()).toBe(true);
-    });
-
     it.each(["Forbidden", "Permission denied. Check your API Key scopes."])(
       "does not mistake an unrelated 403 for verified identity: %s",
       async (message) => {

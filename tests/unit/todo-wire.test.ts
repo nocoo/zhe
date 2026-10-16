@@ -6,6 +6,8 @@ import {
   buildMoveTodoInput,
   buildReorderPayload,
   buildUpdateTodoPatch,
+  parseTodoIdParam,
+  parseWireTodoId,
   resolveDueAt,
   resolveEmoji,
 } from "@/models/todo-wire";
@@ -61,6 +63,26 @@ describe("todo-wire", () => {
   describe("buildReorderPayload", () => {
     it("validates orderedIds", () => {
       expect(buildReorderPayload(null, ["x"])).toEqual({ error: "orderedIds must be integers" });
+    });
+  });
+
+  describe("parseTodoIdParam", () => {
+    it("accepts positive decimal ids", () => {
+      expect(parseTodoIdParam("42")).toBe(42);
+    });
+
+    it("rejects partial parses", () => {
+      expect(parseTodoIdParam("1.5")).toBeNull();
+      expect(parseTodoIdParam("1foreign")).toBeNull();
+      expect(parseTodoIdParam("1e3")).toBeNull();
+      expect(parseTodoIdParam("01")).toBeNull();
+    });
+  });
+
+  describe("parseWireTodoId", () => {
+    it("rejects non-safe integers", () => {
+      expect(parseWireTodoId(1.5)).toBe("invalid");
+      expect(parseWireTodoId(0)).toBe("invalid");
     });
   });
 });

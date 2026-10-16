@@ -73,10 +73,40 @@ export interface MoveTodoWireInput {
   position?: unknown;
 }
 
+/** Decimal digits only, no leading zero — matches path params and CLI `parsePositiveInt`. */
+export const STRICT_POSITIVE_INT_PATTERN = /^[1-9]\d*$/;
+
+/**
+ * Parse a URL path segment as a todo id. Rejects partial parses (`1.5`, `1foreign`, `1e3`).
+ */
+export function parseTodoIdParam(id: string): number | null {
+  if (!STRICT_POSITIVE_INT_PATTERN.test(id)) return null;
+  const parsed = Number(id);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+/** Wire JSON number: positive safe integer, or null when explicitly null. */
+export function parseWireTodoId(raw: unknown): number | null | "invalid" {
+  if (raw === null) return null;
+  if (typeof raw !== "number") return "invalid";
+  if (!Number.isSafeInteger(raw) || raw <= 0) return "invalid";
+  return raw;
+}
+
 function validateParentId(raw: unknown): string | null {
-  if (raw === undefined || raw === null) return null;
-  if (typeof raw !== "number" || !Number.isInteger(raw)) {
-    return "Parent id must be an integer or null";
+  if (raw === undefined) return null;
+  const parsed = parseWireTodoId(raw);
+  if (parsed === "invalid") return "Parent id must be an integer or null";
+  return null;
+}
+
+function validateOrderedTodoIds(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return "orderedIds must be an array";
+  for (const cid of raw) {
+    if (parseWireTodoId(cid) === "invalid") {
+      return "orderedIds must be integers";
+    }
   }
   return null;
 }
@@ -110,7 +140,9 @@ export function buildCreateTodoInput(
 
   try {
     const scopedInput: CreateTodoInput = { title };
-    if (input.parentId !== undefined) scopedInput.parentId = input.parentId as number | null;
+    if (input.parentId !== undefined) {
+      scopedInput.parentId = input.parentId === null ? null : (input.parentId as number);
+    }
     if (input.content !== undefined) scopedInput.content = input.content as string | null;
     const dueAt = resolveDueAt(input.dueAtMs as number | null | undefined);
     if (dueAt.present) scopedInput.dueAt = dueAt.value;
@@ -175,16 +207,12 @@ export function buildMoveTodoInput(
     return { error: "Position must be a non-negative integer" };
   }
   if (input.parentId === undefined) return { error: "Missing 'parentId' field" };
-  if (
-    input.parentId !== null &&
-    (typeof input.parentId !== "number" || !Number.isInteger(input.parentId))
-  ) {
-    return { error: "Parent id must be an integer or null" };
-  }
+  const parentId = parseWireTodoId(input.parentId);
+  if (parentId === "invalid") return { error: "Parent id must be an integer or null" };
   return {
     input: {
-      parentId: input.parentId as number | null,
-      position: input.position,
+      parentId,
+      position: input.position as number,
     },
   };
 }
@@ -195,22 +223,11 @@ export function buildReorderPayload(
   orderedIds: unknown,
 ): { error: string } | { parentId: number | null; orderedIds: number[] } {
   if (parentId === undefined) return { error: "Missing 'parentId' field" };
-  if (parentId !== null && (typeof parentId !== "number" || !Number.isInteger(parentId))) {
-    return { error: "Parent id must be an integer or null" };
-  }
-  if (!Array.isArray(orderedIds)) return { error: "orderedIds must be an array" };
-  for (const cid of orderedIds) {
-    if (typeof cid !== "number" || !Number.isInteger(cid)) {
-      return { error: "orderedIds must be integers" };
-    }
-  }
-  return { parentId: parentId as number | null, orderedIds };
-}
-
-export function parseTodoIdParam(id: string): number | null {
-  const parsed = Number.parseInt(id, 10);
-  if (Number.isNaN(parsed)) return null;
-  return parsed;
+  const parsedParent = parseWireTodoId(parentId);
+  if (parsedParent === "invalid") return { error: "Parent id must be an integer or null" };
+  const idsErr = validateOrderedTodoIds(orderedIds);
+  if (idsErr) return { error: idsErr };
+  return { parentId: parsedParent, orderedIds: orderedIds as number[] };
 }
 
 export function mapCreateTodoError(error: unknown): string {
