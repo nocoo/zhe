@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "scripts": {
     "dev": "bun run scripts/local.ts",
