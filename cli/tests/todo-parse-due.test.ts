@@ -30,4 +30,14 @@ describe("parseTodoDueArg", () => {
   it("rejects out-of-range millisecond timestamps", () => {
     expect(parseTodoDueArg("9000000000000000")).toBeNull();
   });
+
+  it("accepts year 1, year 100, and 1900-12-31 calendar dates", () => {
+    expect(parseTodoDueArg("0001-01-01")).toBe(new Date("0001-01-01T00:00:00.000Z").getTime());
+    expect(parseTodoDueArg("0100-01-01")).toBe(new Date("0100-01-01T00:00:00.000Z").getTime());
+    expect(parseTodoDueArg("1900-12-31")).toBe(new Date("1900-12-31T00:00:00.000Z").getTime());
+  });
+
+  it("rejects dates before year 1 UTC", () => {
+    expect(parseTodoDueArg("0000-01-01")).toBeNull();
+  });
 });

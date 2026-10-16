@@ -31,6 +31,11 @@ describe("todo-wire", () => {
         "Due date must be a finite timestamp",
       );
     });
+
+    it("accepts 1900-12-31 UTC (above true year-1 floor)", () => {
+      const ms = new Date("1900-12-31T00:00:00.000Z").getTime();
+      expect(resolveDueAt(ms)).toEqual({ present: true, value: new Date(ms) });
+    });
   });
 
   describe("buildUpdateTodoPatch dueAtMs", () => {

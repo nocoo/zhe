@@ -9,7 +9,7 @@
  */
 const MS_ONLY = /^\d+$/;
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
-const DUE_AT_MS_MIN = Date.UTC(1, 0, 1, 0, 0, 0, 0);
+const DUE_AT_MS_MIN = new Date("0001-01-01T00:00:00.000Z").getTime();
 const DUE_AT_MS_MAX = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
 
 function isValidDueAtMs(ms: number): boolean {
@@ -39,7 +39,8 @@ export function parseTodoDueArg(raw: string): number | null {
   const day = Number(dateMatch[3]);
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
-  const utc = new Date(Date.UTC(year, month - 1, day));
+  // Use an ISO UTC string — `Date.UTC(1, …)` maps year 1 to 1901.
+  const utc = new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}T00:00:00.000Z`);
   if (
     utc.getUTCFullYear() !== year ||
     utc.getUTCMonth() !== month - 1 ||
