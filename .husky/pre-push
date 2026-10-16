@@ -1,7 +1,7 @@
 # Run L2 API tests and osv-scanner in parallel (independent).
-set -o pipefail
+set -eu
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$HOOK_DIR/../scripts/ensure-tools.sh"
+. "$HOOK_DIR/../scripts/ensure-tools.sh"
 require_tool osv-scanner "dependency audit"
 [ -f bun.lock ] || { echo "❌ bun.lock not found" >&2; exit 1; }
 

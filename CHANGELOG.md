@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.5] - 2026-10-16
+
+### Changed
+- Upgrade happy-dom to 21.0.1 (#995)
+
 ## [v2.2.3] - 2026-10-13
 
 ### Changed
