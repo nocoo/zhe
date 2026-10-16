@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "private": true,
   "scripts": {
     "dev": "bun run scripts/local.ts",
@@ -13,7 +13,7 @@
     "typecheck": "bash scripts/typecheck.sh",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:unit": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**'",
+    "test:unit": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**' --pool=forks",
     "test:unit:coverage": "vitest run --exclude 'tests/api/**' --exclude 'tests/integration/**' --coverage --pool=forks",
     "test:integration": "vitest run tests/integration",
     "test:api": "bun run scripts/run-api-tests.ts",
@@ -44,7 +44,9 @@
     "next-auth": "5.0.0-beta.32",
     "picomatch": "4.0.7",
     "react": "19.3.1",
-    "react-arborist": "3.16.0",
+    "react-arborist": "4.0.1",
+    "react-dnd": "16.0.1",
+    "react-dnd-html5-backend": "16.0.1",
     "react-dom": "19.3.1",
     "react-markdown": "^10.1.0",
     "recharts": "^3.10.1",

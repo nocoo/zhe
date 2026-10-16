@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.6] - 2026-10-16
+
+### Changed
+- Bump react-arborist to 4.0.1
+- Add react-dnd and react-dnd-html5-backend as direct dependencies (v4 peer requirement)
+- Run `test:unit` with `--pool=forks` so happy-dom suites load ESM-only tree DnD peers reliably
+
 ## [v2.2.5] - 2026-10-16
 
 ### Changed
