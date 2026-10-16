@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.8] - 2026-10-16
+
+### Changed
+- Simplify L3 browser E2E specs: replace layout, focus, and animation-frame assertions with user-level dialog and CRUD happy paths.
+
 ## [v2.2.7] - 2026-10-16
 
 ### Added
