@@ -30,7 +30,7 @@
     "@ai-sdk/openai": "4.0.95",
     "@auth/core": "^0.41.3",
     "@aws-sdk/client-s3": "3.1152.0",
-    "@aws-sdk/s3-request-presigner": "3.1150.0",
+    "@aws-sdk/s3-request-presigner": "3.1152.0",
     "@nocoo/basalt": "3.0.0",
     "@nocoo/next-ai": "^0.4.0",
     "@tailwindcss/typography": "0.5.20",
