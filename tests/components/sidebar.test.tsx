@@ -344,6 +344,17 @@ describe("Sidebar", () => {
       expect(allMatches).toHaveLength(0);
     });
 
+    it.each([{ shiftKey: true }, { altKey: true }, { isComposing: true }])(
+      "does not open search with additional modifiers: %j",
+      (modifiers) => {
+        renderSidebar({ collapsed: false });
+        fireEvent.keyDown(document, { key: "K", metaKey: true, ...modifiers });
+        expect(
+          screen.queryByPlaceholderText("搜索标题、备注、正文、README…"),
+        ).not.toBeInTheDocument();
+      },
+    );
+
     it("does not render search button in collapsed mode", () => {
       renderSidebar({ collapsed: true });
 

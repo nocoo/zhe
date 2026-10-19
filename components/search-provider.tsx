@@ -12,6 +12,8 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       if (
         event.key.toLowerCase() === "k" &&
         (event.metaKey || event.ctrlKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
         !event.isComposing
       ) {
         event.preventDefault();

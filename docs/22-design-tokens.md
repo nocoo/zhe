@@ -269,6 +269,8 @@ navigation and modal/deletion motion on isolated local resources.
 
 ### Global creation
 
+`Cmd+Shift+K` (macOS) or `Ctrl+Shift+K` activates the current creation FAB, paired with `Cmd/Ctrl+K` for search. Its tooltip exposes the shortcut without changing the accessible action name. Creation ignores key repeats, IME composition, consumed events, disabled/expanded actions and open dialogs so existing drafts are not interrupted.
+
 The dashboard shell owns one 56px bottom-right creation FAB with a Lucide Plus, accessible action label and tooltip. Page actions register through `CreateActionProvider`: ideas, todos, tags and uploads keep their existing workflows; other routes open the shared short-link dialog. Page toolbars and empty link/idea states no longer duplicate creation buttons. The shell reserves bottom content space and the FAB respects safe-area insets and moves above floating selection controls. Dialogs use a short scale/fade entrance with reduced-motion support. Opening a short-link dialog focuses its URL field; closing creation dialogs returns focus to the FAB.
 
 Selection overlays focus their checkbox with `preventScroll` when the card body is activated, so tall cards stay stationary even when the checkbox is above the viewport. Escape leaves selection and clears choices; open menus/dialogs retain their own Escape behavior, and active deletion cannot be interrupted. Exiting restores the selection-entry focus without scrolling.

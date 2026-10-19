@@ -399,3 +399,11 @@ scenario and delegate the first claim to the real client when asserting HTTP
 behavior; only subsequent empty claims should be synthesized to stop queue
 draining. Changing loop termination must not weaken authentication or concurrency
 evidence.
+
+## 2026-10-20: Isolate unrelated exports in creation component tests
+
+The first creation-shortcut test imported the link ViewModel facade and pulled
+unrelated server authentication code into happy-dom before tests could run.
+Reuse the existing facade mock that loads the real creation ViewModel alone;
+keep the actual modal state and focus behavior under test rather than mocking
+them away or changing production imports to accommodate the test runner.

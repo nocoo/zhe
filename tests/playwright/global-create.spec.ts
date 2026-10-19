@@ -1,5 +1,25 @@
 import { expect, test } from "./fixtures";
 
+test("creation shortcut stays separate from search and preserves an open draft", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  await page.keyboard.press("ControlOrMeta+Shift+k");
+  const input = page.getByLabel("原始链接");
+  await expect(input).toBeFocused();
+  await input.fill("https://example.com/draft");
+  await page.keyboard.press("ControlOrMeta+Shift+k");
+  await expect(input).toHaveValue("https://example.com/draft");
+  await expect(input).toBeFocused();
+  await expect(page.getByPlaceholder("搜索标题、备注、正文、README…")).toBeHidden();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("global-create")).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(page.getByPlaceholder("搜索标题、备注、正文、README…")).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+Shift+k");
+  await expect(input).toBeHidden();
+});
+
 test("global create opens the link dialog and escape closes it", async ({ page }) => {
   await page.goto("/dashboard");
   const fab = page.getByTestId("global-create");
