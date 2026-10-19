@@ -21,8 +21,8 @@ const CreateFab = forwardRef<HTMLButtonElement, ButtonProps & { label: string }>
         variant="default"
         size="icon"
         data-testid="global-create"
-        aria-keyshortcuts="Meta+Shift+K Control+Shift+K"
-        shortcut="⌘⇧K / Ctrl+Shift+K"
+        aria-keyshortcuts="Meta+J Control+J"
+        shortcut="⌘J / Ctrl+J"
         className="global-create-fab fixed z-30 size-14 rounded-full shadow-lg transition-[transform,opacity] duration-200 hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:transform-none [&_svg]:size-6 data-[state=open]:[&_svg]:rotate-45 aria-expanded:[&_svg]:rotate-45"
       >
         <Plus
@@ -41,20 +41,24 @@ export function GlobalCreateAction() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (
-        event.key.toLowerCase() !== "k" ||
+        event.key.toLowerCase() !== "j" ||
         !(event.metaKey || event.ctrlKey) ||
-        !event.shiftKey ||
+        event.shiftKey ||
         event.altKey ||
         event.isComposing ||
+        event.defaultPrevented
+      ) {
+        return;
+      }
+      event.preventDefault();
+      if (
         event.repeat ||
-        event.defaultPrevented ||
         trigger.current?.disabled ||
         trigger.current?.getAttribute("aria-expanded") === "true" ||
         document.querySelector('[role="dialog"], [role="alertdialog"]')
       ) {
         return;
       }
-      event.preventDefault();
       trigger.current?.click();
     };
     document.addEventListener("keydown", onKey);

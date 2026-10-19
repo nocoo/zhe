@@ -27,9 +27,8 @@ function PageAction(props: { onClick: () => void; disabled?: boolean; expanded?:
 
 function pressShortcut(overrides: KeyboardEventInit = {}) {
   const event = new KeyboardEvent("keydown", {
-    key: "K",
+    key: "J",
     metaKey: true,
-    shiftKey: true,
     bubbles: true,
     cancelable: true,
     ...overrides,
@@ -47,7 +46,7 @@ describe("global creation shortcut", () => {
       const input = screen.getByLabelText("原始链接");
       await waitFor(() => expect(input).toHaveFocus());
       fireEvent.change(input, { target: { value: "https://example.com/draft" } });
-      pressShortcut(modifiers);
+      expect(pressShortcut(modifiers).defaultPrevented).toBe(true);
       expect(input).toHaveValue("https://example.com/draft");
       expect(input).toHaveFocus();
       await userEvent.keyboard("{Escape}");
@@ -57,11 +56,11 @@ describe("global creation shortcut", () => {
   );
 
   it.each([
-    { key: "n" },
+    { key: "k" },
+    { key: "K", shiftKey: true },
     { metaKey: false },
-    { shiftKey: false },
+    { shiftKey: true },
     { altKey: true },
-    { repeat: true },
     { isComposing: true },
   ])("ignores unrelated or unsafe keys: %j", (modifiers) => {
     render(<GlobalCreateAction />);
@@ -72,9 +71,8 @@ describe("global creation shortcut", () => {
   it("ignores consumed events and removes its listener on unmount", () => {
     const { unmount } = render(<GlobalCreateAction />);
     const event = new KeyboardEvent("keydown", {
-      key: "K",
+      key: "J",
       metaKey: true,
-      shiftKey: true,
       cancelable: true,
     });
     event.preventDefault();
@@ -82,6 +80,12 @@ describe("global creation shortcut", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     unmount();
     expect(pressShortcut().defaultPrevented).toBe(false);
+  });
+
+  it("blocks the browser shortcut on key repeats without creating again", () => {
+    render(<GlobalCreateAction />);
+    expect(pressShortcut({ repeat: true }).defaultPrevented).toBe(true);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("uses the current page action and respects disabled and expanded state", () => {
@@ -93,12 +97,12 @@ describe("global creation shortcut", () => {
       </CreateActionProvider>
     );
     const { rerender } = render(tree());
-    pressShortcut({ key: "k" });
+    pressShortcut({ key: "j" });
     expect(onClick).toHaveBeenCalledOnce();
     rerender(tree(true));
-    expect(pressShortcut().defaultPrevented).toBe(false);
+    expect(pressShortcut().defaultPrevented).toBe(true);
     rerender(tree(false, true));
-    expect(pressShortcut().defaultPrevented).toBe(false);
+    expect(pressShortcut().defaultPrevented).toBe(true);
     expect(onClick).toHaveBeenCalledOnce();
   });
 
@@ -109,15 +113,15 @@ describe("global creation shortcut", () => {
         <GlobalCreateAction />
       </>,
     );
-    expect(pressShortcut().defaultPrevented).toBe(false);
+    expect(pressShortcut().defaultPrevented).toBe(true);
     expect(screen.queryByLabelText("原始链接")).not.toBeInTheDocument();
   });
 
   it("exposes the shortcut in the tooltip without changing the action name", async () => {
     render(<GlobalCreateAction />);
     const button = screen.getByRole("button", { name: "新建链接" });
-    expect(button).toHaveAttribute("aria-keyshortcuts", "Meta+Shift+K Control+Shift+K");
+    expect(button).toHaveAttribute("aria-keyshortcuts", "Meta+J Control+J");
     await userEvent.hover(button);
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("⌘⇧K / Ctrl+Shift+K");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("⌘J / Ctrl+J");
   });
 });

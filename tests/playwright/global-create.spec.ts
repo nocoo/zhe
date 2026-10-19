@@ -4,11 +4,11 @@ test("creation shortcut stays separate from search and preserves an open draft",
   page,
 }) => {
   await page.goto("/dashboard");
-  await page.keyboard.press("ControlOrMeta+Shift+k");
+  await page.keyboard.press("ControlOrMeta+j");
   const input = page.getByLabel("原始链接");
   await expect(input).toBeFocused();
   await input.fill("https://example.com/draft");
-  await page.keyboard.press("ControlOrMeta+Shift+k");
+  await page.keyboard.press("ControlOrMeta+j");
   await expect(input).toHaveValue("https://example.com/draft");
   await expect(input).toBeFocused();
   await expect(page.getByPlaceholder("搜索标题、备注、正文、README…")).toBeHidden();
@@ -16,7 +16,7 @@ test("creation shortcut stays separate from search and preserves an open draft",
   await expect(page.getByTestId("global-create")).toBeFocused();
   await page.keyboard.press("ControlOrMeta+k");
   await expect(page.getByPlaceholder("搜索标题、备注、正文、README…")).toBeFocused();
-  await page.keyboard.press("ControlOrMeta+Shift+k");
+  await page.keyboard.press("ControlOrMeta+j");
   await expect(input).toBeHidden();
 });
 
