@@ -1,6 +1,6 @@
 {
   "name": "@nocoo/zhe",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "description": "CLI for managing zhe.to short links",
   "type": "module",
   "main": "dist/index.js",

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.11] - 2026-10-20
+
+### Changed
+- Align tag surfaces with basalt 3.2
+- Scope bulk actions to their toolbar
+- Upgrade happy-dom to 21.0.3
+- Upgrade lucide to 1.59.0
+- Upgrade postcss to 8.5.31
+- Upgrade aws s3 dependencies
+- Upgrade ai sdk dependencies
+- Upgrade basalt to 3.2.0
+
 ## [v2.2.10] - 2026-10-20
 
 ### Added
