@@ -1,6 +1,7 @@
 "use client";
 import { Button, Input } from "@nocoo/basalt";
 import { ArrowLeft, Search } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SearchResult } from "@/components/search-result";
@@ -161,7 +162,7 @@ export function SearchPage() {
       >
         {result.data?.items.map((hit) => (
           <li key={`${hit.kind}:${hit.id}`}>
-            <a
+            <Link
               data-search-result
               href={hit.url}
               target={hit.kind === "link" ? "_blank" : undefined}
@@ -169,7 +170,7 @@ export function SearchPage() {
               className="block rounded-widget px-3 py-3 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <SearchResult hit={hit} query={query} />
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
