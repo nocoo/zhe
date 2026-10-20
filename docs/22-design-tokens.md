@@ -281,6 +281,10 @@ Pinned package: `@nocoo/basalt@3.2.0`; compatibility and integration guidance
 checked against the published package and Basalt source revision `13a0fe1`.
 The 3.2 upgrade retains existing imports and peer requirements; the package owns
 its updated island hierarchy, typography, hover and dialog tokens.
+Control fills contrast with their container: surface roots use
+`--basalt-secondary`, while cards and deeper surfaces use `--basalt-bright`.
+The tag creation browser contract verifies the bright token in both themes,
+not equality with its L2 card. Dialog and popover overrides remain unchanged.
 The package owns native control roles and island/card insets. Zhe retains its
 32px/44px card icon targets, bright dialog surfaces and 18px/14px modal typography.
 Zero-padding reader/editor/search/enrichment panels and navigation/todo sheets

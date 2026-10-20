@@ -18,9 +18,22 @@ test.describe("Tags management", () => {
     await expect(createForm).toBeVisible();
     await expect(createForm).toHaveAttribute("data-basalt-surface", "");
     const createInput = page.getByLabel("新标签名");
-    await expect
-      .poll(async () => createInput.evaluate((el) => getComputedStyle(el).backgroundColor))
-      .toBe(await createForm.evaluate((el) => getComputedStyle(el).backgroundColor));
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      await expect(page.locator("html")).toHaveAttribute("data-mode", colorScheme);
+      const bright = await createForm.evaluate((el) => {
+        const probe = el.appendChild(document.createElement("span"));
+        probe.style.backgroundColor = "hsl(var(--basalt-bright))";
+        const color = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return color;
+      });
+      await expect(createInput).toHaveCSS("background-color", bright);
+      expect(bright).not.toBe(
+        await createForm.evaluate((el) => getComputedStyle(el).backgroundColor),
+      );
+    }
+    await page.emulateMedia({ colorScheme: "light" });
     await createInput.fill(name);
     await createForm.getByTestId("tag-color-red").click();
     await createForm.getByTestId("tag-create-submit").click();

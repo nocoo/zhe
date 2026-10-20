@@ -424,3 +424,11 @@ locator matched both the normal and floating selection toolbars. Selecting a
 card had scrolled the normal toolbar outside the viewport, not out of the
 accessibility tree. Scope controls to the exact named group rather than choosing
 the first match; retain the confirmation, database and storage deletion checks.
+
+## 2026-10-20: Read design changes even when compatibility guides are unchanged
+
+The Basalt 3.2 inspection found unchanged integration and compatibility guides
+but missed the control-contrast rule in `ai/DESIGN.md`. The full browser suite
+caught a tag-form assertion that still required input and card fills to match.
+Check the selected package's design contract and token changes, then assert its
+specific semantic color in both themes instead of restoring an obsolete style.
