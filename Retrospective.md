@@ -407,3 +407,12 @@ unrelated server authentication code into happy-dom before tests could run.
 Reuse the existing facade mock that loads the real creation ViewModel alone;
 keep the actual modal state and focus behavior under test rather than mocking
 them away or changing production imports to accommodate the test runner.
+
+## 2026-10-20: Apply local proxy overrides to dependency installs too
+
+The Basalt install reused cached packages, hiding the stopped proxy configured in
+`.env.local`. After diagnosing the same proxy in a Google Fonts build failure,
+the first AI SDK install omitted the temporary proxy overrides and failed again.
+Check effective Bun-loaded proxy settings, not only shell variables or a cached
+install. Apply the verified per-command environment to installs, builds and local
+previews together; preserve the user's dotenv file and use the requested registry.

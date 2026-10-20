@@ -26,15 +26,15 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.81",
-    "@ai-sdk/openai": "4.0.95",
+    "@ai-sdk/anthropic": "4.0.84",
+    "@ai-sdk/openai": "4.0.98",
     "@auth/core": "^0.41.3",
     "@aws-sdk/client-s3": "3.1152.0",
     "@aws-sdk/s3-request-presigner": "3.1152.0",
     "@nocoo/basalt": "3.2.0",
     "@nocoo/next-ai": "^0.4.0",
     "@tailwindcss/typography": "0.5.20",
-    "ai": "7.0.142",
+    "ai": "7.0.146",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "drizzle-orm": "0.45.4",
@@ -107,8 +107,8 @@
     "nanoid": "^6.0.2",
     "postcss-selector-parser": "^7.1.6",
     "source-map-js": "1.2.2",
-    "@ai-sdk/anthropic": "4.0.81",
-    "@ai-sdk/openai": "4.0.95",
-    "ai": "7.0.142"
+    "@ai-sdk/anthropic": "4.0.84",
+    "@ai-sdk/openai": "4.0.98",
+    "ai": "7.0.146"
   }
 }
