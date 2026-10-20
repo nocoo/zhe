@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.2.10] - 2026-10-20
+
+### Added
+- Add global creation keyboard shortcut
+
+### Fixed
+- Use cmd j for global creation
+
 ## [v2.2.9] - 2026-10-16
 
 ### Added
