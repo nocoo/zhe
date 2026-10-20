@@ -277,8 +277,10 @@ Selection overlays focus their checkbox with `preventScroll` when the card body 
 
 ### Basalt 3 adoption
 
-Pinned package: `@nocoo/basalt@3.0.0`; migration guidance checked against its
-installed `ai/COMPATIBILITY.md` and Basalt source revision `874b025`.
+Pinned package: `@nocoo/basalt@3.2.0`; compatibility and integration guidance
+checked against the published package and Basalt source revision `13a0fe1`.
+The 3.2 upgrade retains existing imports and peer requirements; the package owns
+its updated island hierarchy, typography, hover and dialog tokens.
 The package owns native control roles and island/card insets. Zhe retains its
 32px/44px card icon targets, bright dialog surfaces and 18px/14px modal typography.
 Zero-padding reader/editor/search/enrichment panels and navigation/todo sheets
