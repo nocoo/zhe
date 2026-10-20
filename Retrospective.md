@@ -416,3 +416,11 @@ the first AI SDK install omitted the temporary proxy overrides and failed again.
 Check effective Bun-loaded proxy settings, not only shell variables or a cached
 install. Apply the verified per-command environment to installs, builds and local
 previews together; preserve the user's dotenv file and use the requested registry.
+
+## 2026-10-20: Scope bulk-action browser locators to their named toolbar
+
+The full dependency-upgrade browser run stopped when a global delete-button
+locator matched both the normal and floating selection toolbars. Selecting a
+card had scrolled the normal toolbar outside the viewport, not out of the
+accessibility tree. Scope controls to the exact named group rather than choosing
+the first match; retain the confirmation, database and storage deletion checks.

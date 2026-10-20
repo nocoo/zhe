@@ -87,7 +87,10 @@ test("grid: bulk selection deletes the chosen bookmarks", async ({ page, owner }
   await expect(choices).toHaveCount(8);
   await choices.first().check();
   await choices.nth(1).check();
-  await page.getByRole("button", { name: "删除所选" }).click();
+  await page
+    .getByRole("group", { name: "多选操作", exact: true })
+    .getByRole("button", { name: "删除所选" })
+    .click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByRole("heading", { name: "删除 2 项内容？" })).toBeVisible();
   await dialog.getByRole("button", { name: "确认删除" }).click();
@@ -124,8 +127,9 @@ test("uploads: bulk deletion removes files from storage", async ({ page, owner }
   }
   await page.goto("/dashboard/uploads");
   await page.getByRole("button", { name: "多选卡片" }).click();
-  await page.getByRole("button", { name: "全选当前列表" }).click();
-  await page.getByRole("button", { name: "删除所选" }).click();
+  const toolbar = page.getByRole("group", { name: "多选操作", exact: true });
+  await toolbar.getByRole("button", { name: "全选当前列表" }).click();
+  await toolbar.getByRole("button", { name: "删除所选" }).click();
   const dialog = page.getByRole("alertdialog");
   await dialog.getByRole("button", { name: "确认删除" }).click();
   await expect(dialog.getByRole("status")).toContainText("已删除 3 项");
