@@ -59,10 +59,11 @@ source, private file and running container without printing secrets or hashes.
 Do not substitute local `.env` values, regenerate keys, or bake credentials into
 images. Exclude local identities, test flags and local resource overrides.
 
-The existing Railway main trigger must be handled with explicit approval before
-the first push, so staging does not also replace the public application. Keep
-the current deployment running. Reuse existing authorized SSH/registry access;
-do not change host ACLs, authorized keys or shared services.
+The owner explicitly approved disconnecting the Railway main trigger and adding
+a dedicated Zhe CI SSH key before the first push. Keep the current deployment
+running. Preserve existing SSH authorizations and reuse existing registry access;
+the single approved key addition does not authorize broader host ACL or shared
+service changes.
 
 ## Implementation and Verification
 
@@ -130,8 +131,8 @@ rollback does not undo database writes. This task performs no schema migration.
 - [x] Repository, Railway and jp2 baseline inspected without infrastructure changes.
 - [x] Container hardening, clean Linux build and isolated HTTP/browser regressions passed.
 - [x] CD and private deployment verification independently reviewed; the session acceptance gap was fixed and closed.
-- [ ] Railway main-trigger handling approved and performed.
-- [ ] Runtime values and scoped deployment credentials prepared and verified.
+- [x] Railway main-trigger handling approved and performed; the original instance remains running.
+- [x] Runtime file/Compose values and scoped deployment credentials prepared and verified; running-container equality still awaits deployment.
 - [ ] Exact-SHA CI/CD deployed the private origin; acceptance evidence recorded.
 - [ ] Owner approved public routing/TLS changes.
 - [ ] Public cutover and authenticated acceptance completed.
@@ -166,11 +167,33 @@ rollback does not undo database writes. This task performs no schema migration.
   rollback record are mode 0600. All 18 application values match Railway after
   raw Compose parsing. No container has started, so running-container equality
   is still unverified.
-- Repository deployment phase is `precutover`. Six environment-scoped deployment
+- At the initial preparation checkpoint, deployment phase was `precutover`. Six environment-scoped deployment
   values are configured, reusing trusted local SSH host keys and existing host
   registry credentials. `VPS_SSH_KEY` is deliberately unset: approval to create
   a Zhe-specific CI key and append its SSH authorization is pending. The user's
   personal SSH private key was not copied to GitHub.
-- Railway main-trigger disconnection remains pending explicit approval. No push,
+- At that checkpoint, Railway main-trigger disconnection awaited approval. No push,
   GHCR publication, jp2 container start, DNS/Worker/TLS/Caddy change or Railway
   restart/shutdown has occurred. There is no jp2 deployment or rollback digest.
+
+### Approved Deployment Credentials and Trigger Isolation
+
+On 2026-10-22 the owner approved both pending operations, but not public cutover.
+
+- Generated an Ed25519 key at `/opt/zhe/deploy-key` (0600), with comment
+  `zhe-deploy@github-actions` and public fingerprint
+  `SHA256:arldk9r/hxIoHnW8FKmtVTtHijnEzua3tHFhCyyk28Q`. Added only this public
+  key to `nocoo`'s existing `authorized_keys`, using `restrict` to disable PTY,
+  forwarding and user rc. Existing authorization bytes were preserved.
+- Verified the new key over SSH with strict trusted-host verification and the
+  shared action's `bash -s` execution pattern. Stored it as `VPS_SSH_KEY` in the
+  `zhe / production` GitHub environment. Its temporary local test copy was
+  removed; the user's personal SSH private key was not copied to GitHub.
+- Rechecked all 18 Railway application values against the private env-file and
+  parsed Compose environment, and verified installed Compose matches the repo.
+- Recorded the exact Railway trigger before-image in the private rollback file,
+  then deleted trigger `6c07f687-51dd-4710-9269-0050f1deb8e9`. A fresh query
+  returned no triggers. Deployment `d497e198-8b61-4899-b9c5-0f70a32df9a5`
+  remained successful and running at the original source SHA.
+- All seven deployment secrets are configured. The deployment phase remains
+  `precutover`; DNS, TLS, Caddy, Worker, schema and Railway instance are unchanged.
