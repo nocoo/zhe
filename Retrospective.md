@@ -16,6 +16,11 @@ authorization evidence. Keep API denial, Proxy/session denial, action execution
 and real OAuth acceptance distinct; do not expose a new route or bypass auth
 merely to make a deployment test reach an internal guard.
 
+A draft receipt also named an unconfigured Android browser project. The final
+receipt was corrected from the actual Playwright configuration and output:
+desktop Chromium and iPhone. Record tested platforms from evidence, not from
+assumed mobile coverage.
+
 ## Undated collection — migrated from the previous handbook
 
 Some entries contain their original incident dates. Entries without dates remain undated.

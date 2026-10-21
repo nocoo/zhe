@@ -143,6 +143,9 @@ rollback does not undo database writes. This task performs no schema migration.
   98.80 for statements / branches / functions / lines; 197 in-process integration
   tests, strict types, Biome and staged gitleaks passed. Existing Vite and Node
   test-runner warnings were observed, not suppressed.
+- Commit `4ebfc04b` adds the reviewed CD, deployment acceptance and release
+  handoff; its full index-snapshot hook also passed. The independent review's
+  Server Action acceptance finding was fixed and closed before this commit.
 - A clean Linux amd64 image built without application variables or database
   credentials. The approved company mirror lacked several exact locked
   tarballs; a temporary Dockerfile using the approved Tencent mirror succeeded.
@@ -154,8 +157,8 @@ rollback does not undo database writes. This task performs no schema migration.
   the Next cache was writable. Native Sharp generated a PNG in the final image.
   A separate isolated synthetic-auth run proved the manifest-identified Server
   Action request receives the expected Proxy/session denial.
-- Isolated real HTTP tests passed 239 cases in 30 files; the full Chromium,
-  Android and iPhone browser run passed 200 cases in six minutes. These runs
+- Isolated real HTTP tests passed 239 cases in 30 files; the full desktop Chromium
+  and iPhone browser run passed 200 cases in six minutes. These runs
   include existing Connector journeys, not a new maximum-size 100 MB upload
   stress test or the future public Caddy path. No production fixtures or
   authenticated writes were performed.
