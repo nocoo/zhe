@@ -1,0 +1,34 @@
+services:
+  web:
+    image: ghcr.io/nocoo/zhe:${IMAGE_SHA:?IMAGE_SHA is required}
+    container_name: zhe-app
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: .env.runtime
+        required: true
+        format: raw
+    ports:
+      - 127.0.0.1:17006:7005
+    mem_limit: 4000000000
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:'+process.env.PORT+'/api/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 90s
+    networks:
+      - edge
+
+networks:
+  edge:
+    external: true

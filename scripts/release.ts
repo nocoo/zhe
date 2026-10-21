@@ -16,14 +16,11 @@
  *   bun run release -- 2.0.0     # explicit version
  *   bun run release -- --dry-run # preview without side effects
  *   bun run release -- --skip-l3 # skip the L3 Playwright preflight (faster)
- *   bun run release -- --skip-redeploy
- *                                # skip the post-push Railway redeploy + health probe
  *
  * Env:
  *   Requires `gh` CLI authenticated for GitHub release creation.
  *   Requires `rg` (ripgrep) for stale version verification.
- *   Optional: `railway` CLI authenticated; without it the post-push redeploy
- *   is skipped with a warning.
+ *   Successful main CI triggers the separate Docker CD workflow.
  */
 
 import { spawn } from "node:child_process";
@@ -363,7 +360,6 @@ async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2).filter((a) => a !== "--");
   const isDryRun = rawArgs.includes("--dry-run");
   const skipL3 = rawArgs.includes("--skip-l3");
-  const skipRedeploy = rawArgs.includes("--skip-redeploy");
   const bumpArg = rawArgs.find((a) => !a.startsWith("--")) ?? "patch";
 
   if (isDryRun) {
@@ -640,69 +636,11 @@ async function main(): Promise<void> {
     }
   }
 
-  // --- Phase 6: Force Railway redeploy + health check ---
-  // Background: Railway's Watch Paths can mark a pure version-bump commit
-  // (changes only package.json / cli/package.json / CHANGELOG.md) as
-  // SKIPPED, leaving prod stuck on the previous tag. Force a fresh deploy
-  // from main HEAD and then poll /api/live until version matches.
-  if (!skipRedeploy) {
-    console.log("\n🚂 Phase 6: Railway redeploy + health check\n");
-
-    const railwayCheck = await run("railway", ["status"]);
-    if (railwayCheck.code !== 0) {
-      console.log("   ⚠️  railway CLI unavailable or not linked — skipping");
-      console.log("       Check prod manually: curl https://zhe.to/api/live");
-    } else {
-      console.log("   🔄 Triggering railway redeploy --from-source --yes...");
-      const redeployResult = await run("railway", ["redeploy", "--from-source", "--yes"]);
-      if (redeployResult.code !== 0) {
-        console.error("   ⚠️  railway redeploy failed (tag is still pushed)");
-        if (redeployResult.stderr.trim()) {
-          console.error(`      ${redeployResult.stderr.trim().slice(0, 200)}`);
-        }
-        console.error("   Trigger manually: railway redeploy --from-source --yes");
-      } else {
-        console.log("   ✅ Redeploy triggered");
-
-        // Poll /api/live for up to 5 minutes; report (don't fail) on
-        // timeout — the tag is already public and the script's job here
-        // is to surface a stuck deploy quickly, not block on it.
-        console.log(`   ⏳ Polling https://zhe.to/api/live for version ${newVersion}...`);
-        const start = Date.now();
-        const timeoutMs = 5 * 60_000;
-        const intervalMs = 15_000;
-        let live = false;
-        let lastSeen = "";
-        while (Date.now() - start < timeoutMs) {
-          const probe = await run("curl", ["-sS", "--max-time", "5", "https://zhe.to/api/live"]);
-          if (probe.code === 0) {
-            try {
-              const data = JSON.parse(probe.stdout);
-              const version = String(data?.version ?? "");
-              if (version) lastSeen = version;
-              if (version === newVersion) {
-                live = true;
-                break;
-              }
-            } catch {
-              // ignore parse error and keep polling
-            }
-          }
-          await new Promise((r) => setTimeout(r, intervalMs));
-        }
-        if (live) {
-          const elapsed = Math.round((Date.now() - start) / 1000);
-          console.log(`   ✅ /api/live now reports v${newVersion} (after ${elapsed}s)`);
-        } else {
-          console.error(`   ⚠️  /api/live did not report v${newVersion} within 5min`);
-          console.error(`      Last observed version: ${lastSeen || "(no response)"}`);
-          console.error(
-            "      Check Railway dashboard or rerun: railway redeploy --from-source --yes",
-          );
-        }
-      }
-    }
-  }
+  const sourceSha = await runOrDie("git", ["rev-parse", "HEAD"], "Failed to read release SHA");
+  console.log(`\nDeployment is asynchronous: verify CI and Release for ${sourceSha}.`);
+  console.log(
+    "The Release workflow verifies the jp2 image digest and origin; a published tag is not deployment proof.",
+  );
 
   // Summary
   console.log(`\n${"=".repeat(50)}`);

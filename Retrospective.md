@@ -2,6 +2,20 @@
 
 Historical accident narratives and project lessons. Current requirements live in [AGENTS.md](AGENTS.md). Preserve original dates and wording; deterministic follow-ups belong in tests/hooks and cross-project lessons in global rules/nmem.
 
+## 2026-10-22 - Separate API and session deployment acceptance
+
+The first jp2 verifier checked anonymous Bearer API denial but omitted the
+Server Action/session boundary promised by the migration plan. Independent
+review caught the gap before push or deployment. The verifier now identifies
+the real read-only `getLinks` action and its dashboard worker in the running
+image's manifest, then requires the exact anonymous login redirect without
+following it. An isolated production image with synthetic auth configuration
+confirmed that the existing Proxy rejects the request before action execution.
+A POST to the public root returned an empty object and was not accepted as
+authorization evidence. Keep API denial, Proxy/session denial, action execution
+and real OAuth acceptance distinct; do not expose a new route or bypass auth
+merely to make a deployment test reach an internal guard.
+
 ## Undated collection — migrated from the previous handbook
 
 Some entries contain their original incident dates. Entries without dates remain undated.

@@ -4,6 +4,12 @@
 
 > 返回 [README](../README.md)
 
+> Deployment transition: [Railway to jp2](34-jp2-migration.md) is authorized only
+> through private staging. Railway remains public until owner-approved cutover.
+> The migration runbook governs Docker CD, runtime variables and acceptance.
+> Historical D1 REST descriptions below predate the current mandatory D1 Worker
+> proxy in `lib/db/d1-client.ts`; do not recreate the removed REST fallback.
+
 ## 部署架构
 
 ```

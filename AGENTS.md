@@ -87,8 +87,10 @@ Automation locks by launch intent, never by `mode === "e2e"`, strips production 
 
 ## Operations / Release
 
-Only a requested release runs `bun run release`: patch by default, L3 preflight, version/lock/changelog, normal commit/push/tag/release, Railway redeploy and `/api/live` polling. Details: [runbook](docs/29-maintainer-operations.md).
+Only a requested release runs `bun run release`: patch by default, L3 preflight, version/lock/changelog and normal commit/push/tag/release. Successful main CI triggers the pinned Docker CD workflow; a published tag is not deployment proof. Details: [runbook](docs/29-maintainer-operations.md).
 Worker/schema changes need their corresponding deployment/migration under that release authorization; routine documentation changes do not bump versions.
+
+The [jp2 migration](docs/34-jp2-migration.md) is pre-cutover: Railway remains the public origin until explicit owner approval. Stage `zhe-app` in `/opt/zhe` on `127.0.0.1:17006`, preserve Railway runtime values, and verify exact image digest/source plus private-origin health. Never accept the old public origin as staging proof. Preserve `origin.zhe.to`, which the Worker uses for forwarding, lookup, analytics and cron. No DNS, TLS, shared Caddy changes or Railway shutdown without approval; shared Caddy must be validated and hot-reloaded, not restarted.
 
 ## Retrospective
 

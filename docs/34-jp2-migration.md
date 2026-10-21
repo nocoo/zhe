@@ -86,6 +86,11 @@ Private-origin acceptance requires exact image digest and OCI source revision,
 the package version, no-store database health, canonical Host/HTTPS forwarding,
 no redirect following, public login/assets, and unauthorized API/Server Action
 denial. Do not accept a response from the still-running Railway origin as proof.
+The Server Action probe identifies the real read-only `getLinks` action in the
+deployed manifest and requires the session Proxy's exact anonymous login redirect
+without following it. This proves the session route boundary, not execution of
+the action's own authorization guard; isolated authenticated browser journeys
+cover the working action path.
 Production authenticated writes and real Google OAuth need separately controlled
 acceptance, not synthetic data or a configured callback alone.
 
@@ -123,10 +128,46 @@ rollback does not undo database writes. This task performs no schema migration.
 
 - [x] Owner authorized pre-cutover implementation and jp2 deployment.
 - [x] Repository, Railway and jp2 baseline inspected without infrastructure changes.
-- [ ] Container hardening, clean Linux build and isolated regressions passed.
-- [ ] CD and private deployment verification independently reviewed.
+- [x] Container hardening, clean Linux build and isolated HTTP/browser regressions passed.
+- [x] CD and private deployment verification independently reviewed; the session acceptance gap was fixed and closed.
 - [ ] Railway main-trigger handling approved and performed.
 - [ ] Runtime values and scoped deployment credentials prepared and verified.
 - [ ] Exact-SHA CI/CD deployed the private origin; acceptance evidence recorded.
 - [ ] Owner approved public routing/TLS changes.
 - [ ] Public cutover and authenticated acceptance completed.
+
+### Preparation Evidence
+
+- Commits `47279e89` (plan) and `b351c03d` (container packaging) passed normal
+  index-snapshot hooks. Container-commit L1 coverage was 98.09 / 95.06 / 96.71 /
+  98.80 for statements / branches / functions / lines; 197 in-process integration
+  tests, strict types, Biome and staged gitleaks passed. Existing Vite and Node
+  test-runner warnings were observed, not suppressed.
+- A clean Linux amd64 image built without application variables or database
+  credentials. The approved company mirror lacked several exact locked
+  tarballs; a temporary Dockerfile using the approved Tencent mirror succeeded.
+  The tracked installer and lockfile are unchanged. Canonical-Dockerfile GitHub
+  CI remains required; this local build is not that receipt.
+- The image ran as UID 1000 with no network, production mode and no application
+  secrets/test flags. Health returned 503/no-store with D1 disconnected, Bearer
+  reads/writes returned 401, public assets and actual Next JS/CSS loaded, and
+  the Next cache was writable. Native Sharp generated a PNG in the final image.
+  A separate isolated synthetic-auth run proved the manifest-identified Server
+  Action request receives the expected Proxy/session denial.
+- Isolated real HTTP tests passed 239 cases in 30 files; the full Chromium,
+  Android and iPhone browser run passed 200 cases in six minutes. These runs
+  include existing Connector journeys, not a new maximum-size 100 MB upload
+  stress test or the future public Caddy path. No production fixtures or
+  authenticated writes were performed.
+- `/opt/zhe` is mode 0700; `.env.runtime`, `compose.yaml` and the private Railway
+  rollback record are mode 0600. All 18 application values match Railway after
+  raw Compose parsing. No container has started, so running-container equality
+  is still unverified.
+- Repository deployment phase is `precutover`. Six environment-scoped deployment
+  values are configured, reusing trusted local SSH host keys and existing host
+  registry credentials. `VPS_SSH_KEY` is deliberately unset: approval to create
+  a Zhe-specific CI key and append its SSH authorization is pending. The user's
+  personal SSH private key was not copied to GitHub.
+- Railway main-trigger disconnection remains pending explicit approval. No push,
+  GHCR publication, jp2 container start, DNS/Worker/TLS/Caddy change or Railway
+  restart/shutdown has occurred. There is no jp2 deployment or rollback digest.

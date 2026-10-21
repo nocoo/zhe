@@ -49,8 +49,6 @@ bun run release -- minor     # minor bump
 bun run release -- major     # major bump
 bun run release -- 2.0.0     # explicit version
 bun run release -- --dry-run # preview without side effects
-bun run release -- --skip-redeploy
-                             # skip the post-push Railway redeploy + health probe
 ```
 
 **⚠️ Pre-release D1 Probe**: The release script probes prod D1 (`zhe-db`) reachability during preflight — it fails fast if `wrangler` can't reach prod (auth issue, network problem). Prior versions compared prod vs `zhe-db-test`, but L2/L3 now run on a fully local Miniflare stack so the test DB is gone. To apply a missing migration to prod after release:
@@ -69,7 +67,20 @@ The script performs these steps automatically:
 6. Verify no stale old version strings remain in `*.ts`/`*.tsx` via `rg`
 7. Commit: `chore: bump version to x.y.z` (triggers pre-commit hooks: L1 + G1 + G2)
 8. Push → Tag (`v`-prefixed, annotated) → Push tags → GitHub Release
-9. **Force `railway redeploy --from-source --yes` and poll `/api/live`** until version matches (5min cap; warns rather than fails on timeout because the tag is already public). Skip with `--skip-redeploy`
+9. Successful main-push CI triggers the `Release` Docker CD workflow. Verify the exact source SHA, successful CI/CD, deployed image digest and origin acceptance; publishing a tag alone does not prove deployment. The release script does not redeploy Railway.
+
+During the [jp2 migration](34-jp2-migration.md), `DEPLOY_PHASE=precutover` requires
+private-origin checks on jp2 and deliberately does not contact the public origin
+as deployment evidence. Railway remains public until the owner approves routing.
+After approval, `DEPLOY_PHASE=production`, `DEPLOY_URL=https://zhe.to` and
+`DEPLOY_ORIGIN_MARKER=jp2` require public no-store health with the expected origin
+marker and version. These deployment controls are repository variables; SSH and
+registry credentials belong to the `zhe / production` environment. Application
+values are in `/opt/zhe/.env.runtime`, not GitHub build arguments.
+
+The shared workflow deploys by digest and records `.base-ci-releases/<SHA>.json`.
+Failed post-deployment verification does not automatically restore the previous
+container. Restore an accepted recorded digest, never `latest` or a rebuild.
 
 Pre-commit hooks (L1 tests, G1 lint/typecheck, G2 gitleaks) run automatically during step 7. Pre-push hooks (L2 API E2E, G2 osv-scanner) run during step 8.
 
