@@ -14,7 +14,7 @@ the user's local CLI, not in the web container.
 
 Reuse Firefly's pinned
 `nocoo/base-ci/.github/workflows/deploy-docker.yml` at
-`0394178ebcff0418c442d84a84119220f31f8987`. Successful main-push CI proves the
+`ac635753a869cb85fad1f52aae4ccbd6119f3cae`. Successful main-push CI proves the
 source SHA; CD builds in GitHub Actions and deploys the resulting image digest.
 Do not build on jp2, use `latest` for deployment, or bypass normal Git hooks.
 This staging task does not publish a version or npm package.
