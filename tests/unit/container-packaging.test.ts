@@ -74,7 +74,7 @@ describe("production container packaging", () => {
   it("pins official Bun and shared Node 22 Debian images with a frozen install", () => {
     expect(dockerfile.match(/^FROM .*$/gm)).toEqual([
       "FROM oven/bun:1.3.11@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS bun",
-      "FROM node:22.22.0-bookworm-slim@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94 AS base",
+      "FROM node:22.23.4-bookworm-slim@sha256:ea11b74b986d520137cdef9a5346e447a00f275ecc4abc0055b7151226231e09 AS base",
       "FROM base AS deps",
       "FROM base AS builder",
       "FROM base AS runner",
