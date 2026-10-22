@@ -277,7 +277,7 @@ Selection overlays focus their checkbox with `preventScroll` when the card body 
 
 ### Basalt 3 adoption
 
-Pinned package: `@nocoo/basalt@3.2.0`; compatibility and integration guidance
+Pinned package: `@nocoo/basalt@3.2.1`; compatibility and integration guidance
 checked against the published package and Basalt source revision `13a0fe1`.
 The 3.2 upgrade retains existing imports and peer requirements; the package owns
 its updated island hierarchy, typography, hover and dialog tokens.
