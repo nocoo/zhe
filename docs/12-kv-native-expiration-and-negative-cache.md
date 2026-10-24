@@ -7,22 +7,21 @@ Worker 边缘加速层的三项优化：KV 原生过期、Worker KV miss 时轻�
 ## 背景
 
 当前 Worker 的 KV hit 路径已经很快（边缘读 KV → 307 redirect），但三条旁路仍有优化空间：
-
 1. **KV 中过期链接的处理**：`expiresAt` 存在 JSON value 里，Worker 每次都要解析 JSON 后手动判断过期。如果写 KV 时带上原生 `expiration` 参数，过期 key 会被 KV 自动删除，减少陈旧 key 堆积。
 2. **KV miss 路径低效**：不存在的 slug、爬虫扫路径触发完整的 `forwardToOrigin()`（全量代理 → middleware → D1 查询 → 渲染 not-found 页面）。实际只需要知道"slug 存不存在"，不需要完整的 HTML 响应。
 3. **KV expired hit 路径低效**：过期链接同样 `forwardToOrigin()`，触发完整回源。Worker 既然已经知道链接过期了，可以直接在边缘返回 not-found。
 
 ## 设计决策
 
-| 决策 | 选择 | 理由 |
-|------|------|------|
-| Worker 中手动 `expiresAt` 检查 | **保留** | KV 过期有几秒延迟窗口，保留作为安全网 |
-| KV expired hit 处理 | **边缘直接返回 not-found** | Worker 已确认过期，无需回源 |
-| KV miss 解析方式 | **轻量 `/api/lookup` API** | 只查 D1，返回 JSON，不渲染页面。比 `forwardToOrigin` 少了 middleware 全量处理 |
-| Negative cache 存储 | **Cache API** | per-colo、自动过期、不占 KV 写入配额 |
-| Negative cache TTL | **60s** | 平衡拦截效果与新建链接可用性 |
-| Tombstone 触发信号 | **lookup API 的 `{ found: false }` (404)** | 明确的 slug miss 语义，不会误伤 origin 其他 404（如页面 not-found、API error） |
-| 过期时间已在过去的 KV 写入 | **跳过 `expiration` 参数** | KV API 拒绝过去的 expiration 值，仍写入 value 但不设过期 |
+| 决策                           | 选择                                       | 理由                                                                           |
+| ------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------ |
+| Worker 中手动 `expiresAt` 检查 | **保留**                                   | KV 过期有几秒延迟窗口，保留作为安全网                                          |
+| KV expired hit 处理            | **边缘直接返回 not-found**                 | Worker 已确认过期，无需回源                                                    |
+| KV miss 解析方式               | **轻量 `/api/lookup` API**                 | 只查 D1，返回 JSON，不渲染页面。比 `forwardToOrigin` 少了 middleware 全量处理  |
+| Negative cache 存储            | **Cache API**                              | per-colo、自动过期、不占 KV 写入配额                                           |
+| Negative cache TTL             | **60s**                                    | 平衡拦截效果与新建链接可用性                                                   |
+| Tombstone 触发信号             | **lookup API 的 `{ found: false }` (404)** | 明确的 slug miss 语义，不会误伤 origin 其他 404（如页面 not-found、API error） |
+| 过期时间已在过去的 KV 写入     | **跳过 `expiration` 参数**                 | KV API 拒绝过去的 expiration 值，仍写入 value 但不设过期                       |
 
 ---
 
@@ -46,13 +45,12 @@ Cloudflare KV 支持 per-key 过期：
 
 ```typescript
 const url = kvUrl(creds, slug);
-const expirationSec = data.expiresAt != null
-  ? Math.floor(data.expiresAt / 1000)
-  : null;
+const expirationSec = data.expiresAt != null ? Math.floor(data.expiresAt / 1000) : null;
 // KV requires expiration > now (at least 60s in the future)
-const fetchUrl = expirationSec != null && expirationSec > Math.floor(Date.now() / 1000) + 60
-  ? `${url}?expiration=${expirationSec}`
-  : url;
+const fetchUrl =
+  expirationSec != null && expirationSec > Math.floor(Date.now() / 1000) + 60
+    ? `${url}?expiration=${expirationSec}`
+    : url;
 ```
 
 - 文件：`lib/kv/client.ts`
@@ -66,15 +64,14 @@ const fetchUrl = expirationSec != null && expirationSec > Math.floor(Date.now() 
 ```typescript
 const nowSec = Math.floor(Date.now() / 1000);
 const payload = batch.map((e) => {
-  const expirationSec = e.data.expiresAt != null
-    ? Math.floor(e.data.expiresAt / 1000)
-    : null;
+  const expirationSec = e.data.expiresAt != null ? Math.floor(e.data.expiresAt / 1000) : null;
   return {
     key: e.slug,
     value: JSON.stringify(e.data),
-    ...(expirationSec != null && expirationSec > nowSec + 60 && {
-      expiration: expirationSec,
-    }),
+    ...(expirationSec != null &&
+      expirationSec > nowSec + 60 && {
+        expiration: expirationSec,
+      }),
   };
 });
 ```
@@ -90,7 +87,6 @@ const payload = batch.map((e) => {
 #### 1d. 测试 — `tests/unit/kv-client.test.ts`
 
 新增测试：
-
 1. `kvPutLink appends expiration query param when expiresAt is in the future` — 验证 URL 包含 `?expiration=`，值为秒级 epoch
 2. `kvPutLink does not append expiration when expiresAt is null` — 验证 URL 不含 `?expiration=`
 3. `kvPutLink does not append expiration when expiresAt is in the past` — 验证过去时间不设 expiration
@@ -259,11 +255,14 @@ return NextResponse.json({
 
 ```typescript
 ctx.waitUntil(
-  env.LINKS_KV.put(slug, JSON.stringify({
-    id: lookupData.id,
-    originalUrl: lookupData.originalUrl,
-    expiresAt: lookupData.expiresAt ?? null,
-  })),
+  env.LINKS_KV.put(
+    slug,
+    JSON.stringify({
+      id: lookupData.id,
+      originalUrl: lookupData.originalUrl,
+      expiresAt: lookupData.expiresAt ?? null,
+    }),
+  ),
 );
 ```
 
@@ -288,7 +287,7 @@ const mockCache = {
   match: vi.fn().mockResolvedValue(undefined),
   put: vi.fn().mockResolvedValue(undefined),
 };
-Object.defineProperty(globalThis, 'caches', {
+Object.defineProperty(globalThis, "caches", {
   value: { default: mockCache },
   writable: true,
   configurable: true,
@@ -321,21 +320,18 @@ Object.defineProperty(globalThis, 'caches', {
 ### Commit 1: `feat: add KV native expiration on write`
 
 独立于其他改动，低风险。
-
 - `lib/kv/client.ts` — `kvPutLink` 追加 `?expiration=` 参数（含过去时间跳过逻辑）；`kvBulkPutLinks` 追加 `expiration` 字段
 - `tests/unit/kv-client.test.ts` — 6 个新测试
 
 ### Commit 2: `feat: add expiresAt to lookup API response`
 
 为 Worker KV backfill 做准备。
-
 - `app/api/lookup/route.ts` — 返回 `expiresAt` 字段
 - 相关测试更新
 
 ### Commit 3: `feat: Worker edge lookup + negative cache for slug miss`
 
 核心 Worker 改动。
-
 - `worker/src/index.ts` — 负缓存查询 + lookup API 路径 + KV expired hit 直接返回 + KV backfill
 - `worker/test/index.test.ts` — mock `caches.default` + 8-9 个新测试
 

@@ -8,13 +8,13 @@ Human overview: [README.md](README.md). Direction: [architecture](docs/01-archit
 
 This file is the contract; hooks, CI and config are enforcement. Raise weaker enforcement instead of lowering the contract.
 
-| Fact | Where |
-|---|---|
-| Human docs / design | [README.md](README.md), [docs index](docs/README.md), [design tokens](docs/22-design-tokens.md) |
-| Version | Root `package.json`; `lib/version.ts` exports `APP_VERSION`; CLI version synchronizes only on release |
-| Enforcement | `.husky/`, `.github/workflows/ci.yml`, root/CLI/Worker Vitest configs |
-| Env | Ignored `.env.local`; variable names and production setup in [deployment](docs/06-deployment.md) |
-| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md) |
+| Fact                      | Where                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Human docs / design       | [README.md](README.md), [docs index](docs/README.md), [design tokens](docs/22-design-tokens.md)       |
+| Version                   | Root `package.json`; `lib/version.ts` exports `APP_VERSION`; CLI version synchronizes only on release |
+| Enforcement               | `.husky/`, `.github/workflows/ci.yml`, root/CLI/Worker Vitest configs                                 |
+| Env                       | Ignored `.env.local`; variable names and production setup in [deployment](docs/06-deployment.md)      |
+| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md)                                 |
 
 ## Project Invariants
 
@@ -28,12 +28,12 @@ This file is the contract; hooks, CI and config are enforcement. Raise weaker en
 
 ## Stack / Layout
 
-| Component | Choice / location |
-|---|---|
-| Web | Next.js/React, TypeScript 7, Tailwind/Basalt; `app/`, `components/`, `viewmodels/`, `models/` |
-| Data | `lib/`, `actions/`, `drizzle/migrations/`; D1 proxy, KV and R2 |
-| Edge | `worker/`; independent package, Wrangler config and Vitest suite |
-| CLI | `cli/`; Node ≥22.16, TypeScript + Python Eagle helper, separate build/lockfile |
+| Component | Choice / location                                                                             |
+| --------- | --------------------------------------------------------------------------------------------- |
+| Web       | Next.js/React, TypeScript 7, Tailwind/Basalt; `app/`, `components/`, `viewmodels/`, `models/` |
+| Data      | `lib/`, `actions/`, `drizzle/migrations/`; D1 proxy, KV and R2                                |
+| Edge      | `worker/`; independent package, Wrangler config and Vitest suite                              |
+| CLI       | `cli/`; Node ≥22.16, TypeScript + Python Eagle helper, separate build/lockfile                |
 
 ## Commands
 
@@ -63,16 +63,16 @@ The test runners own local env overrides, migrations, readiness and cleanup; no 
 
 6DQ = L1/L2/L3 + G2 + D1 isolation; the former G1 dimension was merged into L1 on 2026-09-21, per lane. Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
 
-| Piece | Required proof and current reality | Status | Evidence / gap |
-|---|---|---|---|
-| L1 web (incl. former G1 web static) | Statements/branches/functions/lines each ≥95%; strict types and lint/format with zero errors/warnings; current coverage config is 95/85/90/95 respectively | planned | Achieved static subchecks run today (pre-commit types/full Biome; CI quality) via `vitest.config.ts`; hooks/CI enforce the weaker scoped coverage values, not this contract, the hook checks an exported index snapshot and blocks failed stages; its <30s budget and independent rejection proof remain unverified |
-| L1 CLI / Worker (incl. former G1 CLI/Worker static) | Four metrics each ≥95% in both lanes, including Python helper behavior; all executable lanes have strict types/lint and zero warnings | planned | CLI branches 90 with command exclusions; Python unittest runs without coverage; Worker has no coverage threshold. CLI CI runs types/Biome but lacks warning-as-error; Worker CI currently runs tests only |
-| L2 | Real HTTP for every endpoint/method, SQL and tenant behavior | planned | `test:api` enforced by pre-push/CI; completeness of endpoint/method inventory still needs a gate |
-| L3 | Real browser journeys and isolated CLI process workflows | planned | Browser suite runs in CI/release preflight; CLI command workflow coverage is incomplete |
-| G2 | Required dependency + secret scanners across all lockfiles and pushed commits | planned | Root staged gitleaks + root OSV and CI exist; CLI/Worker lockfile and push-ref coverage remain gaps |
-| D1 | Per-run local persistence; guards/marker before fixtures and cleanup | planned | Per-run ownership-checked storage and native bindings replace the shared reset path; runtime isolation evidence is tracked in docs/33-local-environments.md |
-| Build | Web and CLI bundles | enforced | CI builds both; `typecheck` is not a build |
-| Docs | Current tests, design contracts and migrations documented | manual | [Testing](docs/05-testing.md), full diff review |
+| Piece                                               | Required proof and current reality                                                                                                                         | Status   | Evidence / gap                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1 web (incl. former G1 web static)                 | Statements/branches/functions/lines each ≥95%; strict types and lint/format with zero errors/warnings; current coverage config is 95/85/90/95 respectively | planned  | Achieved static subchecks run today (pre-commit types/full Biome; CI quality) via `vitest.config.ts`; hooks/CI enforce the weaker scoped coverage values, not this contract, the hook checks an exported index snapshot and blocks failed stages; its <30s budget and independent rejection proof remain unverified |
+| L1 CLI / Worker (incl. former G1 CLI/Worker static) | Four metrics each ≥95% in both lanes, including Python helper behavior; all executable lanes have strict types/lint and zero warnings                      | planned  | CLI branches 90 with command exclusions; Python unittest runs without coverage; Worker has no coverage threshold. CLI CI runs types/Biome but lacks warning-as-error; Worker CI currently runs tests only                                                                                                           |
+| L2                                                  | Real HTTP for every endpoint/method, SQL and tenant behavior                                                                                               | planned  | `test:api` enforced by pre-push/CI; completeness of endpoint/method inventory still needs a gate                                                                                                                                                                                                                    |
+| L3                                                  | Real browser journeys and isolated CLI process workflows                                                                                                   | planned  | Browser suite runs in CI/release preflight; CLI command workflow coverage is incomplete                                                                                                                                                                                                                             |
+| G2                                                  | Required dependency + secret scanners across all lockfiles and pushed commits                                                                              | planned  | Root staged gitleaks + root OSV and CI exist; CLI/Worker lockfile and push-ref coverage remain gaps                                                                                                                                                                                                                 |
+| D1                                                  | Per-run local persistence; guards/marker before fixtures and cleanup                                                                                       | planned  | Per-run ownership-checked storage and native bindings replace the shared reset path; runtime isolation evidence is tracked in docs/33-local-environments.md                                                                                                                                                         |
+| Build                                               | Web and CLI bundles                                                                                                                                        | enforced | CI builds both; `typecheck` is not a build                                                                                                                                                                                                                                                                          |
+| Docs                                                | Current tests, design contracts and migrations documented                                                                                                  | manual   | [Testing](docs/05-testing.md), full diff review                                                                                                                                                                                                                                                                     |
 
 Pre-commit exports the index with `git checkout-index`, verifies installed manifests match, generates route types and sequentially runs coverage, in-process integration, types and full lint in that snapshot, then staged gitleaks; failures cancel the owned child and clean the snapshot. Target: unified L1 (types, check-only lint, coverage) on an index snapshot, <30s.
 Pre-push runs local L2 and root OSV in parallel; it does not use stdin push refs for secret scanning. Target: L2/G2 over exact pushed refs, <3min.

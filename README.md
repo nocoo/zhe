@@ -64,15 +64,15 @@ cp .env.example .env.local
 
 先准备自己的 Google OAuth 应用及已初始化的 D1 数据库，按 [Worker 配置模板](worker/wrangler.toml.example)配置 D1、KV 和源站。Next.js 当前通过 Worker 代理访问 D1；仅填写 Cloudflare REST API 凭据不足以运行数据库查询。
 
-| 配置 | 用途 |
-| --- | --- |
-| `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` | Auth.js 与 Google 登录；本地回调为 `http://localhost:7006/api/auth/callback/google` |
-| `D1_PROXY_URL`、`D1_PROXY_SECRET` | Next.js 访问 Worker 的 D1 代理 |
-| `AUTH_ALLOWED_EMAILS` | 逗号分隔的登录邮箱名单；为空时允许任何完成 Google 登录的账号 |
-| `R2_*` | 文件上传所需的端点、bucket、凭据、公开域名与用户路径盐值 |
-| `CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_KV_NAMESPACE_ID` | 源站写入 KV；未配置时跳过这些缓存写入 |
-| `WORKER_SECRET` | 源站与 Worker 之间的统计、清理和缓存同步认证 |
-| `TRUSTED_ORIGINS`、`PUBLIC_ORIGIN` | 反向代理环境下的可信主机与公开地址 |
+| 配置                                                                          | 用途                                                                                |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET`                         | Auth.js 与 Google 登录；本地回调为 `http://localhost:7006/api/auth/callback/google` |
+| `D1_PROXY_URL`、`D1_PROXY_SECRET`                                             | Next.js 访问 Worker 的 D1 代理                                                      |
+| `AUTH_ALLOWED_EMAILS`                                                         | 逗号分隔的登录邮箱名单；为空时允许任何完成 Google 登录的账号                        |
+| `R2_*`                                                                        | 文件上传所需的端点、bucket、凭据、公开域名与用户路径盐值                            |
+| `CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_KV_NAMESPACE_ID` | 源站写入 KV；未配置时跳过这些缓存写入                                               |
+| `WORKER_SECRET`                                                               | 源站与 Worker 之间的统计、清理和缓存同步认证                                        |
+| `TRUSTED_ORIGINS`、`PUBLIC_ORIGIN`                                            | 反向代理环境下的可信主机与公开地址                                                  |
 
 Worker 使用 `DB`、`LINKS_KV` 绑定及 `ORIGIN_URL`、`WORKER_SECRET`、`D1_PROXY_SECRET`。它每半小时触发临时文件清理与有变更时的 KV 补偿同步。首次部署需核对[数据库 schema](lib/db/schema.ts)和[迁移文件](drizzle/migrations/)；历史迁移包含手工建表后的差异，本地测试初始化脚本会补齐这些差异，不应直接用作生产安装器。
 
@@ -88,14 +88,14 @@ bun run start
 
 ## 测试
 
-| 测试层 | 从仓库根目录执行 |
-| --- | --- |
-| 单元与组件测试 | `bun run test:unit` |
-| 应用集成测试 | `bun run test:integration` |
-| API 端到端测试 | `bun run test:api` |
-| 浏览器端到端测试 | `bun run test:e2e:pw` |
-| Worker 单元测试 | `bun run --cwd worker test` |
-| CLI 单元测试 | `bun run --cwd cli test` |
+| 测试层           | 从仓库根目录执行            |
+| ---------------- | --------------------------- |
+| 单元与组件测试   | `bun run test:unit`         |
+| 应用集成测试     | `bun run test:integration`  |
+| API 端到端测试   | `bun run test:api`          |
+| 浏览器端到端测试 | `bun run test:e2e:pw`       |
+| Worker 单元测试  | `bun run --cwd worker test` |
+| CLI 单元测试     | `bun run --cwd cli test`    |
 
 Install browser engines with `bunx playwright install chromium webkit`. API and browser runners use app ports `17006` and `27006`, allocate native Wrangler D1/KV/R2 ports, and own `.test-storage/runs/<uuid>`. Builds and evidence are per-run. No remote test credentials are required; launchers generate fixture credentials and issue normal Auth.js sessions. This does not certify real Google OAuth. See [local environments](docs/33-local-environments.md) for lifecycle and evidence.
 
@@ -107,12 +107,12 @@ Install browser engines with `bunx playwright install chromium webkit`. API and 
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?logo=cloudflare&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)
 
-| 部分 | 实现 |
-| --- | --- |
-| Web 与界面 | Next.js、React、TypeScript、Tailwind CSS、Basalt |
-| 登录与数据 | Auth.js / Google OAuth、Cloudflare D1、Drizzle schema |
-| 跳转与文件 | Cloudflare Workers、KV、R2、S3 API |
-| 可选 AI | Vercel AI SDK、@nocoo/next-ai |
+| 部分       | 实现                                                             |
+| ---------- | ---------------------------------------------------------------- |
+| Web 与界面 | Next.js、React、TypeScript、Tailwind CSS、Basalt                 |
+| 登录与数据 | Auth.js / Google OAuth、Cloudflare D1、Drizzle schema            |
+| 跳转与文件 | Cloudflare Workers、KV、R2、S3 API                               |
+| 可选 AI    | Vercel AI SDK、@nocoo/next-ai                                    |
 | CLI 与测试 | Bun、@nocoo/base-cli、Vitest、Testing Library、Playwright、Biome |
 
 ## 文档

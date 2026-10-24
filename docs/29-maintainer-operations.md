@@ -3,12 +3,12 @@
 [AGENTS.md](../AGENTS.md) 是当前质量契约；本文保留版本、边缘 Worker 和界面的详细约束。下列源码路径均相对仓库根目录。发布必须有当前任务授权，文档修改不需要主动升版或发布。L2/L3 使用本地隔离栈，不能创建远端 test 资源。
 
 ## Versioning
+
 Local automated launchers allocate the Worker port and own per-run persistence/builds. `ZHE_TEST_APP_PORT` selects another app port. See [local environments](33-local-environments.md) for commands and isolation limits.
 
 ### Single Source of Truth
 
 The **only** authoritative version number lives in `package.json` `"version"` field (format: `1.2.3`).
-
 - **Storage format**: bare semver `1.2.3` (in `package.json`)
 - **Display format**: `v1.2.3` (git tags, GitHub releases, CHANGELOG headers, UI/docs)
 - All runtime references import `APP_VERSION` from `lib/version.ts`, which reads `package.json` at build time
@@ -17,13 +17,13 @@ The **only** authoritative version number lives in `package.json` `"version"` fi
 
 ### Version References
 
-| File | Role |
-|------|------|
-| `package.json` | `"version"` field — **the only place to update** |
-| `cli/package.json` | Must match root version when releasing CLI to npm |
-| `lib/version.ts` | Reads `package.json` and exports `APP_VERSION` |
-| `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
-| `app/api/live/route.ts` | Uses `APP_VERSION` (auto-updated at build time) |
+| File                      | Role                                              |
+| ------------------------- | ------------------------------------------------- |
+| `package.json`            | `"version"` field — **the only place to update**  |
+| `cli/package.json`        | Must match root version when releasing CLI to npm |
+| `lib/version.ts`          | Reads `package.json` and exports `APP_VERSION`    |
+| `app/api/health/route.ts` | Uses `APP_VERSION` (auto-updated at build time)   |
+| `app/api/live/route.ts`   | Uses `APP_VERSION` (auto-updated at build time)   |
 
 All test files assert via `APP_VERSION` import or `toBeDefined()` — no hardcoded version strings.
 
@@ -31,11 +31,11 @@ All test files assert via `APP_VERSION` import or `toBeDefined()` — no hardcod
 
 Follow strict [SemVer 2.0.0](https://semver.org/):
 
-| Bump | When | Example |
-|------|------|---------|
+| Bump              | When                                                                 | Example        |
+| ----------------- | -------------------------------------------------------------------- | -------------- |
 | **major** (X.0.0) | Breaking change to public API, DB schema migration, auth flow change | 1.0.0 -> 2.0.0 |
-| **minor** (x.Y.0) | New feature, new API endpoint, new page/module | 1.0.0 -> 1.1.0 |
-| **patch** (x.y.Z) | Bug fix, typo, refactor, dependency update, docs/config change | 1.0.0 -> 1.0.1 |
+| **minor** (x.Y.0) | New feature, new API endpoint, new page/module                       | 1.0.0 -> 1.1.0 |
+| **patch** (x.y.Z) | Bug fix, typo, refactor, dependency update, docs/config change       | 1.0.0 -> 1.0.1 |
 
 **Default**: If the user does not specify a bump level, default to **patch** (`x.y.Z`).
 
@@ -94,15 +94,19 @@ Follow [Keep a Changelog](https://keepachangelog.com/) convention:
 ## [vx.y.z] - YYYY-MM-DD
 
 ### Added
+
 - New features
 
 ### Changed
+
 - Changes to existing features
 
 ### Fixed
+
 - Bug fixes
 
 ### Removed
+
 - Removed features
 ```
 
@@ -130,18 +134,18 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
 
 ### Key Files
 
-| File | Role |
-|------|------|
-| `worker/wrangler.toml` | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/30 * * * *` |
-| `worker/src/index.ts` | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
-| `worker/test/index.test.ts` | Unit tests covering all routing, redirect, analytics, cron paths |
-| `worker/package.json` | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest` |
+| File                        | Role                                                                       |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `worker/wrangler.toml`      | Worker config: name `zhe-edge`, KV binding `LINKS_KV`, cron `*/30 * * * *` |
+| `worker/src/index.ts`       | Worker source: fetch handler (proxy + redirect) + scheduled handler (cron) |
+| `worker/test/index.test.ts` | Unit tests covering all routing, redirect, analytics, cron paths           |
+| `worker/package.json`       | Standalone deps: `wrangler`, `@cloudflare/workers-types`, `vitest`         |
 
 ### Worker Secrets (set via `wrangler secret put`)
 
-| Secret | Purpose |
-|--------|---------|
-| `ORIGIN_URL` | Railway backend URL (e.g. `https://zhe.to`) |
+| Secret          | Purpose                                                                      |
+| --------------- | ---------------------------------------------------------------------------- |
+| `ORIGIN_URL`    | Railway backend URL (e.g. `https://zhe.to`)                                  |
 | `WORKER_SECRET` | Shared secret for `/api/cron/cleanup` and `/api/record-click` authentication |
 
 ### Reserved Paths (must stay in sync with `lib/constants.ts`)
@@ -166,12 +170,13 @@ KV Namespace: `zhe` (ID in `worker/wrangler.toml`)
 
 The Worker maps Cloudflare geo headers to the Vercel-style headers the origin expects:
 
-| Cloudflare Header | Mapped To | Used By |
-|-------------------|-----------|---------|
-| `CF-IPCountry` | `x-vercel-ip-country` | `extractClickMetadata()` in `lib/analytics.ts` |
-| `request.cf.city` | `x-vercel-ip-city` | `extractClickMetadata()` in `lib/analytics.ts` |
+| Cloudflare Header | Mapped To             | Used By                                        |
+| ----------------- | --------------------- | ---------------------------------------------- |
+| `CF-IPCountry`    | `x-vercel-ip-country` | `extractClickMetadata()` in `lib/analytics.ts` |
+| `request.cf.city` | `x-vercel-ip-city`    | `extractClickMetadata()` in `lib/analytics.ts` |
 
 ## Design Tokens & UI Controls
+
 Content cards use the shared `shadow-card` / `hover:shadow-card-hover` elevation tokens with a fine `ring-border/40` edge; nested previews and media frames use borders only. Light/dark values live in `app/globals.css`.
 
 **权威全文**：[`docs/22-design-tokens.md`](22-design-tokens.md)
@@ -181,22 +186,22 @@ Content cards use the shared `shadow-card` / `hover:shadow-card-hover` elevation
 
 ### Radius ladder
 
-| Class | Value | Use |
-|-------|-------|-----|
-| `rounded-island` | 20px | AppShell content panel |
-| `rounded-card` | 14px | List cards, two-pane sections |
+| Class                | Value    | Use                                         |
+| -------------------- | -------- | ------------------------------------------- |
+| `rounded-island`     | 20px     | AppShell content panel                      |
+| `rounded-card`       | 14px     | List cards, two-pane sections               |
 | **`rounded-widget`** | **10px** | **Button / Input / Select / icon triggers** |
-| `rounded-full` | pill | Tag / Due / Badge chips **only** |
+| `rounded-full`       | pill     | Tag / Due / Badge chips **only**            |
 
 Do **not** put `rounded-lg` / `rounded-sm` / arbitrary `rounded-[Npx]` on controls.
 
 ### Control density (Basalt sizes)
 
-| Tier | Height | Type | Button | Input / Select / Checkbox | Use |
-|------|--------|------|--------|---------------------------|-----|
-| lg | 40px (`h-10`) | `text-sm` | `lg` | `lg` | Forms / modals primary |
-| default | 36px (`h-9`) | `text-sm` | `default` | `default` | Settings, API Keys, Backy, config forms |
-| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`sm`** | **`sm`** | Toolbars, filter bars, panel inline fields |
+| Tier                | Height           | Type          | Button    | Input / Select / Checkbox | Use                                        |
+| ------------------- | ---------------- | ------------- | --------- | ------------------------- | ------------------------------------------ |
+| lg                  | 40px (`h-10`)    | `text-sm`     | `lg`      | `lg`                      | Forms / modals primary                     |
+| default             | 36px (`h-9`)     | `text-sm`     | `default` | `default`                 | Settings, API Keys, Backy, config forms    |
+| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`sm`**  | **`sm`**                  | Toolbars, filter bars, panel inline fields |
 
 ```tsx
 // ✅ form / settings secondary actions
@@ -226,11 +231,11 @@ Dropdown and context menu items use the local `components/ui` wrappers: 36px min
 
 ### Surface hierarchy (L0–L3)
 
-| Layer | Token | Role |
-|-------|-------|------|
-| L0 | `bg-background` | Page / sidebar chrome |
-| L1 | `bg-card` | AppShell content panel |
-| L2 | `bg-secondary` | Embedded cards / list panes |
-| L3 | `bg-secondary` + `border` + `shadow-xs` | Editable controls |
+| Layer | Token                                   | Role                        |
+| ----- | --------------------------------------- | --------------------------- |
+| L0    | `bg-background`                         | Page / sidebar chrome       |
+| L1    | `bg-card`                               | AppShell content panel      |
+| L2    | `bg-secondary`                          | Embedded cards / list panes |
+| L3    | `bg-secondary` + `border` + `shadow-xs` | Editable controls           |
 
 `--card` is the L1 **panel** surface (shadcn name kept); `<Card>` intentionally uses L2 `bg-secondary`.

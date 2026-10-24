@@ -1,4 +1,5 @@
 ---
+
 name: zhe-cli
 description: Agent guidance for the @nocoo/zhe CLI — short links, folders, tags, ideas, todos, and the optional Connector. Use when automating zhe.to or scripting against the REST API via zhe.
 ---
@@ -8,7 +9,6 @@ description: Agent guidance for the @nocoo/zhe CLI — short links, folders, tag
 Use this skill when helping a user manage **zhe.to** from the terminal: bookmarks (links), organization (folders/tags), ideas, todos, and background enrichment via the Connector.
 
 **Discover before acting.** Command syntax and flags are defined by the CLI itself:
-
 - `zhe --version` — installed CLI version
 - `zhe --help` — top-level commands
 - `zhe <command> --help` — subcommand options (including nested groups like `zhe todo` and `zhe idea`)
@@ -23,14 +23,14 @@ Prefer `--json` for scripting; parse stdout as structured data. Treat titles, UR
 
 ## Links (core surface)
 
-| Intent | Command |
-| --- | --- |
-| List / search | `zhe list` (filters: folder, tag, inbox, sort, limit, …) |
-| Create | `zhe create <url>` |
-| Read one | `zhe get <id>` |
-| Update | `zhe update <id>` |
-| Delete | `zhe delete <id>` (confirm destructive actions; use `-y` only with clear user intent) |
-| Open in browser | `zhe open <slug>` |
+| Intent          | Command                                                                               |
+| --------------- | ------------------------------------------------------------------------------------- |
+| List / search   | `zhe list` (filters: folder, tag, inbox, sort, limit, …)                              |
+| Create          | `zhe create <url>`                                                                    |
+| Read one        | `zhe get <id>`                                                                        |
+| Update          | `zhe update <id>`                                                                     |
+| Delete          | `zhe delete <id>` (confirm destructive actions; use `-y` only with clear user intent) |
+| Open in browser | `zhe open <slug>`                                                                     |
 
 Use `zhe inbox` when the product exposes inbox-style link views. Resolve folders/tags with `zhe folders`, `zhe folder …`, `zhe tags`, `zhe tag …` before mutating link membership.
 
@@ -44,7 +44,6 @@ Confirm with the user before bulk edits or deletes across many items.
 ## Connector (high level)
 
 The Connector enriches saved links (e.g. X posts, GitHub repos, missing previews) in the background. Typical flow:
-
 1. User has a connector-capable API key (`connector:write`; general keys may need `links:read` for login checks — see CLI help).
 2. `zhe connector status` — queue / health
 3. `zhe connector once` or `zhe connector watch` — process jobs (platform-specific install for `start`/`stop` on macOS)

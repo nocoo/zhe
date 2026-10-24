@@ -46,32 +46,32 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 
 三阶段构建：Bun 装依赖，Node 构建与运行。
 
-| 阶段 | 基础镜像 | 内容 |
-|------|----------|------|
-| `deps` | `oven/bun:1` | `bun install --frozen-lockfile` 安装依赖 |
-| `builder` | `node:22-bookworm-slim` | `node …/next build` 构建 Next.js（standalone） |
-| `runner` | `node:22-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
+| 阶段      | 基础镜像                | 内容                                                                     |
+| --------- | ----------------------- | ------------------------------------------------------------------------ |
+| `deps`    | `oven/bun:1`            | `bun install --frozen-lockfile` 安装依赖                                 |
+| `builder` | `node:22-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
+| `runner`  | `node:22-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
 
 > **为何 build/runtime 不用 Bun**：Bun 1.3.14 在 Railway Metal builder 上会在 `next build` 收尾阶段 segfault（SIGILL / exit 132），导致 Docker `RUN` 失败（2026-08-05 起连续部署失败）。`bun install` 本身稳定，故仅 deps 阶段使用 Bun。
 
 运行时环境变量：
 
-| 变量 | 值 |
-|------|-----|
+| 变量       | 值           |
+| ---------- | ------------ |
 | `NODE_ENV` | `production` |
-| `PORT` | `7006` |
-| `HOSTNAME` | `0.0.0.0` |
+| `PORT`     | `7006`       |
+| `HOSTNAME` | `0.0.0.0`    |
 
 ### Next.js 配置
 
 `next.config.ts`：
 
-| 配置项 | 值 | 说明 |
-|--------|-----|------|
-| `output` | `standalone` | Docker 部署所需的独立输出模式 |
-| `allowedDevOrigins` | `["zhe.dev.hexly.ai"]` | 开发环境允许的来源 |
-| `experimental.serverActions.allowedOrigins` | `["zhe.to"]` | Worker 代理导致 `x-forwarded-host`（`origin.zhe.to`）与浏览器 `Origin`（`zhe.to`）不匹配，需显式信任浏览器域名 |
-| Webpack/Turbopack alias | 替换 polyfill 为空模块 | 目标浏览器原生支持所有 polyfill，节省 ~11 KiB |
+| 配置项                                      | 值                     | 说明                                                                                                           |
+| ------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `output`                                    | `standalone`           | Docker 部署所需的独立输出模式                                                                                  |
+| `allowedDevOrigins`                         | `["zhe.dev.hexly.ai"]` | 开发环境允许的来源                                                                                             |
+| `experimental.serverActions.allowedOrigins` | `["zhe.to"]`           | Worker 代理导致 `x-forwarded-host`（`origin.zhe.to`）与浏览器 `Origin`（`zhe.to`）不匹配，需显式信任浏览器域名 |
+| Webpack/Turbopack alias                     | 替换 polyfill 为空模块 | 目标浏览器原生支持所有 polyfill，节省 ~11 KiB                                                                  |
 
 ## Cloudflare Worker (zhe-edge)
 
@@ -81,20 +81,20 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 
 `worker/wrangler.toml`：
 
-| 配置项 | 值 |
-|--------|-----|
-| Worker 名称 | `zhe-edge` |
-| KV 绑定 | `LINKS_KV` |
-| 定时任务 | `*/30 * * * *`（每 30 分钟） |
-| 兼容日期 | `2025-01-01` |
+| 配置项      | 值                           |
+| ----------- | ---------------------------- |
+| Worker 名称 | `zhe-edge`                   |
+| KV 绑定     | `LINKS_KV`                   |
+| 定时任务    | `*/30 * * * *`（每 30 分钟） |
+| 兼容日期    | `2025-01-01`                 |
 
 ### Worker Secrets
 
 通过 `wrangler secret put` 设置：
 
-| Secret | 用途 |
-|--------|------|
-| `ORIGIN_URL` | Railway 后端 URL（如 `https://zhe.to`） |
+| Secret          | 用途                                                           |
+| --------------- | -------------------------------------------------------------- |
+| `ORIGIN_URL`    | Railway 后端 URL（如 `https://zhe.to`）                        |
 | `WORKER_SECRET` | 共享密钥，保护 `/api/cron/cleanup` 和 `/api/record-click` 端点 |
 
 ### Worker 部署
@@ -112,10 +112,10 @@ bun run tail      # wrangler tail（实时日志）
 
 Worker 将 Cloudflare 地理信息头映射为 Vercel 风格头，使 Origin 端的分析代码无需修改：
 
-| Cloudflare 头 | 映射为 | 使用方 |
-|----------------|--------|--------|
-| `CF-IPCountry` | `x-vercel-ip-country` | `extractClickMetadata()` |
-| `request.cf.city` | `x-vercel-ip-city` | `extractClickMetadata()` |
+| Cloudflare 头     | 映射为                | 使用方                   |
+| ----------------- | --------------------- | ------------------------ |
+| `CF-IPCountry`    | `x-vercel-ip-country` | `extractClickMetadata()` |
+| `request.cf.city` | `x-vercel-ip-city`    | `extractClickMetadata()` |
 
 ### 透明代理行为
 
@@ -128,11 +128,11 @@ Worker 将 Cloudflare 地理信息头映射为 Vercel 风格头，使 Origin 端
 
 `wrangler.toml`（根目录）：
 
-| 配置项 | 值 |
-|--------|-----|
-| 项目名 | `zhe` |
+| 配置项   | 值       |
+| -------- | -------- |
+| 项目名   | `zhe`    |
 | 数据库名 | `zhe-db` |
-| 绑定名 | `DB` |
+| 绑定名   | `DB`     |
 
 D1 通过 HTTP REST API 访问（非 Workers 绑定），支持从 Railway 环境读写：
 
@@ -159,26 +159,25 @@ POST https://api.cloudflare.com/client/v4/accounts/{id}/d1/database/{id}/query
 ## Cloudflare R2
 
 S3 兼容对象存储，用于文件上传和临时文件。通过预签名 URL 实现客户端直传：
-
 - **永久文件**：`{user-hash}/YYYYMMDD/{uuid}.{ext}`
 - **临时文件**：`tmp/{uuid}_{timestamp}.{ext}`（1 小时后自动清理）
 
 ## 定时任务
 
-| 计划 | 动作 | 用途 |
-|------|------|------|
+| 计划           | 动作                     | 用途                     |
+| -------------- | ------------------------ | ------------------------ |
 | `*/30 * * * *` | `POST /api/cron/cleanup` | 删除 R2 中过期的临时文件 |
 
 KV 同步不依赖定时任务，而是在每次 mutation 时内联执行。
 
 ## 域名
 
-| 域名 | 用途 |
-|------|------|
-| `zhe.to` | 生产域名（Cloudflare DNS → Worker → Railway） |
-| `origin.zhe.to` | Railway 直连（Worker 转发目标） |
-| `s.zhe.to` | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`） |
-| `localhost:7006` | 本地开发 |
+| 域名             | 用途                                           |
+| ---------------- | ---------------------------------------------- |
+| `zhe.to`         | 生产域名（Cloudflare DNS → Worker → Railway）  |
+| `origin.zhe.to`  | Railway 直连（Worker 转发目标）                |
+| `s.zhe.to`       | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`） |
+| `localhost:7006` | 本地开发                                       |
 
 ## 保留路径
 
@@ -195,36 +194,36 @@ Worker 中的 `RESERVED_PATHS` 集合必须与 `lib/constants.ts` 保持同步�
 
 ### 必填
 
-| 变量 | 用途 |
-|------|------|
-| `AUTH_SECRET` | Auth.js 加密密钥 |
-| `AUTH_GOOGLE_ID` | Google OAuth 客户端 ID |
-| `AUTH_GOOGLE_SECRET` | Google OAuth 客户端密钥 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账号 ID |
-| `CLOUDFLARE_D1_DATABASE_ID` | D1 数据库 ID |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API Token（D1 + KV 访问） |
+| 变量                        | 用途                                 |
+| --------------------------- | ------------------------------------ |
+| `AUTH_SECRET`               | Auth.js 加密密钥                     |
+| `AUTH_GOOGLE_ID`            | Google OAuth 客户端 ID               |
+| `AUTH_GOOGLE_SECRET`        | Google OAuth 客户端密钥              |
+| `CLOUDFLARE_ACCOUNT_ID`     | Cloudflare 账号 ID                   |
+| `CLOUDFLARE_D1_DATABASE_ID` | D1 数据库 ID                         |
+| `CLOUDFLARE_API_TOKEN`      | Cloudflare API Token（D1 + KV 访问） |
 
 ### 可选（KV 缓存）
 
-| 变量 | 用途 |
-|------|------|
+| 变量                         | 用途                                   |
+| ---------------------------- | -------------------------------------- |
 | `CLOUDFLARE_KV_NAMESPACE_ID` | KV 命名空间 ID（未配置则跳过 KV 同步） |
 
 ### 可选（文件上传）
 
-| 变量 | 用途 |
-|------|------|
-| `R2_ACCESS_KEY_ID` | S3 兼容存储 Access Key |
-| `R2_SECRET_ACCESS_KEY` | S3 兼容存储 Secret Key |
-| `R2_ENDPOINT` | S3 兼容端点 URL |
-| `R2_BUCKET_NAME` | R2 存储桶名称 |
-| `R2_PUBLIC_DOMAIN` | R2 公开访问域名 |
-| `R2_USER_HASH_SALT` | 用户 ID 哈希盐值（文件夹隔离） |
+| 变量                   | 用途                           |
+| ---------------------- | ------------------------------ |
+| `R2_ACCESS_KEY_ID`     | S3 兼容存储 Access Key         |
+| `R2_SECRET_ACCESS_KEY` | S3 兼容存储 Secret Key         |
+| `R2_ENDPOINT`          | S3 兼容端点 URL                |
+| `R2_BUCKET_NAME`       | R2 存储桶名称                  |
+| `R2_PUBLIC_DOMAIN`     | R2 公开访问域名                |
+| `R2_USER_HASH_SALT`    | 用户 ID 哈希盐值（文件夹隔离） |
 
 ### 可选（安全）
 
-| 变量 | 用途 |
-|------|------|
+| 变量            | 用途                                              |
+| --------------- | ------------------------------------------------- |
 | `WORKER_SECRET` | Worker 共享密钥（保护 cron 和 record-click 端点） |
 
 ## 相关文档

@@ -9,9 +9,8 @@
 `Todo` is a new dashboard module for hierarchical task lists. It lives **beside** — not inside — Ideas: same "personal capture" surface area, different affordances (structure, actionability, drag-and-drop).
 
 The core distinguisher vs. Ideas is **shape**:
-
 - **Ideas** = flat list of Markdown notes, tagged for retrieval.
-- **Todos** = a *forest* of todos: multiple root nodes (like top-level projects), each with an arbitrary-depth subtree.
+- **Todos** = a _forest_ of todos: multiple root nodes (like top-level projects), each with an arbitrary-depth subtree.
 
 Each todo has:
 - **Title** (required, plain text)
@@ -50,7 +49,7 @@ Each todo has:
 
 ## Design Principles
 
-1. **Structure-first**: The tree *is* the primary organisation. Tags are a secondary filter, not a substitute for hierarchy.
+1. **Structure-first**: The tree _is_ the primary organisation. Tags are a secondary filter, not a substitute for hierarchy.
 2. **Actionable capture**: Todos carry a `done` state; adding a todo, checking it, and dragging it under a parent are one-click operations.
 3. **Minimum friction to edit**: The tree is the working surface. Rename in-place (Enter to confirm, Esc to cancel), edit content in the right pane, no modal round-trip for the common path.
 4. **Predictable movement**: Drag-and-drop between siblings, into a parent, out to root. Keyboard equivalents cover the same operations for accessibility.
@@ -66,33 +65,38 @@ Each todo has:
 ### `todos` table (Drizzle, next migration slot `0021_add_todos.sql`)
 
 ```ts
-export const todos = sqliteTable("todos", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  parentId: integer("parent_id"),                          // self-ref, NULL = root
-  position: integer("position").notNull(),                 // dense order within (userId, parentId)
-  title: text("title").notNull(),
-  content: text("content"),                                // optional Markdown
-  excerpt: text("excerpt"),                                // first 200 chars, plain text (same rule as ideas)
-  done: integer("done", { mode: "boolean" }).notNull().default(false),
-  doneAt: integer("done_at", { mode: "timestamp" }),       // when done flipped true; null when not done
-  dueAt: integer("due_at", { mode: "timestamp" }),         // optional due date (v1 added, see "Due Date")
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-}, (table) => ({
-  parentFk: foreignKey({
-    columns: [table.parentId],
-    foreignColumns: [table.id],
-  }).onDelete("cascade"),
-  userParentIdx: index("idx_todos_user_parent").on(table.userId, table.parentId),
-  userUpdatedIdx: index("idx_todos_user_updated").on(table.userId, table.updatedAt),
-  userDoneIdx: index("idx_todos_user_done").on(table.userId, table.done),
-  userDueIdx: index("idx_todos_user_due").on(table.userId, table.dueAt),
-}));
+export const todos = sqliteTable(
+  "todos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentId: integer("parent_id"), // self-ref, NULL = root
+    position: integer("position").notNull(), // dense order within (userId, parentId)
+    title: text("title").notNull(),
+    content: text("content"), // optional Markdown
+    excerpt: text("excerpt"), // first 200 chars, plain text (same rule as ideas)
+    done: integer("done", { mode: "boolean" }).notNull().default(false),
+    doneAt: integer("done_at", { mode: "timestamp" }), // when done flipped true; null when not done
+    dueAt: integer("due_at", { mode: "timestamp" }), // optional due date (v1 added, see "Due Date")
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => ({
+    parentFk: foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+    }).onDelete("cascade"),
+    userParentIdx: index("idx_todos_user_parent").on(table.userId, table.parentId),
+    userUpdatedIdx: index("idx_todos_user_updated").on(table.userId, table.updatedAt),
+    userDoneIdx: index("idx_todos_user_done").on(table.userId, table.done),
+    userDueIdx: index("idx_todos_user_due").on(table.userId, table.dueAt),
+  }),
+);
 ```
 
 Key choices:
-
 - **Self-referential `parentId`** (adjacency list). Chosen over closure table / nested-set for CRUD simplicity; D1 workloads here are ≪ 10k rows per user, so the recursive-query cost is negligible.
 - **`position: integer`** — dense integer ordering within `(userId, parentId)`. Reorders rewrite affected siblings' positions in a single batch; this is simpler than the fractional-index approach and D1's `executeD1Batch` handles the batch atomically. Client-side "optimistic" reordering can use fractional index locally for the drag preview then reconcile after the server response.
 - **`done` + `doneAt`** — `doneAt` records when the flag flipped to `true`, cleared when it flips back. Enables "recently completed" and "completed this week" queries later without a separate history table.
@@ -105,13 +109,19 @@ Key choices:
 Free-form tags, **not** joined to `tags` — 哥 explicitly asked for a namespace separate from bookmark tags. Simplest fit: store the tag string on the join row directly (no separate `todo_tag_names` table), keyed by `(todoId, name)`.
 
 ```ts
-export const todoTags = sqliteTable("todo_tags", {
-  todoId: integer("todo_id").notNull().references(() => todos.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),                            // canonical lowercase
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-}, (table) => ({
-  compositePk: primaryKey({ columns: [table.todoId, table.name] }),
-}));
+export const todoTags = sqliteTable(
+  "todo_tags",
+  {
+    todoId: integer("todo_id")
+      .notNull()
+      .references(() => todos.id, { onDelete: "cascade" }),
+    name: text("name").notNull(), // canonical lowercase
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => ({
+    compositePk: primaryKey({ columns: [table.todoId, table.name] }),
+  }),
+);
 ```
 
 - Name is canonicalised to lowercase before insert so `"Urgent"` and `"urgent"` collide.
@@ -121,13 +131,11 @@ export const todoTags = sqliteTable("todo_tags", {
 ### Cycle & depth guards (server-side, MUST enforce)
 
 Adjacency list allows cycles if the API takes an unchecked `parentId`. Any mutation that sets `parentId` must:
-
 1. Reject if `parentId == id`.
 2. Reject if the moving row's id would appear in the target parent's ancestry chain (would create a cycle).
 3. Reject if the resulting depth would exceed `MAX_TODO_DEPTH = 12`.
 
 **Execution model** (v1.2 修订, Reviewer round-2 #1 + round-3 #1). D1 does not expose a JS-visible transaction, only fixed-SQL batches. Two problems must be handled:
-
 1. **Preflight-only is racy**: two concurrent moves can each preflight-validate against the old tree and both succeed, jointly producing a cycle (`A → 1 under 2`, `B → 2 under 1`; each `UPDATE ... WHERE user_id = ?` matches, and the tree ends up with 1↔2).
 2. **Depth cap must consider moving-subtree height**: even when the target parent's own depth is legal, moving a tall subtree under a moderately-deep parent can push descendants past `MAX_TODO_DEPTH`.
 
@@ -192,15 +200,13 @@ WITH RECURSIVE descendants(id, depth_below_moving) AS (
 SELECT COALESCE(MAX(depth_below_moving), 0) AS moving_subtree_height FROM descendants;
 ```
 
-**What "atomic" means here**. Individual `executeD1Batch` calls are atomic *for their own writes*, but D1 provides no read-check-write transaction, so the whole move is **not** one atomic unit. Vocabulary throughout this document:
-
+**What "atomic" means here**. Individual `executeD1Batch` calls are atomic _for their own writes_, but D1 provides no read-check-write transaction, so the whole move is **not** one atomic unit. Vocabulary throughout this document:
 - "batch" = one `executeD1Batch` set of statements, all-or-nothing.
 - "write-time guard" = an SQL predicate on committed state evaluated at UPDATE time.
 - **Not** "transaction" — we do not have one in the SQL-transactional sense.
-- The move contract enforces safety by making the *guarded parent UPDATE* the only statement that can violate an invariant; every other write is a guarded no-op-on-conflict reconcile step.
+- The move contract enforces safety by making the _guarded parent UPDATE_ the only statement that can violate an invariant; every other write is a guarded no-op-on-conflict reconcile step.
 
 **Test coverage** (L1 unit + L2 integration):
-
 - Cross-move race: interleave two `moveTodo` calls that would each individually be legal on the preflight snapshot but jointly create a cycle. Assert exactly one succeeds; the other returns the conflict error; DB post-condition has no cycle.
 - Parent deleted mid-move: `newParent` disappears between preflight and the guarded UPDATE — `RETURNING id` is empty, error returned.
 - Depth-cap race: move a subtree such that the depth becomes 12 legally, then a second concurrent move would push depth to 13 — second UPDATE returns 0 rows.
@@ -220,17 +226,17 @@ export interface TodoTreeNode {
   position: number;
   title: string;
   done: boolean;
-  hasContent: boolean;                                     // true when content !== null
-  excerpt: string | null;                                  // short (≤200 char) plaintext; drives Cmd+K
-  tagNames: string[];                                      // canonicalised
-  dueAt: Date | null;                                      // v1: due-date decoration on tree rows
+  hasContent: boolean; // true when content !== null
+  excerpt: string | null; // short (≤200 char) plaintext; drives Cmd+K
+  tagNames: string[]; // canonicalised
+  dueAt: Date | null; // v1: due-date decoration on tree rows
   createdAt: Date;
   updatedAt: Date;
 }
 
 /** Detail shape for the right-pane content view. */
 export interface TodoDetail extends TodoTreeNode {
-  content: string | null;                                  // full Markdown
+  content: string | null; // full Markdown
   doneAt: Date | null;
 }
 ```
@@ -243,15 +249,15 @@ export interface TodoDetail extends TodoTreeNode {
 
 Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 
-| Method | Description |
-|--------|-------------|
-| `getTodos()` | Fetch **all** todos for the user in tree shape (single query, sorted `(parentId, position)`; client assembles the forest). |
-| `getTodoById(id)` | Fetch a single todo detail with `content` + tags. |
-| `createTodo({title, parentId?, content?, tagNames?})` | Insert todo at end of siblings, atomic tag insert. Cycle & depth pre-check. |
-| `updateTodo(id, {title?, content?, done?, tagNames?})` | Content / metadata edits. Tags replace-all when provided. Touch `updatedAt`. Toggle `doneAt` on `done` change. |
-| `moveTodo(id, {parentId, position})` | Reparent + reorder. Two-phase write: guarded parent UPDATE (cycle + depth + ownership evaluated on committed state at write time) followed by a reconcile batch of guarded sibling-position and `updatedAt` UPDATEs. See [Move (contract)](#move-contract). |
-| `reorderSiblings(parentId, orderedIds[])` | Batch reorder within a single parent (used by DnD when only reordering, not reparenting). |
-| `deleteTodo(id)` | Cascade delete via FK. Returns the count of removed rows. |
+| Method                                                 | Description                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getTodos()`                                           | Fetch **all** todos for the user in tree shape (single query, sorted `(parentId, position)`; client assembles the forest).                                                                                                                                  |
+| `getTodoById(id)`                                      | Fetch a single todo detail with `content` + tags.                                                                                                                                                                                                           |
+| `createTodo({title, parentId?, content?, tagNames?})`  | Insert todo at end of siblings, atomic tag insert. Cycle & depth pre-check.                                                                                                                                                                                 |
+| `updateTodo(id, {title?, content?, done?, tagNames?})` | Content / metadata edits. Tags replace-all when provided. Touch `updatedAt`. Toggle `doneAt` on `done` change.                                                                                                                                              |
+| `moveTodo(id, {parentId, position})`                   | Reparent + reorder. Two-phase write: guarded parent UPDATE (cycle + depth + ownership evaluated on committed state at write time) followed by a reconcile batch of guarded sibling-position and `updatedAt` UPDATEs. See [Move (contract)](#move-contract). |
+| `reorderSiblings(parentId, orderedIds[])`              | Batch reorder within a single parent (used by DnD when only reordering, not reparenting).                                                                                                                                                                   |
+| `deleteTodo(id)`                                       | Cascade delete via FK. Returns the count of removed rows.                                                                                                                                                                                                   |
 
 ### Move (contract)
 
@@ -281,15 +287,14 @@ Add to `lib/db/scoped/todos.ts` (mirrors `lib/db/scoped/ideas.ts` layout).
 - Returns moving node + both parents' post-move sibling orders, so the client rebuilds without a full refetch.
 
 **What this is and is not**:
-
 - ✅ Phase 2 is authoritative on cycles / depth / ownership at commit time.
 - ✅ On Phase 2 failure, no writes happen and there is nothing to undo.
 - ✅ Phase 3's batch is atomic for the reconcile writes.
 - ❌ Phases 2 + 3 are **not** one SQL transaction. But because Phase 2 parks the moving row at a **safe tail position** in the target parent, a crash between phases leaves:
   - the target parent with the moving row appended at its tail (valid dense ordering — no duplicated `position`),
-  - the old parent with a one-slot hole in its dense ordering (invariant *briefly* violated by exactly one gap on one parent),
+  - the old parent with a one-slot hole in its dense ordering (invariant _briefly_ violated by exactly one gap on one parent),
   - no cycles and no depth-cap violations.
-  The next `moveTodo` targeting either affected parent will re-establish density through its own Phase 3 open-slot / hole-fill UPDATEs. Even if no such move occurs, the tree is fully functional — sorting is unaffected because SQL uses `ORDER BY position` and gaps do not disrupt order, only compactness. If we later want an eager reconcile, add a "compact-siblings" opportunistic pass to `getTodos()` — noted as v2 optional; **not** shipped in v1.
+    The next `moveTodo` targeting either affected parent will re-establish density through its own Phase 3 open-slot / hole-fill UPDATEs. Even if no such move occurs, the tree is fully functional — sorting is unaffected because SQL uses `ORDER BY position` and gaps do not disrupt order, only compactness. If we later want an eager reconcile, add a "compact-siblings" opportunistic pass to `getTodos()` — noted as v2 optional; **not** shipped in v1.
 - ❌ We deliberately do not use the single-batch "run everything, inspect RETURNING later" pattern from earlier drafts because it would allow sibling positions or parent `updatedAt` to drift on a conflicted move.
 
 Reviewer-locked semantics (see [Design Decisions](#design-decisions-summary)): `updatedAt` touches only the moving row + old parent + new parent — **not the whole subtree**. Skip when parent is `null`; dedupe when old == new.
@@ -322,18 +327,17 @@ Single input: **date-only picker** (calendar). The client resolves the selected 
 
 Render the due status client-side. The status is derived at read time from `dueAt`, `done`, and `now()`. Because `dueAt` is always stored as local-EOD-UTC, the check compares against **start-of-today in the user's local timezone**:
 
-| Status | Rule (assume `dueAt !== null`) | Chip |
-|---|---|---|
-| `overdue` | `!done && dueAt < startOfToday(local)` | red pill: `Overdue · Jul 8` |
-| `today` | `!done && startOfToday <= dueAt < startOfTomorrow` | amber pill: `Today` |
-| `tomorrow` | `!done && startOfTomorrow <= dueAt < startOfDayAfterTomorrow` | amber pill: `Tomorrow` |
-| `soon` | `!done && dueAt within 7 days` | neutral pill: `Jul 15` |
-| `later` | `!done && dueAt >= 7 days out` | neutral pill: `Aug 3` (drops year unless not-current-year) |
-| `done-with-due` | `done` regardless of `dueAt` | grey pill, low emphasis: `Was due Jul 8` |
-| `no-due` | `dueAt === null` | no chip |
+| Status          | Rule (assume `dueAt !== null`)                                | Chip                                                       |
+| --------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| `overdue`       | `!done && dueAt < startOfToday(local)`                        | red pill: `Overdue · Jul 8`                                |
+| `today`         | `!done && startOfToday <= dueAt < startOfTomorrow`            | amber pill: `Today`                                        |
+| `tomorrow`      | `!done && startOfTomorrow <= dueAt < startOfDayAfterTomorrow` | amber pill: `Tomorrow`                                     |
+| `soon`          | `!done && dueAt within 7 days`                                | neutral pill: `Jul 15`                                     |
+| `later`         | `!done && dueAt >= 7 days out`                                | neutral pill: `Aug 3` (drops year unless not-current-year) |
+| `done-with-due` | `done` regardless of `dueAt`                                  | grey pill, low emphasis: `Was due Jul 8`                   |
+| `no-due`        | `dueAt === null`                                              | no chip                                                    |
 
 Because there is no time-of-day, the chip never renders a `HH:mm` suffix in v1.
-
 - `done-with-due` intentionally drops the red emphasis — completed todos should not visually shout regardless of when they were done.
 
 ### Placement
@@ -373,7 +377,6 @@ The dashboard-service context (`contexts/dashboard-service-parts/`) currently lo
 ## UI Control Recommendation
 
 哥's requirement in verbatim: "高级的控件… 便捷的 todo 编辑，例如左侧显示完整的 todo 列表，原地可以编辑，右侧点开再显示内容". This asks for four things at once:
-
 1. Nested tree rendering with expand / collapse.
 2. In-place rename (single-line edit).
 3. Drag-and-drop reorder & reparent.
@@ -381,19 +384,18 @@ The dashboard-service context (`contexts/dashboard-service-parts/`) currently lo
 
 I evaluated the current React ecosystem (versions/dates as of 2026-07-10):
 
-| Library | Version | Last publish | React 19 | Drag & drop | Inline rename | Keyboard | a11y | Virtual | Verdict |
-|---|---|---|---|---|---|---|---|---|---|
-| **`react-arborist`** | 3.13.2 | 2026-07-05 | ✅ peer `>=16.14` | ✅ built-in | ✅ built-in | ✅ built-in | ✅ ARIA | ✅ built-in | **Recommended** |
-| `@headless-tree/react` + `@headless-tree/core` | 1.7.0 | 2026-05-17 | ✅ | ✅ (opt-in feature) | ✅ (opt-in feature) | ✅ (opt-in) | ✅ | ✅ (flat-list output; pair w/ TanStack Virtual) | Backup |
-| `react-complex-tree` | 2.6.2 | 2026-06-24 | ✅ | ✅ | ✅ (F2) | ✅ | ✅ | ❌ | Backup (author points users at `headless-tree`) |
-| `rc-tree` | 5.13.1 | 2025-02 | ✅ (Ant ecosystem) | Basic | ❌ | Partial | Partial | ❌ | Reject: too basic for the interactions needed |
-| `@nosferatu500/react-sortable-tree` | 5.0.0 | 2026-02-27 | ✅ | ✅ (react-dnd) | ❌ | Partial | Partial | ❌ | Reject: relies on `react-dnd` (extra dep + double provider), no rename |
-| `@dnd-kit/core` + `@dnd-kit/sortable` (roll our own) | 6.3.1 / 10.0.0 | 2024-12 | ✅ | ✅ | Roll own | Roll own | Roll own | Roll own | Reject: too much bespoke code for a v1 |
+| Library                                              | Version        | Last publish | React 19           | Drag & drop         | Inline rename       | Keyboard    | a11y     | Virtual                                         | Verdict                                                                |
+| ---------------------------------------------------- | -------------- | ------------ | ------------------ | ------------------- | ------------------- | ----------- | -------- | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| **`react-arborist`**                                 | 3.13.2         | 2026-07-05   | ✅ peer `>=16.14`  | ✅ built-in         | ✅ built-in         | ✅ built-in | ✅ ARIA  | ✅ built-in                                     | **Recommended**                                                        |
+| `@headless-tree/react` + `@headless-tree/core`       | 1.7.0          | 2026-05-17   | ✅                 | ✅ (opt-in feature) | ✅ (opt-in feature) | ✅ (opt-in) | ✅       | ✅ (flat-list output; pair w/ TanStack Virtual) | Backup                                                                 |
+| `react-complex-tree`                                 | 2.6.2          | 2026-06-24   | ✅                 | ✅                  | ✅ (F2)             | ✅          | ✅       | ❌                                              | Backup (author points users at `headless-tree`)                        |
+| `rc-tree`                                            | 5.13.1         | 2025-02      | ✅ (Ant ecosystem) | Basic               | ❌                  | Partial     | Partial  | ❌                                              | Reject: too basic for the interactions needed                          |
+| `@nosferatu500/react-sortable-tree`                  | 5.0.0          | 2026-02-27   | ✅                 | ✅ (react-dnd)      | ❌                  | Partial     | Partial  | ❌                                              | Reject: relies on `react-dnd` (extra dep + double provider), no rename |
+| `@dnd-kit/core` + `@dnd-kit/sortable` (roll our own) | 6.3.1 / 10.0.0 | 2024-12      | ✅                 | ✅                  | Roll own            | Roll own    | Roll own | Roll own                                        | Reject: too much bespoke code for a v1                                 |
 
 ### Recommendation: `react-arborist`
 
 Reasons in order of weight:
-
 1. **Every哥-required feature is opt-in**: drag/drop nesting + reorder, single-click inline rename, virtualization, keyboard, ARIA attributes, filter — all first-class API without adding sub-libraries.
 2. **Controlled mode** (`data` + `onCreate/onRename/onMove/onDelete`) is the only fit for our server-authoritative model. We compute the shape, react-arborist renders + calls back, we call server actions, we re-fetch. Matches the pattern already in `useIdeasViewModel`.
 3. **Bundle**: five dependencies, MIT, TypeScript. No `react-dnd` chain.
@@ -423,8 +425,8 @@ export function todoTagColor(name: string): { bg: string; fg: string; border: st
   const hash = fnv1a(name.toLowerCase());
   const hue = hash % 360;
   return {
-    bg:     `hsl(${hue} 60% 92%)`,
-    fg:     `hsl(${hue} 45% 25%)`,
+    bg: `hsl(${hue} 60% 92%)`,
+    fg: `hsl(${hue} 45% 25%)`,
     border: `hsl(${hue} 55% 70%)`,
   };
 }
@@ -442,7 +444,6 @@ export function todoTagColor(name: string): { bg: string; fg: string; border: st
 ### Control density (site-wide — do not fork)
 
 Todos follow the **site-wide** contract; do not invent module-local sizes.
-
 - **Canonical**: [22-design-tokens.md](22-design-tokens.md) · agent summary in root `AGENTS.md`
 - **CSS**: `app/globals.css` · **tests**: `tests/unit/ui/control-density.test.tsx`
 - In this module: FilterBar / detail use Button `size="sm"` + field `size="sm"`; Checkbox from `components/ui`; title row is `items-center` with emoji + title both `h-8`.
@@ -474,7 +475,6 @@ Todos follow the **site-wide** contract; do not invent module-local sizes.
 ### Left pane (tree)
 
 Powered by `react-arborist`. Row template:
-
 - Chevron (open/close).
 - Checkbox (toggle `done`; empty-vs-checked visual, done state dims the row).
 - Title (single-line inline editor: click title → edit; Enter → save; Esc → cancel).
@@ -483,17 +483,17 @@ Powered by `react-arborist`. Row template:
 
 Interactions:
 
-| Gesture | Effect |
-|---|---|
-| Click row | Select → right pane renders content |
-| Double-click title | Enter inline edit mode |
-| Enter | Save inline edit / new todo below (à la Notion) |
-| Tab / Shift-Tab | Nest under previous sibling / promote to parent's sibling (both save immediately) |
+| Gesture                  | Effect                                                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Click row                | Select → right pane renders content                                                                                                                        |
+| Double-click title       | Enter inline edit mode                                                                                                                                     |
+| Enter                    | Save inline edit / new todo below (à la Notion)                                                                                                            |
+| Tab / Shift-Tab          | Nest under previous sibling / promote to parent's sibling (both save immediately)                                                                          |
 | Backspace on empty title | Cancel inline edit for a brand-new row (which the user has not yet named). Never deletes an existing row. Deletion goes through the menu → confirm dialog. |
-| Drag & drop | Reorder within siblings, or drop **onto** a row to nest inside |
-| Arrow up/down | Navigate; wraps within siblings |
-| Space | Toggle `done` |
-| `/` | Focus filter search input |
+| Drag & drop              | Reorder within siblings, or drop **onto** a row to nest inside                                                                                             |
+| Arrow up/down            | Navigate; wraps within siblings                                                                                                                            |
+| Space                    | Toggle `done`                                                                                                                                              |
+| `/`                      | Focus filter search input                                                                                                                                  |
 
 ### Right pane (detail)
 
@@ -516,7 +516,6 @@ The sidebar row can show a small counter of "open todos" (i.e., `WHERE done = 0`
 ## Server Actions
 
 Add `actions/todos.ts` mirroring `actions/ideas.ts` shape:
-
 - `getTodos()` — for initial fetch.
 - `createTodo(input)` — returns full `TodoTreeNode` for optimistic append.
 - `updateTodo(id, patch)` — returns updated node (server truth after excerpt regeneration).
@@ -525,7 +524,6 @@ Add `actions/todos.ts` mirroring `actions/ideas.ts` shape:
 - `deleteTodo(id)` — returns removed IDs (for optimistic subtree cull).
 
 Each action mirrors the actual `actions/ideas.ts` shape (v1 修订，Reviewer 反馈 #2):
-
 - Return type: `ActionResult<T> = { success: boolean; data?: T; error?: string }` — same shape already exported by `actions/ideas.ts:6-10`.
 - Auth: `const ctx = await getAuthContext()` at the top; return `{ success: false, error: 'Unauthorized' }` when `ctx` is null. No `withScopedDb` — that helper does not exist in the codebase; the current pattern is `ctx.db.<method>()`.
 - Validation: hand-written minimal checks (trim/length/enum) inline in the action, matching `actions/ideas.ts` (no Zod). Introducing Zod would be a separate cross-cutting decision; deliberately not in v1.
@@ -537,16 +535,16 @@ Each action mirrors the actual `actions/ideas.ts` shape (v1 修订，Reviewer �
 
 Scopes: `todos:read`, `todos:write`. Todo tags are free-form text on the todo (`tagNames`); unlike ideas, tag resolution does **not** require `tags:read`.
 
-| Route | Method | Scope | Notes |
-|-------|--------|-------|-------|
-| `/api/v1/todos` | GET | `todos:read` | Flat `TodoTreeNode[]`; client rebuilds forest |
-| `/api/v1/todos` | POST | `todos:write` | Create; body uses `dueAtMs` like server actions |
-| `/api/v1/todos/tags` | GET | `todos:read` | Distinct tag names |
-| `/api/v1/todos/reorder` | POST | `todos:write` | `{ parentId, orderedIds }` |
-| `/api/v1/todos/[id]` | GET | `todos:read` | Detail shape (`content`, `doneAt`) |
-| `/api/v1/todos/[id]` | PATCH | `todos:write` | Partial update |
-| `/api/v1/todos/[id]` | DELETE | `todos:write` | Cascade delete subtree |
-| `/api/v1/todos/[id]/move` | POST | `todos:write` | Guarded reparent + position |
+| Route                     | Method | Scope         | Notes                                           |
+| ------------------------- | ------ | ------------- | ----------------------------------------------- |
+| `/api/v1/todos`           | GET    | `todos:read`  | Flat `TodoTreeNode[]`; client rebuilds forest   |
+| `/api/v1/todos`           | POST   | `todos:write` | Create; body uses `dueAtMs` like server actions |
+| `/api/v1/todos/tags`      | GET    | `todos:read`  | Distinct tag names                              |
+| `/api/v1/todos/reorder`   | POST   | `todos:write` | `{ parentId, orderedIds }`                      |
+| `/api/v1/todos/[id]`      | GET    | `todos:read`  | Detail shape (`content`, `doneAt`)              |
+| `/api/v1/todos/[id]`      | PATCH  | `todos:write` | Partial update                                  |
+| `/api/v1/todos/[id]`      | DELETE | `todos:write` | Cascade delete subtree                          |
+| `/api/v1/todos/[id]/move` | POST   | `todos:write` | Guarded reparent + position                     |
 
 Wire validation and `dueAtMs` / `emoji` handling live in `models/todo-wire.ts` (shared with `actions/todos.ts`).
 
@@ -585,24 +583,24 @@ Wire validation and `dueAtMs` / `emoji` handling live in `models/todo-wire.ts` (
 
 ## Atomic Commits
 
-| # | Commit | Files |
-|---|---|---|
-| C1 | `docs(todos): draft todo feature design` (v0) | this document |
-| C2 | `docs(todos): revise design after v0 review` (v1, current) | this document (`docs/21-todos-feature.md`) |
-| C3 | `feat(db): add todos and todo_tags tables with dueAt (migration 0021)` | `drizzle/migrations/0021_*.sql`, `lib/db/schema.ts` |
-| C4 | `feat(lib): add todo-tag-color and todo-due helpers` | `lib/todo-tag-color.ts`, `lib/todo-due.ts` + tests |
-| C5 | `feat(db): add ScopedDB todos with write-time cycle/depth guard on move` | `lib/db/scoped/todos.ts` + tests |
-| C6 | `feat(actions): add todo CRUD + move server actions` | `actions/todos.ts` + tests |
-| C7 | `chore(deps): add react-arborist` | `package.json`, `bun.lock` |
-| C8 | `feat(viewmodel): add useTodosViewModel` | `viewmodels/todos/*`, `viewmodels/useTodosViewModel.ts` |
-| C9 | `feat(context): add todos slice to DashboardServiceProvider` | `contexts/dashboard-service-parts/useTodosSlice.ts`, `contexts/dashboard-service.tsx` |
-| C10 | `feat(ui): add TodoTagChip + TodoDueChip primitives` | `components/dashboard/todo-tag-chip.tsx`, `components/dashboard/todo-due-chip.tsx` + tests |
-| C11 | `feat(ui): add /dashboard/todos two-pane tree page` | `app/(dashboard)/dashboard/todos/page.tsx`, `components/dashboard/todos-page.tsx`, `components/dashboard/todos-page-parts/*` (tree shell, tree row, right-pane, due picker, filter bar) |
-| C12 | `feat(ui): add narrow-viewport responsive fallback` | `components/dashboard/todos-page-parts/*` (Sheet-based drawer for <1024px) |
-| C13 | `feat(ui): add "待办" to sidebar` | `components/sidebar-parts/nav-config.ts` |
-| C14 | `feat(ui): add todos to global search` | `components/search-command-dialog.tsx`, `components/search-command-dialog-parts/todo-result-item.tsx` |
-| C15 | `test(ui): add L1 component tests for todos page` | `tests/components/todos/*` |
-| C16 | `test(integration): add L2 tests for todo move guarded batch + cross-move race` | `tests/integration/todos.test.ts` (server-action harness) |
+| #   | Commit                                                                          | Files                                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | `docs(todos): draft todo feature design` (v0)                                   | this document                                                                                                                                                                           |
+| C2  | `docs(todos): revise design after v0 review` (v1, current)                      | this document (`docs/21-todos-feature.md`)                                                                                                                                              |
+| C3  | `feat(db): add todos and todo_tags tables with dueAt (migration 0021)`          | `drizzle/migrations/0021_*.sql`, `lib/db/schema.ts`                                                                                                                                     |
+| C4  | `feat(lib): add todo-tag-color and todo-due helpers`                            | `lib/todo-tag-color.ts`, `lib/todo-due.ts` + tests                                                                                                                                      |
+| C5  | `feat(db): add ScopedDB todos with write-time cycle/depth guard on move`        | `lib/db/scoped/todos.ts` + tests                                                                                                                                                        |
+| C6  | `feat(actions): add todo CRUD + move server actions`                            | `actions/todos.ts` + tests                                                                                                                                                              |
+| C7  | `chore(deps): add react-arborist`                                               | `package.json`, `bun.lock`                                                                                                                                                              |
+| C8  | `feat(viewmodel): add useTodosViewModel`                                        | `viewmodels/todos/*`, `viewmodels/useTodosViewModel.ts`                                                                                                                                 |
+| C9  | `feat(context): add todos slice to DashboardServiceProvider`                    | `contexts/dashboard-service-parts/useTodosSlice.ts`, `contexts/dashboard-service.tsx`                                                                                                   |
+| C10 | `feat(ui): add TodoTagChip + TodoDueChip primitives`                            | `components/dashboard/todo-tag-chip.tsx`, `components/dashboard/todo-due-chip.tsx` + tests                                                                                              |
+| C11 | `feat(ui): add /dashboard/todos two-pane tree page`                             | `app/(dashboard)/dashboard/todos/page.tsx`, `components/dashboard/todos-page.tsx`, `components/dashboard/todos-page-parts/*` (tree shell, tree row, right-pane, due picker, filter bar) |
+| C12 | `feat(ui): add narrow-viewport responsive fallback`                             | `components/dashboard/todos-page-parts/*` (Sheet-based drawer for <1024px)                                                                                                              |
+| C13 | `feat(ui): add "待办" to sidebar`                                               | `components/sidebar-parts/nav-config.ts`                                                                                                                                                |
+| C14 | `feat(ui): add todos to global search`                                          | `components/search-command-dialog.tsx`, `components/search-command-dialog-parts/todo-result-item.tsx`                                                                                   |
+| C15 | `test(ui): add L1 component tests for todos page`                               | `tests/components/todos/*`                                                                                                                                                              |
+| C16 | `test(integration): add L2 tests for todo move guarded batch + cross-move race` | `tests/integration/todos.test.ts` (server-action harness)                                                                                                                               |
 
 Each commit passes pre-commit (Biome, Vitest unit, typecheck, gitleaks) and is reviewable in isolation.
 
@@ -610,39 +608,39 @@ Each commit passes pre-commit (Biome, Vitest unit, typecheck, gitleaks) and is r
 
 ## Quality Gates (6DQ)
 
-| Layer | Scope | Gate |
-|-------|-------|------|
-| L1 | Unit tests: cycle guard (incl. cross-move race), tag colour, excerpt, tree ViewModel | pre-commit |
-| L1 | Component tests: tree keyboard, drag callback, right-pane switch, tag input | pre-commit |
-| L2 | Server-action invariants: create, guarded two-phase move + cross-move race, cascade delete | pre-push |
-| L3 | Playwright: create root → add child → drag reorder → check → delete | on-demand |
-| G1 | TypeScript + Biome, react-arborist typing surface exercised | pre-commit |
-| G2 | gitleaks + osv-scanner (react-arborist advisory scan) | pre-commit + pre-push |
+| Layer | Scope                                                                                      | Gate                  |
+| ----- | ------------------------------------------------------------------------------------------ | --------------------- |
+| L1    | Unit tests: cycle guard (incl. cross-move race), tag colour, excerpt, tree ViewModel       | pre-commit            |
+| L1    | Component tests: tree keyboard, drag callback, right-pane switch, tag input                | pre-commit            |
+| L2    | Server-action invariants: create, guarded two-phase move + cross-move race, cascade delete | pre-push              |
+| L3    | Playwright: create root → add child → drag reorder → check → delete                        | on-demand             |
+| G1    | TypeScript + Biome, react-arborist typing surface exercised                                | pre-commit            |
+| G2    | gitleaks + osv-scanner (react-arborist advisory scan)                                      | pre-commit + pre-push |
 
 ---
 
 ## Design Decisions Summary
 
-| Issue | Decision | Rationale |
-|---|---|---|
-| Tree storage | Adjacency list (self-ref `parentId`) | Simpler CRUD; D1 workload is small; recursive queries acceptable at this scale |
-| Ordering | Dense `position: integer` per sibling group | Simple, deterministic, batches well; fractional-index only if reorder cost becomes an issue |
-| Cycle & depth prevention | Write-time ancestry+depth check via `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(...) RETURNING id`; client-side preflight is advisory only | Preflight-only race was reachable (see v1.1 change log); write-time SQL guard evaluates against committed state so a jointly-cyclic pair of moves cannot both succeed |
-| Depth cap | `MAX_TODO_DEPTH = 12` (backend enforced by the write-time guard; UI shows early inline warning at 10+) | Backend authoritative — UI hint is a nicety only |
-| Tag storage | Per-todo free-form strings, no shared `tags` table | 哥 explicit ask; keeps namespaces clean |
-| Tag colour | Client-side hash → HSL | Deterministic, no persistence, no schema churn on new tags |
-| Due date | v1 date-only (`dueAt: timestamp \| null`; input → local EOD UTC); date-time picker + `duePrecision` column deferred to v2 | Mixing date-only and date-time in a single column with overdue heuristics is fragile across DST/user edits; "Due Date" as a product noun matches the calendar-day story |
-| Move payload | Dedicated `moveTodo` action returning affected slice; write-time cycle guard via UPDATE + RECURSIVE CTE; batch of guarded UPDATEs (D1 batch, not SQL transaction) | Move is the only path that could race into corruption; write-time guard is the only correct answer given D1 has no JS-visible transaction |
-| Delete semantics | Cascade + confirm dialog stating subtree count; **no undo in v1** | Undo requires either soft-delete or subtree snapshot; both add scope; confirm-with-count is the guardrail |
-| Done semantics | `done` boolean + `doneAt` timestamp; stays visible | Users often reference recently-done tasks; auto-archive is destructive |
-| Move `updatedAt` scope | Touch moving row + old parent + new parent only (skip `null` parents; dedupe when old == new); **not the whole subtree** | Reviewer-locked; keeps the "recently modified" list from being contaminated by structural moves of ancestors |
-| Tree control | `react-arborist` (v1); `@headless-tree/react` (fallback) | Every requested feature is first-class API; controlled mode is a clean fit |
-| Row rendering ownership | We fully own the row template (`todos-page-parts/todo-row.tsx`) and the tree shell wrapper (`todos-page-parts/todo-tree.tsx`); arborist just orchestrates | Splits keep interactions localised and reviewable per commit |
-| Content edit | Right-pane textarea in v1; live Markdown preview in v2 | Match Ideas' modal parity for launch; upgrade path clear |
-| Narrow viewport | v1 ships a responsive fallback: `<1024px` shows tree full-width and moves detail into a slide-over `Sheet` component; drag-nesting is disabled on touch pointers, all other affordances (add / edit / check / delete / tag / due) work | Reviewer-locked: no desktop-only v1 |
-| Server action shape | Mirror `actions/ideas.ts` exactly: `getAuthContext()`, `ActionResult<T>`, hand-written validation; no `withScopedDb` (does not exist) and no Zod (would be a separate cross-cutting decision) | Match reality; avoid inventing new patterns silently |
-| API/CLI | Deferred to v2 | v1 ships the dashboard surface only; API/CLI is a mechanical port of ideas patterns |
-| L2 test location | `tests/integration/todos.test.ts` (server-action harness); REST-level `tests/api/todos.*.test.ts` deferred to v2 with the endpoints themselves | Cannot ship API tests before the API |
+| Issue                    | Decision                                                                                                                                                                                                                               | Rationale                                                                                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tree storage             | Adjacency list (self-ref `parentId`)                                                                                                                                                                                                   | Simpler CRUD; D1 workload is small; recursive queries acceptable at this scale                                                                                          |
+| Ordering                 | Dense `position: integer` per sibling group                                                                                                                                                                                            | Simple, deterministic, batches well; fractional-index only if reorder cost becomes an issue                                                                             |
+| Cycle & depth prevention | Write-time ancestry+depth check via `WITH RECURSIVE ... UPDATE ... WHERE NOT EXISTS(...) RETURNING id`; client-side preflight is advisory only                                                                                         | Preflight-only race was reachable (see v1.1 change log); write-time SQL guard evaluates against committed state so a jointly-cyclic pair of moves cannot both succeed   |
+| Depth cap                | `MAX_TODO_DEPTH = 12` (backend enforced by the write-time guard; UI shows early inline warning at 10+)                                                                                                                                 | Backend authoritative — UI hint is a nicety only                                                                                                                        |
+| Tag storage              | Per-todo free-form strings, no shared `tags` table                                                                                                                                                                                     | 哥 explicit ask; keeps namespaces clean                                                                                                                                 |
+| Tag colour               | Client-side hash → HSL                                                                                                                                                                                                                 | Deterministic, no persistence, no schema churn on new tags                                                                                                              |
+| Due date                 | v1 date-only (`dueAt: timestamp \| null`; input → local EOD UTC); date-time picker + `duePrecision` column deferred to v2                                                                                                              | Mixing date-only and date-time in a single column with overdue heuristics is fragile across DST/user edits; "Due Date" as a product noun matches the calendar-day story |
+| Move payload             | Dedicated `moveTodo` action returning affected slice; write-time cycle guard via UPDATE + RECURSIVE CTE; batch of guarded UPDATEs (D1 batch, not SQL transaction)                                                                      | Move is the only path that could race into corruption; write-time guard is the only correct answer given D1 has no JS-visible transaction                               |
+| Delete semantics         | Cascade + confirm dialog stating subtree count; **no undo in v1**                                                                                                                                                                      | Undo requires either soft-delete or subtree snapshot; both add scope; confirm-with-count is the guardrail                                                               |
+| Done semantics           | `done` boolean + `doneAt` timestamp; stays visible                                                                                                                                                                                     | Users often reference recently-done tasks; auto-archive is destructive                                                                                                  |
+| Move `updatedAt` scope   | Touch moving row + old parent + new parent only (skip `null` parents; dedupe when old == new); **not the whole subtree**                                                                                                               | Reviewer-locked; keeps the "recently modified" list from being contaminated by structural moves of ancestors                                                            |
+| Tree control             | `react-arborist` (v1); `@headless-tree/react` (fallback)                                                                                                                                                                               | Every requested feature is first-class API; controlled mode is a clean fit                                                                                              |
+| Row rendering ownership  | We fully own the row template (`todos-page-parts/todo-row.tsx`) and the tree shell wrapper (`todos-page-parts/todo-tree.tsx`); arborist just orchestrates                                                                              | Splits keep interactions localised and reviewable per commit                                                                                                            |
+| Content edit             | Right-pane textarea in v1; live Markdown preview in v2                                                                                                                                                                                 | Match Ideas' modal parity for launch; upgrade path clear                                                                                                                |
+| Narrow viewport          | v1 ships a responsive fallback: `<1024px` shows tree full-width and moves detail into a slide-over `Sheet` component; drag-nesting is disabled on touch pointers, all other affordances (add / edit / check / delete / tag / due) work | Reviewer-locked: no desktop-only v1                                                                                                                                     |
+| Server action shape      | Mirror `actions/ideas.ts` exactly: `getAuthContext()`, `ActionResult<T>`, hand-written validation; no `withScopedDb` (does not exist) and no Zod (would be a separate cross-cutting decision)                                          | Match reality; avoid inventing new patterns silently                                                                                                                    |
+| API/CLI                  | Deferred to v2                                                                                                                                                                                                                         | v1 ships the dashboard surface only; API/CLI is a mechanical port of ideas patterns                                                                                     |
+| L2 test location         | `tests/integration/todos.test.ts` (server-action harness); REST-level `tests/api/todos.*.test.ts` deferred to v2 with the endpoints themselves                                                                                         | Cannot ship API tests before the API                                                                                                                                    |
 
 ---
 
@@ -667,21 +665,18 @@ Each commit passes pre-commit (Biome, Vitest unit, typecheck, gitleaks) and is r
 ### v1.3 → v1.4 (2026-07-10 C14/C16 doc sync)
 
 Post-implementation drift cleanup, no contract change:
-
 - **`TodoTreeNode.excerpt`**: the lightweight tree shape now carries the short excerpt (≤200 chars) so the Global Search dialog can substring-match on notes without pulling full markdown. The doc's Data shapes snippet is updated to list `excerpt: string | null` on `TodoTreeNode` and drop it from `TodoDetail`'s inherit-plus block; `TodoDetail` now only adds `content` and `doneAt`. Rationale in the following paragraph.
 - **No other contract change** — Global Search already required `title + excerpt` under the "Global Search (Cmd+K)" section; this revision only aligns the shared shape snippet with what the codebase always needed.
 
 ### v1.2 → v1.3 (2026-07-10 round-4)
 
 Reviewer round-4 blocker + cosmetic residue merged:
-
 - **Phase 2/3 crash gap eliminated with safe-tail position**: v1.2 wrote the moving row's `position = :newPosition` in Phase 2 and then compacted siblings in Phase 3. A crash between the two phases could leave the target parent with two rows at the same `position` (duplicate) and the old parent with a hole (violates dense ordering). v1.3 changes Phase 2 to write `position = COALESCE(MAX(position) FROM target siblings, -1) + 1` — the "safe tail" position that is guaranteed to be unique among the target parent's current children. Phase 3 then moves the row from its tail slot to `:newPosition` via a `UPDATE ... WHERE position = :tailPositionFromPhase2` (self-guarded), while opening the target slot and closing the old-parent hole. Crash-between-phases outcome is now documented honestly: target parent stays dense (moving row at tail), old parent has a one-slot gap, no duplicate positions anywhere, no cycles, no depth violations; next move on either parent re-establishes density. `getTodos()` sorts by `ORDER BY position` so gaps are visually irrelevant.
 - **Vocabulary residue cleanup**: fixed the last stragglers — the API v2 move endpoint description said "action stays atomic", the Phase 1 ScopedDB table said "atomic `moveTodo`", the L2 QG row said "create/move/delete atomicity", the Phase 3 tests list said "`moveTodo` transaction". All rewritten as "guarded two-phase move" / "server-action invariants" / "guarded operation".
 
 ### v1.1 → v1.2 (2026-07-10 round-3)
 
 Reviewer round-3 blockers merged:
-
 - **Move contract split into explicit two-phase write**: v1.1 said "step 3/4/5 SHOULD go into a single `executeD1Batch` … application code inspects RETURNING after batch resolves … harmless drift". That was wrong — on a conflicted move it would leave sibling positions and parent `updatedAt` drifted with no user action. v1.2 splits [Move (contract)](#move-contract) into four phases: Phase 0 client preflight (advisory), Phase 1 server preflight `SELECT` (also computes moving-subtree height), Phase 2 guarded parent UPDATE via `executeD1Query` — **on empty RETURNING, no reconcile writes happen**, Phase 3 reconcile batch (sibling compact + parent `updatedAt`), Phase 4 affected-slice select. Document explicitly notes phases 2+3 are not one SQL transaction; a crash between them leaves a self-consistent state.
 - **Depth cap considers moving-subtree height**: v1.1 guard checked only `newParent`'s own depth. A tall moving subtree could push descendants past `MAX_TODO_DEPTH`. v1.2 adds a `:movingSubtreeHeight` parameter (computed by Phase 1's descendant recursive CTE) and updates the write-time guard to reject when `newParentDepth + 1 + movingSubtreeHeight > MAX_TODO_DEPTH`. Test set gains "moving-subtree height overflow" regression.
 - **Vocabulary sweep across the doc**: cleaned the last residual "single database transaction" (Design Principles), "inside a transaction" (ScopedDB table), "moveTodo transaction" (Quality Gates was already fixed), "inline date/time picker" (Right pane detail), and the `dueAt < now()` / "time is optional at input layer" wording under Data Model. Change Log v0→v1 entry now flags the incorrect race-tolerance argument as superseded so no reader treats it as authoritative.
@@ -689,7 +684,6 @@ Reviewer round-3 blockers merged:
 ### v1 → v1.1 (2026-07-10 round-2)
 
 Reviewer round-2 blockers merged:
-
 - **Move contract — write-time guard, not preflight-only**: v1's "preflight recursive CTE → application check → guarded batch" was reachably racy (two moves preflight against the old tree, both write, both succeed, ancestry ends up cyclic). v1.1 rewrites the moving row's parent-update as `WITH RECURSIVE ancestors AS (...) UPDATE ... WHERE NOT EXISTS(... movingId ...) AND (SELECT MAX(depth) FROM ancestors) < :maxDepth RETURNING id`, so the cycle/depth/ownership predicate evaluates against **committed database state at write time**. Empty `RETURNING` → application returns `Move conflicted or invalid` and the client refetches. Preflight is kept as an **advisory** client-side quick-reject. Test set explicitly covers cross-move race, parent-deleted-mid-move, depth-cap race, cross-user, happy path. Vocabulary swept: no more "atomic move" / "move transaction" / "inside a transaction" — replaced with "guarded batch + write-time ancestry guard".
 - **Due date — v1 date-only only**: v1's mixed date-only + date-time in one column produced inconsistent overdue behaviour (a specific 09:00 time still showed `Today` at 10:00). v1.1 simplifies v1 to **date-only** (input → local EOD UTC, one clean overdue rule). date-time + `duePrecision` column moves to v2 with a documented migration path (all v1 rows migrate as `precision='date'`).
 - **Doc hygiene**: Quality Gates, atomic commit C5/C16 titles, and the L1/L2 test lists all now read "write-time guard" / "guarded batch" instead of "atomic move".
@@ -697,7 +691,6 @@ Reviewer round-2 blockers merged:
 ### v0 → v1 (2026-07-10)
 
 Merged 哥 追加需求 + Reviewer round-1 blockers:
-
 - **New requirement — Due date**: added `dueAt: timestamp | null`, entire [Due Date](#due-date) section, tree-row chip + right-pane picker, chip formatter contract + tests.
 - **Reviewer #1 due-date coverage**: locked input semantics (date-only → local end-of-day UTC), display rules for `overdue/today/tomorrow/soon/later/done-with-due/no-due`, filter facet, sort deferral to v2.
 - **Reviewer #2 server-action pattern**: rewrote the [Server Actions](#server-actions) section to match `actions/ideas.ts` reality (`getAuthContext()` + `ActionResult<T>` + hand-written validation); removed the `withScopedDb` / colocated Zod claims.

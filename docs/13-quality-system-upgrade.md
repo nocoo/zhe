@@ -10,22 +10,22 @@
 
 ### 旧版：四层测试架构
 
-| 层级 | 名称 | Hook | 当前状态 |
-|------|------|------|----------|
-| L1 | Unit Test | pre-commit | ✅ 2030 用例，90% 覆盖率 |
-| L2 | Lint | pre-commit | ✅ ESLint `--max-warnings=0` |
-| L3 | API E2E | pre-push | ✅ 235 用例（in-process import handler） |
-| L4 | BDD E2E | on-demand | ✅ 108 用例，Playwright |
+| 层级 | 名称      | Hook       | 当前状态                                 |
+| ---- | --------- | ---------- | ---------------------------------------- |
+| L1   | Unit Test | pre-commit | ✅ 2030 用例，90% 覆盖率                 |
+| L2   | Lint      | pre-commit | ✅ ESLint `--max-warnings=0`             |
+| L3   | API E2E   | pre-push   | ✅ 235 用例（in-process import handler） |
+| L4   | BDD E2E   | on-demand  | ✅ 108 用例，Playwright                  |
 
 ### 新版：三层测试 + 一道门控 + 一道安全检查
 
-| 层级 | 名称 | 验证对象 | Hook | 强制性 |
-|------|------|----------|------|--------|
-| **L1** | Unit/Component | 纯函数、ViewModel、Hooks | pre-commit (<30s) | ✅ 硬门控 |
-| **L2** | Integration/API | **真 HTTP 请求**、跨模块协作 | pre-push (<3min) | ⚠️ Soft gate（见下方说明） |
-| **L3** | System/E2E | 真实用户端到端流程 | CI / on-demand | ✅ 硬门控 |
-| **G1** | Static Analysis | 类型检查 + Lint strict | pre-commit (与 L1 并行) | ✅ 硬门控 |
-| **G2** | Security Advisory | 依赖漏洞 + Secrets 泄露 | pre-commit + pre-push | ⚠️ Advisory（工具缺失时跳过） |
+| 层级   | 名称              | 验证对象                     | Hook                    | 强制性                        |
+| ------ | ----------------- | ---------------------------- | ----------------------- | ----------------------------- |
+| **L1** | Unit/Component    | 纯函数、ViewModel、Hooks     | pre-commit (<30s)       | ✅ 硬门控                     |
+| **L2** | Integration/API   | **真 HTTP 请求**、跨模块协作 | pre-push (<3min)        | ⚠️ Soft gate（见下方说明）    |
+| **L3** | System/E2E        | 真实用户端到端流程           | CI / on-demand          | ✅ 硬门控                     |
+| **G1** | Static Analysis   | 类型检查 + Lint strict       | pre-commit (与 L1 并行) | ✅ 硬门控                     |
+| **G2** | Security Advisory | 依赖漏洞 + Secrets 泄露      | pre-commit + pre-push   | ⚠️ Advisory（工具缺失时跳过） |
 
 > **⚠️ L2 强制性说明**：迁移为真 HTTP 后，L2 测试依赖远程 Cloudflare D1 test DB。当远程资源可用时，L2 是 **mandatory**——测试失败会阻止 push。但当网络不可达或凭证缺失时，`run-api-e2e.ts` 会 **warn + skip**（降级为 advisory），避免基础设施故障阻塞所有 push。这使 L2 成为 **soft gate**：正常情况下强制执行，异常情况下有安全降级路径。如果未来引入 CI，L2 应在 CI 中 **无条件强制执行**（CI 环境有稳定网络和凭证管理），从而补上本地 hook 的降级缺口。
 
@@ -35,39 +35,39 @@
 
 ## 二、Gap 分析
 
-| # | 差距 | 影响 |
-|---|------|------|
-| 1 | **G1: `tsc --noEmit` 存在 19 个 type errors** — `tsc --noEmit` 当前就会失败：`.next/types/` broken import（2）、测试文件类型错误（17：`null as NextMiddleware`、`AdapterAccount` 类型不匹配、`ExportedLink` optional 字段）。必须先修完才能加 hook | 不能直接加 hook，否则 brick 所有 commit |
-| 2 | **G1: ESLint 非 strict 配置** — 使用 `next/core-web-vitals + next/typescript`，未启用 `@typescript-eslint/strict`；`no-unused-vars` 是 warn 而非 error；缺少 `no-explicit-any: error` | 宽松规则放行低质量代码 |
-| 3 | **L2: `tests/api/` 混合了两类测试** — 该目录包含 8 个 route handler 测试（通过 `await import('@/app/api/.../route')` 调用 GET/POST）和 6 个 server action 测试（通过 `await import('@/actions/...')` 调用）。全部依赖 in-process `vi.mock` 和 D1 内存模拟器。迁移真 HTTP 前必须先拆分。注意：`tests/integration/` 目录已存在（含 `links.test.ts`），迁移时是追加而非新建 | 无法笼统 "全部迁移"，需要分类处理 |
-| 4 | **G2: 无安全扫描** — 无 osv-scanner、gitleaks | 依赖漏洞和 secrets 泄露无检查（目标：advisory check，工具缺失时不阻塞；未来加 CI 后可升级为硬门控） |
-| 5 | **文档/Hook 重组** — 层级命名、hook 内容需与新体系对齐 | 文档过时 |
+| #   | 差距                                                                                                                                                                                                                                                                                                                                                                     | 影响                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| 1   | **G1: `tsc --noEmit` 存在 19 个 type errors** — `tsc --noEmit` 当前就会失败：`.next/types/` broken import（2）、测试文件类型错误（17：`null as NextMiddleware`、`AdapterAccount` 类型不匹配、`ExportedLink` optional 字段）。必须先修完才能加 hook                                                                                                                       | 不能直接加 hook，否则 brick 所有 commit                                                             |
+| 2   | **G1: ESLint 非 strict 配置** — 使用 `next/core-web-vitals + next/typescript`，未启用 `@typescript-eslint/strict`；`no-unused-vars` 是 warn 而非 error；缺少 `no-explicit-any: error`                                                                                                                                                                                    | 宽松规则放行低质量代码                                                                              |
+| 3   | **L2: `tests/api/` 混合了两类测试** — 该目录包含 8 个 route handler 测试（通过 `await import('@/app/api/.../route')` 调用 GET/POST）和 6 个 server action 测试（通过 `await import('@/actions/...')` 调用）。全部依赖 in-process `vi.mock` 和 D1 内存模拟器。迁移真 HTTP 前必须先拆分。注意：`tests/integration/` 目录已存在（含 `links.test.ts`），迁移时是追加而非新建 | 无法笼统 "全部迁移"，需要分类处理                                                                   |
+| 4   | **G2: 无安全扫描** — 无 osv-scanner、gitleaks                                                                                                                                                                                                                                                                                                                            | 依赖漏洞和 secrets 泄露无检查（目标：advisory check，工具缺失时不阻塞；未来加 CI 后可升级为硬门控） |
+| 5   | **文档/Hook 重组** — 层级命名、hook 内容需与新体系对齐                                                                                                                                                                                                                                                                                                                   | 文档过时                                                                                            |
 
 ### 当前 `tests/api/` 文件分类
 
 **Route Handler 测试**（可迁移为真 HTTP）：
 
-| 文件 | 端点 | 调用方式 | vi.mock |
-|------|------|----------|---------|
-| `api.test.ts` | `/api/health`, `/api/lookup`, `/api/record-click` | `import route → GET/POST(request)` | 无 |
-| `api-extra.test.ts` | `/api/lookup`, `/api/record-click` | `import route → GET/POST(request)` | 1 |
-| `live.test.ts` | `/api/live` | `import route → GET()` | 无 |
-| `worker-status.test.ts` | `/api/worker-status` | `import route → GET()` | 1 |
-| `sync-kv.test.ts` | `/api/cron/sync-kv` | `import route → POST(request)` | 2 |
-| `cleanup.test.ts` | `/api/cron/cleanup` | `import route → POST(request)` | 1 |
-| `webhook.test.ts` | `/api/link/create/[token]` | `import route → HEAD/GET/POST` | 无 |
-| `tmp-upload.test.ts` | `/api/tmp/upload/[token]` | `import route → HEAD/GET/POST` | 1 (R2) |
+| 文件                    | 端点                                              | 调用方式                           | vi.mock |
+| ----------------------- | ------------------------------------------------- | ---------------------------------- | ------- |
+| `api.test.ts`           | `/api/health`, `/api/lookup`, `/api/record-click` | `import route → GET/POST(request)` | 无      |
+| `api-extra.test.ts`     | `/api/lookup`, `/api/record-click`                | `import route → GET/POST(request)` | 1       |
+| `live.test.ts`          | `/api/live`                                       | `import route → GET()`             | 无      |
+| `worker-status.test.ts` | `/api/worker-status`                              | `import route → GET()`             | 1       |
+| `sync-kv.test.ts`       | `/api/cron/sync-kv`                               | `import route → POST(request)`     | 2       |
+| `cleanup.test.ts`       | `/api/cron/cleanup`                               | `import route → POST(request)`     | 1       |
+| `webhook.test.ts`       | `/api/link/create/[token]`                        | `import route → HEAD/GET/POST`     | 无      |
+| `tmp-upload.test.ts`    | `/api/tmp/upload/[token]`                         | `import route → HEAD/GET/POST`     | 1 (R2)  |
 
 **Server Action 测试**（保持 in-process import，不迁移 HTTP）：
 
-| 文件 | Actions | 调用方式 | vi.mock |
-|------|---------|----------|---------|
-| `edit-link.test.ts` | `actions/links` (create/update/updateNote) | `import action → call()` | 1 |
-| `folders.test.ts` | `actions/folders` (CRUD) | `import action → call()` | 1 |
-| `settings.test.ts` | `actions/settings` (export/import) | `import action → call()` | 1 |
-| `upload.test.ts` | `actions/upload` (presigned URL, CRUD) | `import action → call()` | 2 (R2, S3) |
-| `backy.test.ts` | `actions/backy` (config, entries) | `import action → call()` | 1 |
-| `xray.test.ts` | `actions/xray` (config, entries) | `import action → call()` | 2 |
+| 文件                | Actions                                    | 调用方式                 | vi.mock    |
+| ------------------- | ------------------------------------------ | ------------------------ | ---------- |
+| `edit-link.test.ts` | `actions/links` (create/update/updateNote) | `import action → call()` | 1          |
+| `folders.test.ts`   | `actions/folders` (CRUD)                   | `import action → call()` | 1          |
+| `settings.test.ts`  | `actions/settings` (export/import)         | `import action → call()` | 1          |
+| `upload.test.ts`    | `actions/upload` (presigned URL, CRUD)     | `import action → call()` | 2 (R2, S3) |
+| `backy.test.ts`     | `actions/backy` (config, entries)          | `import action → call()` | 1          |
+| `xray.test.ts`      | `actions/xray` (config, entries)           | `import action → call()` | 2          |
 
 ---
 
@@ -77,24 +77,24 @@
 
 **前置问题**：`bun x tsc --noEmit` 当前输出 19 个 errors：
 
-| 文件 | 错误类型 | 数量 | 修复方案 |
-|------|----------|------|----------|
-| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import | 2 | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：手工执行 `rm -rf .next/types && bun run build` 重建（见下方"已知局限"说明，此类 stale cache 无法自动检测） |
-| `tests/unit/backy-actions.test.ts` | `null` not assignable to `NextMiddleware` | 8 | `null as unknown as NextMiddleware` 或 `undefined!` |
-| `tests/unit/webhook-actions.test.ts` | 同上 | 4 | 同上 |
-| `tests/unit/middleware.test.ts` | 同上 | 1 | 同上 |
-| `tests/unit/auth-adapter.test.ts` | `AdapterAccount` 类型不匹配 | 3 | 添加 `satisfies` 或修正 mock 数据类型 |
-| `tests/unit/settings-actions.test.ts` | `ExportedLink` optional 字段 | 1 | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null` |
+| 文件                                           | 错误类型                                  | 数量 | 修复方案                                                                                                                                                                                                                                             |
+| ---------------------------------------------- | ----------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.next/types/app/api/webhook/[token]/route.ts` | TS2307 broken import                      | 2    | **根因**：路由已从 `app/api/webhook/[token]/` 重命名为 `app/api/link/create/[token]/`，但 `.next/types` 残留了旧路径的生成文件。**修复**：手工执行 `rm -rf .next/types && bun run build` 重建（见下方"已知局限"说明，此类 stale cache 无法自动检测） |
+| `tests/unit/backy-actions.test.ts`             | `null` not assignable to `NextMiddleware` | 8    | `null as unknown as NextMiddleware` 或 `undefined!`                                                                                                                                                                                                  |
+| `tests/unit/webhook-actions.test.ts`           | 同上                                      | 4    | 同上                                                                                                                                                                                                                                                 |
+| `tests/unit/middleware.test.ts`                | 同上                                      | 1    | 同上                                                                                                                                                                                                                                                 |
+| `tests/unit/auth-adapter.test.ts`              | `AdapterAccount` 类型不匹配               | 3    | 添加 `satisfies` 或修正 mock 数据类型                                                                                                                                                                                                                |
+| `tests/unit/settings-actions.test.ts`          | `ExportedLink` optional 字段              | 1    | 将 `folderId?: string \| null \| undefined` 对齐为 `string \| null`                                                                                                                                                                                  |
 
 **typecheck script 设计**：
 
 `tsc --noEmit` 本身不生成 `.next/types`（只有 `next dev`/`next build` 才会）。但 `tsconfig.json` 的 `include` 包含 `.next/types/**/*.ts`，意味着 Next 路由类型检查是 tsc 范围的一部分。如果 typecheck 只是纯 `tsc --noEmit`，其结果会因本地 `.next/types` 状态不同而不同：
 
-| 本地状态 | typecheck 行为 | 问题 |
-|----------|----------------|------|
-| 正常（已跑过 dev/build） | 包含路由类型检查 | ✅ |
-| stale cache（路由重命名后未 rebuild） | 报假阳性 TS2307 | ❌ 开发者需手工 rebuild |
-| 全新 checkout（从未 build） | 跳过路由类型检查 | ❌ 静默降级，不检查路由类型 |
+| 本地状态                              | typecheck 行为   | 问题                        |
+| ------------------------------------- | ---------------- | --------------------------- |
+| 正常（已跑过 dev/build）              | 包含路由类型检查 | ✅                          |
+| stale cache（路由重命名后未 rebuild） | 报假阳性 TS2307  | ❌ 开发者需手工 rebuild     |
+| 全新 checkout（从未 build）           | 跳过路由类型检查 | ❌ 静默降级，不检查路由类型 |
 
 为保证 G1 作为硬门控的确定性，`typecheck` script 使用 shell 脚本确保 `.next/types` 存在且是最新的：
 
@@ -130,11 +130,11 @@ exec bun x tsc --noEmit
 
 **原子化提交**：
 
-| # | Commit | 内容 | 涉及文件 |
-|---|--------|------|----------|
-| 1.1 | `fix: resolve NextMiddleware null type errors in test files` | 修复 13 处 `null` → `null as unknown as NextMiddleware` | `backy-actions.test.ts`（8 处）、`webhook-actions.test.ts`（4 处）、`middleware.test.ts`（1 处） |
-| 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 修复 4 处类型不匹配 | `auth-adapter.test.ts`（3 处）、`settings-actions.test.ts`（1 处） |
-| 1.3 | `chore: add typecheck script and pre-commit hook` | 新建 `scripts/typecheck.sh`，添加 npm script + hook | `scripts/typecheck.sh`、`package.json`、`.husky/pre-commit` |
+| #   | Commit                                                                  | 内容                                                    | 涉及文件                                                                                         |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1.1 | `fix: resolve NextMiddleware null type errors in test files`            | 修复 13 处 `null` → `null as unknown as NextMiddleware` | `backy-actions.test.ts`（8 处）、`webhook-actions.test.ts`（4 处）、`middleware.test.ts`（1 处） |
+| 1.2 | `fix: resolve AdapterAccount and ExportedLink type mismatches in tests` | 修复 4 处类型不匹配                                     | `auth-adapter.test.ts`（3 处）、`settings-actions.test.ts`（1 处）                               |
+| 1.3 | `chore: add typecheck script and pre-commit hook`                       | 新建 `scripts/typecheck.sh`，添加 npm script + hook     | `scripts/typecheck.sh`、`package.json`、`.husky/pre-commit`                                      |
 
 **验证**（按阶段）：
 - 1.1 + 1.2 完成后：`bun x tsc --noEmit` 输出 0 errors（直接调用 tsc，因为 typecheck script 尚未创建）
@@ -151,21 +151,21 @@ exec bun x tsc --noEmit
 
 **规则升级清单**：
 
-| 规则 | 旧值 | 新值 |
-|------|------|------|
-| `@typescript-eslint/no-unused-vars` | `warn` | `error` |
-| `@typescript-eslint/no-explicit-any` | (未设置) | `error` |
-| `@typescript-eslint/no-non-null-assertion` | (未设置) | `error` (strict 自带) |
-| `@typescript-eslint/no-unnecessary-condition` | (未设置) | `error` (strict 自带) |
+| 规则                                           | 旧值     | 新值                  |
+| ---------------------------------------------- | -------- | --------------------- |
+| `@typescript-eslint/no-unused-vars`            | `warn`   | `error`               |
+| `@typescript-eslint/no-explicit-any`           | (未设置) | `error`               |
+| `@typescript-eslint/no-non-null-assertion`     | (未设置) | `error` (strict 自带) |
+| `@typescript-eslint/no-unnecessary-condition`  | (未设置) | `error` (strict 自带) |
 | `@typescript-eslint/prefer-nullish-coalescing` | (未设置) | `error` (strict 自带) |
 
 **原子化提交**：
 
-| # | Commit | 内容 |
-|---|--------|------|
-| 2.1 | `chore: add typescript-eslint package` | `bun add -d typescript-eslint` |
-| 2.2 | `refactor: upgrade eslint to strict typescript rules` | `eslint.config.mjs` 改为 strict 配置 |
-| 2.3~N | `fix: resolve strict lint errors in <module>` | 按模块逐批修复 lint errors（每个 commit 对应一个模块或一类 error） |
+| #     | Commit                                                | 内容                                                               |
+| ----- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| 2.1   | `chore: add typescript-eslint package`                | `bun add -d typescript-eslint`                                     |
+| 2.2   | `refactor: upgrade eslint to strict typescript rules` | `eslint.config.mjs` 改为 strict 配置                               |
+| 2.3~N | `fix: resolve strict lint errors in <module>`         | 按模块逐批修复 lint errors（每个 commit 对应一个模块或一类 error） |
 
 **关键假设**：
 - `next/core-web-vitals` 和 `tseslint.configs.strict` 可以共存（通过 flat config 合并）
@@ -185,7 +185,6 @@ exec bun x tsc --noEmit
 **工具安装版本化**：
 
 `brew install` 是手工约定，不同开发者机器上会漂移（有人有、有人没有、版本不同）。解决方案：
-
 1. **Hook 中加 guard 脚本**：在 `.husky/pre-commit` 和 `.husky/pre-push` 调用安全扫描前，先检查工具是否可用。工具缺失时打印安装提示并 **skip**（warn 而非 fail），避免 brick 其他人的 commit 流程。这使 G2 成为 **advisory check** 而非硬门控——不同开发机可能获得不同级别的安全保障。
 
 ```bash
@@ -205,11 +204,11 @@ check_tool() {
 
 **原子化提交**：
 
-| # | Commit | 内容 |
-|---|--------|------|
-| 3.1 | `feat: add ensure-tools.sh for graceful tool availability check` | `scripts/ensure-tools.sh` |
-| 3.2 | `chore: add gitleaks to pre-commit and osv-scanner to pre-push` | `.husky/pre-commit` + `.husky/pre-push` 调用 guard + 工具 |
-| 3.3 | `docs: add osv-scanner and gitleaks to dev prerequisites` | `docs/02-getting-started.md` |
+| #   | Commit                                                           | 内容                                                      |
+| --- | ---------------------------------------------------------------- | --------------------------------------------------------- |
+| 3.1 | `feat: add ensure-tools.sh for graceful tool availability check` | `scripts/ensure-tools.sh`                                 |
+| 3.2 | `chore: add gitleaks to pre-commit and osv-scanner to pre-push`  | `.husky/pre-commit` + `.husky/pre-push` 调用 guard + 工具 |
+| 3.3 | `docs: add osv-scanner and gitleaks to dev prerequisites`        | `docs/02-getting-started.md`                              |
 
 **gitleaks hook 放置说明**：
 
@@ -296,11 +295,11 @@ tests/
 
 **原子化提交**：
 
-| # | Commit | 内容 |
-|---|--------|------|
-| 4a.1 | `refactor: move server action tests to tests/integration/` | `git mv` 6 个文件 |
+| #    | Commit                                                                       | 内容                                                                                                                  |
+| ---- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 4a.1 | `refactor: move server action tests to tests/integration/`                   | `git mv` 6 个文件                                                                                                     |
 | 4a.2 | `chore: add test:integration script, exclude integration from unit coverage` | `package.json`: 新增 `test:integration`，`test:unit` 和 `test:unit:coverage` 的 exclude 追加 `'tests/integration/**'` |
-| 4a.3 | `chore: update pre-commit hook to include integration tests` | `.husky/pre-commit` 添加 `bun run test:integration` |
+| 4a.3 | `chore: update pre-commit hook to include integration tests`                 | `.husky/pre-commit` 添加 `bun run test:integration`                                                                   |
 
 #### Step 4b: Route Handler 测试迁移为真 HTTP ✅ 部分完成
 
@@ -316,13 +315,13 @@ tests/
 
 需要为独立 server 进程解决 5 个外部依赖的替代方案：
 
-| 依赖 | In-process 现状 | 跨进程后的问题 | 目标方案 |
-|------|-----------------|----------------|----------|
-| **D1 数据库** | `tests/setup.ts` 全局 mock `executeD1Query` → Map/Array 内存模拟器 | Server 进程不加载 mock，查 D1 真库 | 复用 Playwright 的远程 D1 test DB（已有 `CF_D1_*` 环境变量体系） |
-| **Auth** | `vi.mock('next-auth')` 返回固定 session `{ user: { id, email } }` | Server 进程中 auth middleware 正常运行 | `E2E_SKIP_AUTH=1` 环境变量绕开（与 Playwright 方案一致） |
-| **R2/S3** | `vi.mock('@/lib/r2')` 返回 mock client，断言 `mockR2Put.toHaveBeenCalledWith(...)` | Server 进程中 R2 client 指向真实 bucket | 方案 A：miniflare 本地 R2 模拟器（推荐）；方案 B：独立 R2 test bucket；方案 C：Phase 5 暂缓，保留 in-process 版本 |
-| **KV** | `vi.mock('@/lib/kv')` | Server 进程使用真实 KV namespace | 环境变量指向 test KV namespace |
-| **Mock 断言** | `expect(mockFn).toHaveBeenCalledWith(...)` 验证内部行为 | 跨进程无法断言 server 内部函数调用 | 改为 **黑盒断言**：验证 HTTP response body/status/headers + 数据库副作用（通过 D1 HTTP API 查询） |
+| 依赖          | In-process 现状                                                                    | 跨进程后的问题                          | 目标方案                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **D1 数据库** | `tests/setup.ts` 全局 mock `executeD1Query` → Map/Array 内存模拟器                 | Server 进程不加载 mock，查 D1 真库      | 复用 Playwright 的远程 D1 test DB（已有 `CF_D1_*` 环境变量体系）                                                  |
+| **Auth**      | `vi.mock('next-auth')` 返回固定 session `{ user: { id, email } }`                  | Server 进程中 auth middleware 正常运行  | `E2E_SKIP_AUTH=1` 环境变量绕开（与 Playwright 方案一致）                                                          |
+| **R2/S3**     | `vi.mock('@/lib/r2')` 返回 mock client，断言 `mockR2Put.toHaveBeenCalledWith(...)` | Server 进程中 R2 client 指向真实 bucket | 方案 A：miniflare 本地 R2 模拟器（推荐）；方案 B：独立 R2 test bucket；方案 C：Phase 5 暂缓，保留 in-process 版本 |
+| **KV**        | `vi.mock('@/lib/kv')`                                                              | Server 进程使用真实 KV namespace        | 环境变量指向 test KV namespace                                                                                    |
+| **Mock 断言** | `expect(mockFn).toHaveBeenCalledWith(...)` 验证内部行为                            | 跨进程无法断言 server 内部函数调用      | 改为 **黑盒断言**：验证 HTTP response body/status/headers + 数据库副作用（通过 D1 HTTP API 查询）                 |
 
 > **关键范式转换**：从白盒（断言 mock 调用）转为黑盒（断言 HTTP 响应 + 数据库副作用）。
 > 这意味着测试不仅要改调用方式，**断言逻辑也需要全部重写**。
@@ -342,27 +341,27 @@ tests/
 
 ##### 现有 mock 依赖逐文件清单
 
-| 文件 | vi.mock 目标 | mock 断言（跨进程失效） | 迁移难度 |
-|------|-------------|------------------------|----------|
-| `api.test.ts` | 无 | 无 | **低** — 纯 HTTP GET，只断言 response |
-| `live.test.ts` | 无 | 无 | **低** — 纯 HTTP GET |
-| `api-extra.test.ts` | `@/lib/db` (getLinkBySlug, recordClick) | `expect(recordClick).toHaveBeenCalledWith(...)` | **中** — 需改为查 D1 验证 click 记录 |
-| `worker-status.test.ts` | `@/lib/cron-history` | `recordCronResult` 直接调用设置状态 | **中** — 需要 seed cron 历史数据到 server |
-| `sync-kv.test.ts` | `@/lib/kv/client`, `@/lib/kv/dirty` | `expect(kvPut).toHaveBeenCalled()` | **中高** — 需要验证 KV 副作用 |
-| `cleanup.test.ts` | `@/lib/r2` | `expect(r2Delete).toHaveBeenCalledWith(...)` | **高** — 需要 R2 替代方案 |
-| `webhook.test.ts` | 无 | 无，但需要预置 webhook + folder 数据 | **中** — 需要 D1 seed |
-| `tmp-upload.test.ts` | `@/lib/r2` (getSignedUrl, putObject, headObject) | `expect(mockR2Put).toHaveBeenCalledWith(...)`, `expect(mockGetSignedUrl)...` | **高** — R2 深度依赖，6 种 mock 断言 |
+| 文件                    | vi.mock 目标                                     | mock 断言（跨进程失效）                                                      | 迁移难度                                  |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- | ----------------------------------------- |
+| `api.test.ts`           | 无                                               | 无                                                                           | **低** — 纯 HTTP GET，只断言 response     |
+| `live.test.ts`          | 无                                               | 无                                                                           | **低** — 纯 HTTP GET                      |
+| `api-extra.test.ts`     | `@/lib/db` (getLinkBySlug, recordClick)          | `expect(recordClick).toHaveBeenCalledWith(...)`                              | **中** — 需改为查 D1 验证 click 记录      |
+| `worker-status.test.ts` | `@/lib/cron-history`                             | `recordCronResult` 直接调用设置状态                                          | **中** — 需要 seed cron 历史数据到 server |
+| `sync-kv.test.ts`       | `@/lib/kv/client`, `@/lib/kv/dirty`              | `expect(kvPut).toHaveBeenCalled()`                                           | **中高** — 需要验证 KV 副作用             |
+| `cleanup.test.ts`       | `@/lib/r2`                                       | `expect(r2Delete).toHaveBeenCalledWith(...)`                                 | **高** — 需要 R2 替代方案                 |
+| `webhook.test.ts`       | 无                                               | 无，但需要预置 webhook + folder 数据                                         | **中** — 需要 D1 seed                     |
+| `tmp-upload.test.ts`    | `@/lib/r2` (getSignedUrl, putObject, headObject) | `expect(mockR2Put).toHaveBeenCalledWith(...)`, `expect(mockGetSignedUrl)...` | **高** — R2 深度依赖，6 种 mock 断言      |
 
 ##### 分阶段迁移
 
-| Phase | 文件 | 新增基础设施 | 门槛 |
-|-------|------|-------------|------|
-| **Phase 0** | (无测试迁移) | `scripts/run-api-e2e.ts` 服务器 harness + `vitest.api.config.ts` + `tests/api/helpers/http.ts` + `tests/api/helpers/seed.ts` | 构建基础设施，跑通空套件 |
-| **Phase 1** | `live.test.ts`, `api.test.ts` (health) | 无额外依赖 | 纯 HTTP GET，验证 harness 可用 |
-| **Phase 2** | `worker-status.test.ts` | seed.ts: cron-history seed via D1 HTTP API | 需要 D1 test DB 环境变量就位 |
-| **Phase 3** | `api.test.ts` (lookup/record-click), `api-extra.test.ts` | seed.ts: links seed + click 副作用查询 | 白盒→黑盒断言重写 |
-| **Phase 4** | `sync-kv.test.ts`, `cleanup.test.ts` | WORKER_SECRET env + KV/R2 副作用验证 | 需要 R2 替代方案决策 |
-| **Phase 5** | `webhook.test.ts`, `tmp-upload.test.ts` | webhook/folder seed + R2 完整集成 | 最高难度，R2 mock 断言全部重写 |
+| Phase       | 文件                                                     | 新增基础设施                                                                                                                 | 门槛                           |
+| ----------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Phase 0** | (无测试迁移)                                             | `scripts/run-api-e2e.ts` 服务器 harness + `vitest.api.config.ts` + `tests/api/helpers/http.ts` + `tests/api/helpers/seed.ts` | 构建基础设施，跑通空套件       |
+| **Phase 1** | `live.test.ts`, `api.test.ts` (health)                   | 无额外依赖                                                                                                                   | 纯 HTTP GET，验证 harness 可用 |
+| **Phase 2** | `worker-status.test.ts`                                  | seed.ts: cron-history seed via D1 HTTP API                                                                                   | 需要 D1 test DB 环境变量就位   |
+| **Phase 3** | `api.test.ts` (lookup/record-click), `api-extra.test.ts` | seed.ts: links seed + click 副作用查询                                                                                       | 白盒→黑盒断言重写              |
+| **Phase 4** | `sync-kv.test.ts`, `cleanup.test.ts`                     | WORKER_SECRET env + KV/R2 副作用验证                                                                                         | 需要 R2 替代方案决策           |
+| **Phase 5** | `webhook.test.ts`, `tmp-upload.test.ts`                  | webhook/folder seed + R2 完整集成                                                                                            | 最高难度，R2 mock 断言全部重写 |
 
 ##### 改动文件
 
@@ -389,34 +388,34 @@ tests/
 
 **端口规划更新**：
 
-| 端口 | 用途 |
-|------|------|
-| 7006 | 开发服务器 |
+| 端口  | 用途                           |
+| ----- | ------------------------------ |
+| 7006  | 开发服务器                     |
 | 17006 | L2 API Integration E2E（新增） |
-| 27006 | L3 Playwright BDD E2E |
+| 27006 | L3 Playwright BDD E2E          |
 
 ##### 原子化提交
 
-| # | Commit | 内容 | Phase |
-|---|--------|------|-------|
-| 4b.1 | `feat: add run-api-e2e.ts server harness` | `scripts/run-api-e2e.ts` + `.env.test.api` template | Phase 0 |
-| 4b.2 | `feat: add vitest.api.config.ts for HTTP-based API tests` | 独立 config，不加载内存模拟器 | Phase 0 |
-| 4b.3 | `feat: add HTTP helpers and D1 seed utilities for API E2E` | `tests/api/helpers/http.ts` + `tests/api/helpers/seed.ts` | Phase 0 |
-| 4b.4 | `test: migrate live and health API tests to real HTTP` | `live.test.ts`, `api.test.ts` (health) | Phase 1 |
-| 4b.5 | `test: migrate worker-status API tests to real HTTP` | `worker-status.test.ts` + cron seed | Phase 2 |
-| 4b.6 | `test: migrate lookup and record-click API tests to real HTTP` | `api.test.ts` (lookup/record-click), `api-extra.test.ts` | Phase 3 |
-| 4b.7 | `test: migrate sync-kv and cleanup API tests to real HTTP` | `sync-kv.test.ts`, `cleanup.test.ts` | Phase 4 |
-| 4b.8 | `test: migrate webhook and tmp-upload API tests to real HTTP` | `webhook.test.ts`, `tmp-upload.test.ts` | Phase 5 |
-| 4b.9 | `chore: update test:api script to use run-api-e2e.ts` | `package.json` script 切换 | — |
+| #    | Commit                                                         | 内容                                                      | Phase   |
+| ---- | -------------------------------------------------------------- | --------------------------------------------------------- | ------- |
+| 4b.1 | `feat: add run-api-e2e.ts server harness`                      | `scripts/run-api-e2e.ts` + `.env.test.api` template       | Phase 0 |
+| 4b.2 | `feat: add vitest.api.config.ts for HTTP-based API tests`      | 独立 config，不加载内存模拟器                             | Phase 0 |
+| 4b.3 | `feat: add HTTP helpers and D1 seed utilities for API E2E`     | `tests/api/helpers/http.ts` + `tests/api/helpers/seed.ts` | Phase 0 |
+| 4b.4 | `test: migrate live and health API tests to real HTTP`         | `live.test.ts`, `api.test.ts` (health)                    | Phase 1 |
+| 4b.5 | `test: migrate worker-status API tests to real HTTP`           | `worker-status.test.ts` + cron seed                       | Phase 2 |
+| 4b.6 | `test: migrate lookup and record-click API tests to real HTTP` | `api.test.ts` (lookup/record-click), `api-extra.test.ts`  | Phase 3 |
+| 4b.7 | `test: migrate sync-kv and cleanup API tests to real HTTP`     | `sync-kv.test.ts`, `cleanup.test.ts`                      | Phase 4 |
+| 4b.8 | `test: migrate webhook and tmp-upload API tests to real HTTP`  | `webhook.test.ts`, `tmp-upload.test.ts`                   | Phase 5 |
+| 4b.9 | `chore: update test:api script to use run-api-e2e.ts`          | `package.json` script 切换                                | —       |
 
 ##### 前置决策（执行前必须确认）
 
-| # | 决策 | 选项 | 推荐 |
-|---|------|------|------|
-| 1 | **D1 测试数据库** | A: 复用 Playwright 的远程 D1（已有 `CF_D1_*` 凭证）<br>B: 新建独立 D1 test DB | A — 避免维护两套 DB，Playwright 已验证方案可行 |
-| 2 | **R2 测试存储** | A: miniflare 本地 R2 模拟器<br>B: 独立 R2 test bucket<br>C: Phase 4/5 暂缓，保留 in-process 版本 | C → A — 先完成 Phase 1-3（无 R2 依赖），再决定 R2 方案 |
-| 3 | **数据准备方式** | A: 测试直接通过 D1 HTTP API seed<br>B: 专用 `/api/test/seed` 内部端点 | A — 不往生产代码中添加 test-only 端点 |
-| 4 | **断言策略** | A: 全部黑盒（response + DB 查询）<br>B: 混合（简单端点黑盒，R2 端点保留 in-process） | B — Phase 1-3 黑盒，Phase 4-5 按 R2 决策定 |
+| #   | 决策              | 选项                                                                                             | 推荐                                                   |
+| --- | ----------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| 1   | **D1 测试数据库** | A: 复用 Playwright 的远程 D1（已有 `CF_D1_*` 凭证）<br>B: 新建独立 D1 test DB                    | A — 避免维护两套 DB，Playwright 已验证方案可行         |
+| 2   | **R2 测试存储**   | A: miniflare 本地 R2 模拟器<br>B: 独立 R2 test bucket<br>C: Phase 4/5 暂缓，保留 in-process 版本 | C → A — 先完成 Phase 1-3（无 R2 依赖），再决定 R2 方案 |
+| 3   | **数据准备方式**  | A: 测试直接通过 D1 HTTP API seed<br>B: 专用 `/api/test/seed` 内部端点                            | A — 不往生产代码中添加 test-only 端点                  |
+| 4   | **断言策略**      | A: 全部黑盒（response + DB 查询）<br>B: 混合（简单端点黑盒，R2 端点保留 in-process）             | B — Phase 1-3 黑盒，Phase 4-5 按 R2 决策定             |
 
 ---
 
@@ -430,11 +429,11 @@ tests/
 
 **原子化提交**：
 
-| # | Commit | 内容 |
-|---|--------|------|
-| 5.1 | `docs: update testing docs to quality system (L1+L2+L3+G1+G2)` | `docs/05-testing.md` 重写 |
-| 5.2 | `docs: update CLAUDE.md testing section` | CLAUDE.md 对齐新体系 |
-| 5.3 | `docs: archive four-layer test plan` | `docs/11-four-layer-test-plan.md` 移至 `docs/archive/` 或标记为 archived |
+| #   | Commit                                                         | 内容                                                                     |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 5.1 | `docs: update testing docs to quality system (L1+L2+L3+G1+G2)` | `docs/05-testing.md` 重写                                                |
+| 5.2 | `docs: update CLAUDE.md testing section`                       | CLAUDE.md 对齐新体系                                                     |
+| 5.3 | `docs: archive four-layer test plan`                           | `docs/11-four-layer-test-plan.md` 移至 `docs/archive/` 或标记为 archived |
 
 **最终 Hook 形态**：
 
@@ -494,7 +493,6 @@ Step 5: 文档重组                                    依赖前四步全部完
 ## 五、验证清单
 
 完成所有步骤后，逐项确认：
-
 - [x] `bun run typecheck` — 0 errors（G1）
 - [x] `bun run lint` — 0 errors, 0 warnings，strict rules 生效（G1）
 - [x] `bun run test:unit:coverage` — 全部通过，覆盖率 ≥ 90%（L1）— 79 files, 1999 tests, 93.89%
@@ -513,7 +511,6 @@ Step 5: 文档重组                                    依赖前四步全部完
 ## 六、回退策略
 
 每个 Step 的提交都是独立的，如果某个 Step 引入问题：
-
 - **Step 1（type errors）**：`git revert` 对应提交，type errors 回到 "已知但不阻塞" 状态
 - **Step 2（ESLint strict）**：`git revert` eslint config 提交，恢复旧规则
 - **Step 3（G2）**：从 hook 文件删除安全扫描行

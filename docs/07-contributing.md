@@ -14,15 +14,15 @@
 
 ### Type 列表
 
-| Type | 说明 | 示例 |
-|------|------|------|
-| `feat` | 新功能 | `feat: add metadata refresh button` |
-| `fix` | Bug 修复 | `fix: handle expired link redirect` |
-| `test` | 测试相关 | `test: add scoped-db metadata tests` |
-| `docs` | 文档变更 | `docs: update architecture diagram` |
-| `refactor` | 重构（不改变行为） | `refactor: extract slug validation` |
-| `perf` | 性能优化 | `perf: batch metadata refresh to eliminate N+1` |
-| `chore` | 构建/工具/依赖变更 | `chore: add url-metadata dependency` |
+| Type       | 说明               | 示例                                            |
+| ---------- | ------------------ | ----------------------------------------------- |
+| `feat`     | 新功能             | `feat: add metadata refresh button`             |
+| `fix`      | Bug 修复           | `fix: handle expired link redirect`             |
+| `test`     | 测试相关           | `test: add scoped-db metadata tests`            |
+| `docs`     | 文档变更           | `docs: update architecture diagram`             |
+| `refactor` | 重构（不改变行为） | `refactor: extract slug validation`             |
+| `perf`     | 性能优化           | `perf: batch metadata refresh to eliminate N+1` |
+| `chore`    | 构建/工具/依赖变更 | `chore: add url-metadata dependency`            |
 
 ### 规则
 
@@ -35,7 +35,6 @@
 ## 原子化 Commit 策略
 
 秉持"快速试错，快速修正"的开发哲学：
-
 - 偏好高频、微小的 `fix` 提交
 - 严禁混淆功能和修复在同一个 commit 中
 - 每次 commit 后代码必须能通过测试且可构建
@@ -54,10 +53,10 @@
 
 All four metrics (statements, branches, functions, lines) must stay ≥ 95%, enforced by the `vitest.config.ts` thresholds on every coverage run:
 
-| 维度 | 阈值 |
-|------|------|
+| 维度 | 阈值  |
+| ---- | ----- |
 | 语句 | ≥ 95% |
-| 行 | ≥ 95% |
+| 行   | ≥ 95% |
 | 函数 | ≥ 95% |
 | 分支 | ≥ 95% |
 
@@ -72,11 +71,11 @@ All four metrics (statements, branches, functions, lines) must stay ≥ 95%, enf
 
 ### Git Hooks（Husky）
 
-| Hook | 层级 | 运行内容 |
-|------|------|----------|
+| Hook         | 层级    | 运行内容                                                                                                                                                    |
+| ------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pre-commit` | L1 + G2 | 暂存树快照上的 `test:unit:coverage`（all four ≥95% floors enforced）+ `test:integration` + `typecheck`（`next typegen` + `tsc`）+ `lint`（Biome）+ gitleaks |
-| `pre-push` | L2 + G2 | `bun run test:api`（API E2E）+ osv-scanner |
-| 按需手动 | L3 | `bun run test:e2e:pw`（Playwright BDD E2E） |
+| `pre-push`   | L2 + G2 | `bun run test:api`（API E2E）+ osv-scanner                                                                                                                  |
+| 按需手动     | L3      | `bun run test:e2e:pw`（Playwright BDD E2E）                                                                                                                 |
 
 > **注意**：L4（Playwright BDD E2E）不在 Git Hook 中自动运行，需手动执行 `bun run test:e2e:pw`。
 
@@ -106,16 +105,16 @@ docs/
 
 ### 文档更新时机
 
-| 变更类型 | 需要更新的文档 |
-|----------|----------------|
-| 新增功能 | `03-features.md`、`README.md` 功能列表 |
-| 数据库变更 | `04-database.md`、迁移文件 |
-| 架构变更 | `01-architecture.md` |
-| 新增依赖 | `02-getting-started.md` |
-| 部署配置变更 | `06-deployment.md` |
-| 测试策略变更 | `05-testing.md` |
-| 开发流程变更 | `07-contributing.md` |
-| 备份功能变更 | `10-backy.md` |
+| 变更类型                     | 需要更新的文档                                                |
+| ---------------------------- | ------------------------------------------------------------- |
+| 新增功能                     | `03-features.md`、`README.md` 功能列表                        |
+| 数据库变更                   | `04-database.md`、迁移文件                                    |
+| 架构变更                     | `01-architecture.md`                                          |
+| 新增依赖                     | `02-getting-started.md`                                       |
+| 部署配置变更                 | `06-deployment.md`                                            |
+| 测试策略变更                 | `05-testing.md`                                               |
+| 开发流程变更                 | `07-contributing.md`                                          |
+| 备份功能变更                 | `10-backy.md`                                                 |
 | UI / Design Token / 控件密度 | `22-design-tokens.md`、`AGENTS.md`（摘要）、`app/globals.css` |
 
 ## UI 控件约定（摘要）
@@ -126,21 +125,21 @@ Dashboard **工具栏** 用 `Button size="sm"` + 字段 `size="sm"`（32px compa
 
 ## 技术栈
 
-| 组件 | 选型 |
-|------|------|
-| 运行时 | Bun |
-| 框架 | Next.js 15（App Router） |
-| 语言 | TypeScript（strict mode） |
-| 数据库 | Cloudflare D1（Serverless SQLite） |
-| ORM | Drizzle ORM（仅 Schema 定义 + 迁移） |
-| UI | Tailwind CSS + shadcn/ui |
-| 认证 | Auth.js v5（Google OAuth，JWT 策略） |
-| 对象存储 | Cloudflare R2（S3 兼容） |
-| 边缘缓存 | Cloudflare KV + 进程内 LRU |
-| 边缘代理 | Cloudflare Worker（`zhe-edge`） |
-| 单元/集成测试 | Vitest + React Testing Library |
-| E2E 测试 | Playwright |
-| 部署 | Railway（Docker） |
+| 组件          | 选型                                 |
+| ------------- | ------------------------------------ |
+| 运行时        | Bun                                  |
+| 框架          | Next.js 15（App Router）             |
+| 语言          | TypeScript（strict mode）            |
+| 数据库        | Cloudflare D1（Serverless SQLite）   |
+| ORM           | Drizzle ORM（仅 Schema 定义 + 迁移） |
+| UI            | Tailwind CSS + shadcn/ui             |
+| 认证          | Auth.js v5（Google OAuth，JWT 策略） |
+| 对象存储      | Cloudflare R2（S3 兼容）             |
+| 边缘缓存      | Cloudflare KV + 进程内 LRU           |
+| 边缘代理      | Cloudflare Worker（`zhe-edge`）      |
+| 单元/集成测试 | Vitest + React Testing Library       |
+| E2E 测试      | Playwright                           |
+| 部署          | Railway（Docker）                    |
 
 ## 相关文档
 

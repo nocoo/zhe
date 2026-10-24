@@ -23,18 +23,18 @@ This staging task does not publish a version or npm package.
 
 Read-only checks on 2026-10-22 found:
 
-| Item | Evidence |
-| --- | --- |
-| Public health | `2.2.11`, HTTP 200, `Cache-Control: no-store`, D1 connected |
-| Railway deployment | `d497e198-8b61-4899-b9c5-0f70a32df9a5`, baseline SHA, running |
-| Railway image | `sha256:d89f370fbad1b8fb2e2985ed442317d598acda0d3e2a804d4f345c4387844cd5` |
-| Railway resources | One instance, no volumes; configured memory ceiling 4,000,000,000 bytes |
-| Railway variables | 18 application variables, none sealed; `PORT=7005`, `HOSTNAME=0.0.0.0`, `AUTH_URL=https://zhe.to`; no application `NODE_OPTIONS` override |
-| Railway trigger | GitHub `nocoo/zhe`, main, waits for checks; disconnect approval pending |
-| jp2 capacity | 2 CPUs, 15,934 MiB RAM, 13,459 MiB available, 44 GiB root disk free; instantaneous snapshot |
-| jp2 platform | Docker 29.7.2, Compose 5.5.0, external `edge` network |
-| Target collision | `/opt/zhe` absent; ports 7005, 7006 and 17006 unused |
-| Shared proxy | `proxy-caddy`, started `2026-10-21T05:50:17.30329842Z`; do not restart |
+| Item               | Evidence                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Public health      | `2.2.11`, HTTP 200, `Cache-Control: no-store`, D1 connected                                                                               |
+| Railway deployment | `d497e198-8b61-4899-b9c5-0f70a32df9a5`, baseline SHA, running                                                                             |
+| Railway image      | `sha256:d89f370fbad1b8fb2e2985ed442317d598acda0d3e2a804d4f345c4387844cd5`                                                                 |
+| Railway resources  | One instance, no volumes; configured memory ceiling 4,000,000,000 bytes                                                                   |
+| Railway variables  | 18 application variables, none sealed; `PORT=7005`, `HOSTNAME=0.0.0.0`, `AUTH_URL=https://zhe.to`; no application `NODE_OPTIONS` override |
+| Railway trigger    | GitHub `nocoo/zhe`, main, waits for checks; disconnect approval pending                                                                   |
+| jp2 capacity       | 2 CPUs, 15,934 MiB RAM, 13,459 MiB available, 44 GiB root disk free; instantaneous snapshot                                               |
+| jp2 platform       | Docker 29.7.2, Compose 5.5.0, external `edge` network                                                                                     |
+| Target collision   | `/opt/zhe` absent; ports 7005, 7006 and 17006 unused                                                                                      |
+| Shared proxy       | `proxy-caddy`, started `2026-10-21T05:50:17.30329842Z`; do not restart                                                                    |
 
 Do not confuse the repository's default port 7006 with Railway's explicit
 runtime port 7005. Preserve the application variable rather than silently
@@ -43,15 +43,15 @@ descriptions; current `lib/db/d1-client.ts` sends all SQL through the D1 Worker.
 
 ## Target
 
-| Item | Value |
-| --- | --- |
-| Image | `ghcr.io/nocoo/zhe`, verified digest |
-| GitHub environment | `zhe / production` |
-| Directory | `/opt/zhe` |
-| Compose service / container | `web` / `zhe-app` |
-| Private staging listener | `127.0.0.1:17006` to container port 7005 |
-| Runtime | One non-root Node process, standalone/static/public assets, writable disposable Next cache |
-| Runtime environment | Private `.env.runtime`, mode 0600, raw Compose env-file semantics |
+| Item                        | Value                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| Image                       | `ghcr.io/nocoo/zhe`, verified digest                                                       |
+| GitHub environment          | `zhe / production`                                                                         |
+| Directory                   | `/opt/zhe`                                                                                 |
+| Compose service / container | `web` / `zhe-app`                                                                          |
+| Private staging listener    | `127.0.0.1:17006` to container port 7005                                                   |
+| Runtime                     | One non-root Node process, standalone/static/public assets, writable disposable Next cache |
+| Runtime environment         | Private `.env.runtime`, mode 0600, raw Compose env-file semantics                          |
 
 Railway is the authoritative source of production values. Transfer application
 values unchanged over SSH, reject sealed or unrepresentable values, and compare
@@ -179,7 +179,6 @@ rollback does not undo database writes. This task performs no schema migration.
 ### Approved Deployment Credentials and Trigger Isolation
 
 On 2026-10-22 the owner approved both pending operations, but not public cutover.
-
 - Generated an Ed25519 key at `/opt/zhe/deploy-key` (0600), with comment
   `zhe-deploy@github-actions` and public fingerprint
   `SHA256:arldk9r/hxIoHnW8FKmtVTtHijnEzua3tHFhCyyk28Q`. Added only this public

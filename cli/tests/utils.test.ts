@@ -1001,7 +1001,7 @@ describe("formatLinksTable option combinations", () => {
   });
 });
 
-describe("parseLinkId", () => {
+describe("parseLinkId safe integer range", () => {
   it("rejects integers outside JavaScript's safe range", () => {
     expect(parseLinkId("9007199254740992")).toBeNull();
   });

@@ -50,11 +50,11 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
                          [Layer 3] D1 Database
 ```
 
-| 层级 | 位置 | 存储 | 延迟 | 行为 |
-|------|------|------|------|------|
-| L1 KV | Cloudflare Edge | KV 键值对 | ~1ms | 命中 → 307 重定向 + fire-and-forget 分析（`source: 'worker'`）；未命中 → 透传到 origin |
-| L2 LRU | Railway Node.js | 进程内 Map（1000 条，60s TTL） | ~0ms | 命中 → 307 重定向 + `waitUntil` 分析（`source: 'origin'`）；未命中 → 降级 D1 |
-| L3 D1 | Cloudflare D1 | SQLite HTTP API | ~50ms | 命中 → 缓存到 LRU + 307；未命中 → 缓存 null 到 LRU + 404 |
+| 层级   | 位置            | 存储                           | 延迟  | 行为                                                                                   |
+| ------ | --------------- | ------------------------------ | ----- | -------------------------------------------------------------------------------------- |
+| L1 KV  | Cloudflare Edge | KV 键值对                      | ~1ms  | 命中 → 307 重定向 + fire-and-forget 分析（`source: 'worker'`）；未命中 → 透传到 origin |
+| L2 LRU | Railway Node.js | 进程内 Map（1000 条，60s TTL） | ~0ms  | 命中 → 307 重定向 + `waitUntil` 分析（`source: 'origin'`）；未命中 → 降级 D1           |
+| L3 D1  | Cloudflare D1   | SQLite HTTP API                | ~50ms | 命中 → 缓存到 LRU + 307；未命中 → 缓存 null 到 LRU + 404                               |
 
 **KV 同步策略**：
 - **行内同步**：每次链接增删改，`kvPutLink()` / `kvDeleteLink()` 通过 KV REST API fire-and-forget 写入（3s 超时）
@@ -63,31 +63,30 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
 
 ## 目录职责
 
-| 目录 | 职责 | 示例 |
-|------|------|------|
-| `models/` | 纯业务逻辑，无 React/服务端依赖（15 个模块） | `links.ts`, `tags.ts`, `xray.ts` |
-| `lib/` | 共享工具库 | `slug.ts`, `analytics.ts`, `metadata.ts`, `constants.ts`, `auth-context.ts`, `version.ts` |
-| `lib/db/` | 数据库访问层 | `d1-client.ts`, `scoped.ts`, `index.ts`, `schema.ts` |
-| `lib/kv/` | Cloudflare KV 缓存层 | `client.ts`（HTTP REST）, `sync.ts`（全量同步） |
-| `lib/r2/` | Cloudflare R2 对象存储 | `client.ts`（S3 兼容客户端，预签名 URL） |
-| `actions/` | Server Actions（`'use server'`，13 个模块） | `links.ts`, `tags.ts`, `backy.ts`, `xray.ts` |
-| `contexts/` | React Context 状态管理 | `dashboard-service.tsx` |
-| `viewmodels/` | MVVM ViewModel 钩子（11 个模块） | `useLinksViewModel.ts`, `useXrayViewModel.ts` |
-| `components/` | React UI 组件 | `link-card.tsx`, `app-sidebar.tsx` |
-| `components/ui/` | shadcn/ui 基础组件（自动生成） | `button.tsx`, `dialog.tsx` |
-| `app/` | Next.js App Router 页面与路由 | `page.tsx`, `api/`, `(dashboard)/`, `(auth)/` |
-| `hooks/` | 通用 React 钩子 | `use-mobile.tsx` |
-| `worker/` | Cloudflare Worker 边缘代理 | `src/index.ts`, `wrangler.toml` |
-| `drizzle/` | 数据库迁移文件 | `migrations/0000-0016` |
-| `docs/` | 项目文档（11 篇） | `01-architecture.md` ~ `11-four-layer-test-plan.md` |
-| `tests/` | 测试套件 | `unit/`, `api/`, `components/`, `integration/`, `mocks/`, `playwright/` |
+| 目录             | 职责                                         | 示例                                                                                      |
+| ---------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `models/`        | 纯业务逻辑，无 React/服务端依赖（15 个模块） | `links.ts`, `tags.ts`, `xray.ts`                                                          |
+| `lib/`           | 共享工具库                                   | `slug.ts`, `analytics.ts`, `metadata.ts`, `constants.ts`, `auth-context.ts`, `version.ts` |
+| `lib/db/`        | 数据库访问层                                 | `d1-client.ts`, `scoped.ts`, `index.ts`, `schema.ts`                                      |
+| `lib/kv/`        | Cloudflare KV 缓存层                         | `client.ts`（HTTP REST）, `sync.ts`（全量同步）                                           |
+| `lib/r2/`        | Cloudflare R2 对象存储                       | `client.ts`（S3 兼容客户端，预签名 URL）                                                  |
+| `actions/`       | Server Actions（`'use server'`，13 个模块）  | `links.ts`, `tags.ts`, `backy.ts`, `xray.ts`                                              |
+| `contexts/`      | React Context 状态管理                       | `dashboard-service.tsx`                                                                   |
+| `viewmodels/`    | MVVM ViewModel 钩子（11 个模块）             | `useLinksViewModel.ts`, `useXrayViewModel.ts`                                             |
+| `components/`    | React UI 组件                                | `link-card.tsx`, `app-sidebar.tsx`                                                        |
+| `components/ui/` | shadcn/ui 基础组件（自动生成）               | `button.tsx`, `dialog.tsx`                                                                |
+| `app/`           | Next.js App Router 页面与路由                | `page.tsx`, `api/`, `(dashboard)/`, `(auth)/`                                             |
+| `hooks/`         | 通用 React 钩子                              | `use-mobile.tsx`                                                                          |
+| `worker/`        | Cloudflare Worker 边缘代理                   | `src/index.ts`, `wrangler.toml`                                                           |
+| `drizzle/`       | 数据库迁移文件                               | `migrations/0000-0016`                                                                    |
+| `docs/`          | 项目文档（11 篇）                            | `01-architecture.md` ~ `11-four-layer-test-plan.md`                                       |
+| `tests/`         | 测试套件                                     | `unit/`, `api/`, `components/`, `integration/`, `mocks/`, `playwright/`                   |
 
 ## 核心设计模式
 
 ### 1. 行级安全（Row-Level Security）
 
 Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在代码层实现：
-
 - 构造函数接收 `userId`（必填，空值直接抛异常）
 - 所有 SQL 查询自动注入 `WHERE user_id = ?`
 - 无法绕过所有权检查
@@ -117,7 +116,6 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 ## 中间件路由逻辑
 
 `middleware.ts` 处理所有请求（排除静态资源）：
-
 1. 根路径 `/` → 直接通过
 2. 提取第一段路径作为 slug
 3. 保留路径（`login`, `dashboard`, `api` 等 13 个）→ 直接通过
@@ -131,160 +129,160 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 
 ## Models 一览（15 个模块）
 
-| 模块 | 职责 |
-|------|------|
-| `models/links.ts` | URL 格式化、过滤、搜索高亮、过期检查、域名检测（Twitter/GitHub）、截图获取 |
-| `models/folders.ts` | 文件夹名验证、可用 Lucide 图标常量 |
-| `models/tags.ts` | 24 色标签系统、FNV-1a 哈希确定性分色、CSS 变量映射、样式生成 |
-| `models/upload.ts` | 文件校验、R2 key 生成、预签名 URL 构建、PNG→JPEG 转换、MIME 检测 |
-| `models/webhook.ts` | Payload 验证、滑动窗口限流、OpenAPI 3.1 spec 生成、AI agent prompt |
-| `models/webhook.server.ts` | 服务端 webhook token 生成（`crypto.randomUUID()`） |
-| `models/enrichment.ts` | 可插拔 enrichment 策略接口（`LinkEnrichmentStrategy`） |
-| `models/settings.ts` | 预览样式配置、数据导入导出序列化/反序列化 |
-| `models/storage.ts` | R2 存储审计：对比 D1 引用 → 识别孤立文件、计算存储摘要 |
-| `models/overview.ts` | 概览统计：点击/上传趋势聚合、文件类型分布、Worker 健康度 |
-| `models/backy.ts` | Backy 远程备份：配置验证、API key 掩码、标签构建 |
-| `models/backy.server.ts` | 服务端 pull webhook key 生成（`crypto.randomUUID()`） |
-| `models/xray.ts` | Twitter/X 集成：推文 ID 提取、媒体/图片解析、API URL 构建、mock 数据 |
-| `models/tmp-storage.ts` | 临时文件：`tmp/` 前缀命名、时间戳提取、过期检测 |
-| `models/types.ts` | 共享类型：`Link`, `Folder`, `Tag`, `LinkTag`, `UserSettings`, `AnalyticsStats` |
+| 模块                       | 职责                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `models/links.ts`          | URL 格式化、过滤、搜索高亮、过期检查、域名检测（Twitter/GitHub）、截图获取     |
+| `models/folders.ts`        | 文件夹名验证、可用 Lucide 图标常量                                             |
+| `models/tags.ts`           | 24 色标签系统、FNV-1a 哈希确定性分色、CSS 变量映射、样式生成                   |
+| `models/upload.ts`         | 文件校验、R2 key 生成、预签名 URL 构建、PNG→JPEG 转换、MIME 检测               |
+| `models/webhook.ts`        | Payload 验证、滑动窗口限流、OpenAPI 3.1 spec 生成、AI agent prompt             |
+| `models/webhook.server.ts` | 服务端 webhook token 生成（`crypto.randomUUID()`）                             |
+| `models/enrichment.ts`     | 可插拔 enrichment 策略接口（`LinkEnrichmentStrategy`）                         |
+| `models/settings.ts`       | 预览样式配置、数据导入导出序列化/反序列化                                      |
+| `models/storage.ts`        | R2 存储审计：对比 D1 引用 → 识别孤立文件、计算存储摘要                         |
+| `models/overview.ts`       | 概览统计：点击/上传趋势聚合、文件类型分布、Worker 健康度                       |
+| `models/backy.ts`          | Backy 远程备份：配置验证、API key 掩码、标签构建                               |
+| `models/backy.server.ts`   | 服务端 pull webhook key 生成（`crypto.randomUUID()`）                          |
+| `models/xray.ts`           | Twitter/X 集成：推文 ID 提取、媒体/图片解析、API URL 构建、mock 数据           |
+| `models/tmp-storage.ts`    | 临时文件：`tmp/` 前缀命名、时间戳提取、过期检测                                |
+| `models/types.ts`          | 共享类型：`Link`, `Folder`, `Tag`, `LinkTag`, `UserSettings`, `AnalyticsStats` |
 
 ## Server Actions 一览（13 个模块）
 
 ### 链接管理（`actions/links.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `createLink(input)` | 创建链接，支持自定义/随机 slug，异步 enrichment + KV 同步 |
-| `getLinks()` | 获取当前用户所有链接 |
-| `deleteLink(linkId)` | 删除链接 + KV 同步 |
-| `updateLink(linkId, data)` | 更新链接（URL、文件夹、过期时间）+ KV 同步 |
-| `getAnalyticsStats(linkId)` | 获取链接的聚合分析数据 |
-| `refreshLinkMetadata(linkId)` | 手动刷新链接元数据 |
-| `updateLinkNote(linkId, note)` | 更新链接备注 |
-| `batchRefreshLinkMetadata(linkIds)` | 批量刷新元数据（并发限制 5，上限 500） |
+| Action                                    | 功能                                                       |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| `createLink(input)`                       | 创建链接，支持自定义/随机 slug，异步 enrichment + KV 同步  |
+| `getLinks()`                              | 获取当前用户所有链接                                       |
+| `deleteLink(linkId)`                      | 删除链接 + KV 同步                                         |
+| `updateLink(linkId, data)`                | 更新链接（URL、文件夹、过期时间）+ KV 同步                 |
+| `getAnalyticsStats(linkId)`               | 获取链接的聚合分析数据                                     |
+| `refreshLinkMetadata(linkId)`             | 手动刷新链接元数据                                         |
+| `updateLinkNote(linkId, note)`            | 更新链接备注                                               |
+| `batchRefreshLinkMetadata(linkIds)`       | 批量刷新元数据（并发限制 5，上限 500）                     |
 | `deleteScreenshot(linkId, screenshotUrl)` | 校验当前截图 → 清空字段并清理 R2 → 允许 Connector 重新补图 |
-| `saveScreenshot(linkId, screenshotUrl)` | 下载外部截图 → R2 → 更新 DB |
+| `saveScreenshot(linkId, screenshotUrl)`   | 下载外部截图 → R2 → 更新 DB                                |
 
 ### 文件夹管理（`actions/folders.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getFolders()` | 获取所有文件夹 |
-| `createFolder(input)` | 创建文件夹 |
+| Action                    | 功能                |
+| ------------------------- | ------------------- |
+| `getFolders()`            | 获取所有文件夹      |
+| `createFolder(input)`     | 创建文件夹          |
 | `updateFolder(id, input)` | 更新文件夹名称/图标 |
-| `deleteFolder(id)` | 删除文件夹 |
+| `deleteFolder(id)`        | 删除文件夹          |
 
 ### 标签管理（`actions/tags.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getTags()` | 获取所有标签 |
-| `createTag(input)` | 创建标签（可选颜色，缺省随机） |
-| `updateTag(id, input)` | 更新标签名称/颜色 |
-| `deleteTag(id)` | 删除标签 |
-| `getLinkTags()` | 获取所有链接-标签关联 |
-| `addTagToLink(linkId, tagId)` | 为链接添加标签 |
-| `removeTagFromLink(linkId, tagId)` | 移除链接标签 |
+| Action                             | 功能                           |
+| ---------------------------------- | ------------------------------ |
+| `getTags()`                        | 获取所有标签                   |
+| `createTag(input)`                 | 创建标签（可选颜色，缺省随机） |
+| `updateTag(id, input)`             | 更新标签名称/颜色              |
+| `deleteTag(id)`                    | 删除标签                       |
+| `getLinkTags()`                    | 获取所有链接-标签关联          |
+| `addTagToLink(linkId, tagId)`      | 为链接添加标签                 |
+| `removeTagFromLink(linkId, tagId)` | 移除链接标签                   |
 
 ### 文件上传（`actions/upload.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getPresignedUploadUrl(request)` | 生成预签名上传 URL |
-| `recordUpload(data)` | 记录上传元数据 |
-| `getUploads()` | 获取所有上传记录 |
-| `deleteUpload(uploadId)` | 删除上传（R2 + D1） |
+| Action                           | 功能                |
+| -------------------------------- | ------------------- |
+| `getPresignedUploadUrl(request)` | 生成预签名上传 URL  |
+| `recordUpload(data)`             | 记录上传元数据      |
+| `getUploads()`                   | 获取所有上传记录    |
+| `deleteUpload(uploadId)`         | 删除上传（R2 + D1） |
 
 ### Webhook（`actions/webhook.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getWebhookToken()` | 获取当前 webhook token + 限流配置 |
-| `createWebhookToken()` | 生成新 token（替换旧 token） |
-| `revokeWebhookToken()` | 撤销 token |
-| `updateWebhookRateLimit(value)` | 更新限流阈值（1-10） |
+| Action                          | 功能                              |
+| ------------------------------- | --------------------------------- |
+| `getWebhookToken()`             | 获取当前 webhook token + 限流配置 |
+| `createWebhookToken()`          | 生成新 token（替换旧 token）      |
+| `revokeWebhookToken()`          | 撤销 token                        |
+| `updateWebhookRateLimit(value)` | 更新限流阈值（1-10）              |
 
 ### Enrichment（`lib/enrichment.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `enrichLink(url, linkId, userId)` | 链接创建时 fire-and-forget enrichment（策略模式：Twitter → xray，其他 → HTML 抓取） |
-| `refreshLinkEnrichment(url, linkId, userId)` | 强制刷新 enrichment |
+| Action                                       | 功能                                                                                |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `enrichLink(url, linkId, userId)`            | 链接创建时 fire-and-forget enrichment（策略模式：Twitter → xray，其他 → HTML 抓取） |
+| `refreshLinkEnrichment(url, linkId, userId)` | 强制刷新 enrichment                                                                 |
 
 ### 设置（`actions/settings.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `importLinks(payload)` | 导入链接（JSON），跳过重复 slug，同步 KV |
-| `exportLinks()` | 导出所有链接为 JSON |
-| `getPreviewStyle()` | 获取预览样式设置（默认 `'favicon'`） |
-| `updatePreviewStyle(value)` | 更新预览样式 |
+| Action                      | 功能                                     |
+| --------------------------- | ---------------------------------------- |
+| `importLinks(payload)`      | 导入链接（JSON），跳过重复 slug，同步 KV |
+| `exportLinks()`             | 导出所有链接为 JSON                      |
+| `getPreviewStyle()`         | 获取预览样式设置（默认 `'favicon'`）     |
+| `updatePreviewStyle(value)` | 更新预览样式                             |
 
 ### 存储审计（`actions/storage.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `scanStorage()` | 扫描 R2 + D1，返回存储统计与孤立文件列表 |
-| `cleanupOrphanFiles(keys)` | 删除孤立文件（双重验证，上限 5000） |
+| Action                     | 功能                                     |
+| -------------------------- | ---------------------------------------- |
+| `scanStorage()`            | 扫描 R2 + D1，返回存储统计与孤立文件列表 |
+| `cleanupOrphanFiles(keys)` | 删除孤立文件（双重验证，上限 5000）      |
 
 ### 概览（`actions/overview.ts`）
 
-| Action | 功能 |
-|--------|------|
+| Action               | 功能                                                       |
+| -------------------- | ---------------------------------------------------------- |
 | `getOverviewStats()` | 聚合统计：链接数、点击数、趋势、设备分布、上传趋势、存储量 |
 
 ### Dashboard 数据（`actions/dashboard.ts`）
 
-| Action | 功能 |
-|--------|------|
+| Action               | 功能                                                       |
+| -------------------- | ---------------------------------------------------------- |
 | `getDashboardData()` | 一次性获取 links + tags + linkTags（合并 3 次查询为 1 次） |
 
 ### Backy 备份（`actions/backy.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getBackyConfig()` | 获取 Backy 配置（webhook URL + 脱敏 API key） |
-| `saveBackyConfig(config)` | 保存配置 |
-| `testBackyConnection()` | 测试连接（HEAD 请求） |
-| `fetchBackyHistory()` | 获取备份历史 |
-| `pushBackup()` | 推送备份（multipart/form-data） |
-| `getBackyPullWebhook()` | 获取 pull webhook key |
-| `generateBackyPullWebhook()` | 生成 pull webhook key |
-| `revokeBackyPullWebhook()` | 撤销 pull webhook key |
+| Action                       | 功能                                          |
+| ---------------------------- | --------------------------------------------- |
+| `getBackyConfig()`           | 获取 Backy 配置（webhook URL + 脱敏 API key） |
+| `saveBackyConfig(config)`    | 保存配置                                      |
+| `testBackyConnection()`      | 测试连接（HEAD 请求）                         |
+| `fetchBackyHistory()`        | 获取备份历史                                  |
+| `pushBackup()`               | 推送备份（multipart/form-data）               |
+| `getBackyPullWebhook()`      | 获取 pull webhook key                         |
+| `generateBackyPullWebhook()` | 生成 pull webhook key                         |
+| `revokeBackyPullWebhook()`   | 撤销 pull webhook key                         |
 
 ### Xray（`actions/xray.ts`）
 
-| Action | 功能 |
-|--------|------|
-| `getXrayConfig()` | 获取 xray API 配置（URL + 脱敏 token） |
-| `saveXrayConfig(config)` | 保存配置 |
-| `fetchTweet(tweetUrl)` | 获取单条推文（API 未配置时返回 mock） |
-| `fetchBookmarks()` | 获取 Twitter/X 书签列表 |
-| `fetchAndCacheTweet(url, linkId?)` | 获取并缓存推文，可选更新链接元数据 |
-| `forceRefreshTweetCache(url, linkId)` | 强制刷新推文缓存 + 链接元数据 |
+| Action                                | 功能                                   |
+| ------------------------------------- | -------------------------------------- |
+| `getXrayConfig()`                     | 获取 xray API 配置（URL + 脱敏 token） |
+| `saveXrayConfig(config)`              | 保存配置                               |
+| `fetchTweet(tweetUrl)`                | 获取单条推文（API 未配置时返回 mock）  |
+| `fetchBookmarks()`                    | 获取 Twitter/X 书签列表                |
+| `fetchAndCacheTweet(url, linkId?)`    | 获取并缓存推文，可选更新链接元数据     |
+| `forceRefreshTweetCache(url, linkId)` | 强制刷新推文缓存 + 链接元数据          |
 
 ### Worker 状态（`actions/worker-status.ts`）
 
-| Action | 功能 |
-|--------|------|
+| Action              | 功能                                                            |
+| ------------------- | --------------------------------------------------------------- |
 | `getWorkerHealth()` | 获取 Worker/KV 缓存健康状态（部署后首次加载会自动触发 KV 同步） |
 
 ## ViewModels 一览（11 个模块）
 
-| ViewModel | 职责 |
-|-----------|------|
-| `useLinksViewModel` | 链接卡片交互（复制、删除、分析、元数据刷新、截图获取）、创建弹窗状态、内联编辑 + 标签管理、批量自动刷新 |
-| `useFoldersViewModel` | 文件夹 CRUD + dashboard service 同步 + 编辑状态管理 |
-| `useBulkDelete` | 卡片多选、冻结删除队列、串行删除进度及失败重试 |
-| `useLinkMutations` | 共享标签操作钩子：乐观 add/remove/create-and-assign，供统一编辑器复用 |
-| `useBackyViewModel` | Backy 远程备份：配置加载/保存、连接测试、推送备份、历史查询、pull webhook 管理 |
-| `useXrayViewModel` | Twitter/X 集成：API 配置、推文 ID 提取、推文获取、书签列表、一键书签转短链 |
-| `useOverviewViewModel` | 概览统计 + Worker 健康状态（stale-while-revalidate 缓存） |
-| `useUploadViewModel` | 完整上传流程：验证 → 预签名 → R2 上传 → 记录 D1；PNG→JPEG 转换、拖放状态 |
-| `useWebhookViewModel` | Webhook token 生命周期管理 + 限流调整（乐观更新） |
-| `useSettingsViewModel` | JSON 导出（触发浏览器下载）+ JSON 导入（文件解析 → 服务端调用） |
-| `useDashboardLayoutViewModel` | 侧边栏折叠/展开、移动端抽屉 + body 滚动锁定 |
+| ViewModel                     | 职责                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `useLinksViewModel`           | 链接卡片交互（复制、删除、分析、元数据刷新、截图获取）、创建弹窗状态、内联编辑 + 标签管理、批量自动刷新 |
+| `useFoldersViewModel`         | 文件夹 CRUD + dashboard service 同步 + 编辑状态管理                                                     |
+| `useBulkDelete`               | 卡片多选、冻结删除队列、串行删除进度及失败重试                                                          |
+| `useLinkMutations`            | 共享标签操作钩子：乐观 add/remove/create-and-assign，供统一编辑器复用                                   |
+| `useBackyViewModel`           | Backy 远程备份：配置加载/保存、连接测试、推送备份、历史查询、pull webhook 管理                          |
+| `useXrayViewModel`            | Twitter/X 集成：API 配置、推文 ID 提取、推文获取、书签列表、一键书签转短链                              |
+| `useOverviewViewModel`        | 概览统计 + Worker 健康状态（stale-while-revalidate 缓存）                                               |
+| `useUploadViewModel`          | 完整上传流程：验证 → 预签名 → R2 上传 → 记录 D1；PNG→JPEG 转换、拖放状态                                |
+| `useWebhookViewModel`         | Webhook token 生命周期管理 + 限流调整（乐观更新）                                                       |
+| `useSettingsViewModel`        | JSON 导出（触发浏览器下载）+ JSON 导入（文件解析 → 服务端调用）                                         |
+| `useDashboardLayoutViewModel` | 侧边栏折叠/展开、移动端抽屉 + body 滚动锁定                                                             |
 
 ## DashboardService
 
@@ -292,55 +290,55 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 
 ### 状态
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `links` | `Link[]` | 用户所有链接（内存全量集） |
-| `folders` | `Folder[]` | 用户所有文件夹（SSR 预加载 `initialFolders`） |
-| `tags` | `Tag[]` | 用户所有标签 |
-| `linkTags` | `LinkTag[]` | 所有链接-标签关联 |
-| `loading` | `boolean` | 初始数据加载中 |
-| `siteUrl` | `string` | 站点 origin（`window.location.origin`） |
+| 字段       | 类型        | 说明                                          |
+| ---------- | ----------- | --------------------------------------------- |
+| `links`    | `Link[]`    | 用户所有链接（内存全量集）                    |
+| `folders`  | `Folder[]`  | 用户所有文件夹（SSR 预加载 `initialFolders`） |
+| `tags`     | `Tag[]`     | 用户所有标签                                  |
+| `linkTags` | `LinkTag[]` | 所有链接-标签关联                             |
+| `loading`  | `boolean`   | 初始数据加载中                                |
+| `siteUrl`  | `string`    | 站点 origin（`window.location.origin`）       |
 
 ### 操作
 
-| 方法 | 功能 |
-|------|------|
-| `handleLinkCreated(link)` | 新链接 prepend 到数组 |
-| `handleLinkDeleted(id)` | 按 ID 移除链接 |
-| `handleLinkUpdated(link)` | 替换已更新的链接 |
-| `refreshLinks()` | 重新从服务端获取全量链接 |
-| `handleFolderCreated(folder)` | 新文件夹追加到数组 |
-| `handleFolderDeleted(id)` | 按 ID 移除文件夹 + 级联清除关联链接的 `folderId` |
-| `handleFolderUpdated(folder)` | 替换已更新的文件夹 |
-| `handleTagCreated(tag)` | 新标签追加到数组 |
-| `handleTagDeleted(id)` | 按 ID 移除标签 + 级联移除关联 linkTags |
-| `handleTagUpdated(tag)` | 替换已更新的标签 |
-| `handleLinkTagAdded(linkTag)` | 新关联追加到 linkTags |
-| `handleLinkTagRemoved(linkId, tagId)` | 按 `(linkId, tagId)` 移除关联 |
+| 方法                                  | 功能                                             |
+| ------------------------------------- | ------------------------------------------------ |
+| `handleLinkCreated(link)`             | 新链接 prepend 到数组                            |
+| `handleLinkDeleted(id)`               | 按 ID 移除链接                                   |
+| `handleLinkUpdated(link)`             | 替换已更新的链接                                 |
+| `refreshLinks()`                      | 重新从服务端获取全量链接                         |
+| `handleFolderCreated(folder)`         | 新文件夹追加到数组                               |
+| `handleFolderDeleted(id)`             | 按 ID 移除文件夹 + 级联清除关联链接的 `folderId` |
+| `handleFolderUpdated(folder)`         | 替换已更新的文件夹                               |
+| `handleTagCreated(tag)`               | 新标签追加到数组                                 |
+| `handleTagDeleted(id)`                | 按 ID 移除标签 + 级联移除关联 linkTags           |
+| `handleTagUpdated(tag)`               | 替换已更新的标签                                 |
+| `handleLinkTagAdded(linkTag)`         | 新关联追加到 linkTags                            |
+| `handleLinkTagRemoved(linkId, tagId)` | 按 `(linkId, tagId)` 移除关联                    |
 
 ### Hooks
 
-| Hook | 用途 |
-|------|------|
-| `useDashboardState()` | 仅订阅 state context（不因 actions 变更触发重渲染） |
-| `useDashboardActions()` | 仅订阅 actions context（refs 稳定，不触发重渲染） |
-| `useDashboardService()` | 同时订阅两者（向下兼容） |
+| Hook                    | 用途                                                |
+| ----------------------- | --------------------------------------------------- |
+| `useDashboardState()`   | 仅订阅 state context（不因 actions 变更触发重渲染） |
+| `useDashboardActions()` | 仅订阅 actions context（refs 稳定，不触发重渲染）   |
+| `useDashboardService()` | 同时订阅两者（向下兼容）                            |
 
 ## API 路由一览
 
-| 路由 | 方法 | 用途 |
-|------|------|------|
-| `/api/auth/[...nextauth]` | `*` | NextAuth.js 认证端点 |
-| `/api/health` | `GET` | 健康检查（返回版本号 + 时间戳） |
-| `/api/live` | `GET` | 存活探针（仅返回版本号，无外部依赖检查） |
-| `/api/lookup` | `GET` | Slug 查找（Worker 降级使用） |
-| `/api/record-click` | `POST` | 点击分析记录（Worker fire-and-forget） |
-| `/api/worker-status` | `GET` | Worker/KV 缓存健康状态 |
-| `/api/link/create/[token]` | `POST/GET/HEAD` | Webhook 创建链接 / API 文档 / 健康检查 |
-| `/api/tmp/upload/[token]` | `POST/GET/HEAD` | 临时文件上传 / 使用文档 / 健康检查 |
-| `/api/cron/cleanup` | `POST` | Worker cron 触发清理过期临时文件 |
-| `/api/cron/sync-kv` | `POST` | 手动触发 D1 → KV 全量同步 |
-| `/api/backy/pull` | `POST/HEAD` | Backy pull webhook 端点 / 连接测试 |
+| 路由                       | 方法            | 用途                                     |
+| -------------------------- | --------------- | ---------------------------------------- |
+| `/api/auth/[...nextauth]`  | `*`             | NextAuth.js 认证端点                     |
+| `/api/health`              | `GET`           | 健康检查（返回版本号 + 时间戳）          |
+| `/api/live`                | `GET`           | 存活探针（仅返回版本号，无外部依赖检查） |
+| `/api/lookup`              | `GET`           | Slug 查找（Worker 降级使用）             |
+| `/api/record-click`        | `POST`          | 点击分析记录（Worker fire-and-forget）   |
+| `/api/worker-status`       | `GET`           | Worker/KV 缓存健康状态                   |
+| `/api/link/create/[token]` | `POST/GET/HEAD` | Webhook 创建链接 / API 文档 / 健康检查   |
+| `/api/tmp/upload/[token]`  | `POST/GET/HEAD` | 临时文件上传 / 使用文档 / 健康检查       |
+| `/api/cron/cleanup`        | `POST`          | Worker cron 触发清理过期临时文件         |
+| `/api/cron/sync-kv`        | `POST`          | 手动触发 D1 → KV 全量同步                |
+| `/api/backy/pull`          | `POST/HEAD`     | Backy pull webhook 端点 / 连接测试       |
 
 ## 相关文档
 

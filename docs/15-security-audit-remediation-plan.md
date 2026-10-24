@@ -8,11 +8,11 @@
 
 ## 一、问题分类总览
 
-| 类别 | 数量 | 说明 |
-|------|------|------|
-| **P0/P1 — 真实漏洞** | 10 | 8 ✅ 已完成，2 ⬜ 待实施 |
-| **P2 — 建议实施** | 5 | 有真实风险，建议修复 |
-| **低优 — 工程规范** | 5 | 不影响安全，随功能处理 |
+| 类别                 | 数量 | 说明                     |
+| -------------------- | ---- | ------------------------ |
+| **P0/P1 — 真实漏洞** | 10   | 8 ✅ 已完成，2 ⬜ 待实施 |
+| **P2 — 建议实施**    | 5    | 有真实风险，建议修复     |
+| **低优 — 工程规范**  | 5    | 不影响安全，随功能处理   |
 
 ---
 
@@ -56,7 +56,7 @@ if (!workerSecret) {
 **问题**: `!==` 比较存在时序攻击风险（首字节不匹配即返回）
 **修复**:
 ```ts
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from "crypto";
 
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -74,8 +74,8 @@ function safeCompare(a: string, b: string): boolean {
 **修复**:
 ```ts
 const parsed = new URL(url);
-if (!['http:', 'https:'].includes(parsed.protocol)) {
-  throw new Error('URL must use http or https protocol');
+if (!["http:", "https:"].includes(parsed.protocol)) {
+  throw new Error("URL must use http or https protocol");
 }
 ```
 
@@ -124,7 +124,7 @@ if (!['http:', 'https:'].includes(parsed.protocol)) {
 ```ts
 const publicDomain = process.env.R2_PUBLIC_DOMAIN;
 if (!publicDomain) {
-  throw new Error('R2_PUBLIC_DOMAIN environment variable is required');
+  throw new Error("R2_PUBLIC_DOMAIN environment variable is required");
 }
 ```
 
@@ -135,15 +135,15 @@ if (!publicDomain) {
 **文件**: `docs/14-cloudflare-resource-inventory.md`
 **问题**: 4 个真实资源 UUID 已进入版本控制
 
-| 资源 | UUID | 行号 |
-|------|------|------|
-| 生产 D1 | `<YOUR_D1_DATABASE_ID>` | 27, 69, 70, 218 |
-| 测试 D1 | `<YOUR_TEST_D1_DATABASE_ID>` | 28 |
-| 生产 KV | `<YOUR_KV_NAMESPACE_ID>` | 41, 221 |
-| 测试 KV | `<YOUR_TEST_KV_NAMESPACE_ID>` | 42 |
+| 资源    | UUID                          | 行号            |
+| ------- | ----------------------------- | --------------- |
+| 生产 D1 | `<YOUR_D1_DATABASE_ID>`       | 27, 69, 70, 218 |
+| 测试 D1 | `<YOUR_TEST_D1_DATABASE_ID>`  | 28              |
+| 生产 KV | `<YOUR_KV_NAMESPACE_ID>`      | 41, 221         |
+| 测试 KV | `<YOUR_TEST_KV_NAMESPACE_ID>` | 42              |
 
 **修复**（macOS/GNU sed 兼容）：
-```bash
+````bash
 已替换为占位符（见 `docs/14-cloudflare-resource-inventory.md` 当前版本）。
 
 ```bash
@@ -152,8 +152,8 @@ if (!publicDomain) {
 # sed -i '' 's/<REAL_TEST_D1_ID>/<YOUR_TEST_D1_DATABASE_ID>/g' docs/14-cloudflare-resource-inventory.md
 # sed -i '' 's/<REAL_KV_ID>/<YOUR_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
 # sed -i '' 's/<REAL_TEST_KV_ID>/<YOUR_TEST_KV_NAMESPACE_ID>/g' docs/14-cloudflare-resource-inventory.md
-```
-```
+````
+````
 
 ---
 
@@ -166,7 +166,7 @@ if (!publicDomain) {
 2. 改为本地引用：
 ```ts
 export const GITHUB_REPO_PREVIEW_URL = '/github-preview.jpg';
-```
+````
 
 ---
 
@@ -216,26 +216,26 @@ export const GITHUB_REPO_PREVIEW_URL = '/github-preview.jpg';
 
 > 以下条目经审查后确认暂不需要修改或属于开源规范：
 
-| 条目 | 文件 | 原因 |
-|------|------|------|
-| `/api/lookup` 返回 `id` | `app/api/lookup/route.ts:28` | Worker KV miss fallback 强依赖此字段删除会造成功能回退和统计丢失 |
-| Webhook API CORS | `app/api/link/create/[token]/route.ts:77` 等 | 这些是 token 鉴权的 server-to-server 接口，非浏览器 session 接口；按 Origin 校验会误伤 CLI/Worker 调用方 |
-| `next.config.ts` 中 `zhe.to` | `next.config.ts:14` | 公开部署域名，不需要强制 env 化 |
-| `xray` preset URLs | `models/xray.ts:9-10` | 公开 API 端点，不涉及 secrets；改为单一 XRAY_API_URL 会改变产品 preset 选择功能 |
-| README/deployment docs 中的 `zhe.to` | `README.md`, `docs/06-deployment.md` | README 作为 demo 实例展示可接受；部署文档可逐步改为占位符，低优先级 |
-| Docker root 用户 | `Dockerfile:15` | container root 默认不等于 host root；降为可选加固项 |
+| 条目                                 | 文件                                         | 原因                                                                                                     |
+| ------------------------------------ | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/api/lookup` 返回 `id`              | `app/api/lookup/route.ts:28`                 | Worker KV miss fallback 强依赖此字段删除会造成功能回退和统计丢失                                         |
+| Webhook API CORS                     | `app/api/link/create/[token]/route.ts:77` 等 | 这些是 token 鉴权的 server-to-server 接口，非浏览器 session 接口；按 Origin 校验会误伤 CLI/Worker 调用方 |
+| `next.config.ts` 中 `zhe.to`         | `next.config.ts:14`                          | 公开部署域名，不需要强制 env 化                                                                          |
+| `xray` preset URLs                   | `models/xray.ts:9-10`                        | 公开 API 端点，不涉及 secrets；改为单一 XRAY_API_URL 会改变产品 preset 选择功能                          |
+| README/deployment docs 中的 `zhe.to` | `README.md`, `docs/06-deployment.md`         | README 作为 demo 实例展示可接受；部署文档可逐步改为占位符，低优先级                                      |
+| Docker root 用户                     | `Dockerfile:15`                              | container root 默认不等于 host root；降为可选加固项                                                      |
 
 ---
 
 ## 五、低优 — 工程规范（随功能处理）
 
-| # | 问题 | 文件 | 建议 |
-|---|------|------|------|
-| 5.1 | `next-auth` Beta 版本 | `package.json:49` | 监控 Auth.js 安全公告，stable v5 发布后升级 |
-| 5.2 | `wrangler.toml` 含生产 D1 ID | `wrangler.toml:7` | 已 gitignore；确保 `.example` 永远正确 |
-| 5.3 | 测试文件用真实域名 | 50+ 测试文件 | 随功能修改时顺带替换为 `example.com` |
-| 5.4 | Webhook API spec title 含真实域名 | `models/webhook.ts:195` | 改为基于 `AUTH_URL` 动态生成 |
-| 5.5 | E2E Provider 依赖可覆盖的 `NODE_ENV` | `auth.ts:17` | 增加 `PLAYWRIGHT_SECRET` 检查 |
+| #   | 问题                                 | 文件                    | 建议                                        |
+| --- | ------------------------------------ | ----------------------- | ------------------------------------------- |
+| 5.1 | `next-auth` Beta 版本                | `package.json:49`       | 监控 Auth.js 安全公告，stable v5 发布后升级 |
+| 5.2 | `wrangler.toml` 含生产 D1 ID         | `wrangler.toml:7`       | 已 gitignore；确保 `.example` 永远正确      |
+| 5.3 | 测试文件用真实域名                   | 50+ 测试文件            | 随功能修改时顺带替换为 `example.com`        |
+| 5.4 | Webhook API spec title 含真实域名    | `models/webhook.ts:195` | 改为基于 `AUTH_URL` 动态生成                |
+| 5.5 | E2E Provider 依赖可覆盖的 `NODE_ENV` | `auth.ts:17`            | 增加 `PLAYWRIGHT_SECRET` 检查               |
 
 ---
 
@@ -270,11 +270,11 @@ Phase 4 (规划)
 
 ## 七、Gitignore 确认（已正确处理）
 
-| 文件 | 状态 |
-|------|------|
+| 文件                   | 状态            |
+| ---------------------- | --------------- |
 | `worker/wrangler.toml` | ✅ 已 gitignore |
-| `wrangler.toml` | ✅ 已 gitignore |
-| `.env.local` | ✅ 已 gitignore |
+| `wrangler.toml`        | ✅ 已 gitignore |
+| `.env.local`           | ✅ 已 gitignore |
 
 gitleaks 规则（`.gitleaks.toml`）也已配置。
 
@@ -282,11 +282,11 @@ gitleaks 规则（`.gitleaks.toml`）也已配置。
 
 ## 八、防御性措施（可选）
 
-| 措施 | 说明 |
-|------|------|
-| pre-commit regex 检查 | 检测常见 UUID 格式并警告 |
-| 新文档模板 | 使用 `<YOUR_RESOURCE_ID>` 占位符 |
-| 新 PR checklist | "是否引入了新的真实资源 ID？" |
+| 措施                  | 说明                             |
+| --------------------- | -------------------------------- |
+| pre-commit regex 检查 | 检测常见 UUID 格式并警告         |
+| 新文档模板            | 使用 `<YOUR_RESOURCE_ID>` 占位符 |
+| 新 PR checklist       | "是否引入了新的真实资源 ID？"    |
 
 ---
 

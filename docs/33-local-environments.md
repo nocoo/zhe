@@ -138,25 +138,25 @@ catalog into disposable E2E storage, records revision/version/viewport/locale/
 time anchor, checks loaded images and captures every listed route. Screenshot
 creation is not equivalent to completing every action on that page.
 
-| Feature / route | Prepared fixture or scenario | Action evidence | Visual evidence |
-| --- | --- | --- | --- |
-| Login / shell | Synthetic owner; other owner; normal Auth.js login | Auth setup, auth-guard, environment tests | Local Chrome through Caddy |
-| Links / detail / redirects | Readable descriptions, covers, hidden and expired links, empty folder | HTTP links CRUD, ownership and redirect tests; browser link workflows | Capture `links` |
-| Search / filters / bulk actions | Matching labels, distinct sources, empty results | Existing search API/browser and bulk tests; error handling in unit tests | Search browser captures; list capture |
-| Ideas / editor | Markdown, image, checklist, table, tags | Existing ideas CRUD/browser tests; manual draft cancellation | Capture `ideas` |
-| Todos | Parent/child, complete/open, due/overdue, emoji, tags | Existing todo workflows | Capture `todos` |
-| X bookmarks / media | Published image, pending and failed capture | Connector real HTTP, digest/ownership, 100 MB video, Range and cleanup | Capture `x` |
-| GitHub / README | Synthetic repo, topics, metrics, license, README | Existing GitHub/enrichment browser tests | Capture `github` |
-| Webpage previews | Owned covers; focused capture success/failure scenarios | Existing screenshot/connector tests | Links and enrichment captures |
-| Folders / tags | Three categories, empty category, three colored labels | Existing folders/tags CRUD tests | Capture `tags` |
-| Overview / charts | Seven-day analytics with matching click totals | Existing overview and analytics tests | Capture `overview` |
-| Uploads / storage | Owned SVG and Markdown; matching sizes and metadata | Native real HTTP and upload browser workflows | Captures `uploads`, `storage` |
-| API keys / permissions / audit | Read-only and revoked keys, separate owner | Existing scoped API tests and API-key browser workflows | Capture `api-keys` |
-| Webhook / rate limits | Local-only webhook token and rate | Existing webhook and rate-limit HTTP tests | Capture `webhook` |
-| Backy / export / import | Empty integration configuration; local success/error boundary | Existing Backy and data-management workflows | Captures `backy`, `data-management` |
-| Xray | Synthetic provider tweet/bookmarks, unconfigured and failure scenarios | Real fetch/parse/configuration and bookmark import; no live provider certification | Capture `xray` |
-| AI configuration / organization | Fixture provider, structured success and 503 failure | Actual SDK/provider boundary and browser apply workflow | Capture `settings-ai`; AI dialog captures |
-| Themes / density / responsive UI | Shared Basalt control, unchanged product surfaces | Existing browser layouts and theme tests | Local Chrome and focused responsive captures |
+| Feature / route                  | Prepared fixture or scenario                                           | Action evidence                                                                    | Visual evidence                              |
+| -------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------- |
+| Login / shell                    | Synthetic owner; other owner; normal Auth.js login                     | Auth setup, auth-guard, environment tests                                          | Local Chrome through Caddy                   |
+| Links / detail / redirects       | Readable descriptions, covers, hidden and expired links, empty folder  | HTTP links CRUD, ownership and redirect tests; browser link workflows              | Capture `links`                              |
+| Search / filters / bulk actions  | Matching labels, distinct sources, empty results                       | Existing search API/browser and bulk tests; error handling in unit tests           | Search browser captures; list capture        |
+| Ideas / editor                   | Markdown, image, checklist, table, tags                                | Existing ideas CRUD/browser tests; manual draft cancellation                       | Capture `ideas`                              |
+| Todos                            | Parent/child, complete/open, due/overdue, emoji, tags                  | Existing todo workflows                                                            | Capture `todos`                              |
+| X bookmarks / media              | Published image, pending and failed capture                            | Connector real HTTP, digest/ownership, 100 MB video, Range and cleanup             | Capture `x`                                  |
+| GitHub / README                  | Synthetic repo, topics, metrics, license, README                       | Existing GitHub/enrichment browser tests                                           | Capture `github`                             |
+| Webpage previews                 | Owned covers; focused capture success/failure scenarios                | Existing screenshot/connector tests                                                | Links and enrichment captures                |
+| Folders / tags                   | Three categories, empty category, three colored labels                 | Existing folders/tags CRUD tests                                                   | Capture `tags`                               |
+| Overview / charts                | Seven-day analytics with matching click totals                         | Existing overview and analytics tests                                              | Capture `overview`                           |
+| Uploads / storage                | Owned SVG and Markdown; matching sizes and metadata                    | Native real HTTP and upload browser workflows                                      | Captures `uploads`, `storage`                |
+| API keys / permissions / audit   | Read-only and revoked keys, separate owner                             | Existing scoped API tests and API-key browser workflows                            | Capture `api-keys`                           |
+| Webhook / rate limits            | Local-only webhook token and rate                                      | Existing webhook and rate-limit HTTP tests                                         | Capture `webhook`                            |
+| Backy / export / import          | Empty integration configuration; local success/error boundary          | Existing Backy and data-management workflows                                       | Captures `backy`, `data-management`          |
+| Xray                             | Synthetic provider tweet/bookmarks, unconfigured and failure scenarios | Real fetch/parse/configuration and bookmark import; no live provider certification | Capture `xray`                               |
+| AI configuration / organization  | Fixture provider, structured success and 503 failure                   | Actual SDK/provider boundary and browser apply workflow                            | Capture `settings-ai`; AI dialog captures    |
+| Themes / density / responsive UI | Shared Basalt control, unchanged product surfaces                      | Existing browser layouts and theme tests                                           | Local Chrome and focused responsive captures |
 
 Prepared scenarios, executed test results and reviewed images are reported
 separately in the repository management record. Proposed Douyin/Instagram
@@ -170,7 +170,6 @@ The normal commit hook passed 3,483 unit/component tests, 197 in-process
 integration tests, types, full staged-tree lint and secret scanning. Scoped
 coverage: statements 98.08%, branches 95.15%, functions 96.62%, lines 98.82%.
 The pre-existing untracked research file is outside this index evidence.
-
 - Full Chromium: 214 passed, followed by 12 setup/Xray checks after replacing
   its business mock. Real provider success/failure and bookmark import passed.
 - Concurrent L2 on `ZHE_TEST_APP_PORT=17106` and `17206`: both 222 passed with

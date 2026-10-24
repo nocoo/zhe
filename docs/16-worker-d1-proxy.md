@@ -29,10 +29,10 @@ Railway → Worker (edge) → D1 binding → D1
 
 ### Why This Works
 
-| Path | Latency | Notes |
-|------|---------|-------|
+| Path                  | Latency    | Notes                                    |
+| --------------------- | ---------- | ---------------------------------------- |
 | Railway → D1 HTTP API | 200-500ms+ | Cross-region, HTTP overhead, cold starts |
-| Worker → D1 binding | 5-20ms | Same Cloudflare network, native binding |
+| Worker → D1 binding   | 5-20ms     | Same Cloudflare network, native binding  |
 
 Workers are deployed globally and use D1's native binding (`env.DB`), not the HTTP API.
 
@@ -69,7 +69,6 @@ Error response (always HTTP 200, error in body):
 ```
 
 **Error contract**: The Worker proxy MUST match existing `d1-client.ts` error handling exactly:
-
 1. **UNIQUE constraint errors** — normalize to `"UNIQUE constraint failed"` (no table/column detail). The current fallback path strips schema detail (`lib/db/d1-client.ts:67,80`), so proxy must do the same.
 
 2. **All other errors** (syntax, auth, network, FOREIGN KEY, etc.) — sanitize to `"D1 query failed"`.
@@ -109,10 +108,10 @@ return data.results;
 
 **`D1_PROXY_SECRET` MUST be separate from `WORKER_SECRET`.**
 
-| Secret | Current Scope | Compromise Impact |
-|--------|---------------|-------------------|
-| `WORKER_SECRET` | `/api/record-click`, `/api/cron/*` | Limited: click recording, cleanup triggers |
-| `D1_PROXY_SECRET` | `/api/d1-query` | **Full database read/write** |
+| Secret            | Current Scope                      | Compromise Impact                          |
+| ----------------- | ---------------------------------- | ------------------------------------------ |
+| `WORKER_SECRET`   | `/api/record-click`, `/api/cron/*` | Limited: click recording, cleanup triggers |
+| `D1_PROXY_SECRET` | `/api/d1-query`                    | **Full database read/write**               |
 
 Reusing `WORKER_SECRET` would expand its blast radius from "trigger limited internal actions" to "execute arbitrary SQL". If `WORKER_SECRET` leaks (e.g., via log exposure), the attacker gains full database access instead of just being able to record fake clicks.
 
@@ -126,7 +125,9 @@ Worker is a dumb SQL proxy. Railway handles authentication and constructs scoped
 
 Worker uses parameterized queries only:
 ```typescript
-env.DB.prepare(sql).bind(...params).all()
+env.DB.prepare(sql)
+  .bind(...params)
+  .all();
 ```
 
 Worker MUST NOT concatenate SQL strings. The `sql` field is passed directly to `prepare()`, and `params` to `bind()`.
@@ -209,13 +210,12 @@ Once queries route through Worker, this protection is **bypassed** — the Worke
 
 ### Solution: Dual Worker Deployments
 
-| Environment | Worker URL | D1 Binding | KV Binding |
-|-------------|------------|------------|------------|
-| Production | `https://zhe-edge.xxx.workers.dev` | `zhe` (prod) | `zhe` (prod) |
-| Test | `https://zhe-edge-test.xxx.workers.dev` | `zhe-db-test` | `zhe-test` |
+| Environment | Worker URL                              | D1 Binding    | KV Binding   |
+| ----------- | --------------------------------------- | ------------- | ------------ |
+| Production  | `https://zhe-edge.xxx.workers.dev`      | `zhe` (prod)  | `zhe` (prod) |
+| Test        | `https://zhe-edge-test.xxx.workers.dev` | `zhe-db-test` | `zhe-test`   |
 
 **Implementation:**
-
 1. **New `worker/wrangler.test.toml`** — Test environment config with test D1/KV bindings
 2. **Deploy test Worker** — `wrangler deploy -c wrangler.test.toml` → `zhe-edge-test`
 3. **L2/L3 harness update** — Set `D1_PROXY_URL=https://zhe-edge-test.xxx.workers.dev`
@@ -228,13 +228,13 @@ const proxyUrl = process.env.D1_PROXY_URL;
 const proxySecret = process.env.D1_PROXY_SECRET;
 
 if (!proxyUrl) {
-  throw new Error('D1_PROXY_URL must be set — proxy path coverage is mandatory');
+  throw new Error("D1_PROXY_URL must be set — proxy path coverage is mandatory");
 }
-if (!proxyUrl.includes('-test')) {
+if (!proxyUrl.includes("-test")) {
   throw new Error('D1_PROXY_URL must point to test Worker (contain "-test")');
 }
 if (!proxySecret) {
-  throw new Error('D1_PROXY_SECRET must be set when D1_PROXY_URL is configured');
+  throw new Error("D1_PROXY_SECRET must be set when D1_PROXY_URL is configured");
 }
 ```
 
@@ -366,56 +366,56 @@ After enabling the proxy:
 
 ### Worker Secrets (via `wrangler secret put`)
 
-| Secret | Environment | Notes |
-|--------|-------------|-------|
-| `WORKER_SECRET` | prod + test | Existing, for record-click/cron |
-| `D1_PROXY_SECRET` | prod + test | **New**, for D1 proxy only |
+| Secret            | Environment | Notes                           |
+| ----------------- | ----------- | ------------------------------- |
+| `WORKER_SECRET`   | prod + test | Existing, for record-click/cron |
+| `D1_PROXY_SECRET` | prod + test | **New**, for D1 proxy only      |
 
 ### Worker Bindings (wrangler.toml)
 
 **Production (`wrangler.toml`):**
-| Binding | Type | Value |
-|---------|------|-------|
-| `DB` | D1 | `zhe` (prod database) |
-| `LINKS_KV` | KV | `zhe` (prod namespace) |
+| Binding    | Type | Value                  |
+| ---------- | ---- | ---------------------- |
+| `DB`       | D1   | `zhe` (prod database)  |
+| `LINKS_KV` | KV   | `zhe` (prod namespace) |
 
 **Test (`wrangler.test.toml`):**
-| Binding | Type | Value |
-|---------|------|-------|
-| `DB` | D1 | `zhe-db-test` |
-| `LINKS_KV` | KV | `zhe-test` |
+| Binding    | Type | Value         |
+| ---------- | ---- | ------------- |
+| `DB`       | D1   | `zhe-db-test` |
+| `LINKS_KV` | KV   | `zhe-test`    |
 
 ### Railway
 
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `D1_PROXY_URL` | `https://zhe-edge.xxx.workers.dev` | New |
-| `D1_PROXY_SECRET` | `<high-entropy>` | New, separate from WORKER_SECRET |
+| Variable          | Value                              | Notes                            |
+| ----------------- | ---------------------------------- | -------------------------------- |
+| `D1_PROXY_URL`    | `https://zhe-edge.xxx.workers.dev` | New                              |
+| `D1_PROXY_SECRET` | `<high-entropy>`                   | New, separate from WORKER_SECRET |
 
 ### Local Development / CI (.env.local)
 
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `D1_PROXY_URL` | `https://zhe-edge-test.xxx.workers.dev` | Test Worker, **required for L2/L3** |
-| `D1_PROXY_SECRET` | `<test-secret>` | **Required**, tests fail without it |
+| Variable          | Value                                   | Notes                               |
+| ----------------- | --------------------------------------- | ----------------------------------- |
+| `D1_PROXY_URL`    | `https://zhe-edge-test.xxx.workers.dev` | Test Worker, **required for L2/L3** |
+| `D1_PROXY_SECRET` | `<test-secret>`                         | **Required**, tests fail without it |
 
 ## 6DQ Coverage
 
 ### L1: Unit Tests
 
-| Test | Location | Coverage |
-|------|----------|----------|
-| D1 proxy handler auth | `worker/test/d1-proxy.test.ts` | 401 on missing/invalid/wrong token |
-| D1 proxy handler routing | `worker/test/d1-proxy.test.ts` | Handler runs before reserved path forward |
-| D1 proxy handler execution | `worker/test/d1-proxy.test.ts` | SELECT/INSERT/UPDATE/DELETE |
-| D1 proxy client | `tests/unit/d1-client.test.ts` | Proxy path, fallback, credential handling |
+| Test                       | Location                       | Coverage                                  |
+| -------------------------- | ------------------------------ | ----------------------------------------- |
+| D1 proxy handler auth      | `worker/test/d1-proxy.test.ts` | 401 on missing/invalid/wrong token        |
+| D1 proxy handler routing   | `worker/test/d1-proxy.test.ts` | Handler runs before reserved path forward |
+| D1 proxy handler execution | `worker/test/d1-proxy.test.ts` | SELECT/INSERT/UPDATE/DELETE               |
+| D1 proxy client            | `tests/unit/d1-client.test.ts` | Proxy path, fallback, credential handling |
 
 ### L2: API E2E
 
-| Test | Location | Coverage |
-|------|----------|----------|
-| Proxy endpoint real HTTP | `tests/api/d1-proxy.test.ts` | Real test Worker + test D1 |
-| Existing API tests | `tests/api/*.test.ts` | All existing tests run through proxy |
+| Test                     | Location                     | Coverage                             |
+| ------------------------ | ---------------------------- | ------------------------------------ |
+| Proxy endpoint real HTTP | `tests/api/d1-proxy.test.ts` | Real test Worker + test D1           |
+| Existing API tests       | `tests/api/*.test.ts`        | All existing tests run through proxy |
 
 **Regression scope**: L2 tests cover all `executeD1Query` callers:
 - Links CRUD
@@ -443,21 +443,21 @@ Existing Playwright tests exercise full user flows. **All tests MUST pass** afte
 
 ### G2: Security
 
-| Check | Implementation |
-|-------|----------------|
-| Dedicated D1_PROXY_SECRET | Separate from WORKER_SECRET |
-| Auth validation | 401 on missing/invalid token |
-| Parameterized queries | No SQL concatenation |
-| gitleaks scan | Existing, covers new secret |
-| Secret rotation | Document rotation procedure |
+| Check                     | Implementation               |
+| ------------------------- | ---------------------------- |
+| Dedicated D1_PROXY_SECRET | Separate from WORKER_SECRET  |
+| Auth validation           | 401 on missing/invalid token |
+| Parameterized queries     | No SQL concatenation         |
+| gitleaks scan             | Existing, covers new secret  |
+| Secret rotation           | Document rotation procedure  |
 
 ### D1: Data Isolation
 
-| Environment | D1 Binding | Verification |
-|-------------|------------|--------------|
-| Production | `zhe` | Railway `D1_PROXY_URL` → prod Worker |
-| Test (L2/L3) | `zhe-db-test` | Harness sets → test Worker |
-| Local dev | `zhe-db-test` | `.env.local` → test Worker |
+| Environment  | D1 Binding    | Verification                         |
+| ------------ | ------------- | ------------------------------------ |
+| Production   | `zhe`         | Railway `D1_PROXY_URL` → prod Worker |
+| Test (L2/L3) | `zhe-db-test` | Harness sets → test Worker           |
+| Local dev    | `zhe-db-test` | `.env.local` → test Worker           |
 
 **Safety checks:**
 1. Test harness rejects `D1_PROXY_URL` without `-test` suffix
@@ -473,11 +473,11 @@ Existing Playwright tests exercise full user flows. **All tests MUST pass** afte
 
 ## Success Metrics
 
-| Metric | Before | Target |
-|--------|--------|--------|
-| D1 query p50 latency | ~300ms | <50ms |
+| Metric               | Before  | Target |
+| -------------------- | ------- | ------ |
+| D1 query p50 latency | ~300ms  | <50ms  |
 | D1 query p99 latency | ~2000ms | <200ms |
-| Timeout errors/day | 5-10 | 0 |
+| Timeout errors/day   | 5-10    | 0      |
 
 ## Future Considerations
 

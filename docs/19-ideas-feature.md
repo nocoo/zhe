@@ -94,7 +94,6 @@ This ensures "recently modified" sorting reflects all meaningful edits.
 ### Title Display Strategy
 
 When `title` is `NULL`:
-
 1. **Display format**: Show creation time as title (e.g., "Apr 13, 14:32")
 2. **Future enhancement**: Auto-generate title from first line or AI summary (out of scope for v1)
 
@@ -106,13 +105,13 @@ Add to `lib/db/scoped.ts`:
 
 ### Ideas
 
-| Method | Description |
-|--------|-------------|
-| `getIdeas(options?)` | Get ideas with optional tag filter, ordered by `created_at DESC`. Returns list shape (no full content). |
-| `getIdeaById(id)` | Get single idea by ID, including full content |
-| `createIdea(data)` | Create idea with content, optional title, optional tagIds. **Atomic**: inserts idea + tags in single transaction. |
+| Method                 | Description                                                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `getIdeas(options?)`   | Get ideas with optional tag filter, ordered by `created_at DESC`. Returns list shape (no full content).                          |
+| `getIdeaById(id)`      | Get single idea by ID, including full content                                                                                    |
+| `createIdea(data)`     | Create idea with content, optional title, optional tagIds. **Atomic**: inserts idea + tags in single transaction.                |
 | `updateIdea(id, data)` | Update idea content, title, and/or tags. **Atomic**: updates idea + syncs tags in single transaction. Also updates `updated_at`. |
-| `deleteIdea(id)` | Delete idea (cascade deletes `idea_tags`) |
+| `deleteIdea(id)`       | Delete idea (cascade deletes `idea_tags`)                                                                                        |
 
 ### Data Shapes
 
@@ -121,7 +120,7 @@ Add to `lib/db/scoped.ts`:
 interface IdeaListItem {
   id: number;
   title: string | null;
-  excerpt: string | null;  // First 200 chars, plain text
+  excerpt: string | null; // First 200 chars, plain text
   tagIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -129,7 +128,7 @@ interface IdeaListItem {
 
 /** Full shape for detail view / edit */
 interface IdeaDetail extends IdeaListItem {
-  content: string;  // Full Markdown
+  content: string; // Full Markdown
 }
 ```
 
@@ -193,7 +192,6 @@ async createIdea(data: { content: string; title?: string; tagIds?: string[] }): 
 > the child batch. See `AGENTS.md` Retrospective for details.
 
 **Key design points**:
-
 1. **Pre-validation**: TagIds are validated **before** any writes. If any tagId doesn't exist or doesn't belong to the user, we fail immediately.
 
 2. **Query + Batch (not single batch)**: The idea INSERT is a standalone `executeD1Query` with `RETURNING *` to get the concrete `idea.id`. Tag bindings are a separate `executeD1Batch` using that explicit ID.
@@ -220,7 +218,7 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
     label: "概览",
     items: [
       { title: "概览", icon: BarChart3, href: "/dashboard/overview" },
-      { title: "Ideas", icon: Lightbulb, href: "/dashboard/ideas" },  // NEW
+      { title: "Ideas", icon: Lightbulb, href: "/dashboard/ideas" }, // NEW
     ],
   },
 ];
@@ -229,7 +227,6 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
 ### Global Search (Cmd+K)
 
 Add ideas to `SearchCommandDialog`:
-
 - Search across `title` and `excerpt` (NOT full content — performance)
 - Display in separate "Ideas" group below "Links"
 - Click navigates to `/dashboard/ideas?id={id}` (opens detail modal)
@@ -243,7 +240,7 @@ export interface DashboardState {
   folders: Folder[];
   tags: Tag[];
   linkTags: LinkTag[];
-  ideas: IdeaListItem[];  // NEW: list shape only (id, title, excerpt, tagIds)
+  ideas: IdeaListItem[]; // NEW: list shape only (id, title, excerpt, tagIds)
   loading: boolean;
   siteUrl: string;
 }
@@ -282,13 +279,13 @@ The provider fetches ideas alongside links/tags on mount. Since ideas use list s
 
 #### Actions
 
-| Action | Description |
-|--------|-------------|
-| Add | Open modal/drawer for new idea |
-| Edit | Open modal/drawer for editing (inline edit not suitable for Markdown) |
-| Delete | Delete with confirmation |
-| Copy | Copy full Markdown content |
-| Tag | Add/remove tags (part of edit modal, not separate action) |
+| Action | Description                                                           |
+| ------ | --------------------------------------------------------------------- |
+| Add    | Open modal/drawer for new idea                                        |
+| Edit   | Open modal/drawer for editing (inline edit not suitable for Markdown) |
+| Delete | Delete with confirmation                                              |
+| Copy   | Copy full Markdown content                                            |
+| Tag    | Add/remove tags (part of edit modal, not separate action)             |
 
 #### Filtering
 
@@ -457,13 +454,13 @@ New API scopes:
 
 ### Endpoints
 
-| Endpoint | Method | Scope | Description |
-|----------|--------|-------|-------------|
-| `/api/v1/ideas` | GET | `ideas:read` | List ideas (returns list shape) |
-| `/api/v1/ideas` | POST | `ideas:write` | Create idea with atomic tag binding |
-| `/api/v1/ideas/[id]` | GET | `ideas:read` | Get idea (returns detail shape with full content) |
-| `/api/v1/ideas/[id]` | PATCH | `ideas:write` | Update idea with atomic tag sync |
-| `/api/v1/ideas/[id]` | DELETE | `ideas:write` | Delete idea |
+| Endpoint             | Method | Scope         | Description                                       |
+| -------------------- | ------ | ------------- | ------------------------------------------------- |
+| `/api/v1/ideas`      | GET    | `ideas:read`  | List ideas (returns list shape)                   |
+| `/api/v1/ideas`      | POST   | `ideas:write` | Create idea with atomic tag binding               |
+| `/api/v1/ideas/[id]` | GET    | `ideas:read`  | Get idea (returns detail shape with full content) |
+| `/api/v1/ideas/[id]` | PATCH  | `ideas:write` | Update idea with atomic tag sync                  |
+| `/api/v1/ideas/[id]` | DELETE | `ideas:write` | Delete idea                                       |
 
 ### Request/Response Examples
 
@@ -488,9 +485,7 @@ Response (201):
     "title": "Optional title",
     "content": "My **markdown** thought",
     "excerpt": "My markdown thought",
-    "tags": [
-      { "id": "tag-uuid-1", "name": "work", "color": "#FF5733" }
-    ],
+    "tags": [{ "id": "tag-uuid-1", "name": "work", "color": "#FF5733" }],
     "createdAt": "2026-04-13T14:32:00.000Z",
     "updatedAt": "2026-04-13T14:32:00.000Z"
   }
@@ -588,55 +583,55 @@ Request (all fields optional):
 
 ## Atomic Commits
 
-| Step | Commit Message | Files Changed | Status |
-|------|----------------|---------------|--------|
-| 1 | `feat(db): add ideas and idea_tags tables` | `drizzle/migrations/0017_*.sql`, `lib/db/schema.ts` | ✅ |
-| 2 | `feat(lib): add stripMarkdown utility` | `lib/markdown.ts` | ✅ |
-| 3 | `feat(db): add ScopedDB methods for ideas with atomic tag binding` | `lib/db/scoped.ts`, `lib/db/mappers.ts` | ✅ |
-| 4 | `feat(actions): add idea CRUD server actions` | `actions/ideas.ts` | ✅ |
-| 5 | `feat(api): add ideas:read and ideas:write scopes` | `models/api-key.ts` | ✅ |
-| 6 | `feat(api): add /api/v1/ideas endpoints with list/detail shapes` | `app/api/v1/ideas/*` | ✅ |
-| 7 | `test(api): add L1 + L2 tests for ideas API` | `tests/unit/api/ideas.test.ts`, `tests/api/v1/ideas.test.ts` | ✅ |
+| Step | Commit Message                                                     | Files Changed                                                | Status |
+| ---- | ------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| 1    | `feat(db): add ideas and idea_tags tables`                         | `drizzle/migrations/0017_*.sql`, `lib/db/schema.ts`          | ✅     |
+| 2    | `feat(lib): add stripMarkdown utility`                             | `lib/markdown.ts`                                            | ✅     |
+| 3    | `feat(db): add ScopedDB methods for ideas with atomic tag binding` | `lib/db/scoped.ts`, `lib/db/mappers.ts`                      | ✅     |
+| 4    | `feat(actions): add idea CRUD server actions`                      | `actions/ideas.ts`                                           | ✅     |
+| 5    | `feat(api): add ideas:read and ideas:write scopes`                 | `models/api-key.ts`                                          | ✅     |
+| 6    | `feat(api): add /api/v1/ideas endpoints with list/detail shapes`   | `app/api/v1/ideas/*`                                         | ✅     |
+| 7    | `test(api): add L1 + L2 tests for ideas API`                       | `tests/unit/api/ideas.test.ts`, `tests/api/v1/ideas.test.ts` | ✅     |
 
 > **Critical test cases for step 7** (atomic tag binding verification):
 > 1. Create with invalid tagId → API returns 400, no idea row in database
 > 2. Create with valid tagIds → idea created, all tag associations exist
 > 3. Create with empty tagIds → idea created, no tag associations
-| 8 | `feat(ui): add Ideas to sidebar navigation` | `components/sidebar.tsx` | ✅ |
-| 9 | `feat(context): add ideas to DashboardServiceProvider` | `contexts/dashboard-service.tsx`, `actions/dashboard.ts` | ✅ |
-| 10 | `feat(viewmodel): add useIdeasViewModel` | `viewmodels/use-ideas-viewmodel.ts` | ✅ |
-| 11 | `feat(ui): add IdeaCard and IdeaRow components` | `components/dashboard/ideas/*` | ✅ |
-| 12 | `feat(ui): add /dashboard/ideas page` | `app/(dashboard)/dashboard/ideas/page.tsx` | ✅ |
-| 13 | `feat(ui): add ideas to global search` | `components/search-command-dialog.tsx` | ✅ |
-| 14 | `test(ui): add L1 component tests for ideas` | `tests/components/ideas.test.tsx` | ✅ |
-| 15 | `feat(cli): add zhe idea command with tag name resolution` | `cli/src/commands/idea.ts`, `cli/src/index.ts` | ✅ |
-| 16 | `test(cli): add tests for idea command` | `cli/tests/commands/idea.test.ts` | ✅ |
+   | 8 | `feat(ui): add Ideas to sidebar navigation` | `components/sidebar.tsx` | ✅ |
+   | 9 | `feat(context): add ideas to DashboardServiceProvider` | `contexts/dashboard-service.tsx`, `actions/dashboard.ts` | ✅ |
+   | 10 | `feat(viewmodel): add useIdeasViewModel` | `viewmodels/use-ideas-viewmodel.ts` | ✅ |
+   | 11 | `feat(ui): add IdeaCard and IdeaRow components` | `components/dashboard/ideas/*` | ✅ |
+   | 12 | `feat(ui): add /dashboard/ideas page` | `app/(dashboard)/dashboard/ideas/page.tsx` | ✅ |
+   | 13 | `feat(ui): add ideas to global search` | `components/search-command-dialog.tsx` | ✅ |
+   | 14 | `test(ui): add L1 component tests for ideas` | `tests/components/ideas.test.tsx` | ✅ |
+   | 15 | `feat(cli): add zhe idea command with tag name resolution` | `cli/src/commands/idea.ts`, `cli/src/index.ts` | ✅ |
+   | 16 | `test(cli): add tests for idea command` | `cli/tests/commands/idea.test.ts` | ✅ |
 
 ---
 
 ## Quality Gates (6DQ)
 
-| Layer | Scope | Gate |
-|-------|-------|------|
-| L1 | Unit tests for ScopedDB, Server Actions, Components, CLI | pre-commit |
-| L2 | API E2E tests for `/api/v1/ideas` | pre-push |
-| L3 | Playwright E2E for `/dashboard/ideas` | on-demand |
-| G1 | TypeScript + Biome | pre-commit |
-| G2 | gitleaks + osv-scanner | pre-commit + pre-push |
+| Layer | Scope                                                    | Gate                  |
+| ----- | -------------------------------------------------------- | --------------------- |
+| L1    | Unit tests for ScopedDB, Server Actions, Components, CLI | pre-commit            |
+| L2    | API E2E tests for `/api/v1/ideas`                        | pre-push              |
+| L3    | Playwright E2E for `/dashboard/ideas`                    | on-demand             |
+| G1    | TypeScript + Biome                                       | pre-commit            |
+| G2    | gitleaks + osv-scanner                                   | pre-commit + pre-push |
 
 ---
 
 ## Design Decisions Summary
 
-| Issue | Decision | Rationale |
-|-------|----------|-----------|
-| Tag binding atomicity | Atomic (single transaction) | Ideas rely on tags as primary organization; partial state is unacceptable |
-| List vs detail shape | Separate shapes | List excludes `content`, only returns `excerpt`; prevents memory bloat |
-| Tag input format | Tag IDs only (API), tag names (CLI resolved client-side) | Single contract; CLI handles name→ID resolution; requires `tags:read` |
-| Multi-tag AND filter | Not in v1 | Current links implementation doesn't support it either; add later to both |
-| Search scope | Title + excerpt only | FTS5 out of scope; LIKE on excerpt is fast enough |
-| updated_at semantics | Updated on title, content, or tag change | Ensures "recently modified" sort is meaningful |
-| Route path | `app/(dashboard)/dashboard/ideas/page.tsx` | Matches existing pattern for `/dashboard/*` routes |
+| Issue                 | Decision                                                 | Rationale                                                                 |
+| --------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Tag binding atomicity | Atomic (single transaction)                              | Ideas rely on tags as primary organization; partial state is unacceptable |
+| List vs detail shape  | Separate shapes                                          | List excludes `content`, only returns `excerpt`; prevents memory bloat    |
+| Tag input format      | Tag IDs only (API), tag names (CLI resolved client-side) | Single contract; CLI handles name→ID resolution; requires `tags:read`     |
+| Multi-tag AND filter  | Not in v1                                                | Current links implementation doesn't support it either; add later to both |
+| Search scope          | Title + excerpt only                                     | FTS5 out of scope; LIKE on excerpt is fast enough                         |
+| updated_at semantics  | Updated on title, content, or tag change                 | Ensures "recently modified" sort is meaningful                            |
+| Route path            | `app/(dashboard)/dashboard/ideas/page.tsx`               | Matches existing pattern for `/dashboard/*` routes                        |
 
 ---
 

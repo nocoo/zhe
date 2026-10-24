@@ -40,18 +40,18 @@
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | Bun |
-| Language | TypeScript (strict) |
-| CLI Framework | citty (via @nocoo/base-cli) |
-| Logging | consola (via @nocoo/base-cli) |
-| Config | ConfigManager (via @nocoo/base-cli) |
-| Auth | Manual API Key entry (v1) |
-| HTTP | Native fetch |
-| Testing | Vitest (95%+ coverage) |
-| Linting | TypeScript + Biome |
-| Git Hooks | Husky (6DQ: L1 + G1 pre-commit, G2 pre-push) |
+| Layer         | Technology                                   |
+| ------------- | -------------------------------------------- |
+| Runtime       | Bun                                          |
+| Language      | TypeScript (strict)                          |
+| CLI Framework | citty (via @nocoo/base-cli)                  |
+| Logging       | consola (via @nocoo/base-cli)                |
+| Config        | ConfigManager (via @nocoo/base-cli)          |
+| Auth          | Manual API Key entry (v1)                    |
+| HTTP          | Native fetch                                 |
+| Testing       | Vitest (95%+ coverage)                       |
+| Linting       | TypeScript + Biome                           |
+| Git Hooks     | Husky (6DQ: L1 + G1 pre-commit, G2 pre-push) |
 
 ---
 
@@ -100,10 +100,10 @@ zhe-cli/
 ```typescript
 interface ZheConfig {
   // API authentication
-  apiKey?: string;           // zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  
+  apiKey?: string; // zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
   // Preferences
-  defaultFolderId?: string;  // Default folder for new links
+  defaultFolderId?: string; // Default folder for new links
   outputFormat?: "table" | "json" | "minimal";
 }
 ```
@@ -148,7 +148,6 @@ Users create an API Key in the dashboard (`/dashboard/api-keys`) and paste it in
 > **Note**: This requires server-side changes and is deferred to a future release.
 
 If implemented, must use **authorization code flow** with one-time code exchange:
-
 1. CLI opens browser with nonce
 2. User authenticates, server generates one-time `code` (not the API Key)
 3. Server redirects to `http://localhost:PORT/callback?code=xxx&nonce=yyy`
@@ -533,7 +532,7 @@ zhe delete 123 --yes
 
 **Output (JSON):**
 ```json
-{"success": true}
+{ "success": true }
 ```
 
 **Errors:**
@@ -622,42 +621,42 @@ const errorMessages: Record<number, string> = {
 
 ### Authentication Errors
 
-| Error | Message |
-|-------|---------|
-| No API key | `Not authenticated. Run \`zhe login\` first.` |
-| Invalid API key | `Authentication failed. Check your API Key or run \`zhe login\`.` |
-| Insufficient scope | `Permission denied. Your API Key lacks the required scope.` |
+| Error              | Message                                                           |
+| ------------------ | ----------------------------------------------------------------- |
+| No API key         | `Not authenticated. Run \`zhe login\` first.`                     |
+| Invalid API key    | `Authentication failed. Check your API Key or run \`zhe login\`.` |
+| Insufficient scope | `Permission denied. Your API Key lacks the required scope.`       |
 
 ### Network Errors
 
-| Error | Message |
-|-------|---------|
-| Timeout | `Request timed out. Check your connection and try again.` |
-| DNS failure | `Could not reach zhe.to. Check your connection.` |
-| SSL error | `SSL certificate error. Check your system time.` |
+| Error       | Message                                                   |
+| ----------- | --------------------------------------------------------- |
+| Timeout     | `Request timed out. Check your connection and try again.` |
+| DNS failure | `Could not reach zhe.to. Check your connection.`          |
+| SSL error   | `SSL certificate error. Check your system time.`          |
 
 ### Validation Errors
 
-| Error | Message |
-|-------|---------|
-| Invalid URL | `Invalid URL format. Include protocol (https://).` |
-| Invalid slug | `Invalid slug. Use only letters, numbers, hyphens, underscores.` |
-| Slug taken | `Slug "xxx" is already in use.` |
-| Past expiration | `Expiration date must be in the future.` |
-| Invalid ID | `Invalid link ID. Must be a number.` |
+| Error           | Message                                                          |
+| --------------- | ---------------------------------------------------------------- |
+| Invalid URL     | `Invalid URL format. Include protocol (https://).`               |
+| Invalid slug    | `Invalid slug. Use only letters, numbers, hyphens, underscores.` |
+| Slug taken      | `Slug "xxx" is already in use.`                                  |
+| Past expiration | `Expiration date must be in the future.`                         |
+| Invalid ID      | `Invalid link ID. Must be a number.`                             |
 
 ---
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | General error |
-| 2 | Invalid arguments |
-| 3 | Authentication required |
-| 4 | Not found |
-| 5 | Rate limited |
+| Code | Meaning                 |
+| ---- | ----------------------- |
+| 0    | Success                 |
+| 1    | General error           |
+| 2    | Invalid arguments       |
+| 3    | Authentication required |
+| 4    | Not found               |
+| 5    | Rate limited            |
 
 ---
 
@@ -665,12 +664,12 @@ const errorMessages: Record<number, string> = {
 
 ### Unit Tests (L1)
 
-| Component | Coverage Target |
-|-----------|----------------|
-| API client | 95%+ |
-| Commands | 95%+ |
-| Config | 95%+ |
-| Utils | 95%+ |
+| Component  | Coverage Target |
+| ---------- | --------------- |
+| API client | 95%+            |
+| Commands   | 95%+            |
+| Config     | 95%+            |
+| Utils      | 95%+            |
 
 ### Integration Tests
 
@@ -689,18 +688,17 @@ bun test:watch           # Watch mode
 
 ## Quality Gates
 
-| Gate | Check | Trigger |
-|------|-------|---------|
-| L1 | Unit tests (95%+ coverage) | pre-commit |
-| G1 | tsc --noEmit + Biome lint | pre-commit |
-| G2 | gitleaks secret scanning | pre-push |
+| Gate | Check                      | Trigger    |
+| ---- | -------------------------- | ---------- |
+| L1   | Unit tests (95%+ coverage) | pre-commit |
+| G1   | tsc --noEmit + Biome lint  | pre-commit |
+| G2   | gitleaks secret scanning   | pre-push   |
 
 ---
 
 ## Release Process
 
 Automated via `scripts/release.ts` (same pattern as base-cli):
-
 1. Run tests + lint
 2. Bump version in package.json
 3. Generate CHANGELOG entry
@@ -736,16 +734,16 @@ zhe --version
 
 Pure client implementation, no server changes required.
 
-| Command | API Endpoint | Status |
-|---------|--------------|--------|
-| `zhe login` | Manual API Key entry | Planned |
-| `zhe logout` | Local config only | Planned |
-| `zhe list` | `GET /api/v1/links` | Planned |
-| `zhe create` | `POST /api/v1/links` | Planned |
-| `zhe get` | `GET /api/v1/links/{id}` | Planned |
-| `zhe update` | `PATCH /api/v1/links/{id}` | Planned |
+| Command      | API Endpoint                | Status  |
+| ------------ | --------------------------- | ------- |
+| `zhe login`  | Manual API Key entry        | Planned |
+| `zhe logout` | Local config only           | Planned |
+| `zhe list`   | `GET /api/v1/links`         | Planned |
+| `zhe create` | `POST /api/v1/links`        | Planned |
+| `zhe get`    | `GET /api/v1/links/{id}`    | Planned |
+| `zhe update` | `PATCH /api/v1/links/{id}`  | Planned |
 | `zhe delete` | `DELETE /api/v1/links/{id}` | Planned |
-| `zhe open` | Browser open (no API) | Planned |
+| `zhe open`   | Browser open (no API)       | Planned |
 
 ### Phase 2: Browser OAuth Login (Future)
 
@@ -784,17 +782,17 @@ zhe                      # Enter interactive REPL
 
 ## API v1 Compatibility Matrix
 
-| CLI Feature | API Endpoint | Supported |
-|-------------|--------------|-----------|
-| List links | `GET /api/v1/links` | ✅ |
-| Create link | `POST /api/v1/links` | ✅ |
-| Get link by ID | `GET /api/v1/links/{id}` | ✅ |
-| Get link by slug | — | ❌ Not available |
-| Update link | `PATCH /api/v1/links/{id}` | ✅ |
-| Delete link | `DELETE /api/v1/links/{id}` | ✅ |
-| List total count | — | ❌ Not in response |
-| User info / whoami | — | ❌ No endpoint |
-| Key introspection | — | ❌ No endpoint |
+| CLI Feature        | API Endpoint                | Supported          |
+| ------------------ | --------------------------- | ------------------ |
+| List links         | `GET /api/v1/links`         | ✅                 |
+| Create link        | `POST /api/v1/links`        | ✅                 |
+| Get link by ID     | `GET /api/v1/links/{id}`    | ✅                 |
+| Get link by slug   | —                           | ❌ Not available   |
+| Update link        | `PATCH /api/v1/links/{id}`  | ✅                 |
+| Delete link        | `DELETE /api/v1/links/{id}` | ✅                 |
+| List total count   | —                           | ❌ Not in response |
+| User info / whoami | —                           | ❌ No endpoint     |
+| Key introspection  | —                           | ❌ No endpoint     |
 
 ---
 

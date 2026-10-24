@@ -30,28 +30,28 @@ Zhe 集成了 [Backy](https://github.com/kang-makes/backy) 远程备份服务，
 
 **备份内容：**
 
-| 数据类型 | 说明 |
-|----------|------|
-| 链接 | 所有短链接及其元数据（slug、原始 URL、点击数、过期时间等） |
-| 文件夹 | 文件夹名称、图标、创建时间 |
-| 标签 | 标签名称、颜色、创建时间 |
-| 链接-标签关联 | 链接与标签的多对多关系 |
+| 数据类型      | 说明                                                       |
+| ------------- | ---------------------------------------------------------- |
+| 链接          | 所有短链接及其元数据（slug、原始 URL、点击数、过期时间等） |
+| 文件夹        | 文件夹名称、图标、创建时间                                 |
+| 标签          | 标签名称、颜色、创建时间                                   |
+| 链接-标签关联 | 链接与标签的多对多关系                                     |
 
 **协议细节：**
 
-| 操作 | HTTP 方法 | 用途 |
-|------|-----------|------|
+| 操作     | HTTP 方法           | 用途                                                  |
+| -------- | ------------------- | ----------------------------------------------------- |
 | 测试连接 | `HEAD {webhookUrl}` | 验证 Backy 服务可达，`Authorization: Bearer {apiKey}` |
-| 查看历史 | `GET {webhookUrl}` | 获取备份历史记录列表 |
-| 推送备份 | `POST {webhookUrl}` | 上传备份文件（multipart/form-data） |
+| 查看历史 | `GET {webhookUrl}`  | 获取备份历史记录列表                                  |
+| 推送备份 | `POST {webhookUrl}` | 上传备份文件（multipart/form-data）                   |
 
 **推送请求格式（multipart/form-data）：**
 
-| 字段 | 类型 | 示例值 |
-|------|------|--------|
-| `file` | File (JSON) | `zhe-backup-2026-03-02.json` |
-| `environment` | String | `prod` 或 `dev`（取决于 `NODE_ENV`） |
-| `tag` | String | `v1.5.0-2026-03-02-42lnk-3fld-5tag` |
+| 字段          | 类型        | 示例值                               |
+| ------------- | ----------- | ------------------------------------ |
+| `file`        | File (JSON) | `zhe-backup-2026-03-02.json`         |
+| `environment` | String      | `prod` 或 `dev`（取决于 `NODE_ENV`） |
+| `tag`         | String      | `v1.5.0-2026-03-02-42lnk-3fld-5tag`  |
 
 **Tag 格式规则：**
 
@@ -69,13 +69,12 @@ Zhe 暴露了一个 Webhook 端点 `POST /api/backy/pull`，供 Backy 主动调�
 
 **端点说明：**
 
-| 方法 | 端点 | 用途 |
-|------|------|------|
-| `HEAD /api/backy/pull` | 连接测试 | 验证 Key 有效性，返回 200 或 401 |
+| 方法                   | 端点     | 用途                                  |
+| ---------------------- | -------- | ------------------------------------- |
+| `HEAD /api/backy/pull` | 连接测试 | 验证 Key 有效性，返回 200 或 401      |
 | `POST /api/backy/pull` | 触发备份 | 自动收集数据并推送到配置的 Backy 服务 |
 
 **Pull 触发流程：**
-
 1. Backy 发送 `POST /api/backy/pull`，附带 `X-Webhook-Key` 头
 2. Zhe 验证 Key → 查找对应用户 → 读取该用户的 Backy Push 配置
 3. 自动收集该用户的所有数据（链接、文件夹、标签、关联）
@@ -119,11 +118,11 @@ curl -X POST https://zhe.to/api/backy/pull \
 
 **错误响应：**
 
-| 状态码 | 原因 |
-|--------|------|
-| 401 | 缺少 `X-Webhook-Key` 头，或 Key 无效 |
-| 422 | 用户尚未配置 Backy Push 设置（Webhook URL / API Key） |
-| 502 | 向 Backy 推送备份时失败 |
+| 状态码 | 原因                                                  |
+| ------ | ----------------------------------------------------- |
+| 401    | 缺少 `X-Webhook-Key` 头，或 Key 无效                  |
+| 422    | 用户尚未配置 Backy Push 设置（Webhook URL / API Key） |
+| 502    | 向 Backy 推送备份时失败                               |
 
 ## 使用指南
 
@@ -148,11 +147,11 @@ curl -X POST https://zhe.to/api/backy/pull \
 
 ### Key 管理
 
-| 操作 | 说明 |
-|------|------|
-| 生成凭证 | 首次生成 Webhook Key |
+| 操作     | 说明                                              |
+| -------- | ------------------------------------------------- |
+| 生成凭证 | 首次生成 Webhook Key                              |
 | 重新生成 | 作废旧 Key，生成新 Key（需同步更新 Backy 端配置） |
-| 撤销 | 删除 Key，停止 Pull 功能 |
+| 撤销     | 删除 Key，停止 Pull 功能                          |
 
 ## 备份数据格式
 
@@ -204,27 +203,27 @@ curl -X POST https://zhe.to/api/backy/pull \
 
 Backy 相关数据存储在 `user_settings` 表中：
 
-| 字段 | 用途 |
-|------|------|
+| 字段                | 用途                               |
+| ------------------- | ---------------------------------- |
 | `backy_webhook_url` | Push 目标 Backy 服务的 Webhook URL |
-| `backy_api_key` | Push 认证用的 API Key |
-| `backy_pull_key` | Pull Webhook 的认证 Key |
+| `backy_api_key`     | Push 认证用的 API Key              |
+| `backy_pull_key`    | Pull Webhook 的认证 Key            |
 
 > **注意**：`models/backy.ts` 中 `BackyPullWebhook` 接口声明了 `secret` 字段，但数据库中无对应列，实际代码中未使用。该字段为历史遗留，可安全移除。
 
 ## 代码结构
 
-| 文件 | 职责 |
-|------|------|
-| `models/backy.ts` | 纯业务逻辑：类型定义、校验、格式化工具函数 |
-| `models/backy.server.ts` | 服务端专用：Pull Key 生成 |
-| `actions/backy.ts` | Server Actions：配置 CRUD、连接测试、推送、Pull Webhook 管理 |
-| `app/api/backy/pull/route.ts` | API 路由：Pull Webhook 端点（POST + HEAD） |
-| `components/dashboard/backy-page.tsx` | UI 组件：远程备份 + Pull Webhook 两张卡片 |
-| `viewmodels/useBackyViewModel.ts` | 客户端状态管理：配置、推送、历史、Pull Key 生命周期 |
-| `lib/db/scoped.ts` | 数据库操作：Backy 设置和 Pull Key 的 CRUD |
-| `tests/api/backy.test.ts` | API E2E 测试：30 个用例 |
-| `tests/playwright/backy.spec.ts` | Playwright BDD E2E 测试：10 个用例 |
+| 文件                                  | 职责                                                         |
+| ------------------------------------- | ------------------------------------------------------------ |
+| `models/backy.ts`                     | 纯业务逻辑：类型定义、校验、格式化工具函数                   |
+| `models/backy.server.ts`              | 服务端专用：Pull Key 生成                                    |
+| `actions/backy.ts`                    | Server Actions：配置 CRUD、连接测试、推送、Pull Webhook 管理 |
+| `app/api/backy/pull/route.ts`         | API 路由：Pull Webhook 端点（POST + HEAD）                   |
+| `components/dashboard/backy-page.tsx` | UI 组件：远程备份 + Pull Webhook 两张卡片                    |
+| `viewmodels/useBackyViewModel.ts`     | 客户端状态管理：配置、推送、历史、Pull Key 生命周期          |
+| `lib/db/scoped.ts`                    | 数据库操作：Backy 设置和 Pull Key 的 CRUD                    |
+| `tests/api/backy.test.ts`             | API E2E 测试：30 个用例                                      |
+| `tests/playwright/backy.spec.ts`      | Playwright BDD E2E 测试：10 个用例                           |
 
 ## 相关文档
 

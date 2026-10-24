@@ -31,30 +31,30 @@
 
 ### 层级定义
 
-| 层级 | 名称 | 验证对象 | 执行时机 | 门控类型 |
-|------|------|----------|----------|----------|
-| **L1** | 单元 + 集成测试 | 纯函数、ViewModel、Hooks、Server Actions、组件 | pre-commit | Hard |
-| **L2** | API E2E | 真实 HTTP 请求到运行中的 Next.js 服务器 | pre-push | Hard |
-| **L3** | 系统 E2E | 真实用户端到端流程（Playwright 浏览器自动化） | on-demand | Hard |
-| **G1** | 静态分析 | 类型检查 (`tsc --noEmit`) + Biome (`--error-on-warnings`) | pre-commit | Hard |
-| **G2** | 安全检查 | Secrets 泄露 (gitleaks) + 依赖漏洞 (osv-scanner) | pre-commit + pre-push | Hard |
-| **Worker** | Edge Worker | Cloudflare Worker 边缘逻辑 | on-demand | Hard |
+| 层级       | 名称            | 验证对象                                                  | 执行时机              | 门控类型 |
+| ---------- | --------------- | --------------------------------------------------------- | --------------------- | -------- |
+| **L1**     | 单元 + 集成测试 | 纯函数、ViewModel、Hooks、Server Actions、组件            | pre-commit            | Hard     |
+| **L2**     | API E2E         | 真实 HTTP 请求到运行中的 Next.js 服务器                   | pre-push              | Hard     |
+| **L3**     | 系统 E2E        | 真实用户端到端流程（Playwright 浏览器自动化）             | on-demand             | Hard     |
+| **G1**     | 静态分析        | 类型检查 (`tsc --noEmit`) + Biome (`--error-on-warnings`) | pre-commit            | Hard     |
+| **G2**     | 安全检查        | Secrets 泄露 (gitleaks) + 依赖漏洞 (osv-scanner)          | pre-commit + pre-push | Hard     |
+| **Worker** | Edge Worker     | Cloudflare Worker 边缘逻辑                                | on-demand             | Hard     |
 
 ### 历史指标（2026-04-20，不代表当前契约）
 
-| 指标 | 当前值 | 目标 |
-|------|--------|------|
-| L1 测试数量 | 2,583 | - |
-| L1 语句覆盖率 | 98.25% | ≥ 90% |
-| L1 分支覆盖率 | 92.62% | ≥ 80% |
-| L1 函数覆盖率 | 98.16% | ≥ 85% |
-| L1 行覆盖率 | 99.33% | ≥ 90% |
-| L2 API 路由覆盖 | 21/21 (100%) | 100% |
-| L2 测试数量 | 197 | - |
-| L3 页面覆盖 | 16/16 (100%) | 100% |
-| L3 测试数量 | 148 | - |
-| Worker 测试数量 | 72 | - |
-| **总测试数量** | **3,000** | - |
+| 指标            | 当前值       | 目标  |
+| --------------- | ------------ | ----- |
+| L1 测试数量     | 2,583        | -     |
+| L1 语句覆盖率   | 98.25%       | ≥ 90% |
+| L1 分支覆盖率   | 92.62%       | ≥ 80% |
+| L1 函数覆盖率   | 98.16%       | ≥ 85% |
+| L1 行覆盖率     | 99.33%       | ≥ 90% |
+| L2 API 路由覆盖 | 21/21 (100%) | 100%  |
+| L2 测试数量     | 197          | -     |
+| L3 页面覆盖     | 16/16 (100%) | 100%  |
+| L3 测试数量     | 148          | -     |
+| Worker 测试数量 | 72           | -     |
+| **总测试数量**  | **3,000**    | -     |
 
 ---
 
@@ -70,20 +70,20 @@
 
 #### 测试范围
 
-| 类型 | 目录 | 说明 |
-|------|------|------|
-| 单元测试 | `tests/unit/` | 纯函数、工具函数、模型逻辑 |
-| 组件测试 | `tests/components/` | React 组件渲染和交互 |
+| 类型     | 目录                 | 说明                                         |
+| -------- | -------------------- | -------------------------------------------- |
+| 单元测试 | `tests/unit/`        | 纯函数、工具函数、模型逻辑                   |
+| 组件测试 | `tests/components/`  | React 组件渲染和交互                         |
 | 集成测试 | `tests/integration/` | Server Actions + Route Handler（in-process） |
 
 #### 技术栈
 
-| 工具 | 用途 |
-|------|------|
-| [Vitest](https://vitest.dev) | 测试运行器 |
-| [React Testing Library](https://testing-library.com) | 组件测试 |
+| 工具                                                          | 用途                                                      |
+| ------------------------------------------------------------- | --------------------------------------------------------- |
+| [Vitest](https://vitest.dev)                                  | 测试运行器                                                |
+| [React Testing Library](https://testing-library.com)          | 组件测试                                                  |
 | [happy-dom / jsdom](https://github.com/capricorn86/happy-dom) | 浏览器环境模拟（按文件级 `@vitest-environment` 指令启用） |
-| [@vitest/coverage-v8](https://vitest.dev/guide/coverage) | 代码覆盖率 |
+| [@vitest/coverage-v8](https://vitest.dev/guide/coverage)      | 代码覆盖率                                                |
 
 #### 关键配置
 
@@ -191,26 +191,26 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 
 #### 测试文件
 
-| Spec 文件 | 功能模块 | 测试数 |
-|-----------|----------|--------|
-| `auth-guard.spec.ts` | 认证守卫 | 5 |
-| `backy.spec.ts` | Backy 集成 | 10 |
-| `data-management.spec.ts` | 数据管理 | 4 |
-| `folders.spec.ts` | 文件夹 | 4 |
-| `landing.spec.ts` | 落地页 | 3 |
-| `link-crud.spec.ts` | 链接 CRUD | 8 |
-| `navigation.spec.ts` | 导航 | 13 |
-| `not-found.spec.ts` | 404 页面 | 6 |
-| `overview.spec.ts` | 概览/分析 | 7 |
-| `redirect.spec.ts` | 短链接重定向 | 2 |
-| `search.spec.ts` | 搜索 (Cmd+K) | 8 |
-| `storage.spec.ts` | 存储管理 | 6 |
-| `tags.spec.ts` | 标签 | 8 |
-| `uploads.spec.ts` | 文件上传 | 10 |
-| `webhook.spec.ts` | Webhook | 9 |
-| `xray.spec.ts` | Xray (Twitter) | 9 |
-| `api-keys.spec.ts` | API Keys 管理 | 15 |
-| `ideas.spec.ts` | 想法 CRUD | 21 |
+| Spec 文件                 | 功能模块       | 测试数 |
+| ------------------------- | -------------- | ------ |
+| `auth-guard.spec.ts`      | 认证守卫       | 5      |
+| `backy.spec.ts`           | Backy 集成     | 10     |
+| `data-management.spec.ts` | 数据管理       | 4      |
+| `folders.spec.ts`         | 文件夹         | 4      |
+| `landing.spec.ts`         | 落地页         | 3      |
+| `link-crud.spec.ts`       | 链接 CRUD      | 8      |
+| `navigation.spec.ts`      | 导航           | 13     |
+| `not-found.spec.ts`       | 404 页面       | 6      |
+| `overview.spec.ts`        | 概览/分析      | 7      |
+| `redirect.spec.ts`        | 短链接重定向   | 2      |
+| `search.spec.ts`          | 搜索 (Cmd+K)   | 8      |
+| `storage.spec.ts`         | 存储管理       | 6      |
+| `tags.spec.ts`            | 标签           | 8      |
+| `uploads.spec.ts`         | 文件上传       | 10     |
+| `webhook.spec.ts`         | Webhook        | 9      |
+| `xray.spec.ts`            | Xray (Twitter) | 9      |
+| `api-keys.spec.ts`        | API Keys 管理  | 15     |
+| `ideas.spec.ts`           | 想法 CRUD      | 21     |
 
 #### 命令
 
@@ -248,14 +248,14 @@ exec bun x tsc --noEmit
 
 全仓统一 **Biome**（主应用 / `worker/` / `cli/`），根配置 `biome.json`（worker/cli 以 `extends` 继承）。
 
-| 规则族 | 策略 |
-|------|------|
-| `correctness/noUnusedVariables` | error |
-| `correctness/noUnusedImports` | error |
-| `style/noNonNullAssertion` | error |
-| `suspicious/noExplicitAny` | error（测试目录 off） |
-| `suspicious/noFocusedTests` / `noSkippedTests` | error（测试） |
-| `complexity/noExcessiveCognitiveComplexity` | warn，max 35（scripts/tests off） |
+| 规则族                                         | 策略                              |
+| ---------------------------------------------- | --------------------------------- |
+| `correctness/noUnusedVariables`                | error                             |
+| `correctness/noUnusedImports`                  | error                             |
+| `style/noNonNullAssertion`                     | error                             |
+| `suspicious/noExplicitAny`                     | error（测试目录 off）             |
+| `suspicious/noFocusedTests` / `noSkippedTests` | error（测试）                     |
+| `complexity/noExcessiveCognitiveComplexity`    | warn，max 35（scripts/tests off） |
 
 #### Index-snapshot lint
 
@@ -283,10 +283,10 @@ bun run format     # Biome format
 
 #### 工具
 
-| 工具 | 用途 | 执行时机 |
-|------|------|----------|
-| [gitleaks](https://github.com/gitleaks/gitleaks) | 扫描暂存区的 secrets | pre-commit |
-| [osv-scanner](https://github.com/google/osv-scanner) | 扫描 lockfile 依赖漏洞 | pre-push |
+| 工具                                                 | 用途                   | 执行时机   |
+| ---------------------------------------------------- | ---------------------- | ---------- |
+| [gitleaks](https://github.com/gitleaks/gitleaks)     | 扫描暂存区的 secrets   | pre-commit |
+| [osv-scanner](https://github.com/google/osv-scanner) | 扫描 lockfile 依赖漏洞 | pre-push   |
 
 #### 安装
 
@@ -321,20 +321,20 @@ require_tool() {
 
 #### 测试范围
 
-| 模块 | 测试组 | 测试数 |
-|------|--------|--------|
-| Fetch Handler | forwarding to origin | 7 |
-| Fetch Handler | KV redirect | 12 |
-| Fetch Handler | reserved path detection | 2 |
-| Fetch Handler | negative cache | 3 |
-| Fetch Handler | geo header passthrough | 1 |
-| Scheduled Handler | cron triggers | 5 |
-| D1 Proxy | authentication | 4 |
-| D1 Proxy | request validation | 3 |
-| D1 Proxy | SQL execution | 5 |
-| D1 Proxy | error handling | 5 |
-| D1 Proxy | routing | 6 |
-| D1 Batch | batch operations | 6+ |
+| 模块              | 测试组                  | 测试数 |
+| ----------------- | ----------------------- | ------ |
+| Fetch Handler     | forwarding to origin    | 7      |
+| Fetch Handler     | KV redirect             | 12     |
+| Fetch Handler     | reserved path detection | 2      |
+| Fetch Handler     | negative cache          | 3      |
+| Fetch Handler     | geo header passthrough  | 1      |
+| Scheduled Handler | cron triggers           | 5      |
+| D1 Proxy          | authentication          | 4      |
+| D1 Proxy          | request validation      | 3      |
+| D1 Proxy          | SQL execution           | 5      |
+| D1 Proxy          | error handling          | 5      |
+| D1 Proxy          | routing                 | 6      |
+| D1 Batch          | batch operations        | 6+     |
 
 #### 命令
 
@@ -347,7 +347,6 @@ cd worker && bun run test  # Worker 单元测试
 ### Browser matrix scope
 
 The ordinary L3 suite runs shared workflows once per meaningful UI variant:
-
 - X media deletion and live refresh run on desktop. Mobile X layout, touch interaction,
   playback and filtering remain covered by the other connector journeys; mobile
   cross-tab deletion is no longer a separate browser acceptance case.
@@ -421,10 +420,10 @@ cd worker && bun run test     # Worker 单元测试
 
 ## 四、端口分配
 
-| 端口 | 用途 |
-|------|------|
-| 7006 | 开发服务器（`bun run dev`） |
-| 17006 | L2 API E2E 测试（`run-api-e2e.ts` 自动管理） |
+| 端口  | 用途                                                          |
+| ----- | ------------------------------------------------------------- |
+| 7006  | 开发服务器（`bun run dev`）                                   |
+| 17006 | L2 API E2E 测试（`run-api-e2e.ts` 自动管理）                  |
 | 27006 | L3 Playwright BDD E2E 测试（`playwright.config.ts` 自动管理） |
 
 ---
@@ -460,20 +459,20 @@ worker/
 
 ## 六、测试命令速查
 
-| 命令 | 层级 | 说明 |
-|------|------|------|
-| `bun run test` | — | Watch 模式 |
-| `bun run test:run` | — | 单次运行（全部测试） |
-| `bun run test:unit` | L1 | 仅单元测试（排除 api/ 和 integration/） |
-| `bun run test:unit:coverage` | L1 | 单元测试 + 覆盖率门槛检查 |
-| `bun run test:integration` | L1 | Server Actions 集成测试 |
-| `bun run test:api` | L2 | API E2E 测试（启动 dev server，真 HTTP） |
-| `bun run test:e2e:pw` | L3 | Playwright BDD E2E |
-| `bun run test:e2e:pw:ui` | L3 | Playwright UI 模式（调试用） |
-| `bun run test:coverage` | — | 覆盖率报告 |
-| `bun run typecheck` | G1 | TypeScript 类型检查 |
-| `bun run lint` | G1 | Biome check（零警告） |
-| `cd worker && bun run test` | Worker | Worker 单元测试 |
+| 命令                         | 层级   | 说明                                     |
+| ---------------------------- | ------ | ---------------------------------------- |
+| `bun run test`               | —      | Watch 模式                               |
+| `bun run test:run`           | —      | 单次运行（全部测试）                     |
+| `bun run test:unit`          | L1     | 仅单元测试（排除 api/ 和 integration/）  |
+| `bun run test:unit:coverage` | L1     | 单元测试 + 覆盖率门槛检查                |
+| `bun run test:integration`   | L1     | Server Actions 集成测试                  |
+| `bun run test:api`           | L2     | API E2E 测试（启动 dev server，真 HTTP） |
+| `bun run test:e2e:pw`        | L3     | Playwright BDD E2E                       |
+| `bun run test:e2e:pw:ui`     | L3     | Playwright UI 模式（调试用）             |
+| `bun run test:coverage`      | —      | 覆盖率报告                               |
+| `bun run typecheck`          | G1     | TypeScript 类型检查                      |
+| `bun run lint`               | G1     | Biome check（零警告）                    |
+| `cd worker && bun run test`  | Worker | Worker 单元测试                          |
 
 ---
 
@@ -481,11 +480,11 @@ worker/
 
 L2/L3 均使用 `scripts/test-stack.ts` 管理的本地栈，不能创建或部署远端 `-test` Worker、D1、KV、R2。
 
-| 组件 | 当前本地实现 | 尚需完善 |
-|---|---|---|
-| D1 / KV | Wrangler + SQLite, `.test-storage/runs/<uuid>/wrangler` | Owned per-run persistence |
-| R2 | Native Wrangler R2 in the owned run directory | No filesystem business shim |
-| Next | L2 17006、L3 27006，`.next-test` | 两层仍共享存储/输出，当前必须串行 |
+| 组件       | 当前本地实现                                                | 尚需完善                                |
+| ---------- | ----------------------------------------------------------- | --------------------------------------- |
+| D1 / KV    | Wrangler + SQLite, `.test-storage/runs/<uuid>/wrangler`     | Owned per-run persistence               |
+| R2         | Native Wrangler R2 in the owned run directory               | No filesystem business shim             |
+| Next       | L2 17006、L3 27006，`.next-test`                            | 两层仍共享存储/输出，当前必须串行       |
 | 数据 guard | Loopback D1 proxy、`_test_marker(env=test)` 和测试 env 覆盖 | 首次删除目录前验证本地目录归属与 marker |
 
 测试入口会覆盖本地资源变量并清除生产 Cloudflare 资源身份；测试不需要 `CLOUDFLARE_API_TOKEN` 或旧远端 test 资源变量。不要为了运行测试复制生产 secrets。
@@ -511,13 +510,13 @@ git push --no-verify
 
 ### 为什么禁止
 
-| 风险 | 后果 |
-|------|------|
-| 跳过 L1 测试 | 破坏代码可能合入 main |
-| 跳过 G1 类型检查 | TypeScript 错误逃逸 |
-| 跳过 G2 gitleaks | Secrets 泄露到远端 |
-| 跳过 L2 API E2E | 接口回归未被发现 |
-| 跳过 osv-scanner | 已知漏洞依赖进入生产 |
+| 风险             | 后果                  |
+| ---------------- | --------------------- |
+| 跳过 L1 测试     | 破坏代码可能合入 main |
+| 跳过 G1 类型检查 | TypeScript 错误逃逸   |
+| 跳过 G2 gitleaks | Secrets 泄露到远端    |
+| 跳过 L2 API E2E  | 接口回归未被发现      |
+| 跳过 osv-scanner | 已知漏洞依赖进入生产  |
 
 ### 违规后果
 
@@ -532,20 +531,20 @@ git push --no-verify
 
 ### 当前低覆盖文件（分支覆盖率 < 85%）
 
-| 文件 | 分支覆盖率 | 问题 |
-|------|-----------|------|
-| `storage.ts` | 77.27% | 错误处理分支未测试 |
-| `webhook-page.tsx` | 75% | Slider 边界条件 |
-| `upload-zone.tsx` | 81.81% | 拖拽事件边界 |
-| `upload-list.tsx` | 83.33% | Slider 边界条件 |
+| 文件               | 分支覆盖率 | 问题               |
+| ------------------ | ---------- | ------------------ |
+| `storage.ts`       | 77.27%     | 错误处理分支未测试 |
+| `webhook-page.tsx` | 75%        | Slider 边界条件    |
+| `upload-zone.tsx`  | 81.81%     | 拖拽事件边界       |
+| `upload-list.tsx`  | 83.33%     | Slider 边界条件    |
 
 ### 推荐改进
 
-| 优先级 | 任务 | 预计测试增量 |
-|--------|------|-------------|
-| P1 | 提升 `storage.ts` 分支覆盖至 90%+ | +3-5 L1 |
-| P1 | 添加 `api-keys.test.ts` 集成测试 | +8-10 L1 |
-| P2 | Slider 组件边界测试 | +4-6 L1 |
+| 优先级 | 任务                              | 预计测试增量 |
+| ------ | --------------------------------- | ------------ |
+| P1     | 提升 `storage.ts` 分支覆盖至 90%+ | +3-5 L1      |
+| P1     | 添加 `api-keys.test.ts` 集成测试  | +8-10 L1     |
+| P2     | Slider 组件边界测试               | +4-6 L1      |
 
 ---
 

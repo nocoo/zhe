@@ -6,13 +6,13 @@
 
 ## 前置要求
 
-| 工具 | 版本 | 用途 |
-|------|------|------|
-| [Bun](https://bun.sh) | >= 1.0 | 运行时 + 包管理器 |
-| [Node.js](https://nodejs.org) | >= 22 | Vitest 测试运行（使用 `npx vitest`）；nanoid 6+ 要求 Node ^22 \|\| ^24 \|\| >=26 |
-| [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) | >= 4.0 | Cloudflare D1 管理（可选） |
-| [gitleaks](https://github.com/gitleaks/gitleaks) | >= 8.0 | Secrets 泄露扫描（G2 advisory，可选） |
-| [osv-scanner](https://github.com/google/osv-scanner) | >= 2.0 | 依赖漏洞扫描（G2 advisory，可选） |
+| 工具                                                                | 版本   | 用途                                                                             |
+| ------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| [Bun](https://bun.sh)                                               | >= 1.0 | 运行时 + 包管理器                                                                |
+| [Node.js](https://nodejs.org)                                       | >= 22  | Vitest 测试运行（使用 `npx vitest`）；nanoid 6+ 要求 Node ^22 \|\| ^24 \|\| >=26 |
+| [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) | >= 4.0 | Cloudflare D1 管理（可选）                                                       |
+| [gitleaks](https://github.com/gitleaks/gitleaks)                    | >= 8.0 | Secrets 泄露扫描（G2 advisory，可选）                                            |
+| [osv-scanner](https://github.com/google/osv-scanner)                | >= 2.0 | 依赖漏洞扫描（G2 advisory，可选）                                                |
 
 ## 安装依赖
 
@@ -32,40 +32,40 @@ cp .env.example .env.local
 
 ### 必填变量
 
-| 变量 | 来源 | 说明 |
-|------|------|------|
-| `AUTH_SECRET` | `openssl rand -base64 32` | Auth.js 加密密钥 |
-| `AUTH_GOOGLE_ID` | Google Cloud Console | Google OAuth 客户端 ID |
-| `AUTH_GOOGLE_SECRET` | Google Cloud Console | Google OAuth 客户端密钥 |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard | Cloudflare 账号 ID |
-| `CLOUDFLARE_D1_DATABASE_ID` | Cloudflare Dashboard | D1 数据库 ID |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare Dashboard | Cloudflare API Token |
+| 变量                        | 来源                      | 说明                    |
+| --------------------------- | ------------------------- | ----------------------- |
+| `AUTH_SECRET`               | `openssl rand -base64 32` | Auth.js 加密密钥        |
+| `AUTH_GOOGLE_ID`            | Google Cloud Console      | Google OAuth 客户端 ID  |
+| `AUTH_GOOGLE_SECRET`        | Google Cloud Console      | Google OAuth 客户端密钥 |
+| `CLOUDFLARE_ACCOUNT_ID`     | Cloudflare Dashboard      | Cloudflare 账号 ID      |
+| `CLOUDFLARE_D1_DATABASE_ID` | Cloudflare Dashboard      | D1 数据库 ID            |
+| `CLOUDFLARE_API_TOKEN`      | Cloudflare Dashboard      | Cloudflare API Token    |
 
 ### 可选变量（文件上传功能）
 
-| 变量 | 说明 |
-|------|------|
-| `R2_ACCESS_KEY_ID` | S3 兼容存储 Access Key |
+| 变量                   | 说明                   |
+| ---------------------- | ---------------------- |
+| `R2_ACCESS_KEY_ID`     | S3 兼容存储 Access Key |
 | `R2_SECRET_ACCESS_KEY` | S3 兼容存储 Secret Key |
-| `R2_ENDPOINT` | S3 兼容端点 URL |
-| `R2_BUCKET_NAME` | R2 存储桶名称 |
-| `R2_PUBLIC_DOMAIN` | R2 公开访问域名 |
-| `R2_USER_HASH_SALT` | 用户 ID 哈希盐值 |
+| `R2_ENDPOINT`          | S3 兼容端点 URL        |
+| `R2_BUCKET_NAME`       | R2 存储桶名称          |
+| `R2_PUBLIC_DOMAIN`     | R2 公开访问域名        |
+| `R2_USER_HASH_SALT`    | 用户 ID 哈希盐值       |
 
 ### 可选变量（安全）
 
-| 变量 | 说明 |
-|------|------|
+| 变量            | 说明                                                     |
+| --------------- | -------------------------------------------------------- |
 | `WORKER_SECRET` | Worker 共享密钥（保护 `sync-kv` 和 `record-click` 端点） |
 
 ### 可选变量（API E2E 测试）
 
-| 变量 | 说明 |
-|------|------|
-| `D1_TEST_DATABASE_ID` | 测试专用 D1 数据库 UUID（必须**不等于** `CLOUDFLARE_D1_DATABASE_ID`）。安全防护：防止 E2E 测试意外操作生产数据 |
-| `R2_TEST_BUCKET_NAME` | 测试专用 R2 bucket 名称（默认 `zhe-test`） |
-| `R2_TEST_PUBLIC_DOMAIN` | 测试 R2 占位域名（默认 `https://test-r2.zhe.to`，无需真实 DNS） |
-| `KV_TEST_NAMESPACE_ID` | 测试专用 KV namespace ID |
+| 变量                    | 说明                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `D1_TEST_DATABASE_ID`   | 测试专用 D1 数据库 UUID（必须**不等于** `CLOUDFLARE_D1_DATABASE_ID`）。安全防护：防止 E2E 测试意外操作生产数据 |
+| `R2_TEST_BUCKET_NAME`   | 测试专用 R2 bucket 名称（默认 `zhe-test`）                                                                     |
+| `R2_TEST_PUBLIC_DOMAIN` | 测试 R2 占位域名（默认 `https://test-r2.zhe.to`，无需真实 DNS）                                                |
+| `KV_TEST_NAMESPACE_ID`  | 测试专用 KV namespace ID                                                                                       |
 
 > **测试资源隔离**：L2/L3 E2E 测试使用独立的 Cloudflare 资源（`zhe-db-test` / `zhe-test` / `zhe-test`），与生产完全隔离。详见 [Cloudflare 资源清单](14-cloudflare-resource-inventory.md)。
 
@@ -104,19 +104,19 @@ bun dev
 
 ## 常用命令
 
-| 命令 | 说明 |
-|------|------|
-| `bun dev` | 启动开发服务器（端口 7006，Turbopack） |
-| `bun run build` | 生产构建 |
-| `bun run start` | 启动生产服务器 |
-| `bun run lint` | Biome 检查（零警告策略） |
-| `bun run test` | Watch 模式运行测试 |
-| `bun run test:run` | 运行全部测试（单次） |
-| `bun run test:unit` | 仅运行单元测试（排除 API E2E） |
-| `bun run test:unit:coverage` | 单元测试 + 覆盖率门槛检查 |
-| `bun run test:api` | 仅运行 API E2E 测试 |
-| `bun run test:coverage` | 运行测试并生成覆盖率报告 |
-| `bun run generate:logos` | 从源图生成全套 Logo 尺寸 |
+| 命令                         | 说明                                   |
+| ---------------------------- | -------------------------------------- |
+| `bun dev`                    | 启动开发服务器（端口 7006，Turbopack） |
+| `bun run build`              | 生产构建                               |
+| `bun run start`              | 启动生产服务器                         |
+| `bun run lint`               | Biome 检查（零警告策略）               |
+| `bun run test`               | Watch 模式运行测试                     |
+| `bun run test:run`           | 运行全部测试（单次）                   |
+| `bun run test:unit`          | 仅运行单元测试（排除 API E2E）         |
+| `bun run test:unit:coverage` | 单元测试 + 覆盖率门槛检查              |
+| `bun run test:api`           | 仅运行 API E2E 测试                    |
+| `bun run test:coverage`      | 运行测试并生成覆盖率报告               |
+| `bun run generate:logos`     | 从源图生成全套 Logo 尺寸               |
 
 ## 数据库迁移
 

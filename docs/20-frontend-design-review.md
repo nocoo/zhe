@@ -12,7 +12,6 @@
 Zhe 整体已经达到一个**「干净的 shadcn 中后台」**水准:design token 体系完整(三层背景 L0/L1/L2、统一 radius、24 色图表、明暗双套配色),组件库自洽,部件文件切分合理。整体调性接近 Linear/Raycast 那一派「极简软白 + 紫色 accent」的语言,首页 badge 是亮点设计,有产品记忆点。
 
 但站在「再上一个台阶」的视角,问题集中在三个方向:
-
 1. **视觉层级偏弱**——L0/L1/L2 三层背景的分工虽然存在(L1 面板在 `app-shell.tsx`,L2 卡片在 shadcn `<Card>`),但 L1 与 L0 对比度仅 3% 亮度差,二级卡片又多为 `bg-secondary`,缺少 hover/阴影/border 反馈,看久了"扁平到糊"。
 2. **品牌只在首页**——进入 Dashboard 后 badge 的"身份证"叙事完全消失,产品退化为通用模板。紫色 primary 在内页几乎不出现,品牌存在感弱。
 3. **信息架构存在分类拍脑袋**——"系统集成 / 系统"分组语义模糊;Webhook 已是 deprecated 还放在主导航;`/dashboard` 默认进的"链接管理"和 `/dashboard/overview`(概览)首页定位冲突。
@@ -51,7 +50,6 @@ L2 secondary:  0 0% 100%     (#ffffff)
 - `<StatCard>` `<LinkCard>` 也 `bg-secondary` (L2),嵌在 L1 面板里
 
 层级架构本身合理:**L0 body → L1 面板 → L2 卡片**。问题不在"没用上",而在以下两点:
-
 1. **`bg-card` 仅 L1 面板自己一处使用**,token 命名容易让新人误以为通用 Card 应该用 `bg-card`。建议把 `--card` 重命名为更明确的 `--panel`(或 `--surface-l1`),避免和 shadcn `<Card>` 的命名混淆。
 2. **L1 与 L0 视觉差太小**(94% vs 97% 亮度,只差 3%),在多数显示器上几乎看不出"内容面板边界",白天的环境光下面板像悬浮在统一灰底上。可把 L1 提到 100%(纯白),或给 L0 降到 91-92%,拉开对比。
 
@@ -180,7 +178,7 @@ L2 secondary:  0 0% 100%     (#ffffff)
 **建议**:扩展为统一 launcher,新增两类:
 - 页面跳转(`Go to: 概览 / Ideas / Webhook ...`)——可直接复用 `nav-config.ts` 的 NavItem 列表生成
 - 动作(`Action: 新建链接 / 切换主题 / 退出登录`)
-做成 Raycast/Linear 风格的统一 launcher。这是从「中后台」迈向「专业工具」最高 ROI 的一步。
+  做成 Raycast/Linear 风格的统一 launcher。这是从「中后台」迈向「专业工具」最高 ROI 的一步。
 
 ---
 
@@ -190,7 +188,7 @@ L2 secondary:  0 0% 100%     (#ffffff)
 
 `link-card.tsx:130 & 139`:
 ```tsx
-className="...rounded-card border-0 bg-secondary shadow-none ... transition-colors"
+className = "...rounded-card border-0 bg-secondary shadow-none ... transition-colors";
 ```
 有 `transition-colors` 但没有任何 hover class——也就是说卡片本身鼠标移上去**毫无反应**。Grid 模式下截图会出现 `bg-black/60` 遮罩,但 List 模式完全静默。
 
@@ -309,7 +307,7 @@ className="...rounded-card border-0 bg-secondary shadow-none ... transition-colo
 
 `collapsible-nav-group.tsx:27`:
 ```tsx
-className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70"
+className = "text-xs font-medium uppercase tracking-wider text-muted-foreground/70";
 ```
 中文字符没有大小写,`uppercase` 在中文上 no-op。`tracking-wider` 让中文字符间距过大,看着像 PPT。
 
@@ -412,7 +410,7 @@ className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70
 **建议**:统一一条策略——
 - 路线 A:**全中文**(Inbox→收件箱、Webhook→Webhook 通知、API Keys→密钥)
 - 路线 B:**功能词中文 + 产品名英文**(Inbox 是收件箱概念,Backy/Xray 是产品名保留英文)
-现在是无策略混用,看起来像随手起的。
+  现在是无策略混用,看起来像随手起的。
 
 ### 5.5 [P2] 没有 Tour / Onboarding
 
@@ -428,32 +426,32 @@ className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70
 
 ### P0 — 必做,先解决用户感知层最尖锐的问题
 
-| # | 类型 | 改动 | 工作量 | 影响 |
-|---|------|------|--------|------|
-| 1 | IA | 修正 `/dashboard` 默认页策略(优先做 2.2 方案 C:`app/page.tsx:32` 登录回调 + `:39` 已登录 redirect 都改到 `/dashboard/overview`,Sidebar「全部链接」入口保留),验证心智后再评估方案 A 全量迁移 | C: 30min / A: 0.5-1d | 心智模型对齐 |
-| 2 | 交互/a11y | 修复 IdeaCard 操作按钮(3.2 `idea-card.tsx:135/253`)+ LinkCard Grid overlay(`grid-view.tsx:91`)的触屏可访问性 | 1h | 可发现性 + a11y |
-| 3 | 可读性 | `<html lang="zh-CN">` + 字体栈补 CJK fallback + 中文正文 leading-relaxed (4.1) | 30min | 阅读舒适度 |
-| 4 | IA | Sidebar 重新分组 + Webhook 标记 Legacy 视觉降权(2.1, 2.4) | 1h | 信息清晰 |
+| #   | 类型      | 改动                                                                                                                                                                                        | 工作量               | 影响            |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | --------------- |
+| 1   | IA        | 修正 `/dashboard` 默认页策略(优先做 2.2 方案 C:`app/page.tsx:32` 登录回调 + `:39` 已登录 redirect 都改到 `/dashboard/overview`,Sidebar「全部链接」入口保留),验证心智后再评估方案 A 全量迁移 | C: 30min / A: 0.5-1d | 心智模型对齐    |
+| 2   | 交互/a11y | 修复 IdeaCard 操作按钮(3.2 `idea-card.tsx:135/253`)+ LinkCard Grid overlay(`grid-view.tsx:91`)的触屏可访问性                                                                                | 1h                   | 可发现性 + a11y |
+| 3   | 可读性    | `<html lang="zh-CN">` + 字体栈补 CJK fallback + 中文正文 leading-relaxed (4.1)                                                                                                              | 30min                | 阅读舒适度      |
+| 4   | IA        | Sidebar 重新分组 + Webhook 标记 Legacy 视觉降权(2.1, 2.4)                                                                                                                                   | 1h                   | 信息清晰        |
 
 ### P1 — 体感和一致性,接着做
 
-| # | 类型 | 改动 | 工作量 | 影响 |
-|---|------|------|--------|------|
-| 5 | 视觉 | Dashboard active 状态从 `bg-accent` 升级到 `bg-primary/10` 引入品牌色 (1.1) | 30min | 全站品牌感↑ |
-| 6 | 交互 | LinkCard hover/focus 反馈(3.1),配合 P0#2 一起做更顺手 | 30min | 可发现性 |
-| 7 | 系统 | 抽 `<PageHeader>` `<EmptyState>` `<Skeleton*>` 三个共享组件(4.7, 5.1, 5.2) | 2h | 一致性 + 维护 |
-| 8 | 反馈 | 统一 toast 反馈规范(3.3):data-management inline → toast、Webhook 生成/撤销补 toast、刷新动作补 toast | 1h | 状态清晰 |
-| 9 | 视觉 | L1 与 L0 拉对比度 + `--card` 重命名为 `--panel`(1.2)避免命名歧义 | 30min | 纵深感 + token 卫生 |
-| 10 | 视觉 | 圆角 token 统一 + 删除硬编码 `rounded-[16px]` `rounded-[20px]`(1.3) | 30min | token 卫生 |
+| #   | 类型 | 改动                                                                                                 | 工作量 | 影响                |
+| --- | ---- | ---------------------------------------------------------------------------------------------------- | ------ | ------------------- |
+| 5   | 视觉 | Dashboard active 状态从 `bg-accent` 升级到 `bg-primary/10` 引入品牌色 (1.1)                          | 30min  | 全站品牌感↑         |
+| 6   | 交互 | LinkCard hover/focus 反馈(3.1),配合 P0#2 一起做更顺手                                                | 30min  | 可发现性            |
+| 7   | 系统 | 抽 `<PageHeader>` `<EmptyState>` `<Skeleton*>` 三个共享组件(4.7, 5.1, 5.2)                           | 2h     | 一致性 + 维护       |
+| 8   | 反馈 | 统一 toast 反馈规范(3.3):data-management inline → toast、Webhook 生成/撤销补 toast、刷新动作补 toast | 1h     | 状态清晰            |
+| 9   | 视觉 | L1 与 L0 拉对比度 + `--card` 重命名为 `--panel`(1.2)避免命名歧义                                     | 30min  | 纵深感 + token 卫生 |
+| 10  | 视觉 | 圆角 token 统一 + 删除硬编码 `rounded-[16px]` `rounded-[20px]`(1.3)                                  | 30min  | token 卫生          |
 
 ### P2 — 锦上添花,有余力再做
 
-| # | 类型 | 改动 | 工作量 |
-|---|------|------|--------|
-| 11 | 视觉 | 24 色图表色板精简到 12 色,中性灰系单独维护(1.4, 4.5) | 1h |
-| 12 | 动效 | 全局 motion token 三档 (--motion-fast/base/slow),归一散落动效时长(3.4, 3.5) | 1h |
-| 13 | 系统 | Cmd+K 扩展为全局 launcher(在已有链接+想法之外补页面跳转 + 动作命令)(2.6) | 4h |
-| 14 | 品牌 | Sidebar 顶部沿用首页 badge 票面/条码元素延续品牌叙事(1.1 衍生) | 2h |
+| #   | 类型 | 改动                                                                        | 工作量 |
+| --- | ---- | --------------------------------------------------------------------------- | ------ |
+| 11  | 视觉 | 24 色图表色板精简到 12 色,中性灰系单独维护(1.4, 4.5)                        | 1h     |
+| 12  | 动效 | 全局 motion token 三档 (--motion-fast/base/slow),归一散落动效时长(3.4, 3.5) | 1h     |
+| 13  | 系统 | Cmd+K 扩展为全局 launcher(在已有链接+想法之外补页面跳转 + 动作命令)(2.6)    | 4h     |
+| 14  | 品牌 | Sidebar 顶部沿用首页 badge 票面/条码元素延续品牌叙事(1.1 衍生)              | 2h     |
 
 ---
 
