@@ -29,7 +29,7 @@
     "@ai-sdk/anthropic": "4.0.84",
     "@ai-sdk/openai": "4.0.98",
     "@auth/core": "^0.41.3",
-    "@aws-sdk/client-s3": "3.1153.0",
+    "@aws-sdk/client-s3": "3.1156.0",
     "@aws-sdk/s3-request-presigner": "3.1156.0",
     "@nocoo/basalt": "3.2.1",
     "@nocoo/next-ai": "^0.4.0",
