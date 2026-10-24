@@ -13,39 +13,38 @@
 
 Ship two stacked capabilities. Capability 1 is a hard prerequisite for Capability 2.
 
-| # | Capability | User-visible outcome |
-|---|------------|----------------------|
-| 1 | Unified AI access via `@nocoo/next-ai` | Settings page: provider, model, API key, custom base URL / SDK / auth. **Test connection succeeds** against the saved (or just-saved) config. |
-| 2 | Templated, structured suggestions | For a single link, AI proposes **one or more folder options** and **one or more tag options**. A dialog lists them. User applies with one click, or edits then applies. **Nothing is written until the user confirms.** |
+| #   | Capability                             | User-visible outcome                                                                                                                                                                                                    |
+| --- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Unified AI access via `@nocoo/next-ai` | Settings page: provider, model, API key, custom base URL / SDK / auth. **Test connection succeeds** against the saved (or just-saved) config.                                                                           |
+| 2   | Templated, structured suggestions      | For a single link, AI proposes **one or more folder options** and **one or more tag options**. A dialog lists them. User applies with one click, or edits then applies. **Nothing is written until the user confirms.** |
 
 **Non-goals (v1)**
-
 - Auto-run on link create / inbox triage
 - User-editable prompt sections in the UI (defaults live in code; override columns are deferred)
 - Ideas / todos / uploads suggestions
 - Streaming UI
 - Daily review / email (gecko-only product)
-- Suggesting *new* folders (folders stay a curated tree; AI may only pick an existing folder or Inbox)
+- Suggesting _new_ folders (folders stay a curated tree; AI may only pick an existing folder or Inbox)
 - Semantic / embedding search
 
 ---
 
 ## 1. Current-state audit (facts)
 
-| Fact | Evidence |
-|------|----------|
-| No `@nocoo/next-ai` / `ai` dependency | root `package.json` |
-| Per-user secrets already live on `user_settings` | `lib/db/schema.ts` (`backy_*`, `xray_*`); `lib/db/scoped/settings.ts` |
-| Settings writes are column-specific UPSERTs | `scoped/settings.ts` — each feature has its own INSERT/UPDATE; new AI columns must be added to schema **and** to every INSERT that lists columns (or the new columns stay NULL via `DEFAULT`) |
-| Latest migration | `drizzle/migrations/0022_add_todo_emoji.sql` → next slot **`0023`** |
-| Folders are **flat** (no parent) | `folders` table: `id`, `user_id`, `name`, `icon` |
-| Tags are curated, 12-color palette | `models/tags.ts`; management page `/dashboard/tags` |
-| Link folder is a single FK; tags are M2M | `links.folder_id`; `link_tags` |
-| Existing assign path | `updateLink` + `addTagToLink` / `createTag` (`actions/links.ts`, `actions/tags.ts`) |
-| Link edit surface | `link-card-parts/inline-edit-area.tsx` + `TagPicker` |
-| Settings nav group | `components/sidebar-parts/nav-config.ts` — 标签 / 存储 / 数据管理 |
-| Design tokens | toolbar `Button sm`; settings form `Button default`; fields `Input size="sm"` in toolbars |
-| Gecko reference | custom `AiSettingsSection` + `@nocoo/next-ai/server` `resolveAiConfig` / `createAiModel`; key masked on GET; test route uses stored key |
+| Fact                                             | Evidence                                                                                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No `@nocoo/next-ai` / `ai` dependency            | root `package.json`                                                                                                                                                                           |
+| Per-user secrets already live on `user_settings` | `lib/db/schema.ts` (`backy_*`, `xray_*`); `lib/db/scoped/settings.ts`                                                                                                                         |
+| Settings writes are column-specific UPSERTs      | `scoped/settings.ts` — each feature has its own INSERT/UPDATE; new AI columns must be added to schema **and** to every INSERT that lists columns (or the new columns stay NULL via `DEFAULT`) |
+| Latest migration                                 | `drizzle/migrations/0022_add_todo_emoji.sql` → next slot **`0023`**                                                                                                                           |
+| Folders are **flat** (no parent)                 | `folders` table: `id`, `user_id`, `name`, `icon`                                                                                                                                              |
+| Tags are curated, 12-color palette               | `models/tags.ts`; management page `/dashboard/tags`                                                                                                                                           |
+| Link folder is a single FK; tags are M2M         | `links.folder_id`; `link_tags`                                                                                                                                                                |
+| Existing assign path                             | `updateLink` + `addTagToLink` / `createTag` (`actions/links.ts`, `actions/tags.ts`)                                                                                                           |
+| Link edit surface                                | `link-card-parts/inline-edit-area.tsx` + `TagPicker`                                                                                                                                          |
+| Settings nav group                               | `components/sidebar-parts/nav-config.ts` — 标签 / 存储 / 数据管理                                                                                                                             |
+| Design tokens                                    | toolbar `Button sm`; settings form `Button default`; fields `Input size="sm"` in toolbars                                                                                                     |
+| Gecko reference                                  | custom `AiSettingsSection` + `@nocoo/next-ai/server` `resolveAiConfig` / `createAiModel`; key masked on GET; test route uses stored key                                                       |
 
 ---
 
@@ -86,13 +85,13 @@ Ship two stacked capabilities. Capability 1 is a hard prerequisite for Capabilit
 
 **Layering (MVVM, same as Backy/Xray)**
 
-| Layer | Files | Rule |
-|-------|-------|------|
-| Model | `lib/ai/tasks/*.ts`, `models/ai-settings.ts` | Pure: templates, parse, validate. No React, no D1. |
-| Repo | `lib/db/scoped/settings.ts` | Persist `ai_*` columns. Never return raw key to the client. |
-| Action / Route | `app/api/settings/ai/**`, `app/api/ai/suggest-link-org/route.ts` | Auth, load key, call `runTask`. |
-| ViewModel | `viewmodels/useAiSettingsViewModel.ts`, `viewmodels/useSuggestLinkOrgViewModel.ts` | Toast, dialog state, apply mutations. |
-| View | `components/dashboard/ai-settings-page.tsx`, `components/dashboard/suggest-link-org-dialog.tsx` | Tokens from `docs/22`. |
+| Layer          | Files                                                                                           | Rule                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Model          | `lib/ai/tasks/*.ts`, `models/ai-settings.ts`                                                    | Pure: templates, parse, validate. No React, no D1.          |
+| Repo           | `lib/db/scoped/settings.ts`                                                                     | Persist `ai_*` columns. Never return raw key to the client. |
+| Action / Route | `app/api/settings/ai/**`, `app/api/ai/suggest-link-org/route.ts`                                | Auth, load key, call `runTask`.                             |
+| ViewModel      | `viewmodels/useAiSettingsViewModel.ts`, `viewmodels/useSuggestLinkOrgViewModel.ts`              | Toast, dialog state, apply mutations.                       |
+| View           | `components/dashboard/ai-settings-page.tsx`, `components/dashboard/suggest-link-org-dialog.tsx` | Tokens from `docs/22`.                                      |
 
 ---
 
@@ -124,16 +123,16 @@ ALTER TABLE user_settings ADD COLUMN ai_sdk_type TEXT;
 ALTER TABLE user_settings ADD COLUMN ai_auth_type TEXT;
 ```
 
-| Column | Values |
-|--------|--------|
-| `ai_provider` | `anthropic` / `minimax` / `glm` / `aihubmix` / `custom` |
-| `ai_api_key` | raw secret, server-only |
-| `ai_model` | provider default or custom string |
-| `ai_base_url` | required when provider = `custom`; empty for builtins |
-| `ai_sdk_type` | `anthropic` \| `openai`; required when custom |
-| `ai_auth_type` | `apiKey` \| `bearer`; custom only |
+| Column         | Values                                                  |
+| -------------- | ------------------------------------------------------- |
+| `ai_provider`  | `anthropic` / `minimax` / `glm` / `aihubmix` / `custom` |
+| `ai_api_key`   | raw secret, server-only                                 |
+| `ai_model`     | provider default or custom string                       |
+| `ai_base_url`  | required when provider = `custom`; empty for builtins   |
+| `ai_sdk_type`  | `anthropic` \| `openai`; required when custom           |
+| `ai_auth_type` | `apiKey` \| `bearer`; custom only                       |
 
-**At-rest encryption (P2 accepted risk):** `ai_api_key` is stored plaintext, same as `backy_api_key` / `xray_api_token`. v1 does **not** add AEAD. Rotation = user pastes a new key. Revisit only if we encrypt *all* third-party secrets on this row together.
+**At-rest encryption (P2 accepted risk):** `ai_api_key` is stored plaintext, same as `backy_api_key` / `xray_api_token`. v1 does **not** add AEAD. Rotation = user pastes a new key. Revisit only if we encrypt _all_ third-party secrets on this row together.
 
 **Why not KV rows?** Zhe already has a wide `user_settings` row and `ScopedDB` helpers per feature. Prompt overrides are out of v1, so we do not need gecko's `ai.prompt.sectionN` keys yet.
 
@@ -181,7 +180,6 @@ Body (partial):
 ```
 
 Validation:
-
 - `provider` empty or `isValidProvider`
 - `sdkType` ∈ `{ "", "openai", "anthropic" }`
 - `authType` ∈ `{ "", "apiKey", "bearer" }`
@@ -194,7 +192,6 @@ Response: same shape as GET.
 #### `POST /api/settings/ai/test`
 
 Reads **stored** settings (caller must PUT first — UI does save-then-test, same as gecko).
-
 - Missing provider or key → `400` with envelope §4.5
 - `createUserAiModel(stored)` + `generateText({ prompt: "Reply with exactly: OK", maxOutputTokens: 10 })`
 - Success → `{ success: true, response, model, provider }`
@@ -203,7 +200,6 @@ Reads **stored** settings (caller must PUT first — UI does save-then-test, sam
 ### 3.4 Custom `baseURL` (SSRF)
 
 Custom provider turns the origin into an outbound HTTP client. **Re-run this check on persist and on every Test/suggest call** (not persist-only — DNS can change).
-
 1. Parse as absolute URL. Reject credentials in the URL (`user:pass@`).
 2. Scheme must be `https:` (no `http:`, no `file:`, no `localhost` scheme tricks).
 3. Hostname must not be `localhost` or `*.local`. After DNS, **every** A/AAAA must be globally routable unicast. Reject after canonicalizing IPv4-mapped IPv6 (`::ffff:x.x.x.x` → IPv4). Reject at least: `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4`, `240.0.0.0/4`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`.
@@ -211,24 +207,24 @@ Custom provider turns the origin into an outbound HTTP client. **Re-run this che
 5. `@nocoo/next-ai@0.4.0` `createAiModel` does **not** expose a custom `fetch`. **Single factory** `lib/ai/create-model.ts` `createUserAiModel(settings)`:
    - builtin → `resolveAiConfig` + `createAiModel`
    - custom → after §3.4, `createOpenAI` / `createAnthropic` from **direct** deps `@ai-sdk/openai` / `@ai-sdk/anthropic`, with `fetch: (url, init) => fetch(url, { ...init, redirect: "error" })`
-   - OpenAI custom: `authType === "bearer"` → `headers: { Authorization: \`Bearer ${apiKey}\` }`; `apiKey` mode → SDK `apiKey` only
+   - OpenAI custom: `authType === "bearer"` → `headers: { Authorization: \`Bearer ${apiKey}\` }`; `apiKey`mode → SDK`apiKey` only
    - Anthropic custom: `authType === "bearer"` → `createAnthropic({ authToken: apiKey, fetch })` (must **not** set `apiKey`, so no `x-api-key`); `apiKey` mode → `createAnthropic({ apiKey, fetch })`
-   Both `POST /api/settings/ai/test` and `runAiTask` **must** call this factory. L1: custom fetch uses `redirect: "error"`; Anthropic bearer omits `x-api-key`; blocklist includes `100.64.0.1` and `::ffff:127.0.0.1`.
+     Both `POST /api/settings/ai/test` and `runAiTask` **must** call this factory. L1: custom fetch uses `redirect: "error"`; Anthropic bearer omits `x-api-key`; blocklist includes `100.64.0.1` and `::ffff:127.0.0.1`.
 
 Helper: `models/ai-base-url.ts` `assertSafeAiBaseUrl(url: string): Promise<void>`. L1 table of blocked destinations.
 
 ### 3.5 Settings UI
 
-| Item | Choice |
-|------|--------|
-| Route | `/dashboard/settings/ai` |
-| Nav | 设置 group, **first** item: `{ title: "AI", icon: Sparkles, href: "/dashboard/settings/ai" }` |
-| Breadcrumb | `ROUTE_LABELS["/dashboard/settings/ai"] = "AI"` |
-| Cmd+K alias | `AI: "ai llm provider key"` in `launcher-groups.tsx` |
-| Density | form page → `Button size="sm"`; not `xs` |
-| Fields | Provider select, Model select (+ Custom model…), API key password input, Test + Save |
-| Custom provider | extra Base URL, SDK type, Auth type |
-| Empty provider | disable Test / Save |
+| Item            | Choice                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| Route           | `/dashboard/settings/ai`                                                                      |
+| Nav             | 设置 group, **first** item: `{ title: "AI", icon: Sparkles, href: "/dashboard/settings/ai" }` |
+| Breadcrumb      | `ROUTE_LABELS["/dashboard/settings/ai"] = "AI"`                                               |
+| Cmd+K alias     | `AI: "ai llm provider key"` in `launcher-groups.tsx`                                          |
+| Density         | form page → `Button size="sm"`; not `xs`                                                      |
+| Fields          | Provider select, Model select (+ Custom model…), API key password input, Test + Save          |
+| Custom provider | extra Base URL, SDK type, Auth type                                                           |
+| Empty provider  | disable Test / Save                                                                           |
 
 Page header: `PageHeader title="AI"` + short description.
 
@@ -237,7 +233,6 @@ Auth-guard / Playwright warmup: add the route next to `data-management` (same li
 ### 3.6 “Test 通” definition
 
 A connection is **green** when:
-
 1. User saves a valid provider + key (+ custom fields if custom)
 2. Clicks Test
 3. Server returns `success: true` and the button/badge shows success for ~4s
@@ -253,7 +248,6 @@ L1 covers the route with a mocked `generateText`. L3 covers the UI state machine
 Trigger: a **Sparkles** control on the link card (view + edit) labelled **「AI 建议」**. Disabled with tooltip if `hasApiKey === false` (read a lightweight flag from dashboard bootstrap or a `GET /api/settings/ai` cache on the VM).
 
 Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). Five sections:
-
 0. **进度** — `准备目录 → 调用模型 → 解析结果 → 完成`. Horizontal progress track plus arrowed step pills. Current step is highlighted; failures mark the failing step. Waiting caption shows elapsed seconds.
 1. **发送的提示 / 模型回复** — both collapsed by default. Expand to a scrollable `pre` (`whitespace-pre-wrap`, mono, `max-h-72`). JSON replies are pretty-printed when the whole payload parses. Available on success **and** parse/model errors so the user can inspect the exchange.
 2. **文件夹** — radio list. **推荐** shows the 1–3 AI options with reasons; **其他** lists every remaining catalog folder plus Inbox. Default selection = top AI option. User can reject the AI pick and choose any other folder.
@@ -261,18 +255,17 @@ Dialog title: **「整理建议」**. Wide panel (`max-w-3xl`, `max-h-[85vh]`). 
 4. **备注** — one Chinese sentence from the model, shown in an `Input size="sm"`. User can edit. Apply writes the **edited** value (`trim` empty → `null`).
 
 Footer:
-
 - **应用** — writes the selected folder + edited note + selected tags
 - **取消** — no writes
-- Inline edit: folder is pick-only (existing folders). Tag *name* of a “new tag” option is an `Input size="sm"`; existing tags are not renamed here.
+- Inline edit: folder is pick-only (existing folders). Tag _name_ of a “new tag” option is an `Input size="sm"`; existing tags are not renamed here.
 
 **Apply semantics**
 
-| Field | Write |
-|-------|-------|
-| Folder | `updateLink(id, { folderId })`. `folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox. |
-| Note | `updateLinkNote(id, draftNote.trim() \|\| null)`. Always writes the user’s current input, not the raw model sentence. |
-| Tags | Call new action `ensureTagOnLink(linkId, name)`. Lookup is case-insensitive; attach is idempotent; create-then-attach if missing. **Guarantee is best-effort:** no unique index in v1, so a concurrent create can yield two case-variant names. On `createTag` failure with “already exists”, re-lookup and attach. **Existing tags on the link are never removed** by Apply. |
+| Field  | Write                                                                                                                                                                                                                                                                                                                                                                         |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Folder | `updateLink(id, { folderId })`.`folderId = null` means Inbox. Option must reference an **owned** folder id **or** Inbox.                                                                                                                                                                                                                                                      |
+| Note   | `updateLinkNote(id, draftNote.trim() \|\| null)`. Always writes the user’s current input, not the raw model sentence.                                                                                                                                                                                                                                                         |
+| Tags   | Call new action `ensureTagOnLink(linkId, name)`. Lookup is case-insensitive; attach is idempotent; create-then-attach if missing. **Guarantee is best-effort:** no unique index in v1, so a concurrent create can yield two case-variant names. On `createTag` failure with “already exists”, re-lookup and attach. **Existing tags on the link are never removed** by Apply. |
 
 **Folder ownership (existing hole):** `lib/db/scoped/links.ts` `updateLink` currently writes `folder_id` without checking the folder’s `user_id`. v1 **must** reject a non-null `folderId` that is missing or owned by another user (`400` “Folder not found”). Same check in the suggest apply VM (defense in depth). L1: cross-user folder id must not stick.
 
@@ -285,25 +278,24 @@ The model must return **only** this JSON (no markdown fence required; parser str
 ```ts
 interface SuggestLinkOrgResult {
   folders: SuggestFolderOption[]; // 1–3 after parse
-  tags: SuggestTagOption[];       // 1–5 after parse
-  note: string;                   // one Chinese sentence, 1–120 chars after trim
+  tags: SuggestTagOption[]; // 1–5 after parse
+  note: string; // one Chinese sentence, 1–120 chars after trim
 }
 
 interface SuggestFolderOption {
   folderId: string | null; // existing folder id, or null = Inbox. Never the string "inbox".
-  name: string;            // display; server overwrites from catalog when folderId set
-  reason: string;          // one short Chinese sentence, max 80 chars
+  name: string; // display; server overwrites from catalog when folderId set
+  reason: string; // one short Chinese sentence, max 80 chars
 }
 
 interface SuggestTagOption {
-  tagId: string | null;    // existing tag id, or null = create
-  name: string;            // 1–30 chars after trim
+  tagId: string | null; // existing tag id, or null = create
+  name: string; // 1–30 chars after trim
   reason: string;
 }
 ```
 
 **Hard parse rules** (`models/ai-suggest-link-org.ts`):
-
 1. Strip optional ` ```json ` fence (same as gecko `parseAiResponse`).
 2. `JSON.parse`. Structural punctuation must be ASCII (prompt forbids fullwidth commas).
 3. `folders` and `tags` must both be arrays. After filtering, **both must still be non-empty** or → `parse_error`. `note` must be a non-empty string after trim (cap 120) or → `parse_error`.
@@ -322,25 +314,25 @@ No `confidence` field in v1 (extra surface, unused by apply).
 
 File: `lib/ai/tasks/suggest-link-org.ts`. Four concatenated sections (gecko shape, **not** user-editable in v1):
 
-| Section | Content |
-|---------|---------|
-| Role | You are organizing one bookmark for this user. Suggest only. Do not invent folders. |
-| Data | Injected via `{{var}}` — see table below |
-| Rules | Folder must be an id from the catalog or Inbox. Prefer existing tags. New tags only when no existing tag fits. Chinese `reason`. Chinese `note` (one sentence, max 120). 1–3 folders, 1–5 tags. |
-| Format | Exact JSON schema above. ASCII punctuation outside strings. No trailing commas. No markdown wrapper. |
+| Section | Content                                                                                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Role    | You are organizing one bookmark for this user. Suggest only. Do not invent folders.                                                                                                             |
+| Data    | Injected via `{{var}}` — see table below                                                                                                                                                        |
+| Rules   | Folder must be an id from the catalog or Inbox. Prefer existing tags. New tags only when no existing tag fits. Chinese `reason`. Chinese `note` (one sentence, max 120). 1–3 folders, 1–5 tags. |
+| Format  | Exact JSON schema above. ASCII punctuation outside strings. No trailing commas. No markdown wrapper.                                                                                            |
 
 **Variables** (`expandTemplate` — copy gecko’s `{{word}}` / `{{a.b}}` regex; unknown keys stay literal):
 
-| Key | Source |
-|-----|--------|
-| `url` | `link.originalUrl` |
-| `title` | `metaTitle` or hostname |
-| `description` | `metaDescription` or `""` |
-| `note` | `link.note` or `""` |
-| `currentFolder` | folder name or `Inbox` |
-| `currentTags` | comma-separated assigned tag names, or `（无）` |
-| `folderCatalog` | multiline `- folderId=null name=Inbox` then `- folderId={id} name={name}` for every folder. Never emit `id=inbox`. |
-| `tagCatalog` | multiline `- id={id} name={name}` for every user tag |
+| Key             | Source                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `url`           | `link.originalUrl`                                                                                                  |
+| `title`         | `metaTitle` or hostname                                                                                             |
+| `description`   | `metaDescription` or `""`                                                                                           |
+| `note`          | `link.note` or `""`                                                                                                 |
+| `currentFolder` | folder name or `Inbox`                                                                                              |
+| `currentTags`   | comma-separated assigned tag names, or `（无）`                                                                     |
+| `folderCatalog` | multiline `- folderId=null name=Inbox` then `- folderId={id} name={name}` for every folder. Never emit `id=inbox`.  |
+| `tagCatalog`    | multiline `- id={id} name={name}` for every user tag                                                                |
 
 Catalogs are the allow-list. The model is instructed not to emit folder ids outside it.
 
@@ -370,7 +362,10 @@ Timeout 30s is enough for a short JSON object; gecko used 120s because of huge d
 Stable error envelope for **all** AI routes (settings + suggest):
 
 ```ts
-{ error: string; reason: "no_ai_config" | "not_found" | "validation" | "ai_error" | "parse_error" | "timeout" }
+{
+  error: string;
+  reason: "no_ai_config" | "not_found" | "validation" | "ai_error" | "parse_error" | "timeout";
+}
 ```
 
 ```ts
@@ -404,7 +399,6 @@ Server loads the link via `ScopedDB` (`404` if not owned). If title / descriptio
 ### 4.6 Client apply path
 
 `useSuggestLinkOrgViewModel`:
-
 - `open(linkId)` → POST suggest → store options + selection + `prompt` / `rawText` / failed step
 - `apply()` → `updateLink` (folder) then `updateLinkNote` (edited draft) then one `ensureTagOnLink` per checked tag. `ensureTagOnLink` returns `{ tag: Tag; attached: boolean }` so the VM can call `handleTagCreated` when the tag is new and `handleLinkTagAdded` when attached.
 - No other write APIs.
@@ -415,48 +409,48 @@ Dialog lives in `components/dashboard/suggest-link-org-dialog.tsx`. Opened from 
 
 ## 5. Decisions (locked for v1)
 
-| Topic | Choice | Rejected |
-|-------|--------|----------|
-| Settings storage | Columns on `user_settings` | gecko KV `settings` table |
-| Prompt editor | Code defaults only | gecko 4-section editor |
-| New folders | **Not allowed** | AI-created folders |
-| New tags | Allowed (`tagId: null` + valid name) | Existing-only tags |
-| One task vs two | **One** JSON with both folders and tags | Two sequential LLM calls |
-| Auto-apply | Never | Silent write |
-| SDK UI kit | Constants + Zhe primitives | Drop-in `AiSettingsPanel` |
-| Server import | `@nocoo/next-ai/server` | `/server-next` |
+| Topic            | Choice                                  | Rejected                  |
+| ---------------- | --------------------------------------- | ------------------------- |
+| Settings storage | Columns on `user_settings`              | gecko KV `settings` table |
+| Prompt editor    | Code defaults only                      | gecko 4-section editor    |
+| New folders      | **Not allowed**                         | AI-created folders        |
+| New tags         | Allowed (`tagId: null` + valid name)    | Existing-only tags        |
+| One task vs two  | **One** JSON with both folders and tags | Two sequential LLM calls  |
+| Auto-apply       | Never                                   | Silent write              |
+| SDK UI kit       | Constants + Zhe primitives              | Drop-in `AiSettingsPanel` |
+| Server import    | `@nocoo/next-ai/server`                 | `/server-next`            |
 
 ---
 
 ## 6. File map
 
-| Path | Role |
-|------|------|
-| `drizzle/migrations/0023_add_ai_settings.sql` | columns |
-| `lib/db/schema.ts` | `userSettings` fields |
-| `lib/db/scoped/settings.ts` | `getAiSettings` / `upsertAiSettings` (mask at route, not repo) |
-| `lib/db/mappers.ts` | map new columns if `rowToUserSettings` lists fields |
-| `models/ai-settings.ts` | last4 helper, provider unions |
-| `models/ai-base-url.ts` | `assertSafeAiBaseUrl` |
-| `models/ai-suggest-link-org.ts` | parse + filter against catalogs |
-| `lib/ai/expand-template.ts` | `{{var}}` expander |
-| `lib/ai/create-model.ts` | `createUserAiModel` (builtin vs custom fetch) |
-| `lib/ai/run-task.ts` | generateText wrapper (uses `createUserAiModel` only) |
-| `lib/ai/tasks/suggest-link-org.ts` | prompt builder |
-| `app/api/settings/ai/route.ts` | GET / PUT |
-| `app/api/settings/ai/test/route.ts` | POST test |
-| `app/api/ai/suggest-link-org/route.ts` | POST suggest |
-| `actions/tags.ts` | `ensureTagOnLink` |
-| `lib/db/scoped/links.ts` | folder ownership check in `updateLink` |
-| `app/(dashboard)/dashboard/settings/ai/page.tsx` | route |
-| `components/dashboard/ai-settings-page.tsx` | settings view |
-| `components/dashboard/suggest-link-org-dialog.tsx` | dialog view |
-| `viewmodels/useAiSettingsViewModel.ts` | settings VM |
-| `viewmodels/useSuggestLinkOrgViewModel.ts` | dialog VM |
-| `components/sidebar-parts/nav-config.ts` | nav |
-| `components/breadcrumbs.tsx` | crumb |
-| `components/search-command-dialog-parts/launcher-groups.tsx` | Cmd+K |
-| `package.json` / `bun.lock` | `@nocoo/next-ai`, `ai` |
+| Path                                                         | Role                                                           |
+| ------------------------------------------------------------ | -------------------------------------------------------------- |
+| `drizzle/migrations/0023_add_ai_settings.sql`                | columns                                                        |
+| `lib/db/schema.ts`                                           | `userSettings` fields                                          |
+| `lib/db/scoped/settings.ts`                                  | `getAiSettings` / `upsertAiSettings` (mask at route, not repo) |
+| `lib/db/mappers.ts`                                          | map new columns if `rowToUserSettings` lists fields            |
+| `models/ai-settings.ts`                                      | last4 helper, provider unions                                  |
+| `models/ai-base-url.ts`                                      | `assertSafeAiBaseUrl`                                          |
+| `models/ai-suggest-link-org.ts`                              | parse + filter against catalogs                                |
+| `lib/ai/expand-template.ts`                                  | `{{var}}` expander                                             |
+| `lib/ai/create-model.ts`                                     | `createUserAiModel` (builtin vs custom fetch)                  |
+| `lib/ai/run-task.ts`                                         | generateText wrapper (uses `createUserAiModel` only)           |
+| `lib/ai/tasks/suggest-link-org.ts`                           | prompt builder                                                 |
+| `app/api/settings/ai/route.ts`                               | GET / PUT                                                      |
+| `app/api/settings/ai/test/route.ts`                          | POST test                                                      |
+| `app/api/ai/suggest-link-org/route.ts`                       | POST suggest                                                   |
+| `actions/tags.ts`                                            | `ensureTagOnLink`                                              |
+| `lib/db/scoped/links.ts`                                     | folder ownership check in `updateLink`                         |
+| `app/(dashboard)/dashboard/settings/ai/page.tsx`             | route                                                          |
+| `components/dashboard/ai-settings-page.tsx`                  | settings view                                                  |
+| `components/dashboard/suggest-link-org-dialog.tsx`           | dialog view                                                    |
+| `viewmodels/useAiSettingsViewModel.ts`                       | settings VM                                                    |
+| `viewmodels/useSuggestLinkOrgViewModel.ts`                   | dialog VM                                                      |
+| `components/sidebar-parts/nav-config.ts`                     | nav                                                            |
+| `components/breadcrumbs.tsx`                                 | crumb                                                          |
+| `components/search-command-dialog-parts/launcher-groups.tsx` | Cmd+K                                                          |
+| `package.json` / `bun.lock`                                  | `@nocoo/next-ai`, `ai`                                         |
 
 Grep `INSERT INTO user_settings` and update mocks that destructure columns (`tests/setup.ts` and any settings tests).
 
@@ -466,16 +460,16 @@ Grep `INSERT INTO user_settings` and update mocks that destructure columns (`tes
 
 Each commit independently typechecks / tests. Do **not** bundle infra + model + view.
 
-| # | Commit | Contents |
-|---|--------|----------|
-| 0 | `docs: add AI link suggestion design` | this file + README index |
-| 1 | `chore: add next-ai and ai sdk deps` | `package.json` + `bun.lock` only |
-| 2 | `feat: add user_settings AI columns` | migration + schema + mapper + scoped upsert |
-| 3 | `feat: add AI settings API` | GET/PUT/test routes + unit tests |
-| 4 | `feat: add AI settings page` | page, VM, nav, breadcrumbs, Cmd+K |
-| 5 | `feat: add link org suggestion runner` | templates, parse, `run-task`, POST route |
-| 6 | `feat: add suggest-link-org dialog` | VM + dialog + `ensureTagOnLink` + folder ownership check + apply |
-| 7 | `test: cover AI settings and suggestions` | remaining L1/L2/L3 |
+| #   | Commit                                    | Contents                                                         |
+| --- | ----------------------------------------- | ---------------------------------------------------------------- |
+| 0   | `docs: add AI link suggestion design`     | this file + README index                                         |
+| 1   | `chore: add next-ai and ai sdk deps`      | `package.json` + `bun.lock` only                                 |
+| 2   | `feat: add user_settings AI columns`      | migration + schema + mapper + scoped upsert                      |
+| 3   | `feat: add AI settings API`               | GET/PUT/test routes + unit tests                                 |
+| 4   | `feat: add AI settings page`              | page, VM, nav, breadcrumbs, Cmd+K                                |
+| 5   | `feat: add link org suggestion runner`    | templates, parse, `run-task`, POST route                         |
+| 6   | `feat: add suggest-link-org dialog`       | VM + dialog + `ensureTagOnLink` + folder ownership check + apply |
+| 7   | `test: cover AI settings and suggestions` | remaining L1/L2/L3                                               |
 
 Prod: apply `0023` on `zhe-db` before the release that includes #2.
 
@@ -485,44 +479,44 @@ Prod: apply `0023` on `zhe-db` before the release that includes #2.
 
 ### L1 (pre-commit, hard)
 
-| Area | Cases |
-|------|-------|
-| `maskApiKey` | empty, short (<4), normal |
-| `expandTemplate` | known key, dotted key, unknown key left intact |
-| `parseSuggestLinkOrg` | happy JSON; fenced JSON; fullwidth-comma fails; unknown folderId dropped; empty after filter → throw; tag name 31 chars dropped; unknown tagId → new tag |
-| Settings GET | no raw/masked `apiKey` field; `hasApiKey` + `apiKeyLast4` |
-| Settings PUT | rejects bad provider / sdkType; omits key keeps previous; rejects `***xxxx` placeholder; `null` clears |
-| `assertSafeAiBaseUrl` | https ok; http / localhost / 10.x / 169.254 rejected |
-| Settings UPSERT isolation | AI write keeps Backy/Xray; Backy write keeps `ai_*` (fresh + existing rows) |
-| Test route | 400 without key; mocked `generateText` success; upstream 401 mapped |
-| Suggest route | 400 no config; **404** unknown / other-user link; parse_error → 502; timeout → 504 |
-| `useAiSettingsViewModel` | load, save, test success/error |
-| `useSuggestLinkOrgViewModel` | open, toggle, apply folder+new tag, apply no-op when nothing selected; retry after partial tag success is idempotent |
-| `updateLink` folder ownership | foreign folder id rejected |
-| Dialog / settings page | render, disable without key, apply button |
+| Area                          | Cases                                                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maskApiKey`                  | empty, short (<4), normal                                                                                                                                |
+| `expandTemplate`              | known key, dotted key, unknown key left intact                                                                                                           |
+| `parseSuggestLinkOrg`         | happy JSON; fenced JSON; fullwidth-comma fails; unknown folderId dropped; empty after filter → throw; tag name 31 chars dropped; unknown tagId → new tag |
+| Settings GET                  | no raw/masked `apiKey` field; `hasApiKey` + `apiKeyLast4`                                                                                                |
+| Settings PUT                  | rejects bad provider / sdkType; omits key keeps previous; rejects `***xxxx` placeholder; `null` clears                                                   |
+| `assertSafeAiBaseUrl`         | https ok; http / localhost / 10.x / 169.254 rejected                                                                                                     |
+| Settings UPSERT isolation     | AI write keeps Backy/Xray; Backy write keeps `ai_*` (fresh + existing rows)                                                                              |
+| Test route                    | 400 without key; mocked `generateText` success; upstream 401 mapped                                                                                      |
+| Suggest route                 | 400 no config; **404** unknown / other-user link; parse_error → 502; timeout → 504                                                                       |
+| `useAiSettingsViewModel`      | load, save, test success/error                                                                                                                           |
+| `useSuggestLinkOrgViewModel`  | open, toggle, apply folder+new tag, apply no-op when nothing selected; retry after partial tag success is idempotent                                     |
+| `updateLink` folder ownership | foreign folder id rejected                                                                                                                               |
+| Dialog / settings page        | render, disable without key, apply button                                                                                                                |
 
 Mock `generateText` and `@nocoo/next-ai/server` in unit tests. Do **not** hit a live vendor in L1.
 
 ### L2 (pre-push, hard)
 
-| Spec | Assert |
-|------|--------|
-| `GET /api/settings/ai` unauth → 401 | |
-| `PUT` then `GET` round-trip (masked) | |
-| `POST /api/settings/ai/test` without key → 400 | |
-| `POST /api/ai/suggest-link-org` without key → 400 `no_ai_config` | |
-| `POST` with other user’s `linkId` → **404** `not_found` | |
+| Spec                                                            | Assert |
+| --------------------------------------------------------------- | ------ |
+| `GET /api/settings/ai` unauth → 401                             |        |
+| `PUT` then `GET` round-trip (masked)                            |        |
+| `POST /api/settings/ai/test` without key → 400                  |        |
+| `POST /api/ai/suggest-link-org` without key → 400`no_ai_config` |        |
+| `POST` with other user’s `linkId` → **404** `not_found`         |        |
 
 Live LLM test is **not** an L2 gate.
 
 ### L3 (Playwright, on-demand / release preflight)
 
-| Spec | Assert |
-|------|--------|
-| Nav → `/dashboard/settings/ai`, breadcrumb `AI` | add to `navigation.spec.ts` + warmup |
-| Settings: select provider, type key, save, see masked key | |
-| Settings: Test with no key → error badge | |
-| Link card: AI button disabled (or hidden) when no key | seed user without `ai_api_key` |
+| Spec                                                                  | Assert                                                                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Nav → `/dashboard/settings/ai`, breadcrumb `AI`                       | add to `navigation.spec.ts` + warmup                                                                                         |
+| Settings: select provider, type key, save, see masked key             |                                                                                                                              |
+| Settings: Test with no key → error badge                              |                                                                                                                              |
+| Link card: AI button disabled (or hidden) when no key                 | seed user without `ai_api_key`                                                                                               |
 | Suggest dialog: **mocked** via a test-only hook **or** skip live call | prefer intercepting `POST /api/ai/suggest-link-org` with a fixture JSON, then apply folder + tag and assert the card updates |
 
 Do not add `test.slow()` per case; wrap the new spec file with the same 60s + 1 retry as `navigation.spec.ts` if first-compile is an issue.
@@ -541,16 +535,16 @@ No reserved-path change. No Worker deploy.
 
 ## 9. Risks
 
-| Risk | Mitigation |
-|------|------------|
-| Custom OpenAI-compatible proxy needs a trailing `/v1` | Document in the settings description; Test button is the oracle |
-| Custom URL SSRF | §3.4 blocklist + DNS check before persist/test/suggest |
-| Masked key written back | GET never returns `apiKey`; PUT rejects mask-shaped strings |
-| Model returns Chinese punctuation as JSON separators | Prompt forbids it; parse fails closed → 502 + toast, user retries |
-| Catalog too large for the prompt | Folders + tags are small personal sets; if >200 tags, send names only and drop ids for overflow (v2). v1 sends all. |
-| `user_settings` INSERT lists omit new columns | Grep + mapper tests that round-trip `ai_provider` |
-| Mirror URL leaks into `bun.lock` | Install with temp `BUN_CONFIG_REGISTRY`; verify no `"https` registry hosts in lock |
-| Suggest button on every card increases density | `icon` only; no extra label in the card toolbar |
+| Risk                                                  | Mitigation                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Custom OpenAI-compatible proxy needs a trailing `/v1` | Document in the settings description; Test button is the oracle                                                     |
+| Custom URL SSRF                                       | §3.4 blocklist + DNS check before persist/test/suggest                                                              |
+| Masked key written back                               | GET never returns `apiKey`; PUT rejects mask-shaped strings                                                         |
+| Model returns Chinese punctuation as JSON separators  | Prompt forbids it; parse fails closed → 502 + toast, user retries                                                   |
+| Catalog too large for the prompt                      | Folders + tags are small personal sets; if >200 tags, send names only and drop ids for overflow (v2). v1 sends all. |
+| `user_settings` INSERT lists omit new columns         | Grep + mapper tests that round-trip `ai_provider`                                                                   |
+| Mirror URL leaks into `bun.lock`                      | Install with temp `BUN_CONFIG_REGISTRY`; verify no `"https` registry hosts in lock                                  |
+| Suggest button on every card increases density        | `icon` only; no extra label in the card toolbar                                                                     |
 
 ---
 

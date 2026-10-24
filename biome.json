@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -85,6 +85,20 @@
   },
   "overrides": [
     {
+      "includes": ["docs/21-todos-feature.md", "docs/24-ai-link-suggestions.md"],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": ["docs/20-frontend-design-review.md"],
+      "markdown": {
+        "formatter": {
+          "formatEmbeds": false
+        }
+      }
+    },
+    {
       "includes": ["**/components/ui/**"],
       "linter": {
         "rules": {
@@ -121,6 +135,9 @@
           "complexity": {
             "noExcessiveCognitiveComplexity": "off",
             "useArrowFunction": "off"
+          },
+          "correctness": {
+            "noComponentHookFactories": "off"
           },
           "style": {
             "noUnusedTemplateLiteral": "off"

@@ -10,16 +10,16 @@
 
 ## 阶段总览
 
-| 阶段 | 描述 | 状态 | 节省的 auth 调用 |
-|------|------|------|-----------------|
-| 1 | 统一 auth 工具函数 + `cache()` 包装 | ✅ 完成 | -1（layout） |
-| 2 | 合并 3 个 provider action 为 `getDashboardData()` | ✅ 完成 | -2 |
-| 3 | 减少不必要的 Context 订阅 | ✅ 完成 | -3（重渲染） |
-| 4 | 在 `page.tsx` 中 SSR 预取数据 | ✅ 完成 | -1（页面级） |
-| 5 | Backy 页面：push 成功后内联获取历史 | ✅ 完成 | -1 |
-| 6 | Links N+1：批量 `refreshLinkMetadata` | ✅ 完成 | -(N-1) |
-| 7 | 添加 Suspense 边界 | ✅ 完成 | 0（UX 改善） |
-| 8 | 小修（Storage、Overview） | ✅ 完成 | -1 |
+| 阶段 | 描述                                              | 状态    | 节省的 auth 调用 |
+| ---- | ------------------------------------------------- | ------- | ---------------- |
+| 1    | 统一 auth 工具函数 + `cache()` 包装               | ✅ 完成 | -1（layout）     |
+| 2    | 合并 3 个 provider action 为 `getDashboardData()` | ✅ 完成 | -2               |
+| 3    | 减少不必要的 Context 订阅                         | ✅ 完成 | -3（重渲染）     |
+| 4    | 在 `page.tsx` 中 SSR 预取数据                     | ✅ 完成 | -1（页面级）     |
+| 5    | Backy 页面：push 成功后内联获取历史               | ✅ 完成 | -1               |
+| 6    | Links N+1：批量 `refreshLinkMetadata`             | ✅ 完成 | -(N-1)           |
+| 7    | 添加 Suspense 边界                                | ✅ 完成 | 0（UX 改善）     |
+| 8    | 小修（Storage、Overview）                         | ✅ 完成 | -1               |
 
 ## 详细阶段
 
@@ -187,28 +187,27 @@
 
 ### 优化前
 
-| 页面 | 挂载时 auth() 调用次数 |
-|------|----------------------|
-| Overview | 6 |
-| Links List | 5 + N（元数据） |
-| Uploads | 6 |
-| Xray | 6 |
-| Storage | 6 |
-| Data Management | 5 |
-| Webhook | 6 |
-| Backy | 6 |
+| 页面            | 挂载时 auth() 调用次数 |
+| --------------- | ---------------------- |
+| Overview        | 6                      |
+| Links List      | 5 + N（元数据）        |
+| Uploads         | 6                      |
+| Xray            | 6                      |
+| Storage         | 6                      |
+| Data Management | 5                      |
+| Webhook         | 6                      |
+| Backy           | 6                      |
 
 ### 优化后目标
 
-| 页面 | 挂载时 auth() 调用次数 |
-|------|----------------------|
-| 所有页面 | 1-2 |
-| Links List | 2（+ 1 次批量元数据） |
+| 页面       | 挂载时 auth() 调用次数 |
+| ---------- | ---------------------- |
+| 所有页面   | 1-2                    |
+| Links List | 2（+ 1 次批量元数据）  |
 
 ## AI Agent 审查意见
 
 三个 AI Agent（Codex、Gemini、Claude）审查了此优化方案：
-
 - **Codex**：Sidebar 和搜索对话框依赖全局 links 数据——Sidebar 应使用 `getLinkCounts()`，搜索应延迟加载。Provider 的 `Promise.all` 需要错误处理。
 - **Gemini**：D1 批量查询有 ~32K 参数限制——需要分块。Import 场景也会触发 N+1 元数据刷新。
 - **Claude**：阶段 2 的 `cache()` 作用域有限——仅在 server render 内去重，跨 server action 不生效。应创建纯服务端读函数，与 server action 分离。

@@ -62,15 +62,15 @@ cp .env.example .env.local
 
 Prepare your own Google OAuth application and an initialized D1 database, then configure D1, KV, and the origin using the [Worker configuration template](../worker/wrangler.toml.example). Next.js currently accesses D1 through the Worker proxy; Cloudflare REST API credentials alone are insufficient for database queries.
 
-| Configuration | Purpose |
-| --- | --- |
-| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | Auth.js and Google sign-in; local callback: `http://localhost:7006/api/auth/callback/google` |
-| `D1_PROXY_URL`, `D1_PROXY_SECRET` | Next.js access to the Worker's D1 proxy |
-| `AUTH_ALLOWED_EMAILS` | Comma-separated sign-in allowlist; when empty, any account completing Google sign-in is allowed |
-| `R2_*` | Upload endpoint, bucket, credentials, public domain, and user-path salt |
-| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_KV_NAMESPACE_ID` | Origin writes to KV; these cache writes are skipped when unconfigured |
-| `WORKER_SECRET` | Authentication between the origin and Worker for analytics, cleanup, and cache synchronization |
-| `TRUSTED_ORIGINS`, `PUBLIC_ORIGIN` | Trusted hosts and public URL behind a reverse proxy |
+| Configuration                                                                 | Purpose                                                                                         |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                         | Auth.js and Google sign-in; local callback: `http://localhost:7006/api/auth/callback/google`    |
+| `D1_PROXY_URL`, `D1_PROXY_SECRET`                                             | Next.js access to the Worker's D1 proxy                                                         |
+| `AUTH_ALLOWED_EMAILS`                                                         | Comma-separated sign-in allowlist; when empty, any account completing Google sign-in is allowed |
+| `R2_*`                                                                        | Upload endpoint, bucket, credentials, public domain, and user-path salt                         |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_KV_NAMESPACE_ID` | Origin writes to KV; these cache writes are skipped when unconfigured                           |
+| `WORKER_SECRET`                                                               | Authentication between the origin and Worker for analytics, cleanup, and cache synchronization  |
+| `TRUSTED_ORIGINS`, `PUBLIC_ORIGIN`                                            | Trusted hosts and public URL behind a reverse proxy                                             |
 
 The Worker uses the `DB` and `LINKS_KV` bindings plus `ORIGIN_URL`, `WORKER_SECRET`, and `D1_PROXY_SECRET`. Every half hour it triggers temporary-file cleanup and a catch-up KV sync when data has changed. For a new deployment, check the [database schema](../lib/db/schema.ts) against the [migration files](../drizzle/migrations/). Historical migrations include differences from manual schema changes; the local test bootstrap compensates for them and should not be used directly as a production installer.
 
@@ -86,14 +86,14 @@ bun run start
 
 ## Tests
 
-| Layer | Run from the repository root |
-| --- | --- |
-| Unit and component tests | `bun run test:unit` |
-| Application integration tests | `bun run test:integration` |
-| API end-to-end tests | `bun run test:api` |
-| Browser end-to-end tests | `bun run test:e2e:pw` |
-| Worker unit tests | `bun run --cwd worker test` |
-| CLI unit tests | `bun run --cwd cli test` |
+| Layer                         | Run from the repository root |
+| ----------------------------- | ---------------------------- |
+| Unit and component tests      | `bun run test:unit`          |
+| Application integration tests | `bun run test:integration`   |
+| API end-to-end tests          | `bun run test:api`           |
+| Browser end-to-end tests      | `bun run test:e2e:pw`        |
+| Worker unit tests             | `bun run --cwd worker test`  |
+| CLI unit tests                | `bun run --cwd cli test`     |
 
 Install browser engines with `bunx playwright install chromium webkit`. API and browser runners use app ports `17006` and `27006`, allocate native Wrangler D1/KV/R2 ports, and own `.test-storage/runs/<uuid>`. Builds and evidence are per-run. No remote test credentials are required; launchers generate fixture credentials and issue normal Auth.js sessions. This does not certify real Google OAuth. See [local environments](33-local-environments.md) for lifecycle and evidence.
 
@@ -105,13 +105,13 @@ Install browser engines with `bunx playwright install chromium webkit`. API and 
 ![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?logo=cloudflare&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)
 
-| Area | Implementation |
-| --- | --- |
-| Web and UI | Next.js, React, TypeScript, Tailwind CSS, Basalt |
-| Authentication and data | Auth.js / Google OAuth, Cloudflare D1, Drizzle schema |
-| Redirects and files | Cloudflare Workers, KV, R2, S3 API |
-| Optional AI | Vercel AI SDK, @nocoo/next-ai |
-| CLI and testing | Bun, @nocoo/base-cli, Vitest, Testing Library, Playwright, Biome |
+| Area                    | Implementation                                                   |
+| ----------------------- | ---------------------------------------------------------------- |
+| Web and UI              | Next.js, React, TypeScript, Tailwind CSS, Basalt                 |
+| Authentication and data | Auth.js / Google OAuth, Cloudflare D1, Drizzle schema            |
+| Redirects and files     | Cloudflare Workers, KV, R2, S3 API                               |
+| Optional AI             | Vercel AI SDK, @nocoo/next-ai                                    |
+| CLI and testing         | Bun, @nocoo/base-cli, Vitest, Testing Library, Playwright, Biome |
 
 ## Documentation
 

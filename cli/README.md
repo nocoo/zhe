@@ -47,24 +47,24 @@ zhe open my-slug
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `zhe login` | Authenticate with API Key |
-| `zhe logout` | Clear stored credentials |
-| `zhe list` | List all links |
-| `zhe create <url>` | Create a new short link |
-| `zhe get <id>` | Get link details |
-| `zhe update <id>` | Update a link |
-| `zhe delete <id>` | Delete a link |
-| `zhe open <slug>` | Open short URL in browser |
-| `zhe idea …` | Manage Markdown ideas |
-| `zhe todo …` | Manage hierarchical todos |
-| `zhe connector status` | Show the combined enrichment queue and shared key expiry |
-| `zhe connector once` | Process one X, GitHub, or webpage preview job |
-| `zhe connector watch` | Drain ready jobs serially; when idle, poll every 5 minutes (30 minutes during local 22:00-05:00) |
-| `zhe connector start` | Start the background Connector at macOS login |
-| `zhe connector stop` | Stop and remove the macOS background service |
-| `zhe connector eagle` | Configure the optional Eagle image sidecar |
+| Command                | Description                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `zhe login`            | Authenticate with API Key                                                                        |
+| `zhe logout`           | Clear stored credentials                                                                         |
+| `zhe list`             | List all links                                                                                   |
+| `zhe create <url>`     | Create a new short link                                                                          |
+| `zhe get <id>`         | Get link details                                                                                 |
+| `zhe update <id>`      | Update a link                                                                                    |
+| `zhe delete <id>`      | Delete a link                                                                                    |
+| `zhe open <slug>`      | Open short URL in browser                                                                        |
+| `zhe idea …`           | Manage Markdown ideas                                                                            |
+| `zhe todo …`           | Manage hierarchical todos                                                                        |
+| `zhe connector status` | Show the combined enrichment queue and shared key expiry                                         |
+| `zhe connector once`   | Process one X, GitHub, or webpage preview job                                                    |
+| `zhe connector watch`  | Drain ready jobs serially; when idle, poll every 5 minutes (30 minutes during local 22:00-05:00) |
+| `zhe connector start`  | Start the background Connector at macOS login                                                    |
+| `zhe connector stop`   | Stop and remove the macOS background service                                                     |
+| `zhe connector eagle`  | Configure the optional Eagle image sidecar                                                       |
 
 ## Automatic X enrichment
 
