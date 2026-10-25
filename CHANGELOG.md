@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.0] - 2026-10-25
+
+### Added
+- Single-row page header and aligned toolbar density
+- Stage verified jp2 docker deployments
+- Harden standalone container packaging
+
+### Changed
+- Align the group actions and neutralize hover
+- Document the Basalt sidebar geometry contract
+- Match the Basalt sidebar geometry
+- Matte cards with Basalt ring instead of shadow
+- Record the single-row page chrome contract
+- Release 2.2.12 → 2.2.13
+- Bump ai 7.0.152 → 7.0.153
+- Bump @biomejs/biome 2.6.2 → 2.6.3
+- Bump @ai-sdk/openai 4.0.101 → 4.0.102
+- Bump @ai-sdk/anthropic 4.0.87 → 4.0.88
+- Release 2.2.11 → 2.2.12
+- Bump undici override ^8.11.2 → ^8.12.2
+- Override zod to 4.6.6
+- Bump next 16.4.2 → 16.4.3
+- Bump vite 8.3.4 → 8.3.5
+- Bump @biomejs/biome 2.5.15 → 2.6.2
+- Bump @ai-sdk/openai 4.0.98 → 4.0.101
+- Bump @ai-sdk/anthropic 4.0.84 → 4.0.87
+- Bump lucide-react 1.59.0 → 1.61.0
+- Bump happy-dom 21.0.3 → 21.0.4
+- Bump ai 7.0.146 → 7.0.152
+- Bump @aws-sdk/client-s3 3.1153.0 → 3.1156.0
+- Bump @aws-sdk/s3-request-presigner 3.1153.0 → 3.1156.0
+- Bump node base image to 22.23.4
+- Repin nocoo/base-ci to ac635753
+- Bump @nocoo/basalt to 3.2.1
+- Record approved deployment setup
+- Record verified migration preparation
+- Plan private jp2 migration
+
+### Fixed
+- Single keyboard entry for nav groups and unambiguous filter name
+- Align header toolbar controls at 28px
+- Preserve shell during search navigation
+
 ## [v2.2.11] - 2026-10-20
 
 ### Changed
