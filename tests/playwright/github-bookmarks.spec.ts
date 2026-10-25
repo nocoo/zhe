@@ -97,7 +97,7 @@ test("source filters and GitHub README", async ({ page, context, baseURL }) => {
     await expect(page.getByTestId("link-card")).toHaveCount(2);
     await page.goto("/dashboard?folder=uncategorized");
     await expect(page.getByTestId("link-card")).toHaveCount(1);
-    await page.getByLabel("特殊来源", { exact: true }).click();
+    await page.getByRole("button", { name: "来源筛选", exact: true }).click();
     await expect(page.getByRole("checkbox", { name: "GitHub", exact: true })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "X（全部内容）" })).not.toBeChecked();
     await page.getByRole("checkbox", { name: "X（全部内容）" }).check();
@@ -107,7 +107,7 @@ test("source filters and GitHub README", async ({ page, context, baseURL }) => {
     await expect(page.getByTestId("link-card")).toHaveCount(2);
     await page.goto(`/dashboard?folder=${folderId}`);
     await expect(page.getByTestId("link-card")).toHaveCount(2);
-    await page.getByLabel("特殊来源", { exact: true }).click();
+    await page.getByRole("button", { name: "来源筛选", exact: true }).click();
     await page.getByRole("checkbox", { name: "GitHub", exact: true }).uncheck();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("link-card")).toHaveCount(1);

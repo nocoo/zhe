@@ -21,9 +21,9 @@ export function SpecialSourceFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" aria-label="特殊来源">
+        <Button variant="outline" size="sm">
           <ListFilter strokeWidth={1.5} />
-          特殊来源
+          来源筛选
           <ChevronDown strokeWidth={1.5} />
         </Button>
       </PopoverTrigger>

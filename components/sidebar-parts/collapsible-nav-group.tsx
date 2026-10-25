@@ -39,7 +39,8 @@ export function CollapsibleNavGroup({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            aria-label={open ? `折叠 ${label}` : `展开 ${label}`}
+            tabIndex={-1}
+            aria-hidden="true"
             className="basalt-focus flex size-5 shrink-0 items-center justify-center rounded-basalt-sm text-basalt-muted-foreground transition-colors basalt-motion hover:bg-basalt-hover hover:text-basalt-foreground"
           >
             <ChevronUp

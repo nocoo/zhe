@@ -94,7 +94,7 @@ describe("source preference controls", () => {
     }
     const user = userEvent.setup();
     render(<Harness />);
-    await user.click(screen.getByRole("button", { name: "特殊来源" }));
+    await user.click(screen.getByRole("button", { name: "来源筛选" }));
     expect(screen.getByRole("checkbox", { name: "GitHub" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "X（全部内容）" })).not.toBeChecked();
     await user.click(screen.getByRole("checkbox", { name: "X（全部内容）" }));
