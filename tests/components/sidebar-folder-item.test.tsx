@@ -107,14 +107,16 @@ describe("SidebarFolderItem", () => {
       expect(countEl.className).toContain("text-basalt-sm");
     });
 
-    it("shows more button hidden by default, visible on group hover", () => {
+    it("shows more button hidden by default, visible on group hover or keyboard focus", () => {
       renderItem();
 
       const menuTrigger = screen.getByLabelText("文件夹操作");
       expect(menuTrigger).toBeInTheDocument();
-      // invisible by default, shown on group-hover
+      // invisible by default, shown on group-hover and when focus enters the row
       expect(menuTrigger.className).toContain("opacity-0");
       expect(menuTrigger.className).toContain("group-hover:opacity-100");
+      expect(menuTrigger.className).toContain("group-focus-within:opacity-100");
+      expect(menuTrigger.className).toContain("group-focus-within:pointer-events-auto");
     });
 
     it("places link count inside link and menu trigger outside link", () => {

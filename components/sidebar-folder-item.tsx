@@ -146,7 +146,7 @@ export function SidebarFolderItem({
           <button
             type="button"
             aria-label="文件夹操作"
-            className="basalt-focus absolute top-1/2 right-basalt-space-lg flex size-6 -translate-y-1/2 items-center justify-center rounded-basalt-sm text-basalt-muted-foreground opacity-0 pointer-events-none transition-colors group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-basalt-hover hover:text-basalt-foreground"
+            className="basalt-focus absolute top-1/2 right-basalt-space-lg flex size-6 -translate-y-1/2 items-center justify-center rounded-basalt-sm text-basalt-muted-foreground opacity-0 pointer-events-none transition-colors group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-basalt-hover hover:text-basalt-foreground"
           >
             <MoreHorizontal className="size-4" strokeWidth={1.5} aria-hidden />
           </button>
