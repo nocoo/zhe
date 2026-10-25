@@ -89,6 +89,15 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 
 ---
 
+### Sidebar 几何（对齐 Basalt `Sidebar*`）
+
+侧边栏直接使用 Basalt 原语：`SidebarHeader`（56px 高、8px 内缩 + 12px 品牌偏移）、`SidebarSearch`、`SidebarNav`（8px 内缩、4px 行距、`basalt-hover-list` 悬浮层）、`SidebarFooter` + `SidebarUser`。
+
+- 行高 38px（`--basalt-line-row` + 2×8px），左右内边距 8px，图标与文字间距 8px，圆角 8px（`rounded-basalt-md`），正文 14/22，图标 16px。
+- 选中态用 Basalt 语义属性表达：`aria-current="page"` + `data-hover-selected="true"`（`--basalt-selected` 填充 + 500 字重），**不要**自定义 `bg-primary/10` 之类的着色。
+- 分组标题 `text-basalt-sm`、大写、`tracking-wide`、 muted，触发器自带 `aria-expanded`，不再额外造 chevron 按钮。
+- 折叠轨道宽 68px（`w-basalt-rail`），图标按钮 34px 见方；移动端抽屉不显示折叠按钮。
+
 ## 4. 原语对照表
 
 | 组件            | lg   | default                                                      | toolbar compact | 备注                                    |

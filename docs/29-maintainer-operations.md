@@ -231,7 +231,8 @@ Dropdown and context menu items use the local `components/ui` wrappers: 36px min
 4. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.
 5. **Inline “text-looking” editors** still use `Input size="sm"` + surface overrides (`border-transparent` etc.), not a bare `<input>` with a custom focus ring.
 6. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx`, `tests/unit/ui/page-header.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
-7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`, `links-list-toolbar.tsx`.
+7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`, `links-list-toolbar.tsx`, `sidebar-parts/sidebar-expanded.tsx`.
+8. **Sidebar** → Basalt `SidebarHeader` / `SidebarSearch` / `SidebarNav` / `SidebarFooter` / `SidebarUser` own the insets; nav rows follow the 38px `SidebarItem` geometry and express selection through `aria-current` + `data-hover-selected`, never a custom tint.
 
 ### Surface hierarchy (L0–L3)
 
