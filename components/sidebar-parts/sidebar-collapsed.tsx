@@ -1,10 +1,12 @@
 "use client";
 
+import { SidebarFooter, SidebarHeader, SidebarNav } from "@nocoo/basalt/components/sidebar";
 import { PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { FolderIcon } from "@/components/folder-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
 import {
@@ -13,6 +15,7 @@ import {
   OTHER_NAV_GROUPS,
   PRE_LINK_NAV_GROUPS,
 } from "./nav-config";
+import { NAV_ROW_CLASS } from "./nav-row";
 
 interface SidebarCollapsedProps {
   pathname: string;
@@ -27,13 +30,40 @@ function isFolderNavActive(currentFolder: string | null | "__other__", folderPar
   return currentFolder === folderParam;
 }
 
-const iconLinkCls = (active: boolean) =>
-  cn(
-    "relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-    active
-      ? "bg-primary/10 text-primary"
-      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+function CollapsedRow({
+  href,
+  active,
+  label,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip delayDuration={0}>
+      <TooltipTrigger asChild>
+        <Link
+          href={href}
+          aria-label={label}
+          aria-current={active ? "page" : undefined}
+          data-basalt-hover-item=""
+          data-hover-selected={active ? "true" : undefined}
+          className={cn(
+            NAV_ROW_CLASS,
+            "w-[var(--basalt-size-control)] shrink-0 justify-center px-0",
+          )}
+        >
+          {children}
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
+}
 
 export function SidebarCollapsed({
   pathname,
@@ -44,117 +74,107 @@ export function SidebarCollapsed({
   openSearch,
 }: SidebarCollapsedProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden">
-      <div className="flex h-14 w-full items-center justify-start pl-6 pr-3">
-        <img src="/logo-24.png" alt="Zhe" width={24} height={24} className="shrink-0" />
-      </div>
+    <TooltipProvider>
+      <SidebarHeader>
+        <img
+          src="/logo-24.png"
+          alt="Zhe"
+          width={28}
+          height={28}
+          data-testid="sidebar-logo"
+          className="size-7 shrink-0"
+        />
+      </SidebarHeader>
 
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onToggle}
         aria-label="Expand sidebar"
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mb-2"
+        className="mb-basalt-space-sm self-center"
       >
-        <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
-      </button>
+        <PanelLeft aria-hidden />
+      </Button>
 
-      <button
-        type="button"
-        onClick={openSearch}
-        aria-label="打开搜索"
-        className={iconLinkCls(false)}
-      >
-        <Search className="h-4 w-4" />
-      </button>
-      <nav className="flex-1 flex flex-col items-center gap-1 overflow-y-auto pt-1">
-        {PRE_LINK_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
-          <Tooltip key={item.href} delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Link
-                href={item.href}
-                className={iconLinkCls(isStaticNavActive(pathname, item.href))}
-                aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
-                aria-label={item.title}
-              >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              {item.title}
-            </TooltipContent>
-          </Tooltip>
+      <SidebarNav>
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={openSearch}
+              aria-label="打开搜索"
+              className={cn(
+                NAV_ROW_CLASS,
+                "w-[var(--basalt-size-control)] shrink-0 justify-center px-0",
+              )}
+            >
+              <Search className="size-4" strokeWidth={1.5} aria-hidden />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            打开搜索
+          </TooltipContent>
+        </Tooltip>
+
+        {PRE_LINK_NAV_GROUPS.flatMap((group) => group.items).map((item) => (
+          <CollapsedRow
+            key={item.href}
+            href={item.href}
+            active={isStaticNavActive(pathname, item.href)}
+            label={item.title}
+          >
+            <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
+          </CollapsedRow>
         ))}
 
         {FOLDER_NAV_ITEMS.map((item) => (
-          <Tooltip key={item.title} delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Link
-                href={item.href}
-                className={iconLinkCls(isFolderNavActive(currentFolder, item.folderParam))}
-                aria-current={
-                  isFolderNavActive(currentFolder, item.folderParam) ? "page" : undefined
-                }
-                aria-label={item.title}
-              >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              {item.title}
-            </TooltipContent>
-          </Tooltip>
+          <CollapsedRow
+            key={item.title}
+            href={item.href}
+            active={isFolderNavActive(currentFolder, item.folderParam)}
+            label={item.title}
+          >
+            <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
+          </CollapsedRow>
         ))}
 
         {folders.map((folder) => (
-          <Tooltip key={folder.id} delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Link
-                href={`/dashboard?folder=${folder.id}`}
-                className={iconLinkCls(currentFolder === folder.id)}
-                aria-current={currentFolder === folder.id ? "page" : undefined}
-                aria-label={folder.name}
-              >
-                <FolderIcon name={folder.icon} className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              {folder.name}
-            </TooltipContent>
-          </Tooltip>
+          <CollapsedRow
+            key={folder.id}
+            href={`/dashboard?folder=${folder.id}`}
+            active={currentFolder === folder.id}
+            label={folder.name}
+          >
+            <FolderIcon name={folder.icon} className="size-4" strokeWidth={1.5} aria-hidden />
+          </CollapsedRow>
         ))}
 
-        {OTHER_NAV_GROUPS.flatMap((g) => g.items).map((item) => (
-          <Tooltip key={item.href} delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Link
-                href={item.href}
-                className={iconLinkCls(isStaticNavActive(pathname, item.href))}
-                aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
-                aria-label={item.title}
-              >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              {item.title}
-            </TooltipContent>
-          </Tooltip>
+        {OTHER_NAV_GROUPS.flatMap((group) => group.items).map((item) => (
+          <CollapsedRow
+            key={item.href}
+            href={item.href}
+            active={isStaticNavActive(pathname, item.href)}
+            label={item.title}
+          >
+            <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
+          </CollapsedRow>
         ))}
-      </nav>
+      </SidebarNav>
 
-      <div className="py-3 flex justify-center w-full">
+      <SidebarFooter>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <Avatar className="h-9 w-9 cursor-pointer">
+            <Avatar className="size-9 cursor-pointer">
               {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
-              <AvatarFallback className="text-xs">{user?.name?.[0] || "U"}</AvatarFallback>
+              <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={8}>
             {user?.name || "User"}
           </TooltipContent>
         </Tooltip>
-      </div>
-    </div>
+      </SidebarFooter>
+    </TooltipProvider>
   );
 }

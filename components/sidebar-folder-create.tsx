@@ -3,6 +3,7 @@
 import { Check, X } from "lucide-react";
 import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DEFAULT_FOLDER_ICON, FOLDER_ICONS } from "@/models/folders";
@@ -31,12 +32,12 @@ export function SidebarFolderCreate({ onCreate, onCancel }: SidebarFolderCreateP
   }
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-widget bg-card p-2">
+    <div className="flex flex-col gap-basalt-space-lg rounded-basalt-md bg-basalt-secondary p-basalt-space-lg">
       {/* Name input row */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-basalt-space-sm">
         <FolderIcon
           name={icon}
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="size-4 shrink-0 text-basalt-muted-foreground"
           strokeWidth={1.5}
         />
         <Input
@@ -48,26 +49,28 @@ export function SidebarFolderCreate({ onCreate, onCancel }: SidebarFolderCreateP
           placeholder="文件夹名称"
           autoFocus
         />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleConfirm}
           aria-label="确认"
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="size-6 shrink-0 [&_svg]:size-3.5"
         >
-          <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
+          <Check aria-hidden />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onCancel}
           aria-label="取消"
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="size-6 shrink-0 [&_svg]:size-3.5"
         >
-          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
+          <X aria-hidden />
+        </Button>
       </div>
 
       {/* Icon picker grid */}
-      <div className="grid grid-cols-8 gap-0.5">
+      <div className="grid grid-cols-8 gap-basalt-space-xs">
         {FOLDER_ICONS.map((iconName) => (
           <button
             type="button"
@@ -76,13 +79,13 @@ export function SidebarFolderCreate({ onCreate, onCancel }: SidebarFolderCreateP
             data-testid={`icon-${iconName}`}
             onClick={() => setIcon(iconName)}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded transition-colors",
+              "flex size-7 items-center justify-center rounded-basalt-sm transition-colors",
               icon === iconName
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                ? "bg-basalt-selected text-basalt-foreground"
+                : "text-basalt-muted-foreground hover:bg-basalt-hover hover:text-basalt-foreground",
             )}
           >
-            <FolderIcon name={iconName} className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <FolderIcon name={iconName} className="size-3.5" strokeWidth={1.5} />
           </button>
         ))}
       </div>

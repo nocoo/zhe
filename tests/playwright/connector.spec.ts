@@ -887,10 +887,18 @@ for (const viewport of [
           "src",
           /\/r2\//,
         );
-        const before = await page.locator('aside img[alt="Zhe"]').boundingBox();
+        const before = await page.getByTestId("sidebar-logo").boundingBox();
         await page.getByRole("button", { name: "Collapse sidebar" }).click();
         await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
-        const after = await page.locator('aside img[alt="Zhe"]').boundingBox();
+        // The rail animates its width; wait for the settled 68px rail before measuring.
+        await page.waitForFunction(
+          () =>
+            Math.round(
+              document.querySelector("aside[data-basalt-sidebar]")?.getBoundingClientRect().width ??
+                0,
+            ) === 68,
+        );
+        const after = await page.getByTestId("sidebar-logo").boundingBox();
         expect(Math.abs((before?.x ?? 0) - (after?.x ?? 0))).toBeLessThan(1);
         await card.getByRole("button", { name: "查看帖子详情", exact: true }).click();
         await post.getByRole("button", { name: "播放视频 1" }).click();

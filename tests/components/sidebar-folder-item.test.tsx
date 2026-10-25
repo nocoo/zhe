@@ -77,8 +77,8 @@ describe("SidebarFolderItem", () => {
       renderItem({ isSelected: true });
 
       const link = screen.getByText("工作").closest("a");
-      expect(link?.className).toContain("bg-primary/10");
-      expect(link?.className).toContain("text-primary");
+      expect(link?.className).toContain("basalt-nav-item");
+      expect(link?.getAttribute("data-hover-selected")).toBe("true");
       expect(link?.getAttribute("aria-current")).toBe("page");
     });
 
@@ -93,7 +93,8 @@ describe("SidebarFolderItem", () => {
       renderItem({ isSelected: false });
 
       const link = screen.getByText("工作").closest("a");
-      expect(link?.className).toContain("text-muted-foreground");
+      expect(link?.className).toContain("basalt-nav-item");
+      expect(link?.hasAttribute("data-hover-selected")).toBe(false);
     });
 
     it("shows link count by default", () => {
@@ -101,8 +102,9 @@ describe("SidebarFolderItem", () => {
 
       const countEl = screen.getByText("5");
       expect(countEl).toBeInTheDocument();
-      // link count visible by default (group-hover fades it out)
-      expect(countEl.className).toContain("group-hover:opacity-0");
+      // count stays visible; its wrapper fades out on group hover
+      expect(countEl.parentElement?.className).toContain("group-hover:opacity-0");
+      expect(countEl.className).toContain("text-basalt-sm");
     });
 
     it("shows more button hidden by default, visible on group hover", () => {
@@ -124,8 +126,8 @@ describe("SidebarFolderItem", () => {
       expect(countEl.closest("a")).toBeInTheDocument();
       // Menu trigger is outside the <a> link to prevent event bubbling
       expect(menuTrigger.closest("a")).toBeNull();
-      // Link count container has fixed width
-      expect(countEl.className).toContain("w-5");
+      // Count keeps the compact secondary type contract
+      expect(countEl.className).toContain("tabular-nums");
     });
 
     it("shows edit and delete options in context menu", () => {

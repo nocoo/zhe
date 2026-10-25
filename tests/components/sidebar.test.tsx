@@ -263,7 +263,7 @@ describe("Sidebar", () => {
 
     it("displays ⌘K keyboard shortcut hint in search button", () => {
       renderSidebar({ collapsed: false });
-      expect(screen.getByText("K")).toBeInTheDocument();
+      expect(screen.getByText("⌘K")).toBeInTheDocument();
     });
 
     it("marks the current page on the matching expanded nav link", () => {
@@ -400,15 +400,16 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const overviewLink = screen.getByRole("link", { name: "概览" });
-      expect(overviewLink.className).toContain("bg-primary/10");
-      expect(overviewLink.className).toContain("text-primary");
+      expect(overviewLink).toHaveAttribute("aria-current", "page");
+      expect(overviewLink).toHaveAttribute("data-hover-selected", "true");
+      expect(overviewLink).toHaveClass("basalt-nav-item");
     });
 
     it("renders overview section label above 链接管理", () => {
       const { container } = renderSidebar({ collapsed: false });
 
       // Find section labels by B-2 spec class (upgraded from text-sm font-normal)
-      const sectionLabels = container.querySelectorAll(".text-xs.font-medium.uppercase");
+      const sectionLabels = container.querySelectorAll(".uppercase.tracking-wide");
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
       // Overview should come before 链接管理
@@ -434,8 +435,8 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const allLinksAnchor = screen.getByText("全部链接").closest("a");
-      expect(allLinksAnchor?.className).toContain("bg-primary/10");
-      expect(allLinksAnchor?.className).toContain("text-primary");
+      expect(allLinksAnchor).toHaveAttribute("aria-current", "page");
+      expect(allLinksAnchor).toHaveAttribute("data-hover-selected", "true");
     });
   });
 
@@ -529,11 +530,11 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const personalLink = screen.getByText("个人").closest("a");
-      expect(personalLink?.className).toContain("bg-primary/10");
-      expect(personalLink?.className).toContain("text-primary");
+      expect(personalLink).toHaveAttribute("aria-current", "page");
 
       const workLink = screen.getByText("工作").closest("a");
-      expect(workLink?.className).toContain("text-muted-foreground");
+      expect(workLink).toHaveClass("basalt-nav-item");
+      expect(workLink).not.toHaveAttribute("data-hover-selected");
     });
 
     it("renders no folder items when folders is empty", () => {
@@ -661,8 +662,7 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const backyLink = screen.getByRole("link", { name: "Backy" });
-      expect(backyLink.className).toContain("bg-primary/10");
-      expect(backyLink.className).toContain("text-primary");
+      expect(backyLink).toHaveAttribute("aria-current", "page");
     });
 
     it('renders "Xray" link in expanded mode', () => {
@@ -678,8 +678,7 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const xrayLink = screen.getByRole("link", { name: "Xray" });
-      expect(xrayLink.className).toContain("bg-primary/10");
-      expect(xrayLink.className).toContain("text-primary");
+      expect(xrayLink).toHaveAttribute("aria-current", "page");
     });
   });
 
@@ -709,8 +708,7 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const tagsLink = screen.getByRole("link", { name: "标签" });
-      expect(tagsLink.className).toContain("bg-primary/10");
-      expect(tagsLink.className).toContain("text-primary");
+      expect(tagsLink).toHaveAttribute("aria-current", "page");
     });
 
     it('renders "数据管理" link in expanded mode', () => {
@@ -726,8 +724,7 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const dataLink = screen.getByRole("link", { name: "数据管理" });
-      expect(dataLink.className).toContain("bg-primary/10");
-      expect(dataLink.className).toContain("text-primary");
+      expect(dataLink).toHaveAttribute("aria-current", "page");
     });
 
     it('renders "Webhook" as a supported integration', () => {
@@ -744,14 +741,13 @@ describe("Sidebar", () => {
       renderSidebar({ collapsed: false });
 
       const webhookLink = screen.getByRole("link", { name: /Webhook/ });
-      expect(webhookLink.className).toContain("bg-primary/10");
-      expect(webhookLink.className).toContain("text-primary");
+      expect(webhookLink).toHaveAttribute("aria-current", "page");
     });
 
     it("renders 集成 and 设置 sections below 工具 section", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const sectionLabels = container.querySelectorAll(".text-xs.font-medium.uppercase");
+      const sectionLabels = container.querySelectorAll(".uppercase.tracking-wide");
       const labels = Array.from(sectionLabels).map((el) => el.textContent);
 
       const toolsIndex = labels.indexOf("工具");
@@ -783,7 +779,7 @@ describe("Sidebar", () => {
     it("uses B-2 spec group label styling", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const labels = container.querySelectorAll(".text-xs.font-medium.uppercase.tracking-wider");
+      const labels = container.querySelectorAll(".uppercase.tracking-wide");
       // 6 groups: 概览, 特殊来源, 链接管理, 工具, 集成, 设置
       expect(labels.length).toBe(6);
       expect(Array.from(labels).map((label) => label.textContent)).toEqual([
@@ -851,16 +847,15 @@ describe("Sidebar", () => {
       expect(personalItem.textContent).toContain("0");
     });
 
-    it('wraps "全部链接" count in a fixed-width w-5 container', () => {
+    it("renders the count in Basalt secondary type", () => {
       mockLinks = [makeLink({ id: 1, folderId: null }), makeLink({ id: 2, folderId: null })];
       resetMockFoldersVm({ folders: [] });
       renderSidebar({ collapsed: false });
 
       const allLinksItem = unwrap(screen.getByText("全部链接").closest("a"));
       const allCount = unwrap(allLinksItem.querySelector(".tabular-nums"));
-      const allContainer = unwrap(allCount.parentElement);
-      expect(allContainer.className).toContain("w-5");
-      expect(allContainer.className).toContain("shrink-0");
+      expect(allCount.className).toContain("text-basalt-sm");
+      expect(allCount.className).toContain("shrink-0");
     });
 
     it("does not show count badges in collapsed mode", () => {

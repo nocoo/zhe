@@ -12,6 +12,7 @@ interface CollapsibleNavGroupProps {
   children: React.ReactNode;
 }
 
+/** Basalt `SidebarGroup` metrics with a caller-controlled open state and trailing slot. */
 export function CollapsibleNavGroup({
   label,
   open,
@@ -20,36 +21,28 @@ export function CollapsibleNavGroup({
   children,
 }: CollapsibleNavGroupProps) {
   return (
-    <Collapsible open={open} onOpenChange={onOpenChange} className="px-3 mb-1">
-      <div className="flex w-full items-center justify-between px-3 py-2.5">
+    <Collapsible open={open} onOpenChange={onOpenChange} className="shrink-0 pt-basalt-layout-sm">
+      <div className="flex w-full items-center">
         <CollapsibleTrigger asChild>
-          <button type="button" className="flex flex-1 items-center gap-1">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {label}
-            </span>
+          <button
+            type="button"
+            className="basalt-focus basalt-focus-inset flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-basalt-row-gap rounded-basalt-md px-basalt-row-x py-basalt-space-lg text-left text-basalt-sm font-semibold leading-basalt-row tracking-wide text-basalt-muted-foreground uppercase transition-colors basalt-motion hover:text-basalt-foreground"
+          >
+            <span className="min-w-0 truncate">{label}</span>
+            <ChevronUp
+              className={cn(
+                "size-4 text-basalt-muted-foreground transition-transform basalt-motion duration-basalt-normal",
+                !open && "rotate-180",
+              )}
+              strokeWidth={1.5}
+              aria-hidden
+            />
           </button>
         </CollapsibleTrigger>
-        <div className="flex items-center gap-1">
-          {trailing}
-          <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center"
-              aria-label={open ? `Collapse ${label}` : `Expand ${label}`}
-            >
-              <ChevronUp
-                className={cn(
-                  "h-3.5 w-3.5 text-muted-foreground transition-transform duration-[var(--motion-fast)]",
-                  !open && "rotate-180",
-                )}
-                strokeWidth={1.5}
-              />
-            </button>
-          </CollapsibleTrigger>
-        </div>
+        {trailing}
       </div>
       <CollapsibleContent unstyled className="overflow-hidden">
-        {children}
+        <div className="flex flex-col gap-basalt-nav-gap pt-basalt-nav-gap">{children}</div>
       </CollapsibleContent>
     </Collapsible>
   );

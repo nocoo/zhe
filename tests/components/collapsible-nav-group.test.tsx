@@ -14,7 +14,7 @@ describe("CollapsibleNavGroup", () => {
       </CollapsibleNavGroup>,
     );
     expect(screen.getByRole("link", { name: "想法" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Collapse 概览" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "概览" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("removes closed group links from the accessibility tree", () => {
@@ -24,6 +24,6 @@ describe("CollapsibleNavGroup", () => {
       </CollapsibleNavGroup>,
     );
     expect(screen.queryByRole("link", { name: "想法" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand 概览" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "概览" })).toHaveAttribute("aria-expanded", "false");
   });
 });

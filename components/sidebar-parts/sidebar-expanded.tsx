@@ -1,13 +1,19 @@
 "use client";
 
-import { LogOut, PanelLeft, Plus, Search } from "lucide-react";
+import {
+  SidebarFooter,
+  SidebarHeader,
+  SidebarNav,
+  SidebarSearch,
+  SidebarUser,
+} from "@nocoo/basalt/components/sidebar";
+import { LogOut, PanelLeft, Plus } from "lucide-react";
 import Link from "next/link";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { APP_VERSION } from "@/lib/version";
 import type { buildLinkCounts } from "@/models/links";
 import type { Folder } from "@/models/types";
@@ -20,6 +26,7 @@ import {
   OTHER_NAV_GROUPS,
   PRE_LINK_NAV_GROUPS,
 } from "./nav-config";
+import { NavRowCount, NavRowLink } from "./nav-row";
 
 type FoldersVm = ReturnType<typeof useFoldersViewModel>;
 type LinkCounts = ReturnType<typeof buildLinkCounts>;
@@ -35,17 +42,9 @@ interface SidebarExpandedProps {
   groupOpen: Record<string, boolean>;
   toggleGroup: (label: string) => void;
   onToggle: () => void;
-
   openSearch: () => void;
+  isMobile: boolean;
 }
-
-const rowLinkCls = (active: boolean) =>
-  cn(
-    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-    active
-      ? "bg-primary/10 text-primary"
-      : "text-muted-foreground hover:bg-accent hover:text-foreground",
-  );
 
 function isFolderNavActive(currentFolder: string | null | "__other__", folderParam: string | null) {
   return currentFolder === folderParam;
@@ -68,73 +67,25 @@ function StaticNavGroupBlock({
       open={groupOpen[group.label] ?? true}
       onOpenChange={() => toggleGroup(group.label)}
     >
-      <div className="flex flex-col gap-0.5">
-        {group.items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={rowLinkCls(isStaticNavActive(pathname, item.href))}
-            aria-current={isStaticNavActive(pathname, item.href) ? "page" : undefined}
-          >
-            <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            <span className="flex-1 text-left">{item.title}</span>
-            {item.badge && (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground"
-              >
-                {item.badge}
-              </Badge>
-            )}
-          </Link>
-        ))}
-      </div>
-    </CollapsibleNavGroup>
-  );
-}
-
-function SidebarHeader({ onToggle }: { onToggle: () => void }) {
-  return (
-    <div className="px-3 h-14 flex items-center">
-      <div className="flex w-full items-center justify-between px-3">
-        <div className="flex items-center gap-3">
-          <img src="/logo-24.png" alt="Zhe" width={24} height={24} className="shrink-0" />
-          <span className="text-lg md:text-xl font-semibold text-foreground">ZHE.TO</span>
-          <Badge
-            variant="secondary"
-            className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground"
-          >
-            v{APP_VERSION}
-          </Badge>
-        </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label="Collapse sidebar"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
+      {group.items.map((item) => (
+        <NavRowLink
+          key={item.href}
+          href={item.href}
+          active={isStaticNavActive(pathname, item.href)}
         >
-          <PanelLeft className="h-4 w-4" strokeWidth={1.5} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SidebarSearchButton({ onClick }: { onClick: () => void }) {
-  return (
-    <div className="px-3 pb-1">
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-lg bg-secondary px-3 py-1.5 cursor-pointer"
-      >
-        <Search className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-        <span className="flex-1 text-left text-sm text-muted-foreground">搜索收藏与记录…</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
-          <span className="text-xs">⌘</span>K
-        </kbd>
-      </button>
-    </div>
+          <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
+          {item.badge && (
+            <Badge
+              variant="secondary"
+              className="shrink-0 px-basalt-space-md py-basalt-space-xs text-basalt-sm font-medium leading-basalt-tight text-basalt-muted-foreground"
+            >
+              {item.badge}
+            </Badge>
+          )}
+        </NavRowLink>
+      ))}
+    </CollapsibleNavGroup>
   );
 }
 
@@ -159,96 +110,55 @@ function LinkManagementGroup({
       open={groupOpen.链接管理 ?? true}
       onOpenChange={() => toggleGroup("链接管理")}
       trailing={
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="新建文件夹"
+          onClick={(event) => {
+            event.stopPropagation();
             foldersVm.setIsCreating(true);
           }}
-          aria-label="新建文件夹"
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="mr-basalt-row-x size-5 shrink-0 [&_svg]:size-3.5"
         >
-          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
+          <Plus aria-hidden />
+        </Button>
       }
     >
-      <div className="flex flex-col gap-0.5">
-        {FOLDER_NAV_ITEMS.map((item) => (
-          <Link
-            key={item.title}
-            href={item.href}
-            className={rowLinkCls(isFolderNavActive(currentFolder, item.folderParam))}
-            aria-current={isFolderNavActive(currentFolder, item.folderParam) ? "page" : undefined}
-          >
-            <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            <span className="flex-1 text-left">{item.title}</span>
-            <span className="flex w-5 shrink-0 items-center justify-center">
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
-              </span>
-            </span>
-          </Link>
-        ))}
+      {FOLDER_NAV_ITEMS.map((item) => (
+        <NavRowLink
+          key={item.title}
+          href={item.href}
+          active={isFolderNavActive(currentFolder, item.folderParam)}
+        >
+          <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
+          <NavRowCount>
+            {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
+          </NavRowCount>
+        </NavRowLink>
+      ))}
 
-        {folders.map((folder) => (
-          <SidebarFolderItem
-            key={folder.id}
-            folder={folder}
-            linkCount={linkCounts.byFolder.get(folder.id) ?? 0}
-            isSelected={currentFolder === folder.id}
-            isEditing={foldersVm.editingFolderId === folder.id}
-            onStartEditing={foldersVm.startEditing}
-            onUpdate={foldersVm.handleUpdateFolder}
-            onDelete={foldersVm.handleDeleteFolder}
-            onCancelEditing={foldersVm.cancelEditing}
-          />
-        ))}
+      {folders.map((folder) => (
+        <SidebarFolderItem
+          key={folder.id}
+          folder={folder}
+          linkCount={linkCounts.byFolder.get(folder.id) ?? 0}
+          isSelected={currentFolder === folder.id}
+          isEditing={foldersVm.editingFolderId === folder.id}
+          onStartEditing={foldersVm.startEditing}
+          onUpdate={foldersVm.handleUpdateFolder}
+          onDelete={foldersVm.handleDeleteFolder}
+          onCancelEditing={foldersVm.cancelEditing}
+        />
+      ))}
 
-        {foldersVm.isCreating && (
-          <SidebarFolderCreate
-            onCreate={foldersVm.handleCreateFolder}
-            onCancel={() => foldersVm.setIsCreating(false)}
-          />
-        )}
-      </div>
+      {foldersVm.isCreating && (
+        <SidebarFolderCreate
+          onCreate={foldersVm.handleCreateFolder}
+          onCancel={() => foldersVm.setIsCreating(false)}
+        />
+      )}
     </CollapsibleNavGroup>
-  );
-}
-
-function SidebarUserFooter({
-  user,
-  signOutAction,
-}: {
-  user?: { name?: string | null; email?: string | null; image?: string | null } | undefined;
-  signOutAction: () => Promise<void>;
-}) {
-  return (
-    <div className="px-4 py-3">
-      <div className="flex items-center gap-3">
-        <Avatar className="h-9 w-9 shrink-0">
-          {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
-          <AvatarFallback className="text-xs">{user?.name?.[0] || "U"}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-        </div>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                aria-label="Sign out"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0 cursor-pointer"
-              >
-                <LogOut className="h-4 w-4" strokeWidth={1.5} />
-              </button>
-            </form>
-          </TooltipTrigger>
-          <TooltipContent side="top">Sign out</TooltipContent>
-        </Tooltip>
-      </div>
-    </div>
   );
 }
 
@@ -263,15 +173,52 @@ export function SidebarExpanded({
   groupOpen,
   toggleGroup,
   onToggle,
-
   openSearch,
+  isMobile,
 }: SidebarExpandedProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <SidebarHeader onToggle={onToggle} />
-      <SidebarSearchButton onClick={openSearch} />
+    <>
+      <SidebarHeader>
+        <div className="flex w-full items-center justify-between pl-basalt-layout-sm">
+          <Link
+            href="/dashboard/overview"
+            aria-label="Zhe"
+            className="flex min-w-0 items-center gap-basalt-space-lg text-basalt-foreground no-underline hover:no-underline"
+          >
+            <img
+              src="/logo-24.png"
+              alt=""
+              width={28}
+              height={28}
+              data-testid="sidebar-logo"
+              className="size-7 shrink-0"
+            />
+            <span className="truncate text-basalt-xl font-semibold text-basalt-foreground">
+              ZHE.TO
+            </span>
+            <span className="shrink-0 rounded-basalt-md bg-basalt-secondary px-basalt-space-md py-basalt-space-xs text-basalt-sm font-medium leading-basalt-tight text-basalt-muted-foreground">
+              v{APP_VERSION}
+            </span>
+          </Link>
+          {isMobile ? null : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-7 shrink-0"
+              onClick={onToggle}
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeft aria-hidden />
+            </Button>
+          )}
+        </div>
+      </SidebarHeader>
 
-      <nav className="flex-1 overflow-y-auto pt-2">
+      <div className="px-basalt-nav-inset">
+        <SidebarSearch onClick={openSearch}>搜索收藏与记录…</SidebarSearch>
+      </div>
+
+      <SidebarNav>
         {PRE_LINK_NAV_GROUPS.map((group) => (
           <StaticNavGroupBlock
             key={group.label}
@@ -300,9 +247,33 @@ export function SidebarExpanded({
             toggleGroup={toggleGroup}
           />
         ))}
-      </nav>
+      </SidebarNav>
 
-      <SidebarUserFooter user={user} signOutAction={signOutAction} />
-    </div>
+      <SidebarFooter>
+        <SidebarUser
+          name={user?.name ?? "User"}
+          email={user?.email ?? ""}
+          avatar={
+            <Avatar className="size-9 shrink-0">
+              {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
+              <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
+            </Avatar>
+          }
+          action={
+            <form action={signOutAction}>
+              <Button
+                type="submit"
+                variant="ghost"
+                size="icon"
+                aria-label="Sign out"
+                className="w-8 shrink-0"
+              >
+                <LogOut aria-hidden />
+              </Button>
+            </form>
+          }
+        />
+      </SidebarFooter>
+    </>
   );
 }

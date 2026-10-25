@@ -81,7 +81,7 @@ describe("SidebarFolderCreate", () => {
 
     // The default icon button should have the active style
     const defaultIconBtn = screen.getByTestId(`icon-${DEFAULT_FOLDER_ICON}`);
-    expect(defaultIconBtn.className).toContain("bg-accent");
+    expect(defaultIconBtn.className).toContain("bg-basalt-selected");
   });
 
   it("calls onCreate with name and default icon when confirm is clicked", () => {
@@ -177,12 +177,12 @@ describe("SidebarFolderCreate", () => {
 
     // Star should now have active class
     const starClasses = starBtn.className.split(" ");
-    expect(starClasses).toContain("bg-accent");
+    expect(starClasses).toContain("bg-basalt-selected");
 
-    // Default icon should lose active class (check for exact 'bg-accent' not 'hover:bg-accent/50')
+    // Default icon should lose active class (not 'bg-basalt-selected' nor hover fill)
     const defaultBtn = screen.getByTestId(`icon-${DEFAULT_FOLDER_ICON}`);
     const defaultClasses = defaultBtn.className.split(" ");
-    expect(defaultClasses).not.toContain("bg-accent");
+    expect(defaultClasses).not.toContain("bg-basalt-selected");
   });
 
   it("shows the selected icon next to the input", () => {

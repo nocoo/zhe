@@ -72,6 +72,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           toggleGroup={toggleGroup}
           onToggle={toggle}
           openSearch={openSearch}
+          isMobile={isMobile}
         />
       )}
     </BasaltSidebar>

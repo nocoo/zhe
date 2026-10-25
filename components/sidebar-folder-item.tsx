@@ -1,9 +1,9 @@
 "use client";
 
 import { Check, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { FOLDER_ICONS } from "@/models/folders";
 import type { Folder } from "@/models/types";
+import { NavRowCount, NavRowLink } from "./sidebar-parts/nav-row";
 
 export interface SidebarFolderItemProps {
   folder: Folder;
@@ -49,11 +50,11 @@ function FolderItemEditor({ initialName, initialIcon, onSave, onCancel }: Folder
   }
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-widget bg-card p-2">
-      <div className="flex items-center gap-1.5">
+    <div className="flex flex-col gap-basalt-space-lg rounded-basalt-md bg-basalt-secondary p-basalt-space-lg">
+      <div className="flex items-center gap-basalt-space-sm">
         <FolderIcon
           name={editIcon}
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="size-4 shrink-0 text-basalt-muted-foreground"
           strokeWidth={1.5}
         />
         <Input
@@ -65,25 +66,27 @@ function FolderItemEditor({ initialName, initialIcon, onSave, onCancel }: Folder
           placeholder="文件夹名称"
           autoFocus
         />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleConfirm}
           aria-label="确认"
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="size-6 shrink-0 [&_svg]:size-3.5"
         >
-          <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
+          <Check aria-hidden />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onCancel}
           aria-label="取消"
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="size-6 shrink-0 [&_svg]:size-3.5"
         >
-          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
+          <X aria-hidden />
+        </Button>
       </div>
 
-      <div className="grid grid-cols-8 gap-0.5">
+      <div className="grid grid-cols-8 gap-basalt-space-xs">
         {FOLDER_ICONS.map((iconName) => (
           <button
             type="button"
@@ -92,13 +95,13 @@ function FolderItemEditor({ initialName, initialIcon, onSave, onCancel }: Folder
             data-testid={`icon-${iconName}`}
             onClick={() => setEditIcon(iconName)}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded transition-colors",
+              "flex size-7 items-center justify-center rounded-basalt-sm transition-colors",
               editIcon === iconName
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                ? "bg-basalt-selected text-basalt-foreground"
+                : "text-basalt-muted-foreground hover:bg-basalt-hover hover:text-basalt-foreground",
             )}
           >
-            <FolderIcon name={iconName} className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <FolderIcon name={iconName} className="size-3.5" strokeWidth={1.5} />
           </button>
         ))}
       </div>
@@ -129,32 +132,23 @@ export function SidebarFolderItem({
 
   return (
     <div className="group relative">
-      <Link
-        href={`/dashboard?folder=${folder.id}`}
-        aria-current={isSelected ? "page" : undefined}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-normal transition-colors",
-          isSelected
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground",
-        )}
-      >
-        <FolderIcon name={folder.icon} className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-        <span className="flex-1 text-left">{folder.name}</span>
-        <span className="w-5 shrink-0 text-center text-xs text-muted-foreground tabular-nums group-hover:opacity-0">
-          {linkCount}
+      <NavRowLink href={`/dashboard?folder=${folder.id}`} active={isSelected}>
+        <FolderIcon name={folder.icon} className="size-4" strokeWidth={1.5} aria-hidden />
+        <span className="min-w-0 flex-1 truncate text-left">{folder.name}</span>
+        <span className="group-hover:opacity-0">
+          <NavRowCount>{linkCount}</NavRowCount>
         </span>
-      </Link>
+      </NavRowLink>
 
-      {/* Dropdown outside Link to prevent click event bubbling into navigation */}
+      {/* Dropdown outside the link so clicks never bubble into navigation */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
             aria-label="文件夹操作"
-            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            className="absolute right-basalt-space-sm top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-basalt-sm text-basalt-muted-foreground opacity-0 pointer-events-none transition-colors group-hover:opacity-100 group-hover:pointer-events-auto hover:text-basalt-foreground basalt-focus"
           >
-            <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <MoreHorizontal className="size-3.5" strokeWidth={1.5} aria-hidden />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="bottom" className="w-32">
