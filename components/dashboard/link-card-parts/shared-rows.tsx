@@ -137,17 +137,30 @@ export function SourceLinks({ link, shortUrl }: { link: Link; shortUrl: string }
   );
 }
 
-export function Description({ link }: { link: Link }) {
+const DESCRIPTION_CLAMP = {
+  2: "line-clamp-2",
+  5: "line-clamp-5",
+};
+
+export function Description({
+  link,
+  lines = 2,
+  fill = false,
+}: {
+  link: Link;
+  lines?: 2 | 5;
+  fill?: boolean;
+}) {
   const display = linkPresentation(link);
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="flex h-10 w-full items-start justify-start overflow-hidden p-0 text-left text-sm font-normal leading-5 hover:bg-transparent"
+          className={`flex w-full items-start justify-start overflow-hidden p-0 text-left text-sm font-normal leading-5 hover:bg-transparent ${fill ? "h-full" : ""}`}
           aria-label="查看收藏内容"
         >
-          <span className="line-clamp-2 whitespace-pre-wrap break-words">
+          <span className={`${DESCRIPTION_CLAMP[lines]} whitespace-pre-wrap break-words`}>
             {display.description || "暂无描述"}
           </span>
         </Button>

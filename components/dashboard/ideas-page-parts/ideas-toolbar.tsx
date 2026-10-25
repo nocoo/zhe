@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasSortBy, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { IconAction } from "../icon-action";
 
 function SearchBox({ vm }: { vm: IdeasViewModel }) {
   return (
@@ -29,7 +30,7 @@ function SearchBox({ vm }: { vm: IdeasViewModel }) {
         <button
           type="button"
           onClick={() => vm.setSearchQuery("")}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted"
         >
           <X className="h-3 w-3 text-muted-foreground" />
         </button>
@@ -82,29 +83,27 @@ function SortSelect({ vm }: { vm: IdeasViewModel }) {
 }
 
 function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
-  const cls = (active: boolean) =>
-    `flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
-      active ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-    }`;
   return (
-    <div className="flex items-center rounded-widget bg-background p-0.5">
-      <button
-        type="button"
+    <>
+      <IconAction
+        density="toolbar"
+        variant={vm.viewMode === "grid" ? "secondary" : "outline"}
+        aria-pressed={vm.viewMode === "grid"}
+        label="Grid view"
         onClick={() => vm.setViewMode("grid")}
-        aria-label="Grid view"
-        className={cls(vm.viewMode === "grid")}
       >
-        <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
-      </button>
-      <button
-        type="button"
+        <LayoutGrid aria-hidden />
+      </IconAction>
+      <IconAction
+        density="toolbar"
+        variant={vm.viewMode === "list" ? "secondary" : "outline"}
+        aria-pressed={vm.viewMode === "list"}
+        label="List view"
         onClick={() => vm.setViewMode("list")}
-        aria-label="List view"
-        className={cls(vm.viewMode === "list")}
       >
-        <List className="w-4 h-4" strokeWidth={1.5} />
-      </button>
-    </div>
+        <List aria-hidden />
+      </IconAction>
+    </>
   );
 }
 
@@ -121,7 +120,7 @@ export function IdeasToolbar({
   return (
     <PageHeader
       title="想法"
-      description={
+      meta={
         filtered
           ? `${vm.ideas.length} / ${vm.allIdeas.length} 条想法`
           : `共 ${vm.allIdeas.length} 条想法`

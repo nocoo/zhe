@@ -17,7 +17,7 @@ import { UploadZone } from "./upload-zone";
 function UploadListSkeleton() {
   return (
     <div>
-      <PageHeader title="文件上传" description="加载中…" />
+      <PageHeader title="文件上传" meta="加载中…" />
       <div className="mb-6 flex items-center gap-4">
         <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
       </div>
@@ -41,7 +41,7 @@ function UploadOptions({
   setJpegQuality: (v: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-4 mb-6">
+    <div className="flex flex-wrap items-center gap-2">
       <div className="flex items-center gap-2">
         <Switch
           id="auto-convert-png"
@@ -49,23 +49,23 @@ function UploadOptions({
           checked={autoConvertPng}
           onCheckedChange={setAutoConvertPng}
         />
-        <Label htmlFor="auto-convert-png" className="text-sm text-muted-foreground cursor-pointer">
+        <Label htmlFor="auto-convert-png" className="text-xs text-muted-foreground cursor-pointer">
           PNG 自动转 JPG
         </Label>
       </div>
       {autoConvertPng && (
-        <div className="flex items-center gap-3">
-          <Label className="text-sm text-muted-foreground whitespace-nowrap">质量</Label>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">质量</Label>
           <Slider
             value={[jpegQuality]}
             onValueChange={([v]) => setJpegQuality(v ?? jpegQuality)}
             min={1}
             max={100}
             step={1}
-            className="w-28"
+            className="w-24"
             aria-label="JPG 质量"
           />
-          <span className="text-sm text-muted-foreground tabular-nums w-8 text-right">
+          <span className="w-6 text-right text-xs tabular-nums text-muted-foreground">
             {jpegQuality}
           </span>
         </div>
@@ -108,20 +108,22 @@ export function UploadList({
       {/* Header */}
       <PageHeader
         title="文件上传"
-        description={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
-        actions={<BulkDeleteActions selection={selection} />}
-      />
-
-      {/* Options */}
-      <UploadOptions
-        autoConvertPng={autoConvertPng}
-        setAutoConvertPng={setAutoConvertPng}
-        jpegQuality={jpegQuality}
-        setJpegQuality={setJpegQuality}
+        meta={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
+        actions={
+          <>
+            <UploadOptions
+              autoConvertPng={autoConvertPng}
+              setAutoConvertPng={setAutoConvertPng}
+              jpegQuality={jpegQuality}
+              setJpegQuality={setJpegQuality}
+            />
+            <BulkDeleteActions selection={selection} />
+          </>
+        }
       />
 
       {/* Upload zone */}
-      <div className="mb-6">
+      <div className="mb-4">
         <UploadZone isDragOver={isDragOver} onDragOver={setIsDragOver} onFiles={handleFiles} />
       </div>
 

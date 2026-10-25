@@ -108,12 +108,12 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
       data-testid="upload-item"
       data-card-actions-container
       padding="none"
-      className="rounded-card p-4 shadow-card ring-1 ring-border/40"
+      className="rounded-card px-4 py-3 shadow-card ring-1 ring-border/40"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-accent">
             {isVideo ? (
               <Video className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
             ) : isImage ? (
@@ -242,12 +242,12 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
     <LayerCard
       data-testid="uploading-item"
       padding="none"
-      className="rounded-card p-4 shadow-card ring-1 ring-border/40"
+      className="rounded-card px-4 py-3 shadow-card ring-1 ring-border/40"
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-accent">
             {file.status === "uploading" || file.status === "pending" ? (
               <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" strokeWidth={1.5} />
             ) : file.status === "success" ? (

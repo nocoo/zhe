@@ -79,37 +79,42 @@ export function SearchPage() {
       className="mx-auto flex w-full max-w-4xl flex-col"
       onKeyDown={keyboard}
     >
-      <div className="mb-5 flex items-start gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button size="sm" variant="ghost" aria-label="返回" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">搜索</h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            在链接、X、GitHub、想法和待办中查找 · ↑ ↓ 选择 · Enter 打开 · Esc 返回
-          </p>
+        <h1 className="shrink-0 text-xl font-semibold tracking-tight">搜索</h1>
+        <div className="relative min-w-0 flex-1 basis-64">
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            ref={input}
+            aria-label="搜索关键词"
+            aria-describedby="search-hint"
+            title="在链接、X、GitHub、想法和待办中查找 · ↑ ↓ 选择 · Enter 打开 · Esc 返回"
+            placeholder="标题、正文、账号、仓库、标签或 URL…"
+            value={query}
+            maxLength={2000}
+            size="sm"
+            className="pl-9"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setOffset(0);
+            }}
+          />
+          <span id="search-hint" className="sr-only">
+            在链接、X、GitHub、想法和待办中查找，↑ ↓ 选择，Enter 打开，Esc 返回
+          </span>
         </div>
-      </div>
-      <div className="relative">
-        <Search
-          className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          ref={input}
-          aria-label="搜索关键词"
-          placeholder="标题、正文、账号、仓库、标签或 URL…"
-          value={query}
-          maxLength={2000}
-          size="lg"
-          className="pl-9"
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setOffset(0);
-          }}
-        />
-      </div>
-      <div className="my-3">
+        <div aria-live="polite" aria-atomic="true" className="text-xs text-muted-foreground">
+          {result.loading
+            ? result.message || "正在搜索…"
+            : result.data
+              ? `${result.data.total} 个结果`
+              : ""}
+        </div>
         <SearchSourceFilter
           value={source}
           counts={result.data?.counts}
@@ -119,15 +124,8 @@ export function SearchPage() {
           }}
         />
       </div>
-      <div aria-live="polite" aria-atomic="true" className="mb-2 text-xs text-muted-foreground">
-        {result.loading
-          ? result.message || "正在搜索…"
-          : result.data
-            ? `${result.data.total} 个结果 · 按相关性排序`
-            : ""}
-      </div>
       {!normalizeSearchText(query) && (
-        <div className="py-16 text-center text-muted-foreground">
+        <div className="py-10 text-center text-muted-foreground">
           <Search className="mx-auto mb-3 h-7 w-7 opacity-50" />
           <p className="text-sm">输入关键词，找回收藏与记录</p>
           <p className="mt-2 text-xs">可组合作者、标签和正文关键词，用空格分开</p>

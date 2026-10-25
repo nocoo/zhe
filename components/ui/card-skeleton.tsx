@@ -30,14 +30,14 @@ function BookmarkFooterBones({
       )}
     >
       {showClassification && (
-        <div className="flex h-10 flex-1 items-center gap-2 px-3">
+        <div className="flex h-9 flex-1 items-center gap-2 px-3">
           <Bone className="h-3 w-16" />
           <Bone className="h-4 w-16" />
         </div>
       )}
       <div
         className={cn(
-          "flex min-h-11 items-center gap-1 border-t border-border/60 px-3 py-1",
+          "flex min-h-10 items-center gap-1 border-t border-border/60 px-3 py-1",
           compact && "sm:border-t-0",
         )}
       >
@@ -65,7 +65,7 @@ export function CardListSkeleton({
   if (variant === "list")
     return (
       <div
-        className={cn("space-y-2", className)}
+        className={cn("space-y-1", className)}
         data-testid="card-list"
         role="status"
         aria-busy="true"
@@ -81,12 +81,12 @@ export function CardListSkeleton({
               rowHeightClass,
             )}
           >
-            <div className="flex h-28 items-center gap-3 p-3">
+            <div className="flex min-h-24 items-center gap-3 px-3 py-2">
               <Bone className="hidden h-20 w-28 sm:block" />
               <div className="flex-1 space-y-2">
                 <Bone className="h-4 w-2/3" />
                 <Bone className="h-3 w-1/3" />
-                <Bone className="h-10 w-full" />
+                <Bone className="h-5 w-full" />
               </div>
             </div>
             <BookmarkFooterBones compact />

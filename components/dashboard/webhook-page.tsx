@@ -107,8 +107,25 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
   const vm = useWebhookViewModel(initialData);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Webhook" description="生成一个 URL，供外部系统直接收藏网页和 X 帖子。" />
+    <div className="space-y-5">
+      <PageHeader
+        title="Webhook"
+        meta="生成一个 URL，供外部系统直接收藏网页和 X 帖子。"
+        actions={
+          !vm.isLoading &&
+          !(vm.token && vm.webhookUrl) && (
+            <Button
+              onClick={vm.handleGenerate}
+              disabled={vm.isGenerating}
+              variant="outline"
+              size="sm"
+              data-testid="generate-token-btn"
+            >
+              {vm.isGenerating ? "生成中..." : "生成令牌"}
+            </Button>
+          )
+        }
+      />
       <Card>
         <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (
@@ -130,15 +147,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               onRateLimitChange={vm.handleRateLimitChange}
             />
           ) : (
-            <Button
-              onClick={vm.handleGenerate}
-              disabled={vm.isGenerating}
-              variant="outline"
-              size="default"
-              data-testid="generate-token-btn"
-            >
-              {vm.isGenerating ? "生成中..." : "生成令牌"}
-            </Button>
+            <p className="text-sm text-muted-foreground">尚未生成 Webhook 令牌。</p>
           )}
         </CardContent>
       </Card>

@@ -84,7 +84,7 @@ function LinksContent(props: LinksContentProps) {
 
   return (
     <AnimatedCardList
-      className={viewMode === "grid" ? BOOKMARK_GRID_CLASS : "space-y-2"}
+      className={viewMode === "grid" ? BOOKMARK_GRID_CLASS : "space-y-1"}
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
       {filteredLinks.map((link, i) => (

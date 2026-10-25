@@ -156,7 +156,7 @@ export const LinkCard = memo(function LinkCard({
             ) : (
               <XBookmarkPending link={link} compact />
             )}
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-2">
               <SourceLinks link={link} shortUrl={vm.shortUrl} />
             </div>
           </>

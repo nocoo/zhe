@@ -38,8 +38,25 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="API Keys" description="管理外部应用访问数据的密钥。" />
+    <div className="space-y-5">
+      <PageHeader
+        title="API Keys"
+        meta="外部应用访问数据的密钥"
+        actions={
+          !vm.isLoading &&
+          !showCreateForm && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCreateForm(true)}
+              data-testid="show-create-form-btn"
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              创建 API Key
+            </Button>
+          )
+        }
+      />
       <Card>
         <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.newlyCreatedKey && (
@@ -50,17 +67,7 @@ export function ApiKeysPage() {
             <p className="text-sm text-muted-foreground">加载中...</p>
           ) : (
             <div className="space-y-4" data-testid="api-keys-section">
-              {!showCreateForm ? (
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={() => setShowCreateForm(true)}
-                  data-testid="show-create-form-btn"
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  创建 API Key
-                </Button>
-              ) : (
+              {showCreateForm && (
                 <CreateKeyForm
                   availableScopes={vm.availableScopes}
                   newKeyName={newKeyName}

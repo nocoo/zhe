@@ -197,11 +197,15 @@ Do **not** put `rounded-lg` / `rounded-sm` / arbitrary `rounded-[Npx]` on contro
 
 ### Control density (Basalt sizes)
 
-| Tier                | Height           | Type          | Button    | Input / Select / Checkbox | Use                                        |
-| ------------------- | ---------------- | ------------- | --------- | ------------------------- | ------------------------------------------ |
-| lg                  | 40px (`h-10`)    | `text-sm`     | `lg`      | `lg`                      | Forms / modals primary                     |
-| default             | 36px (`h-9`)     | `text-sm`     | `default` | `default`                 | Settings, API Keys, Backy, config forms    |
-| **toolbar compact** | **32px (`h-8`)** | **`text-xs`** | **`sm`**  | **`sm`**                  | Toolbars, filter bars, panel inline fields |
+| Tier                | Height   | Type          | Button    | Input / Select / Checkbox | Use                                        |
+| ------------------- | -------- | ------------- | --------- | ------------------------- | ------------------------------------------ |
+| lg                  | 40px     | `text-base`   | `lg`      | `lg`                      | Forms / modals primary                     |
+| default             | 34px     | `text-base`   | `default` | `default`                 | Settings, API Keys, Backy, config forms    |
+| **toolbar compact** | **28px** | **`text-xs`** | **`sm`**  | **`sm`**                  | Toolbars, filter bars, panel inline fields |
+
+Heights come from Basalt `basalt-action` roles (line height + padding + border),
+not from `h-8` / `h-9` utility overrides. Toolbar rows stay uniform: text controls
+`size="sm"`, icon controls `IconAction density="toolbar"`.
 
 ```tsx
 // ✅ form / settings secondary actions
@@ -221,13 +225,13 @@ Dropdown and context menu items use the local `components/ui` wrappers: 36px min
 
 ### Hard rules for agents
 
-1. **PageHeader actions / filter bars** → Button `size="sm"` (or `icon`); fields `size="sm"`.
-2. **Settings / form pages** → Button `size="default"` (h-9) or `lg` (h-10); not toolbar `sm` unless the control is in a true toolbar row.
-3. **Same row → same height**; use `items-center`. Prefer one density per toolbar.
+1. **PageHeader / filter bars** → one row only: filters and actions share the title row through the project override in `components/ui/page-header.tsx`; never pass Basalt `filters` or a second description row. Toolbar controls `size="sm"` (28px), icon controls `IconAction density="toolbar"`.
+2. **Settings / form pages** → Button `size="default"` (34px) or `lg` (40px); not toolbar `sm` unless the control is in a true toolbar row.
+3. **Same row → same height**; use `items-center`. Prefer one density per toolbar. A lone page-level action belongs in the header, not in its own band.
 4. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.
 5. **Inline “text-looking” editors** still use `Input size="sm"` + surface overrides (`border-transparent` etc.), not a bare `<input>` with a custom focus ring.
-6. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
-7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`.
+6. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx`, `tests/unit/ui/page-header.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
+7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`, `links-list-toolbar.tsx`.
 
 ### Surface hierarchy (L0–L3)
 

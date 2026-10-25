@@ -168,7 +168,7 @@ export function XLibraryPage() {
             <TwitterIcon className="size-6" strokeWidth={1.5} aria-hidden />X 收藏
           </span>
         }
-        description={
+        meta={
           <span role="status">
             共 {entries.length} 条收藏
             {filtered || visible.length !== entries.length ? ` · 显示 ${visible.length} 条` : ""}

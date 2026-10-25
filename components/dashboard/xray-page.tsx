@@ -11,7 +11,7 @@ export function XrayPage({ initialData }: { initialData?: XrayInitialData }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Xray" description="配置接口并收录 Twitter 书签。" />
+      <PageHeader title="Xray" meta="配置接口并收录 Twitter 书签" />
       {/* ── API 配置 + 接口测试（并排） ──────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ConfigSection vm={vm} />

@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 export function EditorSkeleton() {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader title="编辑想法" description="编写内容、标题与标签。" />
+      <PageHeader title="编辑想法" meta="编写内容、标题与标签" />
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3 animate-pulse">
           <div className="h-8 w-8 rounded-widget bg-secondary" />

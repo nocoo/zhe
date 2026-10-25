@@ -59,8 +59,9 @@
 Basalt 3 owns intrinsic sizing through `basalt-action` roles, line height, padding
 and borders, not the retired `h-8` / `h-9` defaults. These reference heights assume
 normal typography; do not constrain wrapped text actions to fixed heights.
-`size="icon"` is a 34px square. Shared `IconAction` deliberately keeps the existing
-32px square card target (`size-8 p-0`), expanded to 44px on coarse pointers.
+`size="icon"` is a 34px square. Shared `IconAction` keeps the 32px square card
+target (`size-8 p-0`) by default and switches to the 28px toolbar target with
+`density="toolbar"` (`size-7 p-0`); both expand to 44px on coarse pointers.
 Text actions, including copyable dates, retain horizontal padding; use a negative
 margin for text alignment rather than a zero-padding hover surface. Do not invent
 `xs` / `icon-sm` or override global library sizing tokens.
@@ -83,22 +84,34 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 ```
 
 - 同排工具栏控件必须同高（Button `sm` + Input/Select `sm` use the same 28px native role）。
+- 图标按钮进工具栏时用 `IconAction density="toolbar"`（28px），不要用 `Button size="icon"`（34px）或裸 `<button h-8 w-8>`。
 - 需要「伪文本」编辑（如 Todo 标题）时：静止可透明边，但 **仍用 `Input size="sm"`**，用 `className` 覆盖表面，不要裸 `<input>`。
 
 ---
 
 ## 4. 原语对照表
 
-| 组件            | lg   | default            | toolbar compact                       | 备注                                    |
-| --------------- | ---- | ------------------ | ------------------------------------- | --------------------------------------- |
-| `Button`        | 40px | 34px               | **`sm` → 28px**                       | `icon` → 34×34                          |
-| `Input`         | 40px | 34px               | **`sm` → 28px**                       | 无 HTML `size` 属性；用 prop `size`     |
-| `SelectTrigger` | 40px | 34px               | **`sm` → 28px**                       |                                         |
-| `Checkbox`      | —    | 16px               | **`sm` → 12px**                       | **禁止** 原生 `<input type="checkbox">` |
-| `Textarea`      | —    | Basalt `InputArea` | `size="sm"`                           |                                         |
-| `PageHeader`    | —    | Basalt             | actions 槽位：Button `sm` / 字段 `sm` |                                         |
+| 组件            | lg   | default                                                      | toolbar compact | 备注                                    |
+| --------------- | ---- | ------------------------------------------------------------ | --------------- | --------------------------------------- |
+| `Button`        | 40px | 34px                                                         | **`sm` → 28px** | `icon` → 34×34                          |
+| `Input`         | 40px | 34px                                                         | **`sm` → 28px** | 无 HTML `size` 属性；用 prop `size`     |
+| `SelectTrigger` | 40px | 34px                                                         | **`sm` → 28px** |                                         |
+| `Checkbox`      | —    | 16px                                                         | **`sm` → 12px** | **禁止** 原生 `<input type="checkbox">` |
+| `Textarea`      | —    | Basalt `InputArea`                                           | `size="sm"`     |                                         |
+| `PageHeader`    | —    | 本项目单行覆盖（标题 + 内联 meta \| filter 与 actions 同排） | 见下节          |                                         |
 
 路径：`@nocoo/basalt` 或 `@/components/ui/...` 薄 re-export。
+
+### PageHeader 单行契约（项目覆盖 Basalt `filters` 槽位）
+
+本项目 `components/ui/page-header.tsx` 覆盖 Basalt `PageHeader`，理由：纵向空间优先，
+Basalt `INTEGRATION.md`「Create and filters」按 filter 数量分档，会让筛选独占一整行。
+
+- 只有一行业头：`[h1] [meta 计数/一句话]` 左，`[筛选] [视图切换] [主操作]` 右。
+- 禁止使用 Basalt `PageHeader` 的 `filters` / `description` / `breadcrumbs` 槽位。
+- `meta` 是标题同行的灰色小字，溢出截断并用 `title` 保留全文；真说明句同样内联，不再占第二行。
+- 主操作永远最后一个；窄屏允许 actions 整行折到标题下方（`flex-wrap` + `md:flex-row`）。
+- 骨架 `PageHeaderSkeleton` 必须维持单行几何。
 
 ---
 

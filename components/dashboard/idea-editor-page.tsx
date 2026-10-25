@@ -42,7 +42,7 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <PageHeader title="编辑想法" description="编写内容、标题与标签。" />
+      <PageHeader title="编辑想法" meta="编写内容、标题与标签" />
       <EditorToolbar
         title={vm.title}
         setTitle={vm.setTitle}

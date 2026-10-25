@@ -10,7 +10,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Backy" description="将数据推送到远程备份，或从远程拉取。" />
+      <PageHeader title="Backy" meta="远程备份推送与拉取" />
       <PushSection vm={vm} />
       <PullSection vm={vm} />
     </div>

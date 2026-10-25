@@ -48,7 +48,7 @@ export function BookmarkCardFooter({
     >
       {showClassification && (
         <div
-          className="flex h-10 min-w-0 flex-1 items-center gap-2 px-3"
+          className="flex h-9 min-w-0 flex-1 items-center gap-2 px-3"
           data-bookmark-classification
         >
           <span
@@ -85,7 +85,7 @@ export function BookmarkCardFooter({
       )}
       <div
         className={cn(
-          "flex min-h-11 shrink-0 items-center justify-between gap-2 border-t border-border/60 px-3 py-1",
+          "flex min-h-10 shrink-0 items-center justify-between gap-2 border-t border-border/60 px-3 py-1",
           compact && "sm:border-t-0",
         )}
         data-bookmark-action-row

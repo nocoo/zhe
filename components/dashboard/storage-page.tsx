@@ -78,7 +78,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (loading && !data) {
     return (
       <div>
-        <PageHeader title="存储管理" description="查看 R2 与 D1 用量，清理孤儿文件。" />
+        <PageHeader title="存储管理" meta="R2 与 D1 用量、孤儿文件清理" />
         <StorageSkeleton />
       </div>
     );
@@ -87,22 +87,18 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (!data) return null;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="存储管理" description="查看 R2 与 D1 用量，清理孤儿文件。" />
+    <div className="space-y-5">
+      <PageHeader
+        title="存储管理"
+        meta="R2 与 D1 用量、孤儿文件清理"
+        actions={
+          <Button variant="outline" size="sm" onClick={sp.scan} disabled={loading}>
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} strokeWidth={1.5} />
+            重新扫描
+          </Button>
+        }
+      />
       <SummaryGrid data={data} SummaryCard={SummaryCard} />
-
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="default"
-          onClick={sp.scan}
-          disabled={loading}
-          className="gap-1.5"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} strokeWidth={1.5} />
-          重新扫描
-        </Button>
-      </div>
 
       <D1Section data={data.d1} />
 

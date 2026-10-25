@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 type AccentColor = "info" | "teal" | "warning" | "purple" | "success" | "destructive";
 
@@ -43,19 +42,23 @@ export function FeatureCard({
 
   return (
     <Card>
-      <CardHeader className="px-4 py-3 md:px-5 md:py-4">
+      <CardHeader className="px-4 py-3 md:px-5">
         <CardTitle className="flex items-center gap-3 text-sm font-medium">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colors.bg}`}>
+          <div
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-widget ${colors.bg}`}
+          >
             <Icon className={`h-4 w-4 ${colors.fg}`} strokeWidth={1.5} />
           </div>
-          {typeof title === "string" ? <span>{title}</span> : title}
+          <span className="shrink-0">{typeof title === "string" ? title : title}</span>
+          <span
+            {...(typeof description === "string" ? { title: description } : {})}
+            className="min-w-0 flex-1 truncate text-xs font-normal text-muted-foreground"
+          >
+            {description}
+          </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-        <p className="mb-4 text-sm text-muted-foreground">{description}</p>
-        <Separator className="mb-4" />
-        {children}
-      </CardContent>
+      <CardContent className="px-4 pb-4 md:px-5 md:pb-4">{children}</CardContent>
     </Card>
   );
 }

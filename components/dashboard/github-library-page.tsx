@@ -116,7 +116,7 @@ export function GitHubLibraryPage() {
             GitHub 收藏
           </span>
         }
-        description={
+        meta={
           <span role="status">
             共 {entries.length} 个仓库
             {visible.length !== entries.length ? ` · 显示 ${visible.length} 个` : ""} ·

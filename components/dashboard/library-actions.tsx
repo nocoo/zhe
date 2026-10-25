@@ -34,11 +34,10 @@ export function LibraryActions({
   };
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <EnrichmentButton source={source} />
+      <EnrichmentButton source={source} density="toolbar" />
       <IconAction
         variant="outline"
-        size="sm"
-        className="w-8 shrink-0 px-0"
+        density="toolbar"
         label="刷新链接"
         disabled={refreshing}
         onClick={refresh}

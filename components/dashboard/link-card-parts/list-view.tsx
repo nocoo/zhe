@@ -8,7 +8,7 @@ import { Description, type LinkPreviewProps, SourceLinks, TitleRow } from "./sha
 export function ListView(props: LinkPreviewProps) {
   const image = props.screenshotUrl || props.faviconUrl;
   return (
-    <div className="flex h-28 min-w-0 items-center gap-3 p-3">
+    <div className="flex min-h-24 min-w-0 items-center gap-3 px-3 py-2">
       <a
         href={props.link.originalUrl}
         target="_blank"

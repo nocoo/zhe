@@ -34,7 +34,7 @@ describe("bounded bookmark content", () => {
     expect(tags).toHaveTextContent("long-tag".repeat(40));
     expect(tags).toHaveClass("min-w-0", "overflow-x-auto");
     expect(screen.getByRole("listitem")).toHaveClass("shrink-0");
-    expect(document.querySelector("[data-bookmark-classification]")).toHaveClass("h-10");
+    expect(document.querySelector("[data-bookmark-classification]")).toHaveClass("h-9");
     expect(tags).toHaveAttribute("tabindex", "0");
     fireEvent.keyDown(tags, { key: "ArrowRight" });
     expect(tags.scrollLeft).toBe(40);

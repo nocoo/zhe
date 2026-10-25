@@ -1,14 +1,16 @@
 "use client";
 
-import { LayoutGrid, LayoutList, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { EnrichmentButton } from "../enrichment-button";
+import { IconAction } from "../icon-action";
 import { LinkFilterBar } from "../link-filter-bar";
 import { ShowHiddenButton } from "../link-visibility";
 import { SpecialSourceFilter } from "../special-source-filter";
+import { ViewModeToggle } from "../view-mode-toggle";
 import type { useSpecialSources } from "./useSpecialSources";
 
 type ViewMode = "list" | "grid";
@@ -29,7 +31,7 @@ interface FilterControlsProps {
   isRefreshing: boolean;
 }
 
-/** Filter bar + view-mode pill + refresh button. Used inline (desktop) or inside a Popover (mobile). */
+/** Filters + view switch + refresh. Inline on desktop, inside a Popover on mobile. */
 function FilterControls(props: FilterControlsProps) {
   const {
     folders,
@@ -64,41 +66,19 @@ function FilterControls(props: FilterControlsProps) {
         showFolderFilter={showFolderFilter}
         hasAdditionalFilters={props.specialSources.changed}
       />
-      <div className="flex items-center rounded-widget bg-background p-0.5">
-        <button
-          type="button"
-          onClick={() => onViewModeChange("list")}
-          aria-label="List view"
-          className={`flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
-            viewMode === "list"
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <LayoutList className="w-4 h-4" strokeWidth={1.5} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onViewModeChange("grid")}
-          aria-label="Grid view"
-          className={`flex h-8 w-8 items-center justify-center rounded-widget transition-colors ${
-            viewMode === "grid"
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
-        </button>
-      </div>
-      <Button
+      <ViewModeToggle value={viewMode} onChange={onViewModeChange} />
+      <IconAction
+        density="toolbar"
         variant="outline"
-        size="icon"
-        onClick={onRefresh}
+        label="刷新链接"
         disabled={isRefreshing}
-        aria-label="刷新链接"
+        onClick={onRefresh}
       >
-        <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} strokeWidth={1.5} />
-      </Button>
+        <RefreshCw
+          className={isRefreshing ? "animate-spin motion-reduce:animate-none" : ""}
+          aria-hidden
+        />
+      </IconAction>
     </>
   );
 }
@@ -159,17 +139,18 @@ export function LinksListToolbar(props: ToolbarProps) {
   return (
     <PageHeader
       title={headerTitle}
-      description={
-        hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`
+      meta={
+        <span role="status">
+          {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
+        </span>
       }
-      filters={!selecting && !isMobile ? <FilterControls {...controls} /> : undefined}
       actions={
         <>
           {!selecting && (
             <>
-              {isMobile && filterTrigger}
+              {isMobile ? filterTrigger : <FilterControls {...controls} />}
               <ShowHiddenButton showHidden={showHidden} onToggle={onToggleHidden} />
-              <EnrichmentButton />
+              <EnrichmentButton density="toolbar" />
             </>
           )}
           {selectionActions}

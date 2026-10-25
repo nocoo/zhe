@@ -170,7 +170,7 @@ export function TodosPage() {
     <div className="flex h-full min-h-0 flex-col" data-todos-page>
       <PageHeader
         title="待办"
-        description={vm.loading ? "加载中…" : countLabel}
+        meta={vm.loading ? "加载中…" : countLabel}
         actions={
           narrow ? (
             <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>

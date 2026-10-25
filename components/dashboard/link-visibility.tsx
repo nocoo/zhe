@@ -13,6 +13,7 @@ export function ShowHiddenButton({
   return (
     <IconAction
       variant={showHidden ? "secondary" : "outline"}
+      density="toolbar"
       label="展示隐藏"
       aria-pressed={showHidden}
       onClick={onToggle}

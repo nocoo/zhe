@@ -70,7 +70,7 @@ export function LinkFilterBar({
         return (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium"
             style={styles.badge}
             data-testid="active-tag-filter"
             data-tag-name={tag.name}
@@ -91,14 +91,9 @@ export function LinkFilterBar({
 
       {/* Clear all */}
       {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          data-testid="clear-filters"
-        >
+        <Button variant="ghost" size="sm" onClick={onClear} data-testid="clear-filters">
           清除筛选
-        </button>
+        </Button>
       )}
     </>
   );

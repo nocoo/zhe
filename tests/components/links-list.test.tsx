@@ -320,7 +320,7 @@ describe("LinksList", () => {
     render(<LinksList />);
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn.className).toContain("bg-accent");
+    expect(listBtn).toHaveAttribute("aria-pressed", "true");
   });
 
   it("switches to grid view when grid toggle is clicked", async () => {
@@ -330,10 +330,10 @@ describe("LinksList", () => {
     fireEvent.click(screen.getByLabelText("Grid view"));
 
     const gridBtn = screen.getByLabelText("Grid view");
-    expect(gridBtn.className).toContain("bg-accent");
+    expect(gridBtn).toHaveAttribute("aria-pressed", "true");
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn.className).not.toContain("bg-accent");
+    expect(listBtn).toHaveAttribute("aria-pressed", "false");
   });
 
   it("switches back to list view when list toggle is clicked", async () => {
@@ -343,7 +343,7 @@ describe("LinksList", () => {
     fireEvent.click(screen.getByLabelText("List view"));
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn.className).toContain("bg-accent");
+    expect(listBtn).toHaveAttribute("aria-pressed", "true");
   });
 
   it("persists view mode to localStorage", async () => {

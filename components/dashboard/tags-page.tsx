@@ -37,7 +37,7 @@ export function TagsPage() {
 
   return (
     <div data-testid="tags-page">
-      <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
+      <PageHeader title="标签" meta={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
         <div
