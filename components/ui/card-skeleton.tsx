@@ -7,7 +7,7 @@ export const CARD_GRID_CLASS =
 export const BOOKMARK_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3";
 export const BOOKMARK_CARD_CLASS =
-  "group flex min-w-0 flex-col overflow-hidden rounded-card shadow-card ring-1 ring-border/40 transition-shadow hover:shadow-card-hover";
+  "group flex min-w-0 flex-col overflow-hidden rounded-card ring-1 ring-border/50 transition-shadow hover:ring-border";
 
 function Bone({ className }: { className: string }) {
   return <div className={cn("shrink-0 rounded bg-muted-foreground/10", className)} />;
@@ -65,7 +65,7 @@ export function CardListSkeleton({
   if (variant === "list")
     return (
       <div
-        className={cn("space-y-1", className)}
+        className={cn("space-y-3", className)}
         data-testid="card-list"
         role="status"
         aria-busy="true"

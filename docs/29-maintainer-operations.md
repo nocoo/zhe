@@ -177,7 +177,7 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 ## Design Tokens & UI Controls
 
-Content cards use the shared `shadow-card` / `hover:shadow-card-hover` elevation tokens with a fine `ring-border/40` edge; nested previews and media frames use borders only. Light/dark values live in `app/globals.css`.
+Content cards stay matte: `rounded-card` plus a single `ring-1 ring-border/50` edge and no shadow, matching Basalt `LayerCard`. Interactive cards deepen the ring on hover (`hover:ring-border`) instead of elevating. Nested previews and media frames use borders only.
 
 **权威全文**：[`docs/22-design-tokens.md`](22-design-tokens.md)
 **CSS 定义**：`app/globals.css` · **原语**：`components/ui/*` · **契约测试**：`tests/unit/ui/control-density.test.tsx`

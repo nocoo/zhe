@@ -8,7 +8,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <LayerCard
       ref={ref}
       padding="none"
-      className={cn("rounded-card shadow-card ring-1 ring-border/40", className)}
+      className={cn("rounded-card ring-1 ring-border/50", className)}
       {...props}
     />
   ),

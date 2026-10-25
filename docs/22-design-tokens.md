@@ -125,7 +125,7 @@ Basalt `INTEGRATION.md`「Create and filters」按 filter 数量分档，会让�
 
 L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`。
 
-内容卡片使用 `shadow-card` + `ring-1 ring-border/40`，由贴近边缘的小阴影和更柔和的外层阴影构成；明暗主题分别取值。可交互卡片用 `hover:shadow-card-hover` 轻微加强，不做位移。文章预览、引用与媒体框等卡片内部区域只用细边框，避免阴影层层叠加。不要用表单控件的 `shadow-xs` 代替内容卡片阴影。
+内容卡片保持哑光：`rounded-card` + `ring-1 ring-border/50`，**不加投影**，对齐 Basalt `LayerCard` 的既有表面规则。可交互卡片 hover 只加深环（`hover:ring-border`），不做位移、不加阴影。文章预览、引用与媒体框等卡片内部区域只用更细的边框，避免层层叠加。列表卡片间距 12px（`space-y-3`），网格 `gap-3`，卡片内边距 12px（`p-3`）。
 
 ---
 

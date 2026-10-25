@@ -82,7 +82,7 @@ export const IdeaCard = memo(function IdeaCard({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex flex-col rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 p-4 transition-shadow hover:shadow-card-hover text-left w-full",
+        "group relative flex flex-col rounded-card border-0 bg-secondary ring-1 ring-border/50 p-4 transition-shadow hover:ring-border text-left w-full",
         className,
       )}
     >
@@ -189,7 +189,7 @@ export const IdeaRow = memo(function IdeaRow({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex items-center gap-4 rounded-card border-0 bg-secondary shadow-card ring-1 ring-border/40 px-4 py-3 transition-shadow hover:shadow-card-hover text-left w-full",
+        "group relative flex items-center gap-4 rounded-card border-0 bg-secondary ring-1 ring-border/50 px-4 py-3 transition-shadow hover:ring-border text-left w-full",
         className,
       )}
     >
