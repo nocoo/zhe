@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.1] - 2026-10-25
+
+### Changed
+- Poll the card preview geometry after a viewport change
+
+### Fixed
+- Reveal the folder menu when focus enters the row
+
 ## [v2.3.0] - 2026-10-25
 
 ### Added
