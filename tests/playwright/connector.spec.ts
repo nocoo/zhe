@@ -374,14 +374,23 @@ test.describe("webpage previews", () => {
       for (const width of [1365, 390]) {
         await page.setViewportSize({ width, height: 960 });
         const frame = card.getByRole("link", { name: "打开原链接", exact: true });
-        const frameBox = await frame.boundingBox();
-        const imageBox = await image.boundingBox();
-        assert(frameBox && imageBox);
-        expect(imageBox.width).toBeCloseTo(frameBox.width, 0);
-        expect(imageBox.height).toBeCloseTo(
-          await frame.evaluate((element) => element.clientHeight),
-          0,
-        );
+        // The responsive reflow after setViewportSize settles asynchronously; poll
+        // instead of measuring once so the assertion cannot race the relayout.
+        await expect
+          .poll(
+            async () => {
+              const frameBox = await frame.boundingBox();
+              const imageBox = await image.boundingBox();
+              if (!frameBox || !imageBox) return null;
+              const frameHeight = await frame.evaluate((element) => element.clientHeight);
+              return [
+                Math.round(Math.abs(imageBox.width - frameBox.width)),
+                Math.round(Math.abs(imageBox.height - frameHeight)),
+              ];
+            },
+            { message: `preview image fills its frame at ${width}px` },
+          )
+          .toEqual([0, 0]);
         expect(
           await card.evaluate((element) => element.getBoundingClientRect().height),
         ).toBeCloseTo(384, 2);
