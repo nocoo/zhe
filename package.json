@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.88",
-    "@ai-sdk/openai": "4.0.101",
+    "@ai-sdk/openai": "4.0.102",
     "@auth/core": "^0.41.3",
     "@aws-sdk/client-s3": "3.1156.0",
     "@aws-sdk/s3-request-presigner": "3.1156.0",
@@ -108,7 +108,7 @@
     "postcss-selector-parser": "^7.1.6",
     "source-map-js": "1.2.2",
     "@ai-sdk/anthropic": "4.0.88",
-    "@ai-sdk/openai": "4.0.101",
+    "@ai-sdk/openai": "4.0.102",
     "ai": "7.0.152",
     "zod": "4.6.6"
   }
