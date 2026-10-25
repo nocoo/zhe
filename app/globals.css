@@ -229,6 +229,15 @@
   --basalt-primary: 262 83% 58%;
   --basalt-primary-foreground: 0 0% 100%;
   --basalt-ring: 262 83% 58%;
+  /* Basalt mixes hover from the primary (204 blue by default); our brand
+   * primary is a saturated purple, so a primary-tinted hover over neutral
+   * chrome reads as a selection wash. Keep hover matte: a foreground tint
+   * over the elevated surface, in both themes. */
+  --basalt-hover: color-mix(
+    in srgb,
+    hsl(var(--basalt-foreground)) 8%,
+    hsl(var(--basalt-surface-elevated))
+  );
 
   --background: var(--basalt-background);
   --foreground: var(--basalt-foreground);

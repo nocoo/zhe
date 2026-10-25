@@ -97,6 +97,8 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 - 选中态用 Basalt 语义属性表达：`aria-current="page"` + `data-hover-selected="true"`（`--basalt-selected` 填充 + 500 字重），**不要**自定义 `bg-primary/10` 之类的着色。
 - 分组标题 `text-basalt-sm`、大写、`tracking-wide`、 muted，触发器自带 `aria-expanded`，不再额外造 chevron 按钮。
 - 折叠轨道宽 68px（`w-basalt-rail`），图标按钮 34px 见方；移动端抽屉不显示折叠按钮。
+- 右侧对齐线只有一条：分组标题的「动作 + 折叠箭头」组成 20px + 4px gap + 20px 的紧贴簇，右边缘与行内容右边界（8px 内缩，即 244/260）对齐；文件夹「⋯」用 24px 方框，右边缘同线，行 hover 时替换计数出现，hover 用 `bg-basalt-hover`。
+- **hover 色彩项目级覆盖**：`--basalt-hover` 改为 foreground 8% 混入 elevated surface（见 `app/globals.css`）。Basalt 默认用主色 18% 混色，本项目主色是高饱和紫，主色混 hover 在中性 chrome 上会被读成选中态；hover 保持哑光中性，选中态继续由 `--basalt-selected` 承担。
 
 ## 4. 原语对照表
 

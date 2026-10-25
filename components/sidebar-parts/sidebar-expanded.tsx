@@ -118,7 +118,7 @@ function LinkManagementGroup({
             event.stopPropagation();
             foldersVm.setIsCreating(true);
           }}
-          className="mr-basalt-row-x size-5 shrink-0 [&_svg]:size-3.5"
+          className="size-5 shrink-0 [&_svg]:size-4"
         >
           <Plus aria-hidden />
         </Button>
