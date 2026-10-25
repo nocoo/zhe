@@ -46,8 +46,8 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
       value={vm.selectedTagId ?? "all"}
       onValueChange={(v) => vm.setSelectedTagId(v === "all" ? null : v)}
     >
-      <SelectTrigger size="sm" className="w-[120px]">
-        <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+      <SelectTrigger size="sm" className="w-[128px] whitespace-nowrap">
+        <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <SelectValue placeholder="All tags" />
       </SelectTrigger>
       <SelectContent>
@@ -71,7 +71,7 @@ function TagFilter({ vm }: { vm: IdeasViewModel }) {
 function SortSelect({ vm }: { vm: IdeasViewModel }) {
   return (
     <Select value={vm.sortBy} onValueChange={(v) => vm.setSortBy(v as IdeasSortBy)}>
-      <SelectTrigger size="sm" className="w-[120px]">
+      <SelectTrigger size="sm" className="w-[112px] whitespace-nowrap">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

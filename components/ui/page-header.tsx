@@ -39,7 +39,7 @@ export function PageHeader({ title, meta, actions, className }: PageHeaderProps)
         ) : null}
       </div>
       {actions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 md:ml-auto md:flex-nowrap md:justify-end">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 [&>*]:shrink-0 md:ml-auto md:justify-end">
           {actions}
         </div>
       ) : null}

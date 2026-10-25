@@ -234,7 +234,7 @@ export function XLibraryPage() {
                   }
                 />
                 {filtered && (
-                  <IconAction label="清除筛选" onClick={clearFilters}>
+                  <IconAction density="toolbar" label="清除筛选" onClick={clearFilters}>
                     <FilterX aria-hidden />
                   </IconAction>
                 )}
@@ -252,6 +252,7 @@ export function XLibraryPage() {
               actions={
                 <>
                   <IconAction
+                    density="toolbar"
                     label="隐藏所选"
                     disabled={!selection.count || visibility.pending}
                     onClick={() => void visibility.update(true)}
@@ -259,6 +260,7 @@ export function XLibraryPage() {
                     <EyeOff aria-hidden />
                   </IconAction>
                   <IconAction
+                    density="toolbar"
                     label="解除隐藏所选"
                     disabled={!selection.count || visibility.pending}
                     onClick={() => void visibility.update(false)}

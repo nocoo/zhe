@@ -67,6 +67,7 @@ export function BulkDeleteActions({
         ) : (
           <IconAction
             ref={trigger}
+            density="toolbar"
             label="多选卡片"
             onClick={selection.enter}
             disabled={!selection.total}
@@ -127,6 +128,7 @@ function SelectionControls({
         已选 {selection.count} 项
       </span>
       <IconAction
+        density="toolbar"
         label={allSelected ? "取消全选" : "全选当前列表"}
         onClick={selection.selectAll}
         disabled={!selection.total || pending}
@@ -136,6 +138,7 @@ function SelectionControls({
       {actions}
       <IconAction
         ref={deleteRef}
+        density="toolbar"
         label="删除所选"
         disabled={!selection.count || pending}
         onClick={selection.requestDelete}
@@ -143,7 +146,7 @@ function SelectionControls({
       >
         <Trash2 aria-hidden />
       </IconAction>
-      <IconAction label="退出多选" onClick={selection.exit} disabled={pending}>
+      <IconAction density="toolbar" label="退出多选" onClick={selection.exit} disabled={pending}>
         <X aria-hidden />
       </IconAction>
     </fieldset>
