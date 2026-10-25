@@ -1,6 +1,6 @@
 {
   "name": "zhe",
-  "version": "2.2.12",
+  "version": "2.2.13",
   "private": true,
   "scripts": {
     "dev": "bun run scripts/local.ts",
@@ -26,15 +26,15 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.87",
-    "@ai-sdk/openai": "4.0.101",
+    "@ai-sdk/anthropic": "4.0.88",
+    "@ai-sdk/openai": "4.0.102",
     "@auth/core": "^0.41.3",
     "@aws-sdk/client-s3": "3.1156.0",
     "@aws-sdk/s3-request-presigner": "3.1156.0",
     "@nocoo/basalt": "3.2.1",
     "@nocoo/next-ai": "^0.4.0",
     "@tailwindcss/typography": "0.5.20",
-    "ai": "7.0.152",
+    "ai": "7.0.153",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "drizzle-orm": "0.45.4",
@@ -58,7 +58,7 @@
     "yaml": "2.9.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.3",
     "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/dom": "10.4.2",
@@ -107,9 +107,9 @@
     "nanoid": "^6.0.2",
     "postcss-selector-parser": "^7.1.6",
     "source-map-js": "1.2.2",
-    "@ai-sdk/anthropic": "4.0.87",
-    "@ai-sdk/openai": "4.0.101",
-    "ai": "7.0.152",
+    "@ai-sdk/anthropic": "4.0.88",
+    "@ai-sdk/openai": "4.0.102",
+    "ai": "7.0.153",
     "zod": "4.6.6"
   }
 }
