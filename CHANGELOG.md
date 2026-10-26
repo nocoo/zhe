@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.2] - 2026-10-26
+
+### Changed
+- Tailscale WIF deploy to jp2
+
 ## [v2.3.1] - 2026-10-25
 
 ### Changed
