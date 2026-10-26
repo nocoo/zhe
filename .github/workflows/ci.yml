@@ -28,7 +28,7 @@ jobs:
 
   cli:
     name: "CLI build, lint and coverage"
-    uses: nocoo/base-ci/.github/workflows/test-job.yml@ac635753a869cb85fad1f52aae4ccbd6119f3cae # main 2026-10-22
+    uses: nocoo/base-ci/.github/workflows/test-job.yml@af9a2b3f82c367d6eb6def5c3583ac717e0868ad # main 2026-10-26
     with:
       runtime-version: "1.3.11"
       install-policy: "blocked"
@@ -40,7 +40,7 @@ jobs:
   # L1 + G1 + G2 — Core quality gate from base-ci
   # ─────────────────────────────────────────────────────
   quality:
-    uses: nocoo/base-ci/.github/workflows/quality.yml@ac635753a869cb85fad1f52aae4ccbd6119f3cae # main 2026-10-22
+    uses: nocoo/base-ci/.github/workflows/quality.yml@af9a2b3f82c367d6eb6def5c3583ac717e0868ad # main 2026-10-26
     with:
       runtime-version: "1.3.11"
       install-policy: "project"
@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: nocoo/base-ci/.github/actions/setup-js@ac635753a869cb85fad1f52aae4ccbd6119f3cae # main 2026-10-22
+      - uses: nocoo/base-ci/.github/actions/setup-js@af9a2b3f82c367d6eb6def5c3583ac717e0868ad # main 2026-10-26
         with:
           runtime-version: "1.3.11"
           install-policy: "blocked"
@@ -125,7 +125,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: nocoo/base-ci/.github/actions/setup-js@ac635753a869cb85fad1f52aae4ccbd6119f3cae # main 2026-10-22
+      - uses: nocoo/base-ci/.github/actions/setup-js@af9a2b3f82c367d6eb6def5c3583ac717e0868ad # main 2026-10-26
         with:
           runtime-version: "1.3.11"
           install-policy: "blocked"
@@ -197,7 +197,7 @@ jobs:
   # ─────────────────────────────────────────────────────
   worker-tests:
     name: "Worker Tests"
-    uses: nocoo/base-ci/.github/workflows/test-job.yml@ac635753a869cb85fad1f52aae4ccbd6119f3cae # main 2026-10-22
+    uses: nocoo/base-ci/.github/workflows/test-job.yml@af9a2b3f82c367d6eb6def5c3583ac717e0868ad # main 2026-10-26
     with:
       runtime-version: "1.3.11"
       install-policy: "blocked"
