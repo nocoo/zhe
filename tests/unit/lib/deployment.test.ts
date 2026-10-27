@@ -34,7 +34,7 @@ describe("Docker deployment contract", () => {
     expect(JSON.parse(workflow.jobs.deploy.with.images)).toEqual([
       { image: "ghcr.io/nocoo/zhe", service: "web" },
     ]);
-    expect(workflow.jobs.deploy.with["deploy-directory"]).toBe("/opt/zhe");
+    expect(workflow.jobs.deploy.with["deploy-directory"]).toBe("/data/zhe");
     expect(workflow.jobs.deploy.secrets).not.toHaveProperty("BUILD_ARGS");
     expect(workflow.jobs.deploy.with["remote-verify-command"]).toContain(
       "'http://127.0.0.1:17006'",
