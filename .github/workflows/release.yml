@@ -24,7 +24,7 @@ jobs:
       environment: zhe / production
       source-run-id: ${{ github.event_name == 'workflow_run' && format('{0}', github.event.workflow_run.id) || inputs.ci-run-id }}
       images: '[{"image":"ghcr.io/nocoo/zhe","service":"web"}]'
-      deploy-directory: /opt/zhe
+      deploy-directory: /data/zhe
       remote-verify-command: |
         python3 - <<'PY'
         import json, os, re, subprocess, time, urllib.error, urllib.request
