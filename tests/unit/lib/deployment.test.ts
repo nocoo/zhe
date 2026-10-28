@@ -141,22 +141,32 @@ describe("deployment verification", () => {
     ).rejects.toThrow("release manifest");
   });
 
-  it("requires the explicit jp2 marker and a configured HTTPS origin in production", async () => {
+  it("requires a non-empty origin marker and a configured HTTPS origin in production", async () => {
     const fetchImpl = vi.fn();
     await expect(
       verifyDeployment(
         options({
           phase: "production",
-          target: "https://example.com",
+          target: "https://zhe.to",
           fetchImpl,
         }),
       ),
-    ).rejects.toThrow("DEPLOY_ORIGIN_MARKER=jp2");
+    ).rejects.toThrow("non-empty DEPLOY_ORIGIN_MARKER");
     await expect(
       verifyDeployment(
         options({
           phase: "production",
-          originMarker: "jp2",
+          target: "https://example.com",
+          originMarker: "jp4",
+          fetchImpl,
+        }),
+      ),
+    ).rejects.toThrow("canonical https://zhe.to");
+    await expect(
+      verifyDeployment(
+        options({
+          phase: "production",
+          originMarker: "jp4",
           fetchImpl,
         }),
       ),
@@ -166,7 +176,7 @@ describe("deployment verification", () => {
         options({
           phase: "production",
           target: "http://localhost",
-          originMarker: "jp2",
+          originMarker: "jp4",
           fetchImpl,
         }),
       ),
@@ -176,7 +186,7 @@ describe("deployment verification", () => {
         options({
           phase: "production",
           target: "https://zhe.to/old",
-          originMarker: "jp2",
+          originMarker: "jp4",
           fetchImpl,
         }),
       ),
@@ -203,7 +213,7 @@ describe("deployment verification", () => {
         options({
           phase: "production",
           target: "https://zhe.to",
-          originMarker: "jp2",
+          originMarker: "jp4",
           fetchImpl,
           sleep: vi.fn(),
         }),
@@ -215,7 +225,8 @@ describe("deployment verification", () => {
     );
   });
 
-  it("requires jp2 response identity, exact package version and live database health", async () => {
+  it("requires matching origin marker, exact package version and live database health", async () => {
+    const originMarker = "jp4";
     const fetchImpl = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -228,7 +239,7 @@ describe("deployment verification", () => {
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "x-zhe-origin": "jp2",
+            "x-zhe-origin": originMarker,
             "Cache-Control": "no-store",
           },
         },
@@ -239,11 +250,11 @@ describe("deployment verification", () => {
         options({
           phase: "production",
           target: "https://zhe.to",
-          originMarker: "jp2",
+          originMarker,
           fetchImpl,
         }),
       ),
-    ).resolves.toContain(`Zhe ${expectedVersion}`);
+    ).resolves.toContain(`Production origin verified: ${originMarker}`);
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL("https://zhe.to/api/live"),
       expect.objectContaining({ redirect: "error" }),
@@ -255,7 +266,7 @@ describe("deployment verification", () => {
       version: expectedVersion,
       database: { connected: true },
     };
-    const validHeaders = { "x-zhe-origin": "jp2", "Cache-Control": "no-store" };
+    const validHeaders = { "x-zhe-origin": originMarker, "Cache-Control": "no-store" };
     for (const variant of [
       {
         body: { ...validBody, version: `${expectedVersion}-wrong` },
@@ -290,12 +301,12 @@ describe("deployment verification", () => {
           options({
             phase: "production",
             target: "https://zhe.to",
-            originMarker: "jp2",
+            originMarker,
             fetchImpl: wrongIdentity,
             sleep: vi.fn(),
           }),
         ),
-      ).rejects.toThrow("did not prove jp2 origin");
+      ).rejects.toThrow(`did not prove ${originMarker} origin`);
       expect(wrongIdentity).toHaveBeenCalledTimes(5);
     }
   });
