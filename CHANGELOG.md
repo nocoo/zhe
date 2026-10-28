@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.3] - 2026-10-28
+
+### Fixed
+- Honor `DEPLOY_ORIGIN_MARKER` in production deploy verification
+
 ## [v2.3.2] - 2026-10-26
 
 ### Changed

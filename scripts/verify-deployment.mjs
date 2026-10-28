@@ -54,8 +54,9 @@ async function fetchResponse(fetchImpl, url) {
 }
 
 async function verifyProduction({ target, originMarker, expectedVersion, fetchImpl, sleep }) {
-  if (originMarker !== "jp2")
-    throw new Error("production verification requires DEPLOY_ORIGIN_MARKER=jp2");
+  if (!originMarker?.trim()) {
+    throw new Error("production verification requires a non-empty DEPLOY_ORIGIN_MARKER");
+  }
   const origin = validateTarget(target);
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const liveResponse = await fetchResponse(fetchImpl, new URL("/api/live", origin));
@@ -66,15 +67,15 @@ async function verifyProduction({ target, originMarker, expectedVersion, fetchIm
       live.component === "zhe" &&
       live.version === expectedVersion &&
       live.database?.connected === true &&
-      liveResponse.headers.get("x-zhe-origin") === "jp2" &&
+      liveResponse.headers.get("x-zhe-origin") === originMarker &&
       liveResponse.headers.get("cache-control") === "no-store"
     ) {
-      return `Production origin verified: jp2, Zhe ${expectedVersion}, database connected`;
+      return `Production origin verified: ${originMarker}, Zhe ${expectedVersion}, database connected`;
     }
     if (attempt < 4) await sleep(5_000);
   }
   throw new Error(
-    "production /api/live did not prove jp2 origin, expected version, and database health",
+    `production /api/live did not prove ${originMarker} origin, expected version, and database health`,
   );
 }
 
