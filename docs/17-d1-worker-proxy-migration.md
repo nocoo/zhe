@@ -12,7 +12,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PRODUCTION                               │
 │                                                                 │
-│   Railway Server                                                │
+│   Origin Server                                                 │
 │        │                                                        │
 │        ├──► zhe-edge Worker /api/d1-query ──► D1 (binding)     │
 │        │    Authorization: Bearer <D1_PROXY_SECRET>            │
@@ -43,7 +43,7 @@
 │              STILL USING CLOUDFLARE REST API                    │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐  │
-│   │  KV RUNTIME (requires credentials in Railway prod)     │  │
+│   │  KV RUNTIME (requires credentials in origin prod)      │  │
 │   │                                                         │  │
 │   │  lib/kv/client.ts ──► Cloudflare KV HTTP API           │  │
 │   │       CLOUDFLARE_ACCOUNT_ID                             │  │
@@ -52,7 +52,7 @@
 │   └─────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐  │
-│   │  DEV/CI TOOLING (NOT needed in Railway prod)            │  │
+│   │  DEV/CI TOOLING (NOT needed in origin prod)             │  │
 │   │                                                         │  │
 │   │  drizzle-kit ──► D1 REST API (local dev only)          │  │
 │   │  E2E test seed ──► D1 REST API (CI only)               │  │
@@ -72,7 +72,7 @@
 │   │  TRUSTED ZONE   │     │  UNTRUSTED ZONE                 │  │
 │   │  (server-side)  │     │  (distributed clients)          │  │
 │   │                 │     │                                 │  │
-│   │  Railway Server │     │  Browser (user machines)        │  │
+│   │  Origin  Server │     │  Browser (user machines)        │  │
 │   │  CI/CD Pipeline │     │  CLI (future, see below)        │  │
 │   │                 │     │  Mobile apps (future)           │  │
 │   └────────┬────────┘     └────────┬────────────────────────┘  │
@@ -169,14 +169,14 @@ function getProxyCredentials(): { url: string; secret: string } {
 
 ### Environment Variables
 
-| Variable                     | Required In        | Purpose                                               |
-| ---------------------------- | ------------------ | ----------------------------------------------------- |
-| `D1_PROXY_URL`               | Railway, Local, CI | Worker URL (e.g., `https://zhe-edge.xxx.workers.dev`) |
-| `D1_PROXY_SECRET`            | Railway, Local, CI | Auth secret for `/api/d1-query`                       |
-| `CLOUDFLARE_ACCOUNT_ID`      | Railway, Local, CI | **KV + Drizzle** (NOT removed!)                       |
-| `CLOUDFLARE_API_TOKEN`       | Railway, Local, CI | **KV + Drizzle** (NOT removed!)                       |
-| `CLOUDFLARE_KV_NAMESPACE_ID` | Railway, Local     | KV cache operations                                   |
-| `CLOUDFLARE_D1_DATABASE_ID`  | Local, CI          | Drizzle migrations, E2E seed                          |
+| Variable                     | Required In       | Purpose                                               |
+| ---------------------------- | ----------------- | ----------------------------------------------------- |
+| `D1_PROXY_URL`               | Origin, Local, CI | Worker URL (e.g., `https://zhe-edge.xxx.workers.dev`) |
+| `D1_PROXY_SECRET`            | Origin, Local, CI | Auth secret for `/api/d1-query`                       |
+| `CLOUDFLARE_ACCOUNT_ID`      | Origin, Local, CI | **KV + Drizzle** (NOT removed!)                       |
+| `CLOUDFLARE_API_TOKEN`       | Origin, Local, CI | **KV + Drizzle** (NOT removed!)                       |
+| `CLOUDFLARE_KV_NAMESPACE_ID` | Origin, Local     | KV cache operations                                   |
+| `CLOUDFLARE_D1_DATABASE_ID`  | Local, CI         | Drizzle migrations, E2E seed                          |
 
 ---
 
@@ -404,7 +404,7 @@ Currently each `getOverviewStats()` call makes 9 sequential requests. Future opt
 
 ### KV Worker Migration
 
-Future project to move KV operations from REST API to Worker binding, eliminating `CLOUDFLARE_API_TOKEN` from Railway.
+Future project to move KV operations from REST API to Worker binding, eliminating `CLOUDFLARE_API_TOKEN` from the origin.
 
 ---
 

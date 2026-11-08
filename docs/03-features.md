@@ -96,7 +96,7 @@ Dashboard 链接列表支持多维筛选：
 ```
 用户请求 → zhe-edge Worker → KV 查找
   ├─ KV 命中 → 307 重定向 + 异步 POST /api/record-click（source: 'worker'）
-  └─ KV 未命中 → 转发至 Railway 源站
+  └─ KV 未命中 → 转发至源站（jp4）
 ```
 
 ### 第二层：中间件 LRU 缓存（源站内存）

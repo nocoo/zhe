@@ -50,11 +50,11 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
                          [Layer 3] D1 Database
 ```
 
-| 层级   | 位置            | 存储                           | 延迟  | 行为                                                                                   |
-| ------ | --------------- | ------------------------------ | ----- | -------------------------------------------------------------------------------------- |
-| L1 KV  | Cloudflare Edge | KV 键值对                      | ~1ms  | 命中 → 307 重定向 + fire-and-forget 分析（`source: 'worker'`）；未命中 → 透传到 origin |
-| L2 LRU | Railway Node.js | 进程内 Map（1000 条，60s TTL） | ~0ms  | 命中 → 307 重定向 + `waitUntil` 分析（`source: 'origin'`）；未命中 → 降级 D1           |
-| L3 D1  | Cloudflare D1   | SQLite HTTP API                | ~50ms | 命中 → 缓存到 LRU + 307；未命中 → 缓存 null 到 LRU + 404                               |
+| 层级   | 位置                | 存储                           | 延迟  | 行为                                                                                   |
+| ------ | ------------------- | ------------------------------ | ----- | -------------------------------------------------------------------------------------- |
+| L1 KV  | Cloudflare Edge     | KV 键值对                      | ~1ms  | 命中 → 307 重定向 + fire-and-forget 分析（`source: 'worker'`）；未命中 → 透传到 origin |
+| L2 LRU | 源站 Node.js（jp4） | 进程内 Map（1000 条，60s TTL） | ~0ms  | 命中 → 307 重定向 + `waitUntil` 分析（`source: 'origin'`）；未命中 → 降级 D1           |
+| L3 D1  | Cloudflare D1       | SQLite（Worker D1 代理）       | ~50ms | 命中 → 缓存到 LRU + 307；未命中 → 缓存 null 到 LRU + 404                               |
 
 **KV 同步策略**：
 

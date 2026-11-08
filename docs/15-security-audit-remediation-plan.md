@@ -28,7 +28,7 @@
 ```bash
 # 生成新的生产 AUTH_SECRET（最小 32 字节熵）
 openssl rand -base64 32
-# 在 Railway env var 中替换旧值
+# 在源站 env var 中替换旧值
 ```
 
 ---
@@ -182,7 +182,7 @@ export const GITHUB_REPO_PREVIEW_URL = '/github-preview.jpg';
 ### 3.1 `resolvePublicOrigin()` 应加 allowlist 而非替换为单值
 
 **文件**: `lib/url.ts:18-33`
-**说明**: 当前通过 `X-Real-Host` 修复 Railway 代理改写 host 的问题是合理设计；Worker 直连 / 本地 dev / 代理场景均依赖此机制。全量替换为单值 `PUBLIC_ORIGIN` 会破坏现有架构。
+**说明**: 当前通过 `X-Real-Host` 修复反向代理改写 host 的问题是合理设计；Worker 直连 / 本地 dev / 代理场景均依赖此机制。全量替换为单值 `PUBLIC_ORIGIN` 会破坏现有架构。
 
 **建议修复**: 保留 header 推导逻辑，对推导出的 host 进行 allowlist 校验。`TRUSTED_ORIGINS` 环境变量以逗号分隔可信任域名列表（不含协议）。校验时需用 `hostname:port` 格式比对（因为 `localhost:7006` 和 `localhost` 是不同项）。当 host 不在 allowlist 中时，fallback 到 `PUBLIC_ORIGIN` 或拒绝请求。具体实现时注意：`origin.host` 包含端口号，需与 allowlist 中格式一致；允许列表应包含本地开发域名（如 `localhost:7006`）和生产域名。
 
@@ -214,7 +214,7 @@ export const GITHUB_REPO_PREVIEW_URL = '/github-preview.jpg';
 ### 3.5 内存 Rate Limiter 不跨实例
 
 **文件**: `models/webhook.ts:135-177`
-**问题**: Railway 多实例部署下可绕过限速
+**问题**: 源站多实例部署下可绕过限速
 **建议**: 可选地改用 D1 表（`_request_counts` 已有结构）存储计数器
 
 ---

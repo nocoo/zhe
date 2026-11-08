@@ -5,7 +5,7 @@
 All D1 database operations currently flow through a high-latency path:
 
 ```
-Railway (Tokyo) → Cloudflare D1 HTTP API (US) → D1
+Origin (jp4) → Cloudflare D1 HTTP API (US) → D1
                 ↑
           5s timeout, cross-region latency
 ```
@@ -23,17 +23,17 @@ This causes `TimeoutError` (code 23) when D1 API is slow or cold-starting. The 5
 Route D1 queries through the existing Worker, which has native D1 binding (no HTTP overhead):
 
 ```
-Railway → Worker (edge) → D1 binding → D1
+Origin → Worker (edge) → D1 binding → D1
               │
               └─ 5-20ms vs 200-500ms+
 ```
 
 ### Why This Works
 
-| Path                  | Latency    | Notes                                    |
-| --------------------- | ---------- | ---------------------------------------- |
-| Railway → D1 HTTP API | 200-500ms+ | Cross-region, HTTP overhead, cold starts |
-| Worker → D1 binding   | 5-20ms     | Same Cloudflare network, native binding  |
+| Path                 | Latency    | Notes                                    |
+| -------------------- | ---------- | ---------------------------------------- |
+| Origin → D1 HTTP API | 200-500ms+ | Cross-region, HTTP overhead, cold starts |
+| Worker → D1 binding  | 5-20ms     | Same Cloudflare network, native binding  |
 
 Workers are deployed globally and use D1's native binding (`env.DB`), not the HTTP API.
 
@@ -125,7 +125,7 @@ Reusing `WORKER_SECRET` would expand its blast radius from "trigger limited inte
 
 #### 2. No User Context
 
-Worker is a dumb SQL proxy. Railway handles authentication and constructs scoped queries (e.g., `WHERE user_id = ?`). Worker never interprets user identity.
+Worker is a dumb SQL proxy. The origin handles authentication and constructs scoped queries (e.g., `WHERE user_id = ?`). Worker never interprets user identity.
 
 #### 3. SQL Injection Prevention
 
@@ -153,7 +153,7 @@ if (isReservedPath(slug)) {
 }
 ```
 
-**The `/api/d1-query` handler MUST be checked BEFORE the reserved path logic**, otherwise requests will be forwarded to Railway instead of handled by Worker.
+**The `/api/d1-query` handler MUST be checked BEFORE the reserved path logic**, otherwise requests will be forwarded to the origin instead of handled by Worker.
 
 Fix in `handleFetch()`:
 
@@ -173,7 +173,7 @@ if (isReservedPath(slug)) {
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Railway: Server Action / API Route / Auth Adapter               │
+│  Origin: Server Action / API Route / Auth Adapter                │
 │  ├─ auth() → get userId (if applicable)                          │
 │  ├─ Build SQL with appropriate scope                             │
 │  └─ executeD1Query(sql, params)                                  │
@@ -214,7 +214,7 @@ Current L2/L3 test isolation relies on overwriting `CLOUDFLARE_D1_DATABASE_ID` i
 process.env.CLOUDFLARE_D1_DATABASE_ID = process.env.D1_TEST_DATABASE_ID;
 ```
 
-Once queries route through Worker, this protection is **bypassed** — the Worker's D1 binding is determined by its deployment configuration (`wrangler.toml`), not by Railway's environment variables.
+Once queries route through Worker, this protection is **bypassed** — the Worker's D1 binding is determined by its deployment configuration (`wrangler.toml`), not by the origin's environment variables.
 
 ### Solution: Dual Worker Deployments
 
@@ -346,7 +346,7 @@ L3 (`playwright.config.ts`):
 > **The following commits require manual execution by the user:**
 >
 > 1. Deploy Workers to Cloudflare
-> 2. Enable proxy in Railway environment variables
+> 2. Enable proxy in the origin environment variables
 >
 > See instructions below.
 
@@ -369,10 +369,10 @@ wrangler secret put D1_PROXY_SECRET -c wrangler.test.toml
 # Use the same OR a different secret for test (recommended: same for simplicity)
 ```
 
-**Commit 10: Enable proxy in Railway** ⏳ MANUAL STEP REQUIRED
+**Commit 10: Enable proxy on the origin** ⏳ MANUAL STEP REQUIRED
 
 ```bash
-# In Railway dashboard, add environment variables:
+# In the origin environment file, add:
 D1_PROXY_URL=https://zhe-edge.<your-subdomain>.workers.dev
 D1_PROXY_SECRET=<same-secret-set-in-wrangler-above>
 ```
@@ -409,7 +409,7 @@ After enabling the proxy:
 | `DB`       | D1   | `zhe-db-test` |
 | `LINKS_KV` | KV   | `zhe-test`    |
 
-### Railway
+### Origin (jp4)
 
 | Variable          | Value                              | Notes                            |
 | ----------------- | ---------------------------------- | -------------------------------- |
@@ -479,11 +479,11 @@ Existing Playwright tests exercise full user flows. **All tests MUST pass** afte
 
 ### D1: Data Isolation
 
-| Environment  | D1 Binding    | Verification                         |
-| ------------ | ------------- | ------------------------------------ |
-| Production   | `zhe`         | Railway `D1_PROXY_URL` → prod Worker |
-| Test (L2/L3) | `zhe-db-test` | Harness sets → test Worker           |
-| Local dev    | `zhe-db-test` | `.env.local` → test Worker           |
+| Environment  | D1 Binding    | Verification                        |
+| ------------ | ------------- | ----------------------------------- |
+| Production   | `zhe`         | Origin `D1_PROXY_URL` → prod Worker |
+| Test (L2/L3) | `zhe-db-test` | Harness sets → test Worker          |
+| Local dev    | `zhe-db-test` | `.env.local` → test Worker          |
 
 **Safety checks:**
 
@@ -493,7 +493,7 @@ Existing Playwright tests exercise full user flows. **All tests MUST pass** afte
 
 ## Rollback Plan
 
-1. Unset `D1_PROXY_URL` and `D1_PROXY_SECRET` in Railway
+1. Unset `D1_PROXY_URL` and `D1_PROXY_SECRET` on the origin
 2. `d1-client.ts` falls back to HTTP API automatically (feature flag check)
 3. No Worker changes needed (endpoint remains available but unused)
 4. Verify L2/L3 tests pass with fallback path

@@ -69,16 +69,15 @@ The script performs these steps automatically:
 6. Verify no stale old version strings remain in `*.ts`/`*.tsx` via `rg`
 7. Commit: `chore: bump version to x.y.z` (triggers pre-commit hooks: L1 + G1 + G2)
 8. Push → Tag (`v`-prefixed, annotated) → Push tags → GitHub Release
-9. Successful main-push CI triggers the `Release` Docker CD workflow. Verify the exact source SHA, successful CI/CD, deployed image digest and origin acceptance; publishing a tag alone does not prove deployment. The release script does not redeploy Railway.
+9. Successful main-push CI triggers the `Release` Docker CD workflow. Verify the exact source SHA, successful CI/CD, deployed image digest and origin acceptance; publishing a tag alone does not prove deployment. The release script itself does not deploy.
 
-During the [jp2 migration](34-jp2-migration.md), `DEPLOY_PHASE=precutover` requires
-private-origin checks on jp2 and deliberately does not contact the public origin
-as deployment evidence. Railway remains public until the owner approves routing.
-After approval, `DEPLOY_PHASE=production`, `DEPLOY_URL=https://zhe.to` and
-`DEPLOY_ORIGIN_MARKER=jp2` require public no-store health with the expected origin
-marker and version. These deployment controls are repository variables; SSH and
-registry credentials belong to the `zhe / production` environment. Application
-values are in `/opt/zhe/.env.runtime`, not GitHub build arguments.
+Production runs `DEPLOY_PHASE=production`, `DEPLOY_URL=https://zhe.to` and
+`DEPLOY_ORIGIN_MARKER=jp4`: CD deploys the GHCR digest to `/data/zhe` on jp4,
+checks the private origin on `127.0.0.1:17006`, then requires public no-store
+health with the expected origin marker and version. These deployment controls are
+repository variables; SSH and registry credentials belong to the `zhe / production`
+environment. Application values are in `/data/zhe/.env.runtime`, not GitHub build
+arguments.
 
 The shared workflow deploys by digest and records `.base-ci-releases/<SHA>.json`.
 Failed post-deployment verification does not automatically restore the previous
@@ -116,12 +115,12 @@ Only include sections that have entries. Use imperative mood ("add", not "added"
 
 ## Cloudflare Worker (`worker/`)
 
-The **zhe-edge** Worker sits in front of Railway (origin) as a full proxy for `zhe.to`. It is a standalone Cloudflare Worker project maintained in the `worker/` subdirectory with its own `package.json`, `tsconfig.json`, `wrangler.toml`, and test suite.
+The **zhe-edge** Worker sits in front of the origin (`origin.zhe.to`, Caddy → `zhe-app` on jp4) as a full proxy for `zhe.to`. It is a standalone Cloudflare Worker project maintained in the `worker/` subdirectory with its own `package.json`, `tsconfig.json`, `wrangler.toml`, and test suite.
 
 ### Architecture
 
 ```
-User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
+User → Cloudflare CDN → zhe-edge Worker → origin.zhe.to → Caddy → zhe-app (Next.js)
                               │
                               ├─ KV hit → 307 redirect + fire-and-forget analytics
                               ├─ KV miss → forward to origin (middleware D1 fallback)
@@ -147,7 +146,7 @@ User → Cloudflare CDN → zhe-edge Worker → Railway (Next.js origin)
 
 | Secret          | Purpose                                                                      |
 | --------------- | ---------------------------------------------------------------------------- |
-| `ORIGIN_URL`    | Railway backend URL (e.g. `https://zhe.to`)                                  |
+| `ORIGIN_URL`    | Origin base URL (`https://origin.zhe.to`)                                    |
 | `WORKER_SECRET` | Shared secret for `/api/cron/cleanup` and `/api/record-click` authentication |
 
 ### Reserved Paths (must stay in sync with `lib/constants.ts`)

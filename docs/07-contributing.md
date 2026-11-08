@@ -126,21 +126,21 @@ Dashboard **工具栏** 用 `Button size="sm"` + 字段 `size="sm"`（32px compa
 
 ## 技术栈
 
-| 组件          | 选型                                 |
-| ------------- | ------------------------------------ |
-| 运行时        | Bun                                  |
-| 框架          | Next.js 15（App Router）             |
-| 语言          | TypeScript（strict mode）            |
-| 数据库        | Cloudflare D1（Serverless SQLite）   |
-| ORM           | Drizzle ORM（仅 Schema 定义 + 迁移） |
-| UI            | Tailwind CSS + shadcn/ui             |
-| 认证          | Auth.js v5（Google OAuth，JWT 策略） |
-| 对象存储      | Cloudflare R2（S3 兼容）             |
-| 边缘缓存      | Cloudflare KV + 进程内 LRU           |
-| 边缘代理      | Cloudflare Worker（`zhe-edge`）      |
-| 单元/集成测试 | Vitest + React Testing Library       |
-| E2E 测试      | Playwright                           |
-| 部署          | Railway（Docker）                    |
+| 组件          | 选型                                   |
+| ------------- | -------------------------------------- |
+| 运行时        | Bun                                    |
+| 框架          | Next.js 15（App Router）               |
+| 语言          | TypeScript（strict mode）              |
+| 数据库        | Cloudflare D1（Serverless SQLite）     |
+| ORM           | Drizzle ORM（仅 Schema 定义 + 迁移）   |
+| UI            | Tailwind CSS + shadcn/ui               |
+| 认证          | Auth.js v5（Google OAuth，JWT 策略）   |
+| 对象存储      | Cloudflare R2（S3 兼容）               |
+| 边缘缓存      | Cloudflare KV + 进程内 LRU             |
+| 边缘代理      | Cloudflare Worker（`zhe-edge`）        |
+| 单元/集成测试 | Vitest + React Testing Library         |
+| E2E 测试      | Playwright                             |
+| 部署          | jp4（Docker，Caddy → `origin.zhe.to`） |
 
 ## 相关文档
 

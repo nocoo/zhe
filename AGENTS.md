@@ -19,7 +19,7 @@ This file is the contract; hooks, CI and config are enforcement. Raise weaker en
 ## Project Invariants
 
 - Preserve authentication, tenant ownership and server-only credentials across Next.js, Worker and CLI boundaries. No production auth bypass or client-controlled ownership.
-- `zhe-edge` proxies `zhe.to` to the Railway origin, resolves KV short links and authenticates analytics/cleanup calls. Keep reserved paths synchronized in `lib/constants.ts` and `worker/src/index.ts`.
+- `zhe-edge` proxies `zhe.to` to `origin.zhe.to` (Caddy → `zhe-app` container on jp4), resolves KV short links and authenticates analytics/cleanup calls. Keep reserved paths synchronized in `lib/constants.ts` and `worker/src/index.ts`.
 - Set cache invalidation/dirty state at D1 mutation sites. Apply schema migrations before dependent release; mirror exceptional schema fixups into a real migration and the local test stack.
 - Use Google Chrome through Caddy at `https://zhe.dev.hexly.ai` for manual previews, including `/dashboard/x`; verify HTTPS first. Keep the user's dev server running. Automated tests use dedicated loopback ports.
 - Reuse Basalt 3 density/radius/surface controls from [design tokens](docs/22-design-tokens.md): native `sm` 28px, `default` 34px or `lg` 40px at default typography; shared card icon actions retain 32px desktop / 44px touch targets, while `IconAction density="toolbar"` is 28px. No invented xs/icon-sm or raw checkbox. Content-area page chrome uses Basalt `PageHeader` (`title`, `description` below, `actions` top-right; long filter bars in `filters`). Loading states may use local `PageHeaderSkeleton` only. Dialogs and their nested controls use the top bright theme surface, with 18px headings, 14px body and 12px field labels. Primitive changes update contract tests and docs together.
@@ -90,7 +90,7 @@ Automation locks by launch intent, never by `mode === "e2e"`, strips production 
 Only a requested release runs `bun run release`: patch by default, L3 preflight, version/lock/changelog and normal commit/push/tag/release. Successful main CI triggers the pinned Docker CD workflow; a published tag is not deployment proof. Details: [runbook](docs/29-maintainer-operations.md).
 Worker/schema changes need their corresponding deployment/migration under that release authorization; routine documentation changes do not bump versions.
 
-The [jp2 migration](docs/34-jp2-migration.md) is pre-cutover: Railway remains the public origin until explicit owner approval. Stage `zhe-app` in `/opt/zhe` on `127.0.0.1:17006`, preserve Railway runtime values, and verify exact image digest/source plus private-origin health. Never accept the old public origin as staging proof. Preserve `origin.zhe.to`, which the Worker uses for forwarding, lookup, analytics and cron. No DNS, TLS, shared Caddy changes or Railway shutdown without approval; shared Caddy must be validated and hot-reloaded, not restarted.
+The [origin migration](docs/34-jp4-migration.md) is complete: `zhe-app` runs from `/data/zhe` on jp4, published on `127.0.0.1:17006` (container port 7005) and reachable only through `origin.zhe.to`. Successful main CI triggers the pinned Docker CD workflow, which deploys a verified image digest and checks exact revision plus private-origin health. Preserve `origin.zhe.to`, which the Worker uses for forwarding, lookup, analytics and cron. Do not change DNS, TLS or shared Caddy without approval; shared Caddy must be validated and hot-reloaded, not restarted.
 
 ## Retrospective
 

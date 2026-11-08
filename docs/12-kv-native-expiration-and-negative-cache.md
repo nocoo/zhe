@@ -103,7 +103,7 @@ const payload = batch.map((e) => {
 
 ### 问题分析
 
-当前 KV miss 和 expired hit 路径都走 `forwardToOrigin()`，这是**全量代理**：Worker 将完整请求转发到 Railway origin → Next.js middleware 做 D1 fallback lookup → 渲染完整 HTML 页面（not-found 或 redirect）。
+当前 KV miss 和 expired hit 路径都走 `forwardToOrigin()`，这是**全量代理**：Worker 将完整请求转发到源站（jp4）→ Next.js middleware 做 D1 fallback lookup → 渲染完整 HTML 页面（not-found 或 redirect）。
 
 这里有两个浪费：
 

@@ -84,7 +84,7 @@ CREATE INDEX idx_analytics_link_id ON analytics(link_id);
 CREATE INDEX idx_analytics_link_created ON analytics(link_id, created_at DESC);
 ```
 
-> `source` 字段区分点击来源：`worker` 表示由 Cloudflare Worker 边缘记录，`origin` 表示由 Railway 源站记录，`null` 为历史数据。
+> `source` 字段区分点击来源：`worker` 表示由 Cloudflare Worker 边缘记录，`origin` 表示由源站（jp4）记录，`null` 为历史数据。
 
 ## Folders 表
 

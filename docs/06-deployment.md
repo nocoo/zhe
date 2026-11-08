@@ -4,11 +4,9 @@
 
 > 返回 [README](../README.md)
 
-> Deployment transition: [Railway to jp2](34-jp2-migration.md) is authorized only
-> through private staging. Railway remains public until owner-approved cutover.
-> The migration runbook governs Docker CD, runtime variables and acceptance.
-> Historical D1 REST descriptions below predate the current mandatory D1 Worker
-> proxy in `lib/db/d1-client.ts`; do not recreate the removed REST fallback.
+> The [origin migration](34-jp4-migration.md) is complete: `zhe-app` runs on jp4
+> behind Caddy and is published only through `origin.zhe.to`. Docker CD, runtime
+> variables and acceptance are governed by the pinned shared workflow.
 
 ## 部署架构
 
@@ -23,7 +21,10 @@ zhe-edge Worker (Cloudflare Workers)
    │
    ├── KV 命中 → 307 重定向 + fire-and-forget 分析
    │
-   ├── KV 未命中 / 保留路径 → 转发到 Railway Origin
+   ├── KV 未命中 / 保留路径 → 转发到源站
+   │                              │
+   │                              ▼
+   │                         origin.zhe.to（Cloudflare → Caddy）
    │                              │
    │                              ▼
    │                         Next.js Middleware
@@ -31,16 +32,16 @@ zhe-edge Worker (Cloudflare Workers)
    │                              ├── LRU 未命中 → D1 查询 → 307 重定向
    │                              └── 保留路径 → Server Actions / API Routes
    │
-   ├── Cloudflare D1 (SQLite) ← 数据持久化（HTTP API 访问）
+   ├── Cloudflare D1 (SQLite) ← 数据持久化（经 Worker D1 代理）
    ├── Cloudflare KV ← 边缘缓存（slug → URL 映射）
    ├── Cloudflare R2 (S3 兼容) ← 文件存储（预签名 URL 直传）
    │
    └── 定时任务 (*/30 * * * *) → POST /api/cron/cleanup → 清理过期临时文件
 ```
 
-## Railway 配置
+## 应用容器 (jp4)
 
-Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Docker 容器运行。
+Zhe 的 Next.js 应用以单个 Docker 容器运行在 jp4 的 `/data/zhe`，由共享 Caddy 暴露为 `origin.zhe.to`。
 
 ### Dockerfile
 
@@ -52,26 +53,34 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 | `builder` | `node:26.12.1-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
 | `runner`  | `node:26.12.1-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
 
-> **为何 build/runtime 不用 Bun**：Bun 1.3.14 在 Railway Metal builder 上会在 `next build` 收尾阶段 segfault（SIGILL / exit 132），导致 Docker `RUN` 失败（2026-08-05 起连续部署失败）。`bun install` 本身稳定，故仅 deps 阶段使用 Bun。
+> **为何 build/runtime 不用 Bun**：Bun 1.3.14 在 `next build` 收尾阶段会 segfault（SIGILL / exit 132），导致 Docker `RUN` 失败。`bun install` 本身稳定，故仅 deps 阶段使用 Bun。
 
 运行时环境变量：
 
 | 变量       | 值           |
 | ---------- | ------------ |
 | `NODE_ENV` | `production` |
-| `PORT`     | `7006`       |
+| `PORT`     | `7005`       |
 | `HOSTNAME` | `0.0.0.0`    |
+
+`deploy/compose.yaml` 把容器端口 7005 发布到 `127.0.0.1:17006`，只监听回环地址；外部流量一律经 Caddy 与 Worker。
+
+### 部署与回滚
+
+- 成功 main CI 触发固定的 `nocoo/base-ci` Docker CD 工作流：构建并推送 `ghcr.io/nocoo/zhe`，再按 digest 拉到 jp4 的 `/data/zhe` 重启容器。
+- CD 先做私有源站验收（镜像 digest、OCI source revision、版本、`/api/live` no-store 健康、静态资源、未认证 401），再按 `DEPLOY_URL`、`DEPLOY_ORIGIN_MARKER` 做公共验收。
+- 回滚只能恢复已记录的 digest（`.base-ci-releases/<SHA>.json`），不使用 `latest`，也不重新构建。
 
 ### Next.js 配置
 
 `next.config.ts`：
 
-| 配置项                                      | 值                     | 说明                                                                                                           |
-| ------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `output`                                    | `standalone`           | Docker 部署所需的独立输出模式                                                                                  |
-| `allowedDevOrigins`                         | `["zhe.dev.hexly.ai"]` | 开发环境允许的来源                                                                                             |
-| `experimental.serverActions.allowedOrigins` | `["zhe.to"]`           | Worker 代理导致 `x-forwarded-host`（`origin.zhe.to`）与浏览器 `Origin`（`zhe.to`）不匹配，需显式信任浏览器域名 |
-| Webpack/Turbopack alias                     | 替换 polyfill 为空模块 | 目标浏览器原生支持所有 polyfill，节省 ~11 KiB                                                                  |
+| 配置项                                      | 值                     | 说明                                                                                                                  |
+| ------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `output`                                    | `standalone`           | Docker 部署所需的独立输出模式                                                                                         |
+| `allowedDevOrigins`                         | `["zhe.dev.hexly.ai"]` | 开发环境允许的来源                                                                                                    |
+| `experimental.serverActions.allowedOrigins` | `["zhe.to"]`           | 前面的反向代理把 `x-forwarded-host` 改写成 `origin.zhe.to`，与浏览器 `Origin`（`zhe.to`）不一致，需显式信任浏览器域名 |
+| Webpack/Turbopack alias                     | 替换 polyfill 为空模块 | 目标浏览器原生支持所有 polyfill，节省 ~11 KiB                                                                         |
 
 ## Cloudflare Worker (zhe-edge)
 
@@ -94,7 +103,7 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 
 | Secret          | 用途                                                           |
 | --------------- | -------------------------------------------------------------- |
-| `ORIGIN_URL`    | Railway 后端 URL（如 `https://zhe.to`）                        |
+| `ORIGIN_URL`    | 源站地址 `https://origin.zhe.to`                               |
 | `WORKER_SECRET` | 共享密钥，保护 `/api/cron/cleanup` 和 `/api/record-click` 端点 |
 
 ### Worker 部署
@@ -119,10 +128,10 @@ Worker 将 Cloudflare 地理信息头映射为 Vercel 风格头，使 Origin 端
 
 ### 透明代理行为
 
-- 保留原始 `Host` 头（不重写）
-- 设置 `X-Forwarded-For`、`X-Forwarded-Proto`、`X-Forwarded-Host`、`X-Real-Host`
-- 使用 `redirect: 'manual'` 透传 Origin 重定向
-- 静态资源直接转发到 Origin
+- `Host` 由 fetch 目标决定（源站看到 `origin.zhe.to`）；公开主机名经 `X-Real-Host`（Caddy 不改写）与 `X-Forwarded-Host` 传递
+- 设置 `X-Forwarded-For`（取 `CF-Connecting-IP`）、`X-Forwarded-Proto`、`X-Forwarded-Host`、`X-Real-Host`
+- 使用 `redirect: 'manual'` 透传源站重定向
+- 静态资源直接转发到源站
 
 ## Cloudflare D1
 
@@ -134,13 +143,7 @@ Worker 将 Cloudflare 地理信息头映射为 Vercel 风格头，使 Origin 端
 | 数据库名 | `zhe-db` |
 | 绑定名   | `DB`     |
 
-D1 通过 HTTP REST API 访问（非 Workers 绑定），支持从 Railway 环境读写：
-
-```
-POST https://api.cloudflare.com/client/v4/accounts/{id}/d1/database/{id}/query
-```
-
-超时设置：5 秒。
+D1 通过 Worker 代理访问（非容器直连）：应用侧 `lib/db/d1-client.ts` 把 SQL POST 到 `D1_PROXY_URL` 的 `/api/d1-query`，由 Worker 用 D1 绑定执行，`D1_PROXY_SECRET` 认证。本地与 CI 的迁移、种子仍直连 D1 REST API（超时 5 秒）。
 
 ## Cloudflare KV
 
@@ -173,12 +176,21 @@ KV 同步不依赖定时任务，而是在每次 mutation 时内联执行。
 
 ## 域名
 
-| 域名             | 用途                                           |
-| ---------------- | ---------------------------------------------- |
-| `zhe.to`         | 生产域名（Cloudflare DNS → Worker → Railway）  |
-| `origin.zhe.to`  | Railway 直连（Worker 转发目标）                |
-| `s.zhe.to`       | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`） |
-| `localhost:7006` | 本地开发                                       |
+| 域名             | 用途                                                             |
+| ---------------- | ---------------------------------------------------------------- |
+| `zhe.to`         | 生产域名（Cloudflare → Worker → `origin.zhe.to` → Caddy → 容器） |
+| `origin.zhe.to`  | 源站域名，Worker 转发目标；Cloudflare 代理，源站 IP 不入 DNS     |
+| `s.zhe.to`       | R2 文件公开访问 CDN 域名（`R2_PUBLIC_DOMAIN`）                   |
+| `localhost:7006` | 本地开发                                                         |
+
+### 为什么保留 `origin.zhe.to`
+
+- `zhe.to/*` 绑定在 `zhe-edge` 路由上，Worker 不能再 fetch `zhe.to`，否则自环。
+- Workers 的 `fetch()` 需要一个带合法证书的域名作目标，不能直接指向源站 IP；否则要维护 IP SAN 证书，还得把 IP 写进配置。
+- 它是公开域名与部署目标之间唯一的解耦点：换机器、换 IP、换容器只改这一条解析和（必要时）`ORIGIN_URL` 一个 secret，`zhe.to`、OAuth 回调、CLI 与短链域名都不变。
+- 它经 Cloudflare 代理，源站 IP 不出现在公共 DNS 里，也不作为入口直接暴露。
+
+因此 `origin.zhe.to` 不能“干掉”：任何替代方案仍要一个 Worker 可达的域名（比如换个 `zhe.to` 子域），那只是重命名；直接改成 IP 更差。删 Worker 路由、改回 apex 或删域名都会断掉转发、KV 回源、分析与 cron。
 
 ## 保留路径
 
