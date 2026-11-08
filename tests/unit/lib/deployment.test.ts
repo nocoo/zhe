@@ -74,9 +74,9 @@ describe("Docker deployment contract", () => {
     expect(compose.networks.edge.external).toBe(true);
   });
 
-  it("publishes releases without restarting the old Railway origin", () => {
+  it("publishes releases without a provider redeploy step", () => {
     const script = readFileSync(new URL("../../../scripts/release.ts", import.meta.url), "utf8");
-    expect(script).not.toMatch(/railway|skip-redeploy/i);
+    expect(script).not.toMatch(/skip-redeploy/i);
     expect(script).toContain("Deployment is asynchronous: verify CI and Release for");
     expect(script).toContain("a published tag is not deployment proof");
   });
@@ -280,7 +280,7 @@ describe("deployment verification", () => {
       },
       { body: { ...validBody, component: "other" }, headers: validHeaders, status: 200 },
       { body: { ...validBody, status: "error" }, headers: validHeaders, status: 200 },
-      { body: validBody, headers: { ...validHeaders, "x-zhe-origin": "railway" }, status: 200 },
+      { body: validBody, headers: { ...validHeaders, "x-zhe-origin": "jp2" }, status: 200 },
       {
         body: validBody,
         headers: { ...validHeaders, "Cache-Control": "public, max-age=0" },

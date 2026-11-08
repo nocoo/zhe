@@ -3,13 +3,13 @@
 import type { Env } from "./types";
 
 /**
- * Forward a request to the Railway origin, preserving method, headers, and body.
+ * Forward a request to the origin, preserving method, headers, and body.
  *
- * The Worker is a transparent proxy: the backend sees the original Host header
- * (e.g. zhe.to) unchanged, so NextAuth, request.url, and all host-dependent
- * logic work identically whether traffic arrives via Worker or directly.
- * ORIGIN_URL (e.g. https://origin.zhe.to) is used only to build the fetch
- * target URL — the Host header is NOT rewritten.
+ * The Worker is a transparent proxy: it keeps the incoming method, headers and
+ * body, so NextAuth, request.url, and host-dependent logic read the same values
+ * they would locally. Workers derive `Host` from the fetch target (so the origin
+ * sees `origin.zhe.to`); the public hostname is carried in `X-Real-Host` and
+ * `X-Forwarded-Host`. ORIGIN_URL is used only to build the fetch target URL.
  */
 export async function forwardToOrigin(request: Request, env: Env): Promise<Response> {
   const originBase = env.ORIGIN_URL.replace(/\/$/, "");

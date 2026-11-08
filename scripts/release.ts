@@ -639,7 +639,7 @@ async function main(): Promise<void> {
   const sourceSha = await runOrDie("git", ["rev-parse", "HEAD"], "Failed to read release SHA");
   console.log(`\nDeployment is asynchronous: verify CI and Release for ${sourceSha}.`);
   console.log(
-    "The Release workflow verifies the jp2 image digest and origin; a published tag is not deployment proof.",
+    "The Release workflow verifies the jp4 image digest and origin; a published tag is not deployment proof.",
   );
 
   // Summary

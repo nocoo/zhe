@@ -57,7 +57,7 @@ describe("resolvePublicOrigin", () => {
       expect(resolvePublicOrigin(req)).toBe("http://0.0.0.0:7006");
     });
 
-    it("handles Railway-style forwarded headers", () => {
+    it("handles proxy-style forwarded headers", () => {
       const req = new Request("http://0.0.0.0:7006/api/link/create/abc", {
         headers: {
           "x-forwarded-proto": "https",
@@ -73,7 +73,7 @@ describe("resolvePublicOrigin", () => {
         headers: {
           "x-forwarded-proto": "https",
           "x-forwarded-host": "zhe.to",
-          host: "internal.railway.app",
+          host: "internal.invalid",
         },
       });
       expect(resolvePublicOrigin(req)).toBe("https://zhe.to");

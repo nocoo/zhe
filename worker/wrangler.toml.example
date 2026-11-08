@@ -20,7 +20,7 @@ binding = "LINKS_KV"
 id = "<YOUR_KV_NAMESPACE_ID>"
 
 # ─── Environment Variables (set via `wrangler secret put`) ───────────────────
-# ORIGIN_URL        — Railway backend URL (e.g. https://zhe.to)
+# ORIGIN_URL        — Origin base URL (e.g. https://origin.zhe.to)
 # WORKER_SECRET     — Shared secret for /api/record-click, /api/cron/*
 # D1_PROXY_SECRET   — Dedicated secret for /api/d1-query (separate from WORKER_SECRET)
 

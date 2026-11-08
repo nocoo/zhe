@@ -1,6 +1,6 @@
 // ─── D1 Proxy Handlers ──────────────────────────────────────────────────────
 //
-// Endpoints called by the Railway origin to execute D1 queries via the Worker's
+// Endpoints called by the origin to execute D1 queries via the Worker's
 // native binding (much faster than the Cloudflare REST API).
 
 import type { ConnectorCacheOptions } from "../../models/connector-cache";
@@ -72,7 +72,7 @@ function buildErrorResponse(err: unknown, fallback: string): Response {
   return Response.json({ success: false, error: fallback }, { status: 200 });
 }
 
-/** Handle D1 single-query requests from Railway backend. */
+/** Handle D1 single-query requests from the origin backend. */
 export async function handleD1Query(request: Request, env: Env): Promise<Response> {
   const authError = verifyAuth(request, env);
   if (authError) return authError;
@@ -109,7 +109,7 @@ export async function handleD1Query(request: Request, env: Env): Promise<Respons
   }
 }
 
-/** Handle D1 batch (atomic transaction) requests from Railway backend. */
+/** Handle D1 batch (atomic transaction) requests from the origin backend. */
 export async function handleD1Batch(request: Request, env: Env): Promise<Response> {
   const authError = verifyAuth(request, env);
   if (authError) return authError;

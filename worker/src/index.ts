@@ -2,7 +2,7 @@
  * zhe-edge — Cloudflare Worker for zhe.to
  *
  * Full proxy for zhe.to — resolves short link redirects from KV at the edge,
- * forwards everything else (dashboard, API, static) to Railway origin.
+ * forwards everything else (dashboard, API, static) to the origin (origin.zhe.to).
  *
  * KV sync is handled by: (1) inline kvPutLink/kvDeleteLink on each mutation,
  * (2) a full D1 → KV sync on server startup, and (3) delta sync via Worker cron.

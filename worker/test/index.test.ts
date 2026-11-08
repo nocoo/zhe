@@ -129,7 +129,7 @@ function makeEnv(overrides?: Partial<MockEnv>): MockEnv {
       ),
       batch: vi.fn().mockResolvedValue([]),
     },
-    ORIGIN_URL: "https://zhe-origin.railway.app",
+    ORIGIN_URL: "https://origin.zhe.to",
     WORKER_SECRET: "test-worker-secret",
     D1_PROXY_SECRET: "test-d1-proxy-secret",
     ...overrides,
@@ -162,7 +162,7 @@ describe("zhe-edge Worker — fetch handler", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://zhe-origin.railway.app/");
+      expect(url).toBe("https://origin.zhe.to/");
       expect(res.status).toBe(200);
     });
 
@@ -217,7 +217,7 @@ describe("zhe-edge Worker — fetch handler", () => {
       await worker.fetch(makeRequest("/dashboard?tab=links"), env, makeCtx());
 
       const [url] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://zhe-origin.railway.app/dashboard?tab=links");
+      expect(url).toBe("https://origin.zhe.to/dashboard?tab=links");
     });
 
     it("does NOT rewrite Host header (transparent proxy)", async () => {
@@ -227,12 +227,11 @@ describe("zhe-edge Worker — fetch handler", () => {
 
       const [, opts] = fetchMock.mock.calls[0];
       const headers = opts.headers as Headers;
-      // Worker must NOT explicitly set Host to origin host.
-      // In the real CF Worker runtime, the original Host (zhe.to) from
-      // `new Headers(request.headers)` is preserved and sent to origin.
-      // In Node/Bun test env, Host is a forbidden header and gets stripped,
-      // so we verify it's NOT set to the origin host (which would mean rewriting).
-      expect(headers.get("Host")).not.toBe("zhe-origin.railway.app");
+      // Workers derive Host from the fetch URL, so the origin sees
+      // Host: origin.zhe.to; the public hostname travels in X-Real-Host.
+      // Node/Bun strips forbidden Host headers in tests, so assert only that
+      // the Worker never sets the origin host explicitly.
+      expect(headers.get("Host")).not.toBe("origin.zhe.to");
     });
 
     it("sets X-Forwarded-Host to original public hostname", async () => {
@@ -242,19 +241,19 @@ describe("zhe-edge Worker — fetch handler", () => {
 
       const [, opts] = fetchMock.mock.calls[0];
       const headers = opts.headers as Headers;
-      // Worker must set X-Forwarded-Host to the original hostname (zhe.to)
-      // so Railway's proxy cannot overwrite it with origin.zhe.to.
+      // Worker sets X-Forwarded-Host to the original hostname (zhe.to) on the
+      // request to the origin; the origin reverse proxy may still replace it.
       expect(headers.get("X-Forwarded-Host")).toBe("zhe.to");
     });
 
-    it("sets X-Real-Host to original public hostname (Railway-safe)", async () => {
+    it("sets X-Real-Host to original public hostname (proxy-safe)", async () => {
       const fetchMock = stubOriginFetch();
       const env = makeEnv();
       await worker.fetch(makeRequest("/dashboard"), env, makeCtx());
 
       const [, opts] = fetchMock.mock.calls[0];
       const headers = opts.headers as Headers;
-      // X-Real-Host is a custom header that Railway's reverse proxy will not
+      // X-Real-Host is a custom header that the origin reverse proxy does not
       // overwrite, ensuring the origin can always recover the real public host.
       expect(headers.get("X-Real-Host")).toBe("zhe.to");
     });
@@ -340,7 +339,7 @@ describe("zhe-edge Worker — fetch handler", () => {
       expect(analyticsCall).toBeDefined();
 
       const [url, opts] = analyticsCall as [string, Record<string, unknown>];
-      expect(url).toBe("https://zhe-origin.railway.app/api/record-click");
+      expect(url).toBe("https://origin.zhe.to/api/record-click");
       expect(opts.method).toBe("POST");
 
       const headers = opts.headers as Record<string, string>;
@@ -779,8 +778,8 @@ describe("zhe-edge Worker — scheduled handler", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const urls = fetchMock.mock.calls.map((call: unknown[]) => call[0] as string);
-    expect(urls).toContain("https://zhe-origin.railway.app/api/cron/cleanup");
-    expect(urls).toContain("https://zhe-origin.railway.app/api/cron/sync-kv");
+    expect(urls).toContain("https://origin.zhe.to/api/cron/cleanup");
+    expect(urls).toContain("https://origin.zhe.to/api/cron/sync-kv");
 
     // Both should have Bearer auth
     for (const call of fetchMock.mock.calls) {
@@ -1395,7 +1394,7 @@ describe("zhe-edge Worker — D1 proxy handler", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [url] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://zhe-origin.railway.app/api/health");
+      expect(url).toBe("https://origin.zhe.to/api/health");
       expect(res.status).toBe(200);
     });
 

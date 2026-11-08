@@ -15,10 +15,10 @@ const nextConfig: NextConfig = {
     : {}),
   allowedDevOrigins: ["zhe.dev.hexly.ai"],
 
-  // The Worker proxies zhe.to traffic through origin.zhe.to. Railway rewrites
-  // X-Forwarded-Host to origin.zhe.to, but the browser's Origin header is zhe.to.
-  // Next.js compares these and rejects when they differ. allowedOrigins tells
-  // Next.js to trust the browser's origin domain (zhe.to) despite the mismatch.
+  // The Worker proxies zhe.to traffic through origin.zhe.to, and the proxy in
+  // front of the container rewrites X-Forwarded-Host to origin.zhe.to while the
+  // browser's Origin header stays zhe.to. Next.js rejects that mismatch, so
+  // allowedOrigins trusts the browser's origin domain.
   experimental: {
     serverActions: {
       allowedOrigins: ["zhe.to"],
