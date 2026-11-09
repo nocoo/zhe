@@ -88,6 +88,32 @@ afterEach(async () => {
 });
 
 describe("zhe connector", () => {
+  it("stops the watch loop promptly once the parent signal is aborted", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(ApiClient.prototype, "connectorStatus").mockImplementation(async () => {
+      controller.abort();
+      return { states: [], keyPrefix: "key", expiresAt: null };
+    });
+    vi.spyOn(ApiClient.prototype, "claimConnectorJob").mockResolvedValue({ job: null });
+    await watchConnector(controller.signal, true);
+    expect(vi.mocked(delay)).not.toHaveBeenCalled();
+  });
+
+  it("continues polling when queue status is unavailable", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const controller = new AbortController();
+    vi.spyOn(ApiClient.prototype, "connectorStatus").mockRejectedValue(new Error("status offline"));
+    vi.spyOn(ApiClient.prototype, "claimConnectorJob").mockResolvedValue({ job: null });
+    vi.mocked(delay).mockImplementation(async () => {
+      controller.abort();
+    });
+    await watchConnector(controller.signal, true);
+    expect(vi.mocked(delay)).toHaveBeenCalledOnce();
+  });
+
   it.each([false, true])(
     "drains jobs without sleeping, then waits while idle (failed=%s)",
     async (failed) => {
@@ -570,6 +596,22 @@ describe("zhe connector", () => {
     expect(await runOnce()).toEqual({ status: "partial", media: 0 });
     expect(requests.at(-1)?.init.body).toBe(JSON.stringify({ action: "complete" }));
   });
+  it("surfaces API HTTP status on publish failures", async () => {
+    const client = new ApiClient("fixture");
+    const original = client.connectorAction.bind(client);
+    vi.spyOn(client, "claimConnectorJob").mockResolvedValue({ job });
+    vi.spyOn(client, "connectorAction").mockImplementation((claimed, body, signal) =>
+      (body as { action: string }).action === "capture"
+        ? Promise.reject(new ApiClientError(403, "denied"))
+        : original(claimed, body, signal),
+    );
+    expect(await processOne(client)).toMatchObject({
+      status: "failed",
+      error: "connector_error",
+      errorStatus: 403,
+    });
+  });
+
   it("sends a safe error code, never raw browser errors or private post data", async () => {
     vi.mocked(readPost).mockRejectedValue(new Error("private raw upstream response"));
     expect(await runOnce()).toEqual({ status: "failed", media: 0, error: "connector_error" });

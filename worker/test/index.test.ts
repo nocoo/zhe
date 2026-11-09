@@ -417,6 +417,22 @@ describe("zhe-edge Worker — fetch handler", () => {
       expect(res.headers.get("Location")).toMatch(/^https:\/\/from-lookup\.com\/?$/);
     });
 
+    it("falls back through lookup when the API returns an empty hit", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ found: true, id: 7 }), { status: 200 }),
+        )
+        .mockResolvedValueOnce(new Response("origin", { status: 200 }));
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+
+      const res = await worker.fetch(makeRequest("/weird"), env, makeCtx());
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it("backfills KV on lookup API hit with native expiration", async () => {
       const futureMs = Date.now() + 7_200_000; // 2 hours from now
       const fetchMock = vi.fn().mockResolvedValue(
@@ -475,6 +491,22 @@ describe("zhe-edge Worker — fetch handler", () => {
         JSON.stringify({ id: 8, originalUrl: "https://no-expiry.com", expiresAt: null }),
         undefined,
       );
+    });
+
+    it("passes through non-404 origin responses without writing a tombstone", async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/api/lookup")) {
+          return Promise.resolve(new Response(JSON.stringify({ found: false }), { status: 200 }));
+        }
+        return Promise.resolve(new Response("upstream outage", { status: 503 }));
+      });
+      globalThis.fetch = fetchMock;
+      const env = makeEnv();
+      env.LINKS_KV.get.mockResolvedValue(null);
+
+      const res = await worker.fetch(makeRequest("/unavailable"), env, makeCtx());
+      expect(res.status).toBe(503);
+      expect(mockCache.put).not.toHaveBeenCalled();
     });
 
     it("returns origin 404 page and writes tombstone on lookup API miss", async () => {
@@ -660,6 +692,74 @@ function makeScheduledController(): MockScheduledController {
 }
 
 describe("zhe-edge Worker — scheduled handler", () => {
+  it("handles malformed cron responses and unreadable error bodies", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/cleanup")) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.reject(new Error("unreadable body")),
+        });
+      }
+      if (url.includes("/sync-kv")) {
+        return Promise.resolve({
+          ok: false,
+          status: 503,
+          text: () => Promise.reject(new Error("unreadable body")),
+        });
+      }
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+    await Promise.all(ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]));
+
+    expect(consoleSpy).toHaveBeenCalledWith("Cleanup cron failed (500): ");
+    expect(consoleSpy).toHaveBeenCalledWith("Sync-kv cron failed (503): ");
+    logSpy.mockRestore();
+    consoleSpy.mockRestore();
+  });
+
+  it("tolerates non-JSON success bodies from cron endpoints", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue(new Response("plain-text", { status: 200 }));
+    globalThis.fetch = fetchMock;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+    await Promise.all(ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]));
+
+    expect(logSpy).toHaveBeenCalledWith("Cleanup cron result:", "{}");
+    expect(logSpy).toHaveBeenCalledWith("Sync-kv cron result:", "{}");
+    logSpy.mockRestore();
+  });
+
+  it("logs successful cron results", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/cleanup")) {
+        return Promise.resolve(new Response(JSON.stringify({ cleaned: 2 }), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ synced: 1 }), { status: 200 }));
+    });
+    globalThis.fetch = fetchMock;
+
+    const env = makeEnv();
+    const ctx = makeCtx();
+    await worker.scheduled(makeScheduledController(), env, ctx);
+    await Promise.all(ctx.waitUntil.mock.calls.map((call: unknown[]) => call[0]));
+
+    expect(logSpy).toHaveBeenCalledWith("Cleanup cron result:", JSON.stringify({ cleaned: 2 }));
+    expect(logSpy).toHaveBeenCalledWith("Sync-kv cron result:", JSON.stringify({ synced: 1 }));
+    logSpy.mockRestore();
+  });
+
   it("calls both cleanup and sync-kv with Bearer auth", async () => {
     const fetchMock = vi
       .fn()
