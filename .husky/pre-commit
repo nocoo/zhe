@@ -1,15 +1,17 @@
-# L1 + G1 against the Git index snapshot.
+#!/usr/bin/env bash
+# L1 + G1 against the Git index snapshot for web, cli and worker lanes.
 # Every repo check runs inside a `git checkout-index` export of the staged
 # tree, so a staged bug fails even when the working tree holds an unstaged
 # fix. Route declarations are generated from the staged sources by
-# `next typegen` during preparation, before any reader starts. Stages run
-# sequentially: each failing or interrupted stage cancels exactly one owned
-# child, then the snapshot is removed.
+# `next typegen` during preparation, before any reader starts. Lane stages
+# run in parallel after preparation; the first failure cancels siblings,
+# then the snapshot is removed.
 set -eu
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$HOOK_DIR/../scripts/ensure-tools.sh"
 require_tool gitleaks "secrets scanning"
 require_tool bun "pre-commit checks"
+require_tool python3 "CLI Python helper coverage"
 
 REPO="$(git rev-parse --show-toplevel)"
 ROOT="$(mktemp -d -t zhe-precommit-XXXXXX)"
@@ -17,7 +19,7 @@ SNAP="$ROOT/tree"
 LOGS="$ROOT/logs"
 mkdir "$SNAP" "$LOGS"
 
-CURRENT_PID=
+ACTIVE_PIDS=
 kill_tree() {
   local pid=$1 sig=$2 children child
   children=$(pgrep -P "$pid" 2>/dev/null || true)
@@ -30,16 +32,16 @@ kill_tree() {
 cleanup() {
   status=$?
   trap - EXIT INT TERM HUP
-  if [ -n "$CURRENT_PID" ]; then
-    kill_tree "$CURRENT_PID" TERM
+  for pid in $ACTIVE_PIDS; do
+    kill_tree "$pid" TERM
     i=0
-    while kill -0 "$CURRENT_PID" 2>/dev/null && [ "$i" -lt 20 ]; do
+    while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 20 ]; do
       sleep 0.1
       i=$((i + 1))
     done
-    kill_tree "$CURRENT_PID" KILL
-    wait "$CURRENT_PID" 2>/dev/null || true
-  fi
+    kill_tree "$pid" KILL
+    wait "$pid" 2>/dev/null || true
+  done
   rm -rf "$ROOT"
   exit "$status"
 }
@@ -56,10 +58,11 @@ run_stage() {
     cd "$dir" || exit 1
     exec "$@"
   ) >"$LOGS/$name.log" 2>&1 &
-  CURRENT_PID=$!
+  local pid=$!
+  ACTIVE_PIDS="$ACTIVE_PIDS $pid"
   status=0
-  wait "$CURRENT_PID" || status=$?
-  CURRENT_PID=
+  wait "$pid" || status=$?
+  ACTIVE_PIDS=${ACTIVE_PIDS/" $pid"/}
   cat "$LOGS/$name.log"
   if [ "$status" -ne 0 ]; then
     echo "❌ pre-commit stage '$name' failed" >&2
@@ -67,29 +70,123 @@ run_stage() {
   fi
 }
 
-# Export the staged tree; any preparation failure must abort the commit.
-git checkout-index --all --prefix="$SNAP/"
+STAGE_NAMES=()
+STAGE_PIDS=()
 
-# Checks reuse the installed dependencies, so the staged manifests must match
-# the worktree copies they were installed from.
-if [ ! -d "$REPO/node_modules" ]; then
-  echo "❌ node_modules is required — run: bun install --frozen-lockfile" >&2
-  exit 1
-fi
-for manifest in package.json bun.lock; do
-  if [ ! -f "$SNAP/$manifest" ] || ! cmp -s "$SNAP/$manifest" "$REPO/$manifest"; then
-    echo "❌ staged $manifest must match the worktree copy installed into node_modules" >&2
+launch_stage() {
+  local name="$1"
+  local dir="$2"
+  shift 2
+  echo "━━━ $name ━━━"
+  (
+    cd "$dir" || exit 1
+    exec "$@"
+  ) >"$LOGS/$name.log" 2>&1 &
+  local pid=$!
+  STAGE_NAMES+=("$name")
+  STAGE_PIDS+=("$pid")
+  ACTIVE_PIDS="$ACTIVE_PIDS $pid"
+}
+
+wait_stages() {
+  local status=0
+  local i stage_status
+  for i in "${!STAGE_PIDS[@]}"; do
+    stage_status=0
+    wait "${STAGE_PIDS[$i]}" || stage_status=$?
+    ACTIVE_PIDS=${ACTIVE_PIDS/" ${STAGE_PIDS[$i]}"/}
+    cat "$LOGS/${STAGE_NAMES[$i]}.log"
+    if [ "$stage_status" -ne 0 ]; then
+      if [ "$status" -eq 0 ]; then
+        status="$stage_status"
+        echo "❌ pre-commit stage '${STAGE_NAMES[$i]}' failed" >&2
+      fi
+    fi
+  done
+  if [ "$status" -ne 0 ]; then
+    for pid in "${STAGE_PIDS[@]}"; do
+      kill_tree "$pid" TERM
+      kill_tree "$pid" KILL
+      wait "$pid" 2>/dev/null || true
+    done
+    exit "$status"
+  fi
+  STAGE_NAMES=()
+  STAGE_PIDS=()
+}
+
+link_node_modules() {
+  local prefix="$1"
+  mkdir -p "$SNAP/$prefix/node_modules"
+  for entry in "$REPO/$prefix/node_modules"/* "$REPO/$prefix/node_modules/.bin"; do
+    [ -e "$entry" ] || continue
+    ln -s "$entry" "$SNAP/$prefix/node_modules/${entry##*/}"
+  done
+}
+
+require_lane_tools() {
+  local prefix="$1"
+  shift
+  for tool in "$@"; do
+    if [ ! -x "$SNAP/$prefix/node_modules/.bin/$tool" ]; then
+      echo "❌ $tool must resolve from $prefix/node_modules — run: (cd $prefix && bun install --frozen-lockfile)" >&2
+      exit 1
+    fi
+  done
+}
+
+verify_manifests() {
+  local missing=0
+  for manifest in package.json bun.lock; do
+    if [ ! -f "$SNAP/$manifest" ]; then
+      echo "❌ staged tree is missing $manifest" >&2
+      missing=1
+    fi
+  done
+  for lane in "" cli worker; do
+    for manifest in package.json bun.lock; do
+      local path="$lane/$manifest"
+      [ -n "$lane" ] || path="$manifest"
+      if [ ! -f "$SNAP/$path" ]; then
+        echo "❌ staged tree is missing $path" >&2
+        missing=1
+      fi
+    done
+  done
+  [ "$missing" -eq 0 ] || exit 1
+
+  if [ ! -d "$REPO/node_modules" ] || [ ! -d "$REPO/cli/node_modules" ] || [ ! -d "$REPO/worker/node_modules" ]; then
+    echo "❌ node_modules is required for web, cli and worker — run lane installs with bun install --frozen-lockfile" >&2
     exit 1
   fi
-done
 
-# node_modules: symlink top-level entries so subprocesses resolve the installed
-# toolchain; writable runner caches stay inside the snapshot.
-mkdir "$SNAP/node_modules"
+  for manifest in package.json bun.lock; do
+    if ! cmp -s "$SNAP/$manifest" "$REPO/$manifest"; then
+      echo "❌ staged $manifest must match the worktree copy installed into node_modules" >&2
+      exit 1
+    fi
+  done
+  for lane in cli worker; do
+    for manifest in package.json bun.lock; do
+      if ! cmp -s "$SNAP/$lane/$manifest" "$REPO/$lane/$manifest"; then
+        echo "❌ staged $lane/$manifest must match the worktree copy installed into node_modules" >&2
+        exit 1
+      fi
+    done
+  done
+}
+
+# Export the staged tree; any preparation failure must abort the commit.
+git checkout-index --all --prefix="$SNAP/"
+verify_manifests
+
+mkdir -p "$SNAP/node_modules"
 for entry in "$REPO/node_modules"/* "$REPO/node_modules/.bin"; do
   [ -e "$entry" ] || continue
   ln -s "$entry" "$SNAP/node_modules/${entry##*/}"
 done
+link_node_modules cli
+link_node_modules worker
 mkdir -p "$SNAP/node_modules/.vite" "$SNAP/node_modules/.vitest" "$ROOT/cache"
 
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
@@ -99,22 +196,27 @@ export XDG_STATE_HOME="$ROOT/cache"
 PATH="$SNAP/node_modules/.bin:$PATH"
 export PATH
 
-# `bun x` must never fall back to fetching tools: everything it invokes has to
-# resolve from the snapshot's linked node_modules.
 for tool in next tsc vitest biome; do
   if [ ! -x "$SNAP/node_modules/.bin/$tool" ]; then
     echo "❌ $tool must resolve from node_modules — run: bun install --frozen-lockfile" >&2
     exit 1
   fi
 done
+require_lane_tools cli tsc vitest biome
+require_lane_tools worker tsc vitest biome
 
-# Generate route declarations from the staged app/ sources before any reader:
-# scripts/typecheck.sh's full `next build` rebuild stays for dev/CI; the
-# snapshot is always fresh, so declarations come straight from `next typegen`.
 run_stage prepare "$SNAP" bun x next typegen
 
-run_stage unit_cov "$SNAP" bun run test:unit:coverage
-run_stage integ "$SNAP" bun run test:integration
-run_stage typecheck "$SNAP" bun x tsc --noEmit
-run_stage lint "$SNAP" bun run lint
+launch_stage web_unit_cov "$SNAP" bun run test:unit:coverage
+launch_stage web_integ "$SNAP" bun run test:integration
+launch_stage web_typecheck "$SNAP" bun x tsc --noEmit
+launch_stage web_lint "$SNAP" bun run lint
+launch_stage cli_typecheck "$SNAP/cli" bun x tsc --noEmit
+launch_stage cli_lint "$SNAP/cli" bun run lint
+launch_stage cli_cov "$SNAP/cli" bun run test:coverage
+launch_stage worker_typecheck "$SNAP/worker" bun x tsc --noEmit
+launch_stage worker_lint "$SNAP/worker" bun run lint
+launch_stage worker_cov "$SNAP/worker" bun run test:coverage
+wait_stages
+
 run_stage gitleaks "$REPO" gitleaks protect --staged --no-banner
