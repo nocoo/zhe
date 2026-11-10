@@ -56,10 +56,7 @@ jobs:
         (cd worker && bun run lint && bun x tsc --noEmit && bun run test:coverage)
       osv-config: osv-scanner.toml
       gitleaks-config: .gitleaks.toml
-      lockfiles: |
-        bun.lock
-        cli/bun.lock
-        worker/bun.lock
+      lockfiles: "bun.lock,cli/bun.lock,worker/bun.lock"
       build: true
       build-command: bun run build
       workflow-lint: true
@@ -68,7 +65,7 @@ jobs:
       l2: true
       l2-command: >-
         mkdir -p artifacts &&
-        wrangler --version | tee artifacts/wrangler-version.txt &&
+        bunx wrangler --version | tee artifacts/wrangler-version.txt &&
         bun run test:api
       l2-artifact-name: zhe-l2-evidence
       l2-artifact-path: |
@@ -82,7 +79,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ffmpeg
         mkdir -p artifacts
-        wrangler --version | tee artifacts/wrangler-version.txt
+        bunx wrangler --version | tee artifacts/wrangler-version.txt
       l3-command: bun run test:e2e:pw
       l3-artifact-name: zhe-l3-evidence
       l3-artifact-path: |
