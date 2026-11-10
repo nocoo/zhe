@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarFooter, SidebarHeader, SidebarNav } from "@nocoo/basalt/components/sidebar";
+import { SidebarFooter, SidebarNav } from "@nocoo/basalt/components/sidebar";
 import { PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { FolderIcon } from "@/components/folder-icon";
@@ -75,17 +75,6 @@ export function SidebarCollapsed({
 }: SidebarCollapsedProps) {
   return (
     <TooltipProvider>
-      <SidebarHeader>
-        <img
-          src="/logo-24.png"
-          alt="Zhe"
-          width={28}
-          height={28}
-          data-testid="sidebar-logo"
-          className="size-7 shrink-0"
-        />
-      </SidebarHeader>
-
       <Button
         variant="ghost"
         size="icon"
