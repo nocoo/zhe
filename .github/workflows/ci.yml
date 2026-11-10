@@ -1,3 +1,5 @@
+# CI slot standard v1 (nocoo/base-ci docs/slots.md): strict slot-status via quality.yml;
+# nocoo/base-ci v2026.12: top-level slot jobs, L2/L3 evidence artifacts.
 name: CI
 
 on:
@@ -7,7 +9,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
+  # ─────────────────────────────────────────────────────
+  # Outside slot v1 — Linux standalone container smoke (Docker build + no-network run)
+  # ─────────────────────────────────────────────────────
   container-smoke:
     name: "Linux standalone container"
     runs-on: ubuntu-latest
@@ -26,181 +34,74 @@ jobs:
           docker logs zhe-container-smoke || true
           docker rm -f zhe-container-smoke || true
 
-  cli:
-    name: "CLI build, lint and coverage"
-    uses: nocoo/base-ci/.github/workflows/test-job.yml@633a5545fcfec91b688840650d4edf3e9cc1abbd # v2026.10
-    with:
-      runtime-version: "1.3.11"
-      install-policy: "blocked"
-      working-directory: "cli"
-      timeout-minutes: 10
-      command: "bun run build && bun run lint && bun run test:coverage"
-
   # ─────────────────────────────────────────────────────
-  # L1 + G1 + G2 — Core quality gate from base-ci
+  # S1–Z1 — Single quality gate (nocoo/base-ci v2026.12, strict slot-status)
   # ─────────────────────────────────────────────────────
   quality:
-    uses: nocoo/base-ci/.github/workflows/quality.yml@633a5545fcfec91b688840650d4edf3e9cc1abbd # v2026.10
+    uses: nocoo/base-ci/.github/workflows/quality.yml@1ea10ecab22b72512399485391603fe03a161016 # v2026.12
+    secrets:
+      test-env-json: ${{ secrets.CI_TEST_ENV_JSON }}
     with:
       runtime-version: "1.3.11"
-      install-policy: "project"
-      coverage-path: "coverage"
-      prepare-command: "bun run build"
-      typecheck-command: "bun x tsc --noEmit"
-      test-command: "bun run test:unit:coverage && bun run test:integration"
-      osv-config: "osv-scanner.toml"
-
-  # ─────────────────────────────────────────────────────
-  # L2: API E2E (real HTTP against a fully local stack)
-  # Runs in PARALLEL with quality for faster CI.
-  # ─────────────────────────────────────────────────────
-  api-e2e:
-    name: "L2 API E2E (locked wrangler)"
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: nocoo/base-ci/.github/actions/setup-js@633a5545fcfec91b688840650d4edf3e9cc1abbd # v2026.10
-        with:
-          runtime-version: "1.3.11"
-          install-policy: "blocked"
-
-      - name: Install locked Worker dependencies
-        working-directory: worker
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
-
-      - name: "Record wrangler version"
-        run: |
-          mkdir -p artifacts
-          wrangler --version | tee artifacts/wrangler-version.txt
-
-      - name: "L2: API E2E tests"
-        run: bun run test:api
-
-      - name: "Upload wrangler-dev tee log"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-dev-log-l2
-          path: .artifacts/e2e/*/wrangler.log
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: "Upload wrangler internal logs"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-internal-logs-l2
-          path: .artifacts/e2e/*/wrangler-internal-logs/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: "Upload wrangler version marker"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-version-l2
-          path: artifacts/wrangler-version.txt
-          if-no-files-found: error
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────
-  # L3: Browser E2E (Playwright against the same local stack)
-  # Runs in PARALLEL with quality for faster CI.
-  # ─────────────────────────────────────────────────────
-  browser-e2e:
-    name: "L3 Browser E2E (locked wrangler)"
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: nocoo/base-ci/.github/actions/setup-js@633a5545fcfec91b688840650d4edf3e9cc1abbd # v2026.10
-        with:
-          runtime-version: "1.3.11"
-          install-policy: "blocked"
-
-      - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium webkit
-
-      - name: Install video verification tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-
-      - name: Install locked Worker dependencies
-        working-directory: worker
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
-
-      - name: "Record wrangler version"
-        run: |
-          mkdir -p artifacts
-          wrangler --version | tee artifacts/wrangler-version.txt
-
-      - name: "L3: Playwright E2E tests"
-        run: bun run test:e2e:pw
-
-      - name: "Upload wrangler-dev tee log"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-dev-log-l3
-          path: .artifacts/e2e/*/wrangler.log
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: "Upload wrangler internal logs"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-internal-logs-l3
-          path: .artifacts/e2e/*/wrangler-internal-logs/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: "Upload wrangler version marker"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: wrangler-version-l3
-          path: artifacts/wrangler-version.txt
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: "Upload Playwright report"
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-report
-          path: .artifacts/e2e/*/report/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────
-  # Worker: Edge Worker unit tests
-  # Runs in PARALLEL with quality for faster CI.
-  # ─────────────────────────────────────────────────────
-  worker-tests:
-    name: "Worker Tests"
-    uses: nocoo/base-ci/.github/workflows/test-job.yml@633a5545fcfec91b688840650d4edf3e9cc1abbd # v2026.10
-    with:
-      runtime-version: "1.3.11"
-      install-policy: "blocked"
-      working-directory: "worker"
-      timeout-minutes: 10
-      command: "bun run lint && bun run test:coverage"
+      node-version: "26.12.1"
+      install-policy: project
+      extra-install-dirs: "cli,worker"
+      coverage-path: coverage
+      typecheck-command: bash scripts/typecheck.sh
+      test-command: >-
+        bun run build &&
+        bun run test:unit:coverage &&
+        bun run test:integration &&
+        (cd cli && bun run build && bun run lint && bun run test:coverage) &&
+        (cd worker && bun run lint && bun x tsc --noEmit && bun run test:coverage)
+      osv-config: osv-scanner.toml
+      gitleaks-config: .gitleaks.toml
+      lockfiles: |
+        bun.lock
+        cli/bun.lock
+        worker/bun.lock
+      build: true
+      build-command: bun run build
+      workflow-lint: true
+      workflow-lint-required-workflow: nocoo/base-ci/.github/workflows/deploy-docker.yml
+      workflow-lint-yamllint: true
+      l2: true
+      l2-command: >-
+        mkdir -p artifacts &&
+        wrangler --version | tee artifacts/wrangler-version.txt &&
+        bun run test:api
+      l2-artifact-name: zhe-l2-evidence
+      l2-artifact-path: |
+        .artifacts/e2e/*/wrangler.log
+        .artifacts/e2e/*/wrangler-internal-logs/
+        artifacts/wrangler-version.txt
+      l2-artifact-retention-days: 7
+      l3: true
+      l3-browsers: "chromium webkit"
+      l3-prepare-command: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        mkdir -p artifacts
+        wrangler --version | tee artifacts/wrangler-version.txt
+      l3-command: bun run test:e2e:pw
+      l3-artifact-name: zhe-l3-evidence
+      l3-artifact-path: |
+        .artifacts/e2e/*/wrangler.log
+        .artifacts/e2e/*/wrangler-internal-logs/
+        .artifacts/e2e/*/report/
+        artifacts/wrangler-version.txt
+      l3-artifact-retention-days: 7
+      env-json: '{"WRANGLER_SEND_METRICS": "false", "CI": "true"}'
+      slot-status: >-
+        {"S1": {"status": "impl"},
+        "S2": {"status": "impl"},
+        "S3": {"status": "impl"},
+        "G1": {"status": "impl"},
+        "G2": {"status": "impl"},
+        "B1": {"status": "impl"},
+        "L1": {"status": "impl"},
+        "L1.5": {"status": "na", "reason": "Worker 单测在 Node/Vitest 环境运行，未使用 vitest-pool-workers / miniflare 运行时套件"},
+        "L2": {"status": "impl"},
+        "L3": {"status": "impl"},
+        "P1": {"status": "todo", "reason": "发布 @nocoo/zhe CLI 但 CI 尚未接入 npm pack / publint 检查"},
+        "Z1": {"status": "impl"}}
