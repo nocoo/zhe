@@ -82,8 +82,10 @@ jobs:
         (cd worker && bun install --frozen-lockfile --ignore-scripts)
         echo "$GITHUB_WORKSPACE/worker/node_modules/.bin" >> "$GITHUB_PATH"
         mkdir -p artifacts
-        wrangler --version | tee artifacts/wrangler-version.txt
-      l3-command: bun run test:e2e:pw
+        "$GITHUB_WORKSPACE/worker/node_modules/.bin/wrangler" --version | tee artifacts/wrangler-version.txt
+      l3-command: >-
+        export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH" &&
+        bun run test:e2e:pw
       l3-artifact-name: zhe-l3-evidence
       l3-artifact-path: |
         .artifacts/e2e/*/wrangler.log
