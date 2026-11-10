@@ -121,6 +121,7 @@ For application writes, retain `connectorUserId` invalidation at the D1 mutation
 ### 5.3 Future migration sequence
 
 Do not edit applied migrations 0024, 0026, 0027, 0028, 0031, 0033 or 0035. Allocate new migration numbers after the actual head at implementation time; no migration number is reserved by this document.
+
 1. Build and test the migration against synthetic copies of current schemas: generalize X tables, preserve keys/IDs/tombstones, transform captures and recreate affected foreign keys, indexes and triggers. Table rebuilds must suppress old deletion triggers while copying so migration cannot enqueue live archives for deletion.
 2. Rebuild discovery/event source constraints and event triggers; preserve historical event IDs and mark any synthesized history as snapshots. Update search invalidation triggers and migrate X search projections without indexing draft/media URLs.
 3. Add the small source-policy table described below. Seed existing sources enabled and both new sources disabled; seed last-service values from available history as an approximation. Backfill hints without consuming media or retrying completed X jobs.

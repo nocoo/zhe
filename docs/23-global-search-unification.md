@@ -29,6 +29,7 @@
 > Codex P1：原「唯一入口并移除 Todo 搜索」与「Ideas 可保留筛选」自相矛盾，且会破坏 Todo 文档中的 `/` 聚焦搜索等契约。已改为 **唯一跨资源入口 + 页面内筛选并存**。
 
 **非目标（本轮不做）**
+
 - 服务端全文检索 / 跨用户搜索
 - 语义 / embedding 搜索
 - 上传文件全文、Webhook、API Key 等系统页内容
@@ -72,6 +73,7 @@
 ### 1.3 设计结论
 
 本任务 **不是从零做搜索**，而是：
+
 1. **状态契约补齐**（idle / loading / success / error，暴露 loaded）
 2. **匹配与命中证据补齐**
 3. **导航契约写死 + deep-link 完整实现**
@@ -94,6 +96,7 @@
 ### 2.2 匹配规则（「任意匹配」定义）
 
 **查询预处理**
+
 - `trim` + case-fold（`toLowerCase`）
 - 空串 → 不展示资源组，只展示 empty hint + 页面/动作
 - **本轮**：单段子串；多词按 **整串** 匹配（不拆词）。v2 可 AND token
@@ -111,6 +114,7 @@
 ### 2.3 分类展示
 
 固定顺序（有命中 **且该类型 load 成功** 才渲染组；loading/error 见 §2.5）：
+
 1. 页面 · 2. 动作 · 3. **链接 (N)** · 4. **想法 (N)** · 5. **待办 (N)**
 
 - 每组最多 **`SEARCH_GROUP_LIMIT = 20` 条**（**渲染保护**，见 §2.5）
@@ -127,6 +131,7 @@
 | **动作** | 执行                         | 关 dialog                                                            | —                                      |
 
 **链接主点击（锁定）**
+
 - **主 select = 应用内** `/dashboard?highlight={linkId}`
 - **原站** 仅行内按钮（现有 open original）
 - 不再保留「主 select 开原站」选项
@@ -137,6 +142,7 @@
   **待办 deep-link 完整验收（E4 必须全部满足）**
 
 实现侧（`todos-page` + `todo-tree-shell`）：
+
 1. `?id=N` → `setSelectedId(N)`（已有）
 2. **展开全部祖先**（arborist `openParents` / 遍历 parentId 打开节点；`openByDefault` 不足）
 3. **行进入视口**（`scrollIntoView` / arborist scrollTo）
@@ -149,6 +155,7 @@
 #### 2.5.1 问题（Codex P1）
 
 当前 `DashboardState` 只有 `ideasLoading` / `todosLoading`：
+
 - 内部 `ideasLoaded` / `todosLoaded` **未暴露** → UI 无法区分「未加载」与「已加载且空」
 - action `success: false` 通常不 throw → **无 error 通道**
 - 首次打开 dialog 时三类可能短暂显示「没有找到匹配的结果」
@@ -180,6 +187,7 @@ type ResourceLoadState =
 | **links / dashboard core 初始失败**       | **禁止** 复用现有 `refreshLinks` 作为唯一重试路径（见下）                                                     |
 
 **为何不能 `refreshLinks` 顶替初始失败重试（Codex 三轮 P1）**
+
 - 初始加载走 `getDashboardData()`，一次拿 **links + tags + linkTags**（`actions/dashboard.ts`）。
 - 现有 `refreshLinks` **只** 调 `getLinks()`（`useDashboardCore.ts`），不刷新 tags/linkTags。
 - 若 mount 时 `getDashboardData` 失败，仅 `retry` 成 `refreshLinks` → 链接列表可能回来，但 **标签关联仍空** → 全局搜索「按 tag 名搜链接」永久失效。
@@ -199,6 +207,7 @@ retryDashboardData(): Promise<void>
 `refreshLinks` **保留** 给「已成功加载后的用户手动刷新链接列表」；**不得** 作为 search dialog「加载失败 · 重试」的实现。
 
 U4 必须锁定：
+
 1. ideas/todos：error → ensure\* 再请求 → success
 2. **links：error → `retryDashboardData` → links+tags+linkTags 均有数据且 tag 搜索可用**
 
@@ -279,6 +288,7 @@ Sidebar / Cmd+K
 **契约（锁定）**
 
 当 `searchParams.highlight` 为合法 link id 时：
+
 1. **清除** 本地 folder/tag 筛选（`setFilterFolderId(null)`、`setFilterTagIds(empty)`）
 2. **忽略** URL `folder` 对该次定位的约束（或路由只带 `highlight`、不带 `folder`——搜索导航已保证）
 3. 在 **全量 `links`** 中找 id → `scrollIntoView` + ring
@@ -286,6 +296,7 @@ Sidebar / Cmd+K
    实现落点：`useLinksListFilters` 增加 `useEffect` 监听 `highlight`，或 `LinksList` 在读到 highlight 时调用 `clearFilters()` + 滚动。
 
 **测试**：B4 必须有 **组件测试**（非仅 U10 路由断言）：
+
 - 先设 tag/folder 过滤使目标不可见
 - 注入 `?highlight={id}`
 - 断言：过滤被清、卡片在 DOM 中可见、scroll/ring 被调用或 data-attribute 存在

@@ -88,6 +88,7 @@
 #### 关键配置
 
 **`vitest.config.ts`**：
+
 - 默认环境：`node`（DOM 用例通过文件首行 `// @vitest-environment happy-dom` 或 `jsdom` 指令切换）
 - Setup：`tests/setup.ts`（D1 内存模拟器，mock 的是 `@/lib/db/d1-client`）
 - 包含：`tests/**/*.{test,spec}.{ts,tsx}`
@@ -95,6 +96,7 @@
 - 当前执行：v8 provider，全局 `lines/statements ≥95`、`functions ≥90`、`branches ≥85`。要求为四项各 ≥95%，函数/分支和未覆盖逻辑是待修复差距；CLI 与 Worker 的独立缺口见根手册。
 
 **D1 内存模拟器**（`tests/setup.ts`）：
+
 ```typescript
 // 全局 mock @/lib/db/d1-client，使用 Map/Array 模拟数据库
 vi.mock('@/lib/db/d1-client', async () => ({
@@ -174,6 +176,7 @@ bun run test:api  # 启动 dev server，运行 API E2E 测试
 #### 配置
 
 **`playwright.config.ts`**：
+
 - 端口：27006（与开发 7006、API E2E 17006 完全隔离）
 - 服务器：`PLAYWRIGHT=1 bun run next build`, then `PLAYWRIGHT=1 AUTH_URL=http://localhost:27006 bun run next start -p 27006`
 - `reuseExistingServer: false`：每次都启动全新实例
@@ -231,6 +234,7 @@ bun run test:e2e:pw:ui   # Playwright UI 模式（调试）
 #### TypeScript 检查
 
 **`scripts/typecheck.sh`**：
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
@@ -297,6 +301,7 @@ brew install gitleaks osv-scanner
 #### 工具检查脚本
 
 **`scripts/ensure-tools.sh`**：
+
 ```bash
 #!/usr/bin/env bash
 # 检查工具是否可用，不可用时打印安装提示
@@ -347,6 +352,7 @@ cd worker && bun run test  # Worker 单元测试
 ### Browser matrix scope
 
 The ordinary L3 suite runs shared workflows once per meaningful UI variant:
+
 - X media deletion and live refresh run on desktop. Mobile X layout, touch interaction,
   playback and filtering remain covered by the other connector journeys; mobile
   cross-tab deletion is no longer a separate browser acceptance case.

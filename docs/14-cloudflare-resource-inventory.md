@@ -91,6 +91,7 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 #### KV: 碰巧安全但无设计防护
 
 `.env.local` 未配置 `CLOUDFLARE_KV_NAMESPACE_ID`，所以 `lib/kv/client.ts` 的 `getKVCredentials()` 返回 null，KV 操作静默跳过。但存在两条暴露路径：
+
 - **L2 Phase 1**：`tests/api/webhook.test.ts` 直接导入并调用 `app/api/link/create/[token]/route.ts` 的 POST handler。每次成功建链（201 响应）都会触发 `kvPutLink()`（`route.ts:199`，fire-and-forget）。该测试文件没有 mock `@/lib/kv/client`，`tests/setup.ts` 也没有全局 KV mock。如果开发者的 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID`（三个 KV 所需 env var 中唯一的 KV 专属变量，另两个 `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` 是 D1 也需要的），5 个 POST 测试会静默写入生产 KV。
 - **L3 Playwright**：webServer 子进程（Next.js dev server）同样会继承 `.env.local` 中的 `CLOUDFLARE_KV_NAMESPACE_ID`。但当前 L3 测试不直接触发建链路径，风险较低。
 
@@ -109,6 +110,7 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 > ⚠️ **本方案不改变任何层级的门控级别**。L2 仍然是 soft gate（`docs/05-testing.md:29`），L3 仍然是 on-demand 硬门控。Phase 1 always runs，Phase 2 soft gate——这一结构不变。唯一的行为变化是：当 `CLOUDFLARE_KV_NAMESPACE_ID` 已配但 `KV_TEST_NAMESPACE_ID` 缺失时，L2 会**清除** KV 生产 ID 使 KV 功能降级为 no-op（而非跳过测试）。这是功能降级，不是门控变更。
 
 **四重防线**（符合 [Cloudflare 资源隔离规范](# "mem:20eebbc1") 变体 B 要求）：
+
 1. **测试入口 env 覆盖**：`main()` / `globalSetup` 中检查 + 覆盖 `process.env`
 2. **ID 不等性检查**：`testDbId !== prodDbId`，防止误配回生产
 3. **防御性 guard**：`executeD1()` / `queryD1()` 中确认 `CLOUDFLARE_D1_DATABASE_ID === D1_TEST_DATABASE_ID`
@@ -133,6 +135,7 @@ R2_PUBLIC_DOMAIN=https://s.zhe.to
 当前 guard 的语义是"你确认 `CLOUDFLARE_D1_DATABASE_ID` 是测试库"（`D1_TEST_DATABASE_ID === CLOUDFLARE_D1_DATABASE_ID`）。这种设计在生产和测试共用一个 D1 时勉强可用，但无法支持隔离——两个 ID 不同时 guard 会拒绝运行。
 
 **新语义**：`D1_TEST_DATABASE_ID` 是测试库的实际 UUID。测试入口在 env 覆盖后，guard 需要做 **两重检查**：
+
 1. `D1_TEST_DATABASE_ID` 必须存在
 2. `D1_TEST_DATABASE_ID` 必须**不等于**原始 `CLOUDFLARE_D1_DATABASE_ID`（防止误配回生产）
 
@@ -238,6 +241,7 @@ KV_TEST_NAMESPACE_ID=<zhe-test 的 ID>
 **关键约束**：`run-api-e2e.ts:16` 明确设计"Phase 1 (in-process) always runs — it has no external dependencies"。env 覆盖不能放在 `main()` 顶部导致 Phase 1 被跳过。
 
 **改动方案**：
+
 1. **KV 覆盖或清除放在 `main()` 顶部**（Phase 1 需要，因为 `webhook.test.ts` 触发 `kvPutLink()`。有测试 ID 则覆盖，无则清除生产 ID 使 KV no-op）
 2. **D1 覆盖放在 Phase 1 之后、Phase 2 之前**（只有 Phase 2 需要真实 D1）
 3. **R2 覆盖也放在 Phase 2 之前**（Phase 1 全部 mock，Phase 2 不涉及 R2；但覆盖可防止 dev server 意外连生产 R2）
@@ -340,12 +344,14 @@ async function checkPrerequisites(): Promise<boolean> {
 `seed.ts` 的 `d1Credentials()` 同样简化——`main()` 已保证覆盖正确，只需保留 `D1_TEST_DATABASE_ID` 存在性检查。
 
 **改动文件**：
+
 - `scripts/run-api-e2e.ts` — `main()` 分层 env 覆盖（KV 覆盖或清除→Phase1→D1/R2→Phase2）；`checkPrerequisites()` 简化
 - `tests/api/helpers/seed.ts` — `d1Credentials()` 简化 guard
 
 #### 4b. L3 Playwright — 主进程 + webServer 子进程都要覆盖
 
 Playwright 有 **2 层**需要覆盖 env 的地方：
+
 1. **主进程 + test worker 进程**（运行 `global-setup.ts` / `global-teardown.ts`，以及 `test.beforeAll` / `test()` / `test.afterAll`）：Playwright 官方文档明确支持在 `globalSetup` 中通过 `process.env.FOO = 'value'` 设置环境变量，test worker 进程可以在 `test()` 中读取这些值（[来源](https://playwright.dev/docs/test-global-setup-teardown)）
 2. **webServer 子进程**（Next.js dev server on port 27006）：通过 shell command 启动，不受 `globalSetup` 的 `process.env` 影响
 
@@ -516,6 +522,7 @@ export default async function globalTeardown(): Promise<void> {
 > **为什么 teardown 不再做 `testDbId === prodDbId` 不等性检查**：globalSetup 和 globalTeardown 运行在**同一个 Node 进程**中。globalSetup 执行 `process.env.CLOUDFLARE_D1_DATABASE_ID = testDbId` 后，teardown 读取到的 `CLOUDFLARE_D1_DATABASE_ID` 已经是 `testDbId`。如果仍然做不等性检查（`testDbId === prodDbId`），结果永远为 true → teardown 永远拒绝运行。正确做法是确认覆盖仍然生效（`currentDbId === testDbId`），而不是重复 setup 的逻辑。
 
 **改动文件**：
+
 - `tests/playwright/global-setup.ts` — 安全检查（存在性 + 不等性）+ env 覆盖（传播到 test worker）+ `_test_marker` 验证
 - `tests/playwright/global-teardown.ts` — 安全检查 + env 覆盖 + `_test_marker` 验证
 - `tests/playwright/helpers/d1.ts` — `executeD1()` 和 `queryD1()` 添加防御性 guard
@@ -541,6 +548,7 @@ R2_TEST_PUBLIC_DOMAIN=https://test-r2.zhe.to    # 占位域名，不需要实际
 ```
 
 这样：
+
 - `actions/upload.ts` / `actions/links.ts`：`!publicDomain` 为 false → 正常生成 URL（指向测试占位域名）
 - `route.ts:111`：`process.env.R2_PUBLIC_DOMAIN || ...` → 使用 `https://test-r2.zhe.to`，不会回退到生产域名
 - 所有生成的 URL 形如 `https://test-r2.zhe.to/xxx`，明显区别于生产 `https://s.zhe.to/xxx`
@@ -557,6 +565,7 @@ KV 隔离**不能**用 `PLAYWRIGHT === '1'` 做分流——L2 Phase 1 不设置 
 **方案**：与 D1/R2 统一，在测试入口（`main()` / `globalSetup`）覆盖 `process.env.CLOUDFLARE_KV_NAMESPACE_ID`。不改动 `lib/kv/client.ts` 应用代码——它已经从 `process.env.CLOUDFLARE_KV_NAMESPACE_ID` 读取，覆盖 env 即可。
 
 **Conditional fail-closed 策略**：
+
 - 如果 `.env.local` 没有配 `CLOUDFLARE_KV_NAMESPACE_ID`（当前状态）→ `getKVCredentials()` 返回 null → `kvPutLink()` 静默跳过，**无风险**
 - 如果 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID` 且有 `KV_TEST_NAMESPACE_ID` → env 覆盖，写入测试 KV
 - 如果 `.env.local` 配了 `CLOUDFLARE_KV_NAMESPACE_ID` 但缺少 `KV_TEST_NAMESPACE_ID` → L2 **清除**生产 KV ID（功能降级为 no-op，Phase 1 仍运行）；L3 **throw**（硬门控）

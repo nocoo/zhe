@@ -139,6 +139,7 @@ Users create an API Key in the dashboard (`/dashboard/api-keys`) and paste it in
 ```
 
 **Security**:
+
 - API Key entered via stdin, not command line argument (avoids shell history)
 - Stored in config file with `0600` permissions
 - Never displayed after initial entry (only prefix shown: `zhe_abcd...`)
@@ -148,6 +149,7 @@ Users create an API Key in the dashboard (`/dashboard/api-keys`) and paste it in
 > **Note**: This requires server-side changes and is deferred to a future release.
 
 If implemented, must use **authorization code flow** with one-time code exchange:
+
 1. CLI opens browser with nonce
 2. User authenticates, server generates one-time `code` (not the API Key)
 3. Server redirects to `http://localhost:PORT/callback?code=xxx&nonce=yyy`
@@ -186,6 +188,7 @@ zhe login
 ```
 
 **Flow:**
+
 1. Prompt for API Key (hidden input)
 2. Validate format (`zhe_` prefix, non-empty) — loose check, server is source of truth
 3. Test with `GET /api/v1/links?limit=1`
@@ -195,12 +198,14 @@ zhe login
 > **Note**: Login verifies identity and accepts any valid key, including a single read or write scope. The API's specific scope-denial response confirms authentication succeeded; an invalid/revoked key (401) is rejected, and unrelated 403 or network errors remain verification failures. Each command still enforces its own permissions.
 
 **Required scopes for full CLI functionality:**
+
 - `links:read` — list, get
 - `links:write` — create, update, delete
 - `connector:write` — all Connector commands; no other scope is required
 - Folder, tag, and idea commands require their corresponding read or write scopes. Resolving a folder/tag name also requires read access; passing its ID avoids that lookup.
 
 **Output (success):**
+
 ```
 Enter your API Key: ************************************
 ✓ API Key saved (identity verified)
@@ -211,6 +216,7 @@ To create an API Key, visit: https://zhe.to/dashboard/api-keys
 ```
 
 **Output (failure):**
+
 ```
 Enter your API Key: ************************************
 ✗ Invalid API Key
@@ -219,6 +225,7 @@ To create an API Key, visit: https://zhe.to/dashboard/api-keys
 ```
 
 **Errors:**
+
 - `Invalid API Key format` — doesn't match `zhe_` prefix
 - `Authentication failed` — key rejected by server (401)
 - The API's `Insufficient permissions. Required scope: links:read` response (403) confirms a valid key with limited scopes and does not prevent login.
@@ -235,11 +242,13 @@ zhe logout
 ```
 
 **Output:**
+
 ```
 ✓ Logged out
 ```
 
 **Behavior:**
+
 - Removes `apiKey` from config
 - Does NOT revoke the API Key on server (user can do this in dashboard)
 
@@ -254,6 +263,7 @@ zhe list [options]
 ```
 
 **Options:**
+
 ```
 -f, --folder <id>    Filter by folder ID
 -l, --limit <n>      Max results (default: 50, max: 500)
@@ -262,11 +272,13 @@ zhe list [options]
 ```
 
 **API Call:**
+
 ```
 GET /api/v1/links?limit={limit}&offset={offset}&folderId={folderId}
 ```
 
 **Output (table, default):**
+
 ```
 ID     SLUG        URL                              CLICKS  CREATED
 ─────────────────────────────────────────────────────────────────────
@@ -276,6 +288,7 @@ ID     SLUG        URL                              CLICKS  CREATED
 ```
 
 **Output (JSON):**
+
 ```json
 {
   "links": [
@@ -292,6 +305,7 @@ ID     SLUG        URL                              CLICKS  CREATED
 ```
 
 **Output (minimal):**
+
 ```
 zhe.to/my-link
 zhe.to/abc123
@@ -311,9 +325,11 @@ zhe create <url> [options]
 ```
 
 **Arguments:**
+
 - `url` (required): The URL to shorten
 
 **Options:**
+
 ```
 -s, --slug <slug>      Custom slug (auto-generated if not provided)
 -f, --folder <id>      Folder ID
@@ -325,6 +341,7 @@ zhe create <url> [options]
 ```
 
 **API Call:**
+
 ```
 POST /api/v1/links
 {
@@ -337,6 +354,7 @@ POST /api/v1/links
 ```
 
 **Examples:**
+
 ```bash
 # Basic usage
 zhe create https://example.com/long/path
@@ -356,11 +374,13 @@ zhe create https://example.com --json
 ```
 
 **Output (default):**
+
 ```
 ✓ Created https://zhe.to/abc123
 ```
 
 **Errors:**
+
 - `Slug "xxx" is already in use` — conflict (409)
 - `Invalid URL format` — malformed URL (400)
 - `Expiration date must be in the future` — past date (400)
@@ -376,19 +396,23 @@ zhe get <id> [options]
 ```
 
 **Arguments:**
+
 - `id` (required): Link ID (numeric only)
 
 **Options:**
+
 ```
 --json    Output as JSON
 ```
 
 **API Call:**
+
 ```
 GET /api/v1/links/{id}
 ```
 
 **Output (default):**
+
 ```
 Link #123
 
@@ -403,6 +427,7 @@ Link #123
 ```
 
 **Output (JSON):**
+
 ```json
 {
   "link": {
@@ -421,6 +446,7 @@ Link #123
 ```
 
 **Errors:**
+
 - `Link not found` — ID doesn't exist (404)
 - `Invalid link ID` — non-numeric ID (400)
 
@@ -437,9 +463,11 @@ zhe update <id> [options]
 ```
 
 **Arguments:**
+
 - `id` (required): Link ID (numeric)
 
 **Options:**
+
 ```
 -u, --url <url>        New destination URL
 -s, --slug <slug>      New slug
@@ -450,6 +478,7 @@ zhe update <id> [options]
 ```
 
 **API Call:**
+
 ```
 PATCH /api/v1/links/{id}
 {
@@ -462,6 +491,7 @@ PATCH /api/v1/links/{id}
 ```
 
 **Examples:**
+
 ```bash
 # Update URL
 zhe update 123 --url https://example.com/new-path
@@ -486,11 +516,13 @@ zhe update 123 --note ""
 ```
 
 **Output (default):**
+
 ```
 ✓ Updated link #123
 ```
 
 **Errors:**
+
 - `Link not found` — ID doesn't exist (404)
 - `Slug "xxx" is already in use` — conflict (409)
 - `Invalid URL format` — malformed URL (400)
@@ -506,20 +538,24 @@ zhe delete <id> [options]
 ```
 
 **Arguments:**
+
 - `id` (required): Link ID (numeric)
 
 **Options:**
+
 ```
 -y, --yes    Skip confirmation prompt
 --json       Output as JSON
 ```
 
 **API Call:**
+
 ```
 DELETE /api/v1/links/{id}
 ```
 
 **Flow:**
+
 ```bash
 zhe delete 123
 # Output: Delete link #123? [y/N]
@@ -531,11 +567,13 @@ zhe delete 123 --yes
 ```
 
 **Output (JSON):**
+
 ```json
 { "success": true }
 ```
 
 **Errors:**
+
 - `Link not found` — ID doesn't exist (404)
 
 ---
@@ -549,13 +587,16 @@ zhe open <slug>
 ```
 
 **Arguments:**
+
 - `slug` (required): The slug to open
 
 **Behavior:**
+
 - Opens `https://zhe.to/<slug>` in default browser
 - Does not require authentication (public redirect)
 
 **Output:**
+
 ```
 Opening https://zhe.to/my-link...
 ```
@@ -592,6 +633,7 @@ X-RateLimit-Reset: 1712930400
 ```
 
 Client behavior:
+
 1. If `X-RateLimit-Remaining` is low (< 10), show warning
 2. On `429 Too Many Requests`, wait and retry once
 3. Display `Retry-After` value to user if still limited
@@ -699,6 +741,7 @@ bun test:watch           # Watch mode
 ## Release Process
 
 Automated via `scripts/release.ts` (same pattern as base-cli):
+
 1. Run tests + lint
 2. Bump version in package.json
 3. Generate CHANGELOG entry
@@ -750,6 +793,7 @@ Pure client implementation, no server changes required.
 Requires server-side `/cli-auth` endpoint with authorization code flow.
 
 **Security requirements**:
+
 - One-time authorization code, not API Key in URL
 - Code exchanged for API Key via POST request
 - Code invalidated immediately after use

@@ -12,11 +12,11 @@
     "tail": "wrangler tail"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.4",
+    "@biomejs/biome": "2.6.6",
     "@cloudflare/workers-types": "5.20261001.1",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "typescript": "7.0.2",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "wrangler": "4.145.0"
   },
   "overrides": {

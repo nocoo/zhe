@@ -119,6 +119,7 @@ exec bun x tsc --noEmit
 - **stale cache**（路由重命名/删除后 `.next/types` 残留旧文件）：脚本对比 `app/**/route.ts` 和 `.next/types/app/**/route.ts` 文件列表，发现不一致时自动 `rm -rf .next/types && bun run build --no-lint` 重建
 
 **改动文件**：
+
 - `tests/unit/backy-actions.test.ts` — 修复 8 处 `null as NextMiddleware`
 - `tests/unit/webhook-actions.test.ts` — 修复 4 处
 - `tests/unit/middleware.test.ts` — 修复 1 处
@@ -137,6 +138,7 @@ exec bun x tsc --noEmit
 | 1.3 | `chore: add typecheck script and pre-commit hook`                       | 新建 `scripts/typecheck.sh`，添加 npm script + hook     | `scripts/typecheck.sh`、`package.json`、`.husky/pre-commit`                                      |
 
 **验证**（按阶段）：
+
 - 1.1 + 1.2 完成后：`bun x tsc --noEmit` 输出 0 errors（直接调用 tsc，因为 typecheck script 尚未创建）
 - 1.3 完成后：`bun run typecheck` 输出 0 errors（验证新脚本工作正常）
 
@@ -145,6 +147,7 @@ exec bun x tsc --noEmit
 ### Step 2: G1 — ESLint 升级为 strict 配置 ✅ 完成
 
 **改动文件**：
+
 - `package.json` — 新增 dev dependency `typescript-eslint`
 - `eslint.config.mjs` — 引入 `tseslint.configs.strict`，升级规则
 - 全部源码中被新规则捕获的 lint error — 逐一修复
@@ -168,6 +171,7 @@ exec bun x tsc --noEmit
 | 2.3~N | `fix: resolve strict lint errors in <module>`         | 按模块逐批修复 lint errors（每个 commit 对应一个模块或一类 error） |
 
 **关键假设**：
+
 - `next/core-web-vitals` 和 `tseslint.configs.strict` 可以共存（通过 flat config 合并）
 - 如果 strict 规则与 Next.js 规则冲突，需要在 overrides 中关闭冲突项
 
@@ -178,6 +182,7 @@ exec bun x tsc --noEmit
 ### Step 3: G2 — 安装安全检查（advisory） ✅ 完成
 
 **改动文件**：
+
 - `.husky/pre-commit` — 追加 gitleaks（扫描暂存区，在 commit 前拦截 secrets）
 - `.husky/pre-push` — 追加 osv-scanner（扫描 lockfile 依赖漏洞）
 - `scripts/ensure-tools.sh` — 新建，hook 调用前先检查工具是否存在
@@ -185,6 +190,7 @@ exec bun x tsc --noEmit
 **工具安装版本化**：
 
 `brew install` 是手工约定，不同开发者机器上会漂移（有人有、有人没有、版本不同）。解决方案：
+
 1. **Hook 中加 guard 脚本**：在 `.husky/pre-commit` 和 `.husky/pre-push` 调用安全扫描前，先检查工具是否可用。工具缺失时打印安装提示并 **skip**（warn 而非 fail），避免 brick 其他人的 commit 流程。这使 G2 成为 **advisory check** 而非硬门控——不同开发机可能获得不同级别的安全保障。
 
 ```bash
@@ -213,12 +219,14 @@ check_tool() {
 **gitleaks hook 放置说明**：
 
 `gitleaks protect --staged` 扫描的是当前暂存区内容。这意味着：
+
 - **pre-commit（正确）**：暂存区就是即将 commit 的内容，`--staged` 精确匹配
 - **pre-push（错误）**：push 时暂存区通常为空，secret 已经在 commit 里，`--staged` 扫不到
 
 因此 gitleaks 必须放在 **pre-commit**，而非 pre-push。osv-scanner 扫描 lockfile 是静态文件，放 pre-push 即可。
 
 **pre-commit 变为**：
+
 ```bash
 # L1: Unit tests + coverage gate (≥90%)
 bun run test:unit:coverage
@@ -235,6 +243,7 @@ fi
 ```
 
 **pre-push 变为**：
+
 ```bash
 # L2: Integration/API tests
 bun run test:api
@@ -247,6 +256,7 @@ fi
 ```
 
 **验证**：
+
 - `osv-scanner --lockfile=bun.lock` — 检查是否有已知漏洞（首次可能需要修复）
 - `gitleaks protect --staged --no-banner` — 确认无 secrets 泄露
 
@@ -257,6 +267,7 @@ fi
 #### Step 4a: 拆分 `tests/api/` 为两个独立目录 ✅ 完成
 
 **问题**：当前 `tests/api/` 混合了 route handler 测试（8 个文件）和 server action 测试（6 个文件）。它们验证的对象不同，运行环境也将不同：
+
 - Route handler 测试 → 迁移为真 HTTP，需要独立 server
 - Server action 测试 → 保持 in-process import，不需要 server
 
@@ -286,6 +297,7 @@ tests/
 ```
 
 **归属变更**：
+
 - Server action 测试从 L2 降级为 **L1**（它们本质是 in-process 集成测试，依赖 `vi.mock` + D1 内存模拟器，和单元测试的运行环境一致）
 - `test:unit:coverage` 的 exclude 需要**同时排除** `tests/api/**` 和 `tests/integration/**`，确保 coverage 指标仅反映纯 unit 测试。当前只排除了 `tests/api/**`，必须更新
 - 新增 `test:integration` script 运行 `tests/integration/`（独立执行，**无 coverage 收集**，避免污染 unit coverage 指标）
@@ -366,6 +378,7 @@ tests/
 ##### 改动文件
 
 **基础设施层**（Phase 0）：
+
 - `scripts/run-api-e2e.ts` — server harness（启停 dev server，health check 轮询，进程管理）
 - `vitest.api.config.ts` — 独立 vitest config，**不加载 `tests/setup.ts`**（不注入 D1 内存模拟器）
 - `tests/api/helpers/http.ts` — fetch wrapper（base URL `http://localhost:17006`、common headers、response assert helpers）
@@ -373,9 +386,11 @@ tests/
 - `.env.test.api` — API E2E 专用环境变量（`CF_D1_DATABASE_ID`、`CF_D1_ACCOUNT_ID`、`CF_D1_API_TOKEN`、`WORKER_SECRET`、`E2E_SKIP_AUTH=1`）
 
 **测试文件**（Phase 1-5）：
+
 - `tests/api/*.test.ts` — 逐文件重写：import → fetch、mock 断言 → 黑盒断言
 
 **run-api-e2e.ts 流程**：
+
 ```
 1. 加载 .env.test.api 环境变量
 2. 启动 Next.js dev server (port 17006, E2E_SKIP_AUTH=1)
@@ -422,6 +437,7 @@ tests/
 ### Step 5: 文档与 Hook 重组 ✅ 完成
 
 **改动文件**：
+
 - `docs/05-testing.md` — 重写，对齐新质量体系（L1+L2+L3+G1+G2）
 - `CLAUDE.md` — 更新 Testing section，替换旧四层引用
 - `.husky/pre-commit` — 最终形态确认
@@ -438,6 +454,7 @@ tests/
 **最终 Hook 形态**：
 
 **.husky/pre-commit**：
+
 ```bash
 # L1: Unit tests + coverage gate (≥90%)
 # NOTE: test:unit:coverage excludes both tests/api/** and tests/integration/**
@@ -458,6 +475,7 @@ fi
 ```
 
 **.husky/pre-push**：
+
 ```bash
 # L2: Integration/API tests (real HTTP, soft gate)
 # Mandatory when Cloudflare D1 test DB is reachable; degrades to warn+skip otherwise
@@ -493,6 +511,7 @@ Step 5: 文档重组                                    依赖前四步全部完
 ## 五、验证清单
 
 完成所有步骤后，逐项确认：
+
 - [x] `bun run typecheck` — 0 errors（G1）
 - [x] `bun run lint` — 0 errors, 0 warnings，strict rules 生效（G1）
 - [x] `bun run test:unit:coverage` — 全部通过，覆盖率 ≥ 90%（L1）— 79 files, 1999 tests, 93.89%
@@ -511,6 +530,7 @@ Step 5: 文档重组                                    依赖前四步全部完
 ## 六、回退策略
 
 每个 Step 的提交都是独立的，如果某个 Step 引入问题：
+
 - **Step 1（type errors）**：`git revert` 对应提交，type errors 回到 "已知但不阻塞" 状态
 - **Step 2（ESLint strict）**：`git revert` eslint config 提交，恢复旧规则
 - **Step 3（G2）**：从 hook 文件删除安全扫描行

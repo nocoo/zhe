@@ -188,6 +188,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 ## 7. 新功能检查清单
 
 做 Dashboard UI 前自检：
+
 1. [ ] 工具栏 / 筛选条：Button 是否 `size="sm"`（或 `icon`），字段是否 `size="sm"`？
 2. [ ] 设置/表单页次要按钮是否仍用 `Button size="default"` (native 34px)，而不是被当成工具栏？
 3. [ ] 有无 `rounded-lg` / 手写 `h-7` / 原生 checkbox？
@@ -214,6 +215,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 ## 9. 变更流程
 
 改 token 或原语默认密度时：
+
 1. 改 `app/globals.css` 注释 + 变量（如需要）
 2. 改 `components/ui/*` 的 cva / size map
 3. 更新 `tests/unit/ui/control-density.test.tsx`

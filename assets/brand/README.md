@@ -24,6 +24,7 @@ uv run --with pillow python scripts/resize-logos.py
 ```
 
 The background recipe, exact original, palette samples, every size, and frozen finishing layers are archived in `nocoo/hexly.ai` under `artwork/logo-family/zhe/2026-09-07-01/finishing/01`. [source.json](source.json) records the source revision and all master SHA-256 values.
+
 - [Individual logo review](https://hexly.ai/logos/zhe)
 - [Local static study](https://index.dev.hexly.ai/artwork/logo-family/zhe/2026-09-07-01/review.html)
 - [Shared logo usage SOP](https://github.com/nocoo/hexly.ai/blob/main/docs/07-logo-usage-sop.md)

@@ -179,6 +179,7 @@ rollback does not undo database writes. This task performs no schema migration.
 ### Approved Deployment Credentials and Trigger Isolation
 
 On 2026-10-22 the owner approved both pending operations, but not public cutover.
+
 - Generated an Ed25519 key at `/opt/zhe/deploy-key` (0600), with comment
   `zhe-deploy@github-actions` and public fingerprint
   `SHA256:arldk9r/hxIoHnW8FKmtVTtHijnEzua3tHFhCyyk28Q`. Added only this public
