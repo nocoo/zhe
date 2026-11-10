@@ -49,7 +49,7 @@ To enable automatic X enrichment, give the same CLI key `links:read` and `connec
 
 ## Development
 
-Install Bun and Node.js ≥ 22.16. Local end-to-end tests also need Wrangler, FFmpeg, and ffprobe on PATH. The main application, Worker, and CLI manage their dependencies separately:
+Install Bun and Node.js ≥ 26.12.1. Local end-to-end tests also need Wrangler, FFmpeg, and ffprobe on PATH. The main application, Worker, and CLI manage their dependencies separately:
 
 ```bash
 git clone https://github.com/nocoo/zhe.git

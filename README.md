@@ -51,7 +51,7 @@ CLI 将密钥保存在 `~/.config/zhe/config.json`，当前 API 地址固定为 
 
 ## 开发
 
-需要 Bun、Node.js ≥ 22.16；运行本地端到端测试还需要 PATH 中的 Wrangler、FFmpeg 和 ffprobe。根应用、Worker 和 CLI 各自维护依赖：
+需要 Bun、Node.js ≥ 26.12.1；运行本地端到端测试还需要 PATH 中的 Wrangler、FFmpeg 和 ffprobe。根应用、Worker 和 CLI 各自维护依赖：
 
 ```bash
 git clone https://github.com/nocoo/zhe.git

@@ -33,7 +33,7 @@ This file is the contract; hooks, CI and config are enforcement. Raise weaker en
 | Web       | Next.js/React, TypeScript 7, Tailwind/Basalt; `app/`, `components/`, `viewmodels/`, `models/` |
 | Data      | `lib/`, `actions/`, `drizzle/migrations/`; D1 proxy, KV and R2                                |
 | Edge      | `worker/`; independent package, Wrangler config and Vitest suite                              |
-| CLI       | `cli/`; Node ≥22.16, TypeScript + Python Eagle helper, separate build/lockfile                |
+| CLI       | `cli/`; Node ≥26.12.1, TypeScript + Python Eagle helper, separate build/lockfile              |
 
 ## Commands
 

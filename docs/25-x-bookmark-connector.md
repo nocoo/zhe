@@ -6,7 +6,7 @@ Proposed extension: [Mainland Douyin and Instagram media connectors](32-douyin-i
 
 ## 安装与使用
 
-需要 Node.js ≥ 22.16、FFmpeg / ffprobe，以及已连接 OpenCLI 扩展并登录 X 的浏览器。OpenCLI 作为固定版本依赖随 CLI 安装。
+需要 Node.js ≥ 26.12.1、FFmpeg / ffprobe，以及已连接 OpenCLI 扩展并登录 X 的浏览器。OpenCLI 作为固定版本依赖随 CLI 安装。
 
 CLI 已发布到 npm，可直接全局安装。最新验收与发布状态见 [GOAL.md](../GOAL.md)。
 

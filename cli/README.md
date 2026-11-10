@@ -70,7 +70,7 @@ zhe open my-slug
 
 Save a link through the website, Webhook, API, or `zhe create`. The Connector picks up saved X posts in the background, reads the exact post through your local browser session, and archives its text, images, and videos in Zhe. The card updates automatically without a page reload. No LLM or separate Connector installation is required.
 
-Use Node.js ≥ 22.16. OpenCLI is included as a pinned dependency; install its [browser extension](https://github.com/jackwener/opencli), sign in to X in that browser, and install FFmpeg with `ffprobe` on PATH (`brew install ffmpeg` on macOS).
+Use Node.js ≥ 26.12.1. OpenCLI is included as a pinned dependency; install its [browser extension](https://github.com/jackwener/opencli), sign in to X in that browser, and install FFmpeg with `ffprobe` on PATH (`brew install ffmpeg` on macOS).
 
 On Zhe's API Keys page, create a key with `connector:write`; that is the only scope the Connector needs. `zhe login` verifies the key via `GET /links?limit=1` and accepts keys that have `links:read`, or that return the standard `links:read` insufficient-scope 403. Include `links:read` on general-purpose CLI keys. Other commands enforce their own permissions (`todos:read` / `todos:write` for `zhe todo`, and so on). Then:
 
