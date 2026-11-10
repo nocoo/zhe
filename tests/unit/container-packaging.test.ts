@@ -71,10 +71,10 @@ const exclusions = [
 ];
 
 describe("production container packaging", () => {
-  it("pins official Bun and shared Node 22 Debian images with a frozen install", () => {
+  it("pins official Bun and shared Node 26 Debian images with a frozen install", () => {
     expect(dockerfile.match(/^FROM .*$/gm)).toEqual([
       "FROM oven/bun:1.3.11@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS bun",
-      "FROM node:22.23.4-bookworm-slim@sha256:ea11b74b986d520137cdef9a5346e447a00f275ecc4abc0055b7151226231e09 AS base",
+      "FROM node:26.12.1-bookworm-slim@sha256:9d09a088be40a970e2b690a9fb13ad69a0fc529d7b98e9be6a11ba1e9176f0a1 AS base",
       "FROM base AS deps",
       "FROM base AS builder",
       "FROM base AS runner",

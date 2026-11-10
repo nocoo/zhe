@@ -46,11 +46,11 @@ Zhe 的 Next.js 应用部署在 [Railway](https://railway.com) 上，使用 Dock
 
 三阶段构建：Bun 装依赖，Node 构建与运行。
 
-| 阶段      | 基础镜像                | 内容                                                                     |
-| --------- | ----------------------- | ------------------------------------------------------------------------ |
-| `deps`    | `oven/bun:1`            | `bun install --frozen-lockfile` 安装依赖                                 |
-| `builder` | `node:22-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
-| `runner`  | `node:22-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
+| 阶段      | 基础镜像                     | 内容                                                                     |
+| --------- | ---------------------------- | ------------------------------------------------------------------------ |
+| `deps`    | `oven/bun:1`                 | `bun install --frozen-lockfile` 安装依赖                                 |
+| `builder` | `node:26.12.1-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
+| `runner`  | `node:26.12.1-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
 
 > **为何 build/runtime 不用 Bun**：Bun 1.3.14 在 Railway Metal builder 上会在 `next build` 收尾阶段 segfault（SIGILL / exit 132），导致 Docker `RUN` 失败（2026-08-05 起连续部署失败）。`bun install` 本身稳定，故仅 deps 阶段使用 Bun。
 
