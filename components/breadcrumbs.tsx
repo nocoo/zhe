@@ -1,9 +1,13 @@
-export type AppHeaderCrumb = {
+/** Crumb items for Basalt `AppHeader` `breadcrumbs` prop. */
+export type AppHeaderBreadcrumb = {
   href?: string;
   label: string;
 };
 
-const PAGE_TRAILS: Record<string, { breadcrumbs: AppHeaderCrumb[]; title: string }> = {
+/** @deprecated Use AppHeaderBreadcrumb */
+export type AppHeaderCrumb = AppHeaderBreadcrumb;
+
+const PAGE_TRAILS: Record<string, { breadcrumbs: AppHeaderBreadcrumb[]; title: string }> = {
   "/dashboard/search": { breadcrumbs: [], title: "搜索" },
   "/dashboard/overview": { breadcrumbs: [], title: "概览" },
   "/dashboard/ideas": {
@@ -34,7 +38,7 @@ export function getAppHeaderTrail(
   pathname: string,
   folder?: string | null,
 ): {
-  breadcrumbs: AppHeaderCrumb[];
+  breadcrumbs: AppHeaderBreadcrumb[];
   title: string;
 } {
   if (IDEA_EDIT_PATTERN.test(pathname)) {
