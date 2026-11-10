@@ -3,11 +3,16 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { readInChild, readPost, runIsolated } from "../src/connector/opencli.js";
+import { ConnectorError } from "../src/connector/core.js";
+import { readInChild, readPost, runIsolated, withOpenCliPage } from "../src/connector/opencli.js";
 
 const forkMock = vi.hoisted(() => vi.fn());
-vi.mock("node:child_process", () => ({ fork: forkMock }));
+vi.mock("node:child_process", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:child_process")>()),
+  fork: forkMock,
+}));
 const postId = "2000000000000000001";
 const raw = {
   rest_id: postId,
@@ -50,6 +55,7 @@ export class BrowserBridge {
   async connect(options) {
     const s = globalThis.__zheConnectorTest; s.options = options;
     if (s.error === 'connect') throw new Error('private upstream error');
+    if (s.error === 'generic') throw new Error('private upstream error');
     return {
       identity: 'page',
       async goto(url) { s.urls.push(url); },
@@ -141,6 +147,30 @@ async function captureChild() {
 }
 
 describe("isolated OpenCLI parent boundary", () => {
+  it("dispatches --screenshot argv when executed as the main module", async () => {
+    const work = await mkdtemp(join(tmpdir(), "zhe-opencli-entry-"));
+    const script = fileURLToPath(new URL("../src/connector/opencli.ts", import.meta.url));
+    const previous = process.argv;
+    const previousSend = process.send;
+    const previousDisconnect = process.disconnect;
+    process.send = vi.fn((_message, callback) => callback?.(null)) as typeof process.send;
+    process.disconnect = vi.fn();
+    process.argv = [
+      previous[0] ?? "node",
+      script,
+      "--screenshot",
+      "https://example.com/article",
+      work,
+    ];
+    await vi.resetModules();
+    await import("../src/connector/opencli.ts");
+    await vi.waitFor(() => expect(process.send).toHaveBeenCalled());
+    process.argv = previous;
+    process.send = previousSend;
+    process.disconnect = previousDisconnect;
+    await rm(work, { recursive: true, force: true });
+  });
+
   it("only forks numeric targets and never inherits upstream stdout or stderr", async () => {
     expect(() => readPost("bad-id")).toThrow("invalid_post_id");
     const result = readPost(postId);
@@ -233,6 +263,11 @@ describe("pinned OpenCLI adapter contract", () => {
       expect(state.closed).toBe(1);
     },
   );
+  it("wraps unknown adapter failures as opencli_unavailable", async () => {
+    state.error = "generic";
+    await expect(captureChild()).rejects.toThrow("needs_login");
+    expect(state.closed).toBe(1);
+  });
   it("rejects a missing focal post while still closing the session", async () => {
     state.payload = {};
     await expect(captureChild()).rejects.toThrow("post_unavailable");
@@ -253,6 +288,48 @@ describe("pinned OpenCLI adapter contract", () => {
     expect(send.mock.calls[0]?.[0]).toMatchObject({ ok: true, capture: { tweet: { id: postId } } });
     expect(process.disconnect).toHaveBeenCalledOnce();
   });
+  it("sanitizes non-string child error codes", async () => {
+    const result = readPost(postId);
+    const check = expect(result).rejects.toThrow("connector_error");
+    child.emit("message", { ok: false, code: 403 });
+    await check;
+  });
+
+  it("rejects immediately when the caller signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(readPost(postId, controller.signal)).rejects.toThrow("interrupted");
+    expect(forkMock).not.toHaveBeenCalled();
+  });
+
+  it("maps child transport errors to interrupted after abort", async () => {
+    const controller = new AbortController();
+    const result = readPost(postId, controller.signal);
+    const check = expect(result).rejects.toThrow("interrupted");
+    controller.abort();
+    child.emit("error", new Error("transport closed"));
+    await check;
+  });
+
+  it("skips cursor stripping when instructions are not an array", async () => {
+    state.payload = {
+      data: {
+        threaded_conversation_with_injections_v2: {
+          instructions: {
+            entries: [{ entryId: "tweet", content: { tweet: raw } }],
+          },
+        },
+      },
+    };
+    expect(await captureChild()).toMatchObject({ tweet: { id: postId } });
+  });
+
+  it("rethrows connector errors from the OpenCLI session", async () => {
+    await expect(
+      withOpenCliPage(() => Promise.reject(new ConnectorError("needs_login"))),
+    ).rejects.toThrow("needs_login");
+  });
+
   it("sanitizes missing installations and reports IPC failures", async () => {
     vi.stubEnv("ZHE_OPENCLI_ROOT", join(root, "missing"));
     const send = vi.fn((_message, callback) => callback(null));

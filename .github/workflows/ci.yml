@@ -203,4 +203,4 @@ jobs:
       install-policy: "blocked"
       working-directory: "worker"
       timeout-minutes: 10
-      command: "bun run test"
+      command: "bun run lint && bun run test:coverage"

@@ -19,7 +19,7 @@
     "test": "vitest run && python3 -m unittest discover -s tests -p eagle_native_test.py",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage && python3 -m unittest discover -s tests -p eagle_native_test.py",
-    "lint": "tsc --noEmit && biome check src/",
+    "lint": "tsc --noEmit && biome check --error-on-warnings src/",
     "lint:fix": "biome check --write src/"
   },
   "dependencies": {

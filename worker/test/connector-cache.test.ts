@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { connectorCacheKey, readConnectorCache } from "../src/connector-cache";
 import { handleD1Batch, handleD1Query } from "../src/d1-proxy";
 import type { Env } from "../src/types";
 
@@ -65,6 +66,43 @@ afterEach(() => {
 });
 
 describe("Connector Worker cache", () => {
+  it("returns null when KV cache reads fail", async () => {
+    const f = fixture();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    f.kv.get.mockRejectedValueOnce(new Error("KV unavailable"));
+    expect(await readConnectorCache(f.env, "cache-key")).toBeNull();
+  });
+
+  it("logs KV write and invalidation failures without breaking callers", async () => {
+    const f = fixture();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    f.kv.put.mockRejectedValue(new Error("KV write failed"));
+    await f.read();
+    expect(errorSpy).toHaveBeenCalledWith("Connector KV write failed", expect.any(Error));
+
+    f.kv.put.mockRejectedValue(new Error("KV invalidate failed"));
+    await handleD1Batch(
+      request({
+        statements: [{ sql: "UPDATE jobs SET state='complete'" }],
+        connectorUserId: "owner",
+      }),
+      f.env,
+    );
+    expect(errorSpy).toHaveBeenCalledWith("Connector KV invalidation failed", expect.any(Error));
+  });
+
+  it("returns null when connector cache keys cannot be derived", async () => {
+    const f = fixture();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    f.kv.get.mockRejectedValueOnce(new Error("KV unavailable"));
+    expect(
+      await connectorCacheKey(f.env, "SELECT 1", {
+        connectorUserId: "owner",
+        connectorCache: { key: "readiness" },
+      }),
+    ).toBeNull();
+  });
+
   it("serves repeated empty polls and statistics from KV, then wakes on a new link", async () => {
     const f = fixture();
     await f.read();
@@ -166,6 +204,52 @@ describe("Connector Worker cache", () => {
       expect(await (await f.write()).json()).toMatchObject({ success: true });
     },
   );
+
+  it("rejects invalid JSON and maps query failures", async () => {
+    const f = fixture();
+    const invalid = new Request("https://worker.test/api/d1-query", {
+      method: "POST",
+      headers: { Authorization: "Bearer secret", "Content-Type": "text/plain" },
+      body: "not-json",
+    });
+    expect((await handleD1Query(invalid, f.env)).status).toBe(400);
+
+    f.all.mockRejectedValueOnce(new Error("UNIQUE constraint failed: links.slug"));
+    expect(await (await handleD1Query(request({ sql: "INSERT" }), f.env)).json()).toMatchObject({
+      success: false,
+      error: "UNIQUE constraint failed",
+    });
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    f.all.mockRejectedValueOnce("string failure");
+    expect(await (await handleD1Query(request({ sql: "SELECT 1" }), f.env)).json()).toMatchObject({
+      success: false,
+      error: "D1 query failed",
+    });
+  });
+
+  it("rejects invalid D1 batch payloads and maps database failures", async () => {
+    const f = fixture();
+    expect((await handleD1Batch(request({ statements: [] }), f.env)).status).toBe(400);
+    expect((await handleD1Batch(request({ statements: [{ sql: "  " }] }), f.env)).status).toBe(400);
+
+    f.db.batch.mockRejectedValueOnce(new Error("UNIQUE constraint failed: links.slug"));
+    expect(
+      await (await handleD1Batch(request({ statements: [{ sql: "INSERT" }] }), f.env)).json(),
+    ).toMatchObject({
+      success: false,
+      error: "UNIQUE constraint failed",
+    });
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    f.db.batch.mockRejectedValueOnce(new Error("disk full"));
+    expect(
+      await (await handleD1Batch(request({ statements: [{ sql: "INSERT" }] }), f.env)).json(),
+    ).toMatchObject({
+      success: false,
+      error: "D1 batch failed: disk full",
+    });
+  });
 
   it("writes presence only once per minute and independently for each API key", async () => {
     const f = fixture();

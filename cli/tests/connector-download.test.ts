@@ -211,6 +211,110 @@ describe("bounded local media capture", () => {
       expect(await readdir(dir)).toHaveLength(0);
     },
   );
+  it("rejects redirects without a location header", async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes("dns-query")) {
+        return Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] });
+      }
+      return new Response(null, { status: 302 });
+    });
+    await expect(downloadMedia(media, dir)).rejects.toMatchObject({ code: "unsafe_redirect" });
+  });
+
+  it("follows one trusted redirect before downloading", async () => {
+    let hops = 0;
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes("dns-query")) {
+        return Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] });
+      }
+      hops++;
+      if (hops === 1) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: `https://video.twimg.com/ext_tw_video/${media.id}/pu/vid/1280x720/redirected.mp4`,
+          },
+        });
+      }
+      return new Response(bytes, {
+        headers: { "content-type": "video/mp4", "content-length": "64" },
+      });
+    });
+    expect((await downloadMedia(media, dir)).size).toBe(64);
+    expect(hops).toBe(2);
+  });
+
+  it.each(["", "12.5", "0", "2"])(
+    "rejects invalid content-length metadata: %s",
+    async (declared) => {
+      vi.mocked(fetch).mockImplementation(async (url) =>
+        String(url).includes("dns-query")
+          ? Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] })
+          : new Response(bytes, {
+              headers: { "content-type": "video/mp4", "content-length": declared },
+            }),
+      );
+      await expect(downloadMedia(media, dir)).rejects.toMatchObject({
+        code: "invalid_media_length",
+      });
+    },
+  );
+
+  it("rejects successful responses that omit a response body", async () => {
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      String(url).includes("dns-query")
+        ? Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] })
+        : new Response(null, {
+            status: 200,
+            headers: { "content-type": "video/mp4", "content-length": "64" },
+          }),
+    );
+    await expect(downloadMedia(media, dir)).rejects.toMatchObject({ code: "invalid_media_length" });
+  });
+
+  it("rejects videos whose duration cannot be decoded", async () => {
+    execute.mockResolvedValue({
+      stdout: JSON.stringify({
+        format: { duration: "0" },
+        streams: [{ codec_type: "video", width: 1280, height: 720, codec_name: "h264" }],
+      }),
+      stderr: "",
+    });
+    await expect(downloadMedia(media, dir)).rejects.toMatchObject({ code: "decode_failed" });
+  });
+
+  it("reports download_failed for unexpected upstream faults", async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes("dns-query")) {
+        return Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] });
+      }
+      throw new TypeError("network down");
+    });
+    await expect(downloadMedia(media, dir)).rejects.toMatchObject({ code: "download_failed" });
+  });
+
+  it("rejects redirect chains that never settle on a trusted CDN host", async () => {
+    let hops = 0;
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes("dns-query")) {
+        return Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] });
+      }
+      hops++;
+      if (hops <= 3) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: `https://video.twimg.com/ext_tw_video/${media.id}/pu/vid/1280x720/hop-${hops}.mp4`,
+          },
+        });
+      }
+      return new Response(bytes, {
+        headers: { "content-type": "video/mp4", "content-length": "64" },
+      });
+    });
+    await expect(downloadMedia(media, dir)).rejects.toMatchObject({ code: "unsafe_redirect" });
+  });
+
   it("rejects an unrelated source before any network request", async () => {
     await expect(
       downloadMedia({ ...media, url: "https://attacker.invalid/a.mp4" }, dir),

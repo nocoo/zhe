@@ -7,6 +7,10 @@ describe("parseNonNegativeInt", () => {
     expect(parseNonNegativeInt("42")).toBe(42);
   });
 
+  it("rejects integers above the safe range", () => {
+    expect(parseNonNegativeInt(String(Number.MAX_SAFE_INTEGER + 1))).toBeNull();
+  });
+
   it("rejects partial parses", () => {
     expect(parseNonNegativeInt("1.5")).toBeNull();
     expect(parseNonNegativeInt("1foreign")).toBeNull();

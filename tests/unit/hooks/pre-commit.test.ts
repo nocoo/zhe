@@ -78,6 +78,7 @@ function createFixture(options: { unit?: string } = {}): {
   const unit =
     options.unit ??
     "node -e \"if (require('fs').readFileSync('main.txt', 'utf8').includes('staged-bad')) { console.error('snapshot content is bad'); process.exit(1); }\"";
+  const laneScript = 'node -e "process.exit(0)"';
   writeFileSync(
     join(repo, "package.json"),
     `${JSON.stringify(
@@ -85,7 +86,7 @@ function createFixture(options: { unit?: string } = {}): {
         scripts: {
           "test:unit:coverage": unit,
           "test:integration": 'node -e "process.exit(0)"',
-          lint: 'node -e "process.exit(0)"',
+          lint: laneScript,
         },
       },
       null,
@@ -93,6 +94,28 @@ function createFixture(options: { unit?: string } = {}): {
     )}\n`,
   );
   writeFileSync(join(repo, "bun.lock"), "dummy-lock\n");
+  for (const lane of ["cli", "worker"]) {
+    mkdirSync(join(repo, lane), { recursive: true });
+    writeFileSync(
+      join(repo, lane, "package.json"),
+      `${JSON.stringify(
+        {
+          scripts: {
+            lint: laneScript,
+            "test:coverage": laneScript,
+          },
+        },
+        null,
+        "\t",
+      )}\n`,
+    );
+    writeFileSync(join(repo, lane, "bun.lock"), "dummy-lock\n");
+    mkdirSync(join(repo, lane, "node_modules", ".bin"), { recursive: true });
+    for (const command of ["tsc", "vitest", "biome"]) {
+      writeFileSync(join(repo, lane, "node_modules", ".bin", command), "#!/bin/sh\nexit 0\n");
+      chmodSync(join(repo, lane, "node_modules", ".bin", command), 0o755);
+    }
+  }
   writeFileSync(join(repo, "main.txt"), "healthy\n");
   mkdirSync(join(repo, "node_modules", ".bin"), { recursive: true });
   // next/tsc/vitest/biome stand in for the heavyweight runners; gitleaks is
@@ -103,7 +126,20 @@ function createFixture(options: { unit?: string } = {}): {
     chmodSync(join(repo, "node_modules", ".bin", command), 0o755);
   }
   env.PATH = `${join(repo, "node_modules", ".bin")}:${process.env.PATH ?? ""}`;
-  git(repo, ["add", "package.json", "bun.lock", "main.txt"], env);
+  git(
+    repo,
+    [
+      "add",
+      "package.json",
+      "bun.lock",
+      "main.txt",
+      "cli/package.json",
+      "cli/bun.lock",
+      "worker/package.json",
+      "worker/bun.lock",
+    ],
+    env,
+  );
   git(repo, ["commit", "-m", "seed"], env);
   return { repo, env, tmp };
 }
@@ -181,7 +217,7 @@ describe("pre-commit index snapshot", () => {
         "node -e \"require('fs').writeFileSync(process.env.ZHE_PRECOMMIT_TEST_MARKER, String(process.pid)); setTimeout(() => {}, 30000)\"";
       writeFileSync(join(repo, "package.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
       git(repo, ["add", "package.json"], env);
-      const child = spawn("sh", [join(repo, ".git", "hooks", "pre-commit")], {
+      const child = spawn("bash", [join(repo, ".git", "hooks", "pre-commit")], {
         cwd: repo,
         env: { ...env, ZHE_PRECOMMIT_TEST_MARKER: marker },
         stdio: "ignore",

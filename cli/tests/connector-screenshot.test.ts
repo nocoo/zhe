@@ -69,6 +69,10 @@ describe("4:3 Retina webpage capture", () => {
     expect(runOpenCliTask).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed URLs before any browser work", () => {
+    expect(screenshotTarget("not-a-url")).toBeNull();
+  });
+
   it("keeps ordinary domains distinct from special sites", () => {
     expect(screenshotTarget("https://github.io/project")).toBe("https://github.io/project");
     expect(screenshotTarget("https://github.com.example.com/a")).toBe(
@@ -156,6 +160,11 @@ describe("4:3 Retina webpage capture", () => {
       vi.mocked(page.cdp).mock.calls.some(([method]) => method === "Page.captureScreenshot"),
     ).toBe(false);
     expect(await readdir(dir)).toEqual([]);
+  });
+
+  it("ignores about:blank pages while waiting for the target navigation", async () => {
+    vi.mocked(page.evaluate).mockResolvedValueOnce({ ...ready, url: "about:blank" });
+    expect((await captureScreenshotInChild(url, dir)).size).toBe(screenshot.length);
   });
 
   it("rechecks delayed redirects and sanitizes browser failures", async () => {

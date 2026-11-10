@@ -6,11 +6,15 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "lint": "tsc --noEmit && biome check --error-on-warnings src/",
     "tail": "wrangler tail"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.4",
     "@cloudflare/workers-types": "5.20261001.1",
+    "@vitest/coverage-v8": "5.0.5",
     "typescript": "7.0.2",
     "vitest": "5.0.5",
     "wrangler": "4.145.0"

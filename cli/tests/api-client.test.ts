@@ -5,6 +5,12 @@ import { CLI_VERSION } from "../src/version.js";
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+const openAsBlobMock = vi.hoisted(() => vi.fn(async () => new Blob(["connector-upload-payload"])));
+vi.mock("node:fs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs")>()),
+  openAsBlob: openAsBlobMock,
+}));
+
 describe("ApiClient", () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -1245,6 +1251,90 @@ describe("ApiClient", () => {
       const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
       expect(url).toBe("https://zhe.to/api/v1/todos/9");
       expect(options.method).toBe("DELETE");
+    });
+  });
+
+  describe("connector jobs", () => {
+    it("claims connector work and preserves source headers", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ job: null }),
+      });
+      const client = new ApiClient("zhe_testkey");
+      await client.claimConnectorJob();
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(options.method).toBe("POST");
+      expect(new Headers(options.headers).get("X-Connector-Sources")).toBe("github,x,screenshot");
+    });
+
+    it("still supports the legacy X-only claim endpoint", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ job: null }),
+      });
+      const client = new ApiClient("zhe_testkey");
+      await client.claimXJob();
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/connector");
+      expect(new Headers(options.headers).has("X-Connector-Sources")).toBe(false);
+      expect(options.method).toBe("POST");
+    });
+
+    it("posts connector actions under the source-specific job path", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ ok: true }),
+      });
+      const client = new ApiClient("zhe_testkey");
+      await client.connectorAction(
+        {
+          source: "github",
+          fullName: "octocat/Hello-World",
+          linkId: 3,
+          userId: "owner",
+          sourceUrl: "https://github.com/octocat/Hello-World",
+          leaseToken: "lease",
+          leaseUntil: Date.now() + 1000,
+          attempts: 1,
+        },
+        { action: "complete" },
+      );
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("https://zhe.to/api/v1/connector/github/jobs/3");
+      expect(new Headers(options.headers).get("X-Connector-Lease")).toBe("lease");
+      expect(options.method).toBe("POST");
+    });
+
+    it("uses longer upload timeouts for binary connector bodies", async () => {
+      const timeoutSpy = vi.spyOn(global, "setTimeout");
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({}),
+      });
+      const client = new ApiClient("zhe_testkey");
+      await client.uploadScreenshot(
+        {
+          source: "screenshot",
+          linkId: 1,
+          userId: "owner",
+          sourceUrl: "https://example.com/article",
+          leaseToken: "lease-token",
+          leaseUntil: Date.now() + 60_000,
+          attempts: 1,
+        },
+        { path: "/tmp/preview.webp", mime: "image/webp", size: 8, sha256: "a".repeat(64) },
+      );
+      expect(openAsBlobMock).toHaveBeenCalledOnce();
+      expect(timeoutSpy.mock.calls.some(([, ms]) => ms === 120_000)).toBe(true);
+      timeoutSpy.mockRestore();
     });
   });
 });

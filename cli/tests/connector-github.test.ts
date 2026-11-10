@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient } from "../src/api/client.js";
 import { readGitHubRepository } from "../src/connector/github.js";
@@ -9,10 +8,18 @@ import {
 } from "../src/connector/github-core.js";
 import { processOne } from "../src/connector/runtime.js";
 
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn((_file, _args, _options, callback) =>
-    callback(new Error("not installed"), "", ""),
+const execFileMock = vi.hoisted(() =>
+  vi.fn(
+    (
+      _file: string,
+      _args: string[],
+      _options: object,
+      callback: (error: Error | null, stdout: string) => void,
+    ) => callback(new Error("not installed"), ""),
   ),
+);
+vi.mock("node:child_process", () => ({
+  execFile: execFileMock,
   spawn: vi.fn(),
 }));
 const source = "octocat/Hello-World";
@@ -113,6 +120,10 @@ describe("repository URL and snapshot validation", () => {
   ])("rejects non-repository URL %s", (url) => {
     expect(canonicalGitHubRepo(url)).toBeNull();
   });
+  it.each([null, [], "string"])("rejects non-object snapshots: %j", (raw) => {
+    expect(() => validateGitHubRepository(raw, source)).toThrow("invalid_github_capture");
+  });
+
   it.each([
     { stars: -1 },
     { commits: 1.5 },
@@ -229,14 +240,110 @@ describe("GitHub REST collection", () => {
       code: "github_response_invalid",
     });
   });
+  it("rejects commit responses that are not arrays", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json(metadata))
+      .mockResolvedValueOnce(Response.json({ head: true }));
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_response_invalid",
+    });
+  });
+
+  it("rejects malformed last-page pagination metadata", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json(metadata))
+      .mockResolvedValueOnce(
+        Response.json([{ sha: "a" }], {
+          headers: { link: '<https://api.github.com/commits?page=bad>; rel="last"' },
+        }),
+      );
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_response_invalid",
+    });
+  });
+
+  it("rejects oversized metadata bodies before JSON parsing", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response("x".repeat(1_500_001), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_content_too_large",
+    });
+  });
+
+  it("accepts GITHUB_TOKEN when GH_TOKEN is unset", async () => {
+    vi.stubEnv("GH_TOKEN", "");
+    vi.stubEnv("GITHUB_TOKEN", "github-only-token");
+    await readGitHubRepository(source);
+    expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get("authorization")).toBe(
+      "Bearer github-only-token",
+    );
+  });
+
+  it("rejects commit histories that return a bare 404", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json(metadata))
+      .mockResolvedValueOnce(new Response("missing branch", { status: 404 }));
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_response_invalid",
+    });
+  });
+
+  it("rejects README conflicts that are not a clean missing file", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(Response.json(metadata))
+      .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(new Response("empty repository", { status: 409 }));
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_response_invalid",
+    });
+  });
+
+  it("rejects redirects that omit a location header", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 302, headers: {} }));
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_unsafe_redirect",
+    });
+  });
+
+  it("rejects redirect chains that never settle on the GitHub API", async () => {
+    vi.mocked(fetch).mockImplementation(
+      async () =>
+        new Response(null, {
+          status: 301,
+          headers: { location: "/repos/next-hop" },
+        }),
+    );
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_unsafe_redirect",
+    });
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("rejects metadata missing a default branch", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        Response.json({ ...metadata, full_name: source, default_branch: null }),
+      )
+      .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(new Response("missing", { status: 404 }));
+    await expect(readGitHubRepository(source)).rejects.toMatchObject({
+      code: "github_response_invalid",
+    });
+  });
+
   it("uses a local gh credential in memory or reads public repositories without one", async () => {
     vi.stubEnv("GH_TOKEN", "");
     await readGitHubRepository(source);
-    expect(execFile).toHaveBeenCalled();
+    expect(execFileMock).toHaveBeenCalled();
     expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).has("authorization")).toBe(
       false,
     );
   });
+
   it("never contacts GitHub for invalid repository names or a cancelled job", async () => {
     await expect(readGitHubRepository("../escape")).rejects.toMatchObject({
       code: "invalid_github_repository",

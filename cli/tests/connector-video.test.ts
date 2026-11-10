@@ -143,11 +143,46 @@ it("does not retry cancellation", async () => {
   await expect(downloadVideo(media, dir, controller.signal)).rejects.toThrow();
   expect(fetch).not.toHaveBeenCalled();
 });
+it("wraps unexpected network failures as download_failed", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("dns-query")) {
+        return Response.json({ Status: 0, Answer: [{ type: 1, data: "104.244.42.1" }] });
+      }
+      throw new TypeError("network down");
+    }),
+  );
+  await expect(downloadVideo(media, dir)).rejects.toMatchObject({
+    code: "download_failed",
+    attempts: [],
+  });
+});
+
 it("fails closed without a safe source", async () => {
   await expect(
     downloadVideo({ ...media, variants: [], url: "https://attacker.invalid/test.mp4" }, dir),
   ).rejects.toMatchObject({ code: "video_variant_unavailable" });
 });
+it("drops unsafe variants and deduplicates archive attempts", () => {
+  expect(
+    videoCandidates({
+      ...media,
+      variants: [
+        variant(1920, 1080),
+        { ...variant(1920, 1080), url: "https://attacker.invalid/1.mp4" },
+        { ...variant(1280, 720), width: 0, height: 720 },
+      ],
+    }),
+  ).toEqual([variant(1920, 1080)]);
+  expect(
+    videoCandidates({
+      ...media,
+      variants: [variant(1280, 720), variant(1280, 720, 2)],
+    }).length,
+  ).toBe(1);
+});
+
 it("uses source availability, portrait resolution, highest bitrate, and no duplicate attempts", () => {
   expect(videoCandidates({ ...media, variants: variants.slice(1) })).toEqual(variants.slice(1, 3));
   const portrait = [variant(2160, 3840), variant(1080, 1920), variant(720, 1280)];
