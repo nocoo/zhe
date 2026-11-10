@@ -57,6 +57,7 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
 | L3 D1  | Cloudflare D1   | SQLite HTTP API                | ~50ms | 命中 → 缓存到 LRU + 307；未命中 → 缓存 null 到 LRU + 404                               |
 
 **KV 同步策略**：
+
 - **行内同步**：每次链接增删改，`kvPutLink()` / `kvDeleteLink()` 通过 KV REST API fire-and-forget 写入（3s 超时）
 - **首次访问全量同步**：`actions/worker-status.ts` 在 cron history 为空时触发 `performKVSync()`，从 D1 全量覆写 KV（批量最多 10,000 条）；也可通过 `POST /api/cron/sync-kv` 手动触发
 - KV 是缓存而非数据源，短暂不一致可接受（Worker 未命中时自动降级 origin）
@@ -87,6 +88,7 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
 ### 1. 行级安全（Row-Level Security）
 
 Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在代码层实现：
+
 - 构造函数接收 `userId`（必填，空值直接抛异常）
 - 所有 SQL 查询自动注入 `WHERE user_id = ?`
 - 无法绕过所有权检查
@@ -99,6 +101,7 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 ### 3. Fire-and-Forget 元数据抓取
 
 创建链接时，`enrichLink()` 异步执行，不阻塞链接创建。根据 URL 类型自动选择enrichment策略：
+
 - **Twitter/X 链接** → xray API 策略（截图 + 推文缓存）
 - **其他链接** → 默认 HTML 元数据抓取
 
@@ -109,6 +112,7 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 ### 5. 预签名上传
 
 文件上传采用客户端直传 R2 的方式：
+
 1. 服务端生成预签名 PUT URL（5 分钟有效期）
 2. 客户端直接上传到 R2（支持 PNG → JPEG 自动转换）
 3. 上传成功后，服务端记录元数据到 D1
@@ -116,6 +120,7 @@ Cloudflare D1 不支持数据库层面的 RLS，因此通过 `ScopedDB` 类在�
 ## 中间件路由逻辑
 
 `middleware.ts` 处理所有请求（排除静态资源）：
+
 1. 根路径 `/` → 直接通过
 2. 提取第一段路径作为 slug
 3. 保留路径（`login`, `dashboard`, `api` 等 13 个）→ 直接通过

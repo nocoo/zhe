@@ -9,6 +9,7 @@
 ### 创建链接
 
 支持两种模式：
+
 - **简单模式** — 系统自动生成 6 位随机 slug（使用 nanoid，排除易混淆字符 `0OlI`）
 - **自定义模式** — 用户指定 slug（自动清理：去空格、转小写、校验格式和保留路径）
 
@@ -36,6 +37,7 @@
 ### 筛选与排序
 
 Dashboard 链接列表支持多维筛选：
+
 - **文件夹筛选** — 单选，按文件夹过滤链接
 - **标签筛选** — 多选，AND 交集逻辑（选中多个标签时，仅显示同时拥有所有选中标签的链接）
 
@@ -50,6 +52,7 @@ Dashboard 链接列表支持多维筛选：
 | Favicon | favicons 数组，兜底 `{origin}/favicon.ico`      | —         |
 
 触发时机：
+
 1. **创建链接时** — 异步抓取，不阻塞
 2. **手动刷新** — 用户点击刷新按钮
 3. **批量刷新** — 批量重新抓取所有链接的元数据
@@ -59,6 +62,7 @@ Dashboard 链接列表支持多维筛选：
 ### 富集策略
 
 元数据富集采用策略模式（`lib/enrichment.ts`）：
+
 - **Twitter 策略** — 当 URL 包含 `twitter.com` 或 `x.com` 时，通过 Xray API 获取推文数据并缓存
 - **默认策略** — 使用 `url-metadata` 抓取 HTML meta 标签
 
@@ -71,12 +75,14 @@ Dashboard 链接列表支持多维筛选：
 ### 预览样式
 
 用户可在设置中切换链接预览样式（`actions/settings.ts`）：
+
 - `favicon` — 使用网站 favicon 作为预览（默认）
 - `screenshot` — 使用截图作为预览
 
 ### Webhook OpenAPI 文档
 
 `GET /api/link/create/[token]` 返回包含以下内容的 JSON 响应：
+
 - 用户统计摘要（总链接数、总点击数、最近链接）
 - 完整的 OpenAPI 3.1 规范
 - AI Agent 即用型 Prompt（`buildAgentPrompt()`）
@@ -132,6 +138,7 @@ D1 查询 → 缓存结果到 LRU
 ### 概览仪表盘
 
 `/dashboard/overview` 提供全局统计：
+
 - **汇总卡片** — 总链接数、总点击数、总上传数、总存储量
 - **点击趋势图** — 3 线图（总量 / Worker / Origin），按日期聚合
 - **上传趋势图** — 按日期聚合的上传数量
@@ -142,6 +149,7 @@ D1 查询 → 缓存结果到 LRU
 ## 标签系统
 
 每个链接可添加多个标签，每个标签可应用于多个链接（多对多关联）：
+
 - **CRUD** — 创建、编辑（名称/颜色）、删除标签
 - **颜色方案** — 确定性着色（FNV-1a hash → 24 色调色板），相同名称始终生成相同颜色
 - **关联管理** — 在创建链接或内联编辑时选择标签
@@ -157,6 +165,7 @@ D1 查询 → 缓存结果到 LRU
 ## 收件箱分类（Inbox Triage）
 
 `/dashboard` 默认视图为收件箱，显示未归入任何文件夹的链接：
+
 - 未分类链接以列表形式展示
 - 刷新按钮重新加载未分类链接
 
@@ -172,6 +181,7 @@ D1 查询 → 缓存结果到 LRU
 | 文件路径     | `{userHash}/YYYYMMDD/{uuid}.{ext}`                |
 
 上传流程：
+
 1. 客户端请求预签名 URL
 2. 客户端直接 PUT 到 R2
 3. 上传成功后记录元数据到 D1
@@ -180,6 +190,7 @@ D1 查询 → 缓存结果到 LRU
 ### 存储管理
 
 `/dashboard/storage` 提供存储状态概览：
+
 - R2/D1 用量统计
 - 孤儿文件检测（R2 中存在但 D1 中无记录的文件）
 - 批量清理孤儿文件
@@ -222,6 +233,7 @@ Content-Type: application/json
 ```
 
 特性：
+
 - **速率限制** — 默认 5 次/分钟，可配置（1-10）
 - **幂等性** — 相同 URL 不会重复创建，返回已有链接
 - **HEAD 检测** — `HEAD /api/link/create/[token]` 返回 200 用于健康检查
@@ -238,6 +250,7 @@ GET /api/link/create/[token]
 ## 数据导入导出
 
 `/dashboard/data-management` 提供数据管理功能：
+
 - **导出** — 将所有链接导出为 JSON 格式
 - **导入** — 支持从 JSON 文件导入链接
 
@@ -260,6 +273,7 @@ GET /api/link/create/[token]
 ## Xray Twitter 集成
 
 `/dashboard/xray` 提供 X/Twitter 内容集成：
+
 - **配置** — 设置 Xray API URL 和 Token
 - **书签获取** — 从 X/Twitter 获取用户书签列表
 - **推文展示** — Masonry 布局展示推文内容和媒体
@@ -279,6 +293,7 @@ GET /api/link/create/[token]
 ### 内联同步
 
 每次创建、更新、删除链接时，自动同步到 Cloudflare KV：
+
 - 创建/更新 → `PUT` KV entry（slug → originalUrl）
 - 删除 → `DELETE` KV entry
 
@@ -295,6 +310,7 @@ POST /api/cron/sync-kv
 ### 健康监控
 
 `/api/worker-status` 返回 Worker 健康信息，在 Overview 仪表盘展示：
+
 - KV key 总数
 - 最近同步时间
 - Cron 执行历史
@@ -308,6 +324,7 @@ POST /api/cron/sync-kv
 ## 搜索
 
 Dashboard 内置 Command Palette（`Cmd+K` / `Ctrl+K`）：
+
 - 搜索所有链接（按 slug、原始 URL、标题、描述、备注、标签 6 个维度过滤）
 - 显示 favicon 和关键词高亮
 - 快捷操作：跳转到文件夹、复制短链接
@@ -402,11 +419,13 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 **GET /api/v1/links** — 获取链接列表
 
 查询参数：
+
 - `limit` (number, 1-500, default: 100) — 每页数量
 - `offset` (number, default: 0) — 偏移量
 - `folderId` (string) — 按文件夹 ID 过滤
 
 响应：
+
 ```json
 {
   "links": [
@@ -430,6 +449,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 **POST /api/v1/links** — 创建链接
 
 请求体：
+
 ```json
 {
   "url": "https://example.com",
@@ -441,6 +461,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 响应 (201)：
+
 ```json
 {
   "link": {
@@ -462,6 +483,7 @@ Authorization: Bearer zhe_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 **PATCH /api/v1/links/[id]** — 更新链接
 
 请求体（所有字段可选）：
+
 ```json
 {
   "originalUrl": "https://example.com/new",

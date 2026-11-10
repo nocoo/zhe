@@ -9,6 +9,7 @@ description: Agent guidance for the @nocoo/zhe CLI — short links, folders, tag
 Use this skill when helping a user manage **zhe.to** from the terminal: bookmarks (links), organization (folders/tags), ideas, todos, and background enrichment via the Connector.
 
 **Discover before acting.** Command syntax and flags are defined by the CLI itself:
+
 - `zhe --version` — installed CLI version
 - `zhe --help` — top-level commands
 - `zhe <command> --help` — subcommand options (including nested groups like `zhe todo` and `zhe idea`)
@@ -44,6 +45,7 @@ Confirm with the user before bulk edits or deletes across many items.
 ## Connector (high level)
 
 The Connector enriches saved links (e.g. X posts, GitHub repos, missing previews) in the background. Typical flow:
+
 1. User has a connector-capable API key (`connector:write`; general keys may need `links:read` for login checks — see CLI help).
 2. `zhe connector status` — queue / health
 3. `zhe connector once` or `zhe connector watch` — process jobs (platform-specific install for `start`/`stop` on macOS)

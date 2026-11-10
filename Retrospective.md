@@ -24,6 +24,7 @@ assumed mobile coverage.
 ## Undated collection — migrated from the previous handbook
 
 Some entries contain their original incident dates. Entries without dates remain undated.
+
 - **Atomic commits**: Never bundle multiple logical changes (infra, model, viewmodel, view) into a single commit. Always split by layer/concern, even if they're part of the same feature. Each commit must be independently buildable and testable.
 - **E2E port isolation**: BDD E2E tests must use a dedicated port (27006) separate from the dev server (7006). Never reuse an existing dev server for E2E — Playwright always starts its own with `PLAYWRIGHT=1`. This avoids env-var mismatch bugs where the CredentialsProvider is missing.
 - **Version bump find-replace safety**: When bumping versions in `package.json`, never use naive substring replacement (e.g. `sd '1.2.1' '1.2.2'`) because it can corrupt dependency versions (e.g. `^1.2.10` becomes `^1.2.20` when `1.2.1` is matched as a substring). Always use targeted edits scoped to the `"version"` field, or use word-boundary-aware regex.
@@ -73,7 +74,6 @@ The new enrichment button made the grid action strip wider than a narrow card, p
 The required post-release browser job then failed twice because the wrapped AI button covered the X preview's center. Cleanup masked the original click timeout in the console; the trace identified the intercepted pointer event. The focused layout rerun had omitted the Connector journey after the wrapping change. Spread wrapped controls across the row to keep the center clear, and check preview clicks across desktop breakpoints in that journey. Preserve the published v2.1.3 tag and verify this follow-up commit separately.
 
 During the v2.1.4 display-layout preflight, a later Connector assertion still expected six columns at 2560px. Its failure skipped the following mobile case because the file runs serially. A progress update incorrectly treated that case's numbered log entry as a pass; the final report exposed the skipped case and the update was corrected. A listed test is not a result: check the final passed, failed, and skipped counts, then rerun the entire affected serial file.
-
 
 ## 2026-09-23 — Browser retries and obsolete runtime probes hid failures
 
@@ -208,7 +208,6 @@ The new FAB browser regression passed, but the full gate caught an existing Idea
 ### 2026-09-26 — Migrate both test authentication clients
 
 Switching L2/L3 from development servers to production builds disabled the development-only Credentials provider as intended. Browser setup was updated, but the HTTP helper still called that provider and its provider-list test still required the bypass. The pre-push gate rejected five tests before either remote ref was published. Use signed sessions only after asserting the exact loopback origin in both test clients; verify production providers exclude the test login and real HTTP rejects tampered sessions. Audit all authentication callers when changing test server mode.
-
 
 ## 2026-09-28 — Local environment boundary verification
 

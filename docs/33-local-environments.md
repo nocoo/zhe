@@ -170,6 +170,7 @@ The normal commit hook passed 3,483 unit/component tests, 197 in-process
 integration tests, types, full staged-tree lint and secret scanning. Scoped
 coverage: statements 98.08%, branches 95.15%, functions 96.62%, lines 98.82%.
 The pre-existing untracked research file is outside this index evidence.
+
 - Full Chromium: 214 passed, followed by 12 setup/Xray checks after replacing
   its business mock. Real provider success/failure and bookmark import passed.
 - Concurrent L2 on `ZHE_TEST_APP_PORT=17106` and `17206`: both 222 passed with

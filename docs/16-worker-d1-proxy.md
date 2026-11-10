@@ -13,6 +13,7 @@ Railway (Tokyo) → Cloudflare D1 HTTP API (US) → D1
 This causes `TimeoutError` (code 23) when D1 API is slow or cold-starting. The 5-second timeout in `d1-client.ts` is often insufficient for cross-Pacific requests.
 
 **Affected code paths** (all callers of `executeD1Query`):
+
 - `ScopedDB` — Dashboard CRUD (links, folders, tags, uploads, webhooks, settings)
 - `lib/db/index.ts` — Public queries (slug lookup, tweet cache, KV sync)
 - `lib/auth-adapter.ts` — NextAuth session/user operations
@@ -52,6 +53,7 @@ Content-Type: application/json
 ```
 
 Success response:
+
 ```json
 {
   "success": true,
@@ -61,6 +63,7 @@ Success response:
 ```
 
 Error response (always HTTP 200, error in body):
+
 ```json
 {
   "success": false,
@@ -69,6 +72,7 @@ Error response (always HTTP 200, error in body):
 ```
 
 **Error contract**: The Worker proxy MUST match existing `d1-client.ts` error handling exactly:
+
 1. **UNIQUE constraint errors** — normalize to `"UNIQUE constraint failed"` (no table/column detail). The current fallback path strips schema detail (`lib/db/d1-client.ts:67,80`), so proxy must do the same.
 
 2. **All other errors** (syntax, auth, network, FOREIGN KEY, etc.) — sanitize to `"D1 query failed"`.
@@ -76,6 +80,7 @@ Error response (always HTTP 200, error in body):
 3. **HTTP status** — Always return HTTP 200 with `{ success: false, error: "..." }` for query-level errors. This matches the Cloudflare D1 HTTP API behavior where the outer HTTP response is 200 but `data.success` is false. Using non-2xx would break the existing client pattern which checks `response.ok` before parsing JSON (`lib/db/d1-client.ts:62`).
 
 Worker handler implementation:
+
 ```typescript
 try {
   const result = await env.DB.prepare(sql).bind(...params).all();
@@ -92,6 +97,7 @@ try {
 ```
 
 Proxy client (`executeViaWorkerProxy`):
+
 ```typescript
 const res = await fetch(url, { method: 'POST', headers, body, signal });
 // Always parse JSON — proxy returns 200 even for errors (matches D1 HTTP API)
@@ -124,6 +130,7 @@ Worker is a dumb SQL proxy. Railway handles authentication and constructs scoped
 #### 3. SQL Injection Prevention
 
 Worker uses parameterized queries only:
+
 ```typescript
 env.DB.prepare(sql)
   .bind(...params)
@@ -149,6 +156,7 @@ if (isReservedPath(slug)) {
 **The `/api/d1-query` handler MUST be checked BEFORE the reserved path logic**, otherwise requests will be forwarded to Railway instead of handled by Worker.
 
 Fix in `handleFetch()`:
+
 ```typescript
 // 0. D1 proxy endpoint — handle before reserved path check
 if (pathname === '/api/d1-query' && request.method === 'POST') {
@@ -216,12 +224,14 @@ Once queries route through Worker, this protection is **bypassed** — the Worke
 | Test        | `https://zhe-edge-test.xxx.workers.dev` | `zhe-db-test` | `zhe-test`   |
 
 **Implementation:**
+
 1. **New `worker/wrangler.test.toml`** — Test environment config with test D1/KV bindings
 2. **Deploy test Worker** — `wrangler deploy -c wrangler.test.toml` → `zhe-edge-test`
 3. **L2/L3 harness update** — Set `D1_PROXY_URL=https://zhe-edge-test.xxx.workers.dev`
 4. **CI/local parity** — Both use the same test Worker URL
 
 **Verification in test harness:**
+
 ```typescript
 // scripts/run-api-e2e.ts — HARD GATE, not conditional
 const proxyUrl = process.env.D1_PROXY_URL;
@@ -249,11 +259,13 @@ if (!proxySecret) {
 ### Phase 1: Worker Infrastructure ✅
 
 **Commit 1: Add test Worker config (wrangler.test.toml)** ✅ COMPLETE
+
 - D1 binding → `zhe-db-test`
 - KV binding → `zhe-test`
 - Worker name → `zhe-edge-test`
 
 **Commit 2: Add D1 binding to production Worker (wrangler.toml)** ✅ COMPLETE (LOCAL ONLY)
+
 ```toml
 [[d1_databases]]
 binding = "DB"
@@ -264,12 +276,14 @@ database_id = "2ec5605c-613a-4c3a-a815-1ff7776bf6ab"
 > Note: `wrangler.toml` is gitignored (contains database IDs). Configure locally before deploy.
 
 **Commit 3: Add /api/d1-query handler with routing fix** ✅ COMPLETE
+
 - Insert handler BEFORE reserved path check
 - Verify `Authorization: Bearer {D1_PROXY_SECRET}`
 - Execute via `env.DB.prepare(sql).bind(...params).all()`
 - Return standardized response format
 
 **Commit 4: Add Worker D1 proxy tests** ✅ COMPLETE
+
 - Auth validation (missing/invalid token → 401)
 - Wrong secret (WORKER_SECRET instead of D1_PROXY_SECRET) → 401
 - SQL execution (SELECT, INSERT, UPDATE, DELETE)
@@ -281,6 +295,7 @@ database_id = "2ec5605c-613a-4c3a-a815-1ff7776bf6ab"
 ### Phase 2: Client Integration ✅
 
 **Commit 5: Add D1_PROXY_SECRET and proxy client in d1-client.ts** ✅ COMPLETE
+
 ```typescript
 function getProxyCredentials(): { url: string; secret: string } | null {
   const url = process.env.D1_PROXY_URL;
@@ -299,6 +314,7 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 ```
 
 **Commit 6: Add d1-client proxy path unit tests** ✅ COMPLETE
+
 - Mock fetch for proxy endpoint
 - Verify Authorization header uses D1_PROXY_SECRET (not WORKER_SECRET)
 - Verify request/response format
@@ -309,16 +325,19 @@ export async function executeD1Query<T>(sql: string, params: unknown[] = []): Pr
 **Commit 7: Update L2/L3 harness for test Worker (HARD GATE)** ✅ COMPLETE
 
 L2 (`scripts/run-api-e2e.ts`):
+
 - Hard-require `D1_PROXY_URL` and `D1_PROXY_SECRET` — fail if either is missing
 - Validate `D1_PROXY_URL` contains `-test` suffix
 
 L3 (`playwright.config.ts`):
+
 - Add to `webServerCommandParts`: `D1_PROXY_URL` and `D1_PROXY_SECRET` with `${VAR:?msg}` bash syntax (matches existing pattern for D1_TEST_DATABASE_ID)
 - This injects env vars into the Next.js webServer process, not just the test runner
 
 **Note**: `tests/playwright/global-setup.ts` runs in the test runner process, NOT the Next.js app process. Environment variables for the app must be injected via `playwright.config.ts:webServerCommandParts`.
 
 **Commit 8: Add L2 test for proxy endpoint** ✅ COMPLETE
+
 - Real HTTP call to test Worker
 - Verify roundtrip through test D1
 
@@ -332,6 +351,7 @@ L3 (`playwright.config.ts`):
 > See instructions below.
 
 **Commit 9: Deploy Workers** ⏳ MANUAL STEP REQUIRED
+
 ```bash
 # Deploy production Worker
 cd worker
@@ -350,6 +370,7 @@ wrangler secret put D1_PROXY_SECRET -c wrangler.test.toml
 ```
 
 **Commit 10: Enable proxy in Railway** ⏳ MANUAL STEP REQUIRED
+
 ```bash
 # In Railway dashboard, add environment variables:
 D1_PROXY_URL=https://zhe-edge.<your-subdomain>.workers.dev
@@ -357,6 +378,7 @@ D1_PROXY_SECRET=<same-secret-set-in-wrangler-above>
 ```
 
 After enabling the proxy:
+
 1. Monitor logs for any errors
 2. Run L2 tests: `bun run test:api` — should pass via test Worker
 3. Run L3 tests: `bun run test:e2e:pw` — should pass via test Worker
@@ -374,12 +396,14 @@ After enabling the proxy:
 ### Worker Bindings (wrangler.toml)
 
 **Production (`wrangler.toml`):**
+
 | Binding    | Type | Value                  |
 | ---------- | ---- | ---------------------- |
 | `DB`       | D1   | `zhe` (prod database)  |
 | `LINKS_KV` | KV   | `zhe` (prod namespace) |
 
 **Test (`wrangler.test.toml`):**
+
 | Binding    | Type | Value         |
 | ---------- | ---- | ------------- |
 | `DB`       | D1   | `zhe-db-test` |
@@ -418,6 +442,7 @@ After enabling the proxy:
 | Existing API tests       | `tests/api/*.test.ts`        | All existing tests run through proxy |
 
 **Regression scope**: L2 tests cover all `executeD1Query` callers:
+
 - Links CRUD
 - Folders CRUD
 - Tags CRUD
@@ -431,6 +456,7 @@ After enabling the proxy:
 ### L3: System E2E
 
 Existing Playwright tests exercise full user flows. **All tests MUST pass** after rollout — not just CRUD, but also:
+
 - Login/logout (auth adapter)
 - Link creation and redirect (public lookup)
 - Analytics recording
@@ -460,6 +486,7 @@ Existing Playwright tests exercise full user flows. **All tests MUST pass** afte
 | Local dev    | `zhe-db-test` | `.env.local` → test Worker           |
 
 **Safety checks:**
+
 1. Test harness rejects `D1_PROXY_URL` without `-test` suffix
 2. Test Worker wrangler.test.toml only binds test resources
 3. `_test_marker` table check remains in test setup (D1 level)

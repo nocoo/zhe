@@ -9,6 +9,7 @@ Local automated launchers allocate the Worker port and own per-run persistence/b
 ### Single Source of Truth
 
 The **only** authoritative version number lives in `package.json` `"version"` field (format: `1.2.3`).
+
 - **Storage format**: bare semver `1.2.3` (in `package.json`)
 - **Display format**: `v1.2.3` (git tags, GitHub releases, CHANGELOG headers, UI/docs)
 - All runtime references import `APP_VERSION` from `lib/version.ts`, which reads `package.json` at build time
@@ -59,6 +60,7 @@ wrangler d1 execute zhe-db --remote --file=drizzle/migrations/00XX_xxx.sql
 ```
 
 The script performs these steps automatically:
+
 1. Preflight: verify clean working tree, branch, `gh` auth, **prod D1 reachability**
 2. **L3 Playwright preflight (hard gate)** — runs `bun run test:e2e:pw` before bumping; aborts if any spec fails. Keep the L3 preflight enabled
 3. Bump `package.json` `"version"` field (targeted regex, not naive substring replace)

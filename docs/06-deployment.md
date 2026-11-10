@@ -159,6 +159,7 @@ POST https://api.cloudflare.com/client/v4/accounts/{id}/d1/database/{id}/query
 ## Cloudflare R2
 
 S3 兼容对象存储，用于文件上传和临时文件。通过预签名 URL 实现客户端直传：
+
 - **永久文件**：`{user-hash}/YYYYMMDD/{uuid}.{ext}`
 - **临时文件**：`tmp/{uuid}_{timestamp}.{ext}`（1 小时后自动清理）
 

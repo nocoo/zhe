@@ -75,6 +75,7 @@ Zhe 暴露了一个 Webhook 端点 `POST /api/backy/pull`，供 Backy 主动调�
 | `POST /api/backy/pull` | 触发备份 | 自动收集数据并推送到配置的 Backy 服务 |
 
 **Pull 触发流程：**
+
 1. Backy 发送 `POST /api/backy/pull`，附带 `X-Webhook-Key` 头
 2. Zhe 验证 Key → 查找对应用户 → 读取该用户的 Backy Push 配置
 3. 自动收集该用户的所有数据（链接、文件夹、标签、关联）

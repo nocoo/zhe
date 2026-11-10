@@ -30,6 +30,7 @@
 ```
 
 **Key implementation details**:
+
 - D1 Proxy: `POST /api/d1-query` on `zhe-edge` Worker (in `worker/src/index.ts`)
 - Auth: `Authorization: Bearer ${D1_PROXY_SECRET}`
 - Client: `lib/db/d1-client.ts` uses `D1_PROXY_URL` + `D1_PROXY_SECRET`
@@ -95,6 +96,7 @@
 ```
 
 **Key Security Rules**:
+
 1. **SQL Proxy is internal-only**: `/api/d1-query` is never exposed to CLI or browser clients
 2. **Secret equivalence**: `D1_PROXY_SECRET` ≈ `CLOUDFLARE_API_TOKEN` — both allow arbitrary SQL
 3. **CLI design (future)**: Per-user api_key to business API endpoints, not raw SQL
@@ -112,6 +114,7 @@
 **Endpoint**: `POST /api/d1-query`
 
 **Request**:
+
 ```json
 {
   "sql": "SELECT * FROM links WHERE slug = ?",
@@ -120,12 +123,14 @@
 ```
 
 **Headers**:
+
 ```
 Authorization: Bearer <D1_PROXY_SECRET>
 Content-Type: application/json
 ```
 
 **Response** (success):
+
 ```json
 {
   "success": true,
@@ -135,6 +140,7 @@ Content-Type: application/json
 ```
 
 **Response** (error):
+
 ```json
 {
   "success": false,
@@ -346,6 +352,7 @@ CLI and other distributed clients must access data through business API endpoint
 ```
 
 **Key design principles**:
+
 1. **Worker stays dumb**: SQL proxy doesn't understand users, permissions, or business rules
 2. **Auth boundary at Next.js API**: All user-level auth/authz happens here, not at Worker
 3. **Blast radius limited**: Leaked api_key = one user's data; leaked D1_PROXY_SECRET = full DB
@@ -364,6 +371,7 @@ CLI and other distributed clients must access data through business API endpoint
 | Authorization | Based on `userId` + `scopes`, not just key validity                                |
 
 **What NOT to do**:
+
 - ❌ CLI → Worker (bypasses auth boundary)
 - ❌ API as "DB passthrough" (must enforce business rules)
 - ❌ Plain string api_key (must be proper PAT with metadata)
@@ -378,6 +386,7 @@ Currently each `getOverviewStats()` call makes 9 sequential requests. Future opt
 **Endpoint**: `POST /api/d1-batch`
 
 **Request**:
+
 ```json
 {
   "queries": [
@@ -519,6 +528,7 @@ Future project to move KV operations from REST API to Worker binding, eliminatin
 ## Future: OAuth Device Flow
 
 If switching from api_key to OAuth device flow:
+
 1. Update [CLI Access Architecture](#cli-access-architecture) section with OAuth flow
 2. Keep [CLI Business API](#cli-business-api) as summary reference
 3. API endpoints remain unchanged — only auth layer swaps

@@ -75,6 +75,7 @@
 **目标**: 每次 commit 自动检查覆盖率，低于阈值自动 fail。
 
 **已执行**:
+
 1. `package.json` 新增 script: `"test:unit:coverage": "vitest run --exclude 'tests/api/**' --coverage"`
 2. `.husky/pre-commit` 第一行改为 `bun run test:unit:coverage`
 3. vitest.config.ts 已有 thresholds 配置，`--coverage` 在阈值不达标时自动 fail
@@ -86,6 +87,7 @@
 **目标**: 目录命名准确反映测试性质（API Integration Tests），为 Playwright E2E 预留 `tests/e2e/` 命名空间。
 
 **已执行**:
+
 1. `git mv tests/e2e/ tests/api/`
 2. 更新 `package.json` 中 `test:api` script 路径
 3. 更新 `vitest.config.ts` 中 exclude 路径
@@ -98,6 +100,7 @@
 **目标**: Playwright BDD E2E 使用 27006 端口。
 
 **已执行**:
+
 1. `playwright.config.ts` 的 webServer port 设为 27006
 2. `CLAUDE.md` 端口表已更新
 3. `docs/05-testing.md` 端口说明已更新
@@ -135,6 +138,7 @@
 **目标**: pre-push 运行 L3 API E2E 测试。
 
 **已执行**:
+
 - `.husky/pre-push` 内容: `bun run test:api`（L3 mock 级别测试，无需端口清理）
 - L4 Playwright 为 on-demand（`bun run test:e2e:pw`），不纳入 pre-push
 
@@ -145,6 +149,7 @@
 **目标**: 同步更新所有相关文档，反映改善后的测试架构。
 
 **已更新文件**:
+
 - `CLAUDE.md` — 端口表、测试命令、git hooks
 - `docs/05-testing.md` — 四层架构表、Playwright 配置、端口分配、git hooks
 - `docs/09-e2e-coverage-analysis.md` — 完整覆盖分析（343 用例）

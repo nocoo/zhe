@@ -24,6 +24,7 @@
 **问题**: `AUTH_SECRET=zhe-auth-secret-dev-only-change-in-production` — 熵极低，且值本身表明是开发默认值
 **风险**: 若生产环境使用此值，攻击者可伪造 JWT 冒充任意用户
 **修复**:
+
 ```bash
 # 生成新的生产 AUTH_SECRET（最小 32 字节熵）
 openssl rand -base64 32
@@ -38,6 +39,7 @@ openssl rand -base64 32
 **问题**: `if (workerSecret) { ... }` — 变量未定义时静默放行
 **风险**: 任何未认证调用者可伪造点击数据、发起 DOS
 **修复**:
+
 ```ts
 if (!workerSecret) {
   return NextResponse.json(
@@ -55,6 +57,7 @@ if (!workerSecret) {
 **文件**: `app/api/record-click/route.ts:17`, `app/api/cron/sync-kv/route.ts:34`, `app/api/cron/cleanup/route.ts:32`
 **问题**: `!==` 比较存在时序攻击风险（首字节不匹配即返回）
 **修复**:
+
 ```ts
 import { timingSafeEqual } from "crypto";
 
@@ -72,6 +75,7 @@ function safeCompare(a: string, b: string): boolean {
 **问题**: `new URL()` 接受 `javascript:`、`data:` 等危险 scheme
 **风险**: 可创建指向 `data:text/html,...` 的短链接（部分浏览器/上下文可渲染）
 **修复**:
+
 ```ts
 const parsed = new URL(url);
 if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -87,6 +91,7 @@ if (!["http:", "https:"].includes(parsed.protocol)) {
 **问题**: `webhookUrl` 仅校验格式不校验目标，可指向 `http://169.254.169.254`（云元数据端点）或任意内网 IP
 **风险**: 攻击者可利用用户配置的 API key 发请求到内网并获取响应体
 **修复**:
+
 1. 强制 `https:` 协议
 2. **禁用自动重定向**：fetch 时使用 `redirect: 'manual'`，对每个重定向响应目标重复做步骤 3 的 IP 校验；或自己实现重定向跟随逻辑并逐跳校验
 3. DNS 解析后校验目标 IP，block 私有 IP 段：
@@ -121,6 +126,7 @@ if (!["http:", "https:"].includes(parsed.protocol)) {
 **问题**: `process.env.R2_PUBLIC_DOMAIN || "https://s.zhe.to"` — 未配置时静默回退到真实 R2 域
 **风险**: Fork 未配置 env 时生成的 URL 均指向原始作者的 R2 bucket
 **修复**:
+
 ```ts
 const publicDomain = process.env.R2_PUBLIC_DOMAIN;
 if (!publicDomain) {
@@ -143,6 +149,7 @@ if (!publicDomain) {
 | 测试 KV | `<YOUR_TEST_KV_NAMESPACE_ID>` | 42              |
 
 **修复**（macOS/GNU sed 兼容）：
+
 ````bash
 已替换为占位符（见 `docs/14-cloudflare-resource-inventory.md` 当前版本）。
 

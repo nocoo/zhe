@@ -28,12 +28,14 @@
 **问题**：9+ 个 action 文件中复制粘贴了相同的 `getScopedDB()` / `getAuthContext()` / `requireAuth()` 函数。`auth()` 在 server component render 中未被去重。
 
 **方案**：
+
 - 新建 `lib/auth-context.ts`，提供共享的 `getScopedDB()`、`getAuthContext()`、`requireAuth()`
 - 使用 React `cache()` 包装 `auth()`，在 server component render 周期内自动去重
 - 所有 action 文件改为从共享模块导入
 - 删除各 action 文件中的本地辅助函数
 
 **涉及文件**：
+
 - `lib/auth-context.ts`（新建）
 - `actions/links.ts`、`actions/tags.ts`、`actions/folders.ts`、`actions/xray.ts`、`actions/backy.ts`、`actions/webhook.ts`、`actions/settings.ts`、`actions/upload.ts`、`actions/storage.ts`、`actions/overview.ts`
 
@@ -46,11 +48,13 @@
 **问题**：`DashboardServiceProvider` 挂载时发起 3 个独立的 server action，各自调用 `auth()` = 3 次 D1 session 查询。
 
 **方案**：
+
 - 新建 `getDashboardData()` server action：1 次 auth + `Promise.all([getLinks, getTags, getLinkTags])`
 - 更新 `DashboardServiceProvider` 改为调用单一 action
 - 添加错误处理（Codex 发现：`Promise.all` 失败时 `loading=true` 会永久挂起）
 
 **涉及文件**：
+
 - `actions/dashboard.ts`（新建）
 - `contexts/dashboard-service.tsx`
 
@@ -63,6 +67,7 @@
 **问题**：组件订阅了完整的 `useDashboardService` context（state + actions），任何部分变化都触发重渲染。Webhook viewmodel 仅为获取 `siteUrl` 拉取了整个 dashboard context。
 
 **方案**：
+
 - Webhook viewmodel：直接使用 `window.location.origin`，完全消除 dashboard context 依赖
 - Folders viewmodel：使用细粒度的 `useDashboardState` + `useDashboardActions`，替代单一的 `useDashboardService`
 - App sidebar：仅订阅 `useDashboardState`（只读取 `links` 计数，不需要 actions）
@@ -70,6 +75,7 @@
 - 更新所有对应的测试 mock
 
 **涉及文件**：
+
 - `viewmodels/useWebhookViewModel.ts`、`viewmodels/useFoldersViewModel.ts`
 - `components/app-sidebar.tsx`、`components/search-command-dialog.tsx`
 - `tests/unit/webhook-viewmodel.test.ts`、`tests/unit/folder-viewmodel.test.ts`
@@ -84,11 +90,13 @@
 **问题**：所有 `page.tsx` server component 都是空壳，数据通过客户端 `useEffect` 获取，造成 loading 闪烁。
 
 **方案**：
+
 - 每个 `page.tsx` 改为 `async`，直接调用 server action 预取数据
 - 数据通过 `initialData` prop 传给客户端组件
 - ViewModel 接收可选的 `initialData` 参数：提供时 `useState` 直接初始化数据，`loading` 初始为 `false`，`useEffect` 提前返回
 
 **转换的页面（6/6）**：
+
 - Overview：`getOverviewStats()` → `initialData?: OverviewStats`
 - Xray：`getXrayConfig()` → `initialData?: XrayInitialData`
 - Backy：`getBackyConfig()` + `fetchBackyHistory()` → `initialData?: BackyInitialData`
@@ -97,6 +105,7 @@
 - Storage：`scanStorage()` → `initialData?: StorageScanResult`
 
 **涉及文件**：
+
 - `app/(dashboard)/dashboard/overview/page.tsx`、`xray/page.tsx`、`backy/page.tsx`、`webhook/page.tsx`、`uploads/page.tsx`、`storage/page.tsx`
 - `viewmodels/useOverviewViewModel.ts`、`useXrayViewModel.ts`、`useBackyViewModel.ts`、`useWebhookViewModel.ts`、`useUploadViewModel.ts`
 - `components/dashboard/overview-page.tsx`、`xray-page.tsx`、`backy-page.tsx`、`webhook-page.tsx`、`upload-list.tsx`、`storage-page.tsx`
@@ -112,6 +121,7 @@
 **问题**：push 成功后，viewmodel 在 `finally` 块中单独调用 `fetchBackyHistory()`——多一次 auth + DB + 外部 API 往返。push 失败时也刷新历史（浪费）。
 
 **方案**：
+
 - 在 `BackyPushDetail` 类型中添加 `history?: BackyHistoryResponse` 字段
 - `pushBackup()` 在 POST 成功后内联 GET 历史（复用相同 config，无额外 auth/DB 调用）
 - Viewmodel `handlePush` 从内联响应中获取历史；不再在 push 后调用 `fetchBackyHistory()`
@@ -119,6 +129,7 @@
 - 历史获取失败为非关键错误——push 仍然成功，客户端可手动刷新
 
 **涉及文件**：
+
 - `models/backy.ts`（添加 `history` 字段）
 - `actions/backy.ts`（内联历史获取）
 - `viewmodels/useBackyViewModel.ts`（使用内联历史，移除 `finally` 块）
@@ -133,6 +144,7 @@
 **问题**：每个 LinkCard 的 `useEffect` 独立触发 `refreshLinkMetadata(linkId)`。50 条缺失 = 50 次 server action（50 次 auth + 150 次 D1 查询 + 50 次 HTTP 抓取）。
 
 **方案**：
+
 - 在 `lib/db/scoped.ts` 添加 `ScopedDB.getLinksByIds()`，自动分块（每次 90 个 ID）
 - 在 `actions/links.ts` 新建 `batchRefreshLinkMetadata(linkIds[])`：1 次 auth + 批量获取 + 并发限制 5 + 批量刷新
 - 移除 `useLinkCardViewModel` 中逐卡片的自动刷新 `useEffect`
@@ -141,6 +153,7 @@
 - 单条手动刷新（`handleRefreshMetadata`）保持不变
 
 **涉及文件**：
+
 - `lib/db/scoped.ts`（添加 `getLinksByIds`）
 - `actions/links.ts`（添加 `batchRefreshLinkMetadata`）
 - `viewmodels/useLinksViewModel.ts`（移除逐卡自动获取，添加 `useAutoRefreshMetadata`）
@@ -156,12 +169,14 @@
 **问题**：在 async dashboard 页面间导航时，前一页面滞留直到新页面 SSR 数据加载完成，无视觉反馈。
 
 **方案**：
+
 - 新建 `app/(dashboard)/dashboard/loading.tsx` —— 所有 dashboard 子页面的共享骨架屏
 - 提供通用卡片网格骨架，匹配内容面板结构
 - 各页面组件保留自身的客户端 loading 状态内部骨架
 - `DashboardServiceProvider` 持久化在父级 `DashboardShell` 中，不受子级 Suspense 边界影响
 
 **新建文件**：
+
 - `app/(dashboard)/dashboard/loading.tsx`
 
 **状态**：✅ 完成（commit `12e6559`）
@@ -171,11 +186,13 @@
 ### 阶段 8：小修
 
 **变更**：
+
 - **8a - 存储清理优化**：`cleanupOrphanFiles()` 成功后，本地删除已清理的 key 并通过 `computeSummary()` 重算摘要。消除一次完整重扫（1 次 auth + 6 次 D1 COUNT 查询 + R2 listObjects）
 - **8b - 数据管理批量导入**：已取消。逐条 insert-or-skip 模式对 D1 是正确的（HTTP API 不支持多语句 batch，且每次插入需要单独的 UNIQUE 约束检测）
 - **8c - Overview 统计赋值简化**：逐字段拷贝改为 `setStats(result.data)` 直接赋值
 
 **涉及文件**：
+
 - `components/dashboard/storage-page.tsx`（本地状态更新，导入 `computeSummary`）
 - `viewmodels/useOverviewViewModel.ts`（直接赋值）
 
@@ -208,6 +225,7 @@
 ## AI Agent 审查意见
 
 三个 AI Agent（Codex、Gemini、Claude）审查了此优化方案：
+
 - **Codex**：Sidebar 和搜索对话框依赖全局 links 数据——Sidebar 应使用 `getLinkCounts()`，搜索应延迟加载。Provider 的 `Promise.all` 需要错误处理。
 - **Gemini**：D1 批量查询有 ~32K 参数限制——需要分块。Import 场景也会触发 N+1 元数据刷新。
 - **Claude**：阶段 2 的 `cache()` 作用域有限——仅在 server render 内去重，跨 server action 不生效。应创建纯服务端读函数，与 server action 分离。

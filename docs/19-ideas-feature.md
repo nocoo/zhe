@@ -76,6 +76,7 @@ CREATE TABLE idea_tags (
 #### Excerpt Field
 
 The `excerpt` field stores the first 200 characters of content as **plain text** (Markdown stripped). This enables:
+
 - Fast list rendering without loading full content
 - Efficient search without full-text scanning
 - Reduced memory footprint in dashboard context
@@ -85,6 +86,7 @@ The `excerpt` field stores the first 200 characters of content as **plain text**
 #### updated_at Semantics
 
 `updated_at` is refreshed when **any** of the following change:
+
 - `title`
 - `content`
 - Tag associations (add or remove)
@@ -94,6 +96,7 @@ This ensures "recently modified" sorting reflects all meaningful edits.
 ### Title Display Strategy
 
 When `title` is `NULL`:
+
 1. **Display format**: Show creation time as title (e.g., "Apr 13, 14:32")
 2. **Future enhancement**: Auto-generate title from first line or AI summary (out of scope for v1)
 
@@ -192,6 +195,7 @@ async createIdea(data: { content: string; title?: string; tagIds?: string[] }): 
 > the child batch. See `AGENTS.md` Retrospective for details.
 
 **Key design points**:
+
 1. **Pre-validation**: TagIds are validated **before** any writes. If any tagId doesn't exist or doesn't belong to the user, we fail immediately.
 
 2. **Query + Batch (not single batch)**: The idea INSERT is a standalone `executeD1Query` with `RETURNING *` to get the concrete `idea.id`. Tag bindings are a separate `executeD1Batch` using that explicit ID.
@@ -199,6 +203,7 @@ async createIdea(data: { content: string; title?: string; tagIds?: string[] }): 
 3. **No `last_insert_rowid()`**: The child INSERT statements use the concrete `idea.id` parameter, avoiding the D1 batch rowid pitfall entirely.
 
 **Test requirement**: L1 unit tests must include:
+
 - Case 1: Create with invalid tagId → error returned, no idea created
 - Case 2: Create with valid tagIds → idea and all tag associations created
 - Case 3: Create with empty tagIds → idea created, no tag associations
@@ -227,6 +232,7 @@ const PRE_LINK_NAV_GROUPS: NavGroup[] = [
 ### Global Search (Cmd+K)
 
 Add ideas to `SearchCommandDialog`:
+
 - Search across `title` and `excerpt` (NOT full content — performance)
 - Display in separate "Ideas" group below "Links"
 - Click navigates to `/dashboard/ideas?id={id}` (opens detail modal)
@@ -449,6 +455,7 @@ Options:
 ### Scope
 
 New API scopes:
+
 - `ideas:read` — List and get ideas
 - `ideas:write` — Create, update, delete ideas
 
@@ -467,6 +474,7 @@ New API scopes:
 **POST /api/v1/ideas**
 
 Request:
+
 ```json
 {
   "content": "My **markdown** thought",
@@ -478,6 +486,7 @@ Request:
 > **Note**: `tagIds` accepts tag UUIDs only. CLI resolves tag names to IDs client-side.
 
 Response (201):
+
 ```json
 {
   "idea": {
@@ -495,12 +504,14 @@ Response (201):
 **GET /api/v1/ideas** (List)
 
 Query params:
+
 - `limit` (number, 1-500, default: 100)
 - `offset` (number, default: 0)
 - `tagId` (string, single tag filter)
 - `q` (string, search title + excerpt)
 
 Response (list shape — no `content` field):
+
 ```json
 {
   "ideas": [
@@ -519,6 +530,7 @@ Response (list shape — no `content` field):
 **GET /api/v1/ideas/[id]** (Detail)
 
 Response (detail shape — includes `content`):
+
 ```json
 {
   "idea": {
@@ -536,6 +548,7 @@ Response (detail shape — includes `content`):
 **PATCH /api/v1/ideas/[id]**
 
 Request (all fields optional):
+
 ```json
 {
   "content": "Updated content",

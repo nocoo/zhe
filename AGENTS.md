@@ -95,6 +95,7 @@ The [jp2 migration](docs/34-jp2-migration.md) is pre-cutover: Railway remains th
 ## Retrospective
 
 Narratives: [Retrospective.md](Retrospective.md); cross-project lessons: global rules/nmem; deterministic rules: hooks/tests.
+
 - Cache invalidation belongs at the D1 mutation source; test new columns through write/read, including real migrations.
 
 <!-- BEGIN:nextjs-agent-rules -->
