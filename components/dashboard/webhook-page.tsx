@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { toast } from "@nocoo/basalt/components/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
 import { ApiKeyShortcut } from "./webhook-page-parts/api-key-shortcut";
@@ -110,7 +110,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
     <div className="space-y-5">
       <PageHeader
         title="Webhook"
-        meta="生成一个 URL，供外部系统直接收藏网页和 X 帖子。"
+        description="生成一个 URL，供外部系统直接收藏网页和 X 帖子。"
         actions={
           !vm.isLoading &&
           !(vm.token && vm.webhookUrl) && (

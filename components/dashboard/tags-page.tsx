@@ -1,10 +1,10 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Tags } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
@@ -37,7 +37,7 @@ export function TagsPage() {
 
   return (
     <div data-testid="tags-page">
-      <PageHeader title="标签" meta={`共 ${vm.rows.length} 个`} />
+      <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
         <div

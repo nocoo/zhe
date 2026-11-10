@@ -1,9 +1,9 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Filter, LayoutGrid, List, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -120,7 +120,7 @@ export function IdeasToolbar({
   return (
     <PageHeader
       title="想法"
-      meta={
+      description={
         filtered
           ? `${vm.ideas.length} / ${vm.allIdeas.length} 条想法`
           : `共 ${vm.allIdeas.length} 条想法`

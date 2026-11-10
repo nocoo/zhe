@@ -15,12 +15,12 @@
  * layer.
  */
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Plus, SlidersHorizontal, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { usePageCreateAction } from "@/contexts/create-action";
@@ -170,7 +170,7 @@ export function TodosPage() {
     <div className="flex h-full min-h-0 flex-col" data-todos-page>
       <PageHeader
         title="待办"
-        meta={vm.loading ? "加载中…" : countLabel}
+        description={vm.loading ? "加载中…" : countLabel}
         actions={
           narrow ? (
             <Popover open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>

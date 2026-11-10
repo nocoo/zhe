@@ -6,6 +6,7 @@
 
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { RefreshCw } from "lucide-react";
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
@@ -78,7 +78,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (loading && !data) {
     return (
       <div>
-        <PageHeader title="存储管理" meta="R2 与 D1 用量、孤儿文件清理" />
+        <PageHeader title="存储管理" description="R2 与 D1 用量、孤儿文件清理" />
         <StorageSkeleton />
       </div>
     );
@@ -90,7 +90,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
     <div className="space-y-5">
       <PageHeader
         title="存储管理"
-        meta="R2 与 D1 用量、孤儿文件清理"
+        description="R2 与 D1 用量、孤儿文件清理"
         actions={
           <Button variant="outline" size="sm" onClick={sp.scan} disabled={loading}>
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} strokeWidth={1.5} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   AlignLeft,
   Bookmark,
@@ -22,7 +23,7 @@ import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { Button } from "@/components/ui/button";
 import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
+import { PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -168,7 +169,7 @@ export function XLibraryPage() {
             <TwitterIcon className="size-6" strokeWidth={1.5} aria-hidden />X 收藏
           </span>
         }
-        meta={
+        description={
           <span role="status">
             共 {entries.length} 条收藏
             {filtered || visible.length !== entries.length ? ` · 显示 ${visible.length} 条` : ""}

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { useMemo, useState } from "react";
 import { deleteLink } from "@/actions/links";
 import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
@@ -7,7 +8,7 @@ import { GithubIcon } from "@/components/site-icons";
 import { AnimatedCardList } from "@/components/ui/animated-card-list";
 import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, PageHeaderSkeleton } from "@/components/ui/page-header";
+import { PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -116,7 +117,7 @@ export function GitHubLibraryPage() {
             GitHub 收藏
           </span>
         }
-        meta={
+        description={
           <span role="status">
             共 {entries.length} 个仓库
             {visible.length !== entries.length ? ` · 显示 ${visible.length} 个` : ""} ·
