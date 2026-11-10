@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
 import {
   SidebarFooter,
   SidebarNav,
@@ -9,7 +10,6 @@ import {
 import { LogOut, Plus } from "lucide-react";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { buildLinkCounts } from "@/models/links";
@@ -211,20 +211,14 @@ export function SidebarExpanded({
           name={user?.name ?? "User"}
           email={user?.email ?? ""}
           avatar={
-            <Avatar className="size-9 shrink-0">
+            <Avatar className="h-9 w-9 shrink-0">
               {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
               <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           }
           action={
             <form action={signOutAction}>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon"
-                aria-label="Sign out"
-                className="w-8 shrink-0"
-              >
+              <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
                 <LogOut aria-hidden />
               </Button>
             </form>
