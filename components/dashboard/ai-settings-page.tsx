@@ -1,11 +1,11 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Loader2, Plug, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
@@ -20,7 +20,7 @@ export function AiSettingsPage() {
 
   return (
     <div data-testid="ai-settings-page">
-      <PageHeader title="AI" meta="配置大模型供应商，用于链接整理建议。" />
+      <PageHeader title="AI" description="配置大模型供应商，用于链接整理建议。" />
 
       {!vm.loaded ? (
         <Card>

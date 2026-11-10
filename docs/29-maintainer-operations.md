@@ -227,7 +227,7 @@ Dropdown and context menu items use the local `components/ui` wrappers: 36px min
 
 ### Hard rules for agents
 
-1. **PageHeader / filter bars** → one row only: filters and actions share the title row through the project override in `components/ui/page-header.tsx`; never pass Basalt `filters` or a second description row. Toolbar controls `size="sm"` (28px), icon controls `IconAction density="toolbar"`.
+1. **PageHeader / filter bars** → Basalt default: `title`, `description` on its own row below, `actions` top-right; short filters stay in `actions`, long filter bars in `filters`. Toolbar controls `size="sm"` (28px), icon controls `IconAction density="toolbar"`.
 2. **Settings / form pages** → Button `size="default"` (34px) or `lg` (40px); not toolbar `sm` unless the control is in a true toolbar row.
 3. **Same row → same height**; use `items-center`. Prefer one density per toolbar. A lone page-level action belongs in the header, not in its own band.
 4. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.

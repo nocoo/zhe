@@ -1,8 +1,8 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Folder, Tag } from "@/models/types";
 import { EnrichmentButton } from "../enrichment-button";
@@ -139,7 +139,7 @@ export function LinksListToolbar(props: ToolbarProps) {
   return (
     <PageHeader
       title={headerTitle}
-      meta={
+      description={
         <span role="status">
           {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
         </span>

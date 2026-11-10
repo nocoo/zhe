@@ -1,61 +1,26 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-
-export interface PageHeaderProps {
-  /** Content heading (h1). */
-  title: React.ReactNode;
-  /** Short inline suffix beside the title: counts, ranges or a one-line note. */
-  meta?: React.ReactNode;
-  /** Toolbar row: filters, view controls, then primary actions (last). */
-  actions?: React.ReactNode;
-  className?: string;
-}
-
-/**
- * Single-row page header. Project override of Basalt `PageHeader`: filters
- * stay on the title row instead of taking the `filters` slot, and the
- * description becomes an inline muted suffix so no page spends a row on it.
- */
-export function PageHeader({ title, meta, actions, className }: PageHeaderProps) {
+/** Pulse stand-in matching Basalt `PageHeader` (title, description row, actions). */
+export function PageHeaderSkeleton({
+  hasActions = true,
+  hasDescription = true,
+}: {
+  hasActions?: boolean;
+  hasDescription?: boolean;
+}) {
   return (
-    <header
-      className={cn(
-        "mb-4 flex min-w-0 flex-col gap-2 md:mb-5 md:flex-row md:items-center md:gap-3",
-        className,
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <h1 className="min-w-0 truncate font-basalt-display text-2xl font-semibold leading-tight tracking-tight text-foreground">
-          {title}
-        </h1>
-        {meta ? (
-          <p
-            {...(typeof meta === "string" ? { title: meta } : {})}
-            className="min-w-0 shrink-0 truncate text-xs tabular-nums text-muted-foreground"
-          >
-            {meta}
-          </p>
+    <header className="min-w-0 shrink-0 space-y-4" data-testid="page-header-skeleton" aria-hidden>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-8 w-32 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
+          {hasDescription ? (
+            <div className="h-4 w-56 max-w-[65ch] rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
+          ) : null}
+        </div>
+        {hasActions ? (
+          <div className="h-7 w-48 shrink-0 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
         ) : null}
       </div>
-      {actions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 [&>*]:shrink-0 md:ml-auto md:justify-end">
-          {actions}
-        </div>
-      ) : null}
-    </header>
-  );
-}
-
-/** Pulse stand-in matching the single-row PageHeader. */
-export function PageHeaderSkeleton({ hasActions = true }: { hasActions?: boolean }) {
-  return (
-    <header className="mb-4 flex items-center gap-3 md:mb-5" data-testid="page-header-skeleton">
-      <div className="h-6 w-28 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
-      <div className="h-3 w-16 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
-      {hasActions ? (
-        <div className="ml-auto h-7 w-48 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
-      ) : null}
     </header>
   );
 }

@@ -102,27 +102,25 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 
 ## 4. 原语对照表
 
-| 组件            | lg   | default                                                      | toolbar compact | 备注                                    |
-| --------------- | ---- | ------------------------------------------------------------ | --------------- | --------------------------------------- |
-| `Button`        | 40px | 34px                                                         | **`sm` → 28px** | `icon` → 34×34                          |
-| `Input`         | 40px | 34px                                                         | **`sm` → 28px** | 无 HTML `size` 属性；用 prop `size`     |
-| `SelectTrigger` | 40px | 34px                                                         | **`sm` → 28px** |                                         |
-| `Checkbox`      | —    | 16px                                                         | **`sm` → 12px** | **禁止** 原生 `<input type="checkbox">` |
-| `Textarea`      | —    | Basalt `InputArea`                                           | `size="sm"`     |                                         |
-| `PageHeader`    | —    | 本项目单行覆盖（标题 + 内联 meta \| filter 与 actions 同排） | 见下节          |                                         |
+| 组件            | lg   | default                                                   | toolbar compact | 备注                                    |
+| --------------- | ---- | --------------------------------------------------------- | --------------- | --------------------------------------- |
+| `Button`        | 40px | 34px                                                      | **`sm` → 28px** | `icon` → 34×34                          |
+| `Input`         | 40px | 34px                                                      | **`sm` → 28px** | 无 HTML `size` 属性；用 prop `size`     |
+| `SelectTrigger` | 40px | 34px                                                      | **`sm` → 28px** |                                         |
+| `Checkbox`      | —    | 16px                                                      | **`sm` → 12px** | **禁止** 原生 `<input type="checkbox">` |
+| `Textarea`      | —    | Basalt `InputArea`                                        | `size="sm"`     |                                         |
+| `PageHeader`    | —    | Basalt 默认（标题 + `description` 副行 + `actions` 右上） | 见下节          |                                         |
 
-路径：`@nocoo/basalt` 或 `@/components/ui/...` 薄 re-export。
+路径：`@nocoo/basalt/components/page-header`；仅加载骨架在 `@/components/ui/page-header`。
 
-### PageHeader 单行契约（项目覆盖 Basalt `filters` 槽位）
+### PageHeader（Basalt 默认）
 
-本项目 `components/ui/page-header.tsx` 覆盖 Basalt `PageHeader`，理由：纵向空间优先，
-Basalt `INTEGRATION.md`「Create and filters」按 filter 数量分档，会让筛选独占一整行。
+内容区页头直接从 Basalt 引入，尽量不加 className 覆盖。
 
-- 只有一行业头：`[h1] [meta 计数/一句话]` 左，`[筛选] [视图切换] [主操作]` 右。
-- 禁止使用 Basalt `PageHeader` 的 `filters` / `description` / `breadcrumbs` 槽位。
-- `meta` 是标题同行的灰色小字，溢出截断并用 `title` 保留全文；真说明句同样内联，不再占第二行。
-- 主操作永远最后一个；窄屏允许 actions 整行折到标题下方（`flex-wrap` + `md:flex-row`）。
-- 骨架 `PageHeaderSkeleton` 必须维持单行几何。
+- 标题 `title`（h1），说明与计数放在 `description`（标题下方一行）。
+- 短筛选与主操作放在 `actions`（标题行右侧）；筛选较多时用 `filters` 独占一行。
+- 主操作永远最后一个。
+- 骨架 `PageHeaderSkeleton` 与 Basalt 叠放几何一致（标题块 + 副标题块 + 右侧 actions 占位）。
 
 ---
 

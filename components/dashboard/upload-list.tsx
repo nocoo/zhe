@@ -1,10 +1,10 @@
 "use client";
 
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Upload as UploadIcon } from "lucide-react";
 import { CardListSkeleton } from "@/components/ui/card-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/ui/page-header";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { staggerStyle } from "@/lib/motion";
@@ -17,7 +17,7 @@ import { UploadZone } from "./upload-zone";
 function UploadListSkeleton() {
   return (
     <div>
-      <PageHeader title="文件上传" meta="加载中…" />
+      <PageHeader title="文件上传" description="加载中…" />
       <div className="mb-6 flex items-center gap-4">
         <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
       </div>
@@ -108,7 +108,7 @@ export function UploadList({
       {/* Header */}
       <PageHeader
         title="文件上传"
-        meta={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
+        description={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
         actions={
           <>
             <UploadOptions
