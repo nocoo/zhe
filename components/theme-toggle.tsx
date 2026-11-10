@@ -27,7 +27,7 @@ export function ThemeToggle({ "aria-label": ariaLabel = "切换主题" }: ThemeT
         onClick={() => setTheme(nextTheme)}
         aria-label={ariaLabel}
       >
-        <Icon className="h-4 w-4" aria-hidden="true" strokeWidth={1.5} />
+        <Icon aria-hidden strokeWidth={1.5} />
       </Button>
     </HeaderTooltip>
   );

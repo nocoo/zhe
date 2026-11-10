@@ -7,6 +7,7 @@ import {
   AppSkipLink,
   AppShell as BasaltAppShell,
 } from "@nocoo/basalt/components/app-shell";
+import { LinkButton } from "@nocoo/basalt/components/button";
 import { Menu, Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -112,11 +113,10 @@ function AppShellInner({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
                   onClick={toggle}
                   aria-label="Open menu"
                 >
-                  <Menu className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+                  <Menu aria-hidden="true" />
                 </Button>
               </HeaderTooltip>
             ) : null
@@ -127,21 +127,21 @@ function AppShellInner({
             <>
               {isMobile && (
                 <Button variant="ghost" size="icon" aria-label="打开搜索" onClick={openSearch}>
-                  <Search className="h-4 w-4" />
+                  <Search aria-hidden />
                 </Button>
               )}
               {!isMobile && <EnvironmentControl />}
               <HeaderTooltip label="GitHub repository">
-                <Button variant="ghost" size="icon" asChild>
-                  <a
-                    href="https://github.com/nocoo/zhe"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="GitHub"
-                  >
-                    <GithubIcon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                  </a>
-                </Button>
+                <LinkButton
+                  variant="ghost"
+                  size="icon"
+                  href="https://github.com/nocoo/zhe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub"
+                >
+                  <GithubIcon aria-hidden strokeWidth={1.5} />
+                </LinkButton>
               </HeaderTooltip>
               <HexlyLink />
               <ThemeToggle aria-label="切换主题" />

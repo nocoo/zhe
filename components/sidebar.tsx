@@ -10,6 +10,7 @@ import { buildLinkCounts } from "@/models/links";
 import { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { SidebarCollapsed } from "./sidebar-parts/sidebar-collapsed";
 import { SidebarExpanded } from "./sidebar-parts/sidebar-expanded";
+import { SidebarMarkHeader } from "./sidebar-parts/sidebar-mark-header";
 
 export interface SidebarProps {
   user?: {
@@ -50,6 +51,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
 
   return (
     <BasaltSidebar collapsed={collapsed}>
+      <SidebarMarkHeader collapsed={collapsed} onToggle={toggle} isMobile={isMobile} />
       {collapsed ? (
         <SidebarCollapsed
           pathname={pathname}
@@ -70,9 +72,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           linkCounts={linkCounts}
           groupOpen={groupOpen}
           toggleGroup={toggleGroup}
-          onToggle={toggle}
           openSearch={openSearch}
-          isMobile={isMobile}
         />
       )}
     </BasaltSidebar>

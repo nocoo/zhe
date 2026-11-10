@@ -1,10 +1,10 @@
 "use client";
 
-import { SidebarFooter, SidebarHeader, SidebarNav } from "@nocoo/basalt/components/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
+import { SidebarFooter, SidebarNav } from "@nocoo/basalt/components/sidebar";
 import { PanelLeft, Search } from "lucide-react";
 import Link from "next/link";
 import { FolderIcon } from "@/components/folder-icon";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -75,17 +75,6 @@ export function SidebarCollapsed({
 }: SidebarCollapsedProps) {
   return (
     <TooltipProvider>
-      <SidebarHeader>
-        <img
-          src="/logo-24.png"
-          alt="Zhe"
-          width={28}
-          height={28}
-          data-testid="sidebar-logo"
-          className="size-7 shrink-0"
-        />
-      </SidebarHeader>
-
       <Button
         variant="ghost"
         size="icon"
@@ -165,7 +154,7 @@ export function SidebarCollapsed({
       <SidebarFooter>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <Avatar className="size-9 cursor-pointer">
+            <Avatar className="h-9 w-9 cursor-pointer">
               {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
               <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>

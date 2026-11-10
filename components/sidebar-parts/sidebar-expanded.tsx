@@ -1,20 +1,17 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
 import {
   SidebarFooter,
-  SidebarHeader,
   SidebarNav,
   SidebarSearch,
   SidebarUser,
 } from "@nocoo/basalt/components/sidebar";
-import { LogOut, PanelLeft, Plus } from "lucide-react";
-import Link from "next/link";
+import { LogOut, Plus } from "lucide-react";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { APP_VERSION } from "@/lib/version";
 import type { buildLinkCounts } from "@/models/links";
 import type { Folder } from "@/models/types";
 import type { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";
@@ -41,9 +38,7 @@ interface SidebarExpandedProps {
   linkCounts: LinkCounts;
   groupOpen: Record<string, boolean>;
   toggleGroup: (label: string) => void;
-  onToggle: () => void;
   openSearch: () => void;
-  isMobile: boolean;
 }
 
 function isFolderNavActive(currentFolder: string | null | "__other__", folderParam: string | null) {
@@ -172,48 +167,10 @@ export function SidebarExpanded({
   linkCounts,
   groupOpen,
   toggleGroup,
-  onToggle,
   openSearch,
-  isMobile,
 }: SidebarExpandedProps) {
   return (
     <>
-      <SidebarHeader>
-        <div className="flex w-full items-center justify-between pl-basalt-layout-sm">
-          <Link
-            href="/dashboard/overview"
-            aria-label="Zhe"
-            className="flex min-w-0 items-center gap-basalt-space-lg text-basalt-foreground no-underline hover:no-underline"
-          >
-            <img
-              src="/logo-24.png"
-              alt=""
-              width={28}
-              height={28}
-              data-testid="sidebar-logo"
-              className="size-7 shrink-0"
-            />
-            <span className="truncate text-basalt-xl font-semibold text-basalt-foreground">
-              ZHE.TO
-            </span>
-            <span className="shrink-0 rounded-basalt-md bg-basalt-secondary px-basalt-space-md py-basalt-space-xs text-basalt-sm font-medium leading-basalt-tight text-basalt-muted-foreground">
-              v{APP_VERSION}
-            </span>
-          </Link>
-          {isMobile ? null : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="w-7 shrink-0"
-              onClick={onToggle}
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeft aria-hidden />
-            </Button>
-          )}
-        </div>
-      </SidebarHeader>
-
       <div className="px-basalt-nav-inset">
         <SidebarSearch onClick={openSearch}>搜索收藏与记录…</SidebarSearch>
       </div>
@@ -254,20 +211,14 @@ export function SidebarExpanded({
           name={user?.name ?? "User"}
           email={user?.email ?? ""}
           avatar={
-            <Avatar className="size-9 shrink-0">
+            <Avatar className="h-9 w-9 shrink-0">
               {user?.image && <AvatarImage src={user.image} alt={user.name || "User"} />}
               <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           }
           action={
             <form action={signOutAction}>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon"
-                aria-label="Sign out"
-                className="w-8 shrink-0"
-              >
+              <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
                 <LogOut aria-hidden />
               </Button>
             </form>
