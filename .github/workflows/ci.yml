@@ -80,7 +80,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ffmpeg
         (cd worker && bun install --frozen-lockfile --ignore-scripts)
-        export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH"
+        echo "$GITHUB_WORKSPACE/worker/node_modules/.bin" >> "$GITHUB_PATH"
         mkdir -p artifacts
         wrangler --version | tee artifacts/wrangler-version.txt
       l3-command: bun run test:e2e:pw
