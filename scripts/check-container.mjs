@@ -4,6 +4,7 @@ import { setTimeout } from "node:timers/promises";
 
 assert.equal(process.getuid(), 1000);
 assert.equal(process.env.NODE_ENV, "production");
+assert.equal(process.version, "v26.13.1");
 for (const key of Object.keys(process.env)) {
   assert(!/^(AUTH_|D1_PROXY_|R2_|LOCAL_|E2E_|PLAYWRIGHT|ZHE_)/.test(key), key);
 }
@@ -70,5 +71,5 @@ const probe = "/app/.next/cache/container-smoke";
 await writeFile(probe, "writable");
 await unlink(probe);
 console.log(
-  `Container acceptance passed: UID 1000, version ${version}, isolated health/auth/assets/cache`,
+  `Container acceptance passed: UID 1000, node ${process.version}, app ${version}, isolated health/auth/assets/cache`,
 );
