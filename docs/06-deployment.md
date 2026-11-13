@@ -50,8 +50,8 @@ Zhe 的 Next.js 应用以单个 Docker 容器运行在 jp4 的 `/data/zhe`，由
 | 阶段      | 基础镜像                     | 内容                                                                     |
 | --------- | ---------------------------- | ------------------------------------------------------------------------ |
 | `deps`    | `oven/bun:1`                 | `bun install --frozen-lockfile` 安装依赖                                 |
-| `builder` | `node:26.12.1-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
-| `runner`  | `node:26.12.1-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
+| `builder` | `node:26.13.1-bookworm-slim` | `node …/next build` 构建 Next.js（standalone）                           |
+| `runner`  | `node:26.13.1-bookworm-slim` | 复制 `.next/standalone`、`.next/static`、`public`，运行 `node server.js` |
 
 > **为何 build/runtime 不用 Bun**：Bun 1.3.14 在 `next build` 收尾阶段会 segfault（SIGILL / exit 132），导致 Docker `RUN` 失败。`bun install` 本身稳定，故仅 deps 阶段使用 Bun。
 
